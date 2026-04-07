@@ -1069,6 +1069,11 @@ def init_db():
             print('Admin creado: admin@evore.us / Evore2024!')
 
 
-if __name__ == '__main__':
+# Inicializar BD al arrancar (seguro con gunicorn)
+try:
     init_db()
+except Exception as e:
+    print(f'DB init warning: {e}')
+
+if __name__ == '__main__':
     app.run(debug=True)
