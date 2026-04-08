@@ -1272,7 +1272,7 @@ T['ordenes_compra/index.html'] = """{% extends 'base.html' %}
 T['ordenes_compra/form.html'] = """{% extends 'base.html' %}
 {% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('ordenes_compra') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
-{% block content %}<div class="fc" style="max-width:1040px"><form method="POST">
+{% block content %}<div class="fc" style="max-width:1040px"><form method="POST" id="ocForm">
 <h6 class="text-muted text-uppercase mb-3" style="font-size:.75rem;letter-spacing:1px">Información general</h6>
 <div class="row g-3 mb-3">
   <div class="col-md-4"><label class="form-label">Proveedor</label>
@@ -1280,8 +1280,8 @@ T['ordenes_compra/form.html'] = """{% extends 'base.html' %}
       <option value="">— Sin proveedor —</option>
       {% for pv in proveedores_list %}<option value="{{ pv.id }}" {% if obj and obj.proveedor_id==pv.id %}selected{% endif %}>{{ pv.empresa or pv.nombre }}</option>{% endfor %}
     </select></div>
-  <div class="col-md-4"><label class="form-label">Cotización de referencia <small class="text-muted">(calcula fecha entrega)</small></label>
-    <select name="cotizacion_id" class="form-select" id="selectCot" onchange="onCotChange()">
+  <div class="col-md-4"><label class="form-label">Cotización de referencia <small class="text-muted">(auto-calcula entrega)</small></label>
+    <select name="cotizacion_id" class="form-select" id="selectCot">
       <option value="">— Sin cotización —</option>
       {% for c in cotizaciones_list %}<option value="{{ c.id }}"
         data-plazo="{{ c.plazo_entrega_dias or 0 }}"
@@ -1289,7 +1289,7 @@ T['ordenes_compra/form.html'] = """{% extends 'base.html' %}
         data-nombre="{{ c.nombre_producto }}"
         data-precio="{{ c.precio_unitario }}"
         data-unidad="{{ c.unidad }}"
-        data-cond="{{ c.condicion_pago_tipo }}"
+        data-cond="{{ c.condicion_pago_tipo or 'contado' }}"
         {% if obj and obj.cotizacion_id==c.id %}selected{% endif %}>
         {{ c.numero or '' }} — {{ c.nombre_producto }} ({{ c.proveedor.empresa if c.proveedor else '—' }})
       </option>{% endfor %}
@@ -1302,13 +1302,12 @@ T['ordenes_compra/form.html'] = """{% extends 'base.html' %}
 </div>
 <div class="row g-3 mb-3">
   <div class="col-md-3"><label class="form-label">Fecha emisión</label>
-    <input type="date" name="fecha_emision" id="fechaEmision" class="form-control" value="{{ obj.fecha_emision.strftime('%Y-%m-%d') if obj and obj.fecha_emision else today }}" oninput="calcFechaEntrega()"></div>
-  <div class="col-md-3"><label class="form-label">Fecha entrega esperada <small class="text-muted" id="plazoHint"></small></label>
+    <input type="date" name="fecha_emision" id="fechaEmision" class="form-control" value="{{ obj.fecha_emision.strftime('%Y-%m-%d') if obj and obj.fecha_emision else now.strftime('%Y-%m-%d') }}"></div>
+  <div class="col-md-3"><label class="form-label">Entrega esperada <small class="text-muted" id="plazoHint" style="font-size:.75rem"></small></label>
     <input type="date" name="fecha_esperada" id="fechaEsperada" class="form-control" value="{{ obj.fecha_esperada.strftime('%Y-%m-%d') if obj and obj.fecha_esperada else '' }}"></div>
   <div class="col-md-3"><label class="form-label">Fecha estimada pago</label>
     <input type="date" name="fecha_estimada_pago" class="form-control" value="{{ obj.fecha_estimada_pago.strftime('%Y-%m-%d') if obj and obj.fecha_estimada_pago else '' }}"></div>
 </div>
-<!-- Info de condición de pago desde cotización -->
 <div id="condPagoInfo" class="alert alert-info py-2 mb-3" style="display:none;font-size:.85rem">
   <i class="bi bi-credit-card me-2"></i><span id="condPagoText"></span>
 </div>
@@ -1321,28 +1320,32 @@ T['ordenes_compra/form.html'] = """{% extends 'base.html' %}
       {% for t in transportistas_list %}<option value="{{ t.id }}" {% if obj and obj.transportista_id==t.id %}selected{% endif %}>{{ t.empresa or t.nombre }}</option>{% endfor %}
     </select></div>
   <div class="col-md-3"><label class="form-label">Fecha estimada recogida</label>
-    <input type="date" name="fecha_estimada_recogida" id="fechaRecogida" class="form-control" value="{{ obj.fecha_estimada_recogida.strftime('%Y-%m-%d') if obj and obj.fecha_estimada_recogida else '' }}"></div>
-  <div class="col-md-5"><div class="alert alert-warning py-2 mb-0 mt-4" style="font-size:.82rem" id="transAlert" {% if not (obj and obj.transportista_id) %}style="display:none"{% endif %}>
-    <i class="bi bi-exclamation-triangle me-1"></i>Al guardar se creará automáticamente una <strong>tarea</strong> para contactar al transportista 2 días antes de la recogida.</div></div>
-</div>
-<hr class="my-3">
-<div class="d-flex justify-content-between align-items-center mb-2">
-  <h6 class="text-muted mb-0 text-uppercase" style="letter-spacing:1px;font-size:.75rem">Ítems de la orden</h6>
-  <div class="d-flex gap-2">
-    <button type="button" class="btn btn-sm btn-outline-success" onclick="importarDesdeCot()" id="btnImportCot" {% if not cotizaciones_list %}disabled{% endif %} title="Importar ítem desde cotización seleccionada">
-      <i class="bi bi-cloud-download me-1"></i>Importar de cotización</button>
-    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addItem()"><i class="bi bi-plus-lg me-1"></i>Agregar ítem manual</button>
+    <input type="date" name="fecha_estimada_recogida" class="form-control" value="{{ obj.fecha_estimada_recogida.strftime('%Y-%m-%d') if obj and obj.fecha_estimada_recogida else '' }}"></div>
+  <div class="col-md-5 d-flex align-items-end">
+    <div id="transAlert" class="alert alert-warning py-2 mb-0 w-100" style="font-size:.82rem;display:{{ 'block' if obj and obj.transportista_id else 'none' }}">
+      <i class="bi bi-exclamation-triangle me-1"></i>Se creará una <strong>tarea automática</strong> para contactar al transportista 2 días antes de la recogida.
+    </div>
   </div>
 </div>
-<div id="itemsContainer"></div>
+<hr class="my-3">
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h6 class="text-muted mb-0 text-uppercase" style="letter-spacing:1px;font-size:.75rem">Ítems de la orden</h6>
+  <div class="d-flex gap-2">
+    <button type="button" class="btn btn-sm btn-outline-success" id="btnImportCot" title="Importar ítem desde cotización seleccionada">
+      <i class="bi bi-cloud-download me-1"></i>Importar de cotización</button>
+    <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddItem">
+      <i class="bi bi-plus-lg me-1"></i>Agregar ítem</button>
+  </div>
+</div>
+<div id="itemsContainer" style="min-height:60px"></div>
 <div class="mt-3 mb-4"><div class="row g-2 justify-content-end"><div class="col-md-4">
   <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">Subtotal:</span><strong id="lblSub">$ 0</strong></div>
   <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">IVA 19%:</span><strong id="lblIva">$ 0</strong></div>
   <div class="d-flex justify-content-between py-1"><span class="fw-bold">Total:</span><strong id="lblTot" style="color:#5e72e4;font-size:1.1rem">$ 0</strong></div>
 </div></div></div>
-<input type="hidden" name="subtotal_calc" id="subtotalCalc">
-<input type="hidden" name="iva_calc" id="ivaCalc">
-<input type="hidden" name="total_calc" id="totalCalc">
+<input type="hidden" name="subtotal_calc" id="subtotalCalc" value="0">
+<input type="hidden" name="iva_calc" id="ivaCalc" value="0">
+<input type="hidden" name="total_calc" id="totalCalc" value="0">
 <div class="mb-3"><label class="form-label">Notas</label>
   <textarea name="notas" class="form-control" rows="2">{{ obj.notas if obj else '' }}</textarea></div>
 <div class="d-flex gap-2 mt-4">
@@ -1350,109 +1353,210 @@ T['ordenes_compra/form.html'] = """{% extends 'base.html' %}
   <a href="{{ url_for('ordenes_compra') }}" class="btn btn-outline-secondary">Cancelar</a>
 </div></form></div>
 {% block scripts %}<script>
+(function(){
 var ITEMS_EDIT = {{ items_json|tojson }};
 var UNIDADES = ['unidades','kg','g','litros','ml','libras','galones','metros','cm','piezas','cajas','bolsas'];
-function fmt(n){return'$ '+Math.round(n).toLocaleString('es-CO');}
+
+function fmt(n){
+  try{ return '$ ' + Math.round(n).toLocaleString('es-CO'); } catch(e){ return '$ '+Math.round(n); }
+}
 
 function recalc(){
-  var sub=0;
-  document.querySelectorAll('.oc-row').forEach(function(row){
-    var c=parseFloat(row.querySelector('[data-f="cant"]').value)||0;
-    var p=parseFloat(row.querySelector('[data-f="precio"]').value)||0;
-    var st=c*p; sub+=st;
-    row.querySelector('[data-f="sub"]').textContent=fmt(st);
+  var sub = 0;
+  document.querySelectorAll('.oc-item-row').forEach(function(row){
+    var cEl = row.querySelector('[name="item_cant[]"]');
+    var pEl = row.querySelector('[name="item_precio[]"]');
+    var sEl = row.querySelector('[data-role="sub"]');
+    if(!cEl || !pEl || !sEl) return;
+    var c = parseFloat(cEl.value) || 0;
+    var p = parseFloat(pEl.value) || 0;
+    var st = c * p;
+    sub += st;
+    sEl.textContent = fmt(st);
   });
-  var iva=sub*0.19; var tot=sub+iva;
-  document.getElementById('lblSub').textContent=fmt(sub);
-  document.getElementById('lblIva').textContent=fmt(iva);
-  document.getElementById('lblTot').textContent=fmt(tot);
-  document.getElementById('subtotalCalc').value=sub.toFixed(2);
-  document.getElementById('ivaCalc').value=iva.toFixed(2);
-  document.getElementById('totalCalc').value=tot.toFixed(2);
+  var iva = sub * 0.19;
+  var tot = sub + iva;
+  document.getElementById('lblSub').textContent = fmt(sub);
+  document.getElementById('lblIva').textContent = fmt(iva);
+  document.getElementById('lblTot').textContent = fmt(tot);
+  document.getElementById('subtotalCalc').value = sub.toFixed(2);
+  document.getElementById('ivaCalc').value = iva.toFixed(2);
+  document.getElementById('totalCalc').value = tot.toFixed(2);
+}
+
+function buildUnidadSelect(selected){
+  var sel = document.createElement('select');
+  sel.name = 'item_unidad[]';
+  sel.className = 'form-select form-select-sm';
+  UNIDADES.forEach(function(u){
+    var opt = document.createElement('option');
+    opt.value = u; opt.textContent = u;
+    if(u === selected) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  return sel;
 }
 
 function addItem(d){
-  d=d||{};
-  var unOpts=UNIDADES.map(function(u){return'<option value="'+u+'"'+(d.unidad===u?' selected':'')+'>'+u+'</option>';}).join('');
-  var html='<div class="oc-row row g-2 mb-2 align-items-end" style="background:#f8f9fe;border-radius:8px;padding:.5rem">'
-    +'<input type="hidden" name="item_cot_id[]" value="'+(d.cot_id||'')+'"/>'
-    +'<div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Ítem *</label>'
-    +'<input type="text" name="item_nombre[]" class="form-control form-control-sm" value="'+(d.nombre||'')+'" required></div>'
-    +'<div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Descripción</label>'
-    +'<input type="text" name="item_desc[]" class="form-control form-control-sm" value="'+(d.desc||'')+'"></div>'
-    +'<div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Cant.</label>'
-    +'<input type="number" name="item_cant[]" data-f="cant" class="form-control form-control-sm" step="0.001" min="0.001" value="'+(d.cant||1)+'" oninput="recalc()"></div>'
-    +'<div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Unidad</label>'
-    +'<select name="item_unidad[]" class="form-select form-select-sm">'+unOpts+'</select></div>'
-    +'<div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Precio unit. $</label>'
-    +'<input type="number" name="item_precio[]" data-f="precio" class="form-control form-control-sm" step="1" min="0" value="'+(d.precio||0)+'" oninput="recalc()"></div>'
-    +'<div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Subtotal</label>'
-    +'<span class="form-control-plaintext form-control-sm fw-semibold" data-f="sub" style="font-size:.82rem">$ 0</span></div>'
-    +'<div class="col-auto d-flex align-items-end"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest(\'.oc-row\').remove();recalc()"><i class="bi bi-trash"></i></button></div>'
-    +(d.cot_id ? '<div class="col-12"><small class="text-success"><i class="bi bi-link-45deg me-1"></i>Vinculado a cotización</small></div>' : '')
-    +'</div>';
-  document.getElementById('itemsContainer').insertAdjacentHTML('beforeend',html);
+  d = d || {};
+  var container = document.getElementById('itemsContainer');
+
+  var row = document.createElement('div');
+  row.className = 'oc-item-row';
+  row.style.cssText = 'background:#f8f9fe;border-radius:8px;padding:.6rem .8rem;margin-bottom:.5rem;border:1px solid #e8ecf0';
+
+  // Hidden cotizacion id
+  var hidCot = document.createElement('input');
+  hidCot.type = 'hidden'; hidCot.name = 'item_cot_id[]';
+  hidCot.value = d.cot_id || '';
+  row.appendChild(hidCot);
+
+  var inner = document.createElement('div');
+  inner.className = 'row g-2 align-items-end';
+
+  // Nombre
+  var c1 = document.createElement('div'); c1.className = 'col-md-3';
+  c1.innerHTML = '<label class="form-label mb-1" style="font-size:.79rem;font-weight:600">Producto / Ítem *</label>';
+  var inp1 = document.createElement('input');
+  inp1.type='text'; inp1.name='item_nombre[]'; inp1.className='form-control form-control-sm';
+  inp1.value = d.nombre || ''; inp1.required = true; inp1.placeholder = 'Nombre del ítem';
+  c1.appendChild(inp1); inner.appendChild(c1);
+
+  // Descripcion
+  var c2 = document.createElement('div'); c2.className = 'col-md-2';
+  c2.innerHTML = '<label class="form-label mb-1" style="font-size:.79rem;font-weight:600">Descripción</label>';
+  var inp2 = document.createElement('input');
+  inp2.type='text'; inp2.name='item_desc[]'; inp2.className='form-control form-control-sm';
+  inp2.value = d.desc || ''; inp2.placeholder = 'Opcional';
+  c2.appendChild(inp2); inner.appendChild(c2);
+
+  // Cantidad
+  var c3 = document.createElement('div'); c3.className = 'col-6 col-md-2';
+  c3.innerHTML = '<label class="form-label mb-1" style="font-size:.79rem;font-weight:600">Cantidad</label>';
+  var inp3 = document.createElement('input');
+  inp3.type='number'; inp3.name='item_cant[]'; inp3.className='form-control form-control-sm';
+  inp3.step='0.01'; inp3.min='0.01'; inp3.value = d.cant || 1;
+  inp3.addEventListener('input', recalc);
+  c3.appendChild(inp3); inner.appendChild(c3);
+
+  // Unidad
+  var c4 = document.createElement('div'); c4.className = 'col-6 col-md-2';
+  c4.innerHTML = '<label class="form-label mb-1" style="font-size:.79rem;font-weight:600">Unidad</label>';
+  c4.appendChild(buildUnidadSelect(d.unidad || 'unidades')); inner.appendChild(c4);
+
+  // Precio
+  var c5 = document.createElement('div'); c5.className = 'col-md-2';
+  c5.innerHTML = '<label class="form-label mb-1" style="font-size:.79rem;font-weight:600">Precio unit. $</label>';
+  var inp5 = document.createElement('input');
+  inp5.type='number'; inp5.name='item_precio[]'; inp5.className='form-control form-control-sm';
+  inp5.step='1'; inp5.min='0'; inp5.value = d.precio || 0;
+  inp5.addEventListener('input', recalc);
+  c5.appendChild(inp5); inner.appendChild(c5);
+
+  // Subtotal display
+  var c6 = document.createElement('div'); c6.className = 'col-md-1';
+  c6.innerHTML = '<label class="form-label mb-1" style="font-size:.79rem;font-weight:600">Subtotal</label>';
+  var span6 = document.createElement('div');
+  span6.setAttribute('data-role','sub');
+  span6.className = 'form-control-plaintext form-control-sm fw-semibold';
+  span6.style.fontSize = '.82rem'; span6.textContent = '$ 0';
+  c6.appendChild(span6); inner.appendChild(c6);
+
+  // Delete button
+  var cDel = document.createElement('div'); cDel.className = 'col-auto d-flex align-items-end';
+  var btnDel = document.createElement('button');
+  btnDel.type='button'; btnDel.className='btn btn-sm btn-outline-danger';
+  btnDel.innerHTML='<i class="bi bi-trash"></i>';
+  btnDel.addEventListener('click', function(){ row.remove(); recalc(); });
+  cDel.appendChild(btnDel); inner.appendChild(cDel);
+
+  // Vinculado badge
+  if(d.cot_id){
+    var badge = document.createElement('div'); badge.className='col-12';
+    badge.innerHTML='<small class="text-success"><i class="bi bi-link-45deg me-1"></i>Vinculado a cotización</small>';
+    inner.appendChild(badge);
+  }
+
+  row.appendChild(inner);
+  container.appendChild(row);
   recalc();
 }
 
 function onCotChange(){
-  var sel=document.getElementById('selectCot');
-  var opt=sel.options[sel.selectedIndex];
-  if(!opt||!opt.value){ document.getElementById('condPagoInfo').style.display='none'; return; }
-  var plazo=parseInt(opt.dataset.plazo)||0;
-  var prov=opt.dataset.prov;
-  var cond=opt.dataset.cond;
-  // Auto-fill proveedor if empty
-  if(prov && !document.getElementById('selectProv').value){
-    document.getElementById('selectProv').value=prov;
+  var sel = document.getElementById('selectCot');
+  var opt = sel ? sel.options[sel.selectedIndex] : null;
+  var info = document.getElementById('condPagoInfo');
+  if(!opt || !opt.value){ if(info) info.style.display='none'; return; }
+  var plazo = parseInt(opt.dataset.plazo) || 0;
+  var prov  = opt.dataset.prov || '';
+  var cond  = opt.dataset.cond || '';
+  if(prov){
+    var sp = document.getElementById('selectProv');
+    if(sp && !sp.value) sp.value = prov;
   }
-  // Recalculate delivery date
   calcFechaEntrega();
-  // Show payment condition info
-  var condTexts={'contado':'Pago de contado al recibir','credito':'Pago a crédito','anticipo_saldo':'Anticipo + saldo contra entrega','consignacion':'Pago por consignación'};
-  document.getElementById('condPagoText').textContent='Condición de pago: '+(condTexts[cond]||cond);
-  document.getElementById('condPagoInfo').style.display='';
+  var condTexts = {contado:'Pago de contado al recibir',credito:'Pago a crédito',anticipo_saldo:'Anticipo + saldo contra entrega',consignacion:'Pago por consignación'};
+  var ct = document.getElementById('condPagoText');
+  if(ct) ct.textContent = 'Condición de pago: ' + (condTexts[cond] || cond);
+  if(info) info.style.display = '';
 }
 
 function calcFechaEntrega(){
-  var sel=document.getElementById('selectCot');
-  var opt=sel&&sel.options[sel.selectedIndex];
-  var plazo=opt&&opt.dataset?parseInt(opt.dataset.plazo)||0:0;
+  var sel = document.getElementById('selectCot');
+  var opt = sel ? sel.options[sel.selectedIndex] : null;
+  var plazo = (opt && opt.dataset) ? parseInt(opt.dataset.plazo) || 0 : 0;
   if(!plazo) return;
-  var feVal=document.getElementById('fechaEmision').value;
-  if(!feVal) return;
-  var fe=new Date(feVal+'T12:00:00');
-  fe.setDate(fe.getDate()+plazo);
-  var yy=fe.getFullYear();
-  var mm=String(fe.getMonth()+1).padStart(2,'0');
-  var dd=String(fe.getDate()).padStart(2,'0');
-  document.getElementById('fechaEsperada').value=yy+'-'+mm+'-'+dd;
-  document.getElementById('plazoHint').textContent='(auto: '+plazo+'d desde emisión)';
+  var feEl = document.getElementById('fechaEmision');
+  if(!feEl || !feEl.value) return;
+  var fe = new Date(feEl.value + 'T12:00:00');
+  fe.setDate(fe.getDate() + plazo);
+  var yy = fe.getFullYear();
+  var mm = String(fe.getMonth()+1).padStart(2,'0');
+  var dd = String(fe.getDate()).padStart(2,'0');
+  var fesp = document.getElementById('fechaEsperada');
+  if(fesp) fesp.value = yy + '-' + mm + '-' + dd;
+  var ph = document.getElementById('plazoHint');
+  if(ph) ph.textContent = '(auto: ' + plazo + 'd)';
 }
 
-function importarDesdeCot(){
-  var sel=document.getElementById('selectCot');
-  var opt=sel.options[sel.selectedIndex];
-  if(!opt||!opt.value){alert('Selecciona una cotización primero.');return;}
-  addItem({
-    nombre: opt.dataset.nombre||'',
-    desc: '',
-    cant: 1,
-    unidad: opt.dataset.unidad||'unidades',
-    precio: parseFloat(opt.dataset.precio)||0,
-    cot_id: opt.value
+// Wire up events
+var selCot = document.getElementById('selectCot');
+if(selCot) selCot.addEventListener('change', onCotChange);
+
+var selTrans = document.getElementById('selectTrans');
+var transAlert = document.getElementById('transAlert');
+if(selTrans && transAlert){
+  selTrans.addEventListener('change', function(){
+    transAlert.style.display = this.value ? 'block' : 'none';
   });
 }
 
-// Transportista alert
-document.getElementById('selectTrans').addEventListener('change',function(){
-  document.getElementById('transAlert').style.display=this.value?'':'none';
+var feEl = document.getElementById('fechaEmision');
+if(feEl) feEl.addEventListener('input', calcFechaEntrega);
+
+var btnAdd = document.getElementById('btnAddItem');
+if(btnAdd) btnAdd.addEventListener('click', function(){ addItem(); });
+
+var btnImp = document.getElementById('btnImportCot');
+if(btnImp) btnImp.addEventListener('click', function(){
+  var sel = document.getElementById('selectCot');
+  var opt = sel ? sel.options[sel.selectedIndex] : null;
+  if(!opt || !opt.value){ alert('Selecciona primero una cotización de referencia.'); return; }
+  addItem({
+    nombre: opt.dataset.nombre || '',
+    desc: '',
+    cant: 1,
+    unidad: opt.dataset.unidad || 'unidades',
+    precio: parseFloat(opt.dataset.precio) || 0,
+    cot_id: opt.value
+  });
 });
 
-// Init
-ITEMS_EDIT.forEach(function(it){addItem(it);});
-if(ITEMS_EDIT.length===0) addItem();
+// Init: load existing items (edit mode) or blank row
+ITEMS_EDIT.forEach(function(it){ addItem(it); });
+if(ITEMS_EDIT.length === 0) addItem();
 onCotChange();
+})();
 </script>{% endblock %}{% endblock %}"""
 
 T['proveedores/index.html'] = """{% extends 'base.html' %}
