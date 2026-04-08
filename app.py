@@ -1,5 +1,5 @@
 # =============================================================
-# EVORE CRM — v7 (Clientes+, Ventas+, Gastos Operativos, COP/USD)
+# EVORE CRM — v8 (Tareas+Chat, Producción, Compras, Granel, Impuestos, NSO)
 # =============================================================
 
 from flask import Flask, render_template, redirect, url_for, flash, request, jsonify
@@ -113,6 +113,22 @@ class Venta(db.Model):
     creado_por          = db.Column(db.Integer, db.ForeignKey('users.id'))
     items               = db.relationship('VentaProducto', backref='venta', lazy=True, cascade='all, delete-orphan')
 
+class TareaAsignado(db.Model):
+    __tablename__ = 'tarea_asignados'
+    id       = db.Column(db.Integer, primary_key=True)
+    tarea_id = db.Column(db.Integer, db.ForeignKey('tareas.id'), nullable=False)
+    user_id  = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user     = db.relationship('User', foreign_keys=[user_id])
+
+class TareaComentario(db.Model):
+    __tablename__ = 'tarea_comentarios'
+    id        = db.Column(db.Integer, primary_key=True)
+    tarea_id  = db.Column(db.Integer, db.ForeignKey('tareas.id'), nullable=False)
+    autor_id  = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    mensaje   = db.Column(db.Text, nullable=False)
+    creado_en = db.Column(db.DateTime, default=datetime.utcnow)
+    autor     = db.relationship('User', foreign_keys=[autor_id])
+
 class Tarea(db.Model):
     __tablename__ = 'tareas'
     id                = db.Column(db.Integer, primary_key=True)
@@ -125,6 +141,9 @@ class Tarea(db.Model):
     creado_por        = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en         = db.Column(db.DateTime, default=datetime.utcnow)
     asignado_user     = db.relationship('User', foreign_keys=[asignado_a], backref='tareas_asignadas')
+    creador           = db.relationship('User', foreign_keys=[creado_por])
+    asignados         = db.relationship('TareaAsignado', backref='tarea', lazy=True, cascade='all, delete-orphan')
+    comentarios       = db.relationship('TareaComentario', backref='tarea', lazy=True, cascade='all, delete-orphan', order_by='TareaComentario.creado_en')
 
 class Producto(db.Model):
     __tablename__ = 'productos'
@@ -132,13 +151,62 @@ class Producto(db.Model):
     nombre       = db.Column(db.String(200), nullable=False)
     descripcion  = db.Column(db.Text)
     sku          = db.Column(db.String(50))
+    nso          = db.Column(db.String(50))
     precio       = db.Column(db.Float, default=0)
+    costo        = db.Column(db.Float, default=0)
     stock        = db.Column(db.Integer, default=0)
     stock_minimo = db.Column(db.Integer, default=5)
     categoria    = db.Column(db.String(100))
     activo       = db.Column(db.Boolean, default=True)
     creado_en    = db.Column(db.DateTime, default=datetime.utcnow)
     venta_items  = db.relationship('VentaProducto', backref='producto', lazy=True)
+
+class CompraMateria(db.Model):
+    __tablename__ = 'compras_materia'
+    id              = db.Column(db.Integer, primary_key=True)
+    producto_id     = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=True)
+    nombre_item     = db.Column(db.String(200), nullable=False)
+    proveedor       = db.Column(db.String(200))
+    fecha           = db.Column(db.Date, nullable=False)
+    nro_factura     = db.Column(db.String(100))
+    cantidad        = db.Column(db.Float, default=1)
+    costo_producto  = db.Column(db.Float, default=0)
+    impuestos       = db.Column(db.Float, default=0)
+    transporte      = db.Column(db.Float, default=0)
+    costo_total     = db.Column(db.Float, default=0)
+    precio_unitario = db.Column(db.Float, default=0)
+    notas           = db.Column(db.Text)
+    creado_por      = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
+    producto        = db.relationship('Producto', foreign_keys=[producto_id])
+
+class CotizacionGranel(db.Model):
+    __tablename__ = 'cotizaciones_granel'
+    id               = db.Column(db.Integer, primary_key=True)
+    producto_id      = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=True)
+    nombre_producto  = db.Column(db.String(200), nullable=False)
+    sku              = db.Column(db.String(50))
+    nso              = db.Column(db.String(50))
+    proveedor        = db.Column(db.String(200))
+    precio_unitario  = db.Column(db.Float, default=0)
+    unidades_minimas = db.Column(db.Integer, default=1)
+    fecha_cotizacion = db.Column(db.Date)
+    vigencia         = db.Column(db.Date)
+    estado           = db.Column(db.String(20), default='vigente')
+    notas            = db.Column(db.Text)
+    creado_por       = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en        = db.Column(db.DateTime, default=datetime.utcnow)
+    producto         = db.relationship('Producto', foreign_keys=[producto_id])
+
+class ReglaTributaria(db.Model):
+    __tablename__ = 'reglas_tributarias'
+    id          = db.Column(db.Integer, primary_key=True)
+    nombre      = db.Column(db.String(100), nullable=False)
+    descripcion = db.Column(db.Text)
+    porcentaje  = db.Column(db.Float, default=0)
+    aplica_a    = db.Column(db.String(100))
+    activo      = db.Column(db.Boolean, default=True)
+    creado_en   = db.Column(db.DateTime, default=datetime.utcnow)
 
 class GastoOperativo(db.Model):
     __tablename__ = 'gastos_operativos'
@@ -165,7 +233,7 @@ body{background:var(--bg);font-family:'Segoe UI',sans-serif}
 .sb-brand{padding:1.3rem 1.2rem .85rem;color:#fff;font-size:1.3rem;font-weight:700;border-bottom:1px solid rgba(255,255,255,.08);letter-spacing:1px}
 .sb-brand span{color:var(--ac)}
 .sb-sec{font-size:.67rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.3);padding:.65rem 1.2rem .2rem}
-.sb-nav .nav-link{color:#a8b0d3;padding:.53rem 1.2rem;border-radius:8px;margin:.07rem .65rem;display:flex;align-items:center;gap:.65rem;font-size:.87rem;transition:all .2s}
+.sb-nav .nav-link{color:#a8b0d3;padding:.48rem 1.2rem;border-radius:8px;margin:.05rem .65rem;display:flex;align-items:center;gap:.65rem;font-size:.87rem;transition:all .2s}
 .sb-nav .nav-link:hover{background:rgba(255,255,255,.07);color:#fff}
 .sb-nav .nav-link.active{background:var(--ac);color:#fff}
 .sb-nav .nav-link i{font-size:1rem;width:19px}
@@ -189,9 +257,9 @@ body{background:var(--bg);font-family:'Segoe UI',sans-serif}
 .table tbody tr:last-child td{border-bottom:none}
 .table tbody tr:hover{background:#f8f9fe}
 .b{padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600}
-.b-activo,.b-ganado,.b-completada,.b-baja,.b-vip{background:#d4edda;color:#155724}
-.b-inactivo,.b-perdido,.b-alta{background:#f8d7da;color:#721c24}
-.b-prospecto,.b-pendiente,.b-media,.b-anticipo_pagado{background:#fff3cd;color:#856404}
+.b-activo,.b-ganado,.b-completada,.b-baja,.b-vip,.b-vigente{background:#d4edda;color:#155724}
+.b-inactivo,.b-perdido,.b-alta,.b-vencida{background:#f8d7da;color:#721c24}
+.b-prospecto,.b-pendiente,.b-media,.b-anticipo_pagado,.b-en_revision{background:#fff3cd;color:#856404}
 .b-negociacion,.b-en_progreso,.b-cliente_activo{background:#cce5ff;color:#004085}
 .fc{background:#fff;border-radius:12px;padding:1.8rem;box-shadow:0 2px 8px rgba(0,0,0,.06);max-width:820px}
 .form-label{font-weight:600;font-size:.875rem;color:#525f7f}
@@ -202,6 +270,10 @@ body{background:var(--bg);font-family:'Segoe UI',sans-serif}
 .alert{border-radius:10px;border:none}
 .prod-row{background:#f8f9fe;border-radius:8px;padding:.75rem;margin-bottom:.5rem;border:1px solid #e8ecf0}
 .totales-box{background:#f8f9fe;border-radius:10px;padding:1rem 1.4rem;border:1px solid #e8ecf0}
+.chat-bubble{background:#f0f2ff;border-radius:12px 12px 12px 2px;padding:.65rem 1rem;margin-bottom:.5rem;max-width:80%}
+.chat-bubble.mine{background:#5e72e4;color:#fff;border-radius:12px 12px 2px 12px;margin-left:auto}
+.chat-bubble.mine .chat-meta{color:rgba(255,255,255,.7)}
+.chat-meta{font-size:.72rem;color:#8898aa;margin-top:.25rem}
 @media(max-width:768px){#sb{width:54px}#sb .nav-link span,.sb-brand .bt,.sb-sec,.ui{display:none}#main{margin-left:54px}}
 </style>{% endraw %}"""
 
@@ -223,15 +295,18 @@ T['base.html'] = """<!DOCTYPE html>
     <div class="sb-sec">Principal</div>
     <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint=='dashboard' %}active{% endif %}">
       <i class="bi bi-grid-1x2-fill"></i><span>Dashboard</span></a>
-    <div class="sb-sec">Módulos</div>
+    <div class="sb-sec">Comercial</div>
     <a href="{{ url_for('clientes') }}" class="nav-link {% if 'cliente' in request.endpoint %}active{% endif %}">
       <i class="bi bi-people-fill"></i><span>Clientes</span></a>
     <a href="{{ url_for('ventas') }}" class="nav-link {% if 'venta' in request.endpoint %}active{% endif %}">
       <i class="bi bi-graph-up-arrow"></i><span>Ventas</span></a>
     <a href="{{ url_for('tareas') }}" class="nav-link {% if 'tarea' in request.endpoint %}active{% endif %}">
       <i class="bi bi-check2-square"></i><span>Tareas</span></a>
+    <div class="sb-sec">Operaciones</div>
     <a href="{{ url_for('inventario') }}" class="nav-link {% if 'inventario' in request.endpoint or 'producto' in request.endpoint %}active{% endif %}">
       <i class="bi bi-box-seam-fill"></i><span>Inventario</span></a>
+    <a href="{{ url_for('produccion_index') }}" class="nav-link {% if 'produccion' in request.endpoint or 'compra' in request.endpoint or 'granel' in request.endpoint or 'impuesto' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-gear-fill"></i><span>Producción</span></a>
     <a href="{{ url_for('gastos') }}" class="nav-link {% if 'gasto' in request.endpoint %}active{% endif %}">
       <i class="bi bi-receipt"></i><span>Gastos</span></a>
     {% if current_user.rol == 'admin' %}
@@ -274,13 +349,11 @@ T['base.html'] = """<!DOCTYPE html>
 T['login.html'] = """<!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Evore CRM — Login</title>
-""" + _CDN + """
+<title>Evore CRM — Login</title>""" + _CDN + """
 <style>
 body{background:linear-gradient(135deg,#1a1f36,#2d3561);min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',sans-serif}
 .card{border-radius:20px;padding:2.3rem;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.3);border:none}
-.brand{font-size:2rem;font-weight:800;color:#1a1f36;letter-spacing:1px}
-.brand span{color:#5e72e4}
+.brand{font-size:2rem;font-weight:800;color:#1a1f36}.brand span{color:#5e72e4}
 .form-control{border:1.5px solid #e9ecef;border-radius:10px;padding:.62rem 1rem}
 .form-control:focus{border-color:#5e72e4;box-shadow:0 0 0 3px rgba(94,114,228,.15)}
 .igt{background:#f8f9fe;border:1.5px solid #e9ecef;border-right:none;color:#8898aa;border-radius:10px 0 0 10px}
@@ -289,118 +362,80 @@ body{background:linear-gradient(135deg,#1a1f36,#2d3561);min-height:100vh;display
 .btn-lg:hover{transform:translateY(-1px);box-shadow:0 4px 15px rgba(94,114,228,.4);color:#fff}
 </style></head><body>
 <div class="card bg-white">
-  <div class="text-center mb-4">
-    <div class="brand">E<span>vore</span></div>
-    <p class="text-muted mb-0" style="font-size:.9rem">Sistema de Gestión CRM</p>
-  </div>
+  <div class="text-center mb-4"><div class="brand">E<span>vore</span></div>
+    <p class="text-muted mb-0" style="font-size:.9rem">Sistema de Gestión CRM</p></div>
   {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}{% for cat, msg in messages %}
   <div class="alert alert-{{ cat }} py-2 mb-3" style="border-radius:10px;border:none;font-size:.875rem">{{ msg }}</div>
   {% endfor %}{% endif %}{% endwith %}
   <form method="POST">
-    <div class="mb-3">
-      <label class="form-label fw-semibold" style="font-size:.875rem;color:#525f7f">Correo electrónico</label>
-      <div class="input-group">
-        <span class="input-group-text igt"><i class="bi bi-envelope"></i></span>
-        <input type="email" name="email" class="form-control" placeholder="tu@email.com" required autofocus>
-      </div>
-    </div>
-    <div class="mb-4">
-      <label class="form-label fw-semibold" style="font-size:.875rem;color:#525f7f">Contraseña</label>
-      <div class="input-group">
-        <span class="input-group-text igt"><i class="bi bi-lock"></i></span>
-        <input type="password" name="password" class="form-control" placeholder="••••••••" required>
-      </div>
-    </div>
-    <div class="mb-3 form-check">
-      <input type="checkbox" class="form-check-input" name="remember" id="rem">
-      <label class="form-check-label" for="rem" style="font-size:.875rem;color:#525f7f">Mantener sesión</label>
-    </div>
+    <div class="mb-3"><label class="form-label fw-semibold" style="font-size:.875rem;color:#525f7f">Correo</label>
+      <div class="input-group"><span class="input-group-text igt"><i class="bi bi-envelope"></i></span>
+        <input type="email" name="email" class="form-control" required autofocus></div></div>
+    <div class="mb-4"><label class="form-label fw-semibold" style="font-size:.875rem;color:#525f7f">Contraseña</label>
+      <div class="input-group"><span class="input-group-text igt"><i class="bi bi-lock"></i></span>
+        <input type="password" name="password" class="form-control" required></div></div>
     <button type="submit" class="btn btn-lg"><i class="bi bi-box-arrow-in-right me-2"></i>Iniciar Sesión</button>
   </form>
-  <hr class="my-3">
-  <p class="text-center text-muted mb-0" style="font-size:.8rem;background:#f4f6fb;border-radius:10px;padding:.8rem">
-    <i class="bi bi-info-circle me-1"></i>Solo para usuarios autorizados</p>
-</div>
-""" + _BSJ + """</body></html>"""
+</div>""" + _BSJ + """</body></html>"""
 
 T['dashboard.html'] = """{% extends 'base.html' %}
-{% block title %}Dashboard — Evore CRM{% endblock %}
-{% block page_title %}Dashboard{% endblock %}
+{% block title %}Dashboard{% endblock %}{% block page_title %}Dashboard{% endblock %}
 {% block topbar_actions %}
-<button id="btnMoneda" class="btn btn-sm btn-outline-secondary" onclick="toggleMoneda()">
-  <i class="bi bi-currency-exchange me-1"></i><span id="lblMoneda">Ver en USD</span>
-</button>
+<button id="btnM" class="btn btn-sm btn-outline-secondary" onclick="toggleMoneda()">
+  <i class="bi bi-currency-exchange me-1"></i><span id="lblM">Ver en USD</span></button>
 <small class="text-muted" id="tasaInfo"></small>
 {% endblock %}
 {% block content %}
-<div class="row g-3 mb-4">
-  <div class="col-6 col-lg-3"><div class="sc">
-    <div class="d-flex justify-content-between align-items-start">
-      <div><div class="sv">{{ total_clientes }}</div><div class="sl">Clientes activos</div></div>
-      <div class="si" style="background:#e8eeff"><i class="bi bi-people-fill" style="color:#5e72e4"></i></div>
-    </div></div></div>
-  <div class="col-6 col-lg-3"><div class="sc">
-    <div class="d-flex justify-content-between align-items-start">
-      <div><div class="sv">{{ ventas_ganadas }}</div><div class="sl">Ventas ganadas</div></div>
-      <div class="si" style="background:#e3f9ee"><i class="bi bi-graph-up-arrow" style="color:#2dce89"></i></div>
-    </div></div></div>
-  <div class="col-6 col-lg-3"><div class="sc">
-    <div class="d-flex justify-content-between align-items-start">
-      <div><div class="sv">{{ tareas_pendientes }}</div><div class="sl">Tareas pendientes</div></div>
-      <div class="si" style="background:#fff4e5"><i class="bi bi-check2-square" style="color:#fb6340"></i></div>
-    </div></div></div>
-  <div class="col-6 col-lg-3"><div class="sc">
-    <div class="d-flex justify-content-between align-items-start">
-      <div>
-        <div class="sv valor-cop" data-cop="{{ ingresos_totales }}">$ {{ '{:,.0f}'.format(ingresos_totales).replace(',','.') }}</div>
-        <div class="sl">Ingresos totales COP</div>
-      </div>
-      <div class="si" style="background:#fce8ff"><i class="bi bi-currency-dollar" style="color:#c300ff"></i></div>
-    </div></div></div>
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="sc"><div class="d-flex justify-content-between align-items-start">
+    <div><div class="sv">{{ total_clientes }}</div><div class="sl">Clientes activos</div></div>
+    <div class="si" style="background:#e8eeff"><i class="bi bi-people-fill" style="color:#5e72e4"></i></div>
+  </div></div></div>
+  <div class="col-6 col-lg-3"><div class="sc"><div class="d-flex justify-content-between align-items-start">
+    <div><div class="sv">{{ ventas_ganadas }}</div><div class="sl">Ventas ganadas</div></div>
+    <div class="si" style="background:#e3f9ee"><i class="bi bi-graph-up-arrow" style="color:#2dce89"></i></div>
+  </div></div></div>
+  <div class="col-6 col-lg-3"><div class="sc"><div class="d-flex justify-content-between align-items-start">
+    <div><div class="sv">{{ tareas_pendientes }}</div><div class="sl">Tareas pendientes</div></div>
+    <div class="si" style="background:#fff4e5"><i class="bi bi-check2-square" style="color:#fb6340"></i></div>
+  </div></div></div>
+  <div class="col-6 col-lg-3"><div class="sc"><div class="d-flex justify-content-between align-items-start">
+    <div><div class="sv valor-cop" data-cop="{{ ingresos_totales }}">$ {{ '{:,.0f}'.format(ingresos_totales).replace(',','.') }}</div>
+      <div class="sl">Ingresos COP</div></div>
+    <div class="si" style="background:#fce8ff"><i class="bi bi-currency-dollar" style="color:#c300ff"></i></div>
+  </div></div></div>
 </div>
 <div class="row g-3 mb-4">
-  <div class="col-6 col-lg-3"><div class="sc">
-    <div class="d-flex justify-content-between align-items-start">
-      <div>
-        <div class="sv valor-cop" data-cop="{{ gastos_totales }}">$ {{ '{:,.0f}'.format(gastos_totales).replace(',','.') }}</div>
-        <div class="sl">Gastos operativos</div>
-      </div>
-      <div class="si" style="background:#ffeaea"><i class="bi bi-receipt" style="color:#e74c3c"></i></div>
-    </div></div></div>
-  <div class="col-6 col-lg-3"><div class="sc">
-    <div class="d-flex justify-content-between align-items-start">
-      <div>
-        <div class="sv valor-cop" data-cop="{{ balance }}">$ {{ '{:,.0f}'.format(balance).replace(',','.') }}</div>
-        <div class="sl">Balance neto</div>
-      </div>
-      <div class="si" style="background:#e8fff3"><i class="bi bi-bar-chart-fill" style="color:#27ae60"></i></div>
-    </div></div></div>
-  <div class="col-6 col-lg-3"><div class="sc">
-    <div class="d-flex justify-content-between align-items-start">
-      <div>
-        <div class="sv valor-cop" data-cop="{{ saldo_pendiente }}">$ {{ '{:,.0f}'.format(saldo_pendiente).replace(',','.') }}</div>
-        <div class="sl">Saldo por cobrar</div>
-      </div>
-      <div class="si" style="background:#fff8e1"><i class="bi bi-hourglass-split" style="color:#f39c12"></i></div>
-    </div></div></div>
-  <div class="col-6 col-lg-3"><div class="sc">
-    <div class="d-flex justify-content-between align-items-start">
-      <div><div class="sv">{{ productos_bajo_stock }}</div><div class="sl">Productos stock bajo</div></div>
-      <div class="si" style="background:#ffeaea"><i class="bi bi-exclamation-triangle" style="color:#e74c3c"></i></div>
-    </div></div></div>
+  <div class="col-6 col-lg-3"><div class="sc"><div class="d-flex justify-content-between align-items-start">
+    <div><div class="sv valor-cop" data-cop="{{ gastos_totales }}">$ {{ '{:,.0f}'.format(gastos_totales).replace(',','.') }}</div>
+      <div class="sl">Gastos operativos</div></div>
+    <div class="si" style="background:#ffeaea"><i class="bi bi-receipt" style="color:#e74c3c"></i></div>
+  </div></div></div>
+  <div class="col-6 col-lg-3"><div class="sc"><div class="d-flex justify-content-between align-items-start">
+    <div><div class="sv valor-cop" data-cop="{{ balance }}">$ {{ '{:,.0f}'.format(balance).replace(',','.') }}</div>
+      <div class="sl">Balance neto</div></div>
+    <div class="si" style="background:#e8fff3"><i class="bi bi-bar-chart-fill" style="color:#27ae60"></i></div>
+  </div></div></div>
+  <div class="col-6 col-lg-3"><div class="sc"><div class="d-flex justify-content-between align-items-start">
+    <div><div class="sv valor-cop" data-cop="{{ saldo_pendiente }}">$ {{ '{:,.0f}'.format(saldo_pendiente).replace(',','.') }}</div>
+      <div class="sl">Saldo por cobrar</div></div>
+    <div class="si" style="background:#fff8e1"><i class="bi bi-hourglass-split" style="color:#f39c12"></i></div>
+  </div></div></div>
+  <div class="col-6 col-lg-3"><div class="sc"><div class="d-flex justify-content-between align-items-start">
+    <div><div class="sv">{{ productos_bajo_stock }}</div><div class="sl">Stock bajo</div></div>
+    <div class="si" style="background:#ffeaea"><i class="bi bi-exclamation-triangle" style="color:#e74c3c"></i></div>
+  </div></div></div>
 </div>
 <div class="row g-4">
   <div class="col-lg-6"><div class="tc">
     <div class="ch d-flex justify-content-between align-items-center">
       <span><i class="bi bi-check2-square me-2 text-warning"></i>Tareas pendientes</span>
-      <a href="{{ url_for('tarea_nueva') }}" class="btn btn-sm btn-primary"><i class="bi bi-plus"></i></a>
-    </div>
+      <a href="{{ url_for('tarea_nueva') }}" class="btn btn-sm btn-primary"><i class="bi bi-plus"></i></a></div>
     {% if tareas_recientes %}<table class="table"><tbody>
     {% for t in tareas_recientes %}<tr>
-      <td><div class="fw-semibold" style="color:#1a1f36">{{ t.titulo }}</div>
-        <small class="text-muted">{{ t.asignado_user.nombre if t.asignado_user else '' }}
-        {% if t.fecha_vencimiento %} · {{ t.fecha_vencimiento.strftime('%d/%m/%Y') }}{% endif %}</small></td>
+      <td><a href="{{ url_for('tarea_ver', id=t.id) }}" class="fw-semibold text-decoration-none" style="color:#1a1f36">{{ t.titulo }}</a>
+        <div><small class="text-muted">{{ t.asignado_user.nombre if t.asignado_user else '' }}</small></div></td>
       <td><span class="b b-{{ t.prioridad }}">{{ t.prioridad.title() }}</span></td>
     </tr>{% endfor %}</tbody></table>
     {% else %}<div class="text-center text-muted py-4"><i class="bi bi-check2-all" style="font-size:2rem"></i>
@@ -409,74 +444,58 @@ T['dashboard.html'] = """{% extends 'base.html' %}
   <div class="col-lg-6"><div class="tc">
     <div class="ch d-flex justify-content-between align-items-center">
       <span><i class="bi bi-graph-up me-2 text-success"></i>Ventas recientes</span>
-      <a href="{{ url_for('venta_nueva') }}" class="btn btn-sm btn-primary"><i class="bi bi-plus"></i></a>
-    </div>
+      <a href="{{ url_for('venta_nueva') }}" class="btn btn-sm btn-primary"><i class="bi bi-plus"></i></a></div>
     {% if ventas_recientes %}<table class="table"><tbody>
     {% for v in ventas_recientes %}<tr>
       <td><div class="fw-semibold" style="color:#1a1f36">{{ v.titulo }}</div>
-        <small class="text-muted">{{ v.cliente.nombre if v.cliente else '—' }}</small></td>
+        <small class="text-muted">{{ v.cliente.empresa or v.cliente.nombre if v.cliente else '—' }}</small></td>
       <td class="fw-semibold valor-cop" data-cop="{{ v.total }}">$ {{ '{:,.0f}'.format(v.total).replace(',','.') }}</td>
       <td><span class="b b-{{ v.estado }}">{{ v.estado.replace('_',' ').title() }}</span></td>
     </tr>{% endfor %}</tbody></table>
     {% else %}<div class="text-center text-muted py-4"><i class="bi bi-graph-up" style="font-size:2rem"></i>
       <p class="mt-2 mb-0">Sin ventas</p></div>{% endif %}
   </div></div>
-</div>
-{% endblock %}
-{% block scripts %}
-<script>
-let tasaCOP = null;
-let enUSD = false;
+</div>{% endblock %}
+{% block scripts %}<script>
+let tasaCOP=null,enUSD=false;
 async function cargarTasa(){
-  try {
-    const r = await fetch('https://open.er-api.com/v6/latest/USD');
-    const d = await r.json();
-    tasaCOP = d.rates.COP;
-    document.getElementById('tasaInfo').textContent = '1 USD = $ ' + tasaCOP.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,'.') + ' COP';
-  } catch(e){ document.getElementById('tasaInfo').textContent = ''; }
+  try{const r=await fetch('https://open.er-api.com/v6/latest/USD');
+    const d=await r.json();tasaCOP=d.rates.COP;
+    document.getElementById('tasaInfo').textContent='1 USD = $'+tasaCOP.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,'.')+ ' COP';
+  }catch(e){}
 }
 function toggleMoneda(){
-  if(!tasaCOP) return;
-  enUSD = !enUSD;
-  document.getElementById('lblMoneda').textContent = enUSD ? 'Ver en COP' : 'Ver en USD';
-  document.querySelectorAll('.valor-cop').forEach(el => {
-    const cop = parseFloat(el.dataset.cop) || 0;
-    if(enUSD){
-      const usd = cop / tasaCOP;
-      el.textContent = 'USD ' + usd.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});
-    } else {
-      el.textContent = '$ ' + cop.toLocaleString('es-CO',{minimumFractionDigits:0,maximumFractionDigits:0});
-    }
+  if(!tasaCOP)return;enUSD=!enUSD;
+  document.getElementById('lblM').textContent=enUSD?'Ver en COP':'Ver en USD';
+  document.querySelectorAll('.valor-cop').forEach(el=>{
+    const c=parseFloat(el.dataset.cop)||0;
+    el.textContent=enUSD?'USD '+(c/tasaCOP).toLocaleString('en-US',{maximumFractionDigits:0}):'$ '+c.toLocaleString('es-CO',{maximumFractionDigits:0});
   });
 }
 cargarTasa();
-</script>
-{% endblock %}"""
+</script>{% endblock %}"""
 
 T['clientes/index.html'] = """{% extends 'base.html' %}
 {% block title %}Clientes{% endblock %}{% block page_title %}Clientes{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('cliente_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo</a>{% endblock %}
 {% block content %}
-<div class="tc mb-3"><div class="p-3">
-  <form method="GET" class="row g-2 align-items-end">
-    <div class="col-sm-4"><input type="text" name="buscar" class="form-control form-control-sm" placeholder="Nombre, empresa, NIT..." value="{{ busqueda }}"></div>
-    <div class="col-sm-3"><select name="estado_rel" class="form-select form-select-sm">
-      <option value="">Todas las relaciones</option>
-      {% for er in ['prospecto','negociacion','cliente_activo','vip','inactivo','perdido'] %}
-      <option value="{{ er }}" {% if estado_rel_f==er %}selected{% endif %}>{{ er.replace('_',' ').title() }}</option>{% endfor %}
-    </select></div>
-    <div class="col-auto">
-      <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
-      <a href="{{ url_for('clientes') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
-    </div>
-  </form>
-</div></div>
+<div class="tc mb-3"><div class="p-3"><form method="GET" class="row g-2 align-items-end">
+  <div class="col-sm-4"><input type="text" name="buscar" class="form-control form-control-sm" placeholder="Nombre, empresa, NIT..." value="{{ busqueda }}"></div>
+  <div class="col-sm-3"><select name="estado_rel" class="form-select form-select-sm">
+    <option value="">Todas las relaciones</option>
+    {% for er in ['prospecto','negociacion','cliente_activo','vip','inactivo','perdido'] %}
+    <option value="{{ er }}" {% if estado_rel_f==er %}selected{% endif %}>{{ er.replace('_',' ').title() }}</option>{% endfor %}
+  </select></div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
+    <a href="{{ url_for('clientes') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
+  </div>
+</form></div></div>
 <div class="tc"><div class="ch"><i class="bi bi-people-fill me-2"></i>{{ items|length }} cliente(s)</div>
 {% if items %}<div class="table-responsive"><table class="table">
-  <thead><tr><th>Empresa / Nombre</th><th>NIT</th><th>Relación</th><th>Contacto principal</th><th>Alta</th><th></th></tr></thead>
+  <thead><tr><th>Empresa</th><th>NIT</th><th>Relación</th><th>Contacto principal</th><th>Alta</th><th></th></tr></thead>
   <tbody>{% for c in items %}<tr>
-    <td><a href="{{ url_for('cliente_ver', id=c.id) }}" class="fw-semibold text-decoration-none" style="color:#1a1f36">
-      {{ c.empresa or c.nombre }}</a>
+    <td><a href="{{ url_for('cliente_ver', id=c.id) }}" class="fw-semibold text-decoration-none" style="color:#1a1f36">{{ c.empresa or c.nombre }}</a>
       {% if c.empresa %}<div><small class="text-muted">{{ c.nombre }}</small></div>{% endif %}</td>
     <td><small class="text-muted">{{ c.nit or '—' }}</small></td>
     <td><span class="b b-{{ c.estado_relacion }}">{{ c.estado_relacion.replace('_',' ').title() }}</span></td>
@@ -490,17 +509,14 @@ T['clientes/index.html'] = """{% extends 'base.html' %}
     </div></td>
   </tr>{% endfor %}</tbody>
 </table></div>
-{% else %}<div class="text-center text-muted py-5">
-  <i class="bi bi-people" style="font-size:3rem"></i><p class="mt-3">Sin clientes.</p>
-  <a href="{{ url_for('cliente_nuevo') }}" class="btn btn-primary">Agregar</a></div>
+{% else %}<div class="text-center text-muted py-5"><i class="bi bi-people" style="font-size:3rem"></i>
+  <p class="mt-3">Sin clientes.</p><a href="{{ url_for('cliente_nuevo') }}" class="btn btn-primary">Agregar</a></div>
 {% endif %}</div>{% endblock %}"""
 
 T['clientes/form.html'] = """{% extends 'base.html' %}
 {% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('clientes') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
-{% block content %}
-<div class="fc" style="max-width:900px">
-<form method="POST" id="frmCliente">
+{% block content %}<div class="fc" style="max-width:900px"><form method="POST">
 <h6 class="text-muted mb-3 text-uppercase" style="letter-spacing:1px;font-size:.75rem">Información de la empresa</h6>
 <div class="row g-3 mb-4">
   <div class="col-md-6"><label class="form-label">Empresa *</label>
@@ -509,9 +525,8 @@ T['clientes/form.html'] = """{% extends 'base.html' %}
     <input type="text" name="nit" class="form-control" placeholder="900.123.456-7" value="{{ obj.nit if obj else '' }}"></div>
   <div class="col-md-3"><label class="form-label">Estado relación</label>
     <select name="estado_relacion" class="form-select">
-      {% for er in [('prospecto','Prospecto'),('negociacion','Negociación'),('cliente_activo','Cliente Activo'),('vip','VIP'),('inactivo','Inactivo'),('perdido','Perdido')] %}
-      <option value="{{ er[0] }}" {% if obj and obj.estado_relacion==er[0] %}selected{% elif not obj and er[0]=='prospecto' %}selected{% endif %}>{{ er[1] }}</option>
-      {% endfor %}
+      {% for er,lbl in [('prospecto','Prospecto'),('negociacion','Negociación'),('cliente_activo','Cliente Activo'),('vip','VIP'),('inactivo','Inactivo'),('perdido','Perdido')] %}
+      <option value="{{ er }}" {% if obj and obj.estado_relacion==er %}selected{% elif not obj and er=='prospecto' %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
     </select></div>
   <div class="col-md-6"><label class="form-label">Dirección Cámara de Comercio</label>
     <input type="text" name="dir_comercial" class="form-control" value="{{ obj.dir_comercial if obj else '' }}"></div>
@@ -519,53 +534,40 @@ T['clientes/form.html'] = """{% extends 'base.html' %}
     <input type="text" name="dir_entrega" class="form-control" value="{{ obj.dir_entrega if obj else '' }}"></div>
   <div class="col-12"><label class="form-label">Notas</label>
     <textarea name="notas" class="form-control" rows="2">{{ obj.notas if obj else '' }}</textarea></div>
-</div>
-<hr class="my-3">
+</div><hr class="my-3">
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h6 class="text-muted mb-0 text-uppercase" style="letter-spacing:1px;font-size:.75rem">Contactos</h6>
-  <button type="button" class="btn btn-sm btn-outline-primary" onclick="addContacto()"><i class="bi bi-plus-lg me-1"></i>Agregar contacto</button>
+  <button type="button" class="btn btn-sm btn-outline-primary" onclick="addContacto()"><i class="bi bi-plus-lg me-1"></i>Agregar</button>
 </div>
 <div id="contactosContainer">
   {% if obj and obj.contactos %}{% for c in obj.contactos %}
-  <div class="prod-row mb-2">
-    <div class="row g-2 align-items-end">
-      <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Nombre *</label>
-        <input type="text" name="c_nombre[]" class="form-control form-control-sm" value="{{ c.nombre }}" required></div>
-      <div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Cargo</label>
-        <input type="text" name="c_cargo[]" class="form-control form-control-sm" value="{{ c.cargo or '' }}"></div>
-      <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Email</label>
-        <input type="email" name="c_email[]" class="form-control form-control-sm" value="{{ c.email or '' }}"></div>
-      <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Teléfono</label>
-        <input type="text" name="c_telefono[]" class="form-control form-control-sm" value="{{ c.telefono or '' }}"></div>
-      <div class="col-md-1"><button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="this.closest('.prod-row').remove()"><i class="bi bi-trash"></i></button></div>
-    </div>
-  </div>{% endfor %}{% endif %}
+  <div class="prod-row mb-2"><div class="row g-2 align-items-end">
+    <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Nombre *</label>
+      <input type="text" name="c_nombre[]" class="form-control form-control-sm" value="{{ c.nombre }}" required></div>
+    <div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Cargo</label>
+      <input type="text" name="c_cargo[]" class="form-control form-control-sm" value="{{ c.cargo or '' }}"></div>
+    <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Email</label>
+      <input type="email" name="c_email[]" class="form-control form-control-sm" value="{{ c.email or '' }}"></div>
+    <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Teléfono</label>
+      <input type="text" name="c_telefono[]" class="form-control form-control-sm" value="{{ c.telefono or '' }}"></div>
+    <div class="col-md-1"><button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="this.closest('.prod-row').remove()"><i class="bi bi-trash"></i></button></div>
+  </div></div>{% endfor %}{% endif %}
 </div>
 <div class="d-flex gap-2 mt-4">
   <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear Cliente' }}</button>
   <a href="{{ url_for('clientes') }}" class="btn btn-outline-secondary">Cancelar</a>
-</div>
-</form></div>
-{% endblock %}
-{% block scripts %}
-<script>
+</div></form></div>{% endblock %}
+{% block scripts %}<script>
 function addContacto(){
-  const c = document.getElementById('contactosContainer');
-  c.insertAdjacentHTML('beforeend', `<div class="prod-row mb-2">
-    <div class="row g-2 align-items-end">
-      <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Nombre *</label>
-        <input type="text" name="c_nombre[]" class="form-control form-control-sm" required></div>
-      <div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Cargo</label>
-        <input type="text" name="c_cargo[]" class="form-control form-control-sm"></div>
-      <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Email</label>
-        <input type="email" name="c_email[]" class="form-control form-control-sm"></div>
-      <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Teléfono</label>
-        <input type="text" name="c_telefono[]" class="form-control form-control-sm"></div>
-      <div class="col-md-1"><button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="this.closest('.prod-row').remove()"><i class="bi bi-trash"></i></button></div>
-    </div></div>`);
+  document.getElementById('contactosContainer').insertAdjacentHTML('beforeend',`<div class="prod-row mb-2"><div class="row g-2 align-items-end">
+    <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Nombre *</label><input type="text" name="c_nombre[]" class="form-control form-control-sm" required></div>
+    <div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Cargo</label><input type="text" name="c_cargo[]" class="form-control form-control-sm"></div>
+    <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Email</label><input type="email" name="c_email[]" class="form-control form-control-sm"></div>
+    <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Teléfono</label><input type="text" name="c_telefono[]" class="form-control form-control-sm"></div>
+    <div class="col-md-1"><button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="this.closest('.prod-row').remove()"><i class="bi bi-trash"></i></button></div>
+  </div></div>`);
 }
-</script>
-{% endblock %}"""
+</script>{% endblock %}"""
 
 T['clientes/ver.html'] = """{% extends 'base.html' %}
 {% block title %}{{ obj.empresa or obj.nombre }}{% endblock %}
@@ -579,8 +581,7 @@ T['clientes/ver.html'] = """{% extends 'base.html' %}
     <div class="fc mb-3">
       <div class="d-flex align-items-center gap-3 mb-3">
         <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
-             style="width:50px;height:50px;background:#5e72e4;font-size:1.2rem;flex-shrink:0">
-          {{ (obj.empresa or obj.nombre)[0].upper() }}</div>
+             style="width:50px;height:50px;background:#5e72e4;font-size:1.2rem;flex-shrink:0">{{ (obj.empresa or obj.nombre)[0].upper() }}</div>
         <div><h5 class="mb-1">{{ obj.empresa or obj.nombre }}</h5>
           <span class="b b-{{ obj.estado_relacion }}">{{ obj.estado_relacion.replace('_',' ').title() }}</span></div>
       </div><hr>
@@ -589,15 +590,13 @@ T['clientes/ver.html'] = """{% extends 'base.html' %}
         <dt class="col-5 text-muted">NIT</dt><dd class="col-7">{{ obj.nit or '—' }}</dd>
         <dt class="col-5 text-muted">Dir. Comercial</dt><dd class="col-7">{{ obj.dir_comercial or '—' }}</dd>
         <dt class="col-5 text-muted">Dir. Entrega</dt><dd class="col-7">{{ obj.dir_entrega or '—' }}</dd>
-        <dt class="col-5 text-muted">Alta</dt><dd class="col-7">{{ obj.creado_en.strftime('%d/%m/%Y') }}</dd>
       </dl>
-      {% if obj.notas %}<hr><p class="text-muted small mb-1">Notas:</p><p style="font-size:.88rem">{{ obj.notas }}</p>{% endif %}
+      {% if obj.notas %}<hr><p style="font-size:.88rem">{{ obj.notas }}</p>{% endif %}
     </div>
-    {% if obj.contactos %}
-    <div class="fc">
+    {% if obj.contactos %}<div class="fc">
       <h6 class="text-muted text-uppercase mb-3" style="font-size:.72rem;letter-spacing:1px">Contactos</h6>
       {% for c in obj.contactos %}
-      <div class="d-flex align-items-start gap-2 mb-3">
+      <div class="d-flex gap-2 mb-3">
         <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
              style="width:34px;height:34px;background:#8898aa;font-size:.8rem;flex-shrink:0">{{ c.nombre[0].upper() }}</div>
         <div style="font-size:.88rem">
@@ -608,28 +607,22 @@ T['clientes/ver.html'] = """{% extends 'base.html' %}
       </div>{% endfor %}
     </div>{% endif %}
   </div>
-  <div class="col-lg-8">
-    <div class="tc">
-      <div class="ch d-flex justify-content-between">
-        <span><i class="bi bi-graph-up me-2"></i>Ventas</span>
-        <a href="{{ url_for('venta_nueva') }}" class="btn btn-sm btn-primary"><i class="bi bi-plus"></i> Nueva</a>
-      </div>
-      {% if obj.ventas %}<table class="table">
-        <thead><tr><th>Título</th><th>Total COP</th><th>Anticipo</th><th>Saldo</th><th>Estado</th><th>Entrega est.</th></tr></thead>
-        <tbody>{% for v in obj.ventas %}<tr>
-          <td class="fw-semibold" style="color:#1a1f36">{{ v.titulo }}</td>
-          <td>$ {{ '{:,.0f}'.format(v.total).replace(',','.') }}</td>
-          <td>$ {{ '{:,.0f}'.format(v.monto_anticipo).replace(',','.') }}</td>
-          <td>$ {{ '{:,.0f}'.format(v.saldo).replace(',','.') }}</td>
-          <td><span class="b b-{{ v.estado }}">{{ v.estado.replace('_',' ').title() }}</span></td>
-          <td>{% if v.fecha_entrega_est %}<small>{{ v.fecha_entrega_est.strftime('%d/%m/%Y') }}</small>{% else %}—{% endif %}</td>
-        </tr>{% endfor %}</tbody>
-      </table>
-      {% else %}<div class="text-center text-muted py-4">
-        <i class="bi bi-graph-up" style="font-size:2rem"></i><p class="mt-2 mb-0">Sin ventas</p></div>
-      {% endif %}
-    </div>
-  </div>
+  <div class="col-lg-8"><div class="tc">
+    <div class="ch d-flex justify-content-between">
+      <span><i class="bi bi-graph-up me-2"></i>Ventas</span>
+      <a href="{{ url_for('venta_nueva') }}" class="btn btn-sm btn-primary"><i class="bi bi-plus"></i></a></div>
+    {% if obj.ventas %}<table class="table">
+      <thead><tr><th>Título</th><th>Total COP</th><th>Saldo</th><th>Estado</th></tr></thead>
+      <tbody>{% for v in obj.ventas %}<tr>
+        <td class="fw-semibold">{{ v.titulo }}</td>
+        <td>$ {{ '{:,.0f}'.format(v.total).replace(',','.') }}</td>
+        <td>$ {{ '{:,.0f}'.format(v.saldo).replace(',','.') }}</td>
+        <td><span class="b b-{{ v.estado }}">{{ v.estado.replace('_',' ').title() }}</span></td>
+      </tr>{% endfor %}</tbody>
+    </table>
+    {% else %}<div class="text-center text-muted py-4"><i class="bi bi-graph-up" style="font-size:2rem"></i>
+      <p class="mt-2 mb-0">Sin ventas</p></div>{% endif %}
+  </div></div>
 </div>{% endblock %}"""
 
 T['ventas/index.html'] = """{% extends 'base.html' %}
@@ -640,15 +633,12 @@ T['ventas/index.html'] = """{% extends 'base.html' %}
   {% for est,lbl in [('','Todas'),('prospecto','Prospecto'),('negociacion','Negociación'),('anticipo_pagado','Anticipo'),('ganado','Ganado'),('perdido','Perdido')] %}
   <a href="{{ url_for('ventas', estado=est) }}" class="btn btn-sm {{ 'btn-primary' if estado_f==est else 'btn-outline-secondary' }}">{{ lbl }}</a>{% endfor %}
 </div>
-<div class="tc"><div class="ch"><i class="bi bi-graph-up-arrow me-2"></i>{{ items|length }} venta(s)
-  {% if items %} — Total: <strong>$ {{ '{:,.0f}'.format(items|sum(attribute='total')).replace(',','.') }}</strong>{% endif %}</div>
+<div class="tc"><div class="ch"><i class="bi bi-graph-up-arrow me-2"></i>{{ items|length }} venta(s)</div>
 {% if items %}<div class="table-responsive"><table class="table">
-  <thead><tr><th>Título</th><th>Cliente</th><th>Subtotal</th><th>IVA 19%</th><th>Total</th><th>Anticipo</th><th>Saldo</th><th>Estado</th><th>Entrega est.</th><th></th></tr></thead>
+  <thead><tr><th>Título</th><th>Cliente</th><th>Total</th><th>Anticipo</th><th>Saldo</th><th>Estado</th><th>Entrega est.</th><th></th></tr></thead>
   <tbody>{% for v in items %}<tr>
     <td class="fw-semibold" style="color:#1a1f36">{{ v.titulo }}</td>
     <td>{% if v.cliente %}<a href="{{ url_for('cliente_ver', id=v.cliente.id) }}" class="text-decoration-none">{{ v.cliente.empresa or v.cliente.nombre }}</a>{% else %}—{% endif %}</td>
-    <td>$ {{ '{:,.0f}'.format(v.subtotal).replace(',','.') }}</td>
-    <td>$ {{ '{:,.0f}'.format(v.iva).replace(',','.') }}</td>
     <td class="fw-semibold">$ {{ '{:,.0f}'.format(v.total).replace(',','.') }}</td>
     <td>$ {{ '{:,.0f}'.format(v.monto_anticipo).replace(',','.') }}</td>
     <td class="{{ 'text-danger fw-semibold' if v.saldo > 0 else '' }}">$ {{ '{:,.0f}'.format(v.saldo).replace(',','.') }}</td>
@@ -661,223 +651,222 @@ T['ventas/index.html'] = """{% extends 'base.html' %}
     </div></td>
   </tr>{% endfor %}</tbody>
 </table></div>
-{% else %}<div class="text-center text-muted py-5">
-  <i class="bi bi-graph-up-arrow" style="font-size:3rem"></i><p class="mt-3">Sin ventas.</p>
-  <a href="{{ url_for('venta_nueva') }}" class="btn btn-primary">Crear primera</a></div>
+{% else %}<div class="text-center text-muted py-5"><i class="bi bi-graph-up-arrow" style="font-size:3rem"></i>
+  <p class="mt-3">Sin ventas.</p><a href="{{ url_for('venta_nueva') }}" class="btn btn-primary">Crear primera</a></div>
 {% endif %}</div>{% endblock %}"""
 
 T['ventas/form.html'] = """{% extends 'base.html' %}
 {% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('ventas') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
-{% block content %}
-<div class="fc" style="max-width:960px">
-<form method="POST" id="frmVenta">
+{% block content %}<div class="fc" style="max-width:960px"><form method="POST">
 <div class="row g-3 mb-3">
   <div class="col-md-8"><label class="form-label">Título *</label>
     <input type="text" name="titulo" class="form-control" value="{{ obj.titulo if obj else '' }}" required></div>
   <div class="col-md-4"><label class="form-label">Cliente</label>
     <select name="cliente_id" class="form-select"><option value="">Sin cliente</option>
-      {% for c in clientes_list %}<option value="{{ c.id }}" {% if obj and obj.cliente_id==c.id %}selected{% endif %}>
-        {{ c.empresa or c.nombre }}</option>{% endfor %}
+      {% for c in clientes_list %}<option value="{{ c.id }}" {% if obj and obj.cliente_id==c.id %}selected{% endif %}>{{ c.empresa or c.nombre }}</option>{% endfor %}
     </select></div>
-</div>
-<hr class="my-3">
+</div><hr class="my-3">
 <div class="d-flex justify-content-between align-items-center mb-2">
-  <h6 class="text-muted mb-0 text-uppercase" style="letter-spacing:1px;font-size:.75rem">Productos / Servicios</h6>
-  <button type="button" class="btn btn-sm btn-outline-primary" onclick="addProd()"><i class="bi bi-plus-lg me-1"></i>Agregar línea</button>
+  <h6 class="text-muted mb-0 text-uppercase" style="letter-spacing:1px;font-size:.75rem">Productos</h6>
+  <button type="button" class="btn btn-sm btn-outline-primary" onclick="addProd()"><i class="bi bi-plus-lg me-1"></i>Agregar</button>
 </div>
 <div id="prodsContainer"></div>
-<div class="totales-box mt-3 mb-4">
-  <div class="row g-2 justify-content-end">
-    <div class="col-md-4">
-      <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">Subtotal (sin IVA):</span><strong id="lblSubtotal">$ 0</strong></div>
-      <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">IVA 19%:</span><strong id="lblIva">$ 0</strong></div>
-      <div class="d-flex justify-content-between py-1"><span class="fw-bold">Total:</span><strong id="lblTotal" style="color:#5e72e4;font-size:1.1rem">$ 0</strong></div>
-    </div>
-  </div>
-</div>
+<div class="totales-box mt-3 mb-4"><div class="row g-2 justify-content-end"><div class="col-md-4">
+  <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">Subtotal:</span><strong id="lblSub">$ 0</strong></div>
+  <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">IVA 19%:</span><strong id="lblIva">$ 0</strong></div>
+  <div class="d-flex justify-content-between py-1"><span class="fw-bold">Total:</span><strong id="lblTot" style="color:#5e72e4;font-size:1.1rem">$ 0</strong></div>
+</div></div></div>
 <hr class="my-3">
-<h6 class="text-muted mb-3 text-uppercase" style="letter-spacing:1px;font-size:.75rem">Estado y pagos</h6>
 <div class="row g-3 mb-3">
   <div class="col-md-3"><label class="form-label">Estado</label>
-    <select name="estado" class="form-select" id="selEstado">
+    <select name="estado" class="form-select">
       {% for est,lbl in [('prospecto','Prospecto'),('negociacion','Negociación'),('anticipo_pagado','Anticipo Pagado'),('ganado','Ganado'),('perdido','Perdido')] %}
       <option value="{{ est }}" {% if obj and obj.estado==est %}selected{% elif not obj and est=='prospecto' %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
     </select></div>
   <div class="col-md-3"><label class="form-label">% Anticipo</label>
-    <div class="input-group">
-      <input type="number" name="porcentaje_anticipo" id="pctAnticipo" class="form-control" min="0" max="100" step="1"
-             value="{{ obj.porcentaje_anticipo|int if obj else '0' }}" oninput="calcAnticipo()">
-      <span class="input-group-text">%</span>
-    </div></div>
+    <div class="input-group"><input type="number" name="porcentaje_anticipo" id="pctA" class="form-control" min="0" max="100" step="1"
+      value="{{ obj.porcentaje_anticipo|int if obj else '0' }}" oninput="calcA()"><span class="input-group-text">%</span></div></div>
   <div class="col-md-3"><label class="form-label">Monto anticipo COP</label>
-    <input type="text" id="montoAnticipoVis" class="form-control" readonly style="background:#f8f9fe">
-    <input type="hidden" name="monto_anticipo" id="montoAnticipoHid"></div>
+    <input type="text" id="montoAVis" class="form-control" readonly style="background:#f8f9fe">
+    <input type="hidden" name="monto_anticipo" id="montoAHid"></div>
   <div class="col-md-3"><label class="form-label">Saldo a pagar</label>
     <input type="text" id="saldoVis" class="form-control" readonly style="background:#f8f9fe">
     <input type="hidden" name="saldo" id="saldoHid"></div>
   <div class="col-md-4"><label class="form-label">Fecha pago anticipo</label>
-    <input type="date" name="fecha_anticipo" id="fechaAnticipo" class="form-control"
-           value="{{ obj.fecha_anticipo.strftime('%Y-%m-%d') if obj and obj.fecha_anticipo else '' }}" onchange="calcEntrega()"></div>
+    <input type="date" name="fecha_anticipo" id="fAnticipo" class="form-control"
+      value="{{ obj.fecha_anticipo.strftime('%Y-%m-%d') if obj and obj.fecha_anticipo else '' }}" onchange="calcEnt()"></div>
   <div class="col-md-4"><label class="form-label">Días de producción</label>
-    <select name="dias_entrega" id="diasEntrega" class="form-select" onchange="calcEntrega()">
+    <select name="dias_entrega" id="diasEnt" class="form-select" onchange="calcEnt()">
       <option value="30" {% if not obj or obj.dias_entrega==30 %}selected{% endif %}>30 días</option>
       <option value="45" {% if obj and obj.dias_entrega==45 %}selected{% endif %}>45 días</option>
     </select></div>
-  <div class="col-md-4"><label class="form-label">Fecha entrega estimada</label>
-    <input type="text" id="fechaEntregaVis" class="form-control" readonly style="background:#f8f9fe">
-    <input type="hidden" name="fecha_entrega_est" id="fechaEntregaHid" value="{{ obj.fecha_entrega_est.strftime('%Y-%m-%d') if obj and obj.fecha_entrega_est else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Entrega estimada</label>
+    <input type="text" id="entVis" class="form-control" readonly style="background:#f8f9fe">
+    <input type="hidden" name="fecha_entrega_est" id="entHid" value="{{ obj.fecha_entrega_est.strftime('%Y-%m-%d') if obj and obj.fecha_entrega_est else '' }}"></div>
   <div class="col-12"><label class="form-label">Notas</label>
     <textarea name="notas" class="form-control" rows="2">{{ obj.notas if obj else '' }}</textarea></div>
 </div>
-<input type="hidden" name="subtotal_calc" id="subtotalHid">
+<input type="hidden" name="subtotal_calc" id="subHid">
 <input type="hidden" name="iva_calc" id="ivaHid">
-<input type="hidden" name="total_calc" id="totalHid">
+<input type="hidden" name="total_calc" id="totHid">
 <div class="d-flex gap-2 mt-4">
   <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear Venta' }}</button>
   <a href="{{ url_for('ventas') }}" class="btn btn-outline-secondary">Cancelar</a>
-</div>
-</form></div>
-{% endblock %}
-{% block scripts %}
-<script>
-const PRODS = {{ productos_json | safe }};
-const itemsExist = {{ items_json | safe }};
-let totalGlobal = 0;
-
-function fmtCOP(n){ return '$ ' + Math.round(n).toLocaleString('es-CO'); }
-
-function addProd(nombre='', pid='', cant=1, precio=0){
-  const opts = PRODS.map(p => `<option value="${p.id}" data-precio="${p.precio}" ${p.id==pid?'selected':''}>${p.nombre}${p.sku?' ('+p.sku+')':''}</option>`).join('');
-  const idx = Date.now();
-  document.getElementById('prodsContainer').insertAdjacentHTML('beforeend',`
-  <div class="prod-row mb-2" id="pr${idx}">
+</div></form></div>{% endblock %}
+{% block scripts %}<script>
+const PRODS={{ productos_json|safe }};const ITEMS={{ items_json|safe }};let totG=0;
+function fCOP(n){return '$ '+Math.round(n).toLocaleString('es-CO');}
+function addProd(pid='',cant=1,precio=0){
+  const opts=PRODS.map(p=>`<option value="${p.id}" data-p="${p.precio}" ${p.id==pid?'selected':''}>${p.nombre}${p.sku?' ('+p.sku+')':''}</option>`).join('');
+  const idx=Date.now();
+  document.getElementById('prodsContainer').insertAdjacentHTML('beforeend',`<div class="prod-row mb-2" id="pr${idx}">
     <div class="row g-2 align-items-end">
       <div class="col-md-5"><label class="form-label mb-1" style="font-size:.8rem">Producto</label>
-        <select name="prod_id[]" class="form-select form-select-sm" onchange="onProdChange(this,${idx})">${opts}</select></div>
+        <select name="prod_id[]" class="form-select form-select-sm" onchange="onPC(this,${idx})">${opts}</select></div>
       <div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Cantidad</label>
         <input type="number" name="prod_cant[]" class="form-control form-control-sm" min="0.01" step="0.01" value="${cant}" oninput="calcRow(${idx})"></div>
-      <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Precio unit. sin IVA (COP)</label>
+      <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Precio unit. COP sin IVA</label>
         <input type="number" name="prod_precio[]" id="pp${idx}" class="form-control form-control-sm" min="0" step="1" value="${precio}" oninput="calcRow(${idx})"></div>
       <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Subtotal</label>
         <input type="text" id="ps${idx}" class="form-control form-control-sm" readonly style="background:#f8f9fe"></div>
       <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem"> </label>
-        <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="document.getElementById('pr${idx}').remove();calcTotales()"><i class="bi bi-trash"></i></button></div>
-    </div>
-  </div>`);
+        <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="document.getElementById('pr${idx}').remove();calcTot()"><i class="bi bi-trash"></i></button></div>
+    </div></div>`);
   calcRow(idx);
 }
-
-function onProdChange(sel, idx){
-  const opt = sel.options[sel.selectedIndex];
-  const precio = opt.dataset.precio || 0;
-  document.getElementById('pp'+idx).value = Math.round(precio);
-  calcRow(idx);
-}
-
+function onPC(sel,idx){const o=sel.options[sel.selectedIndex];document.getElementById('pp'+idx).value=Math.round(o.dataset.p||0);calcRow(idx);}
 function calcRow(idx){
-  const pr = document.getElementById('pr'+idx);
-  if(!pr) return;
-  const cant = parseFloat(pr.querySelector('[name="prod_cant[]"]').value)||0;
-  const precio = parseFloat(document.getElementById('pp'+idx).value)||0;
-  const sub = cant * precio;
-  document.getElementById('ps'+idx).value = fmtCOP(sub);
-  calcTotales();
+  const pr=document.getElementById('pr'+idx);if(!pr)return;
+  const c=parseFloat(pr.querySelector('[name="prod_cant[]"]').value)||0;
+  const p=parseFloat(document.getElementById('pp'+idx).value)||0;
+  document.getElementById('ps'+idx).value=fCOP(c*p);calcTot();
 }
-
-function calcTotales(){
-  let sub = 0;
+function calcTot(){
+  let sub=0;
   document.querySelectorAll('[name="prod_cant[]"]').forEach((el,i)=>{
-    const cant = parseFloat(el.value)||0;
-    const precio = parseFloat(document.querySelectorAll('[name="prod_precio[]"]')[i].value)||0;
-    sub += cant * precio;
+    sub+=(parseFloat(el.value)||0)*(parseFloat(document.querySelectorAll('[name="prod_precio[]"]')[i].value)||0);
   });
-  const iva = sub * 0.19;
-  const total = sub + iva;
-  totalGlobal = total;
-  document.getElementById('lblSubtotal').textContent = fmtCOP(sub);
-  document.getElementById('lblIva').textContent = fmtCOP(iva);
-  document.getElementById('lblTotal').textContent = fmtCOP(total);
-  document.getElementById('subtotalHid').value = Math.round(sub);
-  document.getElementById('ivaHid').value = Math.round(iva);
-  document.getElementById('totalHid').value = Math.round(total);
-  calcAnticipo();
+  const iva=sub*.19,tot=sub+iva;totG=tot;
+  document.getElementById('lblSub').textContent=fCOP(sub);
+  document.getElementById('lblIva').textContent=fCOP(iva);
+  document.getElementById('lblTot').textContent=fCOP(tot);
+  document.getElementById('subHid').value=Math.round(sub);
+  document.getElementById('ivaHid').value=Math.round(iva);
+  document.getElementById('totHid').value=Math.round(tot);calcA();
 }
-
-function calcAnticipo(){
-  const pct = parseFloat(document.getElementById('pctAnticipo').value)||0;
-  const ant = totalGlobal * pct / 100;
-  const saldo = totalGlobal - ant;
-  document.getElementById('montoAnticipoVis').value = fmtCOP(ant);
-  document.getElementById('montoAnticipoHid').value = Math.round(ant);
-  document.getElementById('saldoVis').value = fmtCOP(saldo);
-  document.getElementById('saldoHid').value = Math.round(saldo);
+function calcA(){
+  const pct=parseFloat(document.getElementById('pctA').value)||0;
+  const ant=totG*pct/100,sal=totG-ant;
+  document.getElementById('montoAVis').value=fCOP(ant);document.getElementById('montoAHid').value=Math.round(ant);
+  document.getElementById('saldoVis').value=fCOP(sal);document.getElementById('saldoHid').value=Math.round(sal);
 }
-
-function calcEntrega(){
-  const fa = document.getElementById('fechaAnticipo').value;
-  const dias = parseInt(document.getElementById('diasEntrega').value)||30;
-  if(fa){
-    const d = new Date(fa);
-    d.setDate(d.getDate() + dias);
-    const iso = d.toISOString().split('T')[0];
-    const parts = iso.split('-');
-    document.getElementById('fechaEntregaVis').value = parts[2]+'/'+parts[1]+'/'+parts[0];
-    document.getElementById('fechaEntregaHid').value = iso;
-  }
+function calcEnt(){
+  const fa=document.getElementById('fAnticipo').value;const d=parseInt(document.getElementById('diasEnt').value)||30;
+  if(fa){const dt=new Date(fa);dt.setDate(dt.getDate()+d);const iso=dt.toISOString().split('T')[0];
+    const p=iso.split('-');document.getElementById('entVis').value=p[2]+'/'+p[1]+'/'+p[0];document.getElementById('entHid').value=iso;}
 }
-
-// Inicializar
-if(itemsExist.length > 0){
-  itemsExist.forEach(it => addProd(it.nombre, it.pid, it.cant, it.precio));
-} else {
-  addProd();
-}
-calcEntrega();
-
-// Init fecha entrega si ya existe
-const feHid = document.getElementById('fechaEntregaHid').value;
-if(feHid){ const p=feHid.split('-'); document.getElementById('fechaEntregaVis').value=p[2]+'/'+p[1]+'/'+p[0]; }
-</script>
-{% endblock %}"""
+if(ITEMS.length>0){ITEMS.forEach(it=>addProd(it.pid,it.cant,it.precio));}else{addProd();}
+calcEnt();
+const feh=document.getElementById('entHid').value;if(feh){const p=feh.split('-');document.getElementById('entVis').value=p[2]+'/'+p[1]+'/'+p[0];}
+</script>{% endblock %}"""
 
 T['tareas/index.html'] = """{% extends 'base.html' %}
 {% block title %}Tareas{% endblock %}{% block page_title %}Tareas{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('tarea_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva</a>{% endblock %}
 {% block content %}
 <div class="mb-3 d-flex gap-2 flex-wrap">
-  <a href="{{ url_for('tareas') }}" class="btn btn-sm {{ 'btn-primary' if not estado_f else 'btn-outline-secondary' }}">Todas</a>
-  <a href="{{ url_for('tareas', estado='pendiente') }}" class="btn btn-sm {{ 'btn-warning' if estado_f=='pendiente' else 'btn-outline-secondary' }}">Pendiente</a>
-  <a href="{{ url_for('tareas', estado='en_progreso') }}" class="btn btn-sm {{ 'btn-info' if estado_f=='en_progreso' else 'btn-outline-secondary' }}">En progreso</a>
-  <a href="{{ url_for('tareas', estado='completada') }}" class="btn btn-sm {{ 'btn-success' if estado_f=='completada' else 'btn-outline-secondary' }}">Completada</a>
+  {% for est,lbl in [('','Todas'),('pendiente','Pendiente'),('en_progreso','En progreso'),('completada','Completada')] %}
+  <a href="{{ url_for('tareas', estado=est) }}" class="btn btn-sm {{ 'btn-primary' if estado_f==est else 'btn-outline-secondary' }}">{{ lbl }}</a>{% endfor %}
   <span class="text-muted mx-1">|</span>
   <a href="{{ url_for('tareas', prioridad='alta') }}" class="btn btn-sm {{ 'btn-danger' if prioridad_f=='alta' else 'btn-outline-secondary' }}">Alta prioridad</a>
 </div>
 <div class="tc"><div class="ch"><i class="bi bi-check2-square me-2"></i>{{ items|length }} tarea(s)</div>
 {% if items %}<div class="table-responsive"><table class="table">
   <thead><tr><th>Tarea</th><th>Prioridad</th><th>Estado</th><th>Asignada a</th><th>Vence</th><th></th></tr></thead>
-  <tbody>{% for t in items %}<tr {% if t.estado == 'completada' %}style="opacity:.6"{% endif %}>
-    <td><div class="fw-semibold {% if t.estado=='completada' %}text-decoration-line-through{% endif %}" style="color:#1a1f36">{{ t.titulo }}</div>
-      {% if t.descripcion %}<small class="text-muted">{{ t.descripcion[:60] }}{% if t.descripcion|length > 60 %}...{% endif %}</small>{% endif %}</td>
+  <tbody>{% for t in items %}<tr {% if t.estado=='completada' %}style="opacity:.6"{% endif %}>
+    <td><a href="{{ url_for('tarea_ver', id=t.id) }}" class="fw-semibold text-decoration-none {% if t.estado=='completada' %}text-decoration-line-through{% endif %}" style="color:#1a1f36">{{ t.titulo }}</a>
+      {% if t.comentarios %}<span class="badge bg-light text-secondary ms-1" style="font-size:.65rem"><i class="bi bi-chat-dots"></i> {{ t.comentarios|length }}</span>{% endif %}</td>
     <td><span class="b b-{{ t.prioridad }}">{{ t.prioridad.title() }}</span></td>
     <td><span class="b b-{{ t.estado }}">{{ t.estado.replace('_',' ').title() }}</span></td>
     <td>{{ t.asignado_user.nombre if t.asignado_user else '—' }}</td>
     <td>{% if t.fecha_vencimiento %}
-      <small class="{{ 'text-danger fw-bold' if t.estado != 'completada' and t.fecha_vencimiento < now.date() else 'text-muted' }}">
-        {{ t.fecha_vencimiento.strftime('%d/%m/%Y') }}</small>{% else %}—{% endif %}</td>
+      <small class="{{ 'text-danger fw-bold' if t.estado!='completada' and t.fecha_vencimiento < now.date() else 'text-muted' }}">{{ t.fecha_vencimiento.strftime('%d/%m/%Y') }}</small>
+      {% else %}—{% endif %}</td>
     <td><div class="d-flex gap-1">
-      {% if t.estado != 'completada' %}<form method="POST" action="{{ url_for('tarea_completar', id=t.id) }}">
-        <button class="btn btn-sm btn-outline-success" title="Completar"><i class="bi bi-check2"></i></button></form>{% endif %}
+      <a href="{{ url_for('tarea_ver', id=t.id) }}" class="btn btn-sm btn-outline-primary" title="Ver y chatear"><i class="bi bi-chat-dots"></i></a>
+      {% if t.estado!='completada' %}<form method="POST" action="{{ url_for('tarea_completar', id=t.id) }}">
+        <button class="btn btn-sm btn-outline-success"><i class="bi bi-check2"></i></button></form>{% endif %}
       <a href="{{ url_for('tarea_editar', id=t.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
       <form method="POST" action="{{ url_for('tarea_eliminar', id=t.id) }}" onsubmit="return confirm('¿Eliminar?')">
         <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
     </div></td>
   </tr>{% endfor %}</tbody>
 </table></div>
-{% else %}<div class="text-center text-muted py-5">
-  <i class="bi bi-check2-all" style="font-size:3rem"></i><p class="mt-3">Sin tareas.</p>
-  <a href="{{ url_for('tarea_nueva') }}" class="btn btn-primary">Crear primera</a></div>
+{% else %}<div class="text-center text-muted py-5"><i class="bi bi-check2-all" style="font-size:3rem"></i>
+  <p class="mt-3">Sin tareas.</p><a href="{{ url_for('tarea_nueva') }}" class="btn btn-primary">Crear primera</a></div>
 {% endif %}</div>{% endblock %}"""
+
+T['tareas/ver.html'] = """{% extends 'base.html' %}
+{% block title %}{{ tarea.titulo }}{% endblock %}{% block page_title %}{{ tarea.titulo }}{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('tarea_editar', id=tarea.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i>Editar</a>
+{% if tarea.estado != 'completada' %}
+<form method="POST" action="{{ url_for('tarea_completar', id=tarea.id) }}" class="d-inline">
+  <button class="btn btn-success btn-sm"><i class="bi bi-check2 me-1"></i>Completar</button></form>{% endif %}
+<a href="{{ url_for('tareas') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>
+{% endblock %}
+{% block content %}<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="fc">
+      <div class="mb-3">
+        <span class="b b-{{ tarea.estado }} me-2">{{ tarea.estado.replace('_',' ').title() }}</span>
+        <span class="b b-{{ tarea.prioridad }}">{{ tarea.prioridad.title() }} prioridad</span>
+      </div>
+      {% if tarea.descripcion %}<p style="font-size:.9rem">{{ tarea.descripcion }}</p><hr>{% endif %}
+      <dl class="row mb-0" style="font-size:.88rem">
+        <dt class="col-5 text-muted">Creada por</dt><dd class="col-7">{{ tarea.creador.nombre if tarea.creador else '—' }}</dd>
+        <dt class="col-5 text-muted">Asignada a</dt><dd class="col-7">{{ tarea.asignado_user.nombre if tarea.asignado_user else '—' }}</dd>
+        {% if tarea.asignados %}
+        <dt class="col-5 text-muted">También</dt>
+        <dd class="col-7">{% for a in tarea.asignados %}{{ a.user.nombre }}{% if not loop.last %}, {% endif %}{% endfor %}</dd>{% endif %}
+        {% if tarea.fecha_vencimiento %}
+        <dt class="col-5 text-muted">Vence</dt>
+        <dd class="col-7 {{ 'text-danger fw-bold' if tarea.estado!='completada' and tarea.fecha_vencimiento < now.date() else '' }}">{{ tarea.fecha_vencimiento.strftime('%d/%m/%Y') }}</dd>{% endif %}
+        <dt class="col-5 text-muted">Creada</dt><dd class="col-7">{{ tarea.creado_en.strftime('%d/%m/%Y') }}</dd>
+      </dl>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="tc">
+      <div class="ch"><i class="bi bi-chat-dots me-2"></i>Conversación ({{ tarea.comentarios|length }} mensajes)</div>
+      <div style="max-height:420px;overflow-y:auto;padding:1rem" id="chatBox">
+        {% if tarea.comentarios %}
+          {% for c in tarea.comentarios %}
+          <div class="d-flex {% if c.autor_id == current_user.id %}justify-content-end{% endif %} mb-2">
+            <div class="chat-bubble {{ 'mine' if c.autor_id == current_user.id else '' }}">
+              <div>{{ c.mensaje }}</div>
+              <div class="chat-meta">{{ c.autor.nombre }} · {{ c.creado_en.strftime('%d/%m %H:%M') }}</div>
+            </div>
+          </div>{% endfor %}
+        {% else %}
+        <div class="text-center text-muted py-4"><i class="bi bi-chat" style="font-size:2rem"></i>
+          <p class="mt-2 mb-0">Sin mensajes aún. ¡Sé el primero!</p></div>{% endif %}
+      </div>
+      <div class="p-3 border-top">
+        <form method="POST" action="{{ url_for('tarea_comentar', id=tarea.id) }}">
+          <div class="d-flex gap-2">
+            <input type="text" name="mensaje" class="form-control" placeholder="Escribe un mensaje..." required autofocus>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i></button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>{% endblock %}
+{% block scripts %}<script>
+const cb=document.getElementById('chatBox');if(cb)cb.scrollTop=cb.scrollHeight;
+</script>{% endblock %}"""
 
 T['tareas/form.html'] = """{% extends 'base.html' %}
 {% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
@@ -897,15 +886,21 @@ T['tareas/form.html'] = """{% extends 'base.html' %}
       <option value="media" {% if not obj or obj.prioridad=='media' %}selected{% endif %}>Media</option>
       <option value="alta" {% if obj and obj.prioridad=='alta' %}selected{% endif %}>Alta</option>
     </select></div>
-  <div class="col-md-4"><label class="form-label">Fecha de vencimiento</label>
+  <div class="col-md-4"><label class="form-label">Fecha vencimiento</label>
     <input type="date" name="fecha_vencimiento" class="form-control"
-           value="{{ obj.fecha_vencimiento.strftime('%Y-%m-%d') if obj and obj.fecha_vencimiento else '' }}"></div>
-  <div class="col-md-6"><label class="form-label">Asignar a</label>
+      value="{{ obj.fecha_vencimiento.strftime('%Y-%m-%d') if obj and obj.fecha_vencimiento else '' }}"></div>
+  <div class="col-md-6"><label class="form-label">Asignado principal</label>
     <select name="asignado_a" class="form-select">
-      {% for u in usuarios %}<option value="{{ u.id }}"
-        {% if (obj and obj.asignado_a==u.id) or (not obj and u.id==current_user.id) %}selected{% endif %}>
+      {% for u in usuarios %}<option value="{{ u.id }}" {% if (obj and obj.asignado_a==u.id) or (not obj and u.id==current_user.id) %}selected{% endif %}>
         {{ u.nombre }}{% if u.id==current_user.id %} (yo){% endif %}</option>{% endfor %}
     </select></div>
+  <div class="col-md-6"><label class="form-label">También asignar a</label>
+    <select name="otros_asignados[]" class="form-select" multiple style="height:90px">
+      {% for u in usuarios %}{% if u.id != current_user.id %}
+      <option value="{{ u.id }}" {% if obj and u.id in asignados_ids %}selected{% endif %}>{{ u.nombre }}</option>
+      {% endif %}{% endfor %}
+    </select>
+    <div class="form-text">Ctrl+clic para seleccionar varios</div></div>
   <div class="col-12"><label class="form-label">Descripción</label>
     <textarea name="descripcion" class="form-control" rows="4">{{ obj.descripcion if obj else '' }}</textarea></div>
 </div>
@@ -918,28 +913,27 @@ T['inventario/index.html'] = """{% extends 'base.html' %}
 {% block title %}Inventario{% endblock %}{% block page_title %}Inventario{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('producto_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo</a>{% endblock %}
 {% block content %}
-<div class="tc mb-3"><div class="p-3">
-  <form method="GET" class="row g-2 align-items-end">
-    <div class="col-sm-5"><input type="text" name="buscar" class="form-control form-control-sm" placeholder="Nombre, SKU..." value="{{ busqueda }}"></div>
-    <div class="col-sm-3"><select name="categoria" class="form-select form-select-sm">
-      <option value="">Todas las categorías</option>
-      {% for cat in categorias %}<option value="{{ cat }}" {% if categoria_f==cat %}selected{% endif %}>{{ cat }}</option>{% endfor %}
-    </select></div>
-    <div class="col-auto">
-      <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
-      <a href="{{ url_for('inventario') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
-    </div>
-  </form>
-</div></div>
+<div class="tc mb-3"><div class="p-3"><form method="GET" class="row g-2 align-items-end">
+  <div class="col-sm-5"><input type="text" name="buscar" class="form-control form-control-sm" placeholder="Nombre, SKU, NSO..." value="{{ busqueda }}"></div>
+  <div class="col-sm-3"><select name="categoria" class="form-select form-select-sm">
+    <option value="">Todas las categorías</option>
+    {% for cat in categorias %}<option value="{{ cat }}" {% if categoria_f==cat %}selected{% endif %}>{{ cat }}</option>{% endfor %}
+  </select></div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
+    <a href="{{ url_for('inventario') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
+  </div>
+</form></div></div>
 <div class="tc"><div class="ch"><i class="bi bi-box-seam-fill me-2"></i>{{ items|length }} producto(s)</div>
 {% if items %}<div class="table-responsive"><table class="table">
-  <thead><tr><th>Producto</th><th>SKU</th><th>Categoría</th><th>Precio COP</th><th>Stock</th><th></th></tr></thead>
+  <thead><tr><th>Producto</th><th>SKU</th><th>NSO (INVIMA)</th><th>Precio venta</th><th>Costo</th><th>Stock</th><th></th></tr></thead>
   <tbody>{% for p in items %}<tr>
     <td><div class="fw-semibold" style="color:#1a1f36">{{ p.nombre }}</div>
-      {% if p.descripcion %}<small class="text-muted">{{ p.descripcion[:50] }}...</small>{% endif %}</td>
+      {% if p.categoria %}<small class="text-muted">{{ p.categoria }}</small>{% endif %}</td>
     <td><small class="text-muted">{{ p.sku or '—' }}</small></td>
-    <td>{{ p.categoria or '—' }}</td>
+    <td><small class="text-muted">{{ p.nso or '—' }}</small></td>
     <td class="fw-semibold">$ {{ '{:,.0f}'.format(p.precio).replace(',','.') }}</td>
+    <td>$ {{ '{:,.0f}'.format(p.costo).replace(',','.') }}</td>
     <td><span class="fw-semibold {{ 'text-danger' if p.stock <= p.stock_minimo else 'text-success' }}">{{ p.stock }}</span>
       <small class="text-muted"> / mín {{ p.stock_minimo }}</small>
       {% if p.stock <= p.stock_minimo %}<span class="badge bg-danger ms-1" style="font-size:.65rem">BAJO</span>{% endif %}</td>
@@ -950,25 +944,29 @@ T['inventario/index.html'] = """{% extends 'base.html' %}
     </div></td>
   </tr>{% endfor %}</tbody>
 </table></div>
-{% else %}<div class="text-center text-muted py-5">
-  <i class="bi bi-box-seam" style="font-size:3rem"></i><p class="mt-3">Sin productos.</p>
-  <a href="{{ url_for('producto_nuevo') }}" class="btn btn-primary">Agregar</a></div>
+{% else %}<div class="text-center text-muted py-5"><i class="bi bi-box-seam" style="font-size:3rem"></i>
+  <p class="mt-3">Sin productos.</p><a href="{{ url_for('producto_nuevo') }}" class="btn btn-primary">Agregar</a></div>
 {% endif %}</div>{% endblock %}"""
 
 T['inventario/form.html'] = """{% extends 'base.html' %}
 {% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('inventario') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
 {% block content %}<div class="fc"><form method="POST"><div class="row g-3">
-  <div class="col-md-8"><label class="form-label">Nombre *</label>
+  <div class="col-md-6"><label class="form-label">Nombre *</label>
     <input type="text" name="nombre" class="form-control" value="{{ obj.nombre if obj else '' }}" required></div>
-  <div class="col-md-4"><label class="form-label">SKU / Código</label>
+  <div class="col-md-3"><label class="form-label">SKU</label>
     <input type="text" name="sku" class="form-control" value="{{ obj.sku if obj else '' }}"></div>
-  <div class="col-md-4"><label class="form-label">Precio COP (sin IVA)</label>
+  <div class="col-md-3"><label class="form-label">NSO (INVIMA)</label>
+    <input type="text" name="nso" class="form-control" placeholder="NSO-XXXX-XXXX" value="{{ obj.nso if obj else '' }}"></div>
+  <div class="col-md-3"><label class="form-label">Precio venta COP</label>
     <div class="input-group"><span class="input-group-text">$</span>
       <input type="number" name="precio" class="form-control" step="1" min="0" value="{{ obj.precio|int if obj else '0' }}"></div></div>
-  <div class="col-md-4"><label class="form-label">Stock actual</label>
+  <div class="col-md-3"><label class="form-label">Costo COP <small class="text-muted">(auto desde Producción)</small></label>
+    <div class="input-group"><span class="input-group-text">$</span>
+      <input type="number" name="costo" class="form-control" step="1" min="0" value="{{ obj.costo|int if obj else '0' }}"></div></div>
+  <div class="col-md-3"><label class="form-label">Stock actual</label>
     <input type="number" name="stock" class="form-control" min="0" value="{{ obj.stock if obj else '0' }}"></div>
-  <div class="col-md-4"><label class="form-label">Stock mínimo</label>
+  <div class="col-md-3"><label class="form-label">Stock mínimo</label>
     <input type="number" name="stock_minimo" class="form-control" min="0" value="{{ obj.stock_minimo if obj else '5' }}"></div>
   <div class="col-md-6"><label class="form-label">Categoría</label>
     <input type="text" name="categoria" class="form-control" value="{{ obj.categoria if obj else '' }}"></div>
@@ -980,48 +978,316 @@ T['inventario/form.html'] = """{% extends 'base.html' %}
   <a href="{{ url_for('inventario') }}" class="btn btn-outline-secondary">Cancelar</a>
 </div></form></div>{% endblock %}"""
 
+T['produccion/index.html'] = """{% extends 'base.html' %}
+{% block title %}Producción{% endblock %}{% block page_title %}Producción{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="sc"><div class="sv valor-cop" data-cop="{{ total_compras }}">$ {{ '{:,.0f}'.format(total_compras).replace(',','.') }}</div>
+    <div class="sl">Total en compras</div></div></div>
+  <div class="col-md-3"><div class="sc"><div class="sv valor-cop" data-cop="{{ compras_mes }}">$ {{ '{:,.0f}'.format(compras_mes).replace(',','.') }}</div>
+    <div class="sl">Compras este mes</div></div></div>
+  <div class="col-md-3"><div class="sc"><div class="sv">{{ cotizaciones_vigentes }}</div>
+    <div class="sl">Cotizaciones granel vigentes</div></div></div>
+  <div class="col-md-3"><div class="sc"><div class="sv">{{ reglas_activas }}</div>
+    <div class="sl">Reglas tributarias activas</div></div></div>
+</div>
+<div class="row g-4">
+  <div class="col-md-4"><div class="tc">
+    <div class="ch d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-cart3 me-2 text-primary"></i>Compras recientes</span>
+      <a href="{{ url_for('compras') }}" class="btn btn-sm btn-outline-primary">Ver todas</a></div>
+    {% if compras_recientes %}<table class="table"><tbody>
+    {% for c in compras_recientes %}<tr>
+      <td><div class="fw-semibold" style="font-size:.88rem;color:#1a1f36">{{ c.nombre_item }}</div>
+        <small class="text-muted">{{ c.proveedor or '—' }} · {{ c.fecha.strftime('%d/%m/%Y') }}</small></td>
+      <td class="fw-semibold" style="white-space:nowrap">$ {{ '{:,.0f}'.format(c.costo_total).replace(',','.') }}</td>
+    </tr>{% endfor %}</tbody></table>
+    {% else %}<div class="text-center text-muted py-3"><p class="mb-2">Sin compras</p>
+      <a href="{{ url_for('compra_nueva') }}" class="btn btn-sm btn-primary">Registrar</a></div>{% endif %}
+  </div></div>
+  <div class="col-md-4"><div class="tc">
+    <div class="ch d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-building me-2 text-success"></i>Cotizaciones Granel</span>
+      <a href="{{ url_for('granel') }}" class="btn btn-sm btn-outline-success">Ver todas</a></div>
+    {% if granel_recientes %}<table class="table"><tbody>
+    {% for g in granel_recientes %}<tr>
+      <td><div class="fw-semibold" style="font-size:.88rem;color:#1a1f36">{{ g.nombre_producto }}</div>
+        <small class="text-muted">SKU: {{ g.sku or '—' }} · NSO: {{ g.nso or '—' }}</small></td>
+      <td><span class="b b-{{ g.estado }}">{{ g.estado.title() }}</span></td>
+    </tr>{% endfor %}</tbody></table>
+    {% else %}<div class="text-center text-muted py-3"><p class="mb-2">Sin cotizaciones</p>
+      <a href="{{ url_for('granel_nuevo') }}" class="btn btn-sm btn-success">Agregar</a></div>{% endif %}
+  </div></div>
+  <div class="col-md-4"><div class="tc">
+    <div class="ch d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-percent me-2 text-warning"></i>Reglas tributarias</span>
+      <a href="{{ url_for('impuestos') }}" class="btn btn-sm btn-outline-warning">Ver todas</a></div>
+    {% if reglas %}<table class="table"><tbody>
+    {% for r in reglas %}<tr>
+      <td><div class="fw-semibold" style="font-size:.88rem;color:#1a1f36">{{ r.nombre }}</div>
+        <small class="text-muted">{{ r.aplica_a or '' }}</small></td>
+      <td class="fw-semibold">{{ r.porcentaje }}%</td>
+    </tr>{% endfor %}</tbody></table>
+    {% else %}<div class="text-center text-muted py-3"><p class="mb-2">Sin reglas</p>
+      <a href="{{ url_for('impuesto_nuevo') }}" class="btn btn-sm btn-warning">Agregar</a></div>{% endif %}
+  </div></div>
+</div>{% endblock %}"""
+
+T['produccion/compras.html'] = """{% extends 'base.html' %}
+{% block title %}Compras{% endblock %}{% block page_title %}Compras de Materia Prima{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('compra_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva compra</a>
+<a href="{{ url_for('produccion_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Producción</a>
+{% endblock %}
+{% block content %}
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="sc"><div class="sv">$ {{ '{:,.0f}'.format(total_general).replace(',','.') }}</div><div class="sl">Total acumulado</div></div></div>
+  <div class="col-md-3"><div class="sc"><div class="sv">$ {{ '{:,.0f}'.format(total_mes).replace(',','.') }}</div><div class="sl">Este mes</div></div></div>
+</div>
+<div class="tc"><div class="ch"><i class="bi bi-cart3 me-2"></i>{{ items|length }} compra(s)</div>
+{% if items %}<div class="table-responsive"><table class="table">
+  <thead><tr><th>Ítem</th><th>Proveedor</th><th>Fecha</th><th># Factura</th><th>Cto. Producto</th><th>Impuestos</th><th>Transporte</th><th>Total</th><th>Cant.</th><th>P. Unitario</th><th>Producto vinculado</th><th></th></tr></thead>
+  <tbody>{% for c in items %}<tr>
+    <td class="fw-semibold" style="color:#1a1f36">{{ c.nombre_item }}</td>
+    <td>{{ c.proveedor or '—' }}</td>
+    <td><small>{{ c.fecha.strftime('%d/%m/%Y') }}</small></td>
+    <td><small class="text-muted">{{ c.nro_factura or '—' }}</small></td>
+    <td>$ {{ '{:,.0f}'.format(c.costo_producto).replace(',','.') }}</td>
+    <td>$ {{ '{:,.0f}'.format(c.impuestos).replace(',','.') }}</td>
+    <td>$ {{ '{:,.0f}'.format(c.transporte).replace(',','.') }}</td>
+    <td class="fw-semibold">$ {{ '{:,.0f}'.format(c.costo_total).replace(',','.') }}</td>
+    <td>{{ c.cantidad }}</td>
+    <td class="fw-semibold">$ {{ '{:,.0f}'.format(c.precio_unitario).replace(',','.') }}</td>
+    <td>{% if c.producto %}<span class="badge bg-light text-dark">{{ c.producto.nombre }}</span>{% else %}—{% endif %}</td>
+    <td><div class="d-flex gap-1">
+      <a href="{{ url_for('compra_editar', id=c.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+      <form method="POST" action="{{ url_for('compra_eliminar', id=c.id) }}" onsubmit="return confirm('¿Eliminar?')">
+        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+    </div></td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+{% else %}<div class="text-center text-muted py-5"><i class="bi bi-cart3" style="font-size:3rem"></i>
+  <p class="mt-3">Sin compras.</p><a href="{{ url_for('compra_nueva') }}" class="btn btn-primary">Registrar primera</a></div>
+{% endif %}</div>{% endblock %}"""
+
+T['produccion/compra_form.html'] = """{% extends 'base.html' %}
+{% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('compras') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
+{% block content %}<div class="fc" style="max-width:900px"><form method="POST" id="frmC">
+<div class="row g-3">
+  <div class="col-md-6"><label class="form-label">Nombre del ítem *</label>
+    <input type="text" name="nombre_item" class="form-control" value="{{ obj.nombre_item if obj else '' }}" required></div>
+  <div class="col-md-6"><label class="form-label">Proveedor</label>
+    <input type="text" name="proveedor" class="form-control" value="{{ obj.proveedor if obj else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Fecha *</label>
+    <input type="date" name="fecha" class="form-control" value="{{ obj.fecha.strftime('%Y-%m-%d') if obj else today }}" required></div>
+  <div class="col-md-4"><label class="form-label"># Factura</label>
+    <input type="text" name="nro_factura" class="form-control" value="{{ obj.nro_factura if obj else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Cantidad</label>
+    <input type="number" name="cantidad" id="cant" class="form-control" step="0.01" min="0.01" value="{{ obj.cantidad if obj else '1' }}" oninput="calc()"></div>
+  <div class="col-md-4"><label class="form-label">Costo del producto COP</label>
+    <div class="input-group"><span class="input-group-text">$</span>
+      <input type="number" name="costo_producto" id="cP" class="form-control" step="1" min="0" value="{{ obj.costo_producto|int if obj else '0' }}" oninput="calc()"></div></div>
+  <div class="col-md-4"><label class="form-label">Impuestos COP</label>
+    <div class="input-group"><span class="input-group-text">$</span>
+      <input type="number" name="impuestos" id="imp" class="form-control" step="1" min="0" value="{{ obj.impuestos|int if obj else '0' }}" oninput="calc()"></div></div>
+  <div class="col-md-4"><label class="form-label">Transporte COP</label>
+    <div class="input-group"><span class="input-group-text">$</span>
+      <input type="number" name="transporte" id="tsp" class="form-control" step="1" min="0" value="{{ obj.transporte|int if obj else '0' }}" oninput="calc()"></div></div>
+  <div class="col-md-6"><label class="form-label fw-bold">Costo total COP</label>
+    <input type="text" id="totVis" class="form-control fw-bold" readonly style="background:#f0f2ff;font-size:1.05rem">
+    <input type="hidden" name="costo_total" id="totHid"></div>
+  <div class="col-md-6"><label class="form-label fw-bold">Precio unitario COP</label>
+    <input type="text" id="pUVis" class="form-control fw-bold" readonly style="background:#f0f2ff;font-size:1.05rem">
+    <input type="hidden" name="precio_unitario" id="pUHid"></div>
+  <div class="col-12"><label class="form-label">Vincular a producto en inventario</label>
+    <select name="producto_id" class="form-select">
+      <option value="">— No vincular —</option>
+      {% for p in productos %}<option value="{{ p.id }}" {% if obj and obj.producto_id==p.id %}selected{% endif %}>{{ p.nombre }}{% if p.sku %} ({{ p.sku }}){% endif %}</option>{% endfor %}
+    </select>
+    <div class="form-text">Al guardar, actualizará el costo del producto seleccionado.</div></div>
+  <div class="col-12"><label class="form-label">Notas</label>
+    <textarea name="notas" class="form-control" rows="2">{{ obj.notas if obj else '' }}</textarea></div>
+</div>
+<div class="d-flex gap-2 mt-4">
+  <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Guardar Compra' }}</button>
+  <a href="{{ url_for('compras') }}" class="btn btn-outline-secondary">Cancelar</a>
+</div></form></div>{% endblock %}
+{% block scripts %}<script>
+function fCOP(n){return '$ '+Math.round(n).toLocaleString('es-CO');}
+function calc(){
+  const cp=parseFloat(document.getElementById('cP').value)||0;
+  const imp=parseFloat(document.getElementById('imp').value)||0;
+  const tsp=parseFloat(document.getElementById('tsp').value)||0;
+  const cant=parseFloat(document.getElementById('cant').value)||1;
+  const tot=cp+imp+tsp;const pu=cant>0?tot/cant:0;
+  document.getElementById('totVis').value=fCOP(tot);document.getElementById('totHid').value=Math.round(tot);
+  document.getElementById('pUVis').value=fCOP(pu);document.getElementById('pUHid').value=Math.round(pu);
+}
+calc();
+</script>{% endblock %}"""
+
+T['produccion/granel.html'] = """{% extends 'base.html' %}
+{% block title %}Granel{% endblock %}{% block page_title %}Cotizaciones Granel{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('granel_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva cotización</a>
+<a href="{{ url_for('produccion_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Producción</a>
+{% endblock %}
+{% block content %}
+<div class="mb-3 d-flex gap-2">
+  {% for est,lbl in [('','Todas'),('vigente','Vigentes'),('vencida','Vencidas'),('en_revision','En revisión')] %}
+  <a href="{{ url_for('granel', estado=est) }}" class="btn btn-sm {{ 'btn-primary' if estado_f==est else 'btn-outline-secondary' }}">{{ lbl }}</a>{% endfor %}
+</div>
+<div class="tc"><div class="ch"><i class="bi bi-building me-2"></i>{{ items|length }} cotización(es)</div>
+{% if items %}<div class="table-responsive"><table class="table">
+  <thead><tr><th>Producto</th><th>SKU</th><th>NSO (INVIMA)</th><th>Proveedor</th><th>P. Unitario</th><th>Mín. unidades</th><th>Vigencia</th><th>Estado</th><th>Producto inv.</th><th></th></tr></thead>
+  <tbody>{% for g in items %}<tr>
+    <td class="fw-semibold" style="color:#1a1f36">{{ g.nombre_producto }}</td>
+    <td><small class="text-muted">{{ g.sku or '—' }}</small></td>
+    <td><small class="text-muted">{{ g.nso or '—' }}</small></td>
+    <td>{{ g.proveedor or '—' }}</td>
+    <td class="fw-semibold">$ {{ '{:,.0f}'.format(g.precio_unitario).replace(',','.') }}</td>
+    <td>{{ g.unidades_minimas }}</td>
+    <td>{% if g.vigencia %}<small class="{{ 'text-danger' if g.vigencia < now.date() else 'text-muted' }}">{{ g.vigencia.strftime('%d/%m/%Y') }}</small>{% else %}—{% endif %}</td>
+    <td><span class="b b-{{ g.estado }}">{{ g.estado.replace('_',' ').title() }}</span></td>
+    <td>{% if g.producto %}<small>{{ g.producto.nombre }}</small>{% else %}—{% endif %}</td>
+    <td><div class="d-flex gap-1">
+      <a href="{{ url_for('granel_editar', id=g.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+      <form method="POST" action="{{ url_for('granel_eliminar', id=g.id) }}" onsubmit="return confirm('¿Eliminar?')">
+        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+    </div></td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+{% else %}<div class="text-center text-muted py-5"><i class="bi bi-building" style="font-size:3rem"></i>
+  <p class="mt-3">Sin cotizaciones.</p><a href="{{ url_for('granel_nuevo') }}" class="btn btn-primary">Agregar primera</a></div>
+{% endif %}</div>{% endblock %}"""
+
+T['produccion/granel_form.html'] = """{% extends 'base.html' %}
+{% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('granel') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
+{% block content %}<div class="fc" style="max-width:900px"><form method="POST"><div class="row g-3">
+  <div class="col-md-6"><label class="form-label">Nombre del producto *</label>
+    <input type="text" name="nombre_producto" class="form-control" value="{{ obj.nombre_producto if obj else '' }}" required></div>
+  <div class="col-md-3"><label class="form-label">SKU</label>
+    <input type="text" name="sku" class="form-control" value="{{ obj.sku if obj else '' }}"></div>
+  <div class="col-md-3"><label class="form-label">NSO (INVIMA)</label>
+    <input type="text" name="nso" class="form-control" placeholder="NSO-XXXX" value="{{ obj.nso if obj else '' }}"></div>
+  <div class="col-md-6"><label class="form-label">Proveedor / Fabricante</label>
+    <input type="text" name="proveedor" class="form-control" value="{{ obj.proveedor if obj else '' }}"></div>
+  <div class="col-md-3"><label class="form-label">Precio unitario COP</label>
+    <div class="input-group"><span class="input-group-text">$</span>
+      <input type="number" name="precio_unitario" class="form-control" step="1" min="0" value="{{ obj.precio_unitario|int if obj else '0' }}"></div></div>
+  <div class="col-md-3"><label class="form-label">Mínimo de unidades</label>
+    <input type="number" name="unidades_minimas" class="form-control" min="1" value="{{ obj.unidades_minimas if obj else '1' }}"></div>
+  <div class="col-md-4"><label class="form-label">Fecha cotización</label>
+    <input type="date" name="fecha_cotizacion" class="form-control"
+      value="{{ obj.fecha_cotizacion.strftime('%Y-%m-%d') if obj and obj.fecha_cotizacion else today }}"></div>
+  <div class="col-md-4"><label class="form-label">Vigencia hasta</label>
+    <input type="date" name="vigencia" class="form-control"
+      value="{{ obj.vigencia.strftime('%Y-%m-%d') if obj and obj.vigencia else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Estado</label>
+    <select name="estado" class="form-select">
+      {% for est,lbl in [('vigente','Vigente'),('vencida','Vencida'),('en_revision','En revisión')] %}
+      <option value="{{ est }}" {% if obj and obj.estado==est %}selected{% elif not obj and est=='vigente' %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
+    </select></div>
+  <div class="col-12"><label class="form-label">Vincular a producto en inventario</label>
+    <select name="producto_id" class="form-select">
+      <option value="">— No vincular —</option>
+      {% for p in productos %}<option value="{{ p.id }}" {% if obj and obj.producto_id==p.id %}selected{% endif %}>{{ p.nombre }}{% if p.sku %} ({{ p.sku }}){% endif %}</option>{% endfor %}
+    </select>
+    <div class="form-text">Si estado es "Vigente", actualizará el costo del producto en inventario.</div></div>
+  <div class="col-12"><label class="form-label">Notas</label>
+    <textarea name="notas" class="form-control" rows="2">{{ obj.notas if obj else '' }}</textarea></div>
+</div>
+<div class="d-flex gap-2 mt-4">
+  <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Guardar Cotización' }}</button>
+  <a href="{{ url_for('granel') }}" class="btn btn-outline-secondary">Cancelar</a>
+</div></form></div>{% endblock %}"""
+
+T['produccion/impuestos.html'] = """{% extends 'base.html' %}
+{% block title %}Impuestos{% endblock %}{% block page_title %}Reglas Tributarias{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('impuesto_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva regla</a>
+<a href="{{ url_for('produccion_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Producción</a>
+{% endblock %}
+{% block content %}
+<div class="alert alert-info" style="border-radius:10px;border:none">
+  <i class="bi bi-info-circle me-2"></i>Esta sección es para que el contador configure las reglas tributarias que aplican a las compras y operaciones de la empresa.
+</div>
+<div class="tc"><div class="ch"><i class="bi bi-percent me-2"></i>{{ items|length }} regla(s)</div>
+{% if items %}<div class="table-responsive"><table class="table">
+  <thead><tr><th>Nombre</th><th>Descripción</th><th>%</th><th>Aplica a</th><th>Estado</th><th></th></tr></thead>
+  <tbody>{% for r in items %}<tr>
+    <td class="fw-semibold" style="color:#1a1f36">{{ r.nombre }}</td>
+    <td><small class="text-muted">{{ r.descripcion or '—' }}</small></td>
+    <td class="fw-semibold">{{ r.porcentaje }}%</td>
+    <td>{{ r.aplica_a or '—' }}</td>
+    <td><span class="b b-{{ 'activo' if r.activo else 'inactivo' }}">{{ 'Activa' if r.activo else 'Inactiva' }}</span></td>
+    <td><div class="d-flex gap-1">
+      <a href="{{ url_for('impuesto_editar', id=r.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+      <form method="POST" action="{{ url_for('impuesto_eliminar', id=r.id) }}" onsubmit="return confirm('¿Eliminar?')">
+        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+    </div></td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+{% else %}<div class="text-center text-muted py-5"><i class="bi bi-percent" style="font-size:3rem"></i>
+  <p class="mt-3">Sin reglas configuradas.</p><a href="{{ url_for('impuesto_nuevo') }}" class="btn btn-primary">Agregar primera</a></div>
+{% endif %}</div>{% endblock %}"""
+
+T['produccion/impuesto_form.html'] = """{% extends 'base.html' %}
+{% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('impuestos') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
+{% block content %}<div class="fc"><form method="POST"><div class="row g-3">
+  <div class="col-md-6"><label class="form-label">Nombre *</label>
+    <input type="text" name="nombre" class="form-control" placeholder="Ej: IVA compras insumos" value="{{ obj.nombre if obj else '' }}" required></div>
+  <div class="col-md-3"><label class="form-label">Porcentaje %</label>
+    <div class="input-group"><input type="number" name="porcentaje" class="form-control" step="0.01" min="0" max="100"
+      value="{{ obj.porcentaje if obj else '0' }}"><span class="input-group-text">%</span></div></div>
+  <div class="col-md-3"><label class="form-label">Estado</label>
+    <select name="activo" class="form-select">
+      <option value="1" {% if not obj or obj.activo %}selected{% endif %}>Activa</option>
+      <option value="0" {% if obj and not obj.activo %}selected{% endif %}>Inactiva</option>
+    </select></div>
+  <div class="col-12"><label class="form-label">Aplica a</label>
+    <input type="text" name="aplica_a" class="form-control" placeholder="Ej: Materias primas importadas, servicios de maquila..."
+      value="{{ obj.aplica_a if obj else '' }}"></div>
+  <div class="col-12"><label class="form-label">Descripción / Instrucciones para el equipo</label>
+    <textarea name="descripcion" class="form-control" rows="4" placeholder="Explicar cuándo y cómo aplicar esta regla...">{{ obj.descripcion if obj else '' }}</textarea></div>
+</div>
+<div class="d-flex gap-2 mt-4">
+  <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Guardar Regla' }}</button>
+  <a href="{{ url_for('impuestos') }}" class="btn btn-outline-secondary">Cancelar</a>
+</div></form></div>{% endblock %}"""
+
 T['gastos/index.html'] = """{% extends 'base.html' %}
 {% block title %}Gastos Operativos{% endblock %}{% block page_title %}Gastos Operativos{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('gasto_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Agregar gasto</a>{% endblock %}
 {% block content %}
 <div class="row g-3 mb-4">
-  <div class="col-md-3"><div class="sc">
-    <div class="sv">$ {{ '{:,.0f}'.format(total_general).replace(',','.') }}</div>
-    <div class="sl">Total acumulado COP</div>
-  </div></div>
-  <div class="col-md-3"><div class="sc">
-    <div class="sv">$ {{ '{:,.0f}'.format(total_mes).replace(',','.') }}</div>
-    <div class="sl">Este mes</div>
-  </div></div>
-  <div class="col-md-3"><div class="sc">
-    <div class="sv">{{ total_registros }}</div>
-    <div class="sl">Registros totales</div>
-  </div></div>
+  <div class="col-md-3"><div class="sc"><div class="sv">$ {{ '{:,.0f}'.format(total_general).replace(',','.') }}</div><div class="sl">Total acumulado COP</div></div></div>
+  <div class="col-md-3"><div class="sc"><div class="sv">$ {{ '{:,.0f}'.format(total_mes).replace(',','.') }}</div><div class="sl">Este mes</div></div></div>
+  <div class="col-md-3"><div class="sc"><div class="sv">{{ total_registros }}</div><div class="sl">Registros totales</div></div></div>
 </div>
-<div class="tc mb-3"><div class="p-3">
-  <form method="GET" class="row g-2 align-items-end">
-    <div class="col-sm-3"><select name="tipo" class="form-select form-select-sm">
-      <option value="">Todos los tipos</option>
-      {% for t in tipos %}<option value="{{ t }}" {% if tipo_f==t %}selected{% endif %}>{{ t }}</option>{% endfor %}
-    </select></div>
-    <div class="col-sm-2"><input type="date" name="desde" class="form-control form-control-sm" value="{{ desde_f }}" placeholder="Desde"></div>
-    <div class="col-sm-2"><input type="date" name="hasta" class="form-control form-control-sm" value="{{ hasta_f }}" placeholder="Hasta"></div>
-    <div class="col-auto">
-      <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
-      <a href="{{ url_for('gastos') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
-    </div>
-  </form>
-</div></div>
-<div class="tc"><div class="ch"><i class="bi bi-receipt me-2"></i>{{ items|length }} gasto(s)
-  {% if items %} — Filtrado: <strong>$ {{ '{:,.0f}'.format(items|sum(attribute='monto')).replace(',','.') }}</strong>{% endif %}</div>
+<div class="tc mb-3"><div class="p-3"><form method="GET" class="row g-2 align-items-end">
+  <div class="col-sm-3"><select name="tipo" class="form-select form-select-sm">
+    <option value="">Todos los tipos</option>
+    {% for t in tipos %}<option value="{{ t }}" {% if tipo_f==t %}selected{% endif %}>{{ t }}</option>{% endfor %}
+  </select></div>
+  <div class="col-sm-2"><input type="date" name="desde" class="form-control form-control-sm" value="{{ desde_f }}"></div>
+  <div class="col-sm-2"><input type="date" name="hasta" class="form-control form-control-sm" value="{{ hasta_f }}"></div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
+    <a href="{{ url_for('gastos') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
+  </div>
+</form></div></div>
+<div class="tc"><div class="ch"><i class="bi bi-receipt me-2"></i>{{ items|length }} gasto(s)</div>
 {% if items %}<div class="table-responsive"><table class="table">
-  <thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción</th><th>Monto COP</th><th>Notas</th><th></th></tr></thead>
+  <thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción</th><th>Monto COP</th><th></th></tr></thead>
   <tbody>{% for g in items %}<tr>
     <td><small>{{ g.fecha.strftime('%d/%m/%Y') }}</small></td>
     <td><span class="badge bg-secondary">{{ g.tipo }}</span></td>
     <td>{{ g.descripcion or '—' }}</td>
     <td class="fw-semibold">$ {{ '{:,.0f}'.format(g.monto).replace(',','.') }}</td>
-    <td><small class="text-muted">{{ g.notas[:40] if g.notas else '—' }}</small></td>
     <td><div class="d-flex gap-1">
       <a href="{{ url_for('gasto_editar', id=g.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
       <form method="POST" action="{{ url_for('gasto_eliminar', id=g.id) }}" onsubmit="return confirm('¿Eliminar?')">
@@ -1029,9 +1295,8 @@ T['gastos/index.html'] = """{% extends 'base.html' %}
     </div></td>
   </tr>{% endfor %}</tbody>
 </table></div>
-{% else %}<div class="text-center text-muted py-5">
-  <i class="bi bi-receipt" style="font-size:3rem"></i><p class="mt-3">Sin gastos registrados.</p>
-  <a href="{{ url_for('gasto_nuevo') }}" class="btn btn-primary">Agregar primero</a></div>
+{% else %}<div class="text-center text-muted py-5"><i class="bi bi-receipt" style="font-size:3rem"></i>
+  <p class="mt-3">Sin gastos.</p><a href="{{ url_for('gasto_nuevo') }}" class="btn btn-primary">Agregar primero</a></div>
 {% endif %}</div>{% endblock %}"""
 
 T['gastos/form.html'] = """{% extends 'base.html' %}
@@ -1040,7 +1305,7 @@ T['gastos/form.html'] = """{% extends 'base.html' %}
 {% block content %}<div class="fc"><form method="POST"><div class="row g-3">
   <div class="col-md-4"><label class="form-label">Fecha *</label>
     <input type="date" name="fecha" class="form-control" value="{{ obj.fecha.strftime('%Y-%m-%d') if obj else today }}" required></div>
-  <div class="col-md-4"><label class="form-label">Tipo de gasto *</label>
+  <div class="col-md-4"><label class="form-label">Tipo *</label>
     <select name="tipo" class="form-select" required>
       {% for t in ['Arriendo','Servicios públicos','Nómina','Transporte','Mercadeo','Materia prima','Maquinaria','Impuestos','Logística','Mantenimiento','Otros'] %}
       <option value="{{ t }}" {% if obj and obj.tipo==t %}selected{% endif %}>{{ t }}</option>{% endfor %}
@@ -1049,9 +1314,9 @@ T['gastos/form.html'] = """{% extends 'base.html' %}
     <div class="input-group"><span class="input-group-text">$</span>
       <input type="number" name="monto" class="form-control" step="1" min="0" value="{{ obj.monto|int if obj else '0' }}" required></div></div>
   <div class="col-12"><label class="form-label">Descripción</label>
-    <input type="text" name="descripcion" class="form-control" value="{{ obj.descripcion if obj else '' }}" placeholder="Detalle del gasto..."></div>
-  <div class="col-12"><label class="form-label">Notas adicionales</label>
-    <textarea name="notas" class="form-control" rows="3">{{ obj.notas if obj else '' }}</textarea></div>
+    <input type="text" name="descripcion" class="form-control" value="{{ obj.descripcion if obj else '' }}"></div>
+  <div class="col-12"><label class="form-label">Notas</label>
+    <textarea name="notas" class="form-control" rows="2">{{ obj.notas if obj else '' }}</textarea></div>
 </div>
 <div class="d-flex gap-2 mt-4">
   <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Guardar Gasto' }}</button>
@@ -1062,40 +1327,32 @@ T['admin/usuarios.html'] = """{% extends 'base.html' %}
 {% block title %}Usuarios{% endblock %}{% block page_title %}Gestión de Usuarios{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('admin_usuario_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo Usuario</a>{% endblock %}
 {% block content %}<div class="tc"><div class="ch"><i class="bi bi-shield-person-fill me-2"></i>{{ items|length }} usuario(s)</div>
-<div class="table-responsive"><table class="table">
-  <thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th>Alta</th><th></th></tr></thead>
-  <tbody>{% for u in items %}<tr>
-    <td><div class="d-flex align-items-center gap-2">
-      <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
-           style="width:30px;height:30px;background:#5e72e4;font-size:.8rem;flex-shrink:0">{{ u.nombre[0].upper() }}</div>
-      <div class="fw-semibold" style="color:#1a1f36">{{ u.nombre }}</div></div></td>
-    <td>{{ u.email }}</td>
-    <td><span class="badge {{ 'bg-primary' if u.rol=='admin' else 'bg-secondary' }}">{{ u.rol.title() }}</span></td>
-    <td><span class="b b-{{ 'activo' if u.activo else 'inactivo' }}">{{ 'Activo' if u.activo else 'Inactivo' }}</span></td>
-    <td><small class="text-muted">{{ u.creado_en.strftime('%d/%m/%Y') }}</small></td>
-    <td>{% if u.id != current_user.id %}
-      <form method="POST" action="{{ url_for('admin_usuario_toggle', id=u.id) }}">
-        <button class="btn btn-sm {{ 'btn-outline-warning' if u.activo else 'btn-outline-success' }}">
-          {{ 'Desactivar' if u.activo else 'Activar' }}</button></form>
-      {% else %}<small class="text-muted">(tú)</small>{% endif %}</td>
-  </tr>{% endfor %}</tbody>
-</table></div></div>{% endblock %}"""
+<table class="table"><thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th>Alta</th><th></th></tr></thead>
+<tbody>{% for u in items %}<tr>
+  <td><div class="d-flex align-items-center gap-2">
+    <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
+         style="width:30px;height:30px;background:#5e72e4;font-size:.8rem;flex-shrink:0">{{ u.nombre[0].upper() }}</div>
+    <div class="fw-semibold" style="color:#1a1f36">{{ u.nombre }}</div></div></td>
+  <td>{{ u.email }}</td>
+  <td><span class="badge {{ 'bg-primary' if u.rol=='admin' else 'bg-secondary' }}">{{ u.rol.title() }}</span></td>
+  <td><span class="b b-{{ 'activo' if u.activo else 'inactivo' }}">{{ 'Activo' if u.activo else 'Inactivo' }}</span></td>
+  <td><small class="text-muted">{{ u.creado_en.strftime('%d/%m/%Y') }}</small></td>
+  <td>{% if u.id != current_user.id %}
+    <form method="POST" action="{{ url_for('admin_usuario_toggle', id=u.id) }}">
+      <button class="btn btn-sm {{ 'btn-outline-warning' if u.activo else 'btn-outline-success' }}">
+        {{ 'Desactivar' if u.activo else 'Activar' }}</button></form>
+    {% else %}<small class="text-muted">(tú)</small>{% endif %}</td>
+</tr>{% endfor %}</tbody></table></div>{% endblock %}"""
 
 T['admin/usuario_form.html'] = """{% extends 'base.html' %}
 {% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('admin_usuarios') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
 {% block content %}<div class="fc"><form method="POST"><div class="row g-3">
-  <div class="col-md-6"><label class="form-label">Nombre completo *</label>
-    <input type="text" name="nombre" class="form-control" required></div>
-  <div class="col-md-6"><label class="form-label">Email *</label>
-    <input type="email" name="email" class="form-control" required></div>
-  <div class="col-md-6"><label class="form-label">Contraseña *</label>
-    <input type="password" name="password" class="form-control" required placeholder="Mínimo 6 caracteres"></div>
+  <div class="col-md-6"><label class="form-label">Nombre *</label><input type="text" name="nombre" class="form-control" required></div>
+  <div class="col-md-6"><label class="form-label">Email *</label><input type="email" name="email" class="form-control" required></div>
+  <div class="col-md-6"><label class="form-label">Contraseña *</label><input type="password" name="password" class="form-control" required></div>
   <div class="col-md-6"><label class="form-label">Rol</label>
-    <select name="rol" class="form-select">
-      <option value="usuario">Usuario</option>
-      <option value="admin">Administrador</option>
-    </select></div>
+    <select name="rol" class="form-select"><option value="usuario">Usuario</option><option value="admin">Administrador</option></select></div>
 </div>
 <div class="d-flex gap-2 mt-4">
   <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Crear Usuario</button>
@@ -1140,16 +1397,16 @@ def dashboard():
     gastos_mes = db.session.query(db.func.sum(GastoOperativo.monto)).filter(GastoOperativo.fecha >= mes_inicio).scalar() or 0
     saldo_pend = db.session.query(db.func.sum(Venta.saldo)).filter(Venta.estado.in_(['anticipo_pagado','negociacion'])).scalar() or 0
     return render_template('dashboard.html',
-        total_clientes    = Cliente.query.filter_by(estado='activo').count(),
-        ventas_ganadas    = Venta.query.filter_by(estado='ganado').count(),
-        tareas_pendientes = Tarea.query.filter(Tarea.estado != 'completada').count(),
-        ingresos_totales  = ingresos,
-        gastos_totales    = gastos_tot,
-        balance           = ingresos - gastos_tot,
-        saldo_pendiente   = saldo_pend,
+        total_clientes       = Cliente.query.filter_by(estado='activo').count(),
+        ventas_ganadas       = Venta.query.filter_by(estado='ganado').count(),
+        tareas_pendientes    = Tarea.query.filter(Tarea.estado != 'completada').count(),
+        ingresos_totales     = ingresos,
+        gastos_totales       = gastos_tot,
+        balance              = ingresos - gastos_tot,
+        saldo_pendiente      = saldo_pend,
         productos_bajo_stock = Producto.query.filter(Producto.activo==True, Producto.stock<=Producto.stock_minimo).count(),
-        tareas_recientes  = Tarea.query.filter(Tarea.estado!='completada').order_by(Tarea.creado_en.desc()).limit(5).all(),
-        ventas_recientes  = Venta.query.order_by(Venta.creado_en.desc()).limit(6).all(),
+        tareas_recientes     = Tarea.query.filter(Tarea.estado!='completada').order_by(Tarea.creado_en.desc()).limit(5).all(),
+        ventas_recientes     = Venta.query.order_by(Venta.creado_en.desc()).limit(6).all(),
     )
 
 # =============================================================
@@ -1317,8 +1574,23 @@ def venta_eliminar(id):
     flash('Venta eliminada.','info'); return redirect(url_for('ventas'))
 
 # =============================================================
-# TAREAS
+# TAREAS (v8: múltiples asignados + chat)
 # =============================================================
+
+def _save_asignados(tarea_obj):
+    TareaAsignado.query.filter_by(tarea_id=tarea_obj.id).delete()
+    ids = request.form.getlist('asignados[]')
+    seen = set()
+    for uid in ids:
+        try:
+            uid = int(uid)
+            if uid not in seen:
+                seen.add(uid)
+                db.session.add(TareaAsignado(tarea_id=tarea_obj.id, user_id=uid))
+        except (ValueError, TypeError):
+            pass
+    if not seen:
+        db.session.add(TareaAsignado(tarea_id=tarea_obj.id, user_id=current_user.id))
 
 @app.route('/tareas')
 @login_required
@@ -1336,12 +1608,32 @@ def tarea_nueva():
     us=User.query.filter_by(activo=True).all()
     if request.method == 'POST':
         fs=request.form.get('fecha_vencimiento')
-        db.session.add(Tarea(titulo=request.form['titulo'],descripcion=request.form.get('descripcion',''),
-            estado=request.form.get('estado','pendiente'),prioridad=request.form.get('prioridad','media'),
+        t=Tarea(titulo=request.form['titulo'], descripcion=request.form.get('descripcion',''),
+            estado=request.form.get('estado','pendiente'), prioridad=request.form.get('prioridad','media'),
             fecha_vencimiento=datetime.strptime(fs,'%Y-%m-%d').date() if fs else None,
-            asignado_a=int(request.form.get('asignado_a') or current_user.id),creado_por=current_user.id))
-        db.session.commit(); flash('Tarea creada.','success'); return redirect(url_for('tareas'))
-    return render_template('tareas/form.html', obj=None, usuarios=us, titulo='Nueva Tarea')
+            asignado_a=int(request.form.getlist('asignados[]')[0]) if request.form.getlist('asignados[]') else current_user.id,
+            creado_por=current_user.id)
+        db.session.add(t); db.session.flush()
+        _save_asignados(t); db.session.commit()
+        flash('Tarea creada.','success'); return redirect(url_for('tareas'))
+    return render_template('tareas/form.html', obj=None, usuarios=us, titulo='Nueva Tarea', asignados_ids=[])
+
+@app.route('/tareas/<int:id>')
+@login_required
+def tarea_ver(id):
+    obj=Tarea.query.get_or_404(id)
+    return render_template('tareas/ver.html', obj=obj)
+
+@app.route('/tareas/<int:id>/comentar', methods=['POST'])
+@login_required
+def tarea_comentar(id):
+    obj=Tarea.query.get_or_404(id)
+    msg=request.form.get('mensaje','').strip()
+    if msg:
+        db.session.add(TareaComentario(tarea_id=obj.id, autor_id=current_user.id, mensaje=msg))
+        db.session.commit()
+        flash('Comentario agregado.','success')
+    return redirect(url_for('tarea_ver', id=id))
 
 @app.route('/tareas/<int:id>/editar', methods=['GET','POST'])
 @login_required
@@ -1352,9 +1644,12 @@ def tarea_editar(id):
         obj.titulo=request.form['titulo']; obj.descripcion=request.form.get('descripcion','')
         obj.estado=request.form.get('estado','pendiente'); obj.prioridad=request.form.get('prioridad','media')
         obj.fecha_vencimiento=datetime.strptime(fs,'%Y-%m-%d').date() if fs else None
-        obj.asignado_a=int(request.form.get('asignado_a') or current_user.id)
-        db.session.commit(); flash('Tarea actualizada.','success'); return redirect(url_for('tareas'))
-    return render_template('tareas/form.html', obj=obj, usuarios=us, titulo='Editar Tarea')
+        ids_list=request.form.getlist('asignados[]')
+        obj.asignado_a=int(ids_list[0]) if ids_list else current_user.id
+        db.session.flush(); _save_asignados(obj); db.session.commit()
+        flash('Tarea actualizada.','success'); return redirect(url_for('tarea_ver', id=obj.id))
+    asignados_ids=[a.user_id for a in obj.asignados]
+    return render_template('tareas/form.html', obj=obj, usuarios=us, titulo='Editar Tarea', asignados_ids=asignados_ids)
 
 @app.route('/tareas/<int:id>/completar', methods=['POST'])
 @login_required
@@ -1369,7 +1664,7 @@ def tarea_eliminar(id):
     flash('Tarea eliminada.','info'); return redirect(url_for('tareas'))
 
 # =============================================================
-# INVENTARIO
+# INVENTARIO (v8: NSO + costo)
 # =============================================================
 
 @app.route('/inventario')
@@ -1379,7 +1674,8 @@ def inventario():
     q=Producto.query.filter_by(activo=True)
     if busqueda:
         q=q.filter(db.or_(Producto.nombre.ilike(f'%{busqueda}%'),
-                           Producto.sku.ilike(f'%{busqueda}%')))
+                           Producto.sku.ilike(f'%{busqueda}%'),
+                           Producto.nso.ilike(f'%{busqueda}%')))
     if categoria_f: q=q.filter_by(categoria=categoria_f)
     cats=[c[0] for c in db.session.query(Producto.categoria).filter(
         Producto.activo==True,Producto.categoria!=None,Producto.categoria!='').distinct().all()]
@@ -1390,10 +1686,14 @@ def inventario():
 @login_required
 def producto_nuevo():
     if request.method == 'POST':
-        db.session.add(Producto(nombre=request.form['nombre'],descripcion=request.form.get('descripcion',''),
-            precio=float(request.form.get('precio',0) or 0),stock=int(request.form.get('stock',0) or 0),
+        db.session.add(Producto(
+            nombre=request.form['nombre'], descripcion=request.form.get('descripcion',''),
+            sku=request.form.get('sku') or None, nso=request.form.get('nso') or None,
+            precio=float(request.form.get('precio',0) or 0),
+            costo=float(request.form.get('costo',0) or 0),
+            stock=int(request.form.get('stock',0) or 0),
             stock_minimo=int(request.form.get('stock_minimo',5) or 5),
-            categoria=request.form.get('categoria',''),sku=request.form.get('sku') or None))
+            categoria=request.form.get('categoria','')))
         db.session.commit(); flash('Producto creado.','success'); return redirect(url_for('inventario'))
     return render_template('inventario/form.html', obj=None, titulo='Nuevo Producto')
 
@@ -1403,9 +1703,12 @@ def producto_editar(id):
     obj=Producto.query.get_or_404(id)
     if request.method == 'POST':
         obj.nombre=request.form['nombre']; obj.descripcion=request.form.get('descripcion','')
-        obj.precio=float(request.form.get('precio',0) or 0); obj.stock=int(request.form.get('stock',0) or 0)
+        obj.sku=request.form.get('sku') or None; obj.nso=request.form.get('nso') or None
+        obj.precio=float(request.form.get('precio',0) or 0)
+        obj.costo=float(request.form.get('costo',0) or 0)
+        obj.stock=int(request.form.get('stock',0) or 0)
         obj.stock_minimo=int(request.form.get('stock_minimo',5) or 5)
-        obj.categoria=request.form.get('categoria',''); obj.sku=request.form.get('sku') or None
+        obj.categoria=request.form.get('categoria','')
         db.session.commit(); flash('Producto actualizado.','success'); return redirect(url_for('inventario'))
     return render_template('inventario/form.html', obj=obj, titulo='Editar Producto')
 
@@ -1414,6 +1717,226 @@ def producto_editar(id):
 def producto_eliminar(id):
     obj=Producto.query.get_or_404(id); obj.activo=False; db.session.commit()
     flash('Producto eliminado.','info'); return redirect(url_for('inventario'))
+
+# =============================================================
+# PRODUCCIÓN
+# =============================================================
+
+@app.route('/produccion')
+@login_required
+def produccion_index():
+    total_compras   = CompraMateria.query.count()
+    total_granel    = CotizacionGranel.query.count()
+    granel_vigente  = CotizacionGranel.query.filter_by(estado='vigente').count()
+    total_impuestos = ReglaTributaria.query.filter_by(activo=True).count()
+    ultimas_compras = CompraMateria.query.order_by(CompraMateria.creado_en.desc()).limit(5).all()
+    return render_template('produccion/index.html',
+        total_compras=total_compras, total_granel=total_granel,
+        granel_vigente=granel_vigente, total_impuestos=total_impuestos,
+        ultimas_compras=ultimas_compras)
+
+# --- Compras de Materia Prima ---
+
+@app.route('/produccion/compras')
+@login_required
+def compras():
+    busqueda=request.args.get('buscar','')
+    q=CompraMateria.query
+    if busqueda:
+        q=q.filter(db.or_(CompraMateria.nombre_item.ilike(f'%{busqueda}%'),
+                           CompraMateria.proveedor.ilike(f'%{busqueda}%'),
+                           CompraMateria.nro_factura.ilike(f'%{busqueda}%')))
+    return render_template('produccion/compras.html', items=q.order_by(CompraMateria.fecha.desc()).all(),
+                           busqueda=busqueda)
+
+def _prods_all_json():
+    prods = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
+    return json.dumps([{'id':p.id,'nombre':p.nombre,'sku':p.sku or '','nso':p.nso or ''} for p in prods])
+
+@app.route('/produccion/compras/nueva', methods=['GET','POST'])
+@login_required
+def compra_nueva():
+    if request.method == 'POST':
+        fd = request.form.get('fecha')
+        cant  = float(request.form.get('cantidad',1) or 1)
+        costo_p = float(request.form.get('costo_producto',0) or 0)
+        imp   = float(request.form.get('impuestos',0) or 0)
+        trans = float(request.form.get('transporte',0) or 0)
+        costo_total = costo_p + imp + trans
+        precio_unit = (costo_total / cant) if cant > 0 else 0
+        pid   = request.form.get('producto_id') or None
+        c = CompraMateria(
+            producto_id=int(pid) if pid else None,
+            nombre_item=request.form['nombre_item'],
+            proveedor=request.form.get('proveedor',''),
+            fecha=datetime.strptime(fd,'%Y-%m-%d').date() if fd else datetime.utcnow().date(),
+            nro_factura=request.form.get('nro_factura',''),
+            cantidad=cant, costo_producto=costo_p, impuestos=imp, transporte=trans,
+            costo_total=costo_total, precio_unitario=precio_unit,
+            notas=request.form.get('notas',''), creado_por=current_user.id)
+        db.session.add(c)
+        if pid:
+            prod = Producto.query.get(int(pid))
+            if prod: prod.costo = precio_unit
+        db.session.commit()
+        flash('Compra registrada y costo actualizado.','success')
+        return redirect(url_for('compras'))
+    return render_template('produccion/compra_form.html', obj=None, titulo='Nueva Compra',
+                           productos_json=_prods_all_json(),
+                           today=datetime.utcnow().strftime('%Y-%m-%d'))
+
+@app.route('/produccion/compras/<int:id>/editar', methods=['GET','POST'])
+@login_required
+def compra_editar(id):
+    obj=CompraMateria.query.get_or_404(id)
+    if request.method == 'POST':
+        fd = request.form.get('fecha')
+        cant  = float(request.form.get('cantidad',1) or 1)
+        costo_p = float(request.form.get('costo_producto',0) or 0)
+        imp   = float(request.form.get('impuestos',0) or 0)
+        trans = float(request.form.get('transporte',0) or 0)
+        costo_total = costo_p + imp + trans
+        precio_unit = (costo_total / cant) if cant > 0 else 0
+        pid   = request.form.get('producto_id') or None
+        obj.producto_id=int(pid) if pid else None
+        obj.nombre_item=request.form['nombre_item']; obj.proveedor=request.form.get('proveedor','')
+        obj.fecha=datetime.strptime(fd,'%Y-%m-%d').date() if fd else obj.fecha
+        obj.nro_factura=request.form.get('nro_factura','')
+        obj.cantidad=cant; obj.costo_producto=costo_p; obj.impuestos=imp; obj.transporte=trans
+        obj.costo_total=costo_total; obj.precio_unitario=precio_unit
+        obj.notas=request.form.get('notas','')
+        if pid:
+            prod = Producto.query.get(int(pid))
+            if prod: prod.costo = precio_unit
+        db.session.commit()
+        flash('Compra actualizada y costo actualizado.','success')
+        return redirect(url_for('compras'))
+    return render_template('produccion/compra_form.html', obj=obj, titulo='Editar Compra',
+                           productos_json=_prods_all_json(),
+                           today=datetime.utcnow().strftime('%Y-%m-%d'))
+
+@app.route('/produccion/compras/<int:id>/eliminar', methods=['POST'])
+@login_required
+def compra_eliminar(id):
+    obj=CompraMateria.query.get_or_404(id); db.session.delete(obj); db.session.commit()
+    flash('Compra eliminada.','info'); return redirect(url_for('compras'))
+
+# --- Cotizaciones Granel ---
+
+@app.route('/produccion/granel')
+@login_required
+def granel():
+    estado_f=request.args.get('estado','')
+    q=CotizacionGranel.query
+    if estado_f: q=q.filter_by(estado=estado_f)
+    return render_template('produccion/granel.html', items=q.order_by(CotizacionGranel.creado_en.desc()).all(),
+                           estado_f=estado_f)
+
+@app.route('/produccion/granel/nueva', methods=['GET','POST'])
+@login_required
+def granel_nueva():
+    if request.method == 'POST':
+        fc = request.form.get('fecha_cotizacion')
+        fv = request.form.get('vigencia')
+        pid = request.form.get('producto_id') or None
+        estado = request.form.get('estado','vigente')
+        precio_u = float(request.form.get('precio_unitario',0) or 0)
+        g = CotizacionGranel(
+            producto_id=int(pid) if pid else None,
+            nombre_producto=request.form['nombre_producto'],
+            sku=request.form.get('sku',''), nso=request.form.get('nso',''),
+            proveedor=request.form.get('proveedor',''),
+            precio_unitario=precio_u,
+            unidades_minimas=int(request.form.get('unidades_minimas',1) or 1),
+            fecha_cotizacion=datetime.strptime(fc,'%Y-%m-%d').date() if fc else None,
+            vigencia=datetime.strptime(fv,'%Y-%m-%d').date() if fv else None,
+            estado=estado, notas=request.form.get('notas',''), creado_por=current_user.id)
+        db.session.add(g)
+        if pid and estado == 'vigente':
+            prod = Producto.query.get(int(pid))
+            if prod: prod.costo = precio_u
+        db.session.commit()
+        flash('Cotización guardada.','success')
+        return redirect(url_for('granel'))
+    return render_template('produccion/granel_form.html', obj=None, titulo='Nueva Cotización Granel',
+                           productos_json=_prods_all_json(),
+                           today=datetime.utcnow().strftime('%Y-%m-%d'))
+
+@app.route('/produccion/granel/<int:id>/editar', methods=['GET','POST'])
+@login_required
+def granel_editar(id):
+    obj=CotizacionGranel.query.get_or_404(id)
+    if request.method == 'POST':
+        fc = request.form.get('fecha_cotizacion')
+        fv = request.form.get('vigencia')
+        pid = request.form.get('producto_id') or None
+        estado = request.form.get('estado','vigente')
+        precio_u = float(request.form.get('precio_unitario',0) or 0)
+        obj.producto_id=int(pid) if pid else None
+        obj.nombre_producto=request.form['nombre_producto']
+        obj.sku=request.form.get('sku',''); obj.nso=request.form.get('nso','')
+        obj.proveedor=request.form.get('proveedor',''); obj.precio_unitario=precio_u
+        obj.unidades_minimas=int(request.form.get('unidades_minimas',1) or 1)
+        obj.fecha_cotizacion=datetime.strptime(fc,'%Y-%m-%d').date() if fc else None
+        obj.vigencia=datetime.strptime(fv,'%Y-%m-%d').date() if fv else None
+        obj.estado=estado; obj.notas=request.form.get('notas','')
+        if pid and estado == 'vigente':
+            prod = Producto.query.get(int(pid))
+            if prod: prod.costo = precio_u
+        db.session.commit()
+        flash('Cotización actualizada.','success')
+        return redirect(url_for('granel'))
+    return render_template('produccion/granel_form.html', obj=obj, titulo='Editar Cotización Granel',
+                           productos_json=_prods_all_json(),
+                           today=datetime.utcnow().strftime('%Y-%m-%d'))
+
+@app.route('/produccion/granel/<int:id>/eliminar', methods=['POST'])
+@login_required
+def granel_eliminar(id):
+    obj=CotizacionGranel.query.get_or_404(id); db.session.delete(obj); db.session.commit()
+    flash('Cotización eliminada.','info'); return redirect(url_for('granel'))
+
+# --- Reglas Tributarias ---
+
+@app.route('/produccion/impuestos')
+@login_required
+def impuestos():
+    return render_template('produccion/impuestos.html',
+                           items=ReglaTributaria.query.order_by(ReglaTributaria.nombre).all())
+
+@app.route('/produccion/impuestos/nuevo', methods=['GET','POST'])
+@login_required
+def impuesto_nuevo():
+    if request.method == 'POST':
+        db.session.add(ReglaTributaria(
+            nombre=request.form['nombre'],
+            descripcion=request.form.get('descripcion',''),
+            porcentaje=float(request.form.get('porcentaje',0) or 0),
+            aplica_a=request.form.get('aplica_a',''),
+            activo=True))
+        db.session.commit(); flash('Regla tributaria creada.','success')
+        return redirect(url_for('impuestos'))
+    return render_template('produccion/impuesto_form.html', obj=None, titulo='Nueva Regla Tributaria')
+
+@app.route('/produccion/impuestos/<int:id>/editar', methods=['GET','POST'])
+@login_required
+def impuesto_editar(id):
+    obj=ReglaTributaria.query.get_or_404(id)
+    if request.method == 'POST':
+        obj.nombre=request.form['nombre']
+        obj.descripcion=request.form.get('descripcion','')
+        obj.porcentaje=float(request.form.get('porcentaje',0) or 0)
+        obj.aplica_a=request.form.get('aplica_a','')
+        obj.activo='activo' in request.form
+        db.session.commit(); flash('Regla actualizada.','success')
+        return redirect(url_for('impuestos'))
+    return render_template('produccion/impuesto_form.html', obj=obj, titulo='Editar Regla Tributaria')
+
+@app.route('/produccion/impuestos/<int:id>/eliminar', methods=['POST'])
+@login_required
+def impuesto_eliminar(id):
+    obj=ReglaTributaria.query.get_or_404(id); db.session.delete(obj); db.session.commit()
+    flash('Regla eliminada.','info'); return redirect(url_for('impuestos'))
 
 # =============================================================
 # GASTOS OPERATIVOS
