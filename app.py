@@ -467,6 +467,7 @@ class OrdenProduccion(db.Model):
     __tablename__ = 'ordenes_produccion'
     id                = db.Column(db.Integer, primary_key=True)
     cotizacion_id     = db.Column(db.Integer, db.ForeignKey('cotizaciones.id'), nullable=True)
+    venta_id          = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=True)
     producto_id       = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
     cantidad_total    = db.Column(db.Float, default=0)   # total requerido
     cantidad_stock    = db.Column(db.Float, default=0)   # ya en stock al crear
@@ -480,6 +481,7 @@ class OrdenProduccion(db.Model):
     completado_en     = db.Column(db.DateTime, nullable=True)
     producto          = db.relationship('Producto', foreign_keys=[producto_id])
     cotizacion        = db.relationship('Cotizacion', foreign_keys=[cotizacion_id])
+    venta             = db.relationship('Venta', foreign_keys=[venta_id])
 
 class Notificacion(db.Model):
     __tablename__ = 'notificaciones'
@@ -3489,7 +3491,7 @@ T['produccion/ordenes.html'] = """{% extends 'base.html' %}
 <a href="{{ url_for('gantt') }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-bar-chart-steps me-1"></i>Diagrama Gantt</a>
 {% endblock %}
 {% block content %}
-<div class="fc">
+<div class="fc" style="max-width:100%">
 {% if pendientes %}
 <h6 class="fw-semibold text-uppercase text-muted mb-3" style="letter-spacing:1px;font-size:.75rem">En producción / Pendientes</h6>
 <div class="table-responsive mb-4">
@@ -3607,6 +3609,7 @@ T['produccion/gantt.html'] = """{% extends 'base.html' %}
 {% endblock %}
 {% block content %}
 <style>
+.body-content>.fc,.body-content .fc{max-width:100%!important}
 .gantt-wrap{overflow-x:auto;padding-bottom:1rem}
 .gantt-grid{display:grid;font-size:.82rem;min-width:900px}
 .gantt-header{display:contents}
@@ -3661,7 +3664,7 @@ T['produccion/gantt.html'] = """{% extends 'base.html' %}
   </div></div>
 </div>
 
-<div class="fc p-3">
+<div class="fc p-3" style="max-width:100%">
 <div class="gantt-wrap">
   <div class="gantt-grid" id="ganttGrid" style="grid-template-columns:220px 110px 100px 1fr">
     <!-- Header -->
@@ -3931,6 +3934,24 @@ def _save_items(venta_obj):
             nombre_prod=prod.nombre if prod else '',
             cantidad=cant, precio_unit=precio, subtotal=cant*precio))
 
+def _descontar_stock_venta(venta):
+    """
+    Descuenta del inventario (Producto.stock) las cantidades de los items
+    de la venta. Se llama exactamente una vez, cuando la venta pasa a
+    anticipo_pagado o ganado por primera vez.
+    """
+    try:
+        for item in venta.items:
+            if not item.producto_id:
+                continue
+            prod = Producto.query.get(item.producto_id)
+            if not prod:
+                continue
+            cant = item.cantidad
+            prod.stock = max(0, (prod.stock or 0) - cant)
+    except Exception as ex:
+        print(f'_descontar_stock_venta error: {ex}')
+
 @app.route('/ventas/nueva', methods=['GET','POST'])
 @login_required
 def venta_nueva():
@@ -3954,6 +3975,10 @@ def venta_nueva():
         db.session.add(v); db.session.flush()
         _save_items(v); db.session.flush()
         _procesar_venta_produccion(v)
+        # Si se crea directamente en estado confirmado, descontar stock de productos
+        _ESTADOS_CONFIRMADOS = {'anticipo_pagado', 'ganado'}
+        if v.estado in _ESTADOS_CONFIRMADOS:
+            _descontar_stock_venta(v)
         db.session.commit()
         _log('crear','venta',v.id,f'Venta creada: {v.titulo}'); db.session.commit()
         flash('Venta creada.','success'); return redirect(url_for('ventas'))
@@ -3968,6 +3993,7 @@ def venta_editar(id):
     if request.method == 'POST':
         fa = request.form.get('fecha_anticipo')
         fe = request.form.get('fecha_entrega_est')
+        estado_anterior = obj.estado  # capture BEFORE updating
         obj.titulo=request.form['titulo']; obj.cliente_id=request.form.get('cliente_id') or None
         obj.subtotal=float(request.form.get('subtotal_calc') or 0)
         obj.iva=float(request.form.get('iva_calc') or 0)
@@ -3982,6 +4008,10 @@ def venta_editar(id):
         obj.notas=request.form.get('notas','')
         db.session.flush(); _save_items(obj); db.session.flush()
         _procesar_venta_produccion(obj)
+        # Descontar stock de productos al transicionar a estado confirmado (sólo una vez)
+        _ESTADOS_CONFIRMADOS = {'anticipo_pagado', 'ganado'}
+        if obj.estado in _ESTADOS_CONFIRMADOS and estado_anterior not in _ESTADOS_CONFIRMADOS:
+            _descontar_stock_venta(obj)
         db.session.commit()
         _log('editar','venta',obj.id,f'Venta editada: {obj.titulo}'); db.session.commit()
         flash('Venta actualizada.','success'); return redirect(url_for('ventas'))
@@ -5277,10 +5307,11 @@ def _procesar_venta_produccion(venta):
     """
     Al guardar una venta, por cada item con producto:
     1. Compara stock actual vs cantidad requerida
-    2. Si falta stock → crea OrdenProduccion
-    3. Reserva materias primas disponibles según BOM
+    2. Si falta stock → crea OrdenProduccion (vinculada a esta venta)
+    3. Reserva/descuenta materias primas disponibles según BOM inmediatamente
     4. Si faltan materias, crea tareas comprar_materias + verificar_abono
-    Solo actúa si no existe ya una OrdenProduccion activa para esta venta+producto.
+    El check de duplicado es POR VENTA+PRODUCTO (no global), así cada venta
+    genera sus propias órdenes y las ventas posteriores no se bloquean.
     """
     try:
         admins = User.query.filter_by(rol='admin', activo=True).all()
@@ -5298,17 +5329,19 @@ def _procesar_venta_produccion(venta):
             cant_producir  = max(0.0, cant_requerida - cant_en_stock)
 
             if cant_producir <= 0:
-                continue  # stock suficiente
+                continue  # stock suficiente, sin producción necesaria
 
-            # Evitar duplicar órdenes activas para este producto/venta
-            existente = OrdenProduccion.query.filter_by(
-                producto_id=prod.id,
-                estado='en_produccion'
+            # Check duplicado POR VENTA+PRODUCTO (no bloquea otras ventas del mismo producto)
+            existente = OrdenProduccion.query.filter(
+                OrdenProduccion.venta_id == venta.id,
+                OrdenProduccion.producto_id == prod.id,
+                OrdenProduccion.estado != 'completado'
             ).first()
             if existente:
                 continue
 
             orden = OrdenProduccion(
+                venta_id=venta.id,
                 producto_id=prod.id,
                 cantidad_total=cant_requerida,
                 cantidad_stock=cant_en_stock,
@@ -5319,7 +5352,7 @@ def _procesar_venta_produccion(venta):
             )
             db.session.add(orden)
 
-            # Verificar BOM y reservar
+            # Descontar/reservar materias primas del BOM inmediatamente
             receta = RecetaProducto.query.filter_by(producto_id=prod.id, activo=True).first()
             materias_faltantes = []
             if receta and receta.unidades_produce > 0:
@@ -5330,6 +5363,7 @@ def _procesar_venta_produccion(venta):
                     necesaria  = ri.cantidad_por_unidad * factor
                     disponible = mp.stock_disponible or 0
                     if disponible >= necesaria:
+                        # Disponible: reservar completamente
                         mp.stock_disponible -= necesaria
                         mp.stock_reservado   = (mp.stock_reservado or 0) + necesaria
                         db.session.add(ReservaProduccion(
@@ -5339,6 +5373,7 @@ def _procesar_venta_produccion(venta):
                             creado_por=current_user.id
                         ))
                     else:
+                        # Insuficiente: reservar lo que haya + anotar faltante
                         faltante = necesaria - disponible
                         materias_faltantes.append(
                             f'{mp.nombre}: falta {faltante:.3f} {mp.unidad} (disp. {disponible:.3f})'
@@ -6086,6 +6121,8 @@ def _migrate(conn):
         ("ALTER TABLE tareas ADD COLUMN IF NOT EXISTS cotizacion_id INTEGER REFERENCES cotizaciones(id)"),
         ("ALTER TABLE tareas ADD COLUMN IF NOT EXISTS tarea_tipo VARCHAR(50)"),
         ("ALTER TABLE tareas ADD COLUMN IF NOT EXISTS tarea_pareja_id INTEGER REFERENCES tareas(id)"),
+        # OrdenProduccion — v12.2 venta_id para vincular con ventas
+        ("ALTER TABLE ordenes_produccion ADD COLUMN IF NOT EXISTS venta_id INTEGER REFERENCES ventas(id)"),
     ]
     for sql in migrations:
         try:
