@@ -192,7 +192,10 @@ class Venta(db.Model):
     notas               = db.Column(db.Text)
     creado_en           = db.Column(db.DateTime, default=datetime.utcnow)
     creado_por          = db.Column(db.Integer, db.ForeignKey('users.id'))
+    cliente_informado_en= db.Column(db.DateTime, nullable=True)  # v12.2
+    entregado_en        = db.Column(db.DateTime, nullable=True)   # v12.2
     items               = db.relationship('VentaProducto', backref='venta', lazy=True, cascade='all, delete-orphan')
+    ordenes_produccion  = db.relationship('OrdenProduccion', foreign_keys='OrdenProduccion.venta_id', lazy=True)
 
 class TareaAsignado(db.Model):
     __tablename__ = 'tarea_asignados'
@@ -426,8 +429,10 @@ class MateriaPrima(db.Model):
     costo_unitario   = db.Column(db.Float, default=0)
     categoria        = db.Column(db.String(100))
     proveedor        = db.Column(db.String(200))
+    producto_id      = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=True)
     activo           = db.Column(db.Boolean, default=True)
     creado_en        = db.Column(db.DateTime, default=datetime.utcnow)
+    producto         = db.relationship('Producto', foreign_keys=[producto_id])
 
 class RecetaProducto(db.Model):
     __tablename__ = 'recetas_producto'
@@ -683,7 +688,9 @@ T['base.html'] = """<!DOCTYPE html>
 <!-- Panel notificaciones flotante -->
 <div class="notif-dd" id="notifDd" style="display:none">
   <div class="notif-dd-head"><span><i class="bi bi-bell me-1"></i>Notificaciones</span>
-    <a href="{{ url_for('notificaciones_marcar_todas') }}" style="font-size:.75rem;color:#5e72e4;text-decoration:none" onclick="document.getElementById('notifDd').style.display='none'">Marcar leídas</a>
+    <form method="POST" action="{{ url_for('notificaciones_marcar_todas') }}" style="display:inline;margin:0">
+      <button type="submit" style="font-size:.75rem;color:#5e72e4;text-decoration:none;background:none;border:none;padding:0;cursor:pointer" onclick="document.getElementById('notifDd').style.display='none'">Marcar leídas</button>
+    </form>
   </div>
   <div id="notifList"><div class="p-3 text-center text-muted" style="font-size:.8rem">Cargando...</div></div>
   <div style="padding:.5rem 1rem;text-align:center;border-top:1px solid #f0f2ff">
@@ -1096,9 +1103,31 @@ T['ventas/index.html'] = """{% extends 'base.html' %}
     <td class="{{ 'text-danger fw-semibold' if v.saldo > 0 else '' }}">$ {{ '{:,.0f}'.format(v.saldo).replace(',','.') }}</td>
     <td><span class="b b-{{ v.estado }}">{{ v.estado.replace('_',' ').title() }}</span></td>
     <td>{% if v.fecha_entrega_est %}<small>{{ v.fecha_entrega_est.strftime('%d/%m/%Y') }}</small>{% else %}—{% endif %}</td>
-    <td><div class="d-flex gap-1">
+    <td><div class="d-flex gap-1 flex-wrap">
       <a href="{{ url_for('venta_factura', id=v.id) }}" class="btn btn-sm btn-outline-primary" target="_blank" title="Ver factura/cotización"><i class="bi bi-file-earmark-text"></i></a>
       <a href="{{ url_for('venta_editar', id=v.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+      {# Botón Informar al cliente: visible si hay producción completada y aún no se informó #}
+      {% set ops_completadas = v.ordenes_produccion|selectattr('estado','equalto','completado')|list %}
+      {% if ops_completadas and not v.cliente_informado_en and not v.entregado_en %}
+      <form method="POST" action="{{ url_for('venta_informar_cliente', id=v.id) }}" class="d-inline">
+        <button class="btn btn-sm btn-warning" title="Producción lista — Informar al cliente">
+          <i class="bi bi-envelope-check me-1"></i>Informar cliente
+        </button>
+      </form>
+      {% endif %}
+      {# Botón Entregado: visible si ya se informó al cliente y aún no está entregado #}
+      {% if v.cliente_informado_en and not v.entregado_en %}
+      <form method="POST" action="{{ url_for('venta_entregar', id=v.id) }}" class="d-inline"
+            onsubmit="return confirm('¿Marcar como entregado? Esto descontará las unidades del inventario.')">
+        <button class="btn btn-sm btn-success" title="Marcar como entregado y descontar stock">
+          <i class="bi bi-box-arrow-up me-1"></i>Entregado
+        </button>
+      </form>
+      {% endif %}
+      {# Estado entregado #}
+      {% if v.entregado_en %}
+      <span class="badge bg-success align-self-center"><i class="bi bi-check2-all me-1"></i>Entregado</span>
+      {% endif %}
       <form method="POST" action="{{ url_for('venta_eliminar', id=v.id) }}" onsubmit="return confirm('¿Eliminar?')">
         <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
     </div></td>
@@ -1637,13 +1666,13 @@ T['produccion/compra_form.html'] = """{% extends 'base.html' %}
     <label class="form-label">Materia prima vinculada <small class="text-muted">(actualiza stock al guardar)</small></label>
     <select name="materia_id" id="materiaId" class="form-select" onchange="onMateriaChange()">
       <option value="">— Sin vincular —</option>
-      {% for m in materias %}<option value="{{ m.id }}" data-unidad="{{ m.unidad }}" {% if obj and obj.materia_id==m.id %}selected{% endif %}>{{ m.nombre }} ({{ m.unidad }})</option>{% endfor %}
+      {% for m in materias %}<option value="{{ m.id }}" data-unidad="{{ m.unidad }}" data-prodid="{{ m.producto_id or '' }}" {% if obj and obj.materia_id==m.id %}selected{% endif %}>{{ m.nombre }} ({{ m.unidad }}){% if m.producto %} → {{ m.producto.nombre }}{% endif %}</option>{% endfor %}
     </select></div>
 
-  <!-- Vincular producto inventario (solo si tipo != materia_prima) -->
+  <!-- Vincular producto inventario -->
   <div class="col-md-8" id="divProducto" style="">
-    <label class="form-label">Vincular a producto en inventario <small class="text-muted">(actualiza costo)</small></label>
-    <select name="producto_id" class="form-select">
+    <label class="form-label" id="lblProducto">Vincular a producto en inventario <small class="text-muted" id="lblProductoHint">(actualiza costo)</small></label>
+    <select name="producto_id" id="productoId" class="form-select">
       <option value="">— No vincular —</option>
       {% for p in productos %}<option value="{{ p.id }}" {% if obj and obj.producto_id==p.id %}selected{% endif %}>{{ p.nombre }}{% if p.sku %} ({{ p.sku }}){% endif %}</option>{% endfor %}
     </select></div>
@@ -1716,17 +1745,31 @@ function calc(){
 }
 function onTipoChange(){
   var t=document.getElementById('tipoCompra').value;
-  document.getElementById('divMateria').style.display=(t==='materia_prima')?'':'none';
-  document.getElementById('divProducto').style.display=(t!=='materia_prima')?'':'none';
+  var isMP=(t==='materia_prima');
+  document.getElementById('divMateria').style.display=isMP?'':'none';
+  // Producto siempre visible; ajustar etiqueta según contexto
+  document.getElementById('divProducto').style.display='';
+  document.getElementById('lblProductoHint').textContent=isMP?'(auto-detectado desde materia prima)':'(actualiza costo)';
   autoNombre();
 }
 function onMateriaChange(){
   var sel=document.getElementById('materiaId');
   var opt=sel.options[sel.selectedIndex];
+  // Sync unidad
   var unidad=opt.getAttribute('data-unidad');
   if(unidad){
     var uSel=document.getElementById('unidadSel');
     for(var i=0;i<uSel.options.length;i++){if(uSel.options[i].value===unidad){uSel.selectedIndex=i;break;}}
+  }
+  // Auto-seleccionar el producto vinculado a la materia prima
+  var prodId=opt.getAttribute('data-prodid');
+  var pSel=document.getElementById('productoId');
+  if(pSel){
+    if(prodId){
+      for(var j=0;j<pSel.options.length;j++){if(pSel.options[j].value===prodId){pSel.selectedIndex=j;break;}}
+    } else {
+      pSel.selectedIndex=0; // Sin vincular
+    }
   }
   autoNombre();
 }
@@ -3061,6 +3104,18 @@ T['produccion/materia_form.html'] = """{% extends 'base.html' %}
     <input type="text" name="categoria" class="form-control" value="{{ obj.categoria if obj else '' }}" placeholder="Ingredientes, Químicos..."></div>
   <div class="col-12"><label class="form-label">Descripción</label>
     <textarea name="descripcion" class="form-control" rows="2">{{ obj.descripcion if obj else '' }}</textarea></div>
+
+  <!-- Producto al que pertenece esta materia prima -->
+  <div class="col-12">
+    <label class="form-label fw-semibold">Producto asociado <small class="text-muted fw-normal">(opcional — para qué producto se usa principalmente esta materia)</small></label>
+    <select name="producto_id" class="form-select">
+      <option value="">— Sin asignar —</option>
+      {% for p in productos %}
+      <option value="{{ p.id }}" {% if obj and obj.producto_id==p.id %}selected{% endif %}>{{ p.nombre }}{% if p.sku %} ({{ p.sku }}){% endif %}</option>
+      {% endfor %}
+    </select>
+  </div>
+
   <div class="col-md-4"><label class="form-label">Unidad de medida *</label>
     <select name="unidad" class="form-select" required>
       {% for u in ['kg','g','litros','ml','unidades','piezas','metros','cm'] %}
@@ -3975,10 +4030,6 @@ def venta_nueva():
         db.session.add(v); db.session.flush()
         _save_items(v); db.session.flush()
         _procesar_venta_produccion(v)
-        # Si se crea directamente en estado confirmado, descontar stock de productos
-        _ESTADOS_CONFIRMADOS = {'anticipo_pagado', 'ganado'}
-        if v.estado in _ESTADOS_CONFIRMADOS:
-            _descontar_stock_venta(v)
         db.session.commit()
         _log('crear','venta',v.id,f'Venta creada: {v.titulo}'); db.session.commit()
         flash('Venta creada.','success'); return redirect(url_for('ventas'))
@@ -3993,7 +4044,6 @@ def venta_editar(id):
     if request.method == 'POST':
         fa = request.form.get('fecha_anticipo')
         fe = request.form.get('fecha_entrega_est')
-        estado_anterior = obj.estado  # capture BEFORE updating
         obj.titulo=request.form['titulo']; obj.cliente_id=request.form.get('cliente_id') or None
         obj.subtotal=float(request.form.get('subtotal_calc') or 0)
         obj.iva=float(request.form.get('iva_calc') or 0)
@@ -4008,10 +4058,6 @@ def venta_editar(id):
         obj.notas=request.form.get('notas','')
         db.session.flush(); _save_items(obj); db.session.flush()
         _procesar_venta_produccion(obj)
-        # Descontar stock de productos al transicionar a estado confirmado (sólo una vez)
-        _ESTADOS_CONFIRMADOS = {'anticipo_pagado', 'ganado'}
-        if obj.estado in _ESTADOS_CONFIRMADOS and estado_anterior not in _ESTADOS_CONFIRMADOS:
-            _descontar_stock_venta(obj)
         db.session.commit()
         _log('editar','venta',obj.id,f'Venta editada: {obj.titulo}'); db.session.commit()
         flash('Venta actualizada.','success'); return redirect(url_for('ventas'))
@@ -4025,6 +4071,43 @@ def venta_editar(id):
 def venta_eliminar(id):
     obj=Venta.query.get_or_404(id); db.session.delete(obj); db.session.commit()
     flash('Venta eliminada.','info'); return redirect(url_for('ventas'))
+
+@app.route('/ventas/<int:id>/informar_cliente', methods=['POST'])
+@login_required
+def venta_informar_cliente(id):
+    venta = Venta.query.get_or_404(id)
+    venta.cliente_informado_en = datetime.utcnow()
+    db.session.commit()
+    # Enviar email al cliente si tiene email
+    if venta.cliente and venta.cliente.email:
+        prod_nombres = ', '.join(
+            it.nombre_prod for it in venta.items if it.nombre_prod
+        ) or 'los productos'
+        _send_email(
+            venta.cliente.email,
+            f'Tu pedido está listo — {venta.titulo}',
+            f'Hola {venta.cliente.nombre},\n\n'
+            f'Nos complace informarte que {prod_nombres} de tu pedido "{venta.titulo}" '
+            f'están listos para entrega.\n\n'
+            f'Coordinaremos contigo la fecha y horario de entrega.\n\n'
+            f'¡Gracias por tu compra!'
+        )
+        flash(f'Cliente {venta.cliente.nombre} notificado por email. Pedido listo para entrega.','success')
+    else:
+        flash('Venta marcada como "cliente informado". (Sin email del cliente para enviar notificación.)','info')
+    return redirect(url_for('ventas'))
+
+@app.route('/ventas/<int:id>/entregar', methods=['POST'])
+@login_required
+def venta_entregar(id):
+    venta = Venta.query.get_or_404(id)
+    venta.entregado_en = datetime.utcnow()
+    # Descontar stock de productos entregados
+    _descontar_stock_venta(venta)
+    # Marcar órdenes de producción vinculadas como listas
+    db.session.commit()
+    flash(f'Venta marcada como entregada. Stock descontado del inventario.','success')
+    return redirect(url_for('ventas'))
 
 # =============================================================
 # TAREAS (v8: múltiples asignados + chat)
@@ -5612,7 +5695,9 @@ def materias():
 @login_required
 @requiere_modulo('produccion')
 def materia_nueva():
+    productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
     if request.method == 'POST':
+        pid_raw = request.form.get('producto_id','')
         m = MateriaPrima(
             nombre=request.form['nombre'],
             descripcion=request.form.get('descripcion','') or None,
@@ -5621,18 +5706,22 @@ def materia_nueva():
             stock_minimo=float(request.form.get('stock_minimo',0)),
             costo_unitario=float(request.form.get('costo_unitario',0)),
             categoria=request.form.get('categoria','') or None,
-            proveedor=request.form.get('proveedor','') or None
+            proveedor=request.form.get('proveedor','') or None,
+            producto_id=int(pid_raw) if pid_raw else None
         )
         db.session.add(m); db.session.commit()
         flash('Materia prima creada.','success'); return redirect(url_for('materias'))
-    return render_template('produccion/materia_form.html', obj=None, titulo='Nueva Materia Prima')
+    return render_template('produccion/materia_form.html', obj=None, titulo='Nueva Materia Prima',
+                           productos=productos)
 
 @app.route('/produccion/materias/<int:id>/editar', methods=['GET','POST'])
 @login_required
 @requiere_modulo('produccion')
 def materia_editar(id):
     obj = MateriaPrima.query.get_or_404(id)
+    productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
     if request.method == 'POST':
+        pid_raw = request.form.get('producto_id','')
         obj.nombre=request.form['nombre']
         obj.descripcion=request.form.get('descripcion','') or None
         obj.unidad=request.form.get('unidad','unidades')
@@ -5641,9 +5730,11 @@ def materia_editar(id):
         obj.costo_unitario=float(request.form.get('costo_unitario',0))
         obj.categoria=request.form.get('categoria','') or None
         obj.proveedor=request.form.get('proveedor','') or None
+        obj.producto_id=int(pid_raw) if pid_raw else None
         db.session.commit()
         flash('Materia prima actualizada.','success'); return redirect(url_for('materias'))
-    return render_template('produccion/materia_form.html', obj=obj, titulo='Editar Materia Prima')
+    return render_template('produccion/materia_form.html', obj=obj, titulo='Editar Materia Prima',
+                           productos=productos)
 
 @app.route('/produccion/materias/<int:id>/eliminar', methods=['POST'])
 @login_required
@@ -6123,6 +6214,11 @@ def _migrate(conn):
         ("ALTER TABLE tareas ADD COLUMN IF NOT EXISTS tarea_pareja_id INTEGER REFERENCES tareas(id)"),
         # OrdenProduccion — v12.2 venta_id para vincular con ventas
         ("ALTER TABLE ordenes_produccion ADD COLUMN IF NOT EXISTS venta_id INTEGER REFERENCES ventas(id)"),
+        # MateriaPrima — v12.2 producto principal al que pertenece
+        ("ALTER TABLE materias_primas ADD COLUMN IF NOT EXISTS producto_id INTEGER REFERENCES productos(id)"),
+        # Venta — v12.2 seguimiento de entrega
+        ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS cliente_informado_en TIMESTAMP"),
+        ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS entregado_en TIMESTAMP"),
     ]
     for sql in migrations:
         try:
