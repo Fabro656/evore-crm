@@ -164,6 +164,20 @@ class Cliente(db.Model):
     contactos       = db.relationship('ContactoCliente', backref='cliente_rel', lazy=True, cascade='all, delete-orphan')
     ventas          = db.relationship('Venta', backref='cliente', lazy=True)
 
+class Proveedor(db.Model):
+    __tablename__ = 'proveedores'
+    id         = db.Column(db.Integer, primary_key=True)
+    nombre     = db.Column(db.String(100), nullable=False)
+    empresa    = db.Column(db.String(100))
+    nit        = db.Column(db.String(30))
+    email      = db.Column(db.String(200))
+    telefono   = db.Column(db.String(50))
+    direccion  = db.Column(db.Text)
+    categoria  = db.Column(db.String(100))
+    notas      = db.Column(db.Text)
+    activo     = db.Column(db.Boolean, default=True)
+    creado_en  = db.Column(db.DateTime, default=datetime.utcnow)
+
 class VentaProducto(db.Model):
     __tablename__ = 'venta_productos'
     id          = db.Column(db.Integer, primary_key=True)
@@ -192,6 +206,7 @@ class Venta(db.Model):
     notas               = db.Column(db.Text)
     creado_en           = db.Column(db.DateTime, default=datetime.utcnow)
     creado_por          = db.Column(db.Integer, db.ForeignKey('users.id'))
+    numero              = db.Column(db.String(20))               # v12.3 VNT-YYYY-NNN
     cliente_informado_en= db.Column(db.DateTime, nullable=True)  # v12.2
     entregado_en        = db.Column(db.DateTime, nullable=True)   # v12.2
     items               = db.relationship('VentaProducto', backref='venta', lazy=True, cascade='all, delete-orphan')
@@ -258,6 +273,7 @@ class CompraMateria(db.Model):
     tipo_compra     = db.Column(db.String(50), default='insumo')  # materia_prima, producto_terminado, insumo, otro
     unidad          = db.Column(db.String(30), default='unidades')
     proveedor       = db.Column(db.String(200))
+    proveedor_id    = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
     fecha           = db.Column(db.Date, nullable=False)
     nro_factura     = db.Column(db.String(100))
     cantidad        = db.Column(db.Float, default=1)
@@ -273,6 +289,7 @@ class CompraMateria(db.Model):
     creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
     producto        = db.relationship('Producto', foreign_keys=[producto_id])
     materia         = db.relationship('MateriaPrima', foreign_keys=[materia_id])
+    proveedor_rel   = db.relationship('Proveedor', foreign_keys=[proveedor_id])
 
 class CotizacionGranel(db.Model):
     __tablename__ = 'cotizaciones_granel'
@@ -429,10 +446,12 @@ class MateriaPrima(db.Model):
     costo_unitario   = db.Column(db.Float, default=0)
     categoria        = db.Column(db.String(100))
     proveedor        = db.Column(db.String(200))
+    proveedor_id     = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
     producto_id      = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=True)
     activo           = db.Column(db.Boolean, default=True)
     creado_en        = db.Column(db.DateTime, default=datetime.utcnow)
     producto         = db.relationship('Producto', foreign_keys=[producto_id])
+    proveedor_rel    = db.relationship('Proveedor', foreign_keys=[proveedor_id])
 
 class RecetaProducto(db.Model):
     __tablename__ = 'recetas_producto'
@@ -465,8 +484,10 @@ class ReservaProduccion(db.Model):
     notas            = db.Column(db.Text)
     creado_por       = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en        = db.Column(db.DateTime, default=datetime.utcnow)
+    venta_id         = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=True)
     materia          = db.relationship('MateriaPrima', foreign_keys=[materia_prima_id])
     producto         = db.relationship('Producto', foreign_keys=[producto_id])
+    venta            = db.relationship('Venta', foreign_keys=[venta_id])
 
 class OrdenProduccion(db.Model):
     __tablename__ = 'ordenes_produccion'
@@ -626,6 +647,7 @@ T['base.html'] = """<!DOCTYPE html>
     {% if 'clientes' in m or 'ventas' in m or 'cotizaciones' in m or 'tareas' in m or 'calendario' in m or 'notas' in m %}
     <div class="sb-sec">Comercial</div>
     {% if 'clientes' in m %}<a href="{{ url_for('clientes') }}" class="nav-link {% if 'cliente' in request.endpoint %}active{% endif %}"><i class="bi bi-people-fill"></i><span>Clientes</span></a>{% endif %}
+    {% if 'clientes' in m %}<a href="{{ url_for('proveedores') }}" class="nav-link {% if 'proveedor' in request.endpoint %}active{% endif %}"><i class="bi bi-truck"></i><span>Proveedores</span></a>{% endif %}
     {% if 'ventas' in m %}<a href="{{ url_for('ventas') }}" class="nav-link {% if 'venta' in request.endpoint %}active{% endif %}"><i class="bi bi-graph-up-arrow"></i><span>Ventas</span></a>{% endif %}
     {% if 'cotizaciones' in m %}<a href="{{ url_for('cotizaciones') }}" class="nav-link {% if 'cotizacion' in request.endpoint %}active{% endif %}"><i class="bi bi-file-earmark-text-fill"></i><span>Cotizaciones</span></a>{% endif %}
     {% if 'tareas' in m %}<a href="{{ url_for('tareas') }}" class="nav-link {% if 'tarea' in request.endpoint %}active{% endif %}"><i class="bi bi-check2-square"></i><span>Tareas</span></a>{% endif %}
@@ -1084,6 +1106,65 @@ T['clientes/ver.html'] = """{% extends 'base.html' %}
   </div></div>
 </div>{% endblock %}"""
 
+T['proveedores/index.html'] = """{% extends 'base.html' %}
+{% block title %}Proveedores{% endblock %}{% block page_title %}Proveedores{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('proveedor_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo</a>{% endblock %}
+{% block content %}
+<div class="tc mb-3"><div class="p-3"><form method="GET" class="row g-2 align-items-end">
+  <div class="col-sm-4"><input type="text" name="buscar" class="form-control form-control-sm" placeholder="Nombre, empresa, NIT..." value="{{ busqueda }}"></div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
+    <a href="{{ url_for('proveedores') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
+  </div>
+</form></div></div>
+<div class="tc"><div class="ch"><i class="bi bi-truck me-2"></i>{{ items|length }} proveedor(es)</div>
+{% if items %}<div class="table-responsive"><table class="table">
+  <thead><tr><th>Empresa</th><th>NIT</th><th>Categoría</th><th>Email</th><th>Teléfono</th><th>Alta</th><th></th></tr></thead>
+  <tbody>{% for p in items %}<tr>
+    <td><span class="fw-semibold" style="color:#1a1f36">{{ p.empresa or p.nombre }}</span>
+      {% if p.empresa %}<div><small class="text-muted">{{ p.nombre }}</small></div>{% endif %}</td>
+    <td><small class="text-muted">{{ p.nit or '—' }}</small></td>
+    <td><small>{{ p.categoria or '—' }}</small></td>
+    <td><small>{{ p.email or '—' }}</small></td>
+    <td><small>{{ p.telefono or '—' }}</small></td>
+    <td><small class="text-muted">{{ p.creado_en.strftime('%d/%m/%Y') }}</small></td>
+    <td><div class="d-flex gap-1">
+      <a href="{{ url_for('proveedor_editar', id=p.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+      <form method="POST" action="{{ url_for('proveedor_eliminar', id=p.id) }}" onsubmit="return confirm('¿Eliminar?')">
+        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+    </div></td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+{% else %}<div class="text-center text-muted py-5"><i class="bi bi-truck" style="font-size:3rem"></i>
+  <p class="mt-3">Sin proveedores.</p><a href="{{ url_for('proveedor_nuevo') }}" class="btn btn-primary">Agregar</a></div>
+{% endif %}</div>{% endblock %}"""
+
+T['proveedores/form.html'] = """{% extends 'base.html' %}
+{% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('proveedores') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
+{% block content %}<div class="fc" style="max-width:900px"><form method="POST">
+<h6 class="text-muted mb-3 text-uppercase" style="letter-spacing:1px;font-size:.75rem">Información del proveedor</h6>
+<div class="row g-3 mb-4">
+  <div class="col-md-6"><label class="form-label">Empresa *</label>
+    <input type="text" name="empresa" class="form-control" value="{{ obj.empresa if obj else '' }}" required></div>
+  <div class="col-md-3"><label class="form-label">NIT</label>
+    <input type="text" name="nit" class="form-control" placeholder="900.123.456-7" value="{{ obj.nit if obj else '' }}"></div>
+  <div class="col-md-3"><label class="form-label">Categoría</label>
+    <input type="text" name="categoria" class="form-control" placeholder="Ej: insumos, empaque..." value="{{ obj.categoria if obj else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Email</label>
+    <input type="email" name="email" class="form-control" value="{{ obj.email if obj else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Teléfono</label>
+    <input type="text" name="telefono" class="form-control" value="{{ obj.telefono if obj else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Dirección</label>
+    <input type="text" name="direccion" class="form-control" value="{{ obj.direccion if obj else '' }}"></div>
+  <div class="col-12"><label class="form-label">Notas</label>
+    <textarea name="notas" class="form-control" rows="2">{{ obj.notas if obj else '' }}</textarea></div>
+</div>
+<div class="d-flex gap-2 mt-4">
+  <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear Proveedor' }}</button>
+  <a href="{{ url_for('proveedores') }}" class="btn btn-outline-secondary">Cancelar</a>
+</div></form></div>{% endblock %}"""
+
 T['ventas/index.html'] = """{% extends 'base.html' %}
 {% block title %}Ventas{% endblock %}{% block page_title %}Ventas{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('venta_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva</a>{% endblock %}
@@ -1094,8 +1175,9 @@ T['ventas/index.html'] = """{% extends 'base.html' %}
 </div>
 <div class="tc"><div class="ch"><i class="bi bi-graph-up-arrow me-2"></i>{{ items|length }} venta(s)</div>
 {% if items %}<div class="table-responsive"><table class="table">
-  <thead><tr><th>Título</th><th>Cliente</th><th>Total</th><th>Anticipo</th><th>Saldo</th><th>Estado</th><th>Entrega est.</th><th></th></tr></thead>
+  <thead><tr><th>N°</th><th>Título</th><th>Cliente</th><th>Total</th><th>Anticipo</th><th>Saldo</th><th>Estado</th><th>Entrega est.</th><th></th></tr></thead>
   <tbody>{% for v in items %}<tr>
+    <td><small class="text-muted fw-semibold">{{ v.numero or '—' }}</small></td>
     <td class="fw-semibold" style="color:#1a1f36">{{ v.titulo }}</td>
     <td>{% if v.cliente %}<a href="{{ url_for('cliente_ver', id=v.cliente.id) }}" class="text-decoration-none">{{ v.cliente.empresa or v.cliente.nombre }}</a>{% else %}—{% endif %}</td>
     <td class="fw-semibold">$ {{ '{:,.0f}'.format(v.total).replace(',','.') }}</td>
@@ -1678,7 +1760,11 @@ T['produccion/compra_form.html'] = """{% extends 'base.html' %}
     </select></div>
 
   <div class="col-md-6"><label class="form-label">Proveedor</label>
-    <input type="text" name="proveedor" id="proveedor" class="form-control" value="{{ obj.proveedor if obj else '' }}" oninput="autoNombre()"></div>
+    <select name="proveedor_id" id="proveedorSel" class="form-select" onchange="autoNombreFromSel()">
+      <option value="">— Sin proveedor —</option>
+      {% for pv in proveedores_list %}<option value="{{ pv.id }}" {% if obj and obj.proveedor_id==pv.id %}selected{% endif %}>{{ pv.empresa or pv.nombre }}</option>{% endfor %}
+    </select>
+    <input type="hidden" name="proveedor" id="proveedor" value="{{ obj.proveedor if obj else '' }}"></div>
   <div class="col-md-3"><label class="form-label">Fecha *</label>
     <input type="date" name="fecha" id="fechaC" class="form-control" value="{{ obj.fecha.strftime('%Y-%m-%d') if obj else today }}" required oninput="autoNombre()"></div>
   <div class="col-md-3"><label class="form-label"># Factura</label>
@@ -1781,12 +1867,19 @@ function autoNombre(){
     var mSel=document.getElementById('materiaId');
     if(mSel.selectedIndex>0) partes.push(mSel.options[mSel.selectedIndex].text.split(' (')[0]);
   }
-  var prov=document.getElementById('proveedor').value.trim();
+  var sel=document.getElementById('proveedorSel');
+  var prov=sel.options[sel.selectedIndex]?sel.options[sel.selectedIndex].text.trim():'';
   if(prov) partes.push(prov);
   var fecha=document.getElementById('fechaC').value;
   if(fecha){var d=new Date(fecha+'T00:00:00');partes.push(d.toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit',year:'numeric'}));}
   var nom=document.getElementById('nombreItem');
   if(!nom._editado) nom.value=partes.join(', ');
+}
+function autoNombreFromSel(){
+  var sel=document.getElementById('proveedorSel');
+  var txt=sel.options[sel.selectedIndex]?sel.options[sel.selectedIndex].text.trim():'';
+  document.getElementById('proveedor').value=txt;
+  autoNombre();
 }
 document.getElementById('nombreItem').addEventListener('input',function(){this._editado=true;});
 function toggleCad(){
@@ -3130,7 +3223,11 @@ T['produccion/materia_form.html'] = """{% extends 'base.html' %}
     <div class="input-group"><span class="input-group-text">$</span>
     <input type="number" name="costo_unitario" step="0.01" class="form-control" value="{{ obj.costo_unitario if obj else 0 }}"></div></div>
   <div class="col-md-8"><label class="form-label">Proveedor</label>
-    <input type="text" name="proveedor" class="form-control" value="{{ obj.proveedor if obj else '' }}"></div>
+    <select name="proveedor_id" class="form-select">
+      <option value="">— Sin proveedor —</option>
+      {% for pv in proveedores_list %}<option value="{{ pv.id }}" {% if obj and obj.proveedor_id==pv.id %}selected{% endif %}>{{ pv.empresa or pv.nombre }}</option>{% endfor %}
+    </select>
+    <input type="hidden" name="proveedor" value="{{ obj.proveedor if obj else '' }}"></div>
 </div>
 <div class="d-flex gap-2 mt-4">
   <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear Materia Prima' }}</button>
@@ -3175,8 +3272,8 @@ T['produccion/recetas.html'] = """{% extends 'base.html' %}
         <td class="text-end">{{ item.cantidad_por_unidad }}</td>
         <td>{{ item.materia.unidad }}</td>
         <td class="text-end {% if item.materia.stock_disponible < item.cantidad_por_unidad * r.unidades_produce %}text-danger{% else %}text-success{% endif %}">
-          {{ '%.3f'|format(item.materia.stock_disponible) }}</td>
-        <td class="text-end text-warning">{{ '%.3f'|format(item.materia.stock_reservado) }}</td>
+          {{ '%.2f'|format(item.materia.stock_disponible) }}</td>
+        <td class="text-end text-warning">{{ '%.2f'|format(item.materia.stock_reservado) }}</td>
       </tr>
       {% endfor %}
       </tbody>
@@ -3304,62 +3401,179 @@ T['produccion/reservas.html'] = """{% extends 'base.html' %}
 {% endblock %}
 {% block content %}
 <div class="fc">
-<table class="table table-hover align-middle">
-  <thead><tr>
-    <th>Materia Prima</th>
-    <th class="text-end">Reservado</th>
-    <th class="text-end">Stock disp.</th>
-    <th>Producto</th><th>Estado</th><th>Notas</th><th>Fecha</th><th></th>
-  </tr></thead>
-  <tbody>
-  {% for r in reservas %}
-  <tr>
-    <td><strong>{{ r.materia.nombre }}</strong><br><small class="text-muted">{{ r.materia.unidad }}</small></td>
-    <td class="text-end fw-semibold">{{ '%.3f'|format(r.cantidad) }}</td>
-    <td class="text-end">
-      {% set disp = r.materia.stock_disponible %}
-      {% if disp < r.cantidad %}
-        <span class="text-danger fw-semibold">{{ '%.3f'|format(disp) }}
-          <i class="bi bi-exclamation-circle" title="Insuficiente"></i></span>
+
+{# ── Agrupar por venta ── #}
+{% set reservas_con_venta = reservas|selectattr('venta_id')|list %}
+{% set reservas_sin_venta = reservas|rejectattr('venta_id')|list %}
+
+{# ── Ventas únicas ordenadas ── #}
+{% set ventas_vistas = [] %}
+{% for r in reservas_con_venta %}
+  {% if r.venta_id not in ventas_vistas %}{% set _ = ventas_vistas.append(r.venta_id) %}{% endif %}
+{% endfor %}
+
+{% for vid in ventas_vistas %}
+  {% set grupo = reservas_con_venta|selectattr('venta_id','equalto',vid)|list %}
+  {% set venta_obj = grupo[0].venta %}
+  {# Determinar si TODAS las materias están cubiertas #}
+  {% set hay_faltante = namespace(v=false) %}
+  {% for r in grupo %}{% if r.estado=='reservado' and r.materia.stock_disponible < r.cantidad %}{% set hay_faltante.v = true %}{% endif %}{% endfor %}
+  {# Determinar si hay anticipo pagado #}
+  {% set anticipo_ok = venta_obj and venta_obj.estado in ['anticipo_pagado','ganado'] %}
+
+<div class="mb-4 border rounded overflow-hidden">
+  <div class="d-flex align-items-center justify-content-between px-3 py-2" style="background:#f0f3ff;border-bottom:1px solid #dee2f0">
+    <div>
+      <span class="fw-bold" style="color:#1a1f36">
+        {% if venta_obj %}
+          <i class="bi bi-tag-fill me-1 text-primary"></i>Venta {{ venta_obj.numero or ('VNT-'+venta_obj.id|string) }} — {{ venta_obj.titulo }}
+        {% else %}
+          Venta #{{ vid }}
+        {% endif %}
+      </span>
+      {% if anticipo_ok %}
+        <span class="badge bg-success ms-2"><i class="bi bi-check-circle me-1"></i>Anticipo recibido</span>
       {% else %}
-        <span class="text-success">{{ '%.3f'|format(disp) }}</span>
+        <span class="badge bg-warning text-dark ms-2"><i class="bi bi-hourglass me-1"></i>Sin anticipo</span>
       {% endif %}
-    </td>
-    <td>{{ r.producto.nombre if r.producto else '—' }}</td>
-    <td>
-      {% if r.estado == 'reservado' %}<span class="badge bg-primary">Reservado</span>
-      {% elif r.estado == 'usado' %}<span class="badge bg-success">Usado</span>
-      {% else %}<span class="badge bg-secondary">Cancelado</span>{% endif %}
-    </td>
-    <td><small class="text-muted">{{ r.notas or '' }}</small></td>
-    <td><small>{{ r.creado_en.strftime('%d/%m/%Y') }}</small></td>
-    <td>
-      {% if r.estado == 'reservado' %}
-      <div class="d-flex gap-1 flex-wrap">
-        <form method="POST" action="{{ url_for('reserva_cancelar', id=r.id) }}" class="d-inline"
-              onsubmit="return confirm('¿Cancelar esta reserva?')">
-          <button class="btn btn-sm btn-outline-warning">Cancelar</button>
-        </form>
-        <button type="button" class="btn btn-sm btn-outline-danger"
-          data-bs-toggle="modal" data-bs-target="#modalFalta"
-          data-reserva="{{ r.id }}"
-          data-materia="{{ r.materia.nombre }}"
-          data-unidad="{{ r.materia.unidad }}"
-          data-reservado="{{ '%.3f'|format(r.cantidad) }}"
-          data-disponible="{{ '%.3f'|format(r.materia.stock_disponible) }}"
-          data-faltante="{{ '%.3f'|format([r.cantidad - r.materia.stock_disponible, 0]|max) }}"
-          onclick="prepFalta(this)">
-          <i class="bi bi-exclamation-triangle me-1"></i>Falta material
-        </button>
-      </div>
+    </div>
+    <div class="d-flex gap-2">
+      {% if not hay_faltante.v %}
+        {# Sin faltante: mostrar botón de comenzar producción #}
+        <span class="btn btn-sm btn-success disabled" title="Todos los materiales disponibles">
+          <i class="bi bi-play-circle me-1"></i>Material listo — Comenzar producción
+        </span>
       {% endif %}
-    </td>
-  </tr>
-  {% else %}
-  <tr><td colspan="8" class="text-center text-muted py-4">No hay reservas registradas.</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
+    </div>
+  </div>
+  <table class="table table-hover align-middle mb-0">
+    <thead><tr>
+      <th>Materia Prima</th>
+      <th class="text-end">Reservado</th>
+      <th class="text-end">Stock disp.</th>
+      <th>Producto</th><th>Estado</th><th>Notas</th><th>Fecha</th><th></th>
+    </tr></thead>
+    <tbody>
+    {% for r in grupo %}
+    <tr>
+      <td><strong>{{ r.materia.nombre }}</strong><br><small class="text-muted">{{ r.materia.unidad }}</small></td>
+      <td class="text-end fw-semibold">{{ '%.2f'|format(r.cantidad) }}</td>
+      <td class="text-end">
+        {% set disp = r.materia.stock_disponible %}
+        {% if disp < r.cantidad %}
+          <span class="text-danger fw-semibold">{{ '%.2f'|format(disp) }}
+            <i class="bi bi-exclamation-circle" title="Insuficiente"></i></span>
+        {% else %}
+          <span class="text-success">{{ '%.2f'|format(disp) }}</span>
+        {% endif %}
+      </td>
+      <td>{{ r.producto.nombre if r.producto else '—' }}</td>
+      <td>
+        {% if r.estado == 'reservado' %}<span class="badge bg-primary">Reservado</span>
+        {% elif r.estado == 'usado' %}<span class="badge bg-success">Usado</span>
+        {% else %}<span class="badge bg-secondary">Cancelado</span>{% endif %}
+      </td>
+      <td><small class="text-muted">{{ r.notas or '' }}</small></td>
+      <td><small>{{ r.creado_en.strftime('%d/%m/%Y') }}</small></td>
+      <td>
+        {% if r.estado == 'reservado' %}
+        <div class="d-flex gap-1 flex-wrap">
+          <form method="POST" action="{{ url_for('reserva_cancelar', id=r.id) }}" class="d-inline"
+                onsubmit="return confirm('¿Cancelar esta reserva?')">
+            <button class="btn btn-sm btn-outline-warning">Cancelar</button>
+          </form>
+          {% set faltante_real = r.cantidad - r.materia.stock_disponible %}
+          {% if faltante_real > 0 %}
+          <button type="button" class="btn btn-sm btn-outline-danger"
+            data-bs-toggle="modal" data-bs-target="#modalFalta"
+            data-reserva="{{ r.id }}"
+            data-materia="{{ r.materia.nombre }}"
+            data-unidad="{{ r.materia.unidad }}"
+            data-reservado="{{ '%.2f'|format(r.cantidad) }}"
+            data-disponible="{{ '%.2f'|format(r.materia.stock_disponible) }}"
+            data-faltante="{{ '%.2f'|format(faltante_real) }}"
+            onclick="prepFalta(this)">
+            <i class="bi bi-exclamation-triangle me-1"></i>Falta {{ '%.2f'|format(faltante_real) }} {{ r.materia.unidad }}
+          </button>
+          {% endif %}
+        </div>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endfor %}
+
+{# Reservas sin venta asociada #}
+{% if reservas_sin_venta %}
+<div class="mb-4 border rounded overflow-hidden">
+  <div class="px-3 py-2" style="background:#f8f9fe;border-bottom:1px solid #dee2e6">
+    <span class="fw-semibold text-muted"><i class="bi bi-question-circle me-1"></i>Sin venta asociada</span>
+  </div>
+  <table class="table table-hover align-middle mb-0">
+    <thead><tr>
+      <th>Materia Prima</th><th class="text-end">Reservado</th><th class="text-end">Stock disp.</th>
+      <th>Producto</th><th>Estado</th><th>Notas</th><th>Fecha</th><th></th>
+    </tr></thead>
+    <tbody>
+    {% for r in reservas_sin_venta %}
+    <tr>
+      <td><strong>{{ r.materia.nombre }}</strong><br><small class="text-muted">{{ r.materia.unidad }}</small></td>
+      <td class="text-end fw-semibold">{{ '%.2f'|format(r.cantidad) }}</td>
+      <td class="text-end">
+        {% set disp = r.materia.stock_disponible %}
+        {% if disp < r.cantidad %}
+          <span class="text-danger fw-semibold">{{ '%.2f'|format(disp) }} <i class="bi bi-exclamation-circle"></i></span>
+        {% else %}
+          <span class="text-success">{{ '%.2f'|format(disp) }}</span>
+        {% endif %}
+      </td>
+      <td>{{ r.producto.nombre if r.producto else '—' }}</td>
+      <td>
+        {% if r.estado == 'reservado' %}<span class="badge bg-primary">Reservado</span>
+        {% elif r.estado == 'usado' %}<span class="badge bg-success">Usado</span>
+        {% else %}<span class="badge bg-secondary">Cancelado</span>{% endif %}
+      </td>
+      <td><small class="text-muted">{{ r.notas or '' }}</small></td>
+      <td><small>{{ r.creado_en.strftime('%d/%m/%Y') }}</small></td>
+      <td>
+        {% if r.estado == 'reservado' %}
+        <div class="d-flex gap-1 flex-wrap">
+          <form method="POST" action="{{ url_for('reserva_cancelar', id=r.id) }}" class="d-inline"
+                onsubmit="return confirm('¿Cancelar esta reserva?')">
+            <button class="btn btn-sm btn-outline-warning">Cancelar</button>
+          </form>
+          {% set faltante_real = r.cantidad - r.materia.stock_disponible %}
+          {% if faltante_real > 0 %}
+          <button type="button" class="btn btn-sm btn-outline-danger"
+            data-bs-toggle="modal" data-bs-target="#modalFalta"
+            data-reserva="{{ r.id }}"
+            data-materia="{{ r.materia.nombre }}"
+            data-unidad="{{ r.materia.unidad }}"
+            data-reservado="{{ '%.2f'|format(r.cantidad) }}"
+            data-disponible="{{ '%.2f'|format(r.materia.stock_disponible) }}"
+            data-faltante="{{ '%.2f'|format(faltante_real) }}"
+            onclick="prepFalta(this)">
+            <i class="bi bi-exclamation-triangle me-1"></i>Falta {{ '%.2f'|format(faltante_real) }} {{ r.materia.unidad }}
+          </button>
+          {% endif %}
+        </div>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if not reservas %}
+<div class="text-center text-muted py-5"><i class="bi bi-layers" style="font-size:3rem"></i>
+  <p class="mt-3">No hay reservas registradas.</p></div>
+{% endif %}
+
 </div>
 
 <!-- Modal: Falta Material -->
@@ -3394,10 +3608,9 @@ T['produccion/reservas.html'] = """{% extends 'base.html' %}
             <label class="form-label fw-semibold">Cantidad a comprar *</label>
             <div class="input-group">
               <input type="number" name="cantidad_faltante" id="faltaCantInput"
-                class="form-control" step="0.001" min="0.001" required>
+                class="form-control" step="0.01" min="0.01" required>
               <span class="input-group-text" id="faltaUnidad"></span>
             </div>
-            <div class="form-text">Se incluirá en el título de la tarea de compra.</div>
           </div>
           <div class="mb-3">
             <label class="form-label fw-semibold">Asignar tareas a:</label>
@@ -3416,7 +3629,6 @@ T['produccion/reservas.html'] = """{% extends 'base.html' %}
           <div class="alert alert-info py-2 mb-0" style="font-size:.82rem">
             <i class="bi bi-info-circle me-1"></i>Se crearán dos tareas pareadas:
             <strong>Comprar materias</strong> + <strong>Verificar abono</strong>.
-            Al completar ambas se notifica al cliente que comienza producción.
           </div>
         </div>
         <div class="modal-footer">
@@ -3448,7 +3660,7 @@ T['produccion/reserva_form.html'] = """{% extends 'base.html' %}
     <select name="materia_prima_id" class="form-select" required>
       <option value="">Seleccionar...</option>
       {% for m in materias %}
-      <option value="{{ m.id }}">{{ m.nombre }} — disponible: {{ '%.3f'|format(m.stock_disponible) }} {{ m.unidad }}</option>
+      <option value="{{ m.id }}">{{ m.nombre }} — disponible: {{ '%.2f'|format(m.stock_disponible) }} {{ m.unidad }}</option>
       {% endfor %}
     </select></div>
   <div class="col-md-3"><label class="form-label">Cantidad a reservar *</label>
@@ -3958,6 +4170,64 @@ def cliente_eliminar(id):
     flash('Cliente eliminado.','info'); return redirect(url_for('clientes'))
 
 # =============================================================
+# PROVEEDORES
+# =============================================================
+
+@app.route('/proveedores')
+@login_required
+def proveedores():
+    busqueda = request.args.get('buscar','')
+    q = Proveedor.query.filter_by(activo=True)
+    if busqueda:
+        q = q.filter(db.or_(Proveedor.nombre.ilike(f'%{busqueda}%'),
+                             Proveedor.empresa.ilike(f'%{busqueda}%'),
+                             Proveedor.nit.ilike(f'%{busqueda}%')))
+    return render_template('proveedores/index.html', items=q.order_by(Proveedor.empresa, Proveedor.nombre).all(),
+                           busqueda=busqueda)
+
+@app.route('/proveedores/nuevo', methods=['GET','POST'])
+@login_required
+def proveedor_nuevo():
+    if request.method == 'POST':
+        p = Proveedor(
+            nombre=request.form.get('empresa','') or request.form.get('nombre',''),
+            empresa=request.form.get('empresa',''),
+            nit=request.form.get('nit',''),
+            email=request.form.get('email',''),
+            telefono=request.form.get('telefono',''),
+            direccion=request.form.get('direccion',''),
+            categoria=request.form.get('categoria',''),
+            notas=request.form.get('notas',''), activo=True)
+        db.session.add(p); db.session.commit()
+        flash('Proveedor creado.','success'); return redirect(url_for('proveedores'))
+    return render_template('proveedores/form.html', obj=None, titulo='Nuevo Proveedor')
+
+@app.route('/proveedores/<int:id>/editar', methods=['GET','POST'])
+@login_required
+def proveedor_editar(id):
+    obj = Proveedor.query.get_or_404(id)
+    if request.method == 'POST':
+        obj.empresa=request.form.get('empresa','')
+        obj.nombre=request.form.get('empresa','') or obj.nombre
+        obj.nit=request.form.get('nit','')
+        obj.email=request.form.get('email','')
+        obj.telefono=request.form.get('telefono','')
+        obj.direccion=request.form.get('direccion','')
+        obj.categoria=request.form.get('categoria','')
+        obj.notas=request.form.get('notas','')
+        db.session.commit()
+        flash('Proveedor actualizado.','success'); return redirect(url_for('proveedores'))
+    return render_template('proveedores/form.html', obj=obj, titulo='Editar Proveedor')
+
+@app.route('/proveedores/<int:id>/eliminar', methods=['POST'])
+@login_required
+def proveedor_eliminar(id):
+    obj = Proveedor.query.get_or_404(id)
+    obj.activo = False
+    db.session.commit()
+    flash('Proveedor eliminado.','info'); return redirect(url_for('proveedores'))
+
+# =============================================================
 # VENTAS
 # =============================================================
 
@@ -4028,10 +4298,20 @@ def venta_nueva():
             fecha_entrega_est=datetime.strptime(fe,'%Y-%m-%d').date() if fe else None,
             notas=request.form.get('notas',''), creado_por=current_user.id)
         db.session.add(v); db.session.flush()
+        # Generar numero único VNT-YYYY-NNN
+        hoy = datetime.utcnow().date()
+        ultimo_vnt = Venta.query.filter(
+            Venta.numero.like(f'VNT-{hoy.year}-%')
+        ).order_by(Venta.id.desc()).first()
+        if ultimo_vnt and ultimo_vnt.numero:
+            try: seq = int(ultimo_vnt.numero.split('-')[-1]) + 1
+            except: seq = 1
+        else: seq = 1
+        v.numero = f'VNT-{hoy.year}-{seq:03d}'
         _save_items(v); db.session.flush()
         _procesar_venta_produccion(v)
         db.session.commit()
-        _log('crear','venta',v.id,f'Venta creada: {v.titulo}'); db.session.commit()
+        _log('crear','venta',v.id,f'Venta creada: {v.titulo} ({v.numero})'); db.session.commit()
         flash('Venta creada.','success'); return redirect(url_for('ventas'))
     return render_template('ventas/form.html', obj=None, clientes_list=cl,
                            titulo='Nueva Venta', productos_json=_prods_json(), items_json=[])
@@ -4079,12 +4359,13 @@ def venta_informar_cliente(id):
     venta.cliente_informado_en = datetime.utcnow()
     db.session.commit()
     # Enviar email al cliente si tiene email
-    if venta.cliente and venta.cliente.email:
+    email = venta.cliente.contactos[0].email if venta.cliente and venta.cliente.contactos else None
+    if email:
         prod_nombres = ', '.join(
             it.nombre_prod for it in venta.items if it.nombre_prod
         ) or 'los productos'
         _send_email(
-            venta.cliente.email,
+            email,
             f'Tu pedido está listo — {venta.titulo}',
             f'Hola {venta.cliente.nombre},\n\n'
             f'Nos complace informarte que {prod_nombres} de tu pedido "{venta.titulo}" '
@@ -4424,6 +4705,7 @@ def _save_compra(c, form):
     c.tipo_compra   = form.get('tipo_compra','insumo')
     c.unidad        = form.get('unidad','unidades')
     c.proveedor     = form.get('proveedor','')
+    c.proveedor_id  = int(form.get('proveedor_id')) if form.get('proveedor_id') else None
     c.fecha         = datetime.strptime(fd,'%Y-%m-%d').date() if fd else datetime.utcnow().date()
     c.nro_factura   = form.get('nro_factura','')
     c.cantidad      = cant
@@ -4473,6 +4755,7 @@ def compra_nueva():
     return render_template('produccion/compra_form.html', obj=None, titulo='Nueva Compra',
                            productos=Producto.query.filter_by(activo=True).order_by(Producto.nombre).all(),
                            materias=MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).all(),
+                           proveedores_list=Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all(),
                            today=datetime.utcnow().strftime('%Y-%m-%d'))
 
 @app.route('/produccion/compras/<int:id>/editar', methods=['GET','POST'])
@@ -4487,6 +4770,7 @@ def compra_editar(id):
     return render_template('produccion/compra_form.html', obj=obj, titulo='Editar Compra',
                            productos=Producto.query.filter_by(activo=True).order_by(Producto.nombre).all(),
                            materias=MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).all(),
+                           proveedores_list=Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all(),
                            today=datetime.utcnow().strftime('%Y-%m-%d'))
 
 @app.route('/produccion/compras/<int:id>/eliminar', methods=['POST'])
@@ -5451,7 +5735,7 @@ def _procesar_venta_produccion(venta):
                         mp.stock_reservado   = (mp.stock_reservado or 0) + necesaria
                         db.session.add(ReservaProduccion(
                             materia_prima_id=mp.id, cantidad=necesaria,
-                            producto_id=prod.id, estado='reservado',
+                            producto_id=prod.id, venta_id=venta.id, estado='reservado',
                             notas=f'Auto-reserva venta: {venta.titulo}',
                             creado_por=current_user.id
                         ))
@@ -5466,7 +5750,7 @@ def _procesar_venta_produccion(venta):
                             mp.stock_reservado   = (mp.stock_reservado or 0) + disponible
                             db.session.add(ReservaProduccion(
                                 materia_prima_id=mp.id, cantidad=disponible,
-                                producto_id=prod.id, estado='reservado',
+                                producto_id=prod.id, venta_id=venta.id, estado='reservado',
                                 notas=f'Parcial venta: {venta.titulo}',
                                 creado_por=current_user.id
                             ))
@@ -5707,12 +5991,13 @@ def materia_nueva():
             costo_unitario=float(request.form.get('costo_unitario',0)),
             categoria=request.form.get('categoria','') or None,
             proveedor=request.form.get('proveedor','') or None,
+            proveedor_id=int(request.form.get('proveedor_id')) if request.form.get('proveedor_id') else None,
             producto_id=int(pid_raw) if pid_raw else None
         )
         db.session.add(m); db.session.commit()
         flash('Materia prima creada.','success'); return redirect(url_for('materias'))
     return render_template('produccion/materia_form.html', obj=None, titulo='Nueva Materia Prima',
-                           productos=productos)
+                           productos=productos, proveedores_list=Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all())
 
 @app.route('/produccion/materias/<int:id>/editar', methods=['GET','POST'])
 @login_required
@@ -5730,11 +6015,12 @@ def materia_editar(id):
         obj.costo_unitario=float(request.form.get('costo_unitario',0))
         obj.categoria=request.form.get('categoria','') or None
         obj.proveedor=request.form.get('proveedor','') or None
+        obj.proveedor_id=int(request.form.get('proveedor_id')) if request.form.get('proveedor_id') else None
         obj.producto_id=int(pid_raw) if pid_raw else None
         db.session.commit()
         flash('Materia prima actualizada.','success'); return redirect(url_for('materias'))
     return render_template('produccion/materia_form.html', obj=obj, titulo='Editar Materia Prima',
-                           productos=productos)
+                           productos=productos, proveedores_list=Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all())
 
 @app.route('/produccion/materias/<int:id>/eliminar', methods=['POST'])
 @login_required
@@ -6219,6 +6505,13 @@ def _migrate(conn):
         # Venta — v12.2 seguimiento de entrega
         ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS cliente_informado_en TIMESTAMP"),
         ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS entregado_en TIMESTAMP"),
+        # v12.3 — numero único de venta
+        ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS numero VARCHAR(20)"),
+        # v12.3 — venta_id en reservas
+        ("ALTER TABLE reservas_produccion ADD COLUMN IF NOT EXISTS venta_id INTEGER REFERENCES ventas(id)"),
+        # v12.3 — proveedor_id en materias y compras
+        ("ALTER TABLE materias_primas ADD COLUMN IF NOT EXISTS proveedor_id INTEGER REFERENCES proveedores(id)"),
+        ("ALTER TABLE compras_materia ADD COLUMN IF NOT EXISTS proveedor_id INTEGER REFERENCES proveedores(id)"),
     ]
     for sql in migrations:
         try:
