@@ -319,6 +319,27 @@ class CompraMateria(db.Model):
     materia         = db.relationship('MateriaPrima', foreign_keys=[materia_id])
     proveedor_rel   = db.relationship('Proveedor', foreign_keys=[proveedor_id])
 
+class CotizacionProveedor(db.Model):
+    __tablename__ = 'cotizaciones_proveedor'
+    id               = db.Column(db.Integer, primary_key=True)
+    numero           = db.Column(db.String(20))               # CP-YYYY-NNN
+    proveedor_id     = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
+    nombre_producto  = db.Column(db.String(200), nullable=False)
+    descripcion      = db.Column(db.Text)
+    sku              = db.Column(db.String(50))
+    precio_unitario  = db.Column(db.Float, default=0)
+    unidades_minimas = db.Column(db.Integer, default=1)
+    unidad           = db.Column(db.String(30), default='unidades')
+    plazo_entrega    = db.Column(db.String(100))   # ej: "5 días hábiles"
+    condiciones_pago = db.Column(db.String(200))   # ej: "30/60/90 días"
+    fecha_cotizacion = db.Column(db.Date)
+    vigencia         = db.Column(db.Date)
+    estado           = db.Column(db.String(20), default='vigente')  # vigente, vencida, en_revision
+    notas            = db.Column(db.Text)
+    creado_por       = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en        = db.Column(db.DateTime, default=datetime.utcnow)
+    proveedor        = db.relationship('Proveedor', foreign_keys=[proveedor_id])
+
 class CotizacionGranel(db.Model):
     __tablename__ = 'cotizaciones_granel'
     id               = db.Column(db.Integer, primary_key=True)
@@ -336,6 +357,41 @@ class CotizacionGranel(db.Model):
     creado_por       = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en        = db.Column(db.DateTime, default=datetime.utcnow)
     producto         = db.relationship('Producto', foreign_keys=[producto_id])
+
+class DocumentoLegal(db.Model):
+    __tablename__ = 'documentos_legales'
+    id                = db.Column(db.Integer, primary_key=True)
+    tipo              = db.Column(db.String(50), nullable=False)
+    # tipos: permiso_sanitario, registro_invima, nso, contrato, licencia, certificado, otro
+    titulo            = db.Column(db.String(200), nullable=False)
+    numero            = db.Column(db.String(100))   # número del documento
+    entidad           = db.Column(db.String(200))   # entidad emisora (INVIMA, cámara de comercio, etc.)
+    descripcion       = db.Column(db.Text)
+    estado            = db.Column(db.String(20), default='vigente')  # vigente, vencido, en_tramite, suspendido
+    fecha_emision     = db.Column(db.Date)
+    fecha_vencimiento = db.Column(db.Date)
+    recordatorio_dias = db.Column(db.Integer, default=30)  # días antes de vencer para alertar
+    archivo_url       = db.Column(db.String(500))
+    notas             = db.Column(db.Text)
+    activo            = db.Column(db.Boolean, default=True)
+    creado_por        = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en         = db.Column(db.DateTime, default=datetime.utcnow)
+
+class AsientoContable(db.Model):
+    __tablename__ = 'asientos_contables'
+    id          = db.Column(db.Integer, primary_key=True)
+    numero      = db.Column(db.String(20))     # AC-YYYY-NNN
+    fecha       = db.Column(db.Date, nullable=False)
+    descripcion = db.Column(db.String(300), nullable=False)
+    tipo        = db.Column(db.String(30), default='manual')  # manual, venta, compra, gasto
+    referencia  = db.Column(db.String(100))
+    debe        = db.Column(db.Float, default=0)
+    haber       = db.Column(db.Float, default=0)
+    cuenta_debe = db.Column(db.String(100))
+    cuenta_haber= db.Column(db.String(100))
+    notas       = db.Column(db.Text)
+    creado_por  = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en   = db.Column(db.DateTime, default=datetime.utcnow)
 
 class ReglaTributaria(db.Model):
     __tablename__ = 'reglas_tributarias'
@@ -675,24 +731,37 @@ T['base.html'] = """<!DOCTYPE html>
     {% if 'clientes' in m or 'ventas' in m or 'cotizaciones' in m or 'tareas' in m or 'calendario' in m or 'notas' in m %}
     <div class="sb-sec">Comercial</div>
     {% if 'clientes' in m %}<a href="{{ url_for('clientes') }}" class="nav-link {% if 'cliente' in request.endpoint %}active{% endif %}"><i class="bi bi-people-fill"></i><span>Clientes</span></a>{% endif %}
-    {% if 'clientes' in m %}<a href="{{ url_for('proveedores') }}" class="nav-link {% if 'proveedor' in request.endpoint %}active{% endif %}"><i class="bi bi-truck"></i><span>Proveedores</span></a>{% endif %}
-    {% if 'clientes' in m %}<a href="{{ url_for('ordenes_compra') }}" class="nav-link {% if 'orden_compra' in request.endpoint %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-cart-check"></i><span>Órd. Compra</span></a>{% endif %}
     {% if 'ventas' in m %}<a href="{{ url_for('ventas') }}" class="nav-link {% if 'venta' in request.endpoint %}active{% endif %}"><i class="bi bi-graph-up-arrow"></i><span>Ventas</span></a>{% endif %}
-    {% if 'cotizaciones' in m %}<a href="{{ url_for('cotizaciones') }}" class="nav-link {% if 'cotizacion' in request.endpoint %}active{% endif %}"><i class="bi bi-file-earmark-text-fill"></i><span>Cotizaciones</span></a>{% endif %}
+    {% if 'cotizaciones' in m %}<a href="{{ url_for('cotizaciones') }}" class="nav-link {% if request.endpoint in ['cotizaciones','cotizacion_nueva','cotizacion_ver','cotizacion_editar'] %}active{% endif %}"><i class="bi bi-file-earmark-text-fill"></i><span>Cotizaciones</span></a>{% endif %}
+    {% if 'cotizaciones' in m %}<a href="{{ url_for('granel') }}" class="nav-link {% if 'granel' in request.endpoint %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-building"></i><span>Cot. Granel</span></a>{% endif %}
     {% if 'tareas' in m %}<a href="{{ url_for('tareas') }}" class="nav-link {% if 'tarea' in request.endpoint %}active{% endif %}"><i class="bi bi-check2-square"></i><span>Tareas</span></a>{% endif %}
     {% if 'calendario' in m %}<a href="{{ url_for('calendario') }}" class="nav-link {% if request.endpoint=='calendario' or 'evento' in request.endpoint %}active{% endif %}"><i class="bi bi-calendar3"></i><span>Calendario</span></a>{% endif %}
     {% if 'notas' in m %}<a href="{{ url_for('notas') }}" class="nav-link {% if 'nota' in request.endpoint %}active{% endif %}"><i class="bi bi-sticky-fill"></i><span>Notas</span></a>{% endif %}
     {% endif %}
-    {% if 'inventario' in m or 'produccion' in m or 'gastos' in m or 'reportes' in m %}
+    {% if 'clientes' in m %}
+    <div class="sb-sec">Proveedores</div>
+    <a href="{{ url_for('proveedores') }}" class="nav-link {% if request.endpoint in ['proveedores','proveedor_nuevo','proveedor_editar'] %}active{% endif %}"><i class="bi bi-truck"></i><span>Proveedores</span></a>
+    <a href="{{ url_for('cotizaciones_proveedor') }}" class="nav-link {% if 'cotizacion_proveedor' in request.endpoint or 'cotizaciones_proveedor' in request.endpoint %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-file-earmark-check"></i><span>Cot. Proveedor</span></a>
+    <a href="{{ url_for('ordenes_compra') }}" class="nav-link {% if 'orden_compra' in request.endpoint %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-cart-check"></i><span>Órd. Compra</span></a>
+    {% endif %}
+    {% if 'inventario' in m or 'produccion' in m %}
     <div class="sb-sec">Operaciones</div>
     {% if 'inventario' in m %}<a href="{{ url_for('inventario') }}" class="nav-link {% if 'inventario' in request.endpoint or 'producto' in request.endpoint or 'lote' in request.endpoint %}active{% endif %}"><i class="bi bi-box-seam-fill"></i><span>Inventario</span></a>{% endif %}
     {% if 'inventario' in m %}<a href="{{ url_for('inventario_ingresos') }}" class="nav-link {% if request.endpoint=='inventario_ingresos' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-plus-square"></i><span>Multi-Ingreso</span></a>{% endif %}
-    {% if 'produccion' in m %}<a href="{{ url_for('produccion_index') }}" class="nav-link {% if 'produccion' in request.endpoint or 'compra' in request.endpoint or 'granel' in request.endpoint or 'impuesto' in request.endpoint or 'materia' in request.endpoint or 'receta' in request.endpoint or 'reserva' in request.endpoint %}active{% endif %}"><i class="bi bi-gear-fill"></i><span>Producción</span></a>{% endif %}
+    {% if 'produccion' in m %}<a href="{{ url_for('produccion_index') }}" class="nav-link {% if 'produccion' in request.endpoint or 'compra' in request.endpoint or 'impuesto' in request.endpoint or 'materia' in request.endpoint or 'receta' in request.endpoint or 'reserva' in request.endpoint %}active{% endif %}"><i class="bi bi-gear-fill"></i><span>Producción</span></a>{% endif %}
     {% if 'produccion' in m %}<a href="{{ url_for('ordenes_produccion') }}" class="nav-link {% if request.endpoint=='ordenes_produccion' or request.endpoint=='orden_completar' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-list-check"></i><span>Órdenes</span></a>{% endif %}
     {% if 'produccion' in m %}<a href="{{ url_for('gantt') }}" class="nav-link {% if request.endpoint=='gantt' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-bar-chart-steps"></i><span>Gantt</span></a>{% endif %}
+    {% endif %}
+    <div class="sb-sec">Legal &amp; Finanzas</div>
+    <a href="{{ url_for('legal_index') }}" class="nav-link {% if 'legal' in request.endpoint %}active{% endif %}"><i class="bi bi-shield-check"></i><span>Legal</span></a>
+    <a href="{{ url_for('contable_index') }}" class="nav-link {% if 'contable' in request.endpoint %}active{% endif %}"><i class="bi bi-calculator"></i><span>Contabilidad</span></a>
+    {% if 'contable' in request.endpoint %}
+    <a href="{{ url_for('contable_ingresos') }}" class="nav-link {% if request.endpoint=='contable_ingresos' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-graph-up"></i><span>Ingresos</span></a>
+    <a href="{{ url_for('contable_egresos') }}" class="nav-link {% if request.endpoint=='contable_egresos' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-graph-down"></i><span>Egresos</span></a>
+    <a href="{{ url_for('contable_libro_diario') }}" class="nav-link {% if request.endpoint=='contable_libro_diario' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-journal-text"></i><span>Libro diario</span></a>
+    {% endif %}
     {% if 'gastos' in m %}<a href="{{ url_for('gastos') }}" class="nav-link {% if 'gasto' in request.endpoint %}active{% endif %}"><i class="bi bi-receipt"></i><span>Gastos</span></a>{% endif %}
     {% if 'reportes' in m %}<a href="{{ url_for('reportes') }}" class="nav-link {% if 'reporte' in request.endpoint %}active{% endif %}"><i class="bi bi-bar-chart-fill"></i><span>Reportes</span></a>{% endif %}
-    {% endif %}
     <div class="sb-sec">Herramientas</div>
     <a href="{{ url_for('buscador') }}" class="nav-link {% if request.endpoint=='buscador' %}active{% endif %}"><i class="bi bi-search"></i><span>Buscador</span></a>
     {% if current_user.rol == 'admin' %}
@@ -1219,7 +1288,7 @@ T['ordenes_compra/form.html'] = """{% extends 'base.html' %}
   <a href="{{ url_for('ordenes_compra') }}" class="btn btn-outline-secondary">Cancelar</a>
 </div></form></div>
 {% block scripts %}<script>
-var ITEMS_EDIT = {{ items_json|tojson if items_json is defined else '[]' }};
+var ITEMS_EDIT = {{ items_json|tojson }};
 var UNIDADES = ['unidades','kg','g','litros','ml','libras','galones','metros','cm','piezas','cajas','bolsas'];
 function fmt(n){return'$ '+Math.round(n).toLocaleString('es-CO');}
 function recalc(){
@@ -3552,6 +3621,418 @@ document.querySelectorAll('.item-row .btn-outline-danger').forEach(function(b){
 # TEMPLATES V12 — Reservas de Producción
 # =============================================================
 
+# ── COTIZACIONES PROVEEDOR TEMPLATES ──────────────────────────
+T['proveedores/cotizaciones.html'] = """{% extends 'base.html' %}
+{% block title %}Cotizaciones Proveedor{% endblock %}{% block page_title %}Cotizaciones de Proveedores{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('cotizacion_proveedor_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva</a>{% endblock %}
+{% block content %}
+<div class="mb-3 d-flex gap-2 flex-wrap">
+  {% for est,lbl in [('','Todas'),('vigente','Vigentes'),('vencida','Vencidas'),('en_revision','En revisión')] %}
+  <a href="{{ url_for('cotizaciones_proveedor', estado=est) }}" class="btn btn-sm {{ 'btn-primary' if estado_f==est else 'btn-outline-secondary' }}">{{ lbl }}</a>{% endfor %}
+</div>
+<div class="tc"><div class="ch"><i class="bi bi-file-earmark-check me-2"></i>{{ items|length }} cotización(es)</div>
+{% if items %}<div class="table-responsive"><table class="table">
+  <thead><tr><th>N°</th><th>Producto</th><th>Proveedor</th><th>P. Unit.</th><th>Mín.</th><th>Plazo</th><th>Vigencia</th><th>Estado</th><th></th></tr></thead>
+  <tbody>{% for c in items %}<tr>
+    <td><small class="fw-semibold text-muted">{{ c.numero or '—' }}</small></td>
+    <td><span class="fw-semibold">{{ c.nombre_producto }}</span>{% if c.sku %}<div><small class="text-muted">SKU: {{ c.sku }}</small></div>{% endif %}</td>
+    <td>{{ c.proveedor.empresa or c.proveedor.nombre if c.proveedor else '—' }}</td>
+    <td class="fw-semibold">$ {{ '{:,.0f}'.format(c.precio_unitario).replace(',','.') }}</td>
+    <td><small>{{ c.unidades_minimas }} {{ c.unidad }}</small></td>
+    <td><small class="text-muted">{{ c.plazo_entrega or '—' }}</small></td>
+    <td>{% if c.vigencia %}<small class="{{ 'text-danger fw-semibold' if c.vigencia < now.date() else 'text-muted' }}">{{ c.vigencia.strftime('%d/%m/%Y') }}</small>{% else %}—{% endif %}</td>
+    <td><span class="b b-{{ c.estado }}">{{ c.estado.replace('_',' ').title() }}</span></td>
+    <td><div class="d-flex gap-1">
+      <a href="{{ url_for('cotizacion_proveedor_editar', id=c.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+      <form method="POST" action="{{ url_for('cotizacion_proveedor_eliminar', id=c.id) }}" onsubmit="return confirm('¿Eliminar?')">
+        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+    </div></td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+{% else %}<div class="text-center text-muted py-5"><i class="bi bi-file-earmark-check" style="font-size:3rem"></i>
+  <p class="mt-3">Sin cotizaciones de proveedores.</p></div>
+{% endif %}</div>{% endblock %}"""
+
+T['proveedores/cotizacion_form.html'] = """{% extends 'base.html' %}
+{% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('cotizaciones_proveedor') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
+{% block content %}<div class="fc" style="max-width:900px"><form method="POST">
+<div class="row g-3 mb-3">
+  <div class="col-md-6"><label class="form-label">Nombre del producto / ítem *</label>
+    <input type="text" name="nombre_producto" class="form-control" value="{{ obj.nombre_producto if obj else '' }}" required></div>
+  <div class="col-md-3"><label class="form-label">SKU</label>
+    <input type="text" name="sku" class="form-control" value="{{ obj.sku if obj else '' }}"></div>
+  <div class="col-md-3"><label class="form-label">Descripción</label>
+    <input type="text" name="descripcion" class="form-control" value="{{ obj.descripcion if obj else '' }}"></div>
+  <div class="col-md-6"><label class="form-label">Proveedor</label>
+    <select name="proveedor_id" class="form-select">
+      <option value="">— Sin proveedor —</option>
+      {% for pv in proveedores_list %}<option value="{{ pv.id }}" {% if obj and obj.proveedor_id==pv.id %}selected{% endif %}>{{ pv.empresa or pv.nombre }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-3"><label class="form-label">Precio unitario COP</label>
+    <div class="input-group"><span class="input-group-text">$</span>
+      <input type="number" name="precio_unitario" class="form-control" step="1" min="0" value="{{ obj.precio_unitario|int if obj else '0' }}"></div></div>
+  <div class="col-md-3"><label class="form-label">Mín. unidades</label>
+    <div class="input-group"><input type="number" name="unidades_minimas" class="form-control" min="1" value="{{ obj.unidades_minimas if obj else '1' }}">
+      <select name="unidad" class="form-select" style="max-width:120px">
+        {% for u in ['unidades','kg','g','litros','ml','piezas','cajas','metros'] %}
+        <option value="{{ u }}" {% if obj and obj.unidad==u %}selected{% endif %}>{{ u }}</option>{% endfor %}
+      </select></div></div>
+  <div class="col-md-6"><label class="form-label">Plazo de entrega</label>
+    <input type="text" name="plazo_entrega" class="form-control" placeholder="Ej: 5 días hábiles" value="{{ obj.plazo_entrega if obj else '' }}"></div>
+  <div class="col-md-6"><label class="form-label">Condiciones de pago</label>
+    <input type="text" name="condiciones_pago" class="form-control" placeholder="Ej: 50% anticipo, 50% entrega" value="{{ obj.condiciones_pago if obj else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Fecha cotización</label>
+    <input type="date" name="fecha_cotizacion" class="form-control" value="{{ obj.fecha_cotizacion.strftime('%Y-%m-%d') if obj and obj.fecha_cotizacion else today }}"></div>
+  <div class="col-md-4"><label class="form-label">Vigencia hasta</label>
+    <input type="date" name="vigencia" class="form-control" value="{{ obj.vigencia.strftime('%Y-%m-%d') if obj and obj.vigencia else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Estado</label>
+    <select name="estado" class="form-select">
+      {% for est,lbl in [('vigente','Vigente'),('vencida','Vencida'),('en_revision','En revisión')] %}
+      <option value="{{ est }}" {% if obj and obj.estado==est %}selected{% elif not obj and est=='vigente' %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
+    </select></div>
+  <div class="col-12"><label class="form-label">Notas</label>
+    <textarea name="notas" class="form-control" rows="2">{{ obj.notas if obj else '' }}</textarea></div>
+</div>
+<div class="d-flex gap-2 mt-4">
+  <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Guardar Cotización' }}</button>
+  <a href="{{ url_for('cotizaciones_proveedor') }}" class="btn btn-outline-secondary">Cancelar</a>
+</div></form></div>{% endblock %}"""
+
+# ── LEGAL TEMPLATES ────────────────────────────────────────────
+T['legal/index.html'] = """{% extends 'base.html' %}
+{% block title %}Legal{% endblock %}{% block page_title %}Módulo Legal{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('legal_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo documento</a>{% endblock %}
+{% block content %}
+{% if alertas %}
+<div class="alert alert-warning mb-3" style="border-radius:10px;border:none">
+  <i class="bi bi-exclamation-triangle-fill me-2"></i><strong>{{ alertas|length }} documento(s) próximo(s) a vencer:</strong>
+  {% for a in alertas %}<span class="badge bg-danger ms-2">{{ a.titulo }}</span>{% endfor %}
+</div>
+{% endif %}
+<div class="mb-3 d-flex gap-2 flex-wrap">
+  <a href="{{ url_for('legal_index') }}" class="btn btn-sm {{ 'btn-primary' if not tipo_f else 'btn-outline-secondary' }}">Todos</a>
+  {% for t,l in [('permiso_sanitario','Permisos'),('registro_invima','INVIMA'),('nso','NSO'),('contrato','Contratos'),('licencia','Licencias'),('certificado','Certificados'),('otro','Otros')] %}
+  <a href="{{ url_for('legal_index', tipo=t) }}" class="btn btn-sm {{ 'btn-primary' if tipo_f==t else 'btn-outline-secondary' }}">{{ l }}</a>{% endfor %}
+</div>
+<div class="tc"><div class="ch"><i class="bi bi-shield-check me-2"></i>{{ items|length }} documento(s)</div>
+{% if items %}<div class="table-responsive"><table class="table">
+  <thead><tr><th>Tipo</th><th>Título</th><th>N°</th><th>Entidad</th><th>Emisión</th><th>Vencimiento</th><th>Estado</th><th></th></tr></thead>
+  <tbody>{% for d in items %}
+  {% set dias_venc = (d.fecha_vencimiento - now.date()).days if d.fecha_vencimiento else 999 %}
+  <tr class="{{ 'table-danger' if dias_venc < 0 and d.estado=='vigente' else ('table-warning' if dias_venc <= d.recordatorio_dias and d.estado=='vigente' else '') }}">
+    <td><span class="badge bg-light text-dark border">{{ d.tipo.replace('_',' ').title() }}</span></td>
+    <td class="fw-semibold">{{ d.titulo }}</td>
+    <td><small class="text-muted">{{ d.numero or '—' }}</small></td>
+    <td><small>{{ d.entidad or '—' }}</small></td>
+    <td><small>{{ d.fecha_emision.strftime('%d/%m/%Y') if d.fecha_emision else '—' }}</small></td>
+    <td>
+      {% if d.fecha_vencimiento %}
+        <small class="{{ 'text-danger fw-semibold' if dias_venc < 0 else ('text-warning fw-semibold' if dias_venc <= d.recordatorio_dias else 'text-muted') }}">
+          {{ d.fecha_vencimiento.strftime('%d/%m/%Y') }}
+          {% if dias_venc >= 0 and dias_venc <= d.recordatorio_dias %}
+            <span class="badge bg-warning text-dark ms-1">{{ dias_venc }}d</span>
+          {% elif dias_venc < 0 %}
+            <span class="badge bg-danger ms-1">VENCIDO</span>
+          {% endif %}
+        </small>
+      {% else %}—{% endif %}
+    </td>
+    <td>
+      {% if d.estado=='vigente' %}<span class="badge bg-success">Vigente</span>
+      {% elif d.estado=='vencido' %}<span class="badge bg-danger">Vencido</span>
+      {% elif d.estado=='en_tramite' %}<span class="badge bg-warning text-dark">En trámite</span>
+      {% else %}<span class="badge bg-secondary">{{ d.estado.title() }}</span>{% endif %}
+    </td>
+    <td><div class="d-flex gap-1">
+      <a href="{{ url_for('legal_editar', id=d.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+      {% if d.archivo_url %}<a href="{{ d.archivo_url }}" target="_blank" class="btn btn-sm btn-outline-info" title="Ver archivo"><i class="bi bi-file-earmark-arrow-down"></i></a>{% endif %}
+      <form method="POST" action="{{ url_for('legal_eliminar', id=d.id) }}" onsubmit="return confirm('¿Eliminar?')">
+        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+    </div></td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+{% else %}<div class="text-center text-muted py-5"><i class="bi bi-shield-check" style="font-size:3rem"></i>
+  <p class="mt-3">Sin documentos legales.</p><a href="{{ url_for('legal_nuevo') }}" class="btn btn-primary">Agregar</a></div>
+{% endif %}</div>{% endblock %}"""
+
+T['legal/form.html'] = """{% extends 'base.html' %}
+{% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('legal_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
+{% block content %}<div class="fc" style="max-width:900px"><form method="POST">
+<div class="row g-3">
+  <div class="col-md-4"><label class="form-label">Tipo de documento *</label>
+    <select name="tipo" class="form-select" required>
+      {% for t,l in [('permiso_sanitario','Permiso Sanitario'),('registro_invima','Registro INVIMA'),('nso','NSO'),('contrato','Contrato'),('licencia','Licencia'),('certificado','Certificado'),('otro','Otro')] %}
+      <option value="{{ t }}" {% if obj and obj.tipo==t %}selected{% endif %}>{{ l }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-8"><label class="form-label">Título *</label>
+    <input type="text" name="titulo" class="form-control" value="{{ obj.titulo if obj else '' }}" required></div>
+  <div class="col-md-4"><label class="form-label">Número del documento</label>
+    <input type="text" name="numero" class="form-control" placeholder="Número de resolución, contrato..." value="{{ obj.numero if obj else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Entidad emisora</label>
+    <input type="text" name="entidad" class="form-control" placeholder="INVIMA, Secretaría, etc." value="{{ obj.entidad if obj else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Estado</label>
+    <select name="estado" class="form-select">
+      {% for est,lbl in [('vigente','Vigente'),('en_tramite','En trámite'),('vencido','Vencido'),('suspendido','Suspendido')] %}
+      <option value="{{ est }}" {% if obj and obj.estado==est %}selected{% elif not obj and est=='vigente' %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-4"><label class="form-label">Fecha de emisión</label>
+    <input type="date" name="fecha_emision" class="form-control" value="{{ obj.fecha_emision.strftime('%Y-%m-%d') if obj and obj.fecha_emision else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Fecha de vencimiento</label>
+    <input type="date" name="fecha_vencimiento" class="form-control" value="{{ obj.fecha_vencimiento.strftime('%Y-%m-%d') if obj and obj.fecha_vencimiento else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Recordatorio (días antes de vencer)</label>
+    <input type="number" name="recordatorio_dias" class="form-control" min="1" max="365" value="{{ obj.recordatorio_dias if obj else '30' }}"></div>
+  <div class="col-12"><label class="form-label">Descripción</label>
+    <textarea name="descripcion" class="form-control" rows="2">{{ obj.descripcion if obj else '' }}</textarea></div>
+  <div class="col-12"><label class="form-label">URL del archivo (Google Drive, Dropbox, etc.)</label>
+    <input type="url" name="archivo_url" class="form-control" placeholder="https://..." value="{{ obj.archivo_url if obj else '' }}"></div>
+  <div class="col-12"><label class="form-label">Notas</label>
+    <textarea name="notas" class="form-control" rows="2">{{ obj.notas if obj else '' }}</textarea></div>
+</div>
+<div class="d-flex gap-2 mt-4">
+  <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear Documento' }}</button>
+  <a href="{{ url_for('legal_index') }}" class="btn btn-outline-secondary">Cancelar</a>
+</div></form></div>{% endblock %}"""
+
+# ── CONTABLE TEMPLATES ─────────────────────────────────────────
+T['contable/index.html'] = """{% extends 'base.html' %}
+{% block title %}Contabilidad{% endblock %}{% block page_title %}Módulo Contable{% endblock %}
+{% block topbar_actions %}
+<div class="d-flex gap-2">
+  {% for m in meses_nav %}<a href="{{ url_for('contable_index', mes=m.val) }}" class="btn btn-sm {{ 'btn-primary' if mes_str==m.val else 'btn-outline-secondary' }}">{{ m.lbl }}</a>{% endfor %}
+</div>
+{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="fc text-center py-3">
+    <div style="font-size:.75rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Ingresos del mes</div>
+    <div class="fw-bold mt-1" style="font-size:1.4rem;color:#2dce89">$ {{ '{:,.0f}'.format(total_ingresos).replace(',','.') }}</div>
+    <small class="text-muted">{{ ventas_mes|length }} venta(s)</small>
+  </div></div>
+  <div class="col-md-3"><div class="fc text-center py-3">
+    <div style="font-size:.75rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Egresos del mes</div>
+    <div class="fw-bold mt-1" style="font-size:1.4rem;color:#f5365c">$ {{ '{:,.0f}'.format(total_egresos).replace(',','.') }}</div>
+    <small class="text-muted">Gastos + compras</small>
+  </div></div>
+  <div class="col-md-3"><div class="fc text-center py-3">
+    <div style="font-size:.75rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Utilidad bruta</div>
+    <div class="fw-bold mt-1" style="font-size:1.4rem;color:{{ '#2dce89' if utilidad >= 0 else '#f5365c' }}">$ {{ '{:,.0f}'.format(utilidad).replace(',','.') }}</div>
+    <small class="text-muted">Ingresos - Egresos</small>
+  </div></div>
+  <div class="col-md-3"><div class="fc text-center py-3">
+    <div style="font-size:.75rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Cuentas por cobrar</div>
+    <div class="fw-bold mt-1" style="font-size:1.4rem;color:#fb6340">$ {{ '{:,.0f}'.format(total_cxc).replace(',','.') }}</div>
+    <small class="text-muted">{{ cxc|length }} venta(s) pendientes</small>
+  </div></div>
+</div>
+<div class="row g-3 mb-4">
+  <div class="col-md-4"><div class="fc text-center py-3">
+    <div style="font-size:.75rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Inventario valorizado</div>
+    <div class="fw-bold mt-1" style="font-size:1.2rem;color:#5e72e4">$ {{ '{:,.0f}'.format(inventario_valor).replace(',','.') }}</div>
+  </div></div>
+  <div class="col-md-4"><div class="fc text-center py-3">
+    <div style="font-size:.75rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Total anticipo cobrado</div>
+    <div class="fw-bold mt-1" style="font-size:1.2rem;color:#11cdef">$ {{ '{:,.0f}'.format(total_anticipo).replace(',','.') }}</div>
+  </div></div>
+  <div class="col-md-4"><div class="fc text-center py-3">
+    <div style="font-size:.75rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Gastos operativos</div>
+    <div class="fw-bold mt-1" style="font-size:1.2rem;color:#f5365c">$ {{ '{:,.0f}'.format(total_gastos).replace(',','.') }}</div>
+  </div></div>
+</div>
+<div class="row g-3">
+  <div class="col-md-6"><div class="tc">
+    <div class="ch"><i class="bi bi-graph-up me-2 text-success"></i>Ventas del mes</div>
+    {% if ventas_mes %}<table class="table table-sm">
+      <thead><tr><th>N°</th><th>Título</th><th>Estado</th><th class="text-end">Total</th></tr></thead>
+      <tbody>{% for v in ventas_mes %}<tr>
+        <td><small>{{ v.numero or '—' }}</small></td>
+        <td><small class="fw-semibold">{{ v.titulo[:30] }}</small></td>
+        <td><small><span class="b b-{{ v.estado }}" style="font-size:.7rem">{{ v.estado.replace('_',' ').title() }}</span></small></td>
+        <td class="text-end"><small>$ {{ '{:,.0f}'.format(v.total).replace(',','.') }}</small></td>
+      </tr>{% endfor %}</tbody>
+    </table>
+    {% else %}<div class="text-center text-muted py-3"><i class="bi bi-graph-up"></i> Sin ventas este mes</div>{% endif %}
+  </div></div>
+  <div class="col-md-6"><div class="tc">
+    <div class="ch"><i class="bi bi-arrow-down-circle me-2 text-danger"></i>Cuentas por cobrar</div>
+    {% if cxc %}<table class="table table-sm">
+      <thead><tr><th>N°</th><th>Cliente</th><th class="text-end">Saldo</th></tr></thead>
+      <tbody>{% for v in cxc|sort(attribute='saldo', reverse=True)|list %}{% if loop.index <= 8 %}<tr>
+        <td><small>{{ v.numero or '—' }}</small></td>
+        <td><small>{{ v.cliente.empresa or v.cliente.nombre if v.cliente else '—' }}</small></td>
+        <td class="text-end text-danger fw-semibold"><small>$ {{ '{:,.0f}'.format(v.saldo).replace(',','.') }}</small></td>
+      </tr>{% endif %}{% endfor %}</tbody>
+    </table>
+    {% else %}<div class="text-center text-muted py-3 text-success"><i class="bi bi-check-circle me-1"></i>Sin cuentas por cobrar</div>{% endif %}
+  </div></div>
+</div>
+<div class="mt-3 d-flex gap-2 flex-wrap">
+  <a href="{{ url_for('contable_ingresos') }}" class="btn btn-outline-success btn-sm"><i class="bi bi-graph-up me-1"></i>Ver todos los ingresos</a>
+  <a href="{{ url_for('contable_egresos') }}" class="btn btn-outline-danger btn-sm"><i class="bi bi-graph-down me-1"></i>Ver todos los egresos</a>
+  <a href="{{ url_for('contable_libro_diario') }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-journal-text me-1"></i>Libro diario</a>
+  <a href="{{ url_for('contable_exportar', tipo='ventas') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i>Exportar ventas CSV</a>
+  <a href="{{ url_for('contable_exportar', tipo='gastos') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i>Exportar gastos CSV</a>
+  <a href="{{ url_for('contable_exportar', tipo='compras') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i>Exportar compras CSV</a>
+</div>
+{% endblock %}"""
+
+T['contable/ingresos.html'] = """{% extends 'base.html' %}
+{% block title %}Ingresos{% endblock %}{% block page_title %}Ingresos{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('contable_exportar', tipo='ventas', desde=desde_s, hasta=hasta_s) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i>CSV</a>
+<a href="{{ url_for('contable_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Contable</a>
+{% endblock %}
+{% block content %}
+<div class="tc mb-3"><div class="p-3"><form method="GET" class="row g-2 align-items-end">
+  <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Desde</label>
+    <input type="date" name="desde" class="form-control form-control-sm" value="{{ desde_s }}"></div>
+  <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Hasta</label>
+    <input type="date" name="hasta" class="form-control form-control-sm" value="{{ hasta_s }}"></div>
+  <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+    <a href="{{ url_for('contable_ingresos') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a></div>
+</form></div></div>
+<div class="tc"><div class="ch d-flex justify-content-between align-items-center">
+  <span><i class="bi bi-graph-up me-2 text-success"></i>{{ items|length }} venta(s)</span>
+  <span class="fw-bold text-success">Total: $ {{ '{:,.0f}'.format(items|sum(attribute='total')).replace(',','.') }}</span>
+</div>
+{% if items %}<div class="table-responsive"><table class="table">
+  <thead><tr><th>N°</th><th>Fecha</th><th>Cliente</th><th>Título</th><th class="text-end">Subtotal</th><th class="text-end">IVA</th><th class="text-end">Total</th><th class="text-end">Anticipo</th><th class="text-end">Saldo</th><th>Estado</th></tr></thead>
+  <tbody>{% for v in items %}<tr>
+    <td><small class="fw-semibold">{{ v.numero or '—' }}</small></td>
+    <td><small>{{ v.creado_en.strftime('%d/%m/%Y') }}</small></td>
+    <td><small>{{ v.cliente.empresa or v.cliente.nombre if v.cliente else '—' }}</small></td>
+    <td>{{ v.titulo[:40] }}</td>
+    <td class="text-end">$ {{ '{:,.0f}'.format(v.subtotal).replace(',','.') }}</td>
+    <td class="text-end">$ {{ '{:,.0f}'.format(v.iva).replace(',','.') }}</td>
+    <td class="text-end fw-semibold">$ {{ '{:,.0f}'.format(v.total).replace(',','.') }}</td>
+    <td class="text-end text-success">$ {{ '{:,.0f}'.format(v.monto_anticipo).replace(',','.') }}</td>
+    <td class="text-end {{ 'text-danger fw-semibold' if v.saldo > 0 else 'text-success' }}">$ {{ '{:,.0f}'.format(v.saldo).replace(',','.') }}</td>
+    <td><span class="b b-{{ v.estado }}" style="font-size:.75rem">{{ v.estado.replace('_',' ').title() }}</span></td>
+  </tr>{% endfor %}
+  <tr class="table-light fw-bold">
+    <td colspan="4">TOTAL</td>
+    <td class="text-end">$ {{ '{:,.0f}'.format(items|sum(attribute='subtotal')).replace(',','.') }}</td>
+    <td class="text-end">$ {{ '{:,.0f}'.format(items|sum(attribute='iva')).replace(',','.') }}</td>
+    <td class="text-end text-success">$ {{ '{:,.0f}'.format(items|sum(attribute='total')).replace(',','.') }}</td>
+    <td class="text-end">$ {{ '{:,.0f}'.format(items|sum(attribute='monto_anticipo')).replace(',','.') }}</td>
+    <td class="text-end text-danger">$ {{ '{:,.0f}'.format(items|sum(attribute='saldo')).replace(',','.') }}</td>
+    <td></td>
+  </tr>
+  </tbody>
+</table></div>{% else %}<div class="text-center text-muted py-5">Sin ingresos en el período.</div>{% endif %}</div>{% endblock %}"""
+
+T['contable/egresos.html'] = """{% extends 'base.html' %}
+{% block title %}Egresos{% endblock %}{% block page_title %}Egresos{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('contable_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Contable</a>
+{% endblock %}
+{% block content %}
+<div class="tc mb-3"><div class="p-3"><form method="GET" class="row g-2 align-items-end">
+  <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Desde</label>
+    <input type="date" name="desde" class="form-control form-control-sm" value="{{ desde_s }}"></div>
+  <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Hasta</label>
+    <input type="date" name="hasta" class="form-control form-control-sm" value="{{ hasta_s }}"></div>
+  <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+    <a href="{{ url_for('contable_egresos') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a></div>
+</form></div></div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4"><div class="fc text-center py-2">
+    <div style="font-size:.75rem;color:#8898aa;text-transform:uppercase">Total gastos</div>
+    <div class="fw-bold text-danger" style="font-size:1.2rem">$ {{ '{:,.0f}'.format(gastos|sum(attribute='monto')).replace(',','.') }}</div>
+  </div></div>
+  <div class="col-md-4"><div class="fc text-center py-2">
+    <div style="font-size:.75rem;color:#8898aa;text-transform:uppercase">Total compras</div>
+    <div class="fw-bold text-danger" style="font-size:1.2rem">$ {{ '{:,.0f}'.format(compras|sum(attribute='costo_total')).replace(',','.') }}</div>
+  </div></div>
+  <div class="col-md-4"><div class="fc text-center py-2">
+    <div style="font-size:.75rem;color:#8898aa;text-transform:uppercase">Total egresos</div>
+    <div class="fw-bold text-danger" style="font-size:1.3rem">$ {{ '{:,.0f}'.format((gastos|sum(attribute='monto'))+(compras|sum(attribute='costo_total'))).replace(',','.') }}</div>
+  </div></div>
+</div>
+
+<div class="tc mb-3">
+  <div class="ch"><i class="bi bi-receipt me-2"></i>Gastos operativos ({{ gastos|length }})
+    <a href="{{ url_for('contable_exportar', tipo='gastos', desde=desde_s, hasta=hasta_s) }}" class="btn btn-sm btn-outline-secondary ms-2"><i class="bi bi-download"></i> CSV</a>
+  </div>
+  {% if gastos %}<table class="table table-sm"><thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción</th><th class="text-end">Monto</th></tr></thead>
+  <tbody>{% for g in gastos %}<tr>
+    <td><small>{{ g.fecha.strftime('%d/%m/%Y') }}</small></td>
+    <td><small><span class="badge bg-light text-dark border">{{ g.tipo }}</span></small></td>
+    <td><small>{{ g.descripcion or '—' }}</small></td>
+    <td class="text-end text-danger">$ {{ '{:,.0f}'.format(g.monto).replace(',','.') }}</td>
+  </tr>{% endfor %}</tbody></table>
+  {% else %}<div class="text-muted text-center py-3">Sin gastos en el período.</div>{% endif %}
+</div>
+
+<div class="tc">
+  <div class="ch"><i class="bi bi-cart me-2"></i>Compras de materia ({{ compras|length }})
+    <a href="{{ url_for('contable_exportar', tipo='compras', desde=desde_s, hasta=hasta_s) }}" class="btn btn-sm btn-outline-secondary ms-2"><i class="bi bi-download"></i> CSV</a>
+  </div>
+  {% if compras %}<table class="table table-sm"><thead><tr><th>Fecha</th><th>Ítem</th><th>Proveedor</th><th>Cant.</th><th class="text-end">Total</th></tr></thead>
+  <tbody>{% for c in compras %}<tr>
+    <td><small>{{ c.fecha.strftime('%d/%m/%Y') }}</small></td>
+    <td><small class="fw-semibold">{{ c.nombre_item }}</small></td>
+    <td><small>{{ c.proveedor or '—' }}</small></td>
+    <td><small>{{ c.cantidad }} {{ c.unidad }}</small></td>
+    <td class="text-end text-danger">$ {{ '{:,.0f}'.format(c.costo_total).replace(',','.') }}</td>
+  </tr>{% endfor %}</tbody></table>
+  {% else %}<div class="text-muted text-center py-3">Sin compras en el período.</div>{% endif %}
+</div>{% endblock %}"""
+
+T['contable/libro_diario.html'] = """{% extends 'base.html' %}
+{% block title %}Libro Diario{% endblock %}{% block page_title %}Libro Diario{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('contable_exportar', tipo='asientos') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i>CSV</a>
+<a href="{{ url_for('contable_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Contable</a>
+{% endblock %}
+{% block content %}
+<div class="row g-4">
+<div class="col-md-4">
+  <div class="fc">
+    <h6 class="text-muted text-uppercase mb-3" style="font-size:.72rem;letter-spacing:1px">Nuevo asiento manual</h6>
+    <form method="POST">
+      <div class="mb-2"><label class="form-label mb-1" style="font-size:.82rem">Fecha *</label>
+        <input type="date" name="fecha" class="form-control form-control-sm" value="{{ today }}" required></div>
+      <div class="mb-2"><label class="form-label mb-1" style="font-size:.82rem">Descripción *</label>
+        <input type="text" name="descripcion" class="form-control form-control-sm" placeholder="Descripción del asiento" required></div>
+      <div class="row g-2 mb-2">
+        <div class="col-6"><label class="form-label mb-1" style="font-size:.82rem">Debe $</label>
+          <input type="number" name="debe" class="form-control form-control-sm" step="1" min="0" value="0"></div>
+        <div class="col-6"><label class="form-label mb-1" style="font-size:.82rem">Haber $</label>
+          <input type="number" name="haber" class="form-control form-control-sm" step="1" min="0" value="0"></div>
+      </div>
+      <div class="mb-2"><label class="form-label mb-1" style="font-size:.82rem">Cuenta Debe</label>
+        <input type="text" name="cuenta_debe" class="form-control form-control-sm" placeholder="Ej: Caja, Bancos..."></div>
+      <div class="mb-2"><label class="form-label mb-1" style="font-size:.82rem">Cuenta Haber</label>
+        <input type="text" name="cuenta_haber" class="form-control form-control-sm" placeholder="Ej: Ventas, IVA..."></div>
+      <div class="mb-3"><label class="form-label mb-1" style="font-size:.82rem">Referencia</label>
+        <input type="text" name="referencia" class="form-control form-control-sm" placeholder="Factura, N° venta..."></div>
+      <button type="submit" class="btn btn-primary w-100"><i class="bi bi-check-lg me-1"></i>Registrar asiento</button>
+    </form>
+  </div>
+</div>
+<div class="col-md-8">
+  <div class="tc">
+    <div class="ch"><i class="bi bi-journal-text me-2"></i>{{ asientos|length }} asiento(s)</div>
+    {% if asientos %}<table class="table table-sm">
+      <thead><tr><th>N°</th><th>Fecha</th><th>Descripción</th><th>Cta. Debe</th><th>Cta. Haber</th><th class="text-end">Debe</th><th class="text-end">Haber</th></tr></thead>
+      <tbody>{% for a in asientos %}<tr>
+        <td><small class="fw-semibold text-muted">{{ a.numero or '—' }}</small></td>
+        <td><small>{{ a.fecha.strftime('%d/%m/%Y') }}</small></td>
+        <td><small>{{ a.descripcion[:40] }}</small></td>
+        <td><small class="text-muted">{{ a.cuenta_debe or '—' }}</small></td>
+        <td><small class="text-muted">{{ a.cuenta_haber or '—' }}</small></td>
+        <td class="text-end"><small class="text-success">{% if a.debe > 0 %}$ {{ '{:,.0f}'.format(a.debe).replace(',','.') }}{% else %}—{% endif %}</small></td>
+        <td class="text-end"><small class="text-danger">{% if a.haber > 0 %}$ {{ '{:,.0f}'.format(a.haber).replace(',','.') }}{% else %}—{% endif %}</small></td>
+      </tr>{% endfor %}</tbody>
+    </table>
+    {% else %}<div class="text-center text-muted py-4">Sin asientos registrados.</div>{% endif %}
+  </div>
+</div>
+</div>{% endblock %}"""
+
 T['buscador.html'] = """{% extends 'base.html' %}
 {% block title %}Buscador{% endblock %}{% block page_title %}Buscador Global{% endblock %}
 {% block content %}
@@ -4536,6 +5017,96 @@ def proveedor_eliminar(id):
     flash('Proveedor eliminado.','info'); return redirect(url_for('proveedores'))
 
 # =============================================================
+# =============================================================
+# COTIZACIONES PROVEEDOR
+# =============================================================
+
+@app.route('/cotizaciones-proveedor')
+@login_required
+def cotizaciones_proveedor():
+    estado_f = request.args.get('estado','')
+    q = CotizacionProveedor.query
+    if estado_f: q = q.filter_by(estado=estado_f)
+    return render_template('proveedores/cotizaciones.html',
+                           items=q.order_by(CotizacionProveedor.creado_en.desc()).all(),
+                           estado_f=estado_f)
+
+@app.route('/cotizaciones-proveedor/nueva', methods=['GET','POST'])
+@login_required
+def cotizacion_proveedor_nueva():
+    provs = Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all()
+    if request.method == 'POST':
+        fc = request.form.get('fecha_cotizacion')
+        fv = request.form.get('vigencia')
+        cp = CotizacionProveedor(
+            proveedor_id=int(request.form.get('proveedor_id')) if request.form.get('proveedor_id') else None,
+            nombre_producto=request.form['nombre_producto'],
+            descripcion=request.form.get('descripcion',''),
+            sku=request.form.get('sku',''),
+            precio_unitario=float(request.form.get('precio_unitario') or 0),
+            unidades_minimas=int(request.form.get('unidades_minimas') or 1),
+            unidad=request.form.get('unidad','unidades'),
+            plazo_entrega=request.form.get('plazo_entrega',''),
+            condiciones_pago=request.form.get('condiciones_pago',''),
+            fecha_cotizacion=datetime.strptime(fc,'%Y-%m-%d').date() if fc else datetime.utcnow().date(),
+            vigencia=datetime.strptime(fv,'%Y-%m-%d').date() if fv else None,
+            estado=request.form.get('estado','vigente'),
+            notas=request.form.get('notas',''),
+            creado_por=current_user.id
+        )
+        db.session.add(cp); db.session.flush()
+        # Número CP-YYYY-NNN
+        hoy = datetime.utcnow().date()
+        ultimo = CotizacionProveedor.query.filter(
+            CotizacionProveedor.numero.like(f'CP-{hoy.year}-%')
+        ).order_by(CotizacionProveedor.id.desc()).first()
+        if ultimo and ultimo.numero:
+            try: seq = int(ultimo.numero.split('-')[-1]) + 1
+            except: seq = 1
+        else: seq = 1
+        cp.numero = f'CP-{hoy.year}-{seq:03d}'
+        db.session.commit()
+        flash(f'Cotización {cp.numero} creada.','success')
+        return redirect(url_for('cotizaciones_proveedor'))
+    return render_template('proveedores/cotizacion_form.html', obj=None,
+                           proveedores_list=provs, titulo='Nueva Cotización Proveedor')
+
+@app.route('/cotizaciones-proveedor/<int:id>/editar', methods=['GET','POST'])
+@login_required
+def cotizacion_proveedor_editar(id):
+    obj = CotizacionProveedor.query.get_or_404(id)
+    provs = Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all()
+    if request.method == 'POST':
+        fc = request.form.get('fecha_cotizacion')
+        fv = request.form.get('vigencia')
+        obj.proveedor_id=int(request.form.get('proveedor_id')) if request.form.get('proveedor_id') else None
+        obj.nombre_producto=request.form.get('nombre_producto','')
+        obj.descripcion=request.form.get('descripcion','')
+        obj.sku=request.form.get('sku','')
+        obj.precio_unitario=float(request.form.get('precio_unitario') or 0)
+        obj.unidades_minimas=int(request.form.get('unidades_minimas') or 1)
+        obj.unidad=request.form.get('unidad','unidades')
+        obj.plazo_entrega=request.form.get('plazo_entrega','')
+        obj.condiciones_pago=request.form.get('condiciones_pago','')
+        obj.fecha_cotizacion=datetime.strptime(fc,'%Y-%m-%d').date() if fc else obj.fecha_cotizacion
+        obj.vigencia=datetime.strptime(fv,'%Y-%m-%d').date() if fv else None
+        obj.estado=request.form.get('estado','vigente')
+        obj.notas=request.form.get('notas','')
+        db.session.commit()
+        flash('Cotización actualizada.','success')
+        return redirect(url_for('cotizaciones_proveedor'))
+    return render_template('proveedores/cotizacion_form.html', obj=obj,
+                           proveedores_list=provs, titulo='Editar Cotización Proveedor')
+
+@app.route('/cotizaciones-proveedor/<int:id>/eliminar', methods=['POST'])
+@login_required
+def cotizacion_proveedor_eliminar(id):
+    obj = CotizacionProveedor.query.get_or_404(id)
+    db.session.delete(obj); db.session.commit()
+    flash('Cotización eliminada.','info')
+    return redirect(url_for('cotizaciones_proveedor'))
+
+# =============================================================
 # ÓRDENES DE COMPRA
 # =============================================================
 
@@ -4601,7 +5172,8 @@ def orden_compra_nueva():
         flash(f'Orden de compra {oc.numero} creada.','success')
         return redirect(url_for('ordenes_compra'))
     return render_template('ordenes_compra/form.html', obj=None,
-                           proveedores_list=provs, titulo='Nueva Orden de Compra')
+                           proveedores_list=provs, titulo='Nueva Orden de Compra',
+                           items_json=[])
 
 @app.route('/ordenes-compra/<int:id>/editar', methods=['GET','POST'])
 @login_required
@@ -6843,6 +7415,268 @@ def admin_usuario_editar(id):
     return render_template('admin/usuario_form.html', obj=u, titulo='Editar Usuario')
 
 # =============================================================
+# =============================================================
+# MÓDULO LEGAL
+# =============================================================
+
+@app.route('/legal')
+@login_required
+def legal_index():
+    tipo_f = request.args.get('tipo','')
+    estado_f = request.args.get('estado','')
+    q = DocumentoLegal.query.filter_by(activo=True)
+    if tipo_f: q = q.filter_by(tipo=tipo_f)
+    if estado_f: q = q.filter_by(estado=estado_f)
+    items = q.order_by(DocumentoLegal.fecha_vencimiento).all()
+    # Alertas: vencimientos próximos
+    from datetime import timedelta
+    hoy = datetime.utcnow().date()
+    alertas = [d for d in items if d.fecha_vencimiento and
+               (d.fecha_vencimiento - hoy).days <= d.recordatorio_dias
+               and d.estado == 'vigente']
+    return render_template('legal/index.html', items=items,
+                           tipo_f=tipo_f, estado_f=estado_f, alertas=alertas)
+
+@app.route('/legal/nuevo', methods=['GET','POST'])
+@login_required
+def legal_nuevo():
+    if request.method == 'POST':
+        fe = request.form.get('fecha_emision')
+        fv = request.form.get('fecha_vencimiento')
+        d = DocumentoLegal(
+            tipo=request.form.get('tipo','otro'),
+            titulo=request.form['titulo'],
+            numero=request.form.get('numero',''),
+            entidad=request.form.get('entidad',''),
+            descripcion=request.form.get('descripcion',''),
+            estado=request.form.get('estado','vigente'),
+            fecha_emision=datetime.strptime(fe,'%Y-%m-%d').date() if fe else None,
+            fecha_vencimiento=datetime.strptime(fv,'%Y-%m-%d').date() if fv else None,
+            recordatorio_dias=int(request.form.get('recordatorio_dias') or 30),
+            archivo_url=request.form.get('archivo_url',''),
+            notas=request.form.get('notas',''),
+            activo=True, creado_por=current_user.id
+        )
+        db.session.add(d); db.session.commit()
+        flash('Documento legal creado.','success')
+        return redirect(url_for('legal_index'))
+    return render_template('legal/form.html', obj=None, titulo='Nuevo Documento Legal')
+
+@app.route('/legal/<int:id>/editar', methods=['GET','POST'])
+@login_required
+def legal_editar(id):
+    obj = DocumentoLegal.query.get_or_404(id)
+    if request.method == 'POST':
+        fe = request.form.get('fecha_emision')
+        fv = request.form.get('fecha_vencimiento')
+        obj.tipo=request.form.get('tipo','otro')
+        obj.titulo=request.form.get('titulo','')
+        obj.numero=request.form.get('numero','')
+        obj.entidad=request.form.get('entidad','')
+        obj.descripcion=request.form.get('descripcion','')
+        obj.estado=request.form.get('estado','vigente')
+        obj.fecha_emision=datetime.strptime(fe,'%Y-%m-%d').date() if fe else None
+        obj.fecha_vencimiento=datetime.strptime(fv,'%Y-%m-%d').date() if fv else None
+        obj.recordatorio_dias=int(request.form.get('recordatorio_dias') or 30)
+        obj.archivo_url=request.form.get('archivo_url','')
+        obj.notas=request.form.get('notas','')
+        db.session.commit()
+        flash('Documento actualizado.','success')
+        return redirect(url_for('legal_index'))
+    return render_template('legal/form.html', obj=obj, titulo='Editar Documento Legal')
+
+@app.route('/legal/<int:id>/eliminar', methods=['POST'])
+@login_required
+def legal_eliminar(id):
+    obj = DocumentoLegal.query.get_or_404(id)
+    obj.activo = False; db.session.commit()
+    flash('Documento eliminado.','info')
+    return redirect(url_for('legal_index'))
+
+# =============================================================
+# MÓDULO CONTABLE
+# =============================================================
+
+@app.route('/contable')
+@login_required
+def contable_index():
+    from datetime import timedelta
+    hoy = datetime.utcnow().date()
+    mes_inicio = hoy.replace(day=1)
+    mes_str = request.args.get('mes', hoy.strftime('%Y-%m'))
+    try:
+        anio, mes = int(mes_str.split('-')[0]), int(mes_str.split('-')[1])
+    except: anio, mes = hoy.year, hoy.month
+    import calendar as cal_mod
+    _, ultimo_dia = cal_mod.monthrange(anio, mes)
+    desde = datetime(anio, mes, 1).date()
+    hasta = datetime(anio, mes, ultimo_dia).date()
+    # Ingresos del mes (ventas ganadas/anticipo)
+    ventas_mes = Venta.query.filter(
+        Venta.estado.in_(['anticipo_pagado','ganado']),
+        db.func.date(Venta.creado_en) >= desde,
+        db.func.date(Venta.creado_en) <= hasta
+    ).all()
+    total_ingresos = sum(v.total for v in ventas_mes)
+    total_anticipo = sum(v.monto_anticipo for v in ventas_mes)
+    # Egresos del mes
+    gastos_mes = GastoOperativo.query.filter(
+        GastoOperativo.fecha >= desde, GastoOperativo.fecha <= hasta
+    ).all()
+    compras_mes = CompraMateria.query.filter(
+        CompraMateria.fecha >= desde, CompraMateria.fecha <= hasta
+    ).all()
+    total_gastos = sum(g.monto for g in gastos_mes)
+    total_compras = sum(c.costo_total for c in compras_mes)
+    total_egresos = total_gastos + total_compras
+    utilidad = total_ingresos - total_egresos
+    # Cuentas por cobrar (ventas con saldo > 0)
+    cxc = Venta.query.filter(Venta.saldo > 0, Venta.estado.in_(['anticipo_pagado','ganado'])).all()
+    total_cxc = sum(v.saldo for v in cxc)
+    # Inventario valorizado
+    inventario_valor = sum((p.stock or 0) * (p.costo or 0) for p in Producto.query.filter_by(activo=True).all())
+    meses_nav = []
+    for i in range(5, -1, -1):
+        d = (hoy.replace(day=1) - timedelta(days=i*28)).replace(day=1)
+        meses_nav.append({'val': d.strftime('%Y-%m'), 'lbl': d.strftime('%b %Y')})
+    return render_template('contable/index.html',
+        total_ingresos=total_ingresos, total_anticipo=total_anticipo,
+        total_egresos=total_egresos, total_gastos=total_gastos,
+        total_compras=total_compras, utilidad=utilidad,
+        total_cxc=total_cxc, inventario_valor=inventario_valor,
+        ventas_mes=ventas_mes, gastos_mes=gastos_mes, compras_mes=compras_mes,
+        cxc=cxc, mes_str=mes_str, meses_nav=meses_nav,
+        anio=anio, mes=mes)
+
+@app.route('/contable/ingresos')
+@login_required
+def contable_ingresos():
+    desde_s = request.args.get('desde','')
+    hasta_s = request.args.get('hasta','')
+    q = Venta.query.filter(Venta.estado.in_(['anticipo_pagado','ganado','prospecto','negociacion','perdido']))
+    if desde_s:
+        try: q = q.filter(db.func.date(Venta.creado_en) >= datetime.strptime(desde_s,'%Y-%m-%d').date())
+        except: pass
+    if hasta_s:
+        try: q = q.filter(db.func.date(Venta.creado_en) <= datetime.strptime(hasta_s,'%Y-%m-%d').date())
+        except: pass
+    items = q.order_by(Venta.creado_en.desc()).all()
+    return render_template('contable/ingresos.html', items=items, desde_s=desde_s, hasta_s=hasta_s)
+
+@app.route('/contable/egresos')
+@login_required
+def contable_egresos():
+    desde_s = request.args.get('desde','')
+    hasta_s = request.args.get('hasta','')
+    gastos = GastoOperativo.query
+    compras = CompraMateria.query
+    if desde_s:
+        try:
+            d = datetime.strptime(desde_s,'%Y-%m-%d').date()
+            gastos = gastos.filter(GastoOperativo.fecha >= d)
+            compras = compras.filter(CompraMateria.fecha >= d)
+        except: pass
+    if hasta_s:
+        try:
+            h = datetime.strptime(hasta_s,'%Y-%m-%d').date()
+            gastos = gastos.filter(GastoOperativo.fecha <= h)
+            compras = compras.filter(CompraMateria.fecha <= h)
+        except: pass
+    return render_template('contable/egresos.html',
+        gastos=gastos.order_by(GastoOperativo.fecha.desc()).all(),
+        compras=compras.order_by(CompraMateria.fecha.desc()).all(),
+        desde_s=desde_s, hasta_s=hasta_s)
+
+@app.route('/contable/libro-diario', methods=['GET','POST'])
+@login_required
+def contable_libro_diario():
+    if request.method == 'POST':
+        fd = request.form.get('fecha')
+        a = AsientoContable(
+            fecha=datetime.strptime(fd,'%Y-%m-%d').date() if fd else datetime.utcnow().date(),
+            descripcion=request.form['descripcion'],
+            tipo=request.form.get('tipo','manual'),
+            referencia=request.form.get('referencia',''),
+            debe=float(request.form.get('debe') or 0),
+            haber=float(request.form.get('haber') or 0),
+            cuenta_debe=request.form.get('cuenta_debe',''),
+            cuenta_haber=request.form.get('cuenta_haber',''),
+            notas=request.form.get('notas',''),
+            creado_por=current_user.id
+        )
+        db.session.add(a); db.session.flush()
+        hoy = datetime.utcnow().date()
+        ultimo = AsientoContable.query.filter(
+            AsientoContable.numero.like(f'AC-{hoy.year}-%')
+        ).order_by(AsientoContable.id.desc()).first()
+        if ultimo and ultimo.numero:
+            try: seq = int(ultimo.numero.split('-')[-1]) + 1
+            except: seq = 1
+        else: seq = 1
+        a.numero = f'AC-{hoy.year}-{seq:03d}'
+        db.session.commit()
+        flash(f'Asiento {a.numero} registrado.','success')
+        return redirect(url_for('contable_libro_diario'))
+    asientos = AsientoContable.query.order_by(AsientoContable.fecha.desc(), AsientoContable.id.desc()).limit(100).all()
+    return render_template('contable/libro_diario.html', asientos=asientos)
+
+@app.route('/contable/exportar')
+@login_required
+def contable_exportar():
+    tipo = request.args.get('tipo','ventas')
+    desde_s = request.args.get('desde','')
+    hasta_s = request.args.get('hasta','')
+    import csv, io
+    si = io.StringIO()
+    writer = csv.writer(si)
+    if tipo == 'ventas':
+        writer.writerow(['Numero','Titulo','Cliente','Fecha','Estado','Subtotal','IVA','Total','Anticipo','Saldo'])
+        q = Venta.query
+        if desde_s:
+            try: q = q.filter(db.func.date(Venta.creado_en) >= datetime.strptime(desde_s,'%Y-%m-%d').date())
+            except: pass
+        if hasta_s:
+            try: q = q.filter(db.func.date(Venta.creado_en) <= datetime.strptime(hasta_s,'%Y-%m-%d').date())
+            except: pass
+        for v in q.order_by(Venta.creado_en).all():
+            writer.writerow([v.numero or '', v.titulo,
+                v.cliente.empresa or v.cliente.nombre if v.cliente else '',
+                v.creado_en.strftime('%Y-%m-%d'), v.estado,
+                v.subtotal, v.iva, v.total, v.monto_anticipo, v.saldo])
+    elif tipo == 'gastos':
+        writer.writerow(['Fecha','Tipo','Descripcion','Monto','Recurrencia'])
+        q = GastoOperativo.query
+        if desde_s:
+            try: q = q.filter(GastoOperativo.fecha >= datetime.strptime(desde_s,'%Y-%m-%d').date())
+            except: pass
+        if hasta_s:
+            try: q = q.filter(GastoOperativo.fecha <= datetime.strptime(hasta_s,'%Y-%m-%d').date())
+            except: pass
+        for g in q.order_by(GastoOperativo.fecha).all():
+            writer.writerow([g.fecha.strftime('%Y-%m-%d'), g.tipo, g.descripcion or '', g.monto, g.recurrencia])
+    elif tipo == 'compras':
+        writer.writerow(['Fecha','Item','Proveedor','Cantidad','Unidad','Costo Total','Factura'])
+        q = CompraMateria.query
+        if desde_s:
+            try: q = q.filter(CompraMateria.fecha >= datetime.strptime(desde_s,'%Y-%m-%d').date())
+            except: pass
+        if hasta_s:
+            try: q = q.filter(CompraMateria.fecha <= datetime.strptime(hasta_s,'%Y-%m-%d').date())
+            except: pass
+        for c in q.order_by(CompraMateria.fecha).all():
+            writer.writerow([c.fecha.strftime('%Y-%m-%d'), c.nombre_item, c.proveedor or '',
+                c.cantidad, c.unidad, c.costo_total, c.nro_factura or ''])
+    elif tipo == 'asientos':
+        writer.writerow(['Numero','Fecha','Descripcion','Tipo','Referencia','Debe','Haber','Cuenta Debe','Cuenta Haber'])
+        for a in AsientoContable.query.order_by(AsientoContable.fecha).all():
+            writer.writerow([a.numero or '', a.fecha.strftime('%Y-%m-%d'), a.descripcion,
+                a.tipo, a.referencia or '', a.debe, a.haber, a.cuenta_debe or '', a.cuenta_haber or ''])
+    output = si.getvalue()
+    from flask import Response
+    return Response(output, mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment;filename=contable_{tipo}_{desde_s or "todo"}.csv'})
+
+# =============================================================
 # BUSCADOR GLOBAL
 # =============================================================
 
@@ -7012,6 +7846,12 @@ def _migrate(conn):
         # v12.4 — órdenes de compra
         ("CREATE TABLE IF NOT EXISTS ordenes_compra (id SERIAL PRIMARY KEY, numero VARCHAR(20), proveedor_id INTEGER REFERENCES proveedores(id), estado VARCHAR(30) DEFAULT 'borrador', fecha_emision DATE, fecha_esperada DATE, subtotal FLOAT DEFAULT 0, iva FLOAT DEFAULT 0, total FLOAT DEFAULT 0, notas TEXT, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
         ("CREATE TABLE IF NOT EXISTS ordenes_compra_items (id SERIAL PRIMARY KEY, orden_id INTEGER REFERENCES ordenes_compra(id) ON DELETE CASCADE, nombre_item VARCHAR(200) NOT NULL, descripcion TEXT, cantidad FLOAT DEFAULT 1, unidad VARCHAR(30) DEFAULT 'unidades', precio_unit FLOAT DEFAULT 0, subtotal FLOAT DEFAULT 0)"),
+        # v13 — cotizaciones proveedor
+        ("CREATE TABLE IF NOT EXISTS cotizaciones_proveedor (id SERIAL PRIMARY KEY, numero VARCHAR(20), proveedor_id INTEGER REFERENCES proveedores(id), nombre_producto VARCHAR(200) NOT NULL, descripcion TEXT, sku VARCHAR(50), precio_unitario FLOAT DEFAULT 0, unidades_minimas INTEGER DEFAULT 1, unidad VARCHAR(30) DEFAULT 'unidades', plazo_entrega VARCHAR(100), condiciones_pago VARCHAR(200), fecha_cotizacion DATE, vigencia DATE, estado VARCHAR(20) DEFAULT 'vigente', notas TEXT, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
+        # v13 — documentos legales
+        ("CREATE TABLE IF NOT EXISTS documentos_legales (id SERIAL PRIMARY KEY, tipo VARCHAR(50) NOT NULL, titulo VARCHAR(200) NOT NULL, numero VARCHAR(100), entidad VARCHAR(200), descripcion TEXT, estado VARCHAR(20) DEFAULT 'vigente', fecha_emision DATE, fecha_vencimiento DATE, recordatorio_dias INTEGER DEFAULT 30, archivo_url VARCHAR(500), notas TEXT, activo BOOLEAN DEFAULT TRUE, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
+        # v13 — asientos contables
+        ("CREATE TABLE IF NOT EXISTS asientos_contables (id SERIAL PRIMARY KEY, numero VARCHAR(20), fecha DATE NOT NULL, descripcion VARCHAR(300) NOT NULL, tipo VARCHAR(30) DEFAULT 'manual', referencia VARCHAR(100), debe FLOAT DEFAULT 0, haber FLOAT DEFAULT 0, cuenta_debe VARCHAR(100), cuenta_haber VARCHAR(100), notas TEXT, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
     ]
     for sql in migrations:
         try:
