@@ -8,21 +8,37 @@ from flask_login import (LoginManager, UserMixin, login_user,
                          logout_user, login_required, current_user)
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
-import os, json
+import os, json, secrets
 from jinja2 import DictLoader
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'evore-crm-2024-key')
+_secret_key = os.environ.get('SECRET_KEY')
+if not _secret_key:
+    _secret_key = secrets.token_hex(32)
+    print('SECURITY WARNING: SECRET_KEY env var not set. Sessions will reset on each restart. '
+          'Set SECRET_KEY in Railway Variables for production.')
+app.config['SECRET_KEY'] = _secret_key
 _db_url = os.environ.get('DATABASE_URL', 'sqlite:///crm.db')
 if _db_url.startswith('postgres://'): _db_url = _db_url.replace('postgres://', 'postgresql://', 1)
 app.config['SQLALCHEMY_DATABASE_URI'] = _db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_ENV') != 'development'
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Inicia sesión para continuar.'
 login_manager.login_message_category = 'warning'
+
+@app.after_request
+def security_headers(response):
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    return response
 
 @app.context_processor
 def inject_globals(): return {'now': datetime.utcnow()}
@@ -324,7 +340,7 @@ T['base.html'] = """<!DOCTYPE html>
 """ + _CDN + _CSS + """
 </head><body>
 <nav id="sb">
-  <div class="sb-brand" style="padding:.85rem 1rem .7rem"><a href="/" style="text-decoration:none;color:inherit"><div class="d-flex align-items-center gap-2"><svg width="31" height="28" viewBox="0 0 100 90" fill="none" stroke="rgba(255,255,255,.88)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M50,67 C44,63 41,35 50,5 C59,35 56,63 50,67Z"/><path d="M50,67 C41,64 23,43 27,20 C33,32 46,57 50,67Z"/><path d="M50,67 C59,64 77,43 73,20 C67,32 54,57 50,67Z"/><path d="M50,67 C37,65 11,53 13,35 C17,43 36,60 50,67Z"/><path d="M50,67 C63,65 89,53 87,35 C83,43 64,60 50,67Z"/><path d="M50,69 C39,74 19,76 4,69 C6,62 28,65 50,69Z"/><path d="M50,69 C61,74 81,76 96,69 C94,62 72,65 50,69Z"/><path d="M50,69 C46,73 46,81 50,83 C54,81 54,73 50,69Z"/></svg><span style="letter-spacing:4px;font-size:1.05rem;font-weight:700">EVORE<span class="bt" style="font-weight:300;font-size:.72rem;letter-spacing:1px;opacity:.65"> CRM</span></span></div></a></div>
+  <div class="sb-brand" style="padding:.85rem 1rem .7rem"><a href="/" style="text-decoration:none;color:inherit"><div style="overflow:hidden;line-height:0"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 474.45 119.52" width="188" height="47" style="filter:brightness(0) invert(1);opacity:.88;display:block"><path d="M163.87,76.22V43.3c0-13-1.37-15.81-1.37-15.81h45.27v4.07s-4.09-2.22-23.45-2.22H167.87V54.21h30.9v4.07S196.13,56,183.41,56H167.87V90.18H187C206.4,90.18,210.5,88,210.5,88V92h-48S163.87,89.26,163.87,76.22Z"/><path d="M215.13,27.49h7s-.28,2.77,4.72,15.81l17.91,46.33L263.21,43.3c5.18-13,3.82-15.81,3.82-15.81h5.82s-2.46,2.68-7.46,15.16L245.76,92h-4.27l-19-49C217.58,30.17,215.13,27.49,215.13,27.49Z"/><path d="M274.07,59.67c0-18.5,14.45-33.39,32.36-33.39s32.36,14.89,32.36,33.39-14.46,33.38-32.36,33.38S274.07,78.16,274.07,59.67Zm60.81,0c0-17.48-12.73-31.63-28.45-31.63S278,42.19,278,59.67s12.72,31.62,28.45,31.62S334.88,77.15,334.88,59.67Z"/><path d="M346.1,76.22V43.3c0-13-1.36-15.81-1.36-15.81h28.63c11,0,19.91,9.34,19.91,20.8s-8.73,20.63-19.55,20.81L381,76.5C393.55,89.35,397.64,92,397.64,92h-8.36S388,89.35,375.73,76.87l-7.54-7.77H350.1v7.12c0,13,1.36,15.81,1.36,15.81h-6.72S346.1,89.26,346.1,76.22Zm43.27-27.93c0-10.35-7.18-18.95-16-18.95H350.1V67.25h23.27C382.19,67.25,389.37,58.65,389.37,48.29Z"/><path d="M403.73,76.22V43.3c0-13-1.37-15.81-1.37-15.81h45.27v4.07s-4.09-2.22-23.45-2.22H407.72V54.21h30.91v4.07S436,56,423.27,56H407.72V90.18H426.9c19.36,0,23.45-2.21,23.45-2.21V92h-48S403.73,89.26,403.73,76.22Z"/><path d="M132.51,80.73a88.84,88.84,0,0,0-10.58-4.88s-1.06-.37-1-.67c.16-.91,2.08-1.17,7.25-8.06,5.35-7.14,6.47-10.49,7.48-13.42.86-2.49,1.79-8.27,1.29-8.87s-6.86-1-12.4.22c-5.31,1.2-8.35,2.62-8.65,2.28-.48-.53.71-4.69.83-8.52a36.63,36.63,0,0,0-.3-8.65c-.47-3-1.11-5.7-2-5.95s-3.76.62-5.26,1.27a62.18,62.18,0,0,0-7.26,4.28c-2.19,1.52-4.91,4.13-5.68,4.29s-2.1-4.53-5.19-9.9a64.94,64.94,0,0,0-4.29-6.84C85.44,15.47,83.05,12,81.26,12h0c-1.79,0-4.17,3.45-5.48,5.29a63.75,63.75,0,0,0-4.28,6.84c-3.1,5.37-4.34,10.07-5.19,9.9s-3.56-2.86-5.75-4.37a60.26,60.26,0,0,0-7.2-4.2c-1.5-.65-4.37-1.53-5.26-1.27s-1.53,3-2,5.95a36.08,36.08,0,0,0-.31,8.65c.12,3.83,1.32,8,.84,8.52-.3.34-3.35-1.08-8.66-2.28-5.53-1.24-11.82-.92-12.4-.22s.44,6.38,1.29,8.87c1,2.93,2.13,6.28,7.49,13.42,5.17,6.89,7.08,7.15,7.24,8.06.06.3-1,.67-1,.67A88.84,88.84,0,0,0,30,80.73c-2.76,1.7-5.9,4.24-5.9,5.54,0,1.59,2.67,3.48,6.14,5.78s11.55,5.88,20.12,5.07c9.65-.91,15.56-5.42,16.37-5.07.37.16.08,3.94,3.88,7.86,3.34,3.43,8,7.5,10.65,7.5s7.31-4.07,10.65-7.5c3.8-3.92,3.51-7.7,3.88-7.86.81-.35,6.73,4.16,16.37,5.07,8.58.81,16.61-2.75,20.13-5.07s6.14-4.19,6.13-5.78C138.41,85,135.27,82.43,132.51,80.73ZM120.37,48.38c6.29-2.14,13.77-2.27,14.29-1.59s-.51,11.81-13.15,24.48c-8.57,8.59-16.05,9.66-22.83,10.46a49.69,49.69,0,0,1-12.32-.54,26.06,26.06,0,0,0,8.55-9c3.31-5.9,4.74-10.88,10.5-15.29S114.07,50.51,120.37,48.38ZM104.31,30.92c5.53-3.75,8.42-4.45,8.92-4.12s1.29,3.49,1.25,9.2a88,88,0,0,1-1.28,12.24s-1.74.95-6.5,4.28a38.24,38.24,0,0,0-7.13,6.11,56.1,56.1,0,0,0-.32-12A73.79,73.79,0,0,0,97,37.13S98.78,34.67,104.31,30.92Zm-33-1.39c3-6,8.24-14.66,9.91-14.66s7,8.68,9.91,14.66a59.24,59.24,0,0,1,6.13,25,32.38,32.38,0,0,1-7.47,20c-3.88,4.88-8.13,6.14-8.57,6.14s-4.69-1.26-8.57-6.14a32.38,32.38,0,0,1-7.47-20A59.24,59.24,0,0,1,71.35,29.53ZM49.29,26.8c.5-.33,3.4.37,8.92,4.12s7.36,6.21,7.36,6.21a72.86,72.86,0,0,0-2.3,9.53,56.1,56.1,0,0,0-.32,12,38.24,38.24,0,0,0-7.13-6.11c-4.76-3.33-6.5-4.28-6.5-4.28A88,88,0,0,1,48,36C48,30.29,48.77,27.14,49.29,26.8ZM41,71.27C28.37,58.6,27.35,47.47,27.86,46.79s8-.55,14.3,1.59,9.19,4.14,15,8.54,7.2,9.39,10.5,15.29a26.06,26.06,0,0,0,8.55,9,49.69,49.69,0,0,1-12.32.54C57.06,80.93,49.58,79.86,41,71.27ZM62.77,91.11a31.75,31.75,0,0,1-17.52,3.76c-4.91-.33-8.86-2.14-12.74-4.16s-5.77-3.82-5.77-4.54,3.57-3.23,6.92-4.81a85.68,85.68,0,0,1,9-3.93c.81-.28,1-.05,2.33.69a30.76,30.76,0,0,0,9.68,4.43,107,107,0,0,0,14,2S66.75,89.14,62.77,91.11Zm25.1,9.17c-4.37,4.22-6,4.41-6.61,4.41s-2.24-.19-6.61-4.41-6.23-8.18-4.86-12.1a5.72,5.72,0,0,1,1.6-2.69c2.73-2.62,9.86-2.33,9.86-2.33h0s7.12-.29,9.85,2.33a5.72,5.72,0,0,1,1.6,2.69C94.1,92.1,92.23,96.06,87.87,100.28ZM130,90.71c-3.88,2-7.83,3.83-12.74,4.16a31.75,31.75,0,0,1-17.52-3.76c-4-2-6-6.58-6-6.58a107,107,0,0,0,14-2,30.63,30.63,0,0,0,9.68-4.43c1.39-.74,1.52-1,2.34-.69a86.72,86.72,0,0,1,9,3.93c3.36,1.58,6.92,4.1,6.92,4.81S134,88.63,130,90.71Z"/></svg><span class="bt" style="font-size:.65rem;letter-spacing:1px;opacity:.55;white-space:nowrap"> CRM</span></div></a></div>
   <div class="sb-nav py-2" style="overflow-y:auto;flex:1">
     <div class="sb-sec">Principal</div>
     <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint=='dashboard' %}active{% endif %}">
@@ -409,9 +425,8 @@ body{background:linear-gradient(135deg,#1a1f36,#2d3561);min-height:100vh;display
 </style></head><body>
 <div class="card bg-white">
   <div class="text-center mb-4">
-    <svg width="68" height="61" viewBox="0 0 100 90" fill="none" stroke="#d3af37" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M50,67 C44,63 41,35 50,5 C59,35 56,63 50,67Z"/><path d="M50,67 C41,64 23,43 27,20 C33,32 46,57 50,67Z"/><path d="M50,67 C59,64 77,43 73,20 C67,32 54,57 50,67Z"/><path d="M50,67 C37,65 11,53 13,35 C17,43 36,60 50,67Z"/><path d="M50,67 C63,65 89,53 87,35 C83,43 64,60 50,67Z"/><path d="M50,69 C39,74 19,76 4,69 C6,62 28,65 50,69Z"/><path d="M50,69 C61,74 81,76 96,69 C94,62 72,65 50,69Z"/><path d="M50,69 C46,73 46,81 50,83 C54,81 54,73 50,69Z"/></svg>
-    <div style="font-size:1.85rem;font-weight:700;letter-spacing:10px;color:#1d1d1b;font-family:Georgia,'Times New Roman',serif;line-height:1.1;margin-top:.15rem">EVORE</div>
-    <p class="text-muted mb-0" style="font-size:.78rem;letter-spacing:3px;margin-top:.25rem">SISTEMA DE GESTIÓN</p>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 341.94 261.01" width="170" height="130" style="display:block;margin:0 auto"><path fill="#1d1d1b" stroke="#1d1d1b" stroke-width="0" d="M28.41,217.71V184.78C28.41,171.75,27,169,27,169H72.31V173s-4.09-2.22-23.45-2.22H32.41V195.7h30.9v4.07s-2.64-2.32-15.36-2.32H32.41v34.22H51.58c19.36,0,23.45-2.22,23.45-2.22v4.07H27S28.41,230.75,28.41,217.71Z"/><path fill="#1d1d1b" stroke="#1d1d1b" stroke-width="0" d="M79.67,169h7s-.28,2.78,4.72,15.81l17.91,46.33,18.45-46.33c5.18-13,3.82-15.81,3.82-15.81h5.81s-2.45,2.68-7.45,15.17L110.3,233.52H106l-19-49C82.12,171.65,79.67,169,79.67,169Z"/><path fill="#1d1d1b" stroke="#1d1d1b" stroke-width="0" d="M138.61,201.15c0-18.49,14.45-33.38,32.36-33.38s32.36,14.89,32.36,33.38S188.87,234.54,171,234.54,138.61,219.65,138.61,201.15Zm60.81,0c0-17.47-12.73-31.62-28.45-31.62s-28.45,14.15-28.45,31.62,12.72,31.63,28.45,31.63S199.42,218.63,199.42,201.15Z"/><path fill="#1d1d1b" stroke="#1d1d1b" stroke-width="0" d="M210.64,217.71V184.78c0-13-1.36-15.81-1.36-15.81h28.63c11,0,19.9,9.34,19.9,20.81s-8.72,20.62-19.54,20.81l7.27,7.39c12.55,12.86,16.64,15.54,16.64,15.54h-8.36s-1.28-2.68-13.55-15.17l-7.54-7.76H214.64v7.12c0,13,1.36,15.81,1.36,15.81h-6.72S210.64,230.75,210.64,217.71Zm43.27-27.93c0-10.36-7.18-19-16-19H214.64v37.92h23.27C246.73,208.74,253.91,200.14,253.91,189.78Z"/><path fill="#1d1d1b" stroke="#1d1d1b" stroke-width="0" d="M268.26,217.71V184.78c0-13-1.36-15.81-1.36-15.81h45.27V173s-4.09-2.22-23.45-2.22H272.26V195.7h30.91v4.07s-2.64-2.32-15.36-2.32H272.26v34.22h19.18c19.36,0,23.45-2.22,23.45-2.22v4.07h-48S268.26,230.75,268.26,217.71Z"/><path fill="#1d1d1b" d="M239.09,111.71C234.61,109,225,105.23,225,105.23s-1.42-.5-1.34-.9c.21-1.2,2.76-1.54,9.63-10.7,7.11-9.49,8.6-13.94,9.94-17.84,1.14-3.3,2.38-11,1.72-11.79s-9.12-1.35-16.48.3c-7.06,1.58-11.1,3.47-11.5,3-.64-.71.95-6.23,1.11-11.33.17-5.28.32-6.75-.41-11.49-.61-4-1.47-7.57-2.65-7.91s-5,.82-7,1.69A81.41,81.41,0,0,0,198.41,44c-2.91,2-6.52,5.48-7.55,5.69s-2.79-6-6.9-13.15a86,86,0,0,0-5.69-9.09c-1.74-2.45-4.91-7-7.28-7h0c-2.38,0-5.54,4.59-7.28,7A84.29,84.29,0,0,0,158,36.52c-4.12,7.13-5.76,13.38-6.9,13.15s-4.73-3.8-7.64-5.8a79.94,79.94,0,0,0-9.56-5.58c-2-.87-5.81-2-7-1.69s-2,3.94-2.65,7.91c-.73,4.74-.58,6.21-.41,11.49.16,5.1,1.74,10.62,1.11,11.33-.4.44-4.44-1.45-11.5-3C106.08,62.65,97.72,63.08,97,64s.57,8.49,1.71,11.79c1.35,3.9,2.83,8.35,10,17.84,6.87,9.16,9.41,9.5,9.63,10.7.07.4-1.35.9-1.35.9s-9.57,3.72-14.06,6.48C99.17,114,95,117.34,95,119.08c0,2.11,3.54,4.62,8.14,7.67s15.36,7.83,26.75,6.75c12.82-1.22,20.68-7.21,21.76-6.74.49.21.11,5.24,5.16,10.44,4.43,4.56,10.58,10,14.15,10s9.72-5.42,14.15-10c5-5.2,4.67-10.23,5.16-10.44,1.07-.47,8.93,5.52,21.76,6.74,11.39,1.08,22.07-3.65,26.74-6.75s8.17-5.56,8.15-7.67C246.93,117.34,242.76,114,239.09,111.71ZM223,68.71c8.36-2.84,18.31-3,19-2.1s-.68,15.69-17.47,32.53C213.08,110.56,203.15,112,194.13,113c-7.48.88-16.37-.72-16.37-.72a34.59,34.59,0,0,0,11.36-11.93c4.39-7.85,6.29-14.46,13.95-20.31S214.59,71.55,223,68.71ZM201.61,45.52c7.35-5,11.19-5.92,11.86-5.48s1.71,4.63,1.66,12.23a115.69,115.69,0,0,1-1.71,16.27s-2.31,1.26-8.63,5.68a50.76,50.76,0,0,0-9.48,8.13,74.94,74.94,0,0,0-.42-15.92,99,99,0,0,0-3-12.66S194.26,50.51,201.61,45.52Zm-43.8-1.86c3.92-7.94,10.94-19.47,13.17-19.47s9.25,11.53,13.17,19.47c4.74,9.58,8.13,21.9,8.14,33.28,0,9.88-4,19.13-9.93,26.62-5.15,6.47-10.79,8.16-11.38,8.16s-6.23-1.69-11.39-8.16c-6-7.49-9.94-16.74-9.92-26.62C149.68,65.56,153.07,53.24,157.81,43.66ZM128.49,40c.67-.44,4.51.49,11.86,5.48s9.77,8.25,9.77,8.25a99,99,0,0,0-3.05,12.66,74.94,74.94,0,0,0-.42,15.92,50.76,50.76,0,0,0-9.48-8.13c-6.32-4.42-8.63-5.68-8.63-5.68a115.69,115.69,0,0,1-1.71-16.27C126.78,44.67,127.8,40.5,128.49,40Zm-11,59.1C100.69,82.3,99.34,67.51,100,66.61s10.63-.74,19,2.1,12.22,5.51,19.88,11.37,9.56,12.46,14,20.31a34.59,34.59,0,0,0,11.36,11.93s-8.89,1.6-16.37.72C138.81,112,128.88,110.56,117.49,99.14Zm28.92,26.37c-5.29,2.62-12.37,5.73-23.29,5-6.53-.44-11.77-2.84-16.93-5.52-5.33-2.76-7.66-5.09-7.66-6s4.73-4.29,9.19-6.39a112.32,112.32,0,0,1,12-5.22c1.08-.37,1.26-.07,3.11.91a40.92,40.92,0,0,0,12.86,5.9c6.85,1.73,18.66,2.63,18.66,2.63S151.7,122.88,146.41,125.51Zm33.35,12.19c-5.8,5.61-8,5.86-8.78,5.86s-3-.25-8.78-5.86-8.28-10.87-6.47-16.09a7.73,7.73,0,0,1,2.13-3.58c3.63-3.47,13.1-3.09,13.1-3.09h0s9.47-.38,13.1,3.09a7.73,7.73,0,0,1,2.13,3.58C188,126.83,185.56,132.09,179.76,137.7Zm56-12.72c-5.16,2.68-10.4,5.08-16.93,5.52-10.92.74-18-2.37-23.29-5s-7.92-8.74-7.92-8.74,11.81-.9,18.66-2.63a40.92,40.92,0,0,0,12.86-5.9c1.84-1,2-1.28,3.11-.91a112.32,112.32,0,0,1,12,5.22c4.46,2.1,9.19,5.45,9.19,6.39S241.1,122.22,235.77,125Z"/></svg>
+    <p class="text-muted mb-0" style="font-size:.75rem;letter-spacing:3px;margin-top:.5rem">SISTEMA DE GESTIÓN</p>
   </div>
   {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}{% for cat, msg in messages %}
@@ -778,7 +793,7 @@ T['ventas/form.html'] = """{% extends 'base.html' %}
   <a href="{{ url_for('ventas') }}" class="btn btn-outline-secondary">Cancelar</a>
 </div></form></div>{% endblock %}
 {% block scripts %}<script>
-const PRODS={{ productos_json|safe }};const ITEMS={{ items_json|safe }};let totG=0;
+const PRODS={{ productos_json|tojson }};const ITEMS={{ items_json|tojson }};let totG=0;
 function fCOP(n){return '$ '+Math.round(n).toLocaleString('es-CO');}
 function addProd(pid='',cant=1,precio=0){
   const opts=PRODS.map(p=>`<option value="${p.id}" data-p="${p.precio}" ${p.id==pid?'selected':''}>${p.nombre}${p.sku?' ('+p.sku+')':''}</option>`).join('');
@@ -1617,7 +1632,7 @@ T['calendario.html'] = """{% extends 'base.html' %}
 <div id="cal" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)"></div>
 {% endblock %}
 {% block scripts %}<script>
-const eventos = {{ eventos_json|safe }};
+const eventos = {{ eventos_json|tojson }};
 let cur = new Date({{ anio }}, {{ mes }}-1, 1);
 const dias = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -1703,20 +1718,7 @@ table.items tbody tr:hover{background:#fafbff}
 <div class="page">
   <div class="header">
     <div class="logo-area">
-      <svg width="46" height="42" viewBox="0 0 100 90" fill="none" stroke="#d3af37" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M50,67 C44,63 41,35 50,5 C59,35 56,63 50,67Z"/>
-        <path d="M50,67 C41,64 23,43 27,20 C33,32 46,57 50,67Z"/>
-        <path d="M50,67 C59,64 77,43 73,20 C67,32 54,57 50,67Z"/>
-        <path d="M50,67 C37,65 11,53 13,35 C17,43 36,60 50,67Z"/>
-        <path d="M50,67 C63,65 89,53 87,35 C83,43 64,60 50,67Z"/>
-        <path d="M50,69 C39,74 19,76 4,69 C6,62 28,65 50,69Z"/>
-        <path d="M50,69 C61,74 81,76 96,69 C94,62 72,65 50,69Z"/>
-        <path d="M50,69 C46,73 46,81 50,83 C54,81 54,73 50,69Z"/>
-      </svg>
-      <div>
-        <div class="brand-txt">EVORE</div>
-        <div style="font-size:10px;letter-spacing:2px;color:#8898aa">SISTEMA DE GESTIÓN</div>
-      </div>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 341.94 261.01" width="90" height="69" style="display:block"><path fill="#1d1d1b" d="M28.41,217.71V184.78C28.41,171.75,27,169,27,169H72.31V173s-4.09-2.22-23.45-2.22H32.41V195.7h30.9v4.07s-2.64-2.32-15.36-2.32H32.41v34.22H51.58c19.36,0,23.45-2.22,23.45-2.22v4.07H27S28.41,230.75,28.41,217.71Z"/><path fill="#1d1d1b" d="M79.67,169h7s-.28,2.78,4.72,15.81l17.91,46.33,18.45-46.33c5.18-13,3.82-15.81,3.82-15.81h5.81s-2.45,2.68-7.45,15.17L110.3,233.52H106l-19-49C82.12,171.65,79.67,169,79.67,169Z"/><path fill="#1d1d1b" d="M138.61,201.15c0-18.49,14.45-33.38,32.36-33.38s32.36,14.89,32.36,33.38S188.87,234.54,171,234.54,138.61,219.65,138.61,201.15Zm60.81,0c0-17.47-12.73-31.62-28.45-31.62s-28.45,14.15-28.45,31.62,12.72,31.63,28.45,31.63S199.42,218.63,199.42,201.15Z"/><path fill="#1d1d1b" d="M210.64,217.71V184.78c0-13-1.36-15.81-1.36-15.81h28.63c11,0,19.9,9.34,19.9,20.81s-8.72,20.62-19.54,20.81l7.27,7.39c12.55,12.86,16.64,15.54,16.64,15.54h-8.36s-1.28-2.68-13.55-15.17l-7.54-7.76H214.64v7.12c0,13,1.36,15.81,1.36,15.81h-6.72S210.64,230.75,210.64,217.71Zm43.27-27.93c0-10.36-7.18-19-16-19H214.64v37.92h23.27C246.73,208.74,253.91,200.14,253.91,189.78Z"/><path fill="#1d1d1b" d="M268.26,217.71V184.78c0-13-1.36-15.81-1.36-15.81h45.27V173s-4.09-2.22-23.45-2.22H272.26V195.7h30.91v4.07s-2.64-2.32-15.36-2.32H272.26v34.22h19.18c19.36,0,23.45-2.22,23.45-2.22v4.07h-48S268.26,230.75,268.26,217.71Z"/><path fill="#1d1d1b" d="M239.09,111.71C234.61,109,225,105.23,225,105.23s-1.42-.5-1.34-.9c.21-1.2,2.76-1.54,9.63-10.7,7.11-9.49,8.6-13.94,9.94-17.84,1.14-3.3,2.38-11,1.72-11.79s-9.12-1.35-16.48.3c-7.06,1.58-11.1,3.47-11.5,3-.64-.71.95-6.23,1.11-11.33.17-5.28.32-6.75-.41-11.49-.61-4-1.47-7.57-2.65-7.91s-5,.82-7,1.69A81.41,81.41,0,0,0,198.41,44c-2.91,2-6.52,5.48-7.55,5.69s-2.79-6-6.9-13.15a86,86,0,0,0-5.69-9.09c-1.74-2.45-4.91-7-7.28-7h0c-2.38,0-5.54,4.59-7.28,7A84.29,84.29,0,0,0,158,36.52c-4.12,7.13-5.76,13.38-6.9,13.15s-4.73-3.8-7.64-5.8a79.94,79.94,0,0,0-9.56-5.58c-2-.87-5.81-2-7-1.69s-2,3.94-2.65,7.91c-.73,4.74-.58,6.21-.41,11.49.16,5.1,1.74,10.62,1.11,11.33-.4.44-4.44-1.45-11.5-3C106.08,62.65,97.72,63.08,97,64s.57,8.49,1.71,11.79c1.35,3.9,2.83,8.35,10,17.84,6.87,9.16,9.41,9.5,9.63,10.7.07.4-1.35.9-1.35.9s-9.57,3.72-14.06,6.48C99.17,114,95,117.34,95,119.08c0,2.11,3.54,4.62,8.14,7.67s15.36,7.83,26.75,6.75c12.82-1.22,20.68-7.21,21.76-6.74.49.21.11,5.24,5.16,10.44,4.43,4.56,10.58,10,14.15,10s9.72-5.42,14.15-10c5-5.2,4.67-10.23,5.16-10.44,1.07-.47,8.93,5.52,21.76,6.74,11.39,1.08,22.07-3.65,26.74-6.75s8.17-5.56,8.15-7.67C246.93,117.34,242.76,114,239.09,111.71ZM223,68.71c8.36-2.84,18.31-3,19-2.1s-.68,15.69-17.47,32.53C213.08,110.56,203.15,112,194.13,113c-7.48.88-16.37-.72-16.37-.72a34.59,34.59,0,0,0,11.36-11.93c4.39-7.85,6.29-14.46,13.95-20.31S214.59,71.55,223,68.71ZM201.61,45.52c7.35-5,11.19-5.92,11.86-5.48s1.71,4.63,1.66,12.23a115.69,115.69,0,0,1-1.71,16.27s-2.31,1.26-8.63,5.68a50.76,50.76,0,0,0-9.48,8.13,74.94,74.94,0,0,0-.42-15.92,99,99,0,0,0-3-12.66S194.26,50.51,201.61,45.52Zm-43.8-1.86c3.92-7.94,10.94-19.47,13.17-19.47s9.25,11.53,13.17,19.47c4.74,9.58,8.13,21.9,8.14,33.28,0,9.88-4,19.13-9.93,26.62-5.15,6.47-10.79,8.16-11.38,8.16s-6.23-1.69-11.39-8.16c-6-7.49-9.94-16.74-9.92-26.62C149.68,65.56,153.07,53.24,157.81,43.66ZM128.49,40c.67-.44,4.51.49,11.86,5.48s9.77,8.25,9.77,8.25a99,99,0,0,0-3.05,12.66,74.94,74.94,0,0,0-.42,15.92,50.76,50.76,0,0,0-9.48-8.13c-6.32-4.42-8.63-5.68-8.63-5.68a115.69,115.69,0,0,1-1.71-16.27C126.78,44.67,127.8,40.5,128.49,40Zm-11,59.1C100.69,82.3,99.34,67.51,100,66.61s10.63-.74,19,2.1,12.22,5.51,19.88,11.37,9.56,12.46,14,20.31a34.59,34.59,0,0,0,11.36,11.93s-8.89,1.6-16.37.72C138.81,112,128.88,110.56,117.49,99.14Zm28.92,26.37c-5.29,2.62-12.37,5.73-23.29,5-6.53-.44-11.77-2.84-16.93-5.52-5.33-2.76-7.66-5.09-7.66-6s4.73-4.29,9.19-6.39a112.32,112.32,0,0,1,12-5.22c1.08-.37,1.26-.07,3.11.91a40.92,40.92,0,0,0,12.86,5.9c6.85,1.73,18.66,2.63,18.66,2.63S151.7,122.88,146.41,125.51Zm33.35,12.19c-5.8,5.61-8,5.86-8.78,5.86s-3-.25-8.78-5.86-8.28-10.87-6.47-16.09a7.73,7.73,0,0,1,2.13-3.58c3.63-3.47,13.1-3.09,13.1-3.09h0s9.47-.38,13.1,3.09a7.73,7.73,0,0,1,2.13,3.58C188,126.83,185.56,132.09,179.76,137.7Zm56-12.72c-5.16,2.68-10.4,5.08-16.93,5.52-10.92.74-18-2.37-23.29-5s-7.92-8.74-7.92-8.74,11.81-.9,18.66-2.63a40.92,40.92,0,0,0,12.86-5.9c1.84-1,2-1.28,3.11-.91a112.32,112.32,0,0,1,12,5.22c4.46,2.1,9.19,5.45,9.19,6.39S241.1,122.22,235.77,125Z"/></svg>
     </div>
     <div style="text-align:right">
       <div class="doc-box">
@@ -1981,7 +1983,7 @@ def ventas():
 
 def _prods_json():
     prods = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
-    return json.dumps([{'id':p.id,'nombre':p.nombre,'sku':p.sku or '','precio':p.precio} for p in prods])
+    return [{'id':p.id,'nombre':p.nombre,'sku':p.sku or '','precio':p.precio} for p in prods]
 
 def _save_items(venta_obj):
     VentaProducto.query.filter_by(venta_id=venta_obj.id).delete()
@@ -2023,7 +2025,7 @@ def venta_nueva():
         _log('crear','venta',v.id,f'Venta creada: {v.titulo}'); db.session.commit()
         flash('Venta creada.','success'); return redirect(url_for('ventas'))
     return render_template('ventas/form.html', obj=None, clientes_list=cl,
-                           titulo='Nueva Venta', productos_json=_prods_json(), items_json='[]')
+                           titulo='Nueva Venta', productos_json=_prods_json(), items_json=[])
 
 @app.route('/ventas/<int:id>/editar', methods=['GET','POST'])
 @login_required
@@ -2048,8 +2050,8 @@ def venta_editar(id):
         db.session.flush(); _save_items(obj); db.session.commit()
         _log('editar','venta',obj.id,f'Venta editada: {obj.titulo}'); db.session.commit()
         flash('Venta actualizada.','success'); return redirect(url_for('ventas'))
-    items_j = json.dumps([{'pid':it.producto_id or '','nombre':it.nombre_prod,
-                            'cant':it.cantidad,'precio':it.precio_unit} for it in obj.items])
+    items_j = [{'pid':it.producto_id or '','nombre':it.nombre_prod,
+                'cant':it.cantidad,'precio':it.precio_unit} for it in obj.items]
     return render_template('ventas/form.html', obj=obj, clientes_list=cl,
                            titulo='Editar Venta', productos_json=_prods_json(), items_json=items_j)
 
@@ -2508,11 +2510,14 @@ def admin_usuario_nuevo():
     if current_user.rol != 'admin':
         flash('Sin permisos.','danger'); return redirect(url_for('dashboard'))
     if request.method == 'POST':
-        if User.query.filter_by(email=request.form['email']).first():
+        _pwd = request.form.get('password','')
+        if len(_pwd) < 8:
+            flash('La contraseña debe tener al menos 8 caracteres.','danger')
+        elif User.query.filter_by(email=request.form['email']).first():
             flash('Ya existe ese email.','danger')
         else:
             u=User(nombre=request.form['nombre'],email=request.form['email'],rol=request.form.get('rol','usuario'))
-            u.set_password(request.form['password']); db.session.add(u); db.session.commit()
+            u.set_password(_pwd); db.session.add(u); db.session.commit()
             flash('Usuario creado.','success'); return redirect(url_for('admin_usuarios'))
     return render_template('admin/usuario_form.html', obj=None, titulo='Nuevo Usuario')
 
@@ -2551,8 +2556,8 @@ def perfil():
             pw_confirmar = request.form.get('password_confirmar','')
             if not current_user.check_password(pw_actual):
                 flash('La contraseña actual es incorrecta.','danger')
-            elif len(pw_nueva) < 6:
-                flash('La nueva contraseña debe tener al menos 6 caracteres.','danger')
+            elif len(pw_nueva) < 8:
+                flash('La nueva contraseña debe tener al menos 8 caracteres.','danger')
             elif pw_nueva != pw_confirmar:
                 flash('Las contraseñas nuevas no coinciden.','danger')
             else:
@@ -2785,7 +2790,7 @@ def calendario():
     for v in ventas_cal:
         k = v.fecha_entrega_est.strftime('%Y-%m-%d')
         eventos.setdefault(k, []).append({'t':'venta','n':v.titulo,'s':v.estado})
-    return render_template('calendario.html', eventos_json=_json.dumps(eventos), anio=anio, mes=mes)
+    return render_template('calendario.html', eventos_json=eventos, anio=anio, mes=mes)
 
 # =============================================================
 # FACTURA / COTIZACIÓN
@@ -2847,11 +2852,16 @@ def admin_config():
 def init_db():
     with app.app_context():
         db.create_all()
-        if not User.query.filter_by(email='admin@evore.us').first():
-            admin=User(nombre='Administrador',email='admin@evore.us',rol='admin')
-            admin.set_password('Evore2024!')
+        _admin_email = os.environ.get('ADMIN_EMAIL', 'admin@evore.us')
+        if not User.query.filter_by(email=_admin_email).first():
+            _admin_pass = os.environ.get('ADMIN_PASSWORD')
+            if not _admin_pass:
+                _admin_pass = secrets.token_urlsafe(14)
+                print(f'ADMIN AUTO-GENERATED PASSWORD (save this!): {_admin_pass}')
+            admin = User(nombre='Administrador', email=_admin_email, rol='admin')
+            admin.set_password(_admin_pass)
             db.session.add(admin); db.session.commit()
-            print('Admin creado: admin@evore.us / Evore2024!')
+            print(f'Admin creado: {_admin_email}')
         if not ConfigEmpresa.query.first():
             db.session.add(ConfigEmpresa(nombre='Evore', email='contacto@evore.us', sitio_web='evore.us'))
             db.session.commit()
@@ -2862,4 +2872,4 @@ except Exception as _e:
     print(f'init_db() error (no crítico): {_e}')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=os.environ.get('FLASK_DEBUG', '0') == '1')
