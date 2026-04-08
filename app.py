@@ -1725,15 +1725,20 @@ def producto_eliminar(id):
 @app.route('/produccion')
 @login_required
 def produccion_index():
-    total_compras   = CompraMateria.query.count()
-    total_granel    = CotizacionGranel.query.count()
-    granel_vigente  = CotizacionGranel.query.filter_by(estado='vigente').count()
-    total_impuestos = ReglaTributaria.query.filter_by(activo=True).count()
-    ultimas_compras = CompraMateria.query.order_by(CompraMateria.creado_en.desc()).limit(5).all()
+    from datetime import date
+    mes_ini = date.today().replace(day=1)
+    total_compras  = db.session.query(db.func.sum(CompraMateria.costo_total)).scalar() or 0
+    compras_mes    = db.session.query(db.func.sum(CompraMateria.costo_total)).filter(CompraMateria.fecha >= mes_ini).scalar() or 0
+    cotizaciones_vigentes = CotizacionGranel.query.filter_by(estado='vigente').count()
+    reglas_activas = ReglaTributaria.query.filter_by(activo=True).count()
+    compras_recientes = CompraMateria.query.order_by(CompraMateria.fecha.desc()).limit(5).all()
+    granel_recientes  = CotizacionGranel.query.order_by(CotizacionGranel.creado_en.desc()).limit(5).all()
+    reglas = ReglaTributaria.query.filter_by(activo=True).order_by(ReglaTributaria.nombre).limit(5).all()
     return render_template('produccion/index.html',
-        total_compras=total_compras, total_granel=total_granel,
-        granel_vigente=granel_vigente, total_impuestos=total_impuestos,
-        ultimas_compras=ultimas_compras)
+        total_compras=total_compras, compras_mes=compras_mes,
+        cotizaciones_vigentes=cotizaciones_vigentes, reglas_activas=reglas_activas,
+        compras_recientes=compras_recientes, granel_recientes=granel_recientes,
+        reglas=reglas)
 
 # --- Compras de Materia Prima ---
 
@@ -1746,12 +1751,12 @@ def compras():
         q=q.filter(db.or_(CompraMateria.nombre_item.ilike(f'%{busqueda}%'),
                            CompraMateria.proveedor.ilike(f'%{busqueda}%'),
                            CompraMateria.nro_factura.ilike(f'%{busqueda}%')))
+    from datetime import date
+    mes_ini = date.today().replace(day=1)
+    total_general = db.session.query(db.func.sum(CompraMateria.costo_total)).scalar() or 0
+    total_mes = db.session.query(db.func.sum(CompraMateria.costo_total)).filter(CompraMateria.fecha >= mes_ini).scalar() or 0
     return render_template('produccion/compras.html', items=q.order_by(CompraMateria.fecha.desc()).all(),
-                           busqueda=busqueda)
-
-def _prods_all_json():
-    prods = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
-    return json.dumps([{'id':p.id,'nombre':p.nombre,'sku':p.sku or '','nso':p.nso or ''} for p in prods])
+                           busqueda=busqueda, total_general=total_general, total_mes=total_mes)
 
 @app.route('/produccion/compras/nueva', methods=['GET','POST'])
 @login_required
@@ -1782,7 +1787,7 @@ def compra_nueva():
         flash('Compra registrada y costo actualizado.','success')
         return redirect(url_for('compras'))
     return render_template('produccion/compra_form.html', obj=None, titulo='Nueva Compra',
-                           productos_json=_prods_all_json(),
+                           productos=Producto.query.filter_by(activo=True).order_by(Producto.nombre).all(),
                            today=datetime.utcnow().strftime('%Y-%m-%d'))
 
 @app.route('/produccion/compras/<int:id>/editar', methods=['GET','POST'])
@@ -1812,7 +1817,7 @@ def compra_editar(id):
         flash('Compra actualizada y costo actualizado.','success')
         return redirect(url_for('compras'))
     return render_template('produccion/compra_form.html', obj=obj, titulo='Editar Compra',
-                           productos_json=_prods_all_json(),
+                           productos=Producto.query.filter_by(activo=True).order_by(Producto.nombre).all(),
                            today=datetime.utcnow().strftime('%Y-%m-%d'))
 
 @app.route('/produccion/compras/<int:id>/eliminar', methods=['POST'])
@@ -1834,7 +1839,7 @@ def granel():
 
 @app.route('/produccion/granel/nueva', methods=['GET','POST'])
 @login_required
-def granel_nueva():
+def granel_nuevo():
     if request.method == 'POST':
         fc = request.form.get('fecha_cotizacion')
         fv = request.form.get('vigencia')
@@ -1859,7 +1864,7 @@ def granel_nueva():
         flash('Cotización guardada.','success')
         return redirect(url_for('granel'))
     return render_template('produccion/granel_form.html', obj=None, titulo='Nueva Cotización Granel',
-                           productos_json=_prods_all_json(),
+                           productos=Producto.query.filter_by(activo=True).order_by(Producto.nombre).all(),
                            today=datetime.utcnow().strftime('%Y-%m-%d'))
 
 @app.route('/produccion/granel/<int:id>/editar', methods=['GET','POST'])
@@ -1887,7 +1892,7 @@ def granel_editar(id):
         flash('Cotización actualizada.','success')
         return redirect(url_for('granel'))
     return render_template('produccion/granel_form.html', obj=obj, titulo='Editar Cotización Granel',
-                           productos_json=_prods_all_json(),
+                           productos=Producto.query.filter_by(activo=True).order_by(Producto.nombre).all(),
                            today=datetime.utcnow().strftime('%Y-%m-%d'))
 
 @app.route('/produccion/granel/<int:id>/eliminar', methods=['POST'])
@@ -1927,7 +1932,7 @@ def impuesto_editar(id):
         obj.descripcion=request.form.get('descripcion','')
         obj.porcentaje=float(request.form.get('porcentaje',0) or 0)
         obj.aplica_a=request.form.get('aplica_a','')
-        obj.activo='activo' in request.form
+        obj.activo = request.form.get('activo') == '1'
         db.session.commit(); flash('Regla actualizada.','success')
         return redirect(url_for('impuestos'))
     return render_template('produccion/impuesto_form.html', obj=obj, titulo='Editar Regla Tributaria')
