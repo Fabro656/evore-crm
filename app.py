@@ -221,6 +221,9 @@ class Tarea(db.Model):
     asignado_a        = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_por        = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en         = db.Column(db.DateTime, default=datetime.utcnow)
+    cotizacion_id     = db.Column(db.Integer, db.ForeignKey('cotizaciones.id'), nullable=True)
+    tarea_tipo        = db.Column(db.String(50), nullable=True)   # comprar_materias, verificar_abono
+    tarea_pareja_id   = db.Column(db.Integer, db.ForeignKey('tareas.id'), nullable=True)
     asignado_user     = db.relationship('User', foreign_keys=[asignado_a], backref='tareas_asignadas')
     creador           = db.relationship('User', foreign_keys=[creado_por])
     asignados         = db.relationship('TareaAsignado', backref='tarea', lazy=True, cascade='all, delete-orphan')
@@ -460,6 +463,24 @@ class ReservaProduccion(db.Model):
     materia          = db.relationship('MateriaPrima', foreign_keys=[materia_prima_id])
     producto         = db.relationship('Producto', foreign_keys=[producto_id])
 
+class OrdenProduccion(db.Model):
+    __tablename__ = 'ordenes_produccion'
+    id                = db.Column(db.Integer, primary_key=True)
+    cotizacion_id     = db.Column(db.Integer, db.ForeignKey('cotizaciones.id'), nullable=True)
+    producto_id       = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
+    cantidad_total    = db.Column(db.Float, default=0)   # total requerido
+    cantidad_stock    = db.Column(db.Float, default=0)   # ya en stock al crear
+    cantidad_producir = db.Column(db.Float, default=0)   # diferencia a producir
+    numero_lote       = db.Column(db.String(80))
+    estado            = db.Column(db.String(30), default='en_produccion')
+    # pendiente_materiales | en_produccion | completado
+    notas             = db.Column(db.Text)
+    creado_por        = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en         = db.Column(db.DateTime, default=datetime.utcnow)
+    completado_en     = db.Column(db.DateTime, nullable=True)
+    producto          = db.relationship('Producto', foreign_keys=[producto_id])
+    cotizacion        = db.relationship('Cotizacion', foreign_keys=[cotizacion_id])
+
 class Notificacion(db.Model):
     __tablename__ = 'notificaciones'
     id         = db.Column(db.Integer, primary_key=True)
@@ -607,7 +628,9 @@ T['base.html'] = """<!DOCTYPE html>
     {% if 'inventario' in m or 'produccion' in m or 'gastos' in m or 'reportes' in m %}
     <div class="sb-sec">Operaciones</div>
     {% if 'inventario' in m %}<a href="{{ url_for('inventario') }}" class="nav-link {% if 'inventario' in request.endpoint or 'producto' in request.endpoint or 'lote' in request.endpoint %}active{% endif %}"><i class="bi bi-box-seam-fill"></i><span>Inventario</span></a>{% endif %}
+    {% if 'inventario' in m %}<a href="{{ url_for('inventario_ingresos') }}" class="nav-link {% if request.endpoint=='inventario_ingresos' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-plus-square"></i><span>Multi-Ingreso</span></a>{% endif %}
     {% if 'produccion' in m %}<a href="{{ url_for('produccion_index') }}" class="nav-link {% if 'produccion' in request.endpoint or 'compra' in request.endpoint or 'granel' in request.endpoint or 'impuesto' in request.endpoint or 'materia' in request.endpoint or 'receta' in request.endpoint or 'reserva' in request.endpoint %}active{% endif %}"><i class="bi bi-gear-fill"></i><span>Producción</span></a>{% endif %}
+    {% if 'produccion' in m %}<a href="{{ url_for('ordenes_produccion') }}" class="nav-link {% if request.endpoint=='ordenes_produccion' or request.endpoint=='orden_completar' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-list-check"></i><span>Órdenes</span></a>{% endif %}
     {% if 'gastos' in m %}<a href="{{ url_for('gastos') }}" class="nav-link {% if 'gasto' in request.endpoint %}active{% endif %}"><i class="bi bi-receipt"></i><span>Gastos</span></a>{% endif %}
     {% if 'reportes' in m %}<a href="{{ url_for('reportes') }}" class="nav-link {% if 'reporte' in request.endpoint %}active{% endif %}"><i class="bi bi-bar-chart-fill"></i><span>Reportes</span></a>{% endif %}
     {% endif %}
@@ -1144,15 +1167,26 @@ T['ventas/form.html'] = """{% extends 'base.html' %}
 {% block scripts %}<script>
 const PRODS={{ productos_json|tojson }};const ITEMS={{ items_json|tojson }};let totG=0;
 function fCOP(n){return '$ '+Math.round(n).toLocaleString('es-CO');}
+function stockInfo(p,cant){
+  if(!p||p.stock===undefined) return '';
+  var en_stock=Math.min(p.stock,cant);
+  var producir=Math.max(0,cant-p.stock);
+  var cls=p.stock>=cant?'text-success':'text-warning';
+  return '<div class="mt-1" style="font-size:.76rem"><span class="'+cls+'"><i class="bi bi-box-seam me-1"></i>Stock: '+p.stock+'</span>'
+    +(producir>0?'<span class="ms-2 text-warning"><i class="bi bi-gear me-1"></i>A producir: '+producir+'</span>':'<span class="ms-2 text-success"> ✓ Hay stock suficiente</span>')
+    +'</div>';
+}
 function addProd(pid='',cant=1,precio=0){
-  const opts=PRODS.map(p=>`<option value="${p.id}" data-p="${p.precio}" ${p.id==pid?'selected':''}>${p.nombre}${p.sku?' ('+p.sku+')':''}</option>`).join('');
+  const opts=PRODS.map(p=>`<option value="${p.id}" data-p="${p.precio}" data-stock="${p.stock}" ${p.id==pid?'selected':''}>${p.nombre}${p.sku?' ('+p.sku+')':''}</option>`).join('');
   const idx=Date.now();
+  const selProd=PRODS.find(p=>p.id==pid)||{};
   document.getElementById('prodsContainer').insertAdjacentHTML('beforeend',`<div class="prod-row mb-2" id="pr${idx}">
     <div class="row g-2 align-items-end">
       <div class="col-md-5"><label class="form-label mb-1" style="font-size:.8rem">Producto</label>
-        <select name="prod_id[]" class="form-select form-select-sm" onchange="onPC(this,${idx})">${opts}</select></div>
+        <select name="prod_id[]" class="form-select form-select-sm" onchange="onPC(this,${idx})">${opts}</select>
+        <div id="si${idx}">${stockInfo(selProd,cant)}</div></div>
       <div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Cantidad</label>
-        <input type="number" name="prod_cant[]" class="form-control form-control-sm" min="0.01" step="0.01" value="${cant}" oninput="calcRow(${idx})"></div>
+        <input type="number" name="prod_cant[]" class="form-control form-control-sm" min="0.01" step="0.01" value="${cant}" oninput="onCantChange(this,${idx})"></div>
       <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Precio unit. COP sin IVA</label>
         <input type="number" name="prod_precio[]" id="pp${idx}" class="form-control form-control-sm" min="0" step="1" value="${precio}" oninput="calcRow(${idx})"></div>
       <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Subtotal</label>
@@ -1162,7 +1196,25 @@ function addProd(pid='',cant=1,precio=0){
     </div></div>`);
   calcRow(idx);
 }
-function onPC(sel,idx){const o=sel.options[sel.selectedIndex];document.getElementById('pp'+idx).value=Math.round(o.dataset.p||0);calcRow(idx);}
+function onPC(sel,idx){
+  const o=sel.options[sel.selectedIndex];
+  document.getElementById('pp'+idx).value=Math.round(o.dataset.p||0);
+  const stock=parseInt(o.dataset.stock||0);
+  const pr=document.getElementById('pr'+idx);
+  const cant=parseFloat(pr.querySelector('[name="prod_cant[]"]').value)||1;
+  const p={stock:stock};
+  document.getElementById('si'+idx).innerHTML=stockInfo(p,cant);
+  calcRow(idx);
+}
+function onCantChange(el,idx){
+  const pr=document.getElementById('pr'+idx);
+  const sel=pr.querySelector('select');
+  const o=sel.options[sel.selectedIndex];
+  const stock=parseInt(o.dataset.stock||0);
+  const cant=parseFloat(el.value)||0;
+  document.getElementById('si'+idx).innerHTML=stockInfo({stock:stock},cant);
+  calcRow(idx);
+}
 function calcRow(idx){
   const pr=document.getElementById('pr'+idx);if(!pr)return;
   const c=parseFloat(pr.querySelector('[name="prod_cant[]"]').value)||0;
@@ -1345,6 +1397,7 @@ T['inventario/index.html'] = """{% extends 'base.html' %}
 {% block title %}Inventario{% endblock %}{% block page_title %}Inventario{% endblock %}
 {% block topbar_actions %}
 <a href="{{ url_for('lotes') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-layers me-1"></i>Lotes</a>
+<a href="{{ url_for('inventario_ingresos') }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-plus-square me-1"></i>Multi-Ingreso</a>
 <a href="{{ url_for('producto_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo Producto</a>
 {% endblock %}
 {% block content %}
@@ -1415,63 +1468,11 @@ T['inventario/form.html'] = """{% extends 'base.html' %}
     <textarea name="descripcion" class="form-control" rows="3">{{ obj.descripcion if obj else '' }}</textarea></div>
 </div>
 
-<!-- Sección: Descontar materias primas de producción -->
-<div class="mt-4 p-3 border rounded" style="background:#f8f9fe">
-  <div class="form-check mb-2">
-    <input class="form-check-input" type="checkbox" name="usar_materias" id="usarMaterias" value="1" onchange="toggleMaterias()">
-    <label class="form-check-label fw-semibold" for="usarMaterias">
-      <i class="bi bi-arrow-down-circle me-1 text-warning"></i>Retirar materias primas del stock (producción)
-    </label>
-    <div class="form-text">Registra el consumo de materias primas para este lote de producto.</div>
-  </div>
-  <div id="divMaterias" style="display:none">
-    <div class="mb-2">
-      <label class="form-label">Lote de producto <small class="text-muted">(opcional)</small></label>
-      <select name="lote_id" class="form-select form-select-sm" style="max-width:320px">
-        <option value="">— Sin lote específico —</option>
-        {% for l in lotes %}
-        <option value="{{ l.id }}">{{ l.producto.nombre }} — Lote {{ l.numero_lote }}{% if l.nso %} (NSO: {{ l.nso }}){% endif %}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div id="mpContainer">
-      <!-- rows added by JS -->
-    </div>
-    <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="addMpRow()">
-      <i class="bi bi-plus-lg me-1"></i>Agregar materia prima
-    </button>
-  </div>
-</div>
-
 <div class="d-flex gap-2 mt-4">
   <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear Producto' }}</button>
   <a href="{{ url_for('inventario') }}" class="btn btn-outline-secondary">Cancelar</a>
 </div></form></div>
-{% block scripts %}<script>
-var MP_LIST = {{ materias_json|tojson }};
-function toggleMaterias(){
-  var show=document.getElementById('usarMaterias').checked;
-  document.getElementById('divMaterias').style.display=show?'':'none';
-}
-function addMpRow(){
-  var c=document.getElementById('mpContainer');
-  var row=document.createElement('div');
-  row.className='row g-2 mb-2 mp-row';
-  var sel='<select name="mp_id[]" class="form-select form-select-sm"><option value="">Seleccionar materia prima...</option>';
-  MP_LIST.forEach(function(m){sel+='<option value="'+m.id+'" data-unidad="'+m.unidad+'">'+m.nombre+' (disponible: '+m.stock.toFixed(2)+' '+m.unidad+')</option>';});
-  sel+='</select>';
-  row.innerHTML='<div class="col-md-6">'+sel+'</div>'
-    +'<div class="col-md-3"><input type="number" name="mp_cant[]" step="0.001" min="0.001" class="form-control form-control-sm" placeholder="Cantidad a retirar"></div>'
-    +'<div class="col-md-2"><span class="form-control-plaintext form-control-sm text-muted mp-unidad"></span></div>'
-    +'<div class="col-md-1"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest(\'.mp-row\').remove()"><i class="bi bi-x"></i></button></div>';
-  c.appendChild(row);
-  row.querySelector('select').addEventListener('change',function(){
-    var opt=this.options[this.selectedIndex];
-    var u=opt.getAttribute('data-unidad')||'';
-    this.closest('.mp-row').querySelector('.mp-unidad').textContent=u;
-  });
-}
-</script>{% endblock %}{% endblock %}"""
+{% endblock %}"""
 
 T['produccion/index.html'] = """{% extends 'base.html' %}
 {% block title %}Producción{% endblock %}{% block page_title %}Producción{% endblock %}
@@ -1552,7 +1553,18 @@ T['produccion/index.html'] = """{% extends 'base.html' %}
     </div>
     <a href="{{ url_for('reservas') }}" class="btn btn-sm btn-outline-warning ms-auto">Ver reservas</a>
   </div></div>
-</div>{% endblock %}"""
+</div>
+<div class="row g-3 mt-2">
+  <div class="col-md-4"><div class="fc d-flex align-items-center gap-3 py-3">
+    <i class="bi bi-list-check fs-2 text-info"></i>
+    <div>
+      <div class="fw-semibold">Órdenes de Producción</div>
+      <small class="text-muted">Seguimiento de productos en proceso</small>
+    </div>
+    <a href="{{ url_for('ordenes_produccion') }}" class="btn btn-sm btn-outline-info ms-auto">Ver órdenes</a>
+  </div></div>
+</div>
+{% endblock %}"""
 
 T['produccion/compras.html'] = """{% extends 'base.html' %}
 {% block title %}Compras{% endblock %}{% block page_title %}Compras de Materia Prima{% endblock %}
@@ -3252,12 +3264,19 @@ T['produccion/reservas.html'] = """{% extends 'base.html' %}
     </td>
     <td><small class="text-muted">{{ r.notas or '' }}</small></td>
     <td><small>{{ r.creado_en.strftime('%d/%m/%Y') }}</small></td>
-    <td>
+    <td class="d-flex gap-1 flex-wrap">
       {% if r.estado == 'reservado' %}
       <form method="POST" action="{{ url_for('reserva_cancelar', id=r.id) }}" class="d-inline"
             onsubmit="return confirm('¿Cancelar esta reserva?')">
         <button class="btn btn-sm btn-outline-warning">Cancelar</button>
       </form>
+      <button type="button" class="btn btn-sm btn-outline-danger"
+        data-bs-toggle="modal" data-bs-target="#modalFalta"
+        data-reserva="{{ r.id }}"
+        data-materia="{{ r.materia.nombre }}"
+        onclick="prepFalta(this)">
+        <i class="bi bi-exclamation-triangle me-1"></i>Falta material
+      </button>
       {% endif %}
     </td>
   </tr>
@@ -3266,7 +3285,54 @@ T['produccion/reservas.html'] = """{% extends 'base.html' %}
   {% endfor %}
   </tbody>
 </table>
-</div>{% endblock %}"""
+</div>
+
+<!-- Modal: Falta Material -->
+<div class="modal fade" id="modalFalta" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('reserva_solicitar_compra') }}">
+        <input type="hidden" name="reserva_id" id="faltaReservaId">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-exclamation-triangle text-danger me-2"></i>Solicitar compra de material</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-3">Materia prima: <strong id="faltaMateriaNombre"></strong></p>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Asignar tareas a:</label>
+            <select name="usuario_id" class="form-select" required>
+              <option value="">Seleccionar usuario...</option>
+              {% for u in usuarios %}
+              <option value="{{ u.id }}">{{ u.nombre }} ({{ u.rol }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Descripción del faltante</label>
+            <textarea name="descripcion" class="form-control" rows="3"
+              placeholder="Detalle qué falta, cantidades, proveedor sugerido..."></textarea>
+          </div>
+          <div class="alert alert-info py-2 mb-0" style="font-size:.85rem">
+            <i class="bi bi-info-circle me-1"></i>Se crearán dos tareas: <strong>Comprar materias</strong> y
+            <strong>Verificar abono</strong>, asignadas al usuario seleccionado.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger"><i class="bi bi-check-lg me-1"></i>Crear tareas</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% block scripts %}<script>
+function prepFalta(btn){
+  document.getElementById('faltaReservaId').value = btn.dataset.reserva;
+  document.getElementById('faltaMateriaNombre').textContent = btn.dataset.materia;
+}
+</script>{% endblock %}
+{% endblock %}"""
 
 T['produccion/reserva_form.html'] = """{% extends 'base.html' %}
 {% block title %}Nueva Reserva{% endblock %}{% block page_title %}Nueva Reserva de Producción{% endblock %}
@@ -3295,6 +3361,193 @@ T['produccion/reserva_form.html'] = """{% extends 'base.html' %}
   <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Crear Reserva</button>
   <a href="{{ url_for('reservas') }}" class="btn btn-outline-secondary">Cancelar</a>
 </div></form></div>{% endblock %}"""
+
+T['inventario/ingresos.html'] = """{% extends 'base.html' %}
+{% block title %}Multi-Ingreso de Productos{% endblock %}{% block page_title %}Multi-Ingreso al Inventario{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('inventario') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
+{% block content %}
+<div class="fc" style="max-width:900px">
+<p class="text-muted mb-4">Ingresa múltiples unidades del mismo producto al inventario, identificando el número de lote para trazabilidad.</p>
+<form method="POST">
+<div class="row g-3 mb-4 p-3 border rounded" style="background:#f8f9fe">
+  <div class="col-md-6">
+    <label class="form-label fw-semibold">Producto *</label>
+    <select name="producto_id" class="form-select" required>
+      <option value="">Seleccionar producto...</option>
+      {% for p in productos %}
+      <option value="{{ p.id }}">{{ p.nombre }}{% if p.sku %} ({{ p.sku }}){% endif %} — stock: {{ p.stock }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-3">
+    <label class="form-label fw-semibold">Número de Lote *</label>
+    <input type="text" name="numero_lote" class="form-control" placeholder="Ej: LOTE-2026-001" required>
+  </div>
+  <div class="col-md-3">
+    <label class="form-label fw-semibold">NSO (INVIMA)</label>
+    <input type="text" name="nso" class="form-control" placeholder="NSO-XXXX-XXXX">
+  </div>
+  <div class="col-md-3">
+    <label class="form-label fw-semibold">Fecha de producción</label>
+    <input type="date" name="fecha_produccion" class="form-control">
+  </div>
+  <div class="col-md-3">
+    <label class="form-label fw-semibold">Fecha de vencimiento</label>
+    <input type="date" name="fecha_vencimiento" class="form-control">
+  </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h6 class="fw-semibold text-uppercase text-muted" style="letter-spacing:1px;font-size:.75rem">Ingresos del lote</h6>
+  <button type="button" class="btn btn-sm btn-outline-primary" onclick="addRow()"><i class="bi bi-plus-lg me-1"></i>Agregar fila</button>
+</div>
+<div id="rowsContainer">
+  <!-- filas JS -->
+</div>
+<div class="d-flex gap-2 mt-4">
+  <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Registrar ingresos</button>
+  <a href="{{ url_for('inventario') }}" class="btn btn-outline-secondary">Cancelar</a>
+</div>
+</form>
+</div>
+{% block scripts %}<script>
+var rowIdx = 0;
+function addRow(){
+  rowIdx++;
+  var cont = document.getElementById('rowsContainer');
+  var div = document.createElement('div');
+  div.className = 'row g-2 mb-2 ingreso-row';
+  div.id = 'ir'+rowIdx;
+  div.innerHTML =
+    '<div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Cantidad *</label>' +
+    '<input type="number" name="cantidad[]" step="0.01" min="0.01" class="form-control form-control-sm" placeholder="Unidades" required></div>' +
+    '<div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Costo unitario COP</label>' +
+    '<input type="number" name="costo_unit[]" step="1" min="0" class="form-control form-control-sm" placeholder="0"></div>' +
+    '<div class="col-md-5"><label class="form-label mb-1" style="font-size:.8rem">Nota (opcional)</label>' +
+    '<input type="text" name="nota_fila[]" class="form-control form-control-sm" placeholder="Ej: bodega norte, proveedor X..."></div>' +
+    '<div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem"> </label>' +
+    '<button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="document.getElementById(\'ir'+rowIdx+'\').remove()"><i class="bi bi-x"></i></button></div>';
+  cont.appendChild(div);
+}
+addRow();
+</script>{% endblock %}
+{% endblock %}"""
+
+T['produccion/ordenes.html'] = """{% extends 'base.html' %}
+{% block title %}Órdenes de Producción{% endblock %}{% block page_title %}Órdenes de Producción{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('produccion') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Producción</a>
+{% endblock %}
+{% block content %}
+<div class="fc">
+{% if pendientes %}
+<h6 class="fw-semibold text-uppercase text-muted mb-3" style="letter-spacing:1px;font-size:.75rem">En producción / Pendientes</h6>
+<div class="table-responsive mb-4">
+<table class="table table-hover align-middle">
+  <thead><tr>
+    <th>Producto</th><th class="text-end">A producir</th><th class="text-end">Stock previo</th>
+    <th>Cotización</th><th>Lote</th><th>Estado</th><th>Fecha</th><th></th>
+  </tr></thead>
+  <tbody>
+  {% for o in pendientes %}
+  <tr>
+    <td><strong>{{ o.producto.nombre }}</strong></td>
+    <td class="text-end">{{ '%.2f'|format(o.cantidad_producir) }}</td>
+    <td class="text-end text-muted">{{ '%.2f'|format(o.cantidad_stock) }}</td>
+    <td>{% if o.cotizacion %}<small>#{{ o.cotizacion.numero or o.cotizacion_id }} {{ o.cotizacion.titulo[:30] }}...</small>{% else %}—{% endif %}</td>
+    <td>{{ o.numero_lote or '—' }}</td>
+    <td>
+      {% if o.estado == 'pendiente_materiales' %}<span class="badge bg-warning">Sin materiales</span>
+      {% elif o.estado == 'en_produccion' %}<span class="badge bg-primary">En producción</span>
+      {% else %}<span class="badge bg-success">Completado</span>{% endif %}
+    </td>
+    <td><small>{{ o.creado_en.strftime('%d/%m/%Y') }}</small></td>
+    <td>
+      <button type="button" class="btn btn-sm btn-success"
+        data-bs-toggle="modal" data-bs-target="#modalCompletar"
+        data-orden="{{ o.id }}" data-prod="{{ o.producto.nombre }}"
+        data-cant="{{ o.cantidad_producir }}"
+        onclick="prepCompletar(this)">
+        <i class="bi bi-check2-circle me-1"></i>Completar
+      </button>
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="text-center text-muted py-5">
+  <i class="bi bi-check2-all fs-1 d-block mb-2 text-success"></i>
+  No hay órdenes de producción en curso.
+</div>
+{% endif %}
+
+{% if completados %}
+<h6 class="fw-semibold text-uppercase text-muted mb-3 mt-4" style="letter-spacing:1px;font-size:.75rem">Completadas recientemente</h6>
+<div class="table-responsive">
+<table class="table table-sm align-middle">
+  <thead><tr><th>Producto</th><th class="text-end">Producido</th><th>Lote asignado</th><th>Completado</th></tr></thead>
+  <tbody>
+  {% for o in completados %}
+  <tr class="text-muted">
+    <td>{{ o.producto.nombre }}</td>
+    <td class="text-end">{{ '%.2f'|format(o.cantidad_producir) }}</td>
+    <td>{{ o.numero_lote or '—' }}</td>
+    <td><small>{{ o.completado_en.strftime('%d/%m/%Y %H:%M') if o.completado_en else '—' }}</small></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+</div>
+
+<!-- Modal Completar Orden -->
+<div class="modal fade" id="modalCompletar" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('orden_completar') }}">
+        <input type="hidden" name="orden_id" id="compOrdenId">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-check2-circle text-success me-2"></i>Completar producción</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>Producto: <strong id="compProdNombre"></strong></p>
+          <p class="text-muted">Cantidad producida: <span id="compCant"></span> unidades</p>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Número de lote (para inventario)</label>
+            <input type="text" name="numero_lote" class="form-control" id="compLote"
+              placeholder="Ej: LOTE-2026-001" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Fecha de vencimiento (opcional)</label>
+            <input type="date" name="fecha_vencimiento" class="form-control">
+          </div>
+          <div class="mb-0">
+            <label class="form-label">Notas</label>
+            <textarea name="notas" class="form-control" rows="2"
+              placeholder="Observaciones de producción..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success"><i class="bi bi-check-lg me-1"></i>Mover al inventario</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% block scripts %}<script>
+function prepCompletar(btn){
+  document.getElementById('compOrdenId').value = btn.dataset.orden;
+  document.getElementById('compProdNombre').textContent = btn.dataset.prod;
+  document.getElementById('compCant').textContent = btn.dataset.cant;
+  document.getElementById('compLote').value = '';
+}
+</script>{% endblock %}
+{% endblock %}"""
 
 app.jinja_loader = DictLoader(T)
 
@@ -3437,7 +3690,8 @@ def ventas():
 
 def _prods_json():
     prods = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
-    return [{'id':p.id,'nombre':p.nombre,'sku':p.sku or '','precio':p.precio} for p in prods]
+    return [{'id':p.id,'nombre':p.nombre,'sku':p.sku or '','precio':p.precio,
+             'stock':p.stock,'stock_minimo':p.stock_minimo} for p in prods]
 
 def _save_items(venta_obj):
     VentaProducto.query.filter_by(venta_id=venta_obj.id).delete()
@@ -3621,8 +3875,50 @@ def tarea_editar(id):
 @app.route('/tareas/<int:id>/completar', methods=['POST'])
 @login_required
 def tarea_completar(id):
-    obj=Tarea.query.get_or_404(id); obj.estado='completada'; db.session.commit()
-    _log('completar','tarea',obj.id,f'Tarea completada: {obj.titulo}'); db.session.commit()
+    obj = Tarea.query.get_or_404(id)
+    obj.estado = 'completada'
+    db.session.commit()
+    _log('completar','tarea',obj.id,f'Tarea completada: {obj.titulo}')
+    db.session.commit()
+
+    # Lógica tareas pareadas: comprar_materias + verificar_abono
+    if obj.tarea_tipo in ('comprar_materias','verificar_abono') and obj.tarea_pareja_id:
+        pareja = Tarea.query.get(obj.tarea_pareja_id)
+        if pareja and pareja.estado == 'completada' and obj.cotizacion_id:
+            # Ambas tareas completadas → enviar email al cliente
+            cot = Cotizacion.query.get(obj.cotizacion_id)
+            if cot and cot.cliente:
+                cliente = cot.cliente
+                email_dest = None
+                # Buscar email del cliente
+                if cliente.contactos:
+                    for c in cliente.contactos:
+                        if c.email:
+                            email_dest = c.email; break
+                # Enviar email
+                empresa = ConfigEmpresa.query.first()
+                nombre_empresa = empresa.nombre if empresa else 'Evore'
+                if email_dest:
+                    _send_email(
+                        email_dest,
+                        f'Producción iniciada — {cot.titulo}',
+                        f'Estimado/a {cliente.nombre},\n\n'
+                        f'Nos complace informarle que todas las materias primas para su pedido '
+                        f'(cotización #{cot.numero or cot.id}) han sido recibidas y el anticipo '
+                        f'verificado. La producción ha comenzado.\n\n'
+                        f'Producto(s): {", ".join(i.nombre_prod for i in cot.items if i.nombre_prod)}\n\n'
+                        f'Saludos,\n{nombre_empresa}'
+                    )
+                # Notificar a admins
+                admins = User.query.filter_by(rol='admin', activo=True).all()
+                for adm in admins:
+                    _crear_notificacion(
+                        adm.id, 'info',
+                        f'✅ Producción iniciada — {cot.titulo}',
+                        f'Materias y abono confirmados. Email enviado a {cliente.nombre}.',
+                        url_for('cotizacion_ver', id=cot.id)
+                    )
+
     flash('¡Tarea completada!','success'); return redirect(url_for('tareas'))
 
 @app.route('/tareas/<int:id>/eliminar', methods=['POST'])
@@ -3702,12 +3998,9 @@ def producto_nuevo():
             stock_minimo=int(request.form.get('stock_minimo',5) or 5),
             categoria=request.form.get('categoria',''),
             fecha_caducidad=datetime.strptime(fd_cad,'%Y-%m-%d').date() if fd_cad else None))
-        errs = _descontar_materias(request.form)
         db.session.commit()
-        if errs:
-            for e in errs: flash(f'Advertencia stock: {e}', 'warning')
         flash('Producto creado.','success'); return redirect(url_for('inventario'))
-    return render_template('inventario/form.html', obj=None, titulo='Nuevo Producto', **_inv_form_ctx())
+    return render_template('inventario/form.html', obj=None, titulo='Nuevo Producto')
 
 @app.route('/inventario/<int:id>/editar', methods=['GET','POST'])
 @login_required
@@ -3723,12 +4016,9 @@ def producto_editar(id):
         obj.stock_minimo=int(request.form.get('stock_minimo',5) or 5)
         obj.categoria=request.form.get('categoria','')
         obj.fecha_caducidad=datetime.strptime(fd_cad,'%Y-%m-%d').date() if fd_cad else None
-        errs = _descontar_materias(request.form)
         db.session.commit()
-        if errs:
-            for e in errs: flash(f'Advertencia stock: {e}', 'warning')
         flash('Producto actualizado.','success'); return redirect(url_for('inventario'))
-    return render_template('inventario/form.html', obj=obj, titulo='Editar Producto', **_inv_form_ctx())
+    return render_template('inventario/form.html', obj=obj, titulo='Editar Producto')
 
 @app.route('/inventario/<int:id>/eliminar', methods=['POST'])
 @login_required
@@ -4598,13 +4888,142 @@ def cotizacion_editar(id):
         clientes_list=clientes_list, today=datetime.utcnow().strftime('%Y-%m-%d'),
         iva_default=iva_default)
 
+def _procesar_orden_produccion(cot):
+    """
+    Al confirmar una cotización, por cada item:
+    1. Verifica stock actual vs requerido y crea OrdenProduccion
+    2. Reserva materias primas disponibles según BOM
+    3. Si faltan materias, crea tareas comprar_materias + verificar_abono y notifica admins
+    """
+    admins = User.query.filter_by(rol='admin', activo=True).all()
+    primer_admin_id = admins[0].id if admins else current_user.id
+
+    for item in cot.items:
+        if not item.producto_id: continue
+        prod = Producto.query.get(item.producto_id)
+        if not prod: continue
+        cant_requerida = item.cantidad
+        cant_en_stock  = min(prod.stock, cant_requerida)
+        cant_producir  = max(0, cant_requerida - cant_en_stock)
+
+        # Crear orden de producción
+        orden = OrdenProduccion(
+            cotizacion_id=cot.id,
+            producto_id=prod.id,
+            cantidad_total=cant_requerida,
+            cantidad_stock=cant_en_stock,
+            cantidad_producir=cant_producir,
+            estado='en_produccion' if cant_producir > 0 else 'completado',
+            notas=f'Cotización #{cot.numero or cot.id} — {cot.titulo}',
+            creado_por=current_user.id
+        )
+        db.session.add(orden)
+
+        if cant_producir <= 0:
+            continue  # ya hay suficiente stock, sin acción adicional
+
+        # Verificar BOM
+        receta = RecetaProducto.query.filter_by(producto_id=prod.id, activo=True).first()
+        materias_faltantes = []
+        if receta and receta.unidades_produce > 0:
+            factor = cant_producir / receta.unidades_produce
+            for ri in receta.items:
+                mp = MateriaPrima.query.get(ri.materia_prima_id)
+                if not mp: continue
+                necesaria = ri.cantidad_por_unidad * factor
+                disponible = mp.stock_disponible
+                if disponible >= necesaria:
+                    # Reservar automáticamente
+                    mp.stock_disponible -= necesaria
+                    mp.stock_reservado  += necesaria
+                    db.session.add(ReservaProduccion(
+                        materia_prima_id=mp.id,
+                        cantidad=necesaria,
+                        producto_id=prod.id,
+                        estado='reservado',
+                        notas=f'Auto-reserva cot #{cot.numero or cot.id}',
+                        creado_por=current_user.id
+                    ))
+                else:
+                    faltante = necesaria - disponible
+                    materias_faltantes.append(
+                        f'{mp.nombre}: falta {faltante:.3f} {mp.unidad} (disponible {disponible:.3f})'
+                    )
+                    # Reservar lo que haya
+                    if disponible > 0:
+                        mp.stock_disponible = 0
+                        mp.stock_reservado += disponible
+                        db.session.add(ReservaProduccion(
+                            materia_prima_id=mp.id,
+                            cantidad=disponible,
+                            producto_id=prod.id,
+                            estado='reservado',
+                            notas=f'Parcial cot #{cot.numero or cot.id}',
+                            creado_por=current_user.id
+                        ))
+
+        if materias_faltantes:
+            descripcion_falta = '\n'.join(materias_faltantes)
+            desc_tareas = (f'Cotización: #{cot.numero or cot.id} — {cot.titulo}\n'
+                           f'Producto: {prod.nombre} (x{cant_producir})\n\n'
+                           f'Materiales faltantes:\n{descripcion_falta}')
+            from datetime import timedelta
+            venc = (datetime.utcnow() + timedelta(days=3)).date()
+
+            t_compra = Tarea(
+                titulo=f'Comprar materias — {prod.nombre} (cot #{cot.numero or cot.id})',
+                descripcion=desc_tareas,
+                estado='pendiente', prioridad='alta',
+                asignado_a=primer_admin_id,
+                creado_por=current_user.id,
+                fecha_vencimiento=venc,
+                cotizacion_id=cot.id,
+                tarea_tipo='comprar_materias'
+            )
+            db.session.add(t_compra); db.session.flush()
+
+            t_abono = Tarea(
+                titulo=f'Verificar abono — {cot.titulo}',
+                descripcion=(f'Confirmar recepción del anticipo antes de comprar materias.\n'
+                             f'Cotización: #{cot.numero or cot.id}'),
+                estado='pendiente', prioridad='alta',
+                asignado_a=primer_admin_id,
+                creado_por=current_user.id,
+                fecha_vencimiento=venc,
+                cotizacion_id=cot.id,
+                tarea_tipo='verificar_abono',
+                tarea_pareja_id=t_compra.id
+            )
+            db.session.add(t_abono); db.session.flush()
+            # link inverso
+            t_compra.tarea_pareja_id = t_abono.id
+
+            # Notificar a todos los admins
+            for adm in admins:
+                _crear_notificacion(
+                    adm.id, 'alerta_stock',
+                    f'⚠️ Materiales insuficientes — {prod.nombre}',
+                    f'Faltan materias para cotización #{cot.numero or cot.id}. '
+                    f'Se crearon tareas de compra y abono.',
+                    url_for('tareas')
+                )
+
+
 @app.route('/cotizaciones/<int:id>/estado', methods=['POST'])
 @login_required
 def cotizacion_cambiar_estado(id):
     obj = Cotizacion.query.get_or_404(id)
     nuevo = request.form.get('estado','borrador')
     if nuevo in ('borrador','enviada','aprobada','confirmacion_orden'):
-        obj.estado = nuevo; db.session.commit()
+        obj.estado = nuevo
+        db.session.commit()
+        if nuevo == 'confirmacion_orden':
+            try:
+                _procesar_orden_produccion(obj)
+                db.session.commit()
+            except Exception as ep:
+                db.session.rollback()
+                print(f'_procesar_orden_produccion error: {ep}')
         flash(f'Estado actualizado a: {nuevo}.','success')
     return redirect(url_for('cotizacion_ver', id=id))
 
@@ -4902,7 +5321,55 @@ def receta_eliminar(id):
 @requiere_modulo('produccion')
 def reservas():
     items = ReservaProduccion.query.order_by(ReservaProduccion.creado_en.desc()).all()
-    return render_template('produccion/reservas.html', reservas=items)
+    usuarios = User.query.filter_by(activo=True).order_by(User.nombre).all()
+    return render_template('produccion/reservas.html', reservas=items, usuarios=usuarios)
+
+@app.route('/produccion/reservas/solicitar_compra', methods=['POST'])
+@login_required
+@requiere_modulo('produccion')
+def reserva_solicitar_compra():
+    reserva_id = request.form.get('reserva_id')
+    usuario_id = int(request.form.get('usuario_id'))
+    descripcion = request.form.get('descripcion','')
+    r = ReservaProduccion.query.get_or_404(int(reserva_id))
+    mp = r.materia
+    from datetime import timedelta
+    venc = (datetime.utcnow() + timedelta(days=3)).date()
+
+    t_compra = Tarea(
+        titulo=f'Comprar materia: {mp.nombre}',
+        descripcion=(f'Falta material en reserva.\nMateria: {mp.nombre}\n'
+                     f'Producto: {r.producto.nombre if r.producto else "N/A"}\n\n{descripcion}'),
+        estado='pendiente', prioridad='alta',
+        asignado_a=usuario_id,
+        creado_por=current_user.id,
+        fecha_vencimiento=venc,
+        tarea_tipo='comprar_materias'
+    )
+    db.session.add(t_compra); db.session.flush()
+
+    t_abono = Tarea(
+        titulo=f'Verificar abono — compra {mp.nombre}',
+        descripcion=(f'Confirmar anticipo antes de comprar {mp.nombre}.\n\n{descripcion}'),
+        estado='pendiente', prioridad='alta',
+        asignado_a=usuario_id,
+        creado_por=current_user.id,
+        fecha_vencimiento=venc,
+        tarea_tipo='verificar_abono',
+        tarea_pareja_id=t_compra.id
+    )
+    db.session.add(t_abono); db.session.flush()
+    t_compra.tarea_pareja_id = t_abono.id
+    db.session.commit()
+
+    _crear_notificacion(
+        usuario_id, 'tarea_asignada',
+        f'Nueva tarea asignada: {t_compra.titulo}',
+        f'Tienes 2 nuevas tareas de compra/abono para {mp.nombre}.',
+        url_for('tareas')
+    )
+    flash(f'Tareas de compra y abono creadas y asignadas.', 'success')
+    return redirect(url_for('reservas'))
 
 @app.route('/produccion/reservas/nueva', methods=['GET','POST'])
 @login_required
@@ -4945,6 +5412,121 @@ def reserva_cancelar(id):
         db.session.commit()
         flash('Reserva cancelada y stock devuelto.','info')
     return redirect(url_for('reservas'))
+
+# =============================================================
+# INVENTARIO — MULTI-INGRESO
+# =============================================================
+
+@app.route('/inventario/ingresos', methods=['GET','POST'])
+@login_required
+@requiere_modulo('inventario')
+def inventario_ingresos():
+    productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
+    if request.method == 'POST':
+        pid = request.form.get('producto_id')
+        numero_lote = request.form.get('numero_lote','').strip()
+        nso = request.form.get('nso','').strip() or None
+        fp  = request.form.get('fecha_produccion')
+        fv  = request.form.get('fecha_vencimiento')
+        cantidades = request.form.getlist('cantidad[]')
+        costos     = request.form.getlist('costo_unit[]')
+
+        if not pid or not numero_lote:
+            flash('Selecciona un producto e indica el número de lote.','danger')
+            return render_template('inventario/ingresos.html', productos=productos)
+
+        prod = Producto.query.get_or_404(int(pid))
+        total_unidades = 0
+        for cant_s, costo_s in zip(cantidades, costos):
+            try:
+                cant = float(cant_s)
+                if cant > 0:
+                    total_unidades += cant
+                    if costo_s:
+                        prod.costo = float(costo_s)   # actualiza último costo
+            except: pass
+
+        if total_unidades <= 0:
+            flash('Ingresa al menos una cantidad válida.','danger')
+            return render_template('inventario/ingresos.html', productos=productos)
+
+        prod.stock += int(total_unidades)
+        lote = LoteProducto(
+            producto_id=prod.id,
+            numero_lote=numero_lote,
+            nso=nso,
+            fecha_produccion=datetime.strptime(fp,'%Y-%m-%d').date() if fp else None,
+            fecha_vencimiento=datetime.strptime(fv,'%Y-%m-%d').date() if fv else None,
+            unidades_producidas=total_unidades,
+            unidades_restantes=total_unidades,
+            notas=f'Multi-ingreso: {total_unidades} unidades',
+            creado_por=current_user.id
+        )
+        db.session.add(lote)
+        db.session.commit()
+        flash(f'{total_unidades:.0f} unidades de "{prod.nombre}" ingresadas al lote {numero_lote}.','success')
+        return redirect(url_for('inventario'))
+    return render_template('inventario/ingresos.html', productos=productos)
+
+# =============================================================
+# PRODUCCIÓN — ÓRDENES DE PRODUCCIÓN
+# =============================================================
+
+@app.route('/produccion/ordenes')
+@login_required
+@requiere_modulo('produccion')
+def ordenes_produccion():
+    pendientes = OrdenProduccion.query.filter(
+        OrdenProduccion.estado.in_(['pendiente_materiales','en_produccion'])
+    ).order_by(OrdenProduccion.creado_en.desc()).all()
+    completados = OrdenProduccion.query.filter_by(estado='completado')\
+        .order_by(OrdenProduccion.completado_en.desc()).limit(30).all()
+    return render_template('produccion/ordenes.html',
+                           pendientes=pendientes, completados=completados)
+
+@app.route('/produccion/ordenes/completar', methods=['POST'])
+@login_required
+@requiere_modulo('produccion')
+def orden_completar():
+    orden_id  = int(request.form.get('orden_id'))
+    numero_lote = request.form.get('numero_lote','').strip()
+    notas       = request.form.get('notas','')
+    fv          = request.form.get('fecha_vencimiento')
+
+    orden = OrdenProduccion.query.get_or_404(orden_id)
+    prod  = orden.producto
+
+    # Añadir al stock
+    prod.stock += int(orden.cantidad_producir)
+
+    # Registrar lote
+    lote = LoteProducto(
+        producto_id=prod.id,
+        numero_lote=numero_lote or f'OP-{orden.id}',
+        fecha_vencimiento=datetime.strptime(fv,'%Y-%m-%d').date() if fv else None,
+        unidades_producidas=orden.cantidad_producir,
+        unidades_restantes=orden.cantidad_producir,
+        notas=notas or f'Orden producción #{orden.id}',
+        creado_por=current_user.id
+    )
+    db.session.add(lote)
+
+    orden.estado = 'completado'
+    orden.numero_lote = numero_lote or f'OP-{orden.id}'
+    orden.completado_en = datetime.utcnow()
+    db.session.commit()
+
+    # Notificar admins
+    admins = User.query.filter_by(rol='admin', activo=True).all()
+    for adm in admins:
+        _crear_notificacion(
+            adm.id, 'info',
+            f'✅ Producción completada: {prod.nombre}',
+            f'{orden.cantidad_producir:.0f} unidades movidas al inventario. Lote: {orden.numero_lote}',
+            url_for('inventario')
+        )
+    flash(f'Producción completada. {orden.cantidad_producir:.0f} unidades agregadas al inventario.','success')
+    return redirect(url_for('ordenes_produccion'))
 
 # =============================================================
 # ADMIN — EDITAR USUARIO
@@ -5078,6 +5660,10 @@ def _migrate(conn):
         ("ALTER TABLE compras_materia ADD COLUMN IF NOT EXISTS unidad VARCHAR(30) DEFAULT 'unidades'"),
         ("ALTER TABLE compras_materia ADD COLUMN IF NOT EXISTS tiene_caducidad BOOLEAN DEFAULT FALSE"),
         ("ALTER TABLE compras_materia ADD COLUMN IF NOT EXISTS fecha_caducidad DATE"),
+        # Tarea — campos v12.1 (parejas de tareas + cotizacion)
+        ("ALTER TABLE tareas ADD COLUMN IF NOT EXISTS cotizacion_id INTEGER REFERENCES cotizaciones(id)"),
+        ("ALTER TABLE tareas ADD COLUMN IF NOT EXISTS tarea_tipo VARCHAR(50)"),
+        ("ALTER TABLE tareas ADD COLUMN IF NOT EXISTS tarea_pareja_id INTEGER REFERENCES tareas(id)"),
     ]
     for sql in migrations:
         try:
