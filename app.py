@@ -219,6 +219,40 @@ class GastoOperativo(db.Model):
     creado_por  = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en   = db.Column(db.DateTime, default=datetime.utcnow)
 
+class Nota(db.Model):
+    __tablename__ = 'notas'
+    id             = db.Column(db.Integer, primary_key=True)
+    titulo         = db.Column(db.String(200))
+    contenido      = db.Column(db.Text, nullable=False)
+    cliente_id     = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=True)
+    creado_por     = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en      = db.Column(db.DateTime, default=datetime.utcnow)
+    actualizado_en = db.Column(db.DateTime, default=datetime.utcnow)
+    cliente        = db.relationship('Cliente', foreign_keys=[cliente_id])
+    autor          = db.relationship('User', foreign_keys=[creado_por])
+
+class Actividad(db.Model):
+    __tablename__ = 'actividades'
+    id          = db.Column(db.Integer, primary_key=True)
+    tipo        = db.Column(db.String(20))   # crear, editar, eliminar, completar
+    entidad     = db.Column(db.String(50))   # cliente, venta, tarea, nota...
+    entidad_id  = db.Column(db.Integer)
+    descripcion = db.Column(db.String(300))
+    usuario_id  = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en   = db.Column(db.DateTime, default=datetime.utcnow)
+    usuario     = db.relationship('User', foreign_keys=[usuario_id])
+
+class ConfigEmpresa(db.Model):
+    __tablename__ = 'config_empresa'
+    id        = db.Column(db.Integer, primary_key=True)
+    nombre    = db.Column(db.String(200), default='Evore')
+    nit       = db.Column(db.String(30))
+    direccion = db.Column(db.Text)
+    telefono  = db.Column(db.String(30))
+    email     = db.Column(db.String(120))
+    ciudad    = db.Column(db.String(100))
+    sitio_web = db.Column(db.String(200))
+
 @login_manager.user_loader
 def load_user(uid): return User.query.get(int(uid))
 
@@ -302,6 +336,10 @@ T['base.html'] = """<!DOCTYPE html>
       <i class="bi bi-graph-up-arrow"></i><span>Ventas</span></a>
     <a href="{{ url_for('tareas') }}" class="nav-link {% if 'tarea' in request.endpoint %}active{% endif %}">
       <i class="bi bi-check2-square"></i><span>Tareas</span></a>
+    <a href="{{ url_for('calendario') }}" class="nav-link {% if request.endpoint=='calendario' %}active{% endif %}">
+      <i class="bi bi-calendar3"></i><span>Calendario</span></a>
+    <a href="{{ url_for('notas') }}" class="nav-link {% if 'nota' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-sticky-fill"></i><span>Notas</span></a>
     <div class="sb-sec">Operaciones</div>
     <a href="{{ url_for('inventario') }}" class="nav-link {% if 'inventario' in request.endpoint or 'producto' in request.endpoint %}active{% endif %}">
       <i class="bi bi-box-seam-fill"></i><span>Inventario</span></a>
@@ -313,8 +351,12 @@ T['base.html'] = """<!DOCTYPE html>
       <i class="bi bi-bar-chart-fill"></i><span>Reportes</span></a>
     {% if current_user.rol == 'admin' %}
     <div class="sb-sec">Admin</div>
-    <a href="{{ url_for('admin_usuarios') }}" class="nav-link {% if 'admin' in request.endpoint %}active{% endif %}">
+    <a href="{{ url_for('admin_usuarios') }}" class="nav-link {% if request.endpoint=='admin_usuarios' or request.endpoint=='admin_usuario_nuevo' %}active{% endif %}">
       <i class="bi bi-shield-person-fill"></i><span>Usuarios</span></a>
+    <a href="{{ url_for('actividad') }}" class="nav-link {% if request.endpoint=='actividad' %}active{% endif %}">
+      <i class="bi bi-clock-history"></i><span>Actividad</span></a>
+    <a href="{{ url_for('admin_config') }}" class="nav-link {% if request.endpoint=='admin_config' %}active{% endif %}">
+      <i class="bi bi-gear"></i><span>Empresa</span></a>
     {% endif %}
   </div>
   <div class="sb-foot">
@@ -462,7 +504,20 @@ T['dashboard.html'] = """{% extends 'base.html' %}
     {% else %}<div class="text-center text-muted py-4"><i class="bi bi-graph-up" style="font-size:2rem"></i>
       <p class="mt-2 mb-0">Sin ventas</p></div>{% endif %}
   </div></div>
-</div>{% endblock %}
+</div>
+{% if actividades_recientes %}
+<div class="tc mt-4"><div class="ch d-flex justify-content-between align-items-center">
+  <span><i class="bi bi-clock-history me-2 text-secondary"></i>Actividad reciente</span>
+  {% if current_user.rol=='admin' %}<a href="{{ url_for('actividad') }}" class="btn btn-sm btn-outline-secondary">Ver todo</a>{% endif %}
+</div>
+<table class="table"><tbody>{% for a in actividades_recientes %}<tr>
+  <td style="width:130px"><small class="text-muted">{{ a.creado_en.strftime('%d/%m %H:%M') }}</small></td>
+  <td style="width:80px"><span class="badge {% if a.tipo=='crear' %}bg-success{% elif a.tipo=='editar' %}bg-primary{% elif a.tipo=='eliminar' %}bg-danger{% elif a.tipo=='completar' %}bg-info{% else %}bg-secondary{% endif %}">{{ a.tipo.title() }}</span></td>
+  <td style="font-size:.88rem">{{ a.descripcion }}</td>
+  <td style="width:100px"><small class="text-muted">{{ a.usuario.nombre if a.usuario else '' }}</small></td>
+</tr>{% endfor %}</tbody></table>
+</div>{% endif %}
+{% endblock %}
 {% block scripts %}<script>
 let tasaCOP=null,enUSD=false;
 async function cargarTasa(){
@@ -652,6 +707,7 @@ T['ventas/index.html'] = """{% extends 'base.html' %}
     <td><span class="b b-{{ v.estado }}">{{ v.estado.replace('_',' ').title() }}</span></td>
     <td>{% if v.fecha_entrega_est %}<small>{{ v.fecha_entrega_est.strftime('%d/%m/%Y') }}</small>{% else %}—{% endif %}</td>
     <td><div class="d-flex gap-1">
+      <a href="{{ url_for('venta_factura', id=v.id) }}" class="btn btn-sm btn-outline-primary" target="_blank" title="Ver factura/cotización"><i class="bi bi-file-earmark-text"></i></a>
       <a href="{{ url_for('venta_editar', id=v.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
       <form method="POST" action="{{ url_for('venta_eliminar', id=v.id) }}" onsubmit="return confirm('¿Eliminar?')">
         <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
@@ -1489,6 +1545,301 @@ new Chart(document.getElementById('chartGastos'),{type:'doughnut',data:{labels:g
   options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
 </script>{% endblock %}"""
 
+T['notas/index.html'] = """{% extends 'base.html' %}
+{% block title %}Notas{% endblock %}{% block page_title %}Notas Rápidas{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('nota_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva nota</a>{% endblock %}
+{% block content %}
+<div class="row g-3 mb-3">
+  <div class="col-md-4">
+    <form method="GET"><select name="cliente_id" class="form-select form-select-sm" onchange="this.form.submit()">
+      <option value="">Todas las notas</option>
+      {% for c in clientes_list %}<option value="{{ c.id }}" {% if c.id|string == cliente_f %}selected{% endif %}>{{ c.empresa or c.nombre }}</option>{% endfor %}
+    </select></form>
+  </div>
+</div>
+{% if items %}
+<div class="row g-3">
+{% for n in items %}
+<div class="col-md-6 col-lg-4">
+  <div class="tc h-100" style="position:relative">
+    <div class="d-flex justify-content-between align-items-start mb-2">
+      <div class="fw-semibold" style="color:#1a1f36;font-size:.95rem">{{ n.titulo or '(Sin título)' }}</div>
+      <div class="d-flex gap-1">
+        <a href="{{ url_for('nota_editar', id=n.id) }}" class="btn btn-sm btn-outline-secondary py-0 px-1"><i class="bi bi-pencil" style="font-size:.75rem"></i></a>
+        <form method="POST" action="{{ url_for('nota_eliminar', id=n.id) }}" onsubmit="return confirm('¿Eliminar nota?')">
+          <button class="btn btn-sm btn-outline-danger py-0 px-1"><i class="bi bi-trash" style="font-size:.75rem"></i></button></form>
+      </div>
+    </div>
+    <p style="font-size:.88rem;color:#525f7f;white-space:pre-line;margin-bottom:.75rem">{{ n.contenido[:300] }}{% if n.contenido|length > 300 %}…{% endif %}</p>
+    <div style="font-size:.75rem;color:#adb5bd;border-top:1px solid #f0f2ff;padding-top:.5rem;margin-top:auto">
+      {% if n.cliente %}<span class="badge bg-light text-dark me-1"><i class="bi bi-person me-1"></i>{{ n.cliente.empresa or n.cliente.nombre }}</span>{% endif %}
+      {{ n.autor.nombre if n.autor else '' }} · {{ n.creado_en.strftime('%d/%m/%Y') }}
+    </div>
+  </div>
+</div>{% endfor %}
+</div>
+{% else %}<div class="text-center text-muted py-5"><i class="bi bi-sticky" style="font-size:3rem"></i>
+  <p class="mt-3">Sin notas.</p><a href="{{ url_for('nota_nueva') }}" class="btn btn-primary">Crear primera</a></div>{% endif %}
+{% endblock %}"""
+
+T['notas/form.html'] = """{% extends 'base.html' %}
+{% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('notas') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
+{% block content %}<div class="fc"><form method="POST"><div class="row g-3">
+  <div class="col-md-8"><label class="form-label">Título</label>
+    <input type="text" name="titulo" class="form-control" placeholder="Título opcional" value="{{ obj.titulo if obj else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Vincular a cliente</label>
+    <select name="cliente_id" class="form-select">
+      <option value="">— Global —</option>
+      {% for c in clientes_list %}<option value="{{ c.id }}" {% if obj and obj.cliente_id==c.id %}selected{% endif %}>{{ c.empresa or c.nombre }}</option>{% endfor %}
+    </select></div>
+  <div class="col-12"><label class="form-label">Contenido *</label>
+    <textarea name="contenido" class="form-control" rows="10" style="font-size:.9rem" required>{{ obj.contenido if obj else '' }}</textarea></div>
+</div>
+<div class="d-flex gap-2 mt-4">
+  <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Guardar nota' }}</button>
+  <a href="{{ url_for('notas') }}" class="btn btn-outline-secondary">Cancelar</a>
+</div></form></div>{% endblock %}"""
+
+T['calendario.html'] = """{% extends 'base.html' %}
+{% block title %}Calendario{% endblock %}{% block page_title %}Calendario de Tareas{% endblock %}
+{% block topbar_actions %}
+<button id="prevM" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i></button>
+<span id="mesLabel" class="fw-semibold mx-2" style="min-width:130px;display:inline-block;text-align:center"></span>
+<button id="nextM" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-right"></i></button>
+{% endblock %}
+{% block content %}
+<div class="row g-2 mb-2">
+  <div class="col-auto"><span class="badge" style="background:#fff4e5;color:#fb6340;border:1px solid #fb6340">● Tarea pendiente</span></div>
+  <div class="col-auto"><span class="badge" style="background:#e3f9ee;color:#2dce89;border:1px solid #2dce89">● Tarea completada</span></div>
+  <div class="col-auto"><span class="badge" style="background:#e8eeff;color:#5e72e4;border:1px solid #5e72e4">● Venta</span></div>
+</div>
+<div id="cal" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)"></div>
+{% endblock %}
+{% block scripts %}<script>
+const eventos = {{ eventos_json|safe }};
+let cur = new Date({{ anio }}, {{ mes }}-1, 1);
+const dias = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+function renderCal(d){
+  document.getElementById('mesLabel').textContent = meses[d.getMonth()]+' '+d.getFullYear();
+  const yr=d.getFullYear(),mo=d.getMonth();
+  const first=new Date(yr,mo,1);
+  const last=new Date(yr,mo+1,0);
+  let startDow=first.getDay();if(startDow===0)startDow=7;
+  let html='<table style="width:100%;border-collapse:collapse">';
+  html+='<thead><tr>'+dias.map(d=>'<th style="padding:.6rem;text-align:center;font-size:.8rem;color:#8898aa;background:#f8f9fe;font-weight:600">'+d+'</th>').join('')+'</tr></thead>';
+  html+='<tbody><tr>';
+  for(let i=1;i<startDow;i++) html+='<td style="background:#fafbff;border:1px solid #f0f2ff;height:90px;vertical-align:top;padding:.35rem"></td>';
+  let dow=startDow;
+  for(let day=1;day<=last.getDate();day++){
+    const dk=yr+'-'+String(mo+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+    const evs=eventos[dk]||[];
+    const isToday=(new Date().toDateString()===new Date(yr,mo,day).toDateString());
+    html+='<td style="border:1px solid #f0f2ff;height:90px;vertical-align:top;padding:.3rem;cursor:pointer" onclick="window.location=\'/tareas/nueva?fecha='+dk+'\'">'+
+      '<div style="font-size:.82rem;font-weight:'+(isToday?'700':'500')+';color:'+(isToday?'#5e72e4':'#1a1f36')+(isToday?';background:#e8eeff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center':'')+'">'+(isToday?'<span>'+day+'</span>':day)+'</div>'+
+      evs.map(e=>'<div style="font-size:.72rem;margin-top:.2rem;padding:.15rem .35rem;border-radius:5px;background:'+(e.t==="tarea"?(e.s==="completada"?"#e3f9ee":"#fff4e5"):"#e8eeff")+';color:'+(e.t==="tarea"?(e.s==="completada"?"#2dce89":"#fb6340"):"#5e72e4")+';overflow:hidden;white-space:nowrap;text-overflow:ellipsis" title="'+e.n+'">'+e.n+'</div>').join('')+
+      '</td>';
+    if(dow===7&&day!==last.getDate()){html+='</tr><tr>';dow=1;}else{dow++;}
+  }
+  while(dow<=7){html+='<td style="background:#fafbff;border:1px solid #f0f2ff;height:90px"></td>';dow++;}
+  html+='</tr></tbody></table>';
+  document.getElementById('cal').innerHTML=html;
+}
+renderCal(cur);
+document.getElementById('prevM').onclick=function(){cur=new Date(cur.getFullYear(),cur.getMonth()-1,1);renderCal(cur);};
+document.getElementById('nextM').onclick=function(){cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);renderCal(cur);};
+</script>{% endblock %}"""
+
+T['ventas/factura.html'] = """<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ doc_tipo }} {{ doc_numero }} — Evore</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#1d1d1b;background:#fff}
+.page{max-width:800px;margin:0 auto;padding:30px 36px}
+.no-print{position:fixed;top:16px;right:16px;display:flex;gap:8px;z-index:999}
+.btn-print{background:#5e72e4;color:#fff;border:none;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600}
+.btn-back{background:#f4f6fb;color:#1a1f36;border:1px solid #dee2e6;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px}
+.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:20px;border-bottom:2px solid #d3af37}
+.logo-area{display:flex;align-items:center;gap:10px}
+.brand-txt{font-size:22px;font-weight:700;letter-spacing:6px;font-family:Georgia,serif;color:#1d1d1b}
+.company-info{font-size:11px;color:#525f7f;line-height:1.6;text-align:right}
+.doc-box{background:#1a1f36;color:#fff;padding:16px 20px;border-radius:12px;text-align:center;margin-bottom:24px;min-width:160px}
+.doc-tipo{font-size:16px;font-weight:700;letter-spacing:3px}
+.doc-num{font-size:13px;opacity:.8;margin-top:2px}
+.doc-date{font-size:11px;opacity:.65;margin-top:4px}
+.parties{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
+.party-box{border:1px solid #e9ecef;border-radius:8px;padding:12px 14px}
+.party-label{font-size:10px;font-weight:700;letter-spacing:2px;color:#8898aa;margin-bottom:6px;text-transform:uppercase}
+.party-name{font-size:14px;font-weight:700;color:#1a1f36;margin-bottom:3px}
+.party-detail{font-size:11px;color:#525f7f;line-height:1.6}
+table.items{width:100%;border-collapse:collapse;margin-bottom:16px}
+table.items thead th{background:#1a1f36;color:#fff;padding:8px 10px;font-size:11px;font-weight:600;text-align:left}
+table.items thead th:last-child,table.items thead th:nth-last-child(2),table.items thead th:nth-last-child(3){text-align:right}
+table.items tbody td{padding:8px 10px;border-bottom:1px solid #f0f2ff;font-size:12px;vertical-align:top}
+table.items tbody td:last-child,table.items tbody td:nth-last-child(2),table.items tbody td:nth-last-child(3){text-align:right}
+table.items tbody tr:hover{background:#fafbff}
+.totals{display:flex;justify-content:flex-end;margin-bottom:20px}
+.totals-box{min-width:260px}
+.totals-row{display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid #f0f2ff}
+.totals-row.total{font-size:15px;font-weight:700;color:#1a1f36;border-bottom:2px solid #d3af37;padding:8px 0}
+.totals-row.saldo{color:#f5365c;font-weight:600}
+.notes{background:#f8f9fe;border-radius:8px;padding:12px 14px;font-size:11px;color:#525f7f;margin-bottom:20px}
+.footer{text-align:center;font-size:10px;color:#adb5bd;border-top:1px solid #f0f2ff;padding-top:12px;margin-top:8px}
+.gold{color:#d3af37;font-weight:600}
+@media print{
+  .no-print{display:none!important}
+  body{background:#fff}
+  .page{padding:10px 16px}
+  @page{margin:1cm}
+}
+</style></head><body>
+<div class="no-print">
+  <button class="btn-back" onclick="window.close()"><i>←</i> Cerrar</button>
+  <button class="btn-print" onclick="window.print()">🖨️ Imprimir / PDF</button>
+</div>
+<div class="page">
+  <div class="header">
+    <div class="logo-area">
+      <svg width="46" height="42" viewBox="0 0 100 90" fill="none" stroke="#d3af37" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M50,67 C44,63 41,35 50,5 C59,35 56,63 50,67Z"/>
+        <path d="M50,67 C41,64 23,43 27,20 C33,32 46,57 50,67Z"/>
+        <path d="M50,67 C59,64 77,43 73,20 C67,32 54,57 50,67Z"/>
+        <path d="M50,67 C37,65 11,53 13,35 C17,43 36,60 50,67Z"/>
+        <path d="M50,67 C63,65 89,53 87,35 C83,43 64,60 50,67Z"/>
+        <path d="M50,69 C39,74 19,76 4,69 C6,62 28,65 50,69Z"/>
+        <path d="M50,69 C61,74 81,76 96,69 C94,62 72,65 50,69Z"/>
+        <path d="M50,69 C46,73 46,81 50,83 C54,81 54,73 50,69Z"/>
+      </svg>
+      <div>
+        <div class="brand-txt">EVORE</div>
+        <div style="font-size:10px;letter-spacing:2px;color:#8898aa">SISTEMA DE GESTIÓN</div>
+      </div>
+    </div>
+    <div style="text-align:right">
+      <div class="doc-box">
+        <div class="doc-tipo">{{ doc_tipo }}</div>
+        <div class="doc-num">N° {{ doc_numero }}</div>
+        <div class="doc-date">{{ fecha_doc }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="parties">
+    <div class="party-box">
+      <div class="party-label">Emisor</div>
+      <div class="party-name">{{ empresa.nombre }}</div>
+      <div class="party-detail">
+        {% if empresa.nit %}NIT: {{ empresa.nit }}<br>{% endif %}
+        {% if empresa.direccion %}{{ empresa.direccion }}<br>{% endif %}
+        {% if empresa.ciudad %}{{ empresa.ciudad }}<br>{% endif %}
+        {% if empresa.telefono %}Tel: {{ empresa.telefono }}<br>{% endif %}
+        {% if empresa.email %}<span class="gold">{{ empresa.email }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="party-box">
+      <div class="party-label">Cliente</div>
+      {% if obj.cliente %}
+      <div class="party-name">{{ obj.cliente.empresa or obj.cliente.nombre }}</div>
+      <div class="party-detail">
+        {% if obj.cliente.nit %}NIT: {{ obj.cliente.nit }}<br>{% endif %}
+        {% if obj.cliente.dir_comercial %}{{ obj.cliente.dir_comercial }}<br>{% endif %}
+        {% for c in obj.cliente.contactos[:1] %}
+          {{ c.nombre }}{% if c.cargo %} — {{ c.cargo }}{% endif %}<br>
+          {% if c.email %}<span class="gold">{{ c.email }}</span>{% if c.telefono %} · {% endif %}{% endif %}
+          {% if c.telefono %}{{ c.telefono }}{% endif %}
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="party-name" style="color:#adb5bd">Sin cliente asignado</div>{% endif %}
+    </div>
+  </div>
+  <div style="margin-bottom:16px">
+    <div style="font-size:15px;font-weight:700;color:#1a1f36;margin-bottom:4px">{{ obj.titulo }}</div>
+    {% if obj.dias_entrega %}<div style="font-size:11px;color:#525f7f">Entrega estimada: {{ obj.dias_entrega }} días{% if obj.fecha_entrega_est %} ({{ obj.fecha_entrega_est.strftime('%d/%m/%Y') }}){% endif %}</div>{% endif %}
+  </div>
+  <table class="items">
+    <thead><tr><th>#</th><th>Producto / Descripción</th><th>Cant.</th><th>P. Unitario</th><th>Subtotal</th></tr></thead>
+    <tbody>
+    {% for it in obj.items %}
+    <tr>
+      <td style="color:#adb5bd">{{ loop.index }}</td>
+      <td>{{ it.nombre_prod }}</td>
+      <td>{{ it.cantidad|int if it.cantidad == it.cantidad|int else it.cantidad }}</td>
+      <td>$ {{ '{:,.0f}'.format(it.precio_unit).replace(',','.') }}</td>
+      <td>$ {{ '{:,.0f}'.format(it.subtotal).replace(',','.') }}</td>
+    </tr>{% endfor %}
+    </tbody>
+  </table>
+  <div class="totals">
+    <div class="totals-box">
+      <div class="totals-row"><span>Subtotal</span><span>$ {{ '{:,.0f}'.format(obj.subtotal).replace(',','.') }}</span></div>
+      <div class="totals-row"><span>IVA 19%</span><span>$ {{ '{:,.0f}'.format(obj.iva).replace(',','.') }}</span></div>
+      <div class="totals-row total"><span>TOTAL</span><span>$ {{ '{:,.0f}'.format(obj.total).replace(',','.') }}</span></div>
+      {% if obj.monto_anticipo > 0 %}
+      <div class="totals-row"><span>Anticipo ({{ obj.porcentaje_anticipo|int }}%)</span><span>$ {{ '{:,.0f}'.format(obj.monto_anticipo).replace(',','.') }}</span></div>
+      <div class="totals-row saldo"><span>Saldo pendiente</span><span>$ {{ '{:,.0f}'.format(obj.saldo).replace(',','.') }}</span></div>{% endif %}
+    </div>
+  </div>
+  {% if obj.notas %}<div class="notes"><strong>Notas:</strong> {{ obj.notas }}</div>{% endif %}
+  <div class="footer">
+    {{ empresa.nombre }}{% if empresa.sitio_web %} · {{ empresa.sitio_web }}{% endif %}{% if empresa.email %} · {{ empresa.email }}{% endif %}
+    <br>Documento generado el {{ now.strftime('%d/%m/%Y %H:%M') }} · Evore CRM
+  </div>
+</div>
+</body></html>"""
+
+T['actividad.html'] = """{% extends 'base.html' %}
+{% block title %}Actividad{% endblock %}{% block page_title %}Historial de Actividad{% endblock %}
+{% block content %}
+<div class="tc">
+  <div class="ch"><i class="bi bi-clock-history me-2"></i>Últimas {{ items|length }} acciones</div>
+  {% if items %}
+  <div class="table-responsive"><table class="table">
+    <thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Módulo</th><th>Descripción</th></tr></thead>
+    <tbody>{% for a in items %}
+    <tr>
+      <td><small class="text-muted">{{ a.creado_en.strftime('%d/%m/%Y %H:%M') }}</small></td>
+      <td><span class="fw-semibold" style="font-size:.88rem">{{ a.usuario.nombre if a.usuario else '—' }}</span></td>
+      <td><span class="badge
+        {% if a.tipo == 'crear' %}bg-success
+        {% elif a.tipo == 'editar' %}bg-primary
+        {% elif a.tipo == 'eliminar' %}bg-danger
+        {% elif a.tipo == 'completar' %}bg-info
+        {% else %}bg-secondary{% endif %}">{{ a.tipo.title() }}</span></td>
+      <td><small class="text-muted">{{ a.entidad.title() }}</small></td>
+      <td style="font-size:.88rem">{{ a.descripcion }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<div class="text-center text-muted py-5"><i class="bi bi-clock-history" style="font-size:3rem"></i>
+    <p class="mt-3">Sin actividad registrada aún.</p></div>{% endif %}
+</div>{% endblock %}"""
+
+T['admin/config.html'] = """{% extends 'base.html' %}
+{% block title %}Configuración Empresa{% endblock %}{% block page_title %}Datos de la Empresa{% endblock %}
+{% block content %}<div class="fc" style="max-width:700px">
+<p class="text-muted mb-4" style="font-size:.9rem">Esta información aparece en las facturas y cotizaciones generadas por el sistema.</p>
+<form method="POST"><div class="row g-3">
+  <div class="col-md-8"><label class="form-label">Nombre de la empresa *</label>
+    <input type="text" name="nombre" class="form-control" value="{{ obj.nombre or '' }}" required></div>
+  <div class="col-md-4"><label class="form-label">NIT</label>
+    <input type="text" name="nit" class="form-control" value="{{ obj.nit or '' }}"></div>
+  <div class="col-md-6"><label class="form-label">Ciudad</label>
+    <input type="text" name="ciudad" class="form-control" value="{{ obj.ciudad or '' }}"></div>
+  <div class="col-md-6"><label class="form-label">Teléfono</label>
+    <input type="text" name="telefono" class="form-control" value="{{ obj.telefono or '' }}"></div>
+  <div class="col-md-6"><label class="form-label">Email</label>
+    <input type="email" name="email" class="form-control" value="{{ obj.email or '' }}"></div>
+  <div class="col-md-6"><label class="form-label">Sitio web</label>
+    <input type="text" name="sitio_web" class="form-control" placeholder="evore.us" value="{{ obj.sitio_web or '' }}"></div>
+  <div class="col-12"><label class="form-label">Dirección</label>
+    <input type="text" name="direccion" class="form-control" value="{{ obj.direccion or '' }}"></div>
+</div>
+<div class="mt-4">
+  <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Guardar configuración</button>
+</div></form></div>{% endblock %}"""
+
 app.jinja_loader = DictLoader(T)
 
 # =============================================================
@@ -1537,6 +1888,7 @@ def dashboard():
         productos_bajo_stock = Producto.query.filter(Producto.activo==True, Producto.stock<=Producto.stock_minimo).count(),
         tareas_recientes     = Tarea.query.filter(Tarea.estado!='completada').order_by(Tarea.creado_en.desc()).limit(5).all(),
         ventas_recientes     = Venta.query.order_by(Venta.creado_en.desc()).limit(6).all(),
+        actividades_recientes= Actividad.query.order_by(Actividad.creado_en.desc()).limit(8).all(),
     )
 
 # =============================================================
@@ -1584,6 +1936,7 @@ def cliente_nuevo():
             notas=request.form.get('notas',''), estado='activo')
         db.session.add(c); db.session.flush()
         _save_contactos(c); db.session.commit()
+        _log('crear','cliente',c.id,f'Cliente creado: {c.empresa or c.nombre}'); db.session.commit()
         flash('Cliente creado.','success'); return redirect(url_for('clientes'))
     return render_template('clientes/form.html', obj=None, titulo='Nuevo Cliente')
 
@@ -1604,6 +1957,7 @@ def cliente_editar(id):
         obj.dir_entrega=request.form.get('dir_entrega','')
         obj.notas=request.form.get('notas',''); obj.actualizado_en=datetime.utcnow()
         db.session.flush(); _save_contactos(obj); db.session.commit()
+        _log('editar','cliente',obj.id,f'Cliente editado: {obj.empresa or obj.nombre}'); db.session.commit()
         flash('Cliente actualizado.','success'); return redirect(url_for('cliente_ver', id=obj.id))
     return render_template('clientes/form.html', obj=obj, titulo='Editar Cliente')
 
@@ -1666,6 +2020,7 @@ def venta_nueva():
             notas=request.form.get('notas',''), creado_por=current_user.id)
         db.session.add(v); db.session.flush()
         _save_items(v); db.session.commit()
+        _log('crear','venta',v.id,f'Venta creada: {v.titulo}'); db.session.commit()
         flash('Venta creada.','success'); return redirect(url_for('ventas'))
     return render_template('ventas/form.html', obj=None, clientes_list=cl,
                            titulo='Nueva Venta', productos_json=_prods_json(), items_json='[]')
@@ -1691,6 +2046,7 @@ def venta_editar(id):
         obj.fecha_entrega_est=datetime.strptime(fe,'%Y-%m-%d').date() if fe else None
         obj.notas=request.form.get('notas','')
         db.session.flush(); _save_items(obj); db.session.commit()
+        _log('editar','venta',obj.id,f'Venta editada: {obj.titulo}'); db.session.commit()
         flash('Venta actualizada.','success'); return redirect(url_for('ventas'))
     items_j = json.dumps([{'pid':it.producto_id or '','nombre':it.nombre_prod,
                             'cant':it.cantidad,'precio':it.precio_unit} for it in obj.items])
@@ -1748,6 +2104,7 @@ def tarea_nueva():
             creado_por=current_user.id)
         db.session.add(t); db.session.flush()
         _save_asignados(t); db.session.commit()
+        _log('crear','tarea',t.id,f'Tarea creada: {t.titulo}'); db.session.commit()
         flash('Tarea creada.','success'); return redirect(url_for('tareas'))
     return render_template('tareas/form.html', obj=None, usuarios=us, titulo='Nueva Tarea', asignados_ids=[])
 
@@ -1779,6 +2136,7 @@ def tarea_editar(id):
         obj.fecha_vencimiento=datetime.strptime(fs,'%Y-%m-%d').date() if fs else None
         obj.asignado_a=int(request.form.get('asignado_a') or current_user.id)
         db.session.flush(); _save_asignados(obj); db.session.commit()
+        _log('editar','tarea',obj.id,f'Tarea editada: {obj.titulo}'); db.session.commit()
         flash('Tarea actualizada.','success'); return redirect(url_for('tarea_ver', id=obj.id))
     asignados_ids=[a.user_id for a in obj.asignados]
     return render_template('tareas/form.html', obj=obj, usuarios=us, titulo='Editar Tarea', asignados_ids=asignados_ids)
@@ -1787,6 +2145,7 @@ def tarea_editar(id):
 @login_required
 def tarea_completar(id):
     obj=Tarea.query.get_or_404(id); obj.estado='completada'; db.session.commit()
+    _log('completar','tarea',obj.id,f'Tarea completada: {obj.titulo}'); db.session.commit()
     flash('¡Tarea completada!','success'); return redirect(url_for('tareas'))
 
 @app.route('/tareas/<int:id>/eliminar', methods=['POST'])
@@ -2343,6 +2702,145 @@ def exportar_clientes():
                      as_attachment=True, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 # =============================================================
+# HELPER: LOG DE ACTIVIDAD
+# =============================================================
+
+def _log(tipo, entidad, entidad_id, descripcion):
+    try:
+        db.session.add(Actividad(
+            tipo=tipo, entidad=entidad, entidad_id=entidad_id,
+            descripcion=descripcion, usuario_id=current_user.id))
+    except Exception:
+        pass
+
+# =============================================================
+# NOTAS RÁPIDAS
+# =============================================================
+
+@app.route('/notas')
+@login_required
+def notas():
+    cliente_f = request.args.get('cliente_id','')
+    q = Nota.query
+    if cliente_f: q = q.filter_by(cliente_id=int(cliente_f))
+    return render_template('notas/index.html',
+        items=q.order_by(Nota.actualizado_en.desc()).all(),
+        clientes_list=Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all(),
+        cliente_f=cliente_f)
+
+@app.route('/notas/nueva', methods=['GET','POST'])
+@login_required
+def nota_nueva():
+    cl = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
+    if request.method == 'POST':
+        n = Nota(titulo=request.form.get('titulo','').strip() or None,
+            contenido=request.form['contenido'],
+            cliente_id=request.form.get('cliente_id') or None,
+            creado_por=current_user.id)
+        db.session.add(n); db.session.commit()
+        _log('crear','nota',n.id,f'Nota creada: {n.titulo or "(sin título)"}'); db.session.commit()
+        flash('Nota guardada.','success'); return redirect(url_for('notas'))
+    return render_template('notas/form.html', obj=None, titulo='Nueva Nota', clientes_list=cl)
+
+@app.route('/notas/<int:id>/editar', methods=['GET','POST'])
+@login_required
+def nota_editar(id):
+    obj = Nota.query.get_or_404(id)
+    cl  = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
+    if request.method == 'POST':
+        obj.titulo=request.form.get('titulo','').strip() or None
+        obj.contenido=request.form['contenido']
+        obj.cliente_id=request.form.get('cliente_id') or None
+        obj.actualizado_en=datetime.utcnow()
+        db.session.commit()
+        _log('editar','nota',obj.id,f'Nota editada: {obj.titulo or "(sin título)"}'); db.session.commit()
+        flash('Nota actualizada.','success'); return redirect(url_for('notas'))
+    return render_template('notas/form.html', obj=obj, titulo='Editar Nota', clientes_list=cl)
+
+@app.route('/notas/<int:id>/eliminar', methods=['POST'])
+@login_required
+def nota_eliminar(id):
+    obj=Nota.query.get_or_404(id); db.session.delete(obj); db.session.commit()
+    flash('Nota eliminada.','info'); return redirect(url_for('notas'))
+
+# =============================================================
+# CALENDARIO
+# =============================================================
+
+@app.route('/calendario')
+@login_required
+def calendario():
+    from datetime import date
+    import json as _json
+    hoy = date.today()
+    anio = int(request.args.get('anio', hoy.year))
+    mes  = int(request.args.get('mes',  hoy.month))
+    # Recolectar eventos
+    eventos = {}
+    tareas = Tarea.query.filter(Tarea.fecha_vencimiento != None).all()
+    for t in tareas:
+        k = t.fecha_vencimiento.strftime('%Y-%m-%d')
+        eventos.setdefault(k, []).append({'t':'tarea','n':t.titulo,'s':t.estado})
+    ventas_cal = Venta.query.filter(Venta.fecha_entrega_est != None).all()
+    for v in ventas_cal:
+        k = v.fecha_entrega_est.strftime('%Y-%m-%d')
+        eventos.setdefault(k, []).append({'t':'venta','n':v.titulo,'s':v.estado})
+    return render_template('calendario.html', eventos_json=_json.dumps(eventos), anio=anio, mes=mes)
+
+# =============================================================
+# FACTURA / COTIZACIÓN
+# =============================================================
+
+@app.route('/ventas/<int:id>/factura')
+@login_required
+def venta_factura(id):
+    obj = Venta.query.get_or_404(id)
+    empresa = ConfigEmpresa.query.first()
+    if not empresa:
+        empresa = ConfigEmpresa(nombre='Evore')
+    doc_tipo = 'COTIZACIÓN' if obj.estado in ('prospecto','negociacion') else 'FACTURA'
+    doc_numero = f'EV-{obj.creado_en.year}-{obj.id:04d}'
+    fecha_doc = obj.creado_en.strftime('%d/%m/%Y')
+    return render_template('ventas/factura.html',
+        obj=obj, empresa=empresa, doc_tipo=doc_tipo,
+        doc_numero=doc_numero, fecha_doc=fecha_doc)
+
+# =============================================================
+# HISTORIAL DE ACTIVIDAD
+# =============================================================
+
+@app.route('/actividad')
+@login_required
+def actividad():
+    if current_user.rol != 'admin':
+        flash('Sin permisos.','danger'); return redirect(url_for('dashboard'))
+    items = Actividad.query.order_by(Actividad.creado_en.desc()).limit(300).all()
+    return render_template('actividad.html', items=items)
+
+# =============================================================
+# ADMIN — CONFIG EMPRESA
+# =============================================================
+
+@app.route('/admin/empresa', methods=['GET','POST'])
+@login_required
+def admin_config():
+    if current_user.rol != 'admin':
+        flash('Sin permisos.','danger'); return redirect(url_for('dashboard'))
+    obj = ConfigEmpresa.query.first()
+    if not obj:
+        obj = ConfigEmpresa(nombre='Evore'); db.session.add(obj); db.session.commit()
+    if request.method == 'POST':
+        obj.nombre   = request.form.get('nombre','Evore')
+        obj.nit      = request.form.get('nit','')
+        obj.ciudad   = request.form.get('ciudad','')
+        obj.telefono = request.form.get('telefono','')
+        obj.email    = request.form.get('email','')
+        obj.sitio_web= request.form.get('sitio_web','')
+        obj.direccion= request.form.get('direccion','')
+        db.session.commit(); flash('Configuración guardada.','success')
+    return render_template('admin/config.html', obj=obj)
+
+# =============================================================
 # INICIALIZACIÓN
 # =============================================================
 
@@ -2354,6 +2852,9 @@ def init_db():
             admin.set_password('Evore2024!')
             db.session.add(admin); db.session.commit()
             print('Admin creado: admin@evore.us / Evore2024!')
+        if not ConfigEmpresa.query.first():
+            db.session.add(ConfigEmpresa(nombre='Evore', email='contacto@evore.us', sitio_web='evore.us'))
+            db.session.commit()
 
 try:
     init_db()
