@@ -309,6 +309,8 @@ T['base.html'] = """<!DOCTYPE html>
       <i class="bi bi-gear-fill"></i><span>Producción</span></a>
     <a href="{{ url_for('gastos') }}" class="nav-link {% if 'gasto' in request.endpoint %}active{% endif %}">
       <i class="bi bi-receipt"></i><span>Gastos</span></a>
+    <a href="{{ url_for('reportes') }}" class="nav-link {% if 'reporte' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-bar-chart-fill"></i><span>Reportes</span></a>
     {% if current_user.rol == 'admin' %}
     <div class="sb-sec">Admin</div>
     <a href="{{ url_for('admin_usuarios') }}" class="nav-link {% if 'admin' in request.endpoint %}active{% endif %}">
@@ -322,6 +324,8 @@ T['base.html'] = """<!DOCTYPE html>
       <div class="ui"><div class="u-name">{{ current_user.nombre }}</div>
         <span class="u-rol">{{ current_user.rol }}</span></div>
     </div>
+    <a href="{{ url_for('perfil') }}" class="nav-link mt-1">
+      <i class="bi bi-person-gear"></i><span>Mi perfil</span></a>
     <a href="{{ url_for('logout') }}" class="nav-link mt-1 text-danger">
       <i class="bi bi-box-arrow-right"></i><span>Salir</span></a>
   </div>
@@ -1359,6 +1363,129 @@ T['admin/usuario_form.html'] = """{% extends 'base.html' %}
   <a href="{{ url_for('admin_usuarios') }}" class="btn btn-outline-secondary">Cancelar</a>
 </div></form></div>{% endblock %}"""
 
+T['perfil.html'] = """{% extends 'base.html' %}
+{% block title %}Mi Perfil{% endblock %}{% block page_title %}Mi Perfil{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="fc">
+      <h5 class="mb-3"><i class="bi bi-person-circle me-2 text-primary"></i>Datos personales</h5>
+      <form method="POST" action="{{ url_for('perfil') }}">
+        <input type="hidden" name="accion" value="datos">
+        <div class="row g-3">
+          <div class="col-12"><label class="form-label">Nombre *</label>
+            <input type="text" name="nombre" class="form-control" value="{{ current_user.nombre }}" required></div>
+          <div class="col-12"><label class="form-label">Email *</label>
+            <input type="email" name="email" class="form-control" value="{{ current_user.email }}" required></div>
+        </div>
+        <div class="mt-3">
+          <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Guardar cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="fc">
+      <h5 class="mb-3"><i class="bi bi-lock-fill me-2 text-warning"></i>Cambiar contraseña</h5>
+      <form method="POST" action="{{ url_for('perfil') }}">
+        <input type="hidden" name="accion" value="password">
+        <div class="row g-3">
+          <div class="col-12"><label class="form-label">Contraseña actual *</label>
+            <input type="password" name="password_actual" class="form-control" required></div>
+          <div class="col-12"><label class="form-label">Nueva contraseña *</label>
+            <input type="password" name="password_nueva" class="form-control" minlength="6" required></div>
+          <div class="col-12"><label class="form-label">Confirmar nueva contraseña *</label>
+            <input type="password" name="password_confirmar" class="form-control" minlength="6" required></div>
+        </div>
+        <div class="mt-3">
+          <button type="submit" class="btn btn-warning"><i class="bi bi-key me-1"></i>Cambiar contraseña</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>{% endblock %}"""
+
+T['reportes.html'] = """{% extends 'base.html' %}
+{% block title %}Reportes{% endblock %}{% block page_title %}Reportes{% endblock %}
+{% block topbar_actions %}
+<div class="dropdown">
+  <button class="btn btn-success btn-sm dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-file-earmark-excel me-1"></i>Exportar Excel</button>
+  <ul class="dropdown-menu">
+    <li><a class="dropdown-item" href="{{ url_for('exportar_ventas') }}"><i class="bi bi-graph-up-arrow me-2 text-primary"></i>Ventas</a></li>
+    <li><a class="dropdown-item" href="{{ url_for('exportar_gastos') }}"><i class="bi bi-receipt me-2 text-danger"></i>Gastos Operativos</a></li>
+    <li><a class="dropdown-item" href="{{ url_for('exportar_inventario') }}"><i class="bi bi-box-seam me-2 text-success"></i>Inventario</a></li>
+    <li><a class="dropdown-item" href="{{ url_for('exportar_clientes') }}"><i class="bi bi-people me-2 text-info"></i>Clientes</a></li>
+  </ul>
+</div>{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="sc">
+    <div class="sv" style="color:#5e72e4">{{ total_clientes }}</div>
+    <div class="sl">Clientes activos</div></div></div>
+  <div class="col-md-3"><div class="sc">
+    <div class="sv valor-cop" data-cop="{{ ingresos_totales }}">$ {{ '{:,.0f}'.format(ingresos_totales).replace(',','.') }}</div>
+    <div class="sl">Ingresos totales (ventas ganadas)</div></div></div>
+  <div class="col-md-3"><div class="sc">
+    <div class="sv valor-cop" data-cop="{{ gastos_totales }}">$ {{ '{:,.0f}'.format(gastos_totales).replace(',','.') }}</div>
+    <div class="sl">Gastos operativos totales</div></div></div>
+  <div class="col-md-3"><div class="sc">
+    <div class="sv valor-cop" data-cop="{{ balance }}" style="color:{{ '#2dce89' if balance>=0 else '#f5365c' }}">$ {{ '{:,.0f}'.format(balance).replace(',','.') }}</div>
+    <div class="sl">Balance</div></div></div>
+</div>
+<div class="row g-4 mb-4">
+  <div class="col-lg-7">
+    <div class="tc"><div class="ch"><i class="bi bi-bar-chart me-2"></i>Ventas por mes (últimos 6 meses)</div>
+      <canvas id="chartVentas" height="100"></canvas>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="tc"><div class="ch"><i class="bi bi-pie-chart me-2"></i>Gastos por tipo</div>
+      <canvas id="chartGastos" height="160"></canvas>
+    </div>
+  </div>
+</div>
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="tc"><div class="ch d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-trophy me-2 text-warning"></i>Top 5 clientes por ventas</span></div>
+      <table class="table"><tbody>
+      {% for c in top_clientes %}
+      <tr><td><a href="{{ url_for('cliente_ver', id=c.id) }}" class="fw-semibold text-decoration-none" style="color:#1a1f36">{{ c.empresa or c.nombre }}</a></td>
+        <td class="text-end fw-semibold">$ {{ '{:,.0f}'.format(c.total_ventas or 0).replace(',','.') }}</td></tr>
+      {% else %}<tr><td colspan="2" class="text-muted text-center">Sin datos</td></tr>{% endfor %}
+      </tbody></table>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="tc"><div class="ch"><i class="bi bi-exclamation-triangle me-2 text-warning"></i>Stock bajo</div>
+      {% if bajo_stock %}
+      <table class="table"><thead><tr><th>Producto</th><th>Stock</th><th>Mínimo</th></tr></thead><tbody>
+      {% for p in bajo_stock %}
+      <tr><td>{{ p.nombre }}</td>
+        <td class="fw-bold text-danger">{{ p.stock }}</td>
+        <td class="text-muted">{{ p.stock_minimo }}</td></tr>
+      {% endfor %}</tbody></table>
+      {% else %}<div class="text-center text-muted py-3"><i class="bi bi-check-circle text-success" style="font-size:2rem"></i>
+        <p class="mt-2">Todo el inventario está OK</p></div>{% endif %}
+    </div>
+  </div>
+</div>{% endblock %}
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+const meses = {{ meses_labels|tojson }};
+const ventasMes = {{ ventas_por_mes|tojson }};
+const gastosTipos = {{ gastos_tipos_labels|tojson }};
+const gastosTotales = {{ gastos_tipos_values|tojson }};
+new Chart(document.getElementById('chartVentas'),{type:'bar',data:{labels:meses,datasets:[{
+  label:'Ventas COP',data:ventasMes,backgroundColor:'rgba(94,114,228,0.7)',borderRadius:6}]},
+  options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'$'+v.toLocaleString('es-CO')}}}}});
+const colores=['#5e72e4','#2dce89','#fb6340','#11cdef','#f4f5f7','#adb5bd'];
+new Chart(document.getElementById('chartGastos'),{type:'doughnut',data:{labels:gastosTipos,
+  datasets:[{data:gastosTotales,backgroundColor:colores.slice(0,gastosTipos.length),borderWidth:2}]},
+  options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
+</script>{% endblock %}"""
+
 app.jinja_loader = DictLoader(T)
 
 # =============================================================
@@ -1579,11 +1706,14 @@ def venta_eliminar(id):
 
 def _save_asignados(tarea_obj):
     TareaAsignado.query.filter_by(tarea_id=tarea_obj.id).delete()
-    ids = request.form.getlist('asignados[]')
+    # asignado principal
+    principal = request.form.get('asignado_a')
+    # otros asignados (multi-select)
+    otros = request.form.getlist('otros_asignados[]')
     seen = set()
-    for uid in ids:
+    for uid_str in ([principal] if principal else []) + otros:
         try:
-            uid = int(uid)
+            uid = int(uid_str)
             if uid not in seen:
                 seen.add(uid)
                 db.session.add(TareaAsignado(tarea_id=tarea_obj.id, user_id=uid))
@@ -1611,7 +1741,7 @@ def tarea_nueva():
         t=Tarea(titulo=request.form['titulo'], descripcion=request.form.get('descripcion',''),
             estado=request.form.get('estado','pendiente'), prioridad=request.form.get('prioridad','media'),
             fecha_vencimiento=datetime.strptime(fs,'%Y-%m-%d').date() if fs else None,
-            asignado_a=int(request.form.getlist('asignados[]')[0]) if request.form.getlist('asignados[]') else current_user.id,
+            asignado_a=int(request.form.get('asignado_a') or current_user.id),
             creado_por=current_user.id)
         db.session.add(t); db.session.flush()
         _save_asignados(t); db.session.commit()
@@ -1622,7 +1752,7 @@ def tarea_nueva():
 @login_required
 def tarea_ver(id):
     obj=Tarea.query.get_or_404(id)
-    return render_template('tareas/ver.html', obj=obj)
+    return render_template('tareas/ver.html', obj=obj, tarea=obj)
 
 @app.route('/tareas/<int:id>/comentar', methods=['POST'])
 @login_required
@@ -1644,8 +1774,7 @@ def tarea_editar(id):
         obj.titulo=request.form['titulo']; obj.descripcion=request.form.get('descripcion','')
         obj.estado=request.form.get('estado','pendiente'); obj.prioridad=request.form.get('prioridad','media')
         obj.fecha_vencimiento=datetime.strptime(fs,'%Y-%m-%d').date() if fs else None
-        ids_list=request.form.getlist('asignados[]')
-        obj.asignado_a=int(ids_list[0]) if ids_list else current_user.id
+        obj.asignado_a=int(request.form.get('asignado_a') or current_user.id)
         db.session.flush(); _save_asignados(obj); db.session.commit()
         flash('Tarea actualizada.','success'); return redirect(url_for('tarea_ver', id=obj.id))
     asignados_ids=[a.user_id for a in obj.asignados]
@@ -2035,6 +2164,180 @@ def admin_usuario_toggle(id):
         u.activo=not u.activo; db.session.commit()
         flash(f'Usuario {"activado" if u.activo else "desactivado"}.','info')
     return redirect(url_for('admin_usuarios'))
+
+# =============================================================
+# PERFIL DE USUARIO
+# =============================================================
+
+@app.route('/perfil', methods=['GET','POST'])
+@login_required
+def perfil():
+    if request.method == 'POST':
+        accion = request.form.get('accion')
+        if accion == 'datos':
+            nuevo_email = request.form.get('email','').strip()
+            if nuevo_email != current_user.email and User.query.filter_by(email=nuevo_email).first():
+                flash('Ese email ya está en uso.','danger')
+            else:
+                current_user.nombre = request.form.get('nombre','').strip() or current_user.nombre
+                current_user.email  = nuevo_email or current_user.email
+                db.session.commit()
+                flash('Datos actualizados.','success')
+        elif accion == 'password':
+            pw_actual    = request.form.get('password_actual','')
+            pw_nueva     = request.form.get('password_nueva','')
+            pw_confirmar = request.form.get('password_confirmar','')
+            if not current_user.check_password(pw_actual):
+                flash('La contraseña actual es incorrecta.','danger')
+            elif len(pw_nueva) < 6:
+                flash('La nueva contraseña debe tener al menos 6 caracteres.','danger')
+            elif pw_nueva != pw_confirmar:
+                flash('Las contraseñas nuevas no coinciden.','danger')
+            else:
+                current_user.set_password(pw_nueva)
+                db.session.commit()
+                flash('Contraseña cambiada exitosamente.','success')
+    return render_template('perfil.html')
+
+# =============================================================
+# REPORTES
+# =============================================================
+
+@app.route('/reportes')
+@login_required
+def reportes():
+    from datetime import date
+    from calendar import month_abbr
+    # Estadísticas generales
+    ingresos_totales = db.session.query(db.func.sum(Venta.total)).filter(Venta.estado.in_(['ganado','anticipo_pagado'])).scalar() or 0
+    gastos_totales   = db.session.query(db.func.sum(GastoOperativo.monto)).scalar() or 0
+    balance          = ingresos_totales - gastos_totales
+    total_clientes   = Cliente.query.filter_by(estado='activo').count()
+    # Ventas por mes (últimos 6 meses)
+    hoy = date.today()
+    meses_labels, ventas_por_mes = [], []
+    for i in range(5, -1, -1):
+        mes = (hoy.month - i - 1) % 12 + 1
+        anio = hoy.year - ((hoy.month - i - 1) // 12 + (1 if (hoy.month - i - 1) < 0 else 0))
+        total_mes = db.session.query(db.func.sum(Venta.total)).filter(
+            db.extract('month', Venta.creado_en) == mes,
+            db.extract('year', Venta.creado_en) == anio).scalar() or 0
+        meses_labels.append(f'{month_abbr[mes]} {str(anio)[2:]}')
+        ventas_por_mes.append(round(total_mes))
+    # Gastos por tipo
+    gastos_por_tipo = db.session.query(GastoOperativo.tipo, db.func.sum(GastoOperativo.monto))\
+        .group_by(GastoOperativo.tipo).order_by(db.func.sum(GastoOperativo.monto).desc()).all()
+    gastos_tipos_labels = [g[0] for g in gastos_por_tipo]
+    gastos_tipos_values = [round(g[1]) for g in gastos_por_tipo]
+    # Top 5 clientes por ventas totales
+    from sqlalchemy import func as sqlfunc
+    top_q = db.session.query(
+        Cliente.id, Cliente.nombre, Cliente.empresa,
+        sqlfunc.sum(Venta.total).label('total_ventas')
+    ).join(Venta, Venta.cliente_id == Cliente.id)\
+     .group_by(Cliente.id, Cliente.nombre, Cliente.empresa)\
+     .order_by(sqlfunc.sum(Venta.total).desc()).limit(5).all()
+    class _C:
+        def __init__(self, r): self.id=r[0]; self.nombre=r[1]; self.empresa=r[2]; self.total_ventas=r[3]
+    top_clientes = [_C(r) for r in top_q]
+    # Stock bajo
+    bajo_stock = Producto.query.filter(Producto.activo==True, Producto.stock<=Producto.stock_minimo).all()
+    return render_template('reportes.html',
+        total_clientes=total_clientes, ingresos_totales=ingresos_totales,
+        gastos_totales=gastos_totales, balance=balance,
+        meses_labels=meses_labels, ventas_por_mes=ventas_por_mes,
+        gastos_tipos_labels=gastos_tipos_labels, gastos_tipos_values=gastos_tipos_values,
+        top_clientes=top_clientes, bajo_stock=bajo_stock)
+
+# --- Exportar Excel ---
+
+def _make_xlsx(titulo, headers, rows):
+    import io, openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = titulo
+    # Cabecera empresa
+    ws.merge_cells(f'A1:{chr(64+len(headers))}1')
+    ws['A1'] = 'Evore CRM — ' + titulo
+    ws['A1'].font = Font(bold=True, size=13, color='FFFFFF')
+    ws['A1'].fill = PatternFill('solid', fgColor='5E72E4')
+    ws['A1'].alignment = Alignment(horizontal='center')
+    # Headers
+    for col, h in enumerate(headers, 1):
+        cell = ws.cell(row=2, column=col, value=h)
+        cell.font = Font(bold=True, color='FFFFFF')
+        cell.fill = PatternFill('solid', fgColor='1A1F36')
+        cell.alignment = Alignment(horizontal='center')
+    # Datos
+    for r_idx, row in enumerate(rows, 3):
+        for c_idx, val in enumerate(row, 1):
+            ws.cell(row=r_idx, column=c_idx, value=val)
+    # Autofit columns
+    for col in ws.columns:
+        max_len = max((len(str(c.value or '')) for c in col), default=10)
+        ws.column_dimensions[col[0].column_letter].width = min(max_len + 4, 40)
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf
+
+@app.route('/reportes/exportar/ventas.xlsx')
+@login_required
+def exportar_ventas():
+    from flask import send_file
+    ventas = Venta.query.order_by(Venta.creado_en.desc()).all()
+    headers = ['Título','Cliente','Subtotal COP','IVA COP','Total COP','% Anticipo','Anticipo COP','Saldo COP','Estado','Fecha anticipo','Días entrega','Creada']
+    rows = []
+    for v in ventas:
+        rows.append([
+            v.titulo,
+            v.cliente.empresa or v.cliente.nombre if v.cliente else '',
+            round(v.subtotal), round(v.iva), round(v.total),
+            v.porcentaje_anticipo, round(v.monto_anticipo), round(v.saldo),
+            v.estado,
+            v.fecha_anticipo.strftime('%d/%m/%Y') if v.fecha_anticipo else '',
+            v.dias_entrega,
+            v.creado_en.strftime('%d/%m/%Y')
+        ])
+    buf = _make_xlsx('Ventas', headers, rows)
+    return send_file(buf, download_name='evore_ventas.xlsx',
+                     as_attachment=True, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+@app.route('/reportes/exportar/gastos.xlsx')
+@login_required
+def exportar_gastos():
+    from flask import send_file
+    items = GastoOperativo.query.order_by(GastoOperativo.fecha.desc()).all()
+    headers = ['Fecha','Tipo','Descripción','Monto COP','Notas']
+    rows = [[g.fecha.strftime('%d/%m/%Y'), g.tipo, g.descripcion or '', round(g.monto), g.notas or ''] for g in items]
+    buf = _make_xlsx('Gastos Operativos', headers, rows)
+    return send_file(buf, download_name='evore_gastos.xlsx',
+                     as_attachment=True, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+@app.route('/reportes/exportar/inventario.xlsx')
+@login_required
+def exportar_inventario():
+    from flask import send_file
+    items = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
+    headers = ['Nombre','SKU','NSO (INVIMA)','Precio COP','Costo COP','Stock','Stock Mínimo','Categoría']
+    rows = [[p.nombre, p.sku or '', p.nso or '', round(p.precio), round(p.costo),
+             p.stock, p.stock_minimo, p.categoria or ''] for p in items]
+    buf = _make_xlsx('Inventario', headers, rows)
+    return send_file(buf, download_name='evore_inventario.xlsx',
+                     as_attachment=True, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+@app.route('/reportes/exportar/clientes.xlsx')
+@login_required
+def exportar_clientes():
+    from flask import send_file
+    items = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
+    headers = ['Empresa','NIT','Relación','Dirección comercial','Dirección entrega','Estado','Creado']
+    rows = [[c.empresa or '', c.nit or '', c.estado_relacion or '', c.dir_comercial or '',
+             c.dir_entrega or '', c.estado, c.creado_en.strftime('%d/%m/%Y')] for c in items]
+    buf = _make_xlsx('Clientes', headers, rows)
+    return send_file(buf, download_name='evore_clientes.xlsx',
+                     as_attachment=True, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 # =============================================================
 # INICIALIZACIÓN
