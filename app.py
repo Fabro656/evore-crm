@@ -3638,9 +3638,40 @@ def admin_config():
 # INICIALIZACIÓN
 # =============================================================
 
+def _migrate(conn):
+    """Agrega columnas nuevas a tablas existentes sin romper datos actuales."""
+    migrations = [
+        # GastoOperativo — campos v11
+        ("ALTER TABLE gastos_operativos ADD COLUMN IF NOT EXISTS tipo_custom VARCHAR(100)"),
+        ("ALTER TABLE gastos_operativos ADD COLUMN IF NOT EXISTS recurrencia VARCHAR(20) DEFAULT 'unico'"),
+        ("ALTER TABLE gastos_operativos ADD COLUMN IF NOT EXISTS es_plantilla BOOLEAN DEFAULT FALSE"),
+        # Producto — fecha de caducidad
+        ("ALTER TABLE productos ADD COLUMN IF NOT EXISTS fecha_caducidad DATE"),
+        # Nota — campos v11
+        ("ALTER TABLE notas ADD COLUMN IF NOT EXISTS producto_id INTEGER REFERENCES productos(id)"),
+        ("ALTER TABLE notas ADD COLUMN IF NOT EXISTS modulo VARCHAR(50)"),
+        ("ALTER TABLE notas ADD COLUMN IF NOT EXISTS fecha_revision DATE"),
+        # ReglaTributaria — proveedor
+        ("ALTER TABLE reglas_tributarias ADD COLUMN IF NOT EXISTS proveedor_nombre VARCHAR(200)"),
+    ]
+    for sql in migrations:
+        try:
+            conn.execute(db.text(sql))
+            conn.commit()
+        except Exception as em:
+            try: conn.rollback()
+            except: pass
+            print(f'Migración omitida (puede ser SQLite o ya existe): {em}')
+
 def init_db():
     with app.app_context():
         db.create_all()
+        # Migraciones para columnas nuevas en tablas existentes
+        try:
+            with db.engine.connect() as conn:
+                _migrate(conn)
+        except Exception as em:
+            print(f'Migrate error (no crítico): {em}')
         _admin_email = os.environ.get('ADMIN_EMAIL', 'admin@evore.us')
         if not User.query.filter_by(email=_admin_email).first():
             _admin_pass = os.environ.get('ADMIN_PASSWORD')
