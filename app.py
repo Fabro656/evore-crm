@@ -166,25 +166,32 @@ class Cliente(db.Model):
 
 class OrdenCompra(db.Model):
     __tablename__ = 'ordenes_compra'
-    id              = db.Column(db.Integer, primary_key=True)
-    numero          = db.Column(db.String(20))               # OC-YYYY-NNN
-    proveedor_id    = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
-    estado          = db.Column(db.String(30), default='borrador')  # borrador, enviada, recibida, cancelada
-    fecha_emision   = db.Column(db.Date)
-    fecha_esperada  = db.Column(db.Date)
-    subtotal        = db.Column(db.Float, default=0)
-    iva             = db.Column(db.Float, default=0)
-    total           = db.Column(db.Float, default=0)
-    notas           = db.Column(db.Text)
-    creado_por      = db.Column(db.Integer, db.ForeignKey('users.id'))
-    creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
-    proveedor       = db.relationship('Proveedor', foreign_keys=[proveedor_id])
-    items           = db.relationship('OrdenCompraItem', backref='orden', lazy=True, cascade='all, delete-orphan')
+    id                      = db.Column(db.Integer, primary_key=True)
+    numero                  = db.Column(db.String(20))               # OC-YYYY-NNN
+    proveedor_id            = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
+    cotizacion_id           = db.Column(db.Integer, db.ForeignKey('cotizaciones_proveedor.id'), nullable=True)
+    transportista_id        = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
+    estado                  = db.Column(db.String(30), default='borrador')  # borrador, enviada, recibida, cancelada
+    fecha_emision           = db.Column(db.Date)
+    fecha_esperada          = db.Column(db.Date)   # fecha entrega esperada (calculada desde cotización)
+    fecha_estimada_pago     = db.Column(db.Date)   # fecha estimada de pago al proveedor
+    fecha_estimada_recogida = db.Column(db.Date)   # fecha estimada para recoger con transportista
+    subtotal                = db.Column(db.Float, default=0)
+    iva                     = db.Column(db.Float, default=0)
+    total                   = db.Column(db.Float, default=0)
+    notas                   = db.Column(db.Text)
+    creado_por              = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en               = db.Column(db.DateTime, default=datetime.utcnow)
+    proveedor               = db.relationship('Proveedor', foreign_keys=[proveedor_id])
+    transportista           = db.relationship('Proveedor', foreign_keys=[transportista_id])
+    cotizacion_ref          = db.relationship('CotizacionProveedor', foreign_keys=[cotizacion_id])
+    items                   = db.relationship('OrdenCompraItem', backref='orden', lazy=True, cascade='all, delete-orphan')
 
 class OrdenCompraItem(db.Model):
     __tablename__ = 'ordenes_compra_items'
     id              = db.Column(db.Integer, primary_key=True)
     orden_id        = db.Column(db.Integer, db.ForeignKey('ordenes_compra.id'), nullable=False)
+    cotizacion_id   = db.Column(db.Integer, db.ForeignKey('cotizaciones_proveedor.id'), nullable=True)
     nombre_item     = db.Column(db.String(200), nullable=False)
     descripcion     = db.Column(db.Text)
     cantidad        = db.Column(db.Float, default=1)
@@ -202,6 +209,7 @@ class Proveedor(db.Model):
     telefono   = db.Column(db.String(50))
     direccion  = db.Column(db.Text)
     categoria  = db.Column(db.String(100))
+    tipo       = db.Column(db.String(20), default='proveedor')  # proveedor, transportista, ambos
     notas      = db.Column(db.Text)
     activo     = db.Column(db.Boolean, default=True)
     creado_en  = db.Column(db.DateTime, default=datetime.utcnow)
@@ -321,24 +329,31 @@ class CompraMateria(db.Model):
 
 class CotizacionProveedor(db.Model):
     __tablename__ = 'cotizaciones_proveedor'
-    id               = db.Column(db.Integer, primary_key=True)
-    numero           = db.Column(db.String(20))               # CP-YYYY-NNN
-    proveedor_id     = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
-    nombre_producto  = db.Column(db.String(200), nullable=False)
-    descripcion      = db.Column(db.Text)
-    sku              = db.Column(db.String(50))
-    precio_unitario  = db.Column(db.Float, default=0)
-    unidades_minimas = db.Column(db.Integer, default=1)
-    unidad           = db.Column(db.String(30), default='unidades')
-    plazo_entrega    = db.Column(db.String(100))   # ej: "5 días hábiles"
-    condiciones_pago = db.Column(db.String(200))   # ej: "30/60/90 días"
-    fecha_cotizacion = db.Column(db.Date)
-    vigencia         = db.Column(db.Date)
-    estado           = db.Column(db.String(20), default='vigente')  # vigente, vencida, en_revision
-    notas            = db.Column(db.Text)
-    creado_por       = db.Column(db.Integer, db.ForeignKey('users.id'))
-    creado_en        = db.Column(db.DateTime, default=datetime.utcnow)
-    proveedor        = db.relationship('Proveedor', foreign_keys=[proveedor_id])
+    id                    = db.Column(db.Integer, primary_key=True)
+    numero                = db.Column(db.String(20))               # CP-YYYY-NNN
+    proveedor_id          = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
+    tipo_cotizacion       = db.Column(db.String(20), default='general')  # granel, general
+    tipo_producto_servicio= db.Column(db.String(100))  # ej: materia prima, servicio logístico, empaque
+    nombre_producto       = db.Column(db.String(200), nullable=False)
+    descripcion           = db.Column(db.Text)
+    sku                   = db.Column(db.String(50))
+    precio_unitario       = db.Column(db.Float, default=0)
+    unidades_minimas      = db.Column(db.Integer, default=1)
+    unidad                = db.Column(db.String(30), default='unidades')
+    plazo_entrega         = db.Column(db.String(100))   # texto descriptivo legacy
+    plazo_entrega_dias    = db.Column(db.Integer, default=0)   # días hábiles (structured)
+    condiciones_pago      = db.Column(db.String(200))   # texto legacy
+    condicion_pago_tipo   = db.Column(db.String(30), default='contado')  # contado, credito, anticipo_saldo, consignacion
+    condicion_pago_dias   = db.Column(db.Integer, default=0)  # días de crédito
+    anticipo_porcentaje   = db.Column(db.Float, default=0)    # % anticipo si aplica
+    fecha_cotizacion      = db.Column(db.Date)
+    vigencia              = db.Column(db.Date)
+    estado                = db.Column(db.String(20), default='vigente')  # vigente, vencida, en_revision
+    notas                 = db.Column(db.Text)
+    calendario_integrado  = db.Column(db.Boolean, default=False)  # ya se agendó entrega al calendario
+    creado_por            = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en             = db.Column(db.DateTime, default=datetime.utcnow)
+    proveedor             = db.relationship('Proveedor', foreign_keys=[proveedor_id])
 
 class CotizacionGranel(db.Model):
     __tablename__ = 'cotizaciones_granel'
@@ -589,6 +604,8 @@ class OrdenProduccion(db.Model):
     creado_por        = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en         = db.Column(db.DateTime, default=datetime.utcnow)
     completado_en     = db.Column(db.DateTime, nullable=True)
+    fecha_inicio_real = db.Column(db.Date, nullable=True)      # v14 Gantt
+    fecha_fin_estimada= db.Column(db.Date, nullable=True)      # v14 Gantt
     producto          = db.relationship('Producto', foreign_keys=[producto_id])
     cotizacion        = db.relationship('Cotizacion', foreign_keys=[cotizacion_id])
     venta             = db.relationship('Venta', foreign_keys=[venta_id])
@@ -741,7 +758,10 @@ T['base.html'] = """<!DOCTYPE html>
     {% if 'clientes' in m %}
     <div class="sb-sec">Proveedores</div>
     <a href="{{ url_for('proveedores') }}" class="nav-link {% if request.endpoint in ['proveedores','proveedor_nuevo','proveedor_editar'] %}active{% endif %}"><i class="bi bi-truck"></i><span>Proveedores</span></a>
-    <a href="{{ url_for('cotizaciones_proveedor') }}" class="nav-link {% if 'cotizacion_proveedor' in request.endpoint or 'cotizaciones_proveedor' in request.endpoint %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-file-earmark-check"></i><span>Cot. Proveedor</span></a>
+    <a href="{{ url_for('proveedores', tipo_f='transportista') }}" class="nav-link {% if request.endpoint in ['proveedores'] and request.args.get('tipo_f')=='transportista' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-truck-front"></i><span>Transportistas</span></a>
+    <a href="{{ url_for('cotizaciones_proveedor') }}" class="nav-link {% if 'cotizacion_proveedor' in request.endpoint or 'cotizaciones_proveedor' in request.endpoint %}active{% endif %}"><i class="bi bi-file-earmark-check"></i><span>Cotizaciones</span></a>
+    <a href="{{ url_for('cotizaciones_proveedor', tipo='granel') }}" class="nav-link" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-building"></i><span>Granel</span></a>
+    <a href="{{ url_for('cotizaciones_proveedor', tipo='general') }}" class="nav-link" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-box"></i><span>General</span></a>
     <a href="{{ url_for('ordenes_compra') }}" class="nav-link {% if 'orden_compra' in request.endpoint %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-cart-check"></i><span>Órd. Compra</span></a>
     {% endif %}
     {% if 'inventario' in m or 'produccion' in m %}
@@ -1211,10 +1231,11 @@ T['ordenes_compra/index.html'] = """{% extends 'base.html' %}
 </div>
 <div class="tc"><div class="ch"><i class="bi bi-cart-check me-2"></i>{{ items|length }} orden(es) de compra</div>
 {% if items %}<div class="table-responsive"><table class="table">
-  <thead><tr><th>N°</th><th>Proveedor</th><th>Estado</th><th>Emisión</th><th>Entrega esp.</th><th>Total</th><th>Items</th><th></th></tr></thead>
+  <thead><tr><th>N°</th><th>Proveedor</th><th>Cotización</th><th>Estado</th><th>Emisión</th><th>Entrega esp.</th><th>Est. pago</th><th>Transportista</th><th>Total</th><th></th></tr></thead>
   <tbody>{% for oc in items %}<tr>
     <td class="fw-semibold" style="color:#1a1f36">{{ oc.numero or '—' }}</td>
     <td>{{ oc.proveedor.empresa or oc.proveedor.nombre if oc.proveedor else '—' }}</td>
+    <td>{% if oc.cotizacion_ref %}<small class="text-muted">{{ oc.cotizacion_ref.numero }}</small>{% else %}—{% endif %}</td>
     <td>
       {% if oc.estado=='borrador' %}<span class="badge bg-secondary">Borrador</span>
       {% elif oc.estado=='enviada' %}<span class="badge bg-primary">Enviada</span>
@@ -1222,9 +1243,10 @@ T['ordenes_compra/index.html'] = """{% extends 'base.html' %}
       {% else %}<span class="badge bg-danger">Cancelada</span>{% endif %}
     </td>
     <td><small>{{ oc.fecha_emision.strftime('%d/%m/%Y') if oc.fecha_emision else '—' }}</small></td>
-    <td><small>{{ oc.fecha_esperada.strftime('%d/%m/%Y') if oc.fecha_esperada else '—' }}</small></td>
+    <td>{% if oc.fecha_esperada %}<small class="{{ 'text-danger fw-semibold' if oc.fecha_esperada < now.date() and oc.estado != 'recibida' else '' }}">{{ oc.fecha_esperada.strftime('%d/%m/%Y') }}</small>{% else %}—{% endif %}</td>
+    <td><small class="text-muted">{{ oc.fecha_estimada_pago.strftime('%d/%m/%Y') if oc.fecha_estimada_pago else '—' }}</small></td>
+    <td>{% if oc.transportista %}<small><i class="bi bi-truck-front text-success me-1"></i>{{ oc.transportista.empresa or oc.transportista.nombre }}{% if oc.fecha_estimada_recogida %}<div class="text-muted" style="font-size:.72rem">Recogida: {{ oc.fecha_estimada_recogida.strftime('%d/%m/%Y') }}</div>{% endif %}</small>{% else %}<span class="text-muted">—</span>{% endif %}</td>
     <td class="fw-semibold">$ {{ '{:,.0f}'.format(oc.total).replace(',','.') }}</td>
-    <td><small class="text-muted">{{ oc.items|length }} ítem(s)</small></td>
     <td><div class="d-flex gap-1 flex-wrap">
       <a href="{{ url_for('orden_compra_editar', id=oc.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
       {% if oc.estado == 'borrador' %}
@@ -1233,9 +1255,9 @@ T['ordenes_compra/index.html'] = """{% extends 'base.html' %}
         <button class="btn btn-sm btn-outline-primary" title="Marcar como enviada"><i class="bi bi-send"></i></button>
       </form>
       {% elif oc.estado == 'enviada' %}
-      <form method="POST" action="{{ url_for('orden_compra_estado', id=oc.id) }}" class="d-inline">
+      <form method="POST" action="{{ url_for('orden_compra_estado', id=oc.id) }}" class="d-inline" onsubmit="return confirm('¿Marcar como recibida? Se agendará la entrega en el calendario.')">
         <input type="hidden" name="estado" value="recibida">
-        <button class="btn btn-sm btn-outline-success" title="Marcar como recibida"><i class="bi bi-box-arrow-in-down"></i></button>
+        <button class="btn btn-sm btn-outline-success" title="Marcar como recibida → agenda entrega en calendario"><i class="bi bi-box-arrow-in-down me-1"></i>Recibida</button>
       </form>
       {% endif %}
       <form method="POST" action="{{ url_for('orden_compra_eliminar', id=oc.id) }}" onsubmit="return confirm('¿Eliminar?')">
@@ -1250,27 +1272,67 @@ T['ordenes_compra/index.html'] = """{% extends 'base.html' %}
 T['ordenes_compra/form.html'] = """{% extends 'base.html' %}
 {% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('ordenes_compra') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
-{% block content %}<div class="fc" style="max-width:960px"><form method="POST">
+{% block content %}<div class="fc" style="max-width:1040px"><form method="POST">
+<h6 class="text-muted text-uppercase mb-3" style="font-size:.75rem;letter-spacing:1px">Información general</h6>
 <div class="row g-3 mb-3">
   <div class="col-md-4"><label class="form-label">Proveedor</label>
-    <select name="proveedor_id" class="form-select">
+    <select name="proveedor_id" class="form-select" id="selectProv">
       <option value="">— Sin proveedor —</option>
       {% for pv in proveedores_list %}<option value="{{ pv.id }}" {% if obj and obj.proveedor_id==pv.id %}selected{% endif %}>{{ pv.empresa or pv.nombre }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-4"><label class="form-label">Cotización de referencia <small class="text-muted">(calcula fecha entrega)</small></label>
+    <select name="cotizacion_id" class="form-select" id="selectCot" onchange="onCotChange()">
+      <option value="">— Sin cotización —</option>
+      {% for c in cotizaciones_list %}<option value="{{ c.id }}"
+        data-plazo="{{ c.plazo_entrega_dias or 0 }}"
+        data-prov="{{ c.proveedor_id or '' }}"
+        data-nombre="{{ c.nombre_producto }}"
+        data-precio="{{ c.precio_unitario }}"
+        data-unidad="{{ c.unidad }}"
+        data-cond="{{ c.condicion_pago_tipo }}"
+        {% if obj and obj.cotizacion_id==c.id %}selected{% endif %}>
+        {{ c.numero or '' }} — {{ c.nombre_producto }} ({{ c.proveedor.empresa if c.proveedor else '—' }})
+      </option>{% endfor %}
     </select></div>
   <div class="col-md-2"><label class="form-label">Estado</label>
     <select name="estado" class="form-select">
       {% for est,lbl in [('borrador','Borrador'),('enviada','Enviada'),('recibida','Recibida'),('cancelada','Cancelada')] %}
       <option value="{{ est }}" {% if obj and obj.estado==est %}selected{% elif not obj and est=='borrador' %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
     </select></div>
+</div>
+<div class="row g-3 mb-3">
   <div class="col-md-3"><label class="form-label">Fecha emisión</label>
-    <input type="date" name="fecha_emision" class="form-control" value="{{ obj.fecha_emision.strftime('%Y-%m-%d') if obj and obj.fecha_emision else today }}"></div>
-  <div class="col-md-3"><label class="form-label">Fecha entrega esperada</label>
-    <input type="date" name="fecha_esperada" class="form-control" value="{{ obj.fecha_esperada.strftime('%Y-%m-%d') if obj and obj.fecha_esperada else '' }}"></div>
+    <input type="date" name="fecha_emision" id="fechaEmision" class="form-control" value="{{ obj.fecha_emision.strftime('%Y-%m-%d') if obj and obj.fecha_emision else today }}" oninput="calcFechaEntrega()"></div>
+  <div class="col-md-3"><label class="form-label">Fecha entrega esperada <small class="text-muted" id="plazoHint"></small></label>
+    <input type="date" name="fecha_esperada" id="fechaEsperada" class="form-control" value="{{ obj.fecha_esperada.strftime('%Y-%m-%d') if obj and obj.fecha_esperada else '' }}"></div>
+  <div class="col-md-3"><label class="form-label">Fecha estimada pago</label>
+    <input type="date" name="fecha_estimada_pago" class="form-control" value="{{ obj.fecha_estimada_pago.strftime('%Y-%m-%d') if obj and obj.fecha_estimada_pago else '' }}"></div>
+</div>
+<!-- Info de condición de pago desde cotización -->
+<div id="condPagoInfo" class="alert alert-info py-2 mb-3" style="display:none;font-size:.85rem">
+  <i class="bi bi-credit-card me-2"></i><span id="condPagoText"></span>
+</div>
+<hr class="my-3">
+<h6 class="text-muted text-uppercase mb-3" style="font-size:.75rem;letter-spacing:1px">Transportista y logística</h6>
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><label class="form-label">Transportista</label>
+    <select name="transportista_id" class="form-select" id="selectTrans">
+      <option value="">— Sin transportista —</option>
+      {% for t in transportistas_list %}<option value="{{ t.id }}" {% if obj and obj.transportista_id==t.id %}selected{% endif %}>{{ t.empresa or t.nombre }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-3"><label class="form-label">Fecha estimada recogida</label>
+    <input type="date" name="fecha_estimada_recogida" id="fechaRecogida" class="form-control" value="{{ obj.fecha_estimada_recogida.strftime('%Y-%m-%d') if obj and obj.fecha_estimada_recogida else '' }}"></div>
+  <div class="col-md-5"><div class="alert alert-warning py-2 mb-0 mt-4" style="font-size:.82rem" id="transAlert" {% if not (obj and obj.transportista_id) %}style="display:none"{% endif %}>
+    <i class="bi bi-exclamation-triangle me-1"></i>Al guardar se creará automáticamente una <strong>tarea</strong> para contactar al transportista 2 días antes de la recogida.</div></div>
 </div>
 <hr class="my-3">
 <div class="d-flex justify-content-between align-items-center mb-2">
   <h6 class="text-muted mb-0 text-uppercase" style="letter-spacing:1px;font-size:.75rem">Ítems de la orden</h6>
-  <button type="button" class="btn btn-sm btn-outline-primary" onclick="addItem()"><i class="bi bi-plus-lg me-1"></i>Agregar ítem</button>
+  <div class="d-flex gap-2">
+    <button type="button" class="btn btn-sm btn-outline-success" onclick="importarDesdeCot()" id="btnImportCot" {% if not cotizaciones_list %}disabled{% endif %} title="Importar ítem desde cotización seleccionada">
+      <i class="bi bi-cloud-download me-1"></i>Importar de cotización</button>
+    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addItem()"><i class="bi bi-plus-lg me-1"></i>Agregar ítem manual</button>
+  </div>
 </div>
 <div id="itemsContainer"></div>
 <div class="mt-3 mb-4"><div class="row g-2 justify-content-end"><div class="col-md-4">
@@ -1281,7 +1343,7 @@ T['ordenes_compra/form.html'] = """{% extends 'base.html' %}
 <input type="hidden" name="subtotal_calc" id="subtotalCalc">
 <input type="hidden" name="iva_calc" id="ivaCalc">
 <input type="hidden" name="total_calc" id="totalCalc">
-<div class="col-12"><label class="form-label">Notas</label>
+<div class="mb-3"><label class="form-label">Notas</label>
   <textarea name="notas" class="form-control" rows="2">{{ obj.notas if obj else '' }}</textarea></div>
 <div class="d-flex gap-2 mt-4">
   <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear Orden' }}</button>
@@ -1291,6 +1353,7 @@ T['ordenes_compra/form.html'] = """{% extends 'base.html' %}
 var ITEMS_EDIT = {{ items_json|tojson }};
 var UNIDADES = ['unidades','kg','g','litros','ml','libras','galones','metros','cm','piezas','cajas','bolsas'];
 function fmt(n){return'$ '+Math.round(n).toLocaleString('es-CO');}
+
 function recalc(){
   var sub=0;
   document.querySelectorAll('.oc-row').forEach(function(row){
@@ -1307,13 +1370,15 @@ function recalc(){
   document.getElementById('ivaCalc').value=iva.toFixed(2);
   document.getElementById('totalCalc').value=tot.toFixed(2);
 }
+
 function addItem(d){
   d=d||{};
   var unOpts=UNIDADES.map(function(u){return'<option value="'+u+'"'+(d.unidad===u?' selected':'')+'>'+u+'</option>';}).join('');
-  var html='<div class="oc-row row g-2 mb-2 align-items-end">'
+  var html='<div class="oc-row row g-2 mb-2 align-items-end" style="background:#f8f9fe;border-radius:8px;padding:.5rem">'
+    +'<input type="hidden" name="item_cot_id[]" value="'+(d.cot_id||'')+'"/>'
     +'<div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Ítem *</label>'
     +'<input type="text" name="item_nombre[]" class="form-control form-control-sm" value="'+(d.nombre||'')+'" required></div>'
-    +'<div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Descripción</label>'
+    +'<div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Descripción</label>'
     +'<input type="text" name="item_desc[]" class="form-control form-control-sm" value="'+(d.desc||'')+'"></div>'
     +'<div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Cant.</label>'
     +'<input type="number" name="item_cant[]" data-f="cant" class="form-control form-control-sm" step="0.001" min="0.001" value="'+(d.cant||1)+'" oninput="recalc()"></div>'
@@ -1324,37 +1389,111 @@ function addItem(d){
     +'<div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Subtotal</label>'
     +'<span class="form-control-plaintext form-control-sm fw-semibold" data-f="sub" style="font-size:.82rem">$ 0</span></div>'
     +'<div class="col-auto d-flex align-items-end"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest(\'.oc-row\').remove();recalc()"><i class="bi bi-trash"></i></button></div>'
+    +(d.cot_id ? '<div class="col-12"><small class="text-success"><i class="bi bi-link-45deg me-1"></i>Vinculado a cotización</small></div>' : '')
     +'</div>';
   document.getElementById('itemsContainer').insertAdjacentHTML('beforeend',html);
   recalc();
 }
-// Cargar items si editando
+
+function onCotChange(){
+  var sel=document.getElementById('selectCot');
+  var opt=sel.options[sel.selectedIndex];
+  if(!opt||!opt.value){ document.getElementById('condPagoInfo').style.display='none'; return; }
+  var plazo=parseInt(opt.dataset.plazo)||0;
+  var prov=opt.dataset.prov;
+  var cond=opt.dataset.cond;
+  // Auto-fill proveedor if empty
+  if(prov && !document.getElementById('selectProv').value){
+    document.getElementById('selectProv').value=prov;
+  }
+  // Recalculate delivery date
+  calcFechaEntrega();
+  // Show payment condition info
+  var condTexts={'contado':'Pago de contado al recibir','credito':'Pago a crédito','anticipo_saldo':'Anticipo + saldo contra entrega','consignacion':'Pago por consignación'};
+  document.getElementById('condPagoText').textContent='Condición de pago: '+(condTexts[cond]||cond);
+  document.getElementById('condPagoInfo').style.display='';
+}
+
+function calcFechaEntrega(){
+  var sel=document.getElementById('selectCot');
+  var opt=sel&&sel.options[sel.selectedIndex];
+  var plazo=opt&&opt.dataset?parseInt(opt.dataset.plazo)||0:0;
+  if(!plazo) return;
+  var feVal=document.getElementById('fechaEmision').value;
+  if(!feVal) return;
+  var fe=new Date(feVal+'T12:00:00');
+  fe.setDate(fe.getDate()+plazo);
+  var yy=fe.getFullYear();
+  var mm=String(fe.getMonth()+1).padStart(2,'0');
+  var dd=String(fe.getDate()).padStart(2,'0');
+  document.getElementById('fechaEsperada').value=yy+'-'+mm+'-'+dd;
+  document.getElementById('plazoHint').textContent='(auto: '+plazo+'d desde emisión)';
+}
+
+function importarDesdeCot(){
+  var sel=document.getElementById('selectCot');
+  var opt=sel.options[sel.selectedIndex];
+  if(!opt||!opt.value){alert('Selecciona una cotización primero.');return;}
+  addItem({
+    nombre: opt.dataset.nombre||'',
+    desc: '',
+    cant: 1,
+    unidad: opt.dataset.unidad||'unidades',
+    precio: parseFloat(opt.dataset.precio)||0,
+    cot_id: opt.value
+  });
+}
+
+// Transportista alert
+document.getElementById('selectTrans').addEventListener('change',function(){
+  document.getElementById('transAlert').style.display=this.value?'':'none';
+});
+
+// Init
 ITEMS_EDIT.forEach(function(it){addItem(it);});
 if(ITEMS_EDIT.length===0) addItem();
+onCotChange();
 </script>{% endblock %}{% endblock %}"""
 
 T['proveedores/index.html'] = """{% extends 'base.html' %}
-{% block title %}Proveedores{% endblock %}{% block page_title %}Proveedores{% endblock %}
+{% block title %}Proveedores{% endblock %}{% block page_title %}Proveedores y Transportistas{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('proveedor_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo</a>{% endblock %}
 {% block content %}
 <div class="tc mb-3"><div class="p-3"><form method="GET" class="row g-2 align-items-end">
   <div class="col-sm-4"><input type="text" name="buscar" class="form-control form-control-sm" placeholder="Nombre, empresa, NIT..." value="{{ busqueda }}"></div>
+  <div class="col-sm-3">
+    <select name="tipo_f" class="form-select form-select-sm">
+      <option value="">Todos los tipos</option>
+      {% for v,l in [('proveedor','Proveedores'),('transportista','Transportistas'),('ambos','Proveedor + Transportista')] %}
+      <option value="{{ v }}" {% if request.args.get('tipo_f')==v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+    </select></div>
   <div class="col-auto">
     <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
     <a href="{{ url_for('proveedores') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
   </div>
 </form></div></div>
-<div class="tc"><div class="ch"><i class="bi bi-truck me-2"></i>{{ items|length }} proveedor(es)</div>
+<!-- Resumen por tipo -->
+<div class="row g-2 mb-3">
+  {% set n_prov = items|selectattr('tipo','equalto','proveedor')|list|length + items|selectattr('tipo','equalto','ambos')|list|length %}
+  {% set n_trans = items|selectattr('tipo','equalto','transportista')|list|length + items|selectattr('tipo','equalto','ambos')|list|length %}
+  <div class="col-auto"><div class="fc px-3 py-2 d-flex gap-2 align-items-center"><i class="bi bi-truck text-primary"></i><span class="fw-semibold">{{ n_prov }}</span><small class="text-muted">proveedores</small></div></div>
+  <div class="col-auto"><div class="fc px-3 py-2 d-flex gap-2 align-items-center"><i class="bi bi-truck-front text-success"></i><span class="fw-semibold">{{ n_trans }}</span><small class="text-muted">transportistas</small></div></div>
+</div>
+<div class="tc"><div class="ch"><i class="bi bi-truck me-2"></i>{{ items|length }} registro(s)</div>
 {% if items %}<div class="table-responsive"><table class="table">
-  <thead><tr><th>Empresa</th><th>NIT</th><th>Categoría</th><th>Email</th><th>Teléfono</th><th>Alta</th><th></th></tr></thead>
+  <thead><tr><th>Empresa / Nombre</th><th>Tipo</th><th>NIT</th><th>Categoría</th><th>Email</th><th>Teléfono</th><th></th></tr></thead>
   <tbody>{% for p in items %}<tr>
     <td><span class="fw-semibold" style="color:#1a1f36">{{ p.empresa or p.nombre }}</span>
       {% if p.empresa %}<div><small class="text-muted">{{ p.nombre }}</small></div>{% endif %}</td>
+    <td>
+      {% if p.tipo == 'transportista' %}<span class="badge bg-success">Transportista</span>
+      {% elif p.tipo == 'ambos' %}<span class="badge bg-primary">Prov. + Transp.</span>
+      {% else %}<span class="badge bg-secondary">Proveedor</span>{% endif %}
+    </td>
     <td><small class="text-muted">{{ p.nit or '—' }}</small></td>
     <td><small>{{ p.categoria or '—' }}</small></td>
     <td><small>{{ p.email or '—' }}</small></td>
     <td><small>{{ p.telefono or '—' }}</small></td>
-    <td><small class="text-muted">{{ p.creado_en.strftime('%d/%m/%Y') }}</small></td>
     <td><div class="d-flex gap-1">
       <a href="{{ url_for('proveedor_editar', id=p.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
       <form method="POST" action="{{ url_for('proveedor_eliminar', id=p.id) }}" onsubmit="return confirm('¿Eliminar?')">
@@ -1363,32 +1502,47 @@ T['proveedores/index.html'] = """{% extends 'base.html' %}
   </tr>{% endfor %}</tbody>
 </table></div>
 {% else %}<div class="text-center text-muted py-5"><i class="bi bi-truck" style="font-size:3rem"></i>
-  <p class="mt-3">Sin proveedores.</p><a href="{{ url_for('proveedor_nuevo') }}" class="btn btn-primary">Agregar</a></div>
+  <p class="mt-3">Sin registros.</p><a href="{{ url_for('proveedor_nuevo') }}" class="btn btn-primary">Agregar</a></div>
 {% endif %}</div>{% endblock %}"""
 
 T['proveedores/form.html'] = """{% extends 'base.html' %}
 {% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('proveedores') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
 {% block content %}<div class="fc" style="max-width:900px"><form method="POST">
-<h6 class="text-muted mb-3 text-uppercase" style="letter-spacing:1px;font-size:.75rem">Información del proveedor</h6>
+<h6 class="text-muted mb-3 text-uppercase" style="letter-spacing:1px;font-size:.75rem">Tipo de registro</h6>
+<div class="row g-3 mb-3">
+  <div class="col-12">
+    <div class="d-flex gap-3 flex-wrap">
+      {% for v,ic,col,lbl,desc in [('proveedor','bi-truck','secondary','Proveedor','Vende o suministra productos/materias primas'),('transportista','bi-truck-front','success','Transportista','Presta servicios de logística y transporte'),('ambos','bi-boxes','primary','Proveedor + Transportista','Cumple ambas funciones')] %}
+      <label class="d-flex align-items-center gap-2 p-3 rounded border" style="cursor:pointer;flex:1;min-width:180px;max-width:260px">
+        <input type="radio" name="tipo" value="{{ v }}" {% if (obj and obj.tipo==v) or (not obj and v=='proveedor') %}checked{% endif %}>
+        <i class="bi {{ ic }} text-{{ col }}" style="font-size:1.3rem"></i>
+        <div><div class="fw-semibold">{{ lbl }}</div><small class="text-muted">{{ desc }}</small></div>
+      </label>{% endfor %}
+    </div>
+  </div>
+</div>
+<h6 class="text-muted mb-2 text-uppercase" style="letter-spacing:1px;font-size:.75rem">Información general</h6>
 <div class="row g-3 mb-4">
-  <div class="col-md-6"><label class="form-label">Empresa *</label>
+  <div class="col-md-4"><label class="form-label">Nombre contacto</label>
+    <input type="text" name="nombre" class="form-control" value="{{ obj.nombre if obj else '' }}"></div>
+  <div class="col-md-5"><label class="form-label">Empresa *</label>
     <input type="text" name="empresa" class="form-control" value="{{ obj.empresa if obj else '' }}" required></div>
   <div class="col-md-3"><label class="form-label">NIT</label>
     <input type="text" name="nit" class="form-control" placeholder="900.123.456-7" value="{{ obj.nit if obj else '' }}"></div>
-  <div class="col-md-3"><label class="form-label">Categoría</label>
-    <input type="text" name="categoria" class="form-control" placeholder="Ej: insumos, empaque..." value="{{ obj.categoria if obj else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Categoría</label>
+    <input type="text" name="categoria" class="form-control" placeholder="Ej: insumos, logística..." value="{{ obj.categoria if obj else '' }}"></div>
   <div class="col-md-4"><label class="form-label">Email</label>
     <input type="email" name="email" class="form-control" value="{{ obj.email if obj else '' }}"></div>
   <div class="col-md-4"><label class="form-label">Teléfono</label>
     <input type="text" name="telefono" class="form-control" value="{{ obj.telefono if obj else '' }}"></div>
-  <div class="col-md-4"><label class="form-label">Dirección</label>
+  <div class="col-12"><label class="form-label">Dirección</label>
     <input type="text" name="direccion" class="form-control" value="{{ obj.direccion if obj else '' }}"></div>
   <div class="col-12"><label class="form-label">Notas</label>
     <textarea name="notas" class="form-control" rows="2">{{ obj.notas if obj else '' }}</textarea></div>
 </div>
 <div class="d-flex gap-2 mt-4">
-  <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear Proveedor' }}</button>
+  <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear' }}</button>
   <a href="{{ url_for('proveedores') }}" class="btn btn-outline-secondary">Cancelar</a>
 </div></form></div>{% endblock %}"""
 
@@ -3623,23 +3777,46 @@ document.querySelectorAll('.item-row .btn-outline-danger').forEach(function(b){
 
 # ── COTIZACIONES PROVEEDOR TEMPLATES ──────────────────────────
 T['proveedores/cotizaciones.html'] = """{% extends 'base.html' %}
-{% block title %}Cotizaciones Proveedor{% endblock %}{% block page_title %}Cotizaciones de Proveedores{% endblock %}
-{% block topbar_actions %}<a href="{{ url_for('cotizacion_proveedor_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva</a>{% endblock %}
+{% block title %}Cotizaciones Proveedores{% endblock %}{% block page_title %}Cotizaciones de Proveedores{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('cotizacion_proveedor_nueva', tipo='granel') }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva Granel</a>
+<a href="{{ url_for('cotizacion_proveedor_nueva', tipo='general') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva General</a>
+{% endblock %}
 {% block content %}
-<div class="mb-3 d-flex gap-2 flex-wrap">
-  {% for est,lbl in [('','Todas'),('vigente','Vigentes'),('vencida','Vencidas'),('en_revision','En revisión')] %}
-  <a href="{{ url_for('cotizaciones_proveedor', estado=est) }}" class="btn btn-sm {{ 'btn-primary' if estado_f==est else 'btn-outline-secondary' }}">{{ lbl }}</a>{% endfor %}
+<!-- Tabs Granel / General -->
+<div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
+  <a href="{{ url_for('cotizaciones_proveedor') }}" class="btn btn-sm {{ 'btn-dark' if not tipo_f else 'btn-outline-secondary' }}">
+    <i class="bi bi-grid me-1"></i>Todas <span class="badge bg-secondary ms-1">{{ (totales.granel or 0) + (totales.general or 0) }}</span></a>
+  <a href="{{ url_for('cotizaciones_proveedor', tipo='granel') }}" class="btn btn-sm {{ 'btn-warning' if tipo_f=='granel' else 'btn-outline-warning' }}">
+    <i class="bi bi-building me-1"></i>Granel <span class="badge bg-secondary ms-1">{{ totales.granel or 0 }}</span></a>
+  <a href="{{ url_for('cotizaciones_proveedor', tipo='general') }}" class="btn btn-sm {{ 'btn-info' if tipo_f=='general' else 'btn-outline-info' }}">
+    <i class="bi bi-box me-1"></i>General <span class="badge bg-secondary ms-1">{{ totales.general or 0 }}</span></a>
+  <span class="text-muted ms-2" style="font-size:.8rem">|</span>
+  {% for est,lbl in [('','Todos estados'),('vigente','Vigentes'),('vencida','Vencidas'),('en_revision','En revisión')] %}
+  <a href="{{ url_for('cotizaciones_proveedor', tipo=tipo_f, estado=est) }}" class="btn btn-sm {{ 'btn-primary' if estado_f==est else 'btn-outline-secondary' }}">{{ lbl }}</a>{% endfor %}
 </div>
-<div class="tc"><div class="ch"><i class="bi bi-file-earmark-check me-2"></i>{{ items|length }} cotización(es)</div>
+<div class="tc"><div class="ch d-flex align-items-center gap-2">
+  <i class="bi bi-file-earmark-check me-1"></i>{{ items|length }} cotización(es)
+  {% if tipo_f %}<span class="badge {{ 'bg-warning text-dark' if tipo_f=='granel' else 'bg-info text-dark' }} ms-2">{{ tipo_f.title() }}</span>{% endif %}
+</div>
 {% if items %}<div class="table-responsive"><table class="table">
-  <thead><tr><th>N°</th><th>Producto</th><th>Proveedor</th><th>P. Unit.</th><th>Mín.</th><th>Plazo</th><th>Vigencia</th><th>Estado</th><th></th></tr></thead>
+  <thead><tr><th>N°</th><th>Tipo</th><th>Producto / Servicio</th><th>Proveedor</th><th>P. Unit.</th><th>Plazo</th><th>Condición Pago</th><th>Vigencia</th><th>Estado</th><th></th></tr></thead>
   <tbody>{% for c in items %}<tr>
     <td><small class="fw-semibold text-muted">{{ c.numero or '—' }}</small></td>
+    <td><span class="badge {{ 'bg-warning text-dark' if c.tipo_cotizacion=='granel' else 'bg-info text-dark' }}">{{ c.tipo_cotizacion.title() }}</span>
+      {% if c.tipo_producto_servicio %}<div><small class="text-muted">{{ c.tipo_producto_servicio }}</small></div>{% endif %}</td>
     <td><span class="fw-semibold">{{ c.nombre_producto }}</span>{% if c.sku %}<div><small class="text-muted">SKU: {{ c.sku }}</small></div>{% endif %}</td>
     <td>{{ c.proveedor.empresa or c.proveedor.nombre if c.proveedor else '—' }}</td>
-    <td class="fw-semibold">$ {{ '{:,.0f}'.format(c.precio_unitario).replace(',','.') }}</td>
-    <td><small>{{ c.unidades_minimas }} {{ c.unidad }}</small></td>
-    <td><small class="text-muted">{{ c.plazo_entrega or '—' }}</small></td>
+    <td class="fw-semibold">$ {{ '{:,.0f}'.format(c.precio_unitario).replace(',','.') }}
+      <div><small class="text-muted">{{ c.unidades_minimas }} {{ c.unidad }} mín.</small></div></td>
+    <td>{% if c.plazo_entrega_dias %}<span class="badge bg-light text-dark border">{{ c.plazo_entrega_dias }} días</span>{% else %}<small class="text-muted">{{ c.plazo_entrega or '—' }}</small>{% endif %}</td>
+    <td>
+      {% if c.condicion_pago_tipo == 'contado' %}<span class="badge bg-success">Contado</span>
+      {% elif c.condicion_pago_tipo == 'credito' %}<span class="badge bg-primary">Crédito {{ c.condicion_pago_dias }}d</span>
+      {% elif c.condicion_pago_tipo == 'anticipo_saldo' %}<span class="badge bg-warning text-dark">{{ c.anticipo_porcentaje|int }}% anticipo</span>
+      {% elif c.condicion_pago_tipo == 'consignacion' %}<span class="badge bg-info text-dark">Consignación</span>
+      {% else %}<small class="text-muted">{{ c.condiciones_pago or '—' }}</small>{% endif %}
+    </td>
     <td>{% if c.vigencia %}<small class="{{ 'text-danger fw-semibold' if c.vigencia < now.date() else 'text-muted' }}">{{ c.vigencia.strftime('%d/%m/%Y') }}</small>{% else %}—{% endif %}</td>
     <td><span class="b b-{{ c.estado }}">{{ c.estado.replace('_',' ').title() }}</span></td>
     <td><div class="d-flex gap-1">
@@ -3650,20 +3827,43 @@ T['proveedores/cotizaciones.html'] = """{% extends 'base.html' %}
   </tr>{% endfor %}</tbody>
 </table></div>
 {% else %}<div class="text-center text-muted py-5"><i class="bi bi-file-earmark-check" style="font-size:3rem"></i>
-  <p class="mt-3">Sin cotizaciones de proveedores.</p></div>
+  <p class="mt-3">Sin cotizaciones{% if tipo_f %} de tipo <strong>{{ tipo_f }}</strong>{% endif %}.</p>
+  <a href="{{ url_for('cotizacion_proveedor_nueva', tipo=tipo_f or 'general') }}" class="btn btn-primary btn-sm">Crear primera cotización</a></div>
 {% endif %}</div>{% endblock %}"""
 
 T['proveedores/cotizacion_form.html'] = """{% extends 'base.html' %}
 {% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('cotizaciones_proveedor') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
-{% block content %}<div class="fc" style="max-width:900px"><form method="POST">
+{% block content %}<div class="fc" style="max-width:960px"><form method="POST">
+<!-- Tipo de cotización -->
 <div class="row g-3 mb-3">
-  <div class="col-md-6"><label class="form-label">Nombre del producto / ítem *</label>
+  <div class="col-12">
+    <label class="form-label fw-bold">Tipo de cotización *</label>
+    <div class="d-flex gap-3 mt-1" id="tipoBtns">
+      <label class="d-flex align-items-center gap-2 p-3 rounded border cursor-pointer tipo-opt {{ 'border-warning bg-warning bg-opacity-10' if (obj and obj.tipo_cotizacion=='granel') or (not obj and tipo_default=='granel') else '' }}" style="cursor:pointer;flex:1;max-width:240px" onclick="setTipo('granel',this)">
+        <input type="radio" name="tipo_cotizacion" value="granel" class="d-none" {% if (obj and obj.tipo_cotizacion=='granel') or (not obj and tipo_default=='granel') %}checked{% endif %}>
+        <i class="bi bi-building text-warning" style="font-size:1.4rem"></i>
+        <div><div class="fw-semibold">Granel / Materia Prima</div><small class="text-muted">Compras de materias primas a granel o grandes volúmenes</small></div>
+      </label>
+      <label class="d-flex align-items-center gap-2 p-3 rounded border cursor-pointer tipo-opt {{ 'border-info bg-info bg-opacity-10' if (obj and obj.tipo_cotizacion=='general') or (not obj and tipo_default=='general') else '' }}" style="cursor:pointer;flex:1;max-width:240px" onclick="setTipo('general',this)">
+        <input type="radio" name="tipo_cotizacion" value="general" class="d-none" {% if (obj and obj.tipo_cotizacion=='general') or (not obj and tipo_default=='general') %}checked{% endif %}>
+        <i class="bi bi-box text-info" style="font-size:1.4rem"></i>
+        <div><div class="fw-semibold">General / Servicio</div><small class="text-muted">Productos terminados, servicios, insumos, empaques, etc.</small></div>
+      </label>
+    </div>
+  </div>
+  <div class="col-md-4"><label class="form-label">Tipo de producto / servicio</label>
+    <input type="text" name="tipo_producto_servicio" class="form-control" placeholder="Ej: materia prima, empaque, logística..." value="{{ obj.tipo_producto_servicio if obj else '' }}"></div>
+  <div class="col-md-5"><label class="form-label">Nombre del producto / ítem *</label>
     <input type="text" name="nombre_producto" class="form-control" value="{{ obj.nombre_producto if obj else '' }}" required></div>
   <div class="col-md-3"><label class="form-label">SKU</label>
     <input type="text" name="sku" class="form-control" value="{{ obj.sku if obj else '' }}"></div>
-  <div class="col-md-3"><label class="form-label">Descripción</label>
+  <div class="col-12"><label class="form-label">Descripción</label>
     <input type="text" name="descripcion" class="form-control" value="{{ obj.descripcion if obj else '' }}"></div>
+</div>
+<hr class="my-3">
+<h6 class="text-muted text-uppercase mb-3" style="font-size:.75rem;letter-spacing:1px">Proveedor y precio</h6>
+<div class="row g-3 mb-3">
   <div class="col-md-6"><label class="form-label">Proveedor</label>
     <select name="proveedor_id" class="form-select">
       <option value="">— Sin proveedor —</option>
@@ -3672,16 +3872,41 @@ T['proveedores/cotizacion_form.html'] = """{% extends 'base.html' %}
   <div class="col-md-3"><label class="form-label">Precio unitario COP</label>
     <div class="input-group"><span class="input-group-text">$</span>
       <input type="number" name="precio_unitario" class="form-control" step="1" min="0" value="{{ obj.precio_unitario|int if obj else '0' }}"></div></div>
-  <div class="col-md-3"><label class="form-label">Mín. unidades</label>
-    <div class="input-group"><input type="number" name="unidades_minimas" class="form-control" min="1" value="{{ obj.unidades_minimas if obj else '1' }}">
-      <select name="unidad" class="form-select" style="max-width:120px">
+  <div class="col-md-3"><label class="form-label">Unidades mínimas</label>
+    <div class="input-group">
+      <input type="number" name="unidades_minimas" class="form-control" min="1" value="{{ obj.unidades_minimas if obj else '1' }}">
+      <select name="unidad" class="form-select" style="max-width:110px">
         {% for u in ['unidades','kg','g','litros','ml','piezas','cajas','metros'] %}
         <option value="{{ u }}" {% if obj and obj.unidad==u %}selected{% endif %}>{{ u }}</option>{% endfor %}
       </select></div></div>
-  <div class="col-md-6"><label class="form-label">Plazo de entrega</label>
+</div>
+<hr class="my-3">
+<h6 class="text-muted text-uppercase mb-3" style="font-size:.75rem;letter-spacing:1px">Plazos y condiciones de pago</h6>
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><label class="form-label">Plazo de entrega (días) *</label>
+    <div class="input-group">
+      <input type="number" name="plazo_entrega_dias" class="form-control" min="0" placeholder="0" value="{{ obj.plazo_entrega_dias if obj else '0' }}" id="plazoDias" oninput="updatePlazoText()">
+      <span class="input-group-text">días</span></div>
+    <small class="text-muted" id="plazoDiasLabel">Se calculará desde la fecha de recepción de OC</small></div>
+  <div class="col-md-3"><label class="form-label">Descripción del plazo</label>
     <input type="text" name="plazo_entrega" class="form-control" placeholder="Ej: 5 días hábiles" value="{{ obj.plazo_entrega if obj else '' }}"></div>
-  <div class="col-md-6"><label class="form-label">Condiciones de pago</label>
-    <input type="text" name="condiciones_pago" class="form-control" placeholder="Ej: 50% anticipo, 50% entrega" value="{{ obj.condiciones_pago if obj else '' }}"></div>
+  <div class="col-md-3"><label class="form-label">Condición de pago</label>
+    <select name="condicion_pago_tipo" class="form-select" id="condPagoTipo" onchange="togglePagoFields()">
+      {% for v,l in [('contado','Contado'),('credito','Crédito'),('anticipo_saldo','Anticipo + Saldo'),('consignacion','Consignación')] %}
+      <option value="{{ v }}" {% if obj and obj.condicion_pago_tipo==v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-3" id="creditoDiasField" style="{{ 'display:none' if not (obj and obj.condicion_pago_tipo=='credito') else '' }}">
+    <label class="form-label">Días de crédito</label>
+    <div class="input-group"><input type="number" name="condicion_pago_dias" class="form-control" min="0" placeholder="30" value="{{ obj.condicion_pago_dias if obj else '30' }}"><span class="input-group-text">días</span></div></div>
+  <div class="col-md-3" id="anticipoField" style="{{ 'display:none' if not (obj and obj.condicion_pago_tipo=='anticipo_saldo') else '' }}">
+    <label class="form-label">% Anticipo</label>
+    <div class="input-group"><input type="number" name="anticipo_porcentaje" class="form-control" min="0" max="100" placeholder="50" value="{{ obj.anticipo_porcentaje|int if obj else '50' }}"><span class="input-group-text">%</span></div></div>
+  <div class="col-md-6"><label class="form-label">Notas condición de pago</label>
+    <input type="text" name="condiciones_pago" class="form-control" placeholder="Notas adicionales..." value="{{ obj.condiciones_pago if obj else '' }}"></div>
+</div>
+<hr class="my-3">
+<h6 class="text-muted text-uppercase mb-3" style="font-size:.75rem;letter-spacing:1px">Vigencia y estado</h6>
+<div class="row g-3 mb-3">
   <div class="col-md-4"><label class="form-label">Fecha cotización</label>
     <input type="date" name="fecha_cotizacion" class="form-control" value="{{ obj.fecha_cotizacion.strftime('%Y-%m-%d') if obj and obj.fecha_cotizacion else today }}"></div>
   <div class="col-md-4"><label class="form-label">Vigencia hasta</label>
@@ -3697,7 +3922,29 @@ T['proveedores/cotizacion_form.html'] = """{% extends 'base.html' %}
 <div class="d-flex gap-2 mt-4">
   <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Guardar Cotización' }}</button>
   <a href="{{ url_for('cotizaciones_proveedor') }}" class="btn btn-outline-secondary">Cancelar</a>
-</div></form></div>{% endblock %}"""
+</div></form></div>
+{% block scripts %}<script>
+function setTipo(val, el){
+  document.querySelectorAll('.tipo-opt').forEach(function(e){
+    e.classList.remove('border-warning','bg-warning','bg-opacity-10','border-info','bg-info');
+  });
+  if(val==='granel'){ el.classList.add('border-warning','bg-warning','bg-opacity-10'); }
+  else { el.classList.add('border-info','bg-info','bg-opacity-10'); }
+  el.querySelector('input[type=radio]').checked=true;
+}
+function togglePagoFields(){
+  var t=document.getElementById('condPagoTipo').value;
+  document.getElementById('creditoDiasField').style.display = (t==='credito')?'':'none';
+  document.getElementById('anticipoField').style.display = (t==='anticipo_saldo')?'':'none';
+}
+function updatePlazoText(){
+  var d=parseInt(document.getElementById('plazoDias').value)||0;
+  var msg = d>0 ? 'Al recibir la OC, se agendará la entrega en '+d+' días en el calendario.' : 'Se calculará desde la fecha de recepción de OC';
+  document.getElementById('plazoDiasLabel').textContent=msg;
+}
+togglePagoFields();
+updatePlazoText();
+</script>{% endblock %}{% endblock %}"""
 
 # ── LEGAL TEMPLATES ────────────────────────────────────────────
 T['legal/index.html'] = """{% extends 'base.html' %}
@@ -4658,7 +4905,7 @@ function prepCompletar(btn){
 {% endblock %}"""
 
 T['produccion/gantt.html'] = """{% extends 'base.html' %}
-{% block title %}Gantt — Producción{% endblock %}{% block page_title %}Diagrama de Gantt — Producción{% endblock %}
+{% block title %}Gantt por Pedido{% endblock %}{% block page_title %}Gantt por Pedido{% endblock %}
 {% block topbar_actions %}
 <a href="{{ url_for('ordenes_produccion') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Órdenes</a>
 <a href="{{ url_for('produccion_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-gear me-1"></i>Producción</a>
@@ -4667,70 +4914,67 @@ T['produccion/gantt.html'] = """{% extends 'base.html' %}
 <style>
 .body-content>.fc,.body-content .fc{max-width:100%!important}
 .gantt-wrap{overflow-x:auto;padding-bottom:1rem}
-.gantt-grid{display:grid;font-size:.82rem;min-width:900px}
+.gantt-grid{display:grid;font-size:.82rem;min-width:1000px}
+.gantt-section-hdr{grid-column:1/-1;background:#f0f2ff;padding:.4rem .8rem;font-weight:700;font-size:.78rem;text-transform:uppercase;letter-spacing:.5px;color:#1a1f36;border-left:4px solid #5e72e4;display:flex;align-items:center;gap:.6rem}
+.gantt-section-hdr.no-venta{border-left-color:#8898aa}
 .gantt-header{display:contents}
 .gantt-header .gh-label{background:#f8f9fe;font-weight:700;color:#525f7f;padding:.55rem .8rem;border-bottom:2px solid #e8ecf0;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0;z-index:2}
 .gantt-row{display:contents}
 .gantt-row:hover .gc{background:#f4f6fb}
-.gc{padding:.55rem .8rem;border-bottom:1px solid #f0f2ff;display:flex;align-items:center;background:#fff;transition:background .12s}
-.gc.timeline{padding:.4rem .3rem;position:relative;overflow:visible}
-.bar-outer{position:relative;height:26px;border-radius:6px;overflow:hidden;background:#f0f2ff}
-.bar-fill{height:100%;border-radius:6px;display:flex;align-items:center;padding:0 8px;font-size:.72rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:width .4s ease}
-.bar-fill.en_produccion{background:linear-gradient(90deg,#5e72e4,#825ee4)}
-.bar-fill.pendiente_materiales{background:linear-gradient(90deg,#fb6340,#f5365c)}
-.bar-fill.completado{background:linear-gradient(90deg,#2dce89,#26b07b)}
-.day-marks{position:absolute;top:0;bottom:0;display:flex;pointer-events:none}
-.day-mark{border-left:1px dashed #e0e4f0;height:100%;flex-shrink:0}
-.today-line{position:absolute;top:-4px;bottom:-4px;width:2px;background:#f5365c;z-index:3;border-radius:2px}
-.today-line::before{content:'Hoy';position:absolute;top:-18px;left:50%;transform:translateX(-50%);background:#f5365c;color:#fff;font-size:.65rem;font-weight:700;padding:1px 5px;border-radius:4px;white-space:nowrap}
+.gc{padding:.45rem .8rem;border-bottom:1px solid #f0f2ff;display:flex;align-items:center;background:#fff;transition:background .12s}
+.gc.timeline{padding:.3rem .3rem;position:relative;overflow:visible}
+.bar-wrap{position:relative;height:44px;background:#f8f9fe;border-radius:8px;overflow:visible}
+.bar-track{position:absolute;top:0;left:0;right:0;bottom:0;border-radius:8px;overflow:hidden}
+.gantt-bar{position:absolute;height:18px;border-radius:5px;display:flex;align-items:center;padding:0 6px;font-size:.67rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gantt-bar.materiales{top:3px;background:linear-gradient(90deg,#fb6340,#f5365c)}
+.gantt-bar.produccion{top:23px;background:linear-gradient(90deg,#5e72e4,#825ee4)}
+.gantt-bar.completado{top:23px;background:linear-gradient(90deg,#2dce89,#26b07b)}
+.gantt-bar.pendiente_materiales{top:23px;background:linear-gradient(90deg,#fb6340,#f5365c)}
+.today-line{position:absolute;top:-4px;bottom:-4px;width:2px;background:#f5365c;z-index:5;border-radius:2px;pointer-events:none}
+.today-line::before{content:'Hoy';position:absolute;top:-18px;left:50%;transform:translateX(-50%);background:#f5365c;color:#fff;font-size:.6rem;font-weight:700;padding:1px 5px;border-radius:4px;white-space:nowrap}
 .legend-dot{width:12px;height:12px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:middle}
 .empty-gantt{text-align:center;padding:4rem 2rem;color:#8898aa}
 </style>
 
-{% if not ordenes %}
+{% if not pedidos_json %}
 <div class="empty-gantt">
   <i class="bi bi-bar-chart-steps" style="font-size:3rem;display:block;margin-bottom:1rem;opacity:.3"></i>
-  <div class="fw-semibold mb-1">No hay órdenes de producción activas</div>
-  <small>Las órdenes aparecerán aquí cuando se confirmen cotizaciones o se creen manualmente.</small>
+  <div class="fw-semibold mb-1">No hay pedidos con órdenes de producción</div>
+  <small>Los pedidos aparecerán aquí cuando se creen órdenes de producción.</small>
 </div>
 {% else %}
 <!-- Leyenda -->
-<div class="d-flex gap-3 mb-3 flex-wrap">
-  <span><span class="legend-dot" style="background:#5e72e4"></span>En producción</span>
-  <span><span class="legend-dot" style="background:#fb6340"></span>Pendiente materiales</span>
-  <span><span class="legend-dot" style="background:#2dce89"></span>Completado</span>
+<div class="d-flex gap-4 mb-3 flex-wrap align-items-center">
+  <span style="font-size:.82rem"><span class="legend-dot" style="background:linear-gradient(90deg,#fb6340,#f5365c)"></span>Entrega materiales (OC)</span>
+  <span style="font-size:.82rem"><span class="legend-dot" style="background:linear-gradient(90deg,#5e72e4,#825ee4)"></span>Producción en curso</span>
+  <span style="font-size:.82rem"><span class="legend-dot" style="background:linear-gradient(90deg,#2dce89,#26b07b)"></span>Producción completada</span>
+  <span style="font-size:.82rem"><span class="legend-dot" style="background:#f5365c"></span>Línea de hoy</span>
 </div>
-
-<!-- Resumen rápido -->
+<!-- Resumen -->
 <div class="row g-2 mb-4">
-  <div class="col-auto"><div class="fc px-3 py-2 d-flex align-items-center gap-2">
-    <i class="bi bi-hourglass-split text-primary"></i>
-    <span class="fw-semibold">{{ ordenes|selectattr('estado','equalto','en_produccion')|list|length }}</span>
-    <span class="text-muted" style="font-size:.82rem">en producción</span>
+  <div class="col-auto"><div class="fc px-3 py-2 d-flex gap-2 align-items-center">
+    <i class="bi bi-bag text-primary"></i>
+    <span class="fw-semibold" id="nPedidos">0</span><small class="text-muted">pedidos</small>
   </div></div>
-  <div class="col-auto"><div class="fc px-3 py-2 d-flex align-items-center gap-2">
-    <i class="bi bi-exclamation-triangle text-warning"></i>
-    <span class="fw-semibold">{{ ordenes|selectattr('estado','equalto','pendiente_materiales')|list|length }}</span>
-    <span class="text-muted" style="font-size:.82rem">sin materiales</span>
+  <div class="col-auto"><div class="fc px-3 py-2 d-flex gap-2 align-items-center">
+    <i class="bi bi-gear-fill text-warning"></i>
+    <span class="fw-semibold" id="nProd">0</span><small class="text-muted">en producción</small>
   </div></div>
-  <div class="col-auto"><div class="fc px-3 py-2 d-flex align-items-center gap-2">
+  <div class="col-auto"><div class="fc px-3 py-2 d-flex gap-2 align-items-center">
     <i class="bi bi-check-circle text-success"></i>
-    <span class="fw-semibold">{{ ordenes|selectattr('estado','equalto','completado')|list|length }}</span>
-    <span class="text-muted" style="font-size:.82rem">completadas</span>
+    <span class="fw-semibold" id="nComp">0</span><small class="text-muted">completadas</small>
   </div></div>
 </div>
 
-<div class="fc p-3" style="max-width:100%">
+<div style="background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);overflow:hidden;padding:1rem">
 <div class="gantt-wrap">
-  <div class="gantt-grid" id="ganttGrid" style="grid-template-columns:220px 110px 100px 1fr">
-    <!-- Header -->
+  <div class="gantt-grid" id="ganttGrid" style="grid-template-columns:200px 90px 110px 1fr">
     <div class="gantt-header">
       <div class="gh-label">Producto</div>
-      <div class="gh-label">Cant. producir</div>
+      <div class="gh-label">Cantidad</div>
       <div class="gh-label">Estado</div>
       <div class="gh-label">Línea de tiempo (<span id="spanLabel"></span>)</div>
     </div>
-    <!-- Rows filled by JS -->
     <div id="ganttRows"></div>
   </div>
 </div>
@@ -4738,95 +4982,95 @@ T['produccion/gantt.html'] = """{% extends 'base.html' %}
 {% endif %}
 
 {% block scripts %}<script>
-var ORDENES = {{ ordenes_json|tojson }};
+var PEDIDOS = {{ pedidos_json|tojson }};
 
-if(ORDENES.length > 0){
-  // Calcular rango de fechas total
-  var allDates = [];
-  ORDENES.forEach(function(o){
-    allDates.push(new Date(o.inicio));
-    allDates.push(new Date(o.fin));
+if(PEDIDOS.length > 0){
+  var allDates=[];
+  PEDIDOS.forEach(function(p){
+    p.ordenes.forEach(function(o){
+      allDates.push(new Date(o.inicio));
+      allDates.push(new Date(o.fin));
+      if(o.mat_inicio) allDates.push(new Date(o.mat_inicio));
+      if(o.mat_fin) allDates.push(new Date(o.mat_fin));
+    });
   });
-  var minD = new Date(Math.min.apply(null, allDates));
-  var maxD = new Date(Math.max.apply(null, allDates));
-  // Agregar padding de 2 días a cada lado
-  minD.setDate(minD.getDate() - 2);
-  maxD.setDate(maxD.getDate() + 2);
+  var minD=new Date(Math.min.apply(null,allDates));
+  var maxD=new Date(Math.max.apply(null,allDates));
+  minD.setDate(minD.getDate()-3); maxD.setDate(maxD.getDate()+3);
+  var totalMs=maxD-minD;
+  var totalDays=Math.ceil(totalMs/86400000);
+  var today=new Date(); today.setHours(0,0,0,0);
+  document.getElementById('spanLabel').textContent=totalDays+' días';
 
-  var totalMs = maxD - minD;
-  var totalDays = Math.ceil(totalMs / 86400000);
-  var today = new Date(); today.setHours(0,0,0,0);
+  function pct(d){ return Math.max(0,Math.min(100,(new Date(d)-minD)/totalMs*100)); }
+  function fmtD(s){ var d=new Date(s); return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear(); }
 
-  document.getElementById('spanLabel').textContent = totalDays + ' días';
-
-  function pct(d){
-    return Math.max(0, Math.min(100, (new Date(d) - minD) / totalMs * 100));
-  }
-  function fmtDate(s){
-    var d = new Date(s);
-    return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();
-  }
-  function estadoLabel(s){
-    if(s==='en_produccion') return 'En producción';
-    if(s==='pendiente_materiales') return 'Sin materiales';
-    if(s==='completado') return 'Completado';
-    return s;
-  }
   function estadoBadge(s){
-    if(s==='en_produccion') return '<span class="badge" style="background:#5e72e4">En producción</span>';
-    if(s==='pendiente_materiales') return '<span class="badge" style="background:#fb6340">Sin materiales</span>';
-    if(s==='completado') return '<span class="badge" style="background:#2dce89">Completado</span>';
-    return '<span class="badge bg-secondary">'+s+'</span>';
+    if(s==='en_produccion') return '<span class="badge" style="background:#5e72e4;font-size:.7rem">En producción</span>';
+    if(s==='pendiente_materiales') return '<span class="badge" style="background:#fb6340;font-size:.7rem">Sin materiales</span>';
+    if(s==='completado') return '<span class="badge" style="background:#2dce89;font-size:.7rem">Completado</span>';
+    return '<span class="badge bg-secondary" style="font-size:.7rem">'+s+'</span>';
   }
 
-  // Today marker position
-  var todayPct = pct(today);
-
-  // Build day grid markers (every ~7 days)
-  var markerHtml = '';
-  var step = totalDays <= 30 ? 7 : (totalDays <= 90 ? 14 : 30);
-  for(var di=0; di<=totalDays; di+=step){
-    var mp = di/totalDays*100;
-    var md = new Date(minD); md.setDate(md.getDate()+di);
-    markerHtml += '<div class="day-mark" style="left:'+mp+'%;width:'+(step/totalDays*100)+'%;position:absolute;top:0;bottom:0;border-left:1px dashed #e0e4f0">'
-      + '<span style="position:absolute;top:2px;left:3px;font-size:.6rem;color:#b0b8d1;white-space:nowrap">'
-      + md.getDate()+'/'+(md.getMonth()+1) + '</span></div>';
+  var step=totalDays<=30?7:(totalDays<=90?14:30);
+  var markerHtml='';
+  for(var di=0;di<=totalDays;di+=step){
+    var mp=di/totalDays*100;
+    var md=new Date(minD); md.setDate(md.getDate()+di);
+    markerHtml+='<div style="position:absolute;left:'+mp+'%;top:0;bottom:0;border-left:1px dashed #e0e4f0;">'
+      +'<span style="position:absolute;top:2px;left:3px;font-size:.58rem;color:#c0c8d8;white-space:nowrap">'+md.getDate()+'/'+(md.getMonth()+1)+'</span></div>';
   }
+  var todayPct=pct(today);
+  var todayLine=(todayPct>=0&&todayPct<=100)?'<div class="today-line" style="left:'+todayPct+'%"></div>':'';
 
-  var rowsHtml = '';
-  ORDENES.forEach(function(o){
-    var leftPct  = pct(o.inicio);
-    var rightPct = pct(o.fin);
-    var widthPct = Math.max(1, rightPct - leftPct);
-    var durDias  = Math.round((new Date(o.fin) - new Date(o.inicio)) / 86400000);
+  var rowsHtml='';
+  var nProd=0,nComp=0;
+  PEDIDOS.forEach(function(p){
+    // Section header (pedido)
+    rowsHtml+='<div class="gantt-section-hdr'+(p.venta_id?'':' no-venta')+'">'
+      +'<i class="bi bi-bag'+(p.venta_id?'-fill':'')+'"></i>'
+      +(p.venta_numero?'<span style="color:#5e72e4">'+p.venta_numero+'</span>':'')
+      +'<span>'+(p.titulo||'Sin pedido asociado')+'</span>'
+      +(p.cliente?'<small class="text-muted ms-auto">'+p.cliente+'</small>':'')
+      +(p.fecha_entrega?'<small class="badge bg-warning text-dark ms-1">Entrega: '+p.fecha_entrega+'</small>':'')
+      +'</div>';
 
-    rowsHtml += '<div class="gantt-row">'
-      // Col 1: Producto
-      + '<div class="gc"><div>'
-        + '<div class="fw-semibold" style="color:#1a1f36;font-size:.85rem">'+o.producto+'</div>'
-        + (o.cotizacion ? '<small class="text-muted">Cot #'+o.cotizacion+'</small>' : '')
-        + '</div></div>'
-      // Col 2: Cantidad
-      + '<div class="gc" style="font-weight:600;color:#525f7f">'+o.cantidad+' uds</div>'
-      // Col 3: Estado badge
-      + '<div class="gc">'+estadoBadge(o.estado)+'</div>'
-      // Col 4: Barra Gantt
-      + '<div class="gc timeline"><div style="position:relative;height:40px;background:#f8f9fe;border-radius:8px;overflow:visible">'
-        // Day markers
-        + '<div style="position:absolute;top:0;left:0;right:0;bottom:0;border-radius:8px;overflow:hidden">'+markerHtml+'</div>'
-        // Today line
-        + (todayPct>=0&&todayPct<=100 ? '<div class="today-line" style="left:'+todayPct+'%"></div>' : '')
-        // Bar
-        + '<div class="bar-outer" style="position:absolute;top:7px;left:'+leftPct+'%;width:'+widthPct+'%;height:26px">'
-          + '<div class="bar-fill '+o.estado+'" style="width:100%" title="'+o.producto+': '+fmtDate(o.inicio)+' → '+fmtDate(o.fin)+' ('+durDias+' días)">'
-            + (widthPct > 8 ? durDias+'d' : '')
-          + '</div>'
-        + '</div>'
-      + '</div></div>'
-    + '</div>';
+    p.ordenes.forEach(function(o){
+      if(o.estado==='en_produccion') nProd++;
+      if(o.estado==='completado') nComp++;
+
+      var lProd=pct(o.inicio), rProd=pct(o.fin);
+      var wProd=Math.max(0.5,rProd-lProd);
+      var durDias=Math.round((new Date(o.fin)-new Date(o.inicio))/86400000);
+      var hasMat=o.mat_inicio&&o.mat_fin;
+      var lMat=hasMat?pct(o.mat_inicio):0, rMat=hasMat?pct(o.mat_fin):0;
+      var wMat=hasMat?Math.max(0.5,rMat-lMat):0;
+
+      rowsHtml+='<div class="gantt-row">'
+        +'<div class="gc"><div>'
+          +'<div class="fw-semibold" style="color:#1a1f36;font-size:.83rem">'+o.producto+'</div>'
+          +(o.lote?'<small class="text-muted">Lote: '+o.lote+'</small>':'')
+        +'</div></div>'
+        +'<div class="gc" style="font-weight:600;color:#525f7f">'+o.cantidad+' uds</div>'
+        +'<div class="gc">'+estadoBadge(o.estado)+'</div>'
+        +'<div class="gc timeline"><div class="bar-wrap">'
+          +'<div class="bar-track">'+markerHtml+'</div>'
+          +todayLine
+          // Material delivery bar (top track)
+          +(hasMat?'<div class="gantt-bar materiales" style="left:'+lMat+'%;width:'+wMat+'%" title="Materiales: '+fmtD(o.mat_inicio)+' → '+fmtD(o.mat_fin)+'"><i class=\"bi bi-box me-1\"></i>Mat.</div>':'')
+          // Production bar (bottom track)
+          +'<div class="gantt-bar '+o.estado+'" style="left:'+lProd+'%;width:'+wProd+'%" title="Producción: '+fmtD(o.inicio)+' → '+fmtD(o.fin)+' ('+durDias+'d)">'
+            +(wProd>6?durDias+'d':'')
+          +'</div>'
+        +'</div></div>'
+      +'</div>';
+    });
   });
 
-  document.getElementById('ganttRows').innerHTML = rowsHtml;
+  document.getElementById('ganttRows').innerHTML=rowsHtml;
+  document.getElementById('nPedidos').textContent=PEDIDOS.length;
+  document.getElementById('nProd').textContent=nProd;
+  document.getElementById('nComp').textContent=nComp;
 }
 </script>{% endblock %}
 {% endblock %}"""
@@ -4966,11 +5210,14 @@ def cliente_eliminar(id):
 @login_required
 def proveedores():
     busqueda = request.args.get('buscar','')
+    tipo_f   = request.args.get('tipo_f','')
     q = Proveedor.query.filter_by(activo=True)
     if busqueda:
         q = q.filter(db.or_(Proveedor.nombre.ilike(f'%{busqueda}%'),
                              Proveedor.empresa.ilike(f'%{busqueda}%'),
                              Proveedor.nit.ilike(f'%{busqueda}%')))
+    if tipo_f:
+        q = q.filter_by(tipo=tipo_f)
     return render_template('proveedores/index.html', items=q.order_by(Proveedor.empresa, Proveedor.nombre).all(),
                            busqueda=busqueda)
 
@@ -4979,34 +5226,36 @@ def proveedores():
 def proveedor_nuevo():
     if request.method == 'POST':
         p = Proveedor(
-            nombre=request.form.get('empresa','') or request.form.get('nombre',''),
+            nombre=request.form.get('nombre','') or request.form.get('empresa',''),
             empresa=request.form.get('empresa',''),
             nit=request.form.get('nit',''),
             email=request.form.get('email',''),
             telefono=request.form.get('telefono',''),
             direccion=request.form.get('direccion',''),
             categoria=request.form.get('categoria',''),
+            tipo=request.form.get('tipo','proveedor'),
             notas=request.form.get('notas',''), activo=True)
         db.session.add(p); db.session.commit()
-        flash('Proveedor creado.','success'); return redirect(url_for('proveedores'))
-    return render_template('proveedores/form.html', obj=None, titulo='Nuevo Proveedor')
+        flash('Registro creado.','success'); return redirect(url_for('proveedores'))
+    return render_template('proveedores/form.html', obj=None, titulo='Nuevo Proveedor / Transportista')
 
 @app.route('/proveedores/<int:id>/editar', methods=['GET','POST'])
 @login_required
 def proveedor_editar(id):
     obj = Proveedor.query.get_or_404(id)
     if request.method == 'POST':
+        obj.nombre=request.form.get('nombre','') or request.form.get('empresa','') or obj.nombre
         obj.empresa=request.form.get('empresa','')
-        obj.nombre=request.form.get('empresa','') or obj.nombre
         obj.nit=request.form.get('nit','')
         obj.email=request.form.get('email','')
         obj.telefono=request.form.get('telefono','')
         obj.direccion=request.form.get('direccion','')
         obj.categoria=request.form.get('categoria','')
+        obj.tipo=request.form.get('tipo','proveedor')
         obj.notas=request.form.get('notas','')
         db.session.commit()
-        flash('Proveedor actualizado.','success'); return redirect(url_for('proveedores'))
-    return render_template('proveedores/form.html', obj=obj, titulo='Editar Proveedor')
+        flash('Registro actualizado.','success'); return redirect(url_for('proveedores'))
+    return render_template('proveedores/form.html', obj=obj, titulo='Editar Proveedor / Transportista')
 
 @app.route('/proveedores/<int:id>/eliminar', methods=['POST'])
 @login_required
@@ -5014,7 +5263,7 @@ def proveedor_eliminar(id):
     obj = Proveedor.query.get_or_404(id)
     obj.activo = False
     db.session.commit()
-    flash('Proveedor eliminado.','info'); return redirect(url_for('proveedores'))
+    flash('Registro eliminado.','info'); return redirect(url_for('proveedores'))
 
 # =============================================================
 # =============================================================
@@ -5025,21 +5274,52 @@ def proveedor_eliminar(id):
 @login_required
 def cotizaciones_proveedor():
     estado_f = request.args.get('estado','')
+    tipo_f   = request.args.get('tipo','')   # granel / general
     q = CotizacionProveedor.query
     if estado_f: q = q.filter_by(estado=estado_f)
+    if tipo_f:   q = q.filter_by(tipo_cotizacion=tipo_f)
+    items = q.order_by(CotizacionProveedor.creado_en.desc()).all()
+    totales = {
+        'granel':  CotizacionProveedor.query.filter_by(tipo_cotizacion='granel').count(),
+        'general': CotizacionProveedor.query.filter_by(tipo_cotizacion='general').count(),
+    }
     return render_template('proveedores/cotizaciones.html',
-                           items=q.order_by(CotizacionProveedor.creado_en.desc()).all(),
-                           estado_f=estado_f)
+                           items=items, estado_f=estado_f, tipo_f=tipo_f, totales=totales)
+
+@app.route('/cotizaciones-proveedor/<int:id>/json')
+@login_required
+def cotizacion_proveedor_json(id):
+    """API para traer datos de cotización al formulario de OC"""
+    cp = CotizacionProveedor.query.get_or_404(id)
+    return jsonify({
+        'id': cp.id,
+        'numero': cp.numero,
+        'nombre_producto': cp.nombre_producto,
+        'descripcion': cp.descripcion or '',
+        'sku': cp.sku or '',
+        'precio_unitario': cp.precio_unitario,
+        'unidades_minimas': cp.unidades_minimas,
+        'unidad': cp.unidad,
+        'plazo_entrega_dias': cp.plazo_entrega_dias or 0,
+        'condicion_pago_tipo': cp.condicion_pago_tipo or 'contado',
+        'condicion_pago_dias': cp.condicion_pago_dias or 0,
+        'anticipo_porcentaje': cp.anticipo_porcentaje or 0,
+        'proveedor_id': cp.proveedor_id,
+    })
 
 @app.route('/cotizaciones-proveedor/nueva', methods=['GET','POST'])
 @login_required
 def cotizacion_proveedor_nueva():
-    provs = Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all()
+    provs = Proveedor.query.filter(Proveedor.activo==True,
+        Proveedor.tipo.in_(['proveedor','ambos'])).order_by(Proveedor.empresa).all()
+    tipo_default = request.args.get('tipo','general')
     if request.method == 'POST':
         fc = request.form.get('fecha_cotizacion')
         fv = request.form.get('vigencia')
         cp = CotizacionProveedor(
             proveedor_id=int(request.form.get('proveedor_id')) if request.form.get('proveedor_id') else None,
+            tipo_cotizacion=request.form.get('tipo_cotizacion','general'),
+            tipo_producto_servicio=request.form.get('tipo_producto_servicio',''),
             nombre_producto=request.form['nombre_producto'],
             descripcion=request.form.get('descripcion',''),
             sku=request.form.get('sku',''),
@@ -5047,7 +5327,11 @@ def cotizacion_proveedor_nueva():
             unidades_minimas=int(request.form.get('unidades_minimas') or 1),
             unidad=request.form.get('unidad','unidades'),
             plazo_entrega=request.form.get('plazo_entrega',''),
+            plazo_entrega_dias=int(request.form.get('plazo_entrega_dias') or 0),
             condiciones_pago=request.form.get('condiciones_pago',''),
+            condicion_pago_tipo=request.form.get('condicion_pago_tipo','contado'),
+            condicion_pago_dias=int(request.form.get('condicion_pago_dias') or 0),
+            anticipo_porcentaje=float(request.form.get('anticipo_porcentaje') or 0),
             fecha_cotizacion=datetime.strptime(fc,'%Y-%m-%d').date() if fc else datetime.utcnow().date(),
             vigencia=datetime.strptime(fv,'%Y-%m-%d').date() if fv else None,
             estado=request.form.get('estado','vigente'),
@@ -5055,7 +5339,6 @@ def cotizacion_proveedor_nueva():
             creado_por=current_user.id
         )
         db.session.add(cp); db.session.flush()
-        # Número CP-YYYY-NNN
         hoy = datetime.utcnow().date()
         ultimo = CotizacionProveedor.query.filter(
             CotizacionProveedor.numero.like(f'CP-{hoy.year}-%')
@@ -5067,19 +5350,23 @@ def cotizacion_proveedor_nueva():
         cp.numero = f'CP-{hoy.year}-{seq:03d}'
         db.session.commit()
         flash(f'Cotización {cp.numero} creada.','success')
-        return redirect(url_for('cotizaciones_proveedor'))
+        return redirect(url_for('cotizaciones_proveedor', tipo=cp.tipo_cotizacion))
     return render_template('proveedores/cotizacion_form.html', obj=None,
-                           proveedores_list=provs, titulo='Nueva Cotización Proveedor')
+                           proveedores_list=provs, titulo='Nueva Cotización Proveedor',
+                           tipo_default=tipo_default)
 
 @app.route('/cotizaciones-proveedor/<int:id>/editar', methods=['GET','POST'])
 @login_required
 def cotizacion_proveedor_editar(id):
     obj = CotizacionProveedor.query.get_or_404(id)
-    provs = Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all()
+    provs = Proveedor.query.filter(Proveedor.activo==True,
+        Proveedor.tipo.in_(['proveedor','ambos'])).order_by(Proveedor.empresa).all()
     if request.method == 'POST':
         fc = request.form.get('fecha_cotizacion')
         fv = request.form.get('vigencia')
         obj.proveedor_id=int(request.form.get('proveedor_id')) if request.form.get('proveedor_id') else None
+        obj.tipo_cotizacion=request.form.get('tipo_cotizacion','general')
+        obj.tipo_producto_servicio=request.form.get('tipo_producto_servicio','')
         obj.nombre_producto=request.form.get('nombre_producto','')
         obj.descripcion=request.form.get('descripcion','')
         obj.sku=request.form.get('sku','')
@@ -5087,24 +5374,30 @@ def cotizacion_proveedor_editar(id):
         obj.unidades_minimas=int(request.form.get('unidades_minimas') or 1)
         obj.unidad=request.form.get('unidad','unidades')
         obj.plazo_entrega=request.form.get('plazo_entrega','')
+        obj.plazo_entrega_dias=int(request.form.get('plazo_entrega_dias') or 0)
         obj.condiciones_pago=request.form.get('condiciones_pago','')
+        obj.condicion_pago_tipo=request.form.get('condicion_pago_tipo','contado')
+        obj.condicion_pago_dias=int(request.form.get('condicion_pago_dias') or 0)
+        obj.anticipo_porcentaje=float(request.form.get('anticipo_porcentaje') or 0)
         obj.fecha_cotizacion=datetime.strptime(fc,'%Y-%m-%d').date() if fc else obj.fecha_cotizacion
         obj.vigencia=datetime.strptime(fv,'%Y-%m-%d').date() if fv else None
         obj.estado=request.form.get('estado','vigente')
         obj.notas=request.form.get('notas','')
         db.session.commit()
         flash('Cotización actualizada.','success')
-        return redirect(url_for('cotizaciones_proveedor'))
+        return redirect(url_for('cotizaciones_proveedor', tipo=obj.tipo_cotizacion))
     return render_template('proveedores/cotizacion_form.html', obj=obj,
-                           proveedores_list=provs, titulo='Editar Cotización Proveedor')
+                           proveedores_list=provs, titulo='Editar Cotización Proveedor',
+                           tipo_default=obj.tipo_cotizacion)
 
 @app.route('/cotizaciones-proveedor/<int:id>/eliminar', methods=['POST'])
 @login_required
 def cotizacion_proveedor_eliminar(id):
     obj = CotizacionProveedor.query.get_or_404(id)
+    tipo = obj.tipo_cotizacion
     db.session.delete(obj); db.session.commit()
     flash('Cotización eliminada.','info')
-    return redirect(url_for('cotizaciones_proveedor'))
+    return redirect(url_for('cotizaciones_proveedor', tipo=tipo))
 
 # =============================================================
 # ÓRDENES DE COMPRA
@@ -5120,18 +5413,63 @@ def ordenes_compra():
                            items=q.order_by(OrdenCompra.creado_en.desc()).all(),
                            estado_f=estado_f)
 
+def _oc_save_items(oc_id):
+    """Guarda ítems del formulario de OC y devuelve la lista."""
+    nombres  = request.form.getlist('item_nombre[]')
+    descs    = request.form.getlist('item_desc[]')
+    cants    = request.form.getlist('item_cant[]')
+    units    = request.form.getlist('item_unidad[]')
+    precios  = request.form.getlist('item_precio[]')
+    cot_ids  = request.form.getlist('item_cot_id[]')
+    items = []
+    for i, nom in enumerate(nombres):
+        if not nom.strip(): continue
+        cant   = float(cants[i])  if i < len(cants)   else 1
+        precio = float(precios[i]) if i < len(precios) else 0
+        cot_id = int(cot_ids[i]) if i < len(cot_ids) and cot_ids[i].strip() else None
+        items.append(OrdenCompraItem(
+            orden_id=oc_id,
+            nombre_item=nom.strip(),
+            descripcion=descs[i] if i < len(descs) else '',
+            cantidad=cant,
+            unidad=units[i] if i < len(units) else 'unidades',
+            precio_unit=precio,
+            subtotal=cant*precio,
+            cotizacion_id=cot_id
+        ))
+    return items
+
 @app.route('/ordenes-compra/nueva', methods=['GET','POST'])
 @login_required
 def orden_compra_nueva():
-    provs = Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all()
+    provs       = Proveedor.query.filter(Proveedor.activo==True, Proveedor.tipo.in_(['proveedor','ambos'])).order_by(Proveedor.empresa).all()
+    transportistas = Proveedor.query.filter(Proveedor.activo==True, Proveedor.tipo.in_(['transportista','ambos'])).order_by(Proveedor.nombre).all()
+    cotizaciones_disponibles = CotizacionProveedor.query.filter_by(estado='vigente').order_by(CotizacionProveedor.nombre_producto).all()
     if request.method == 'POST':
-        fe = request.form.get('fecha_emision')
+        fe  = request.form.get('fecha_emision')
         fes = request.form.get('fecha_esperada')
+        fep = request.form.get('fecha_estimada_pago')
+        fer = request.form.get('fecha_estimada_recogida')
+        cot_id = int(request.form.get('cotizacion_id')) if request.form.get('cotizacion_id') else None
+        tra_id = int(request.form.get('transportista_id')) if request.form.get('transportista_id') else None
+        fecha_emision = datetime.strptime(fe,'%Y-%m-%d').date() if fe else datetime.utcnow().date()
+        # Calcular fecha_esperada desde cotización si no se ingresó manualmente
+        fecha_esp = None
+        if fes:
+            fecha_esp = datetime.strptime(fes,'%Y-%m-%d').date()
+        elif cot_id:
+            cot_obj = CotizacionProveedor.query.get(cot_id)
+            if cot_obj and cot_obj.plazo_entrega_dias:
+                fecha_esp = fecha_emision + timedelta(days=cot_obj.plazo_entrega_dias)
         oc = OrdenCompra(
             proveedor_id=int(request.form.get('proveedor_id')) if request.form.get('proveedor_id') else None,
+            cotizacion_id=cot_id,
+            transportista_id=tra_id,
             estado=request.form.get('estado','borrador'),
-            fecha_emision=datetime.strptime(fe,'%Y-%m-%d').date() if fe else datetime.utcnow().date(),
-            fecha_esperada=datetime.strptime(fes,'%Y-%m-%d').date() if fes else None,
+            fecha_emision=fecha_emision,
+            fecha_esperada=fecha_esp,
+            fecha_estimada_pago=datetime.strptime(fep,'%Y-%m-%d').date() if fep else None,
+            fecha_estimada_recogida=datetime.strptime(fer,'%Y-%m-%d').date() if fer else None,
             subtotal=float(request.form.get('subtotal_calc') or 0),
             iva=float(request.form.get('iva_calc') or 0),
             total=float(request.form.get('total_calc') or 0),
@@ -5139,92 +5477,109 @@ def orden_compra_nueva():
             creado_por=current_user.id
         )
         db.session.add(oc); db.session.flush()
-        # Generar número OC-YYYY-NNN
         hoy = datetime.utcnow().date()
-        ultimo_oc = OrdenCompra.query.filter(
-            OrdenCompra.numero.like(f'OC-{hoy.year}-%')
-        ).order_by(OrdenCompra.id.desc()).first()
+        ultimo_oc = OrdenCompra.query.filter(OrdenCompra.numero.like(f'OC-{hoy.year}-%')).order_by(OrdenCompra.id.desc()).first()
         if ultimo_oc and ultimo_oc.numero:
             try: seq = int(ultimo_oc.numero.split('-')[-1]) + 1
             except: seq = 1
         else: seq = 1
         oc.numero = f'OC-{hoy.year}-{seq:03d}'
-        # Guardar items
-        nombres = request.form.getlist('item_nombre[]')
-        descs   = request.form.getlist('item_desc[]')
-        cants   = request.form.getlist('item_cant[]')
-        units   = request.form.getlist('item_unidad[]')
-        precios = request.form.getlist('item_precio[]')
-        for i, nom in enumerate(nombres):
-            if not nom.strip(): continue
-            cant  = float(cants[i]) if i < len(cants) else 1
-            precio= float(precios[i]) if i < len(precios) else 0
-            db.session.add(OrdenCompraItem(
-                orden_id=oc.id,
-                nombre_item=nom.strip(),
-                descripcion=descs[i] if i < len(descs) else '',
-                cantidad=cant,
-                unidad=units[i] if i < len(units) else 'unidades',
-                precio_unit=precio,
-                subtotal=cant*precio
-            ))
+        for it in _oc_save_items(oc.id): db.session.add(it)
+        # Auto-tarea para transportista
+        if tra_id and fer:
+            tra = Proveedor.query.get(tra_id)
+            fecha_rec = datetime.strptime(fer,'%Y-%m-%d').date()
+            t = Tarea(titulo=f'Contratar transporte para OC {oc.numero}',
+                      descripcion=f'Contactar a {tra.nombre or tra.empresa} para coordinar recogida el {fecha_rec.strftime("%d/%m/%Y")}. OC: {oc.numero}',
+                      estado='pendiente', prioridad='alta',
+                      fecha_vencimiento=fecha_rec - timedelta(days=2),
+                      creado_por=current_user.id, tarea_tipo='contratar_transporte')
+            db.session.add(t)
         db.session.commit()
         flash(f'Orden de compra {oc.numero} creada.','success')
         return redirect(url_for('ordenes_compra'))
     return render_template('ordenes_compra/form.html', obj=None,
-                           proveedores_list=provs, titulo='Nueva Orden de Compra',
-                           items_json=[])
+                           proveedores_list=provs, transportistas_list=transportistas,
+                           cotizaciones_list=cotizaciones_disponibles,
+                           titulo='Nueva Orden de Compra', items_json=[])
 
 @app.route('/ordenes-compra/<int:id>/editar', methods=['GET','POST'])
 @login_required
 def orden_compra_editar(id):
     obj = OrdenCompra.query.get_or_404(id)
-    provs = Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all()
+    provs       = Proveedor.query.filter(Proveedor.activo==True, Proveedor.tipo.in_(['proveedor','ambos'])).order_by(Proveedor.empresa).all()
+    transportistas = Proveedor.query.filter(Proveedor.activo==True, Proveedor.tipo.in_(['transportista','ambos'])).order_by(Proveedor.nombre).all()
+    cotizaciones_disponibles = CotizacionProveedor.query.filter_by(estado='vigente').order_by(CotizacionProveedor.nombre_producto).all()
     if request.method == 'POST':
-        fe = request.form.get('fecha_emision')
+        fe  = request.form.get('fecha_emision')
         fes = request.form.get('fecha_esperada')
-        obj.proveedor_id = int(request.form.get('proveedor_id')) if request.form.get('proveedor_id') else None
-        obj.estado = request.form.get('estado', obj.estado)
-        obj.fecha_emision = datetime.strptime(fe,'%Y-%m-%d').date() if fe else obj.fecha_emision
-        obj.fecha_esperada = datetime.strptime(fes,'%Y-%m-%d').date() if fes else None
+        fep = request.form.get('fecha_estimada_pago')
+        fer = request.form.get('fecha_estimada_recogida')
+        cot_id = int(request.form.get('cotizacion_id')) if request.form.get('cotizacion_id') else None
+        tra_id = int(request.form.get('transportista_id')) if request.form.get('transportista_id') else None
+        fecha_emision = datetime.strptime(fe,'%Y-%m-%d').date() if fe else obj.fecha_emision
+        fecha_esp = None
+        if fes:
+            fecha_esp = datetime.strptime(fes,'%Y-%m-%d').date()
+        elif cot_id:
+            cot_obj = CotizacionProveedor.query.get(cot_id)
+            if cot_obj and cot_obj.plazo_entrega_dias:
+                fecha_esp = fecha_emision + timedelta(days=cot_obj.plazo_entrega_dias)
+        obj.proveedor_id        = int(request.form.get('proveedor_id')) if request.form.get('proveedor_id') else None
+        obj.cotizacion_id       = cot_id
+        obj.transportista_id    = tra_id
+        obj.estado              = request.form.get('estado', obj.estado)
+        obj.fecha_emision       = fecha_emision
+        obj.fecha_esperada      = fecha_esp
+        obj.fecha_estimada_pago = datetime.strptime(fep,'%Y-%m-%d').date() if fep else None
+        obj.fecha_estimada_recogida = datetime.strptime(fer,'%Y-%m-%d').date() if fer else None
         obj.subtotal = float(request.form.get('subtotal_calc') or 0)
-        obj.iva = float(request.form.get('iva_calc') or 0)
-        obj.total = float(request.form.get('total_calc') or 0)
-        obj.notas = request.form.get('notas','')
-        # Re-save items
+        obj.iva      = float(request.form.get('iva_calc') or 0)
+        obj.total    = float(request.form.get('total_calc') or 0)
+        obj.notas    = request.form.get('notas','')
         OrdenCompraItem.query.filter_by(orden_id=obj.id).delete()
-        nombres = request.form.getlist('item_nombre[]')
-        descs   = request.form.getlist('item_desc[]')
-        cants   = request.form.getlist('item_cant[]')
-        units   = request.form.getlist('item_unidad[]')
-        precios = request.form.getlist('item_precio[]')
-        for i, nom in enumerate(nombres):
-            if not nom.strip(): continue
-            cant  = float(cants[i]) if i < len(cants) else 1
-            precio= float(precios[i]) if i < len(precios) else 0
-            db.session.add(OrdenCompraItem(
-                orden_id=obj.id,
-                nombre_item=nom.strip(),
-                descripcion=descs[i] if i < len(descs) else '',
-                cantidad=cant,
-                unidad=units[i] if i < len(units) else 'unidades',
-                precio_unit=precio,
-                subtotal=cant*precio
-            ))
+        for it in _oc_save_items(obj.id): db.session.add(it)
         db.session.commit()
         flash('Orden de compra actualizada.','success')
         return redirect(url_for('ordenes_compra'))
     items_json = [{'nombre':it.nombre_item,'desc':it.descripcion or '','cant':it.cantidad,
-                   'unidad':it.unidad,'precio':it.precio_unit} for it in obj.items]
+                   'unidad':it.unidad,'precio':it.precio_unit,'cot_id':it.cotizacion_id or ''} for it in obj.items]
     return render_template('ordenes_compra/form.html', obj=obj,
-                           proveedores_list=provs, titulo='Editar Orden de Compra',
-                           items_json=items_json)
+                           proveedores_list=provs, transportistas_list=transportistas,
+                           cotizaciones_list=cotizaciones_disponibles,
+                           titulo='Editar Orden de Compra', items_json=items_json)
 
 @app.route('/ordenes-compra/<int:id>/estado', methods=['POST'])
 @login_required
 def orden_compra_estado(id):
     obj = OrdenCompra.query.get_or_404(id)
+    estado_anterior = obj.estado
     obj.estado = request.form.get('estado', obj.estado)
+    # Al marcar como "recibida": calcular fecha de entrega con plazo de cotización y agendar en calendario
+    if obj.estado == 'recibida' and estado_anterior != 'recibida':
+        hoy_recv = datetime.utcnow().date()
+        cot = obj.cotizacion_ref
+        if cot and cot.plazo_entrega_dias and not cot.calendario_integrado:
+            fecha_entrega = hoy_recv + timedelta(days=cot.plazo_entrega_dias)
+            ev = Evento(
+                titulo=f'Entrega esperada: {cot.nombre_producto} ({obj.numero})',
+                tipo='recordatorio',
+                fecha=fecha_entrega,
+                descripcion=f'OC {obj.numero} recibida el {hoy_recv.strftime("%d/%m/%Y")}. Entrega esperada en {cot.plazo_entrega_dias} días desde recepción. Proveedor: {obj.proveedor.nombre if obj.proveedor else "—"}',
+                usuario_id=current_user.id
+            )
+            db.session.add(ev)
+            cot.calendario_integrado = True
+        elif obj.fecha_esperada:
+            # Si no hay cotizacion pero hay fecha_esperada, agendar igual
+            ev = Evento(
+                titulo=f'Entrega esperada OC {obj.numero}',
+                tipo='recordatorio',
+                fecha=obj.fecha_esperada,
+                descripcion=f'Orden de compra {obj.numero} marcada como recibida. Entrega esperada: {obj.fecha_esperada.strftime("%d/%m/%Y")}.',
+                usuario_id=current_user.id
+            )
+            db.session.add(ev)
     db.session.commit()
     flash(f'Estado actualizado a "{obj.estado}".','success')
     return redirect(url_for('ordenes_compra'))
@@ -7360,32 +7715,69 @@ def orden_completar():
 @login_required
 @requiere_modulo('produccion')
 def gantt():
-    from datetime import timedelta
-    # Incluye todas las órdenes (activas + completadas recientes)
-    ordenes = OrdenProduccion.query.order_by(OrdenProduccion.creado_en).all()
+    # Agrupa órdenes de producción por pedido (venta)
+    ordenes = OrdenProduccion.query.order_by(OrdenProduccion.venta_id, OrdenProduccion.creado_en).all()
 
-    ordenes_json = []
+    # Construir grupos por venta
+    grupos = {}   # venta_id -> {'venta': obj|None, 'ordenes': [...]}
+    sin_venta = {'venta_id': None, 'titulo': 'Sin pedido asociado', 'ordenes': [],
+                 'cliente': None, 'venta_numero': None, 'fecha_entrega': None}
+
     for o in ordenes:
-        inicio = o.creado_en.date()
-        # Fecha estimada de fin: cotizacion.fecha_entrega_est si existe, sino 30 días
-        if o.cotizacion and o.cotizacion.fecha_entrega_est:
-            fin = o.cotizacion.fecha_entrega_est
+        inicio = (o.fecha_inicio_real or o.creado_en.date())
+        if o.fecha_fin_estimada:
+            fin = o.fecha_fin_estimada
         elif o.completado_en:
             fin = o.completado_en.date()
+        elif o.venta and o.venta.fecha_entrega_est:
+            fin = o.venta.fecha_entrega_est
+        elif o.cotizacion and o.cotizacion.fecha_entrega_est:
+            fin = o.cotizacion.fecha_entrega_est
         else:
             fin = inicio + timedelta(days=30)
 
-        ordenes_json.append({
-            'id':       o.id,
-            'producto': o.producto.nombre,
-            'cantidad': int(o.cantidad_producir),
-            'estado':   o.estado,
-            'cotizacion': o.cotizacion.numero or str(o.cotizacion_id) if o.cotizacion else None,
-            'inicio':   inicio.strftime('%Y-%m-%d'),
-            'fin':      fin.strftime('%Y-%m-%d'),
-        })
+        # Buscar OC de materiales vinculada (mejor estimación de entrega de materiales)
+        mat_inicio = mat_fin = None
+        if o.venta_id:
+            oc_mat = OrdenCompra.query.filter(
+                OrdenCompra.estado.in_(['borrador','enviada','recibida'])
+            ).order_by(OrdenCompra.creado_en.desc()).first()
+            if oc_mat:
+                mat_inicio = oc_mat.fecha_emision
+                mat_fin    = oc_mat.fecha_esperada or (oc_mat.fecha_emision + timedelta(days=15) if oc_mat.fecha_emision else None)
 
-    return render_template('produccion/gantt.html', ordenes=ordenes, ordenes_json=ordenes_json)
+        ord_data = {
+            'id':         o.id,
+            'producto':   o.producto.nombre,
+            'cantidad':   int(o.cantidad_producir),
+            'estado':     o.estado,
+            'lote':       o.numero_lote or '',
+            'inicio':     inicio.strftime('%Y-%m-%d'),
+            'fin':        fin.strftime('%Y-%m-%d'),
+            'mat_inicio': mat_inicio.strftime('%Y-%m-%d') if mat_inicio else None,
+            'mat_fin':    mat_fin.strftime('%Y-%m-%d')    if mat_fin    else None,
+        }
+
+        if o.venta_id:
+            if o.venta_id not in grupos:
+                v = o.venta
+                grupos[o.venta_id] = {
+                    'venta_id':     o.venta_id,
+                    'titulo':       v.titulo if v else f'Venta #{o.venta_id}',
+                    'venta_numero': v.numero if v else None,
+                    'cliente':      (v.cliente.empresa or v.cliente.nombre) if v and v.cliente else None,
+                    'fecha_entrega': v.fecha_entrega_est.strftime('%d/%m/%Y') if v and v.fecha_entrega_est else None,
+                    'ordenes':      []
+                }
+            grupos[o.venta_id]['ordenes'].append(ord_data)
+        else:
+            sin_venta['ordenes'].append(ord_data)
+
+    pedidos_json = list(grupos.values())
+    if sin_venta['ordenes']:
+        pedidos_json.append(sin_venta)
+
+    return render_template('produccion/gantt.html', pedidos_json=pedidos_json)
 
 # =============================================================
 # ADMIN — EDITAR USUARIO
@@ -7852,6 +8244,26 @@ def _migrate(conn):
         ("CREATE TABLE IF NOT EXISTS documentos_legales (id SERIAL PRIMARY KEY, tipo VARCHAR(50) NOT NULL, titulo VARCHAR(200) NOT NULL, numero VARCHAR(100), entidad VARCHAR(200), descripcion TEXT, estado VARCHAR(20) DEFAULT 'vigente', fecha_emision DATE, fecha_vencimiento DATE, recordatorio_dias INTEGER DEFAULT 30, archivo_url VARCHAR(500), notas TEXT, activo BOOLEAN DEFAULT TRUE, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
         # v13 — asientos contables
         ("CREATE TABLE IF NOT EXISTS asientos_contables (id SERIAL PRIMARY KEY, numero VARCHAR(20), fecha DATE NOT NULL, descripcion VARCHAR(300) NOT NULL, tipo VARCHAR(30) DEFAULT 'manual', referencia VARCHAR(100), debe FLOAT DEFAULT 0, haber FLOAT DEFAULT 0, cuenta_debe VARCHAR(100), cuenta_haber VARCHAR(100), notas TEXT, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
+        # v14 — Proveedor tipo (proveedor/transportista/ambos)
+        ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS tipo VARCHAR(20) DEFAULT 'proveedor'"),
+        # v14 — CotizacionProveedor campos estructurados
+        ("ALTER TABLE cotizaciones_proveedor ADD COLUMN IF NOT EXISTS tipo_cotizacion VARCHAR(20) DEFAULT 'general'"),
+        ("ALTER TABLE cotizaciones_proveedor ADD COLUMN IF NOT EXISTS tipo_producto_servicio VARCHAR(100)"),
+        ("ALTER TABLE cotizaciones_proveedor ADD COLUMN IF NOT EXISTS plazo_entrega_dias INTEGER DEFAULT 0"),
+        ("ALTER TABLE cotizaciones_proveedor ADD COLUMN IF NOT EXISTS condicion_pago_tipo VARCHAR(30) DEFAULT 'contado'"),
+        ("ALTER TABLE cotizaciones_proveedor ADD COLUMN IF NOT EXISTS condicion_pago_dias INTEGER DEFAULT 0"),
+        ("ALTER TABLE cotizaciones_proveedor ADD COLUMN IF NOT EXISTS anticipo_porcentaje FLOAT DEFAULT 0"),
+        ("ALTER TABLE cotizaciones_proveedor ADD COLUMN IF NOT EXISTS calendario_integrado BOOLEAN DEFAULT FALSE"),
+        # v14 — OrdenCompra campos nuevos
+        ("ALTER TABLE ordenes_compra ADD COLUMN IF NOT EXISTS cotizacion_id INTEGER REFERENCES cotizaciones_proveedor(id)"),
+        ("ALTER TABLE ordenes_compra ADD COLUMN IF NOT EXISTS fecha_estimada_pago DATE"),
+        ("ALTER TABLE ordenes_compra ADD COLUMN IF NOT EXISTS transportista_id INTEGER REFERENCES proveedores(id)"),
+        ("ALTER TABLE ordenes_compra ADD COLUMN IF NOT EXISTS fecha_estimada_recogida DATE"),
+        # v14 — OrdenCompraItem link a cotizacion
+        ("ALTER TABLE ordenes_compra_items ADD COLUMN IF NOT EXISTS cotizacion_id INTEGER REFERENCES cotizaciones_proveedor(id)"),
+        # v14 — OrdenProduccion fechas para Gantt
+        ("ALTER TABLE ordenes_produccion ADD COLUMN IF NOT EXISTS fecha_inicio_real DATE"),
+        ("ALTER TABLE ordenes_produccion ADD COLUMN IF NOT EXISTS fecha_fin_estimada DATE"),
     ]
     for sql in migrations:
         try:
