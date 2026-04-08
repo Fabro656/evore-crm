@@ -2093,7 +2093,7 @@ T['cotizaciones/form.html'] = """{% extends 'base.html' %}
     <div class="d-flex justify-content-between mb-1 align-items-center">
       <span class="text-muted">IVA:</span>
       <div class="d-flex align-items-center gap-2">
-        <input type="number" name="iva_pct" id="ivaPct" class="form-control form-control-sm" style="width:70px" step="0.01" min="0" max="100" value="{{ obj.iva_pct if obj else '19' }}" oninput="calcTotal()">
+        <input type="number" name="iva_pct" id="ivaPct" class="form-control form-control-sm" style="width:70px" step="0.01" min="0" max="100" value="{{ ((obj.iva / obj.subtotal * 100)|round(2)) if obj and obj.subtotal and obj.subtotal > 0 else iva_default }}" oninput="calcTotal()">
         <span class="text-muted">%</span>
         <span id="lblIva" class="fw-semibold">$ 0</span>
       </div>
@@ -2978,20 +2978,32 @@ def gastos():
     tipo_f  = request.args.get('tipo','')
     desde_f = request.args.get('desde','')
     hasta_f = request.args.get('hasta','')
-    q = GastoOperativo.query.filter_by(es_plantilla=False)
-    if tipo_f:  q = q.filter_by(tipo=tipo_f)
-    if desde_f: q = q.filter(GastoOperativo.fecha >= datetime.strptime(desde_f,'%Y-%m-%d').date())
-    if hasta_f: q = q.filter(GastoOperativo.fecha <= datetime.strptime(hasta_f,'%Y-%m-%d').date())
-    items = q.order_by(GastoOperativo.fecha.desc()).all()
-    total_g   = db.session.query(db.func.sum(GastoOperativo.monto)).filter_by(es_plantilla=False).scalar() or 0
-    mes_ini   = date_t.today().replace(day=1)
-    total_mes = db.session.query(db.func.sum(GastoOperativo.monto)).filter(
-        GastoOperativo.es_plantilla==False, GastoOperativo.fecha>=mes_ini).scalar() or 0
-    tipos     = [t[0] for t in db.session.query(GastoOperativo.tipo).filter_by(es_plantilla=False).distinct().order_by(GastoOperativo.tipo).all()]
-    plantillas = GastoOperativo.query.filter_by(es_plantilla=True).order_by(GastoOperativo.tipo).all()
+    try:
+        q = GastoOperativo.query.filter_by(es_plantilla=False)
+        if tipo_f:  q = q.filter_by(tipo=tipo_f)
+        if desde_f: q = q.filter(GastoOperativo.fecha >= datetime.strptime(desde_f,'%Y-%m-%d').date())
+        if hasta_f: q = q.filter(GastoOperativo.fecha <= datetime.strptime(hasta_f,'%Y-%m-%d').date())
+        items = q.order_by(GastoOperativo.fecha.desc()).all()
+        total_g   = db.session.query(db.func.sum(GastoOperativo.monto)).filter_by(es_plantilla=False).scalar() or 0
+        mes_ini   = date_t.today().replace(day=1)
+        total_mes = db.session.query(db.func.sum(GastoOperativo.monto)).filter(
+            GastoOperativo.es_plantilla==False, GastoOperativo.fecha>=mes_ini).scalar() or 0
+        tipos     = [t[0] for t in db.session.query(GastoOperativo.tipo).filter_by(es_plantilla=False).distinct().order_by(GastoOperativo.tipo).all()]
+        plantillas = GastoOperativo.query.filter_by(es_plantilla=True).order_by(GastoOperativo.tipo).all()
+        total_reg = GastoOperativo.query.filter_by(es_plantilla=False).count()
+    except Exception:
+        db.session.rollback()
+        q2 = GastoOperativo.query
+        if tipo_f: q2 = q2.filter_by(tipo=tipo_f)
+        items = q2.order_by(GastoOperativo.fecha.desc()).all()
+        total_g = db.session.query(db.func.sum(GastoOperativo.monto)).scalar() or 0
+        mes_ini = date_t.today().replace(day=1)
+        total_mes = db.session.query(db.func.sum(GastoOperativo.monto)).filter(GastoOperativo.fecha>=mes_ini).scalar() or 0
+        tipos = [t[0] for t in db.session.query(GastoOperativo.tipo).distinct().order_by(GastoOperativo.tipo).all()]
+        plantillas = []; total_reg = len(items)
     return render_template('gastos/index.html', items=items, tipo_f=tipo_f,
         desde_f=desde_f, hasta_f=hasta_f, total_general=total_g,
-        total_mes=total_mes, total_registros=GastoOperativo.query.filter_by(es_plantilla=False).count(),
+        total_mes=total_mes, total_registros=total_reg,
         tipos=tipos, plantillas=plantillas)
 
 @app.route('/gastos/nuevo', methods=['GET','POST'])
@@ -3359,25 +3371,35 @@ def calendario():
     mes  = int(request.args.get('mes',  hoy.month))
     eventos = {}
     # 1. Tareas con fecha de vencimiento
-    for t in Tarea.query.filter(Tarea.fecha_vencimiento != None).all():
-        k = t.fecha_vencimiento.strftime('%Y-%m-%d')
-        eventos.setdefault(k, []).append({'t':'tarea','n':t.titulo,'s':t.estado})
+    try:
+        for t in Tarea.query.filter(Tarea.fecha_vencimiento != None).all():
+            k = t.fecha_vencimiento.strftime('%Y-%m-%d')
+            eventos.setdefault(k, []).append({'t':'tarea','n':t.titulo,'s':t.estado})
+    except Exception: db.session.rollback()
     # 2. Ventas con fecha entrega estimada
-    for v in Venta.query.filter(Venta.fecha_entrega_est != None).all():
-        k = v.fecha_entrega_est.strftime('%Y-%m-%d')
-        eventos.setdefault(k, []).append({'t':'venta','n':v.titulo,'s':v.estado})
+    try:
+        for v in Venta.query.filter(Venta.fecha_entrega_est != None).all():
+            k = v.fecha_entrega_est.strftime('%Y-%m-%d')
+            eventos.setdefault(k, []).append({'t':'venta','n':v.titulo,'s':v.estado})
+    except Exception: db.session.rollback()
     # 3. Eventos manuales
-    for e in Evento.query.all():
-        k = e.fecha.strftime('%Y-%m-%d')
-        eventos.setdefault(k, []).append({'t':'evento','n':e.titulo,'s':e.tipo})
-    # 4. Notas con fecha de revisión
-    for n in Nota.query.filter(Nota.fecha_revision != None).all():
-        k = n.fecha_revision.strftime('%Y-%m-%d')
-        eventos.setdefault(k, []).append({'t':'nota','n':n.titulo or '(nota sin título)','s':'revision'})
-    # 5. Productos próximos a caducar (mostrar hasta 6 meses adelante)
-    for p in Producto.query.filter(Producto.fecha_caducidad != None, Producto.activo == True).all():
-        k = p.fecha_caducidad.strftime('%Y-%m-%d')
-        eventos.setdefault(k, []).append({'t':'caducidad','n':p.nombre,'s':'caducidad'})
+    try:
+        for e in Evento.query.all():
+            k = e.fecha.strftime('%Y-%m-%d')
+            eventos.setdefault(k, []).append({'t':'evento','n':e.titulo,'s':e.tipo})
+    except Exception: db.session.rollback()
+    # 4. Notas con fecha de revisión (columna nueva en v11)
+    try:
+        for n in Nota.query.filter(Nota.fecha_revision != None).all():
+            k = n.fecha_revision.strftime('%Y-%m-%d')
+            eventos.setdefault(k, []).append({'t':'nota','n':n.titulo or '(nota sin título)','s':'revision'})
+    except Exception: db.session.rollback()
+    # 5. Productos con fecha de caducidad (columna nueva en v11)
+    try:
+        for p in Producto.query.filter(Producto.fecha_caducidad != None, Producto.activo == True).all():
+            k = p.fecha_caducidad.strftime('%Y-%m-%d')
+            eventos.setdefault(k, []).append({'t':'caducidad','n':p.nombre,'s':'caducidad'})
+    except Exception: db.session.rollback()
     return render_template('calendario.html', eventos_json=eventos, anio=anio, mes=mes)
 
 # =============================================================
