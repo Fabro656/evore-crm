@@ -247,7 +247,10 @@ class CompraMateria(db.Model):
     __tablename__ = 'compras_materia'
     id              = db.Column(db.Integer, primary_key=True)
     producto_id     = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=True)
+    materia_id      = db.Column(db.Integer, db.ForeignKey('materias_primas.id'), nullable=True)
     nombre_item     = db.Column(db.String(200), nullable=False)
+    tipo_compra     = db.Column(db.String(50), default='insumo')  # materia_prima, producto_terminado, insumo, otro
+    unidad          = db.Column(db.String(30), default='unidades')
     proveedor       = db.Column(db.String(200))
     fecha           = db.Column(db.Date, nullable=False)
     nro_factura     = db.Column(db.String(100))
@@ -257,10 +260,13 @@ class CompraMateria(db.Model):
     transporte      = db.Column(db.Float, default=0)
     costo_total     = db.Column(db.Float, default=0)
     precio_unitario = db.Column(db.Float, default=0)
+    tiene_caducidad = db.Column(db.Boolean, default=False)
+    fecha_caducidad = db.Column(db.Date, nullable=True)
     notas           = db.Column(db.Text)
     creado_por      = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
     producto        = db.relationship('Producto', foreign_keys=[producto_id])
+    materia         = db.relationship('MateriaPrima', foreign_keys=[materia_id])
 
 class CotizacionGranel(db.Model):
     __tablename__ = 'cotizaciones_granel'
@@ -542,7 +548,7 @@ body{background:var(--bg);font-family:'Segoe UI',sans-serif}
 .notif-btn{position:relative;background:none;border:none;color:rgba(255,255,255,.7);font-size:1.1rem;padding:.3rem .45rem;border-radius:8px;cursor:pointer;transition:all .2s}
 .notif-btn:hover{color:#fff;background:rgba(255,255,255,.1)}
 .notif-badge{position:absolute;top:0;right:0;background:#f5365c;color:#fff;font-size:.6rem;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px;line-height:1}
-.notif-dd{position:absolute;top:calc(100% + 8px);right:0;width:320px;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.15);z-index:9999;overflow:hidden}
+.notif-dd{position:fixed;bottom:70px;left:0;width:300px;max-height:400px;overflow-y:auto;background:#fff;border-radius:12px;box-shadow:0 -4px 30px rgba(0,0,0,.18);z-index:9999}
 .notif-dd-head{padding:.75rem 1rem;font-size:.8rem;font-weight:700;color:#1a1f36;border-bottom:1px solid #f0f2ff;display:flex;justify-content:space-between;align-items:center}
 .notif-item{padding:.65rem 1rem;border-bottom:1px solid #f8f9fe;cursor:pointer;transition:background .15s}
 .notif-item:hover{background:#f8f9fe}
@@ -620,20 +626,11 @@ T['base.html'] = """<!DOCTYPE html>
         <div class="ui"><div class="u-name">{{ current_user.nombre }}</div>
           <span class="u-rol">{{ current_user.rol }}</span></div>
       </div>
-      <div style="position:relative">
+      <div>
         <button class="notif-btn" id="notifBtn" onclick="toggleNotif(event)" title="Notificaciones">
           <i class="bi bi-bell-fill"></i>
           {% if notif_count > 0 %}<span class="notif-badge">{{ notif_count if notif_count < 10 else '9+' }}</span>{% endif %}
         </button>
-        <div class="notif-dd" id="notifDd">
-          <div class="notif-dd-head"><span><i class="bi bi-bell me-1"></i>Notificaciones</span>
-            <a href="{{ url_for('notificaciones_marcar_todas') }}" style="font-size:.75rem;color:#5e72e4;text-decoration:none" onclick="document.getElementById('notifDd').style.display='none'">Marcar leídas</a>
-          </div>
-          <div id="notifList"><div class="p-3 text-center text-muted" style="font-size:.8rem">Cargando...</div></div>
-          <div style="padding:.5rem 1rem;text-align:center;border-top:1px solid #f0f2ff">
-            <a href="{{ url_for('notificaciones') }}" style="font-size:.78rem;color:#5e72e4;text-decoration:none">Ver todas</a>
-          </div>
-        </div>
       </div>
     </div>
     <a href="{{ url_for('perfil') }}" class="nav-link mt-1"><i class="bi bi-person-gear"></i><span>Mi perfil</span></a>
@@ -655,6 +652,16 @@ T['base.html'] = """<!DOCTYPE html>
       <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
     {% endfor %}{% endif %}{% endwith %}
     {% block content %}{% endblock %}
+  </div>
+</div>
+<!-- Panel notificaciones flotante -->
+<div class="notif-dd" id="notifDd" style="display:none">
+  <div class="notif-dd-head"><span><i class="bi bi-bell me-1"></i>Notificaciones</span>
+    <a href="{{ url_for('notificaciones_marcar_todas') }}" style="font-size:.75rem;color:#5e72e4;text-decoration:none" onclick="document.getElementById('notifDd').style.display='none'">Marcar leídas</a>
+  </div>
+  <div id="notifList"><div class="p-3 text-center text-muted" style="font-size:.8rem">Cargando...</div></div>
+  <div style="padding:.5rem 1rem;text-align:center;border-top:1px solid #f0f2ff">
+    <a href="{{ url_for('notificaciones') }}" style="font-size:.78rem;color:#5e72e4;text-decoration:none">Ver todas</a>
   </div>
 </div>
 <!-- Botón diagnóstico flotante -->
@@ -704,6 +711,47 @@ function toggleDiag(){
     if(!html)html='<div class="diag-item diag-verde"><i class="bi bi-check-circle-fill"></i><span>Todo en orden</span></div>';
     document.getElementById('diagBody').innerHTML=html;
   }).catch(()=>{document.getElementById('diagBody').innerHTML='<div class="p-3 text-muted text-center" style="font-size:.85rem">Error al analizar</div>';});
+}
+</script>
+<script>
+/* ── Auto-título global ─────────────────────────────────────────
+   setupAutoTitulo('#idTitulo', ['#campo1','#campo2',...])
+   Rellena el campo título uniendo los valores de los campos fuente
+   con ", ". Si el usuario edita el título manualmente, deja de
+   rellenarlo automáticamente.
+   ─────────────────────────────────────────────────────────────── */
+function setupAutoTitulo(tituloSel, sourceIds){
+  var tEl = document.querySelector(tituloSel);
+  if(!tEl) return;
+  function build(){
+    if(tEl._editadoManual) return;
+    var partes = [];
+    sourceIds.forEach(function(sid){
+      var el = document.querySelector(sid);
+      if(!el) return;
+      var v = '';
+      if(el.tagName === 'SELECT'){
+        var o = el.options[el.selectedIndex];
+        v = (o && o.value) ? o.text : '';
+      } else {
+        v = (el.value || '').trim();
+      }
+      if(el.type === 'date' && v){
+        try{
+          var d = new Date(v + 'T00:00:00');
+          v = d.toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit',year:'numeric'});
+        }catch(e){}
+      }
+      if(v) partes.push(v);
+    });
+    if(partes.length) tEl.value = partes.join(', ');
+  }
+  tEl.addEventListener('input', function(){ this._editadoManual = true; });
+  sourceIds.forEach(function(sid){
+    var el = document.querySelector(sid);
+    if(el){ el.addEventListener('change', build); el.addEventListener('input', build); }
+  });
+  build();
 }
 </script>
 {% block scripts %}{% endblock %}
@@ -1148,6 +1196,8 @@ function calcEnt(){
 if(ITEMS.length>0){ITEMS.forEach(it=>addProd(it.pid,it.cant,it.precio));}else{addProd();}
 calcEnt();
 const feh=document.getElementById('entHid').value;if(feh){const p=feh.split('-');document.getElementById('entVis').value=p[2]+'/'+p[1]+'/'+p[0];}
+// Auto-título: cliente + estado + fecha anticipo
+setupAutoTitulo('[name="titulo"]',['[name="cliente_id"]','[name="estado"]','[name="fecha_anticipo"]']);
 </script>{% endblock %}"""
 
 T['tareas/index.html'] = """{% extends 'base.html' %}
@@ -1286,7 +1336,10 @@ T['tareas/form.html'] = """{% extends 'base.html' %}
 <div class="d-flex gap-2 mt-4">
   <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear Tarea' }}</button>
   <a href="{{ url_for('tareas') }}" class="btn btn-outline-secondary">Cancelar</a>
-</div></form></div>{% endblock %}"""
+</div></form></div>
+{% block scripts %}<script>
+setupAutoTitulo('[name="titulo"]',['[name="prioridad"]','[name="asignado_a"]','[name="fecha_vencimiento"]']);
+</script>{% endblock %}{% endblock %}"""
 
 T['inventario/index.html'] = """{% extends 'base.html' %}
 {% block title %}Inventario{% endblock %}{% block page_title %}Inventario{% endblock %}
@@ -1361,10 +1414,64 @@ T['inventario/form.html'] = """{% extends 'base.html' %}
   <div class="col-12"><label class="form-label">Descripción</label>
     <textarea name="descripcion" class="form-control" rows="3">{{ obj.descripcion if obj else '' }}</textarea></div>
 </div>
+
+<!-- Sección: Descontar materias primas de producción -->
+<div class="mt-4 p-3 border rounded" style="background:#f8f9fe">
+  <div class="form-check mb-2">
+    <input class="form-check-input" type="checkbox" name="usar_materias" id="usarMaterias" value="1" onchange="toggleMaterias()">
+    <label class="form-check-label fw-semibold" for="usarMaterias">
+      <i class="bi bi-arrow-down-circle me-1 text-warning"></i>Retirar materias primas del stock (producción)
+    </label>
+    <div class="form-text">Registra el consumo de materias primas para este lote de producto.</div>
+  </div>
+  <div id="divMaterias" style="display:none">
+    <div class="mb-2">
+      <label class="form-label">Lote de producto <small class="text-muted">(opcional)</small></label>
+      <select name="lote_id" class="form-select form-select-sm" style="max-width:320px">
+        <option value="">— Sin lote específico —</option>
+        {% for l in lotes %}
+        <option value="{{ l.id }}">{{ l.producto.nombre }} — Lote {{ l.numero_lote }}{% if l.nso %} (NSO: {{ l.nso }}){% endif %}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div id="mpContainer">
+      <!-- rows added by JS -->
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="addMpRow()">
+      <i class="bi bi-plus-lg me-1"></i>Agregar materia prima
+    </button>
+  </div>
+</div>
+
 <div class="d-flex gap-2 mt-4">
   <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear Producto' }}</button>
   <a href="{{ url_for('inventario') }}" class="btn btn-outline-secondary">Cancelar</a>
-</div></form></div>{% endblock %}"""
+</div></form></div>
+{% block scripts %}<script>
+var MP_LIST = {{ materias_json|tojson }};
+function toggleMaterias(){
+  var show=document.getElementById('usarMaterias').checked;
+  document.getElementById('divMaterias').style.display=show?'':'none';
+}
+function addMpRow(){
+  var c=document.getElementById('mpContainer');
+  var row=document.createElement('div');
+  row.className='row g-2 mb-2 mp-row';
+  var sel='<select name="mp_id[]" class="form-select form-select-sm"><option value="">Seleccionar materia prima...</option>';
+  MP_LIST.forEach(function(m){sel+='<option value="'+m.id+'" data-unidad="'+m.unidad+'">'+m.nombre+' (disponible: '+m.stock.toFixed(2)+' '+m.unidad+')</option>';});
+  sel+='</select>';
+  row.innerHTML='<div class="col-md-6">'+sel+'</div>'
+    +'<div class="col-md-3"><input type="number" name="mp_cant[]" step="0.001" min="0.001" class="form-control form-control-sm" placeholder="Cantidad a retirar"></div>'
+    +'<div class="col-md-2"><span class="form-control-plaintext form-control-sm text-muted mp-unidad"></span></div>'
+    +'<div class="col-md-1"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest(\'.mp-row\').remove()"><i class="bi bi-x"></i></button></div>';
+  c.appendChild(row);
+  row.querySelector('select').addEventListener('change',function(){
+    var opt=this.options[this.selectedIndex];
+    var u=opt.getAttribute('data-unidad')||'';
+    this.closest('.mp-row').querySelector('.mp-unidad').textContent=u;
+  });
+}
+</script>{% endblock %}{% endblock %}"""
 
 T['produccion/index.html'] = """{% extends 'base.html' %}
 {% block title %}Producción{% endblock %}{% block page_title %}Producción{% endblock %}
@@ -1487,18 +1594,68 @@ T['produccion/compras.html'] = """{% extends 'base.html' %}
 T['produccion/compra_form.html'] = """{% extends 'base.html' %}
 {% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('compras') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
-{% block content %}<div class="fc" style="max-width:900px"><form method="POST" id="frmC">
+{% block content %}<div class="fc" style="max-width:940px"><form method="POST" id="frmC">
 <div class="row g-3">
-  <div class="col-md-6"><label class="form-label">Nombre del ítem *</label>
-    <input type="text" name="nombre_item" class="form-control" value="{{ obj.nombre_item if obj else '' }}" required></div>
+  <!-- Nombre auto-titulo -->
+  <div class="col-12"><label class="form-label fw-semibold">Nombre del ítem <span class="text-muted fw-normal" style="font-size:.8rem">(se llena automáticamente)</span></label>
+    <input type="text" name="nombre_item" id="nombreItem" class="form-control" value="{{ obj.nombre_item if obj else '' }}" required placeholder="Se genera automáticamente..."></div>
+
+  <!-- Tipo de compra -->
+  <div class="col-md-4"><label class="form-label">Tipo de compra *</label>
+    <select name="tipo_compra" id="tipoCompra" class="form-select" onchange="onTipoChange()">
+      <option value="materia_prima" {% if obj and obj.tipo_compra=='materia_prima' %}selected{% endif %}>🧪 Materia prima para producción</option>
+      <option value="producto_terminado" {% if obj and obj.tipo_compra=='producto_terminado' %}selected{% endif %}>📦 Producto terminado</option>
+      <option value="insumo" {% if (not obj) or (obj and obj.tipo_compra=='insumo') %}selected{% endif %}>🔧 Insumo / suministro</option>
+      <option value="otro" {% if obj and obj.tipo_compra=='otro' %}selected{% endif %}>📋 Otro</option>
+    </select></div>
+
+  <!-- Vincular materia prima (solo si tipo = materia_prima) -->
+  <div class="col-md-8" id="divMateria" style="display:none">
+    <label class="form-label">Materia prima vinculada <small class="text-muted">(actualiza stock al guardar)</small></label>
+    <select name="materia_id" id="materiaId" class="form-select" onchange="onMateriaChange()">
+      <option value="">— Sin vincular —</option>
+      {% for m in materias %}<option value="{{ m.id }}" data-unidad="{{ m.unidad }}" {% if obj and obj.materia_id==m.id %}selected{% endif %}>{{ m.nombre }} ({{ m.unidad }})</option>{% endfor %}
+    </select></div>
+
+  <!-- Vincular producto inventario (solo si tipo != materia_prima) -->
+  <div class="col-md-8" id="divProducto" style="">
+    <label class="form-label">Vincular a producto en inventario <small class="text-muted">(actualiza costo)</small></label>
+    <select name="producto_id" class="form-select">
+      <option value="">— No vincular —</option>
+      {% for p in productos %}<option value="{{ p.id }}" {% if obj and obj.producto_id==p.id %}selected{% endif %}>{{ p.nombre }}{% if p.sku %} ({{ p.sku }}){% endif %}</option>{% endfor %}
+    </select></div>
+
   <div class="col-md-6"><label class="form-label">Proveedor</label>
-    <input type="text" name="proveedor" class="form-control" value="{{ obj.proveedor if obj else '' }}"></div>
-  <div class="col-md-4"><label class="form-label">Fecha *</label>
-    <input type="date" name="fecha" class="form-control" value="{{ obj.fecha.strftime('%Y-%m-%d') if obj else today }}" required></div>
-  <div class="col-md-4"><label class="form-label"># Factura</label>
+    <input type="text" name="proveedor" id="proveedor" class="form-control" value="{{ obj.proveedor if obj else '' }}" oninput="autoNombre()"></div>
+  <div class="col-md-3"><label class="form-label">Fecha *</label>
+    <input type="date" name="fecha" id="fechaC" class="form-control" value="{{ obj.fecha.strftime('%Y-%m-%d') if obj else today }}" required oninput="autoNombre()"></div>
+  <div class="col-md-3"><label class="form-label"># Factura</label>
     <input type="text" name="nro_factura" class="form-control" value="{{ obj.nro_factura if obj else '' }}"></div>
+
+  <!-- Cantidad + Unidad -->
   <div class="col-md-4"><label class="form-label">Cantidad</label>
-    <input type="number" name="cantidad" id="cant" class="form-control" step="0.01" min="0.01" value="{{ obj.cantidad if obj else '1' }}" oninput="calc()"></div>
+    <input type="number" name="cantidad" id="cant" class="form-control" step="0.001" min="0.001" value="{{ obj.cantidad if obj else '1' }}" oninput="calc()"></div>
+  <div class="col-md-4"><label class="form-label">Unidad de medida</label>
+    <select name="unidad" id="unidadSel" class="form-select">
+      {% for u in ['unidades','kg','g','litros','ml','libras','galones','metros','cm','piezas','cajas','bolsas'] %}
+      <option value="{{ u }}" {% if obj and obj.unidad==u %}selected{% elif not obj and u=='unidades' %}selected{% endif %}>{{ u }}</option>
+      {% endfor %}
+    </select></div>
+
+  <!-- Caducidad -->
+  <div class="col-md-4">
+    <label class="form-label">¿Tiene caducidad?</label>
+    <div class="form-check mt-2">
+      <input class="form-check-input" type="checkbox" name="tiene_caducidad" id="chkCad" value="1"
+        {% if obj and obj.tiene_caducidad %}checked{% endif %} onchange="toggleCad()">
+      <label class="form-check-label" for="chkCad">Sí, tiene fecha de caducidad</label>
+    </div>
+  </div>
+  <div class="col-md-4" id="divCad" style="display:{{ 'block' if obj and obj.tiene_caducidad else 'none' }}">
+    <label class="form-label">Fecha de caducidad</label>
+    <input type="date" name="fecha_caducidad" class="form-control" value="{{ obj.fecha_caducidad.strftime('%Y-%m-%d') if obj and obj.fecha_caducidad else '' }}"></div>
+
+  <!-- Costos -->
   <div class="col-md-4"><label class="form-label">Costo del producto COP</label>
     <div class="input-group"><span class="input-group-text">$</span>
       <input type="number" name="costo_producto" id="cP" class="form-control" step="1" min="0" value="{{ obj.costo_producto|int if obj else '0' }}" oninput="calc()"></div></div>
@@ -1514,32 +1671,64 @@ T['produccion/compra_form.html'] = """{% extends 'base.html' %}
   <div class="col-md-6"><label class="form-label fw-bold">Precio unitario COP</label>
     <input type="text" id="pUVis" class="form-control fw-bold" readonly style="background:#f0f2ff;font-size:1.05rem">
     <input type="hidden" name="precio_unitario" id="pUHid"></div>
-  <div class="col-12"><label class="form-label">Vincular a producto en inventario</label>
-    <select name="producto_id" class="form-select">
-      <option value="">— No vincular —</option>
-      {% for p in productos %}<option value="{{ p.id }}" {% if obj and obj.producto_id==p.id %}selected{% endif %}>{{ p.nombre }}{% if p.sku %} ({{ p.sku }}){% endif %}</option>{% endfor %}
-    </select>
-    <div class="form-text">Al guardar, actualizará el costo del producto seleccionado.</div></div>
+
   <div class="col-12"><label class="form-label">Notas</label>
     <textarea name="notas" class="form-control" rows="2">{{ obj.notas if obj else '' }}</textarea></div>
 </div>
 <div class="d-flex gap-2 mt-4">
   <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Guardar Compra' }}</button>
   <a href="{{ url_for('compras') }}" class="btn btn-outline-secondary">Cancelar</a>
-</div></form></div>{% endblock %}
+</div></form></div>
 {% block scripts %}<script>
+var _tipoLabels = {materia_prima:'Materia prima',producto_terminado:'Producto terminado',insumo:'Insumo',otro:'Otro'};
 function fCOP(n){return '$ '+Math.round(n).toLocaleString('es-CO');}
 function calc(){
-  const cp=parseFloat(document.getElementById('cP').value)||0;
-  const imp=parseFloat(document.getElementById('imp').value)||0;
-  const tsp=parseFloat(document.getElementById('tsp').value)||0;
-  const cant=parseFloat(document.getElementById('cant').value)||1;
-  const tot=cp+imp+tsp;const pu=cant>0?tot/cant:0;
-  document.getElementById('totVis').value=fCOP(tot);document.getElementById('totHid').value=Math.round(tot);
-  document.getElementById('pUVis').value=fCOP(pu);document.getElementById('pUHid').value=Math.round(pu);
+  var cp=parseFloat(document.getElementById('cP').value)||0;
+  var imp=parseFloat(document.getElementById('imp').value)||0;
+  var tsp=parseFloat(document.getElementById('tsp').value)||0;
+  var cant=parseFloat(document.getElementById('cant').value)||1;
+  var tot=cp+imp+tsp; var pu=cant>0?tot/cant:0;
+  document.getElementById('totVis').value=fCOP(tot); document.getElementById('totHid').value=Math.round(tot);
+  document.getElementById('pUVis').value=fCOP(pu); document.getElementById('pUHid').value=Math.round(pu);
 }
-calc();
-</script>{% endblock %}"""
+function onTipoChange(){
+  var t=document.getElementById('tipoCompra').value;
+  document.getElementById('divMateria').style.display=(t==='materia_prima')?'':'none';
+  document.getElementById('divProducto').style.display=(t!=='materia_prima')?'':'none';
+  autoNombre();
+}
+function onMateriaChange(){
+  var sel=document.getElementById('materiaId');
+  var opt=sel.options[sel.selectedIndex];
+  var unidad=opt.getAttribute('data-unidad');
+  if(unidad){
+    var uSel=document.getElementById('unidadSel');
+    for(var i=0;i<uSel.options.length;i++){if(uSel.options[i].value===unidad){uSel.selectedIndex=i;break;}}
+  }
+  autoNombre();
+}
+function autoNombre(){
+  var tipo=document.getElementById('tipoCompra');
+  var tipoLbl=_tipoLabels[tipo.value]||tipo.value;
+  var partes=[tipoLbl];
+  if(tipo.value==='materia_prima'){
+    var mSel=document.getElementById('materiaId');
+    if(mSel.selectedIndex>0) partes.push(mSel.options[mSel.selectedIndex].text.split(' (')[0]);
+  }
+  var prov=document.getElementById('proveedor').value.trim();
+  if(prov) partes.push(prov);
+  var fecha=document.getElementById('fechaC').value;
+  if(fecha){var d=new Date(fecha+'T00:00:00');partes.push(d.toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit',year:'numeric'}));}
+  var nom=document.getElementById('nombreItem');
+  if(!nom._editado) nom.value=partes.join(', ');
+}
+document.getElementById('nombreItem').addEventListener('input',function(){this._editado=true;});
+function toggleCad(){
+  document.getElementById('divCad').style.display=document.getElementById('chkCad').checked?'block':'none';
+}
+// Init
+onTipoChange(); calc();
+</script>{% endblock %}{% endblock %}"""
 
 T['produccion/granel.html'] = """{% extends 'base.html' %}
 {% block title %}Granel{% endblock %}{% block page_title %}Cotizaciones Granel{% endblock %}
@@ -1616,7 +1805,10 @@ T['produccion/granel_form.html'] = """{% extends 'base.html' %}
 <div class="d-flex gap-2 mt-4">
   <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Guardar Cotización' }}</button>
   <a href="{{ url_for('granel') }}" class="btn btn-outline-secondary">Cancelar</a>
-</div></form></div>{% endblock %}"""
+</div></form></div>
+{% block scripts %}<script>
+setupAutoTitulo('[name="nombre_producto"]',['[name="proveedor"]','[name="estado"]','[name="fecha_cotizacion"]']);
+</script>{% endblock %}{% endblock %}"""
 
 T['produccion/impuestos.html'] = """{% extends 'base.html' %}
 {% block title %}Impuestos{% endblock %}{% block page_title %}Reglas Tributarias{% endblock %}
@@ -2084,7 +2276,10 @@ T['notas/form.html'] = """{% extends 'base.html' %}
 <div class="d-flex gap-2 mt-4">
   <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Guardar nota' }}</button>
   <a href="{{ url_for('notas') }}" class="btn btn-outline-secondary">Cancelar</a>
-</div></form></div>{% endblock %}"""
+</div></form></div>
+{% block scripts %}<script>
+setupAutoTitulo('[name="titulo"]',['[name="modulo"]','[name="cliente_id"]','[name="producto_id"]','[name="fecha_revision"]']);
+</script>{% endblock %}{% endblock %}"""
 
 T['calendario.html'] = """{% extends 'base.html' %}
 {% block title %}Calendario{% endblock %}{% block page_title %}Calendario{% endblock %}
@@ -2454,6 +2649,8 @@ function addRow(){
 }
 document.getElementById('pctAnticipo').addEventListener('input',calcTotal);
 calcTotal();
+// Auto-título desde cliente + fecha emisión
+setupAutoTitulo('[name="titulo"]',['[name="cliente_id"]','[name="fecha_emision"]']);
 </script>{% endblock %}{% endblock %}"""
 
 T['cotizaciones/ver.html'] = """{% extends 'base.html' %}
@@ -2786,7 +2983,10 @@ T['inventario/lote_form.html'] = """{% extends 'base.html' %}
 <div class="d-flex gap-2 mt-4">
   <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear Lote' }}</button>
   <a href="{{ url_for('lotes') }}" class="btn btn-outline-secondary">Cancelar</a>
-</div></form></div>{% endblock %}"""
+</div></form></div>
+{% block scripts %}<script>
+setupAutoTitulo('[name="numero_lote"]',['[name="producto_id"]','[name="fecha_produccion"]']);
+</script>{% endblock %}{% endblock %}"""
 
 # =============================================================
 # TEMPLATES V12 — Materias Primas
@@ -2977,11 +3177,50 @@ T['produccion/receta_form.html'] = """{% extends 'base.html' %}
 {% block scripts %}<script>
 var MATERIAS = {{ materias_json|tojson }};
 function addItem(){
-  var html='<div class="row g-2 mb-2 item-row"><div class="col-md-6"><select name="materia_id[]" class="form-select form-select-sm" required><option value="">Seleccionar materia prima...</option>';
-  MATERIAS.forEach(function(m){html+='<option value="'+m.id+'">'+m.nombre+' ('+m.unidad+')</option>';});
-  html+='</select></div><div class="col-md-4"><input type="number" name="cantidad[]" step="0.001" min="0.001" class="form-control form-control-sm" placeholder="Cantidad por unidad" required></div><div class="col-md-2"><button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="this.closest(\'.item-row\').remove()"><i class="bi bi-trash"></i></button></div></div>';
-  document.getElementById('itemsContainer').insertAdjacentHTML('beforeend',html);
+  var cont=document.getElementById('itemsContainer');
+  if(!cont){alert('Error: contenedor no encontrado');return;}
+  // Crear fila
+  var row=document.createElement('div');
+  row.className='row g-2 mb-2 item-row align-items-center';
+  // Columna select materia prima
+  var colA=document.createElement('div'); colA.className='col-md-5';
+  var sel=document.createElement('select');
+  sel.name='materia_id[]'; sel.className='form-select form-select-sm'; sel.required=true;
+  var optDef=document.createElement('option'); optDef.value=''; optDef.textContent='Seleccionar materia prima...'; sel.appendChild(optDef);
+  MATERIAS.forEach(function(m){
+    var opt=document.createElement('option'); opt.value=m.id;
+    opt.textContent=m.nombre+' ('+m.unidad+')';
+    opt.setAttribute('data-unidad',m.unidad); sel.appendChild(opt);
+  });
+  sel.addEventListener('change',function(){
+    var opt=this.options[this.selectedIndex];
+    var u=opt.getAttribute('data-unidad')||'';
+    this.closest('.item-row').querySelector('.unidad-lbl').textContent=u;
+  });
+  colA.appendChild(sel);
+  // Columna cantidad
+  var colB=document.createElement('div'); colB.className='col-md-3';
+  var inp=document.createElement('input');
+  inp.type='number'; inp.name='cantidad[]'; inp.step='0.001'; inp.min='0.001';
+  inp.className='form-control form-control-sm'; inp.placeholder='Cantidad por unidad'; inp.required=true;
+  colB.appendChild(inp);
+  // Columna unidad label
+  var colC=document.createElement('div'); colC.className='col-md-2';
+  var uLbl=document.createElement('span'); uLbl.className='form-control-plaintext form-control-sm text-muted unidad-lbl';
+  colC.appendChild(uLbl);
+  // Columna eliminar
+  var colD=document.createElement('div'); colD.className='col-md-2';
+  var btn=document.createElement('button'); btn.type='button'; btn.className='btn btn-sm btn-outline-danger w-100';
+  btn.innerHTML='<i class="bi bi-trash"></i>';
+  btn.addEventListener('click',function(){this.closest('.item-row').remove();});
+  colD.appendChild(btn);
+  row.appendChild(colA); row.appendChild(colB); row.appendChild(colC); row.appendChild(colD);
+  cont.appendChild(row);
 }
+// Bind existing delete buttons (for edit mode)
+document.querySelectorAll('.item-row .btn-outline-danger').forEach(function(b){
+  b.addEventListener('click',function(){this.closest('.item-row').remove();});
+});
 </script>{% endblock %}{% endblock %}"""
 
 # =============================================================
@@ -3412,6 +3651,43 @@ def inventario():
                            busqueda=busqueda, categoria_f=categoria_f, categorias=cats,
                            now=datetime.utcnow())
 
+def _inv_form_ctx():
+    materias = MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).all()
+    lotes = LoteProducto.query.order_by(LoteProducto.creado_en.desc()).all()
+    mj = [{'id': m.id, 'nombre': m.nombre, 'unidad': m.unidad,
+            'stock': m.stock_disponible} for m in materias]
+    return {'materias_json': mj, 'lotes': lotes}
+
+def _descontar_materias(form):
+    """Si el formulario tiene usar_materias=1, descuenta stock de cada materia prima."""
+    if not form.get('usar_materias'): return
+    mp_ids = form.getlist('mp_id[]')
+    mp_cants = form.getlist('mp_cant[]')
+    lote_id = form.get('lote_id') or None
+    errores = []
+    for mid, cant_str in zip(mp_ids, mp_cants):
+        if not mid or not cant_str: continue
+        try:
+            cant = float(cant_str)
+            m = MateriaPrima.query.get(int(mid))
+            if not m:
+                errores.append(f'Materia prima ID {mid} no encontrada')
+                continue
+            if m.stock_disponible < cant:
+                errores.append(f'Stock insuficiente de "{m.nombre}": disponible {m.stock_disponible:.3f} {m.unidad}, solicitado {cant:.3f}')
+                continue
+            m.stock_disponible -= cant
+            m.stock_reservado = max(0, m.stock_reservado - cant)
+            if lote_id:
+                db.session.add(ReservaProduccion(
+                    materia_prima_id=m.id, cantidad=cant,
+                    lote_id=int(lote_id), estado='usado',
+                    notas='Descontado desde inventario',
+                    creado_por=None))
+        except Exception as e:
+            errores.append(str(e))
+    return errores
+
 @app.route('/inventario/nuevo', methods=['GET','POST'])
 @login_required
 def producto_nuevo():
@@ -3426,8 +3702,12 @@ def producto_nuevo():
             stock_minimo=int(request.form.get('stock_minimo',5) or 5),
             categoria=request.form.get('categoria',''),
             fecha_caducidad=datetime.strptime(fd_cad,'%Y-%m-%d').date() if fd_cad else None))
-        db.session.commit(); flash('Producto creado.','success'); return redirect(url_for('inventario'))
-    return render_template('inventario/form.html', obj=None, titulo='Nuevo Producto')
+        errs = _descontar_materias(request.form)
+        db.session.commit()
+        if errs:
+            for e in errs: flash(f'Advertencia stock: {e}', 'warning')
+        flash('Producto creado.','success'); return redirect(url_for('inventario'))
+    return render_template('inventario/form.html', obj=None, titulo='Nuevo Producto', **_inv_form_ctx())
 
 @app.route('/inventario/<int:id>/editar', methods=['GET','POST'])
 @login_required
@@ -3443,8 +3723,12 @@ def producto_editar(id):
         obj.stock_minimo=int(request.form.get('stock_minimo',5) or 5)
         obj.categoria=request.form.get('categoria','')
         obj.fecha_caducidad=datetime.strptime(fd_cad,'%Y-%m-%d').date() if fd_cad else None
-        db.session.commit(); flash('Producto actualizado.','success'); return redirect(url_for('inventario'))
-    return render_template('inventario/form.html', obj=obj, titulo='Editar Producto')
+        errs = _descontar_materias(request.form)
+        db.session.commit()
+        if errs:
+            for e in errs: flash(f'Advertencia stock: {e}', 'warning')
+        flash('Producto actualizado.','success'); return redirect(url_for('inventario'))
+    return render_template('inventario/form.html', obj=obj, titulo='Editar Producto', **_inv_form_ctx())
 
 @app.route('/inventario/<int:id>/eliminar', methods=['POST'])
 @login_required
@@ -3492,36 +3776,55 @@ def compras():
     return render_template('produccion/compras.html', items=q.order_by(CompraMateria.fecha.desc()).all(),
                            busqueda=busqueda, total_general=total_general, total_mes=total_mes)
 
+def _save_compra(c, form):
+    """Helper to parse and save compra fields from form."""
+    fd = form.get('fecha')
+    cant  = float(form.get('cantidad',1) or 1)
+    costo_p = float(form.get('costo_producto',0) or 0)
+    imp   = float(form.get('impuestos',0) or 0)
+    trans = float(form.get('transporte',0) or 0)
+    costo_total = costo_p + imp + trans
+    precio_unit = (costo_total / cant) if cant > 0 else 0
+    pid   = form.get('producto_id') or None
+    mid   = form.get('materia_id') or None
+    fvenc = form.get('fecha_caducidad') or None
+    c.producto_id   = int(pid) if pid else None
+    c.materia_id    = int(mid) if mid else None
+    c.nombre_item   = form['nombre_item']
+    c.tipo_compra   = form.get('tipo_compra','insumo')
+    c.unidad        = form.get('unidad','unidades')
+    c.proveedor     = form.get('proveedor','')
+    c.fecha         = datetime.strptime(fd,'%Y-%m-%d').date() if fd else datetime.utcnow().date()
+    c.nro_factura   = form.get('nro_factura','')
+    c.cantidad      = cant
+    c.costo_producto = costo_p; c.impuestos = imp; c.transporte = trans
+    c.costo_total   = costo_total; c.precio_unitario = precio_unit
+    c.tiene_caducidad = bool(form.get('tiene_caducidad'))
+    c.fecha_caducidad = datetime.strptime(fvenc,'%Y-%m-%d').date() if fvenc else None
+    c.notas = form.get('notas','')
+    # Update linked product cost
+    if pid:
+        prod = Producto.query.get(int(pid))
+        if prod: prod.costo = precio_unit
+    # Update materia prima stock if tipo=materia_prima
+    if mid and c.tipo_compra == 'materia_prima':
+        m = MateriaPrima.query.get(int(mid))
+        if m:
+            m.stock_disponible = (m.stock_disponible or 0) + cant
+    return c
+
 @app.route('/produccion/compras/nueva', methods=['GET','POST'])
 @login_required
 def compra_nueva():
     if request.method == 'POST':
-        fd = request.form.get('fecha')
-        cant  = float(request.form.get('cantidad',1) or 1)
-        costo_p = float(request.form.get('costo_producto',0) or 0)
-        imp   = float(request.form.get('impuestos',0) or 0)
-        trans = float(request.form.get('transporte',0) or 0)
-        costo_total = costo_p + imp + trans
-        precio_unit = (costo_total / cant) if cant > 0 else 0
-        pid   = request.form.get('producto_id') or None
-        c = CompraMateria(
-            producto_id=int(pid) if pid else None,
-            nombre_item=request.form['nombre_item'],
-            proveedor=request.form.get('proveedor',''),
-            fecha=datetime.strptime(fd,'%Y-%m-%d').date() if fd else datetime.utcnow().date(),
-            nro_factura=request.form.get('nro_factura',''),
-            cantidad=cant, costo_producto=costo_p, impuestos=imp, transporte=trans,
-            costo_total=costo_total, precio_unitario=precio_unit,
-            notas=request.form.get('notas',''), creado_por=current_user.id)
-        db.session.add(c)
-        if pid:
-            prod = Producto.query.get(int(pid))
-            if prod: prod.costo = precio_unit
-        db.session.commit()
-        flash('Compra registrada y costo actualizado.','success')
+        c = CompraMateria(creado_por=current_user.id)
+        _save_compra(c, request.form)
+        db.session.add(c); db.session.commit()
+        flash('Compra registrada.','success')
         return redirect(url_for('compras'))
     return render_template('produccion/compra_form.html', obj=None, titulo='Nueva Compra',
                            productos=Producto.query.filter_by(activo=True).order_by(Producto.nombre).all(),
+                           materias=MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).all(),
                            today=datetime.utcnow().strftime('%Y-%m-%d'))
 
 @app.route('/produccion/compras/<int:id>/editar', methods=['GET','POST'])
@@ -3529,29 +3832,13 @@ def compra_nueva():
 def compra_editar(id):
     obj=CompraMateria.query.get_or_404(id)
     if request.method == 'POST':
-        fd = request.form.get('fecha')
-        cant  = float(request.form.get('cantidad',1) or 1)
-        costo_p = float(request.form.get('costo_producto',0) or 0)
-        imp   = float(request.form.get('impuestos',0) or 0)
-        trans = float(request.form.get('transporte',0) or 0)
-        costo_total = costo_p + imp + trans
-        precio_unit = (costo_total / cant) if cant > 0 else 0
-        pid   = request.form.get('producto_id') or None
-        obj.producto_id=int(pid) if pid else None
-        obj.nombre_item=request.form['nombre_item']; obj.proveedor=request.form.get('proveedor','')
-        obj.fecha=datetime.strptime(fd,'%Y-%m-%d').date() if fd else obj.fecha
-        obj.nro_factura=request.form.get('nro_factura','')
-        obj.cantidad=cant; obj.costo_producto=costo_p; obj.impuestos=imp; obj.transporte=trans
-        obj.costo_total=costo_total; obj.precio_unitario=precio_unit
-        obj.notas=request.form.get('notas','')
-        if pid:
-            prod = Producto.query.get(int(pid))
-            if prod: prod.costo = precio_unit
+        _save_compra(obj, request.form)
         db.session.commit()
-        flash('Compra actualizada y costo actualizado.','success')
+        flash('Compra actualizada.','success')
         return redirect(url_for('compras'))
     return render_template('produccion/compra_form.html', obj=obj, titulo='Editar Compra',
                            productos=Producto.query.filter_by(activo=True).order_by(Producto.nombre).all(),
+                           materias=MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).all(),
                            today=datetime.utcnow().strftime('%Y-%m-%d'))
 
 @app.route('/produccion/compras/<int:id>/eliminar', methods=['POST'])
@@ -4785,6 +5072,12 @@ def _migrate(conn):
         ("ALTER TABLE reglas_tributarias ADD COLUMN IF NOT EXISTS proveedor_nombre VARCHAR(200)"),
         # User — módulos personalizados v12
         ("ALTER TABLE users ADD COLUMN IF NOT EXISTS modulos_permitidos TEXT DEFAULT '[]'"),
+        # CompraMateria — campos v12
+        ("ALTER TABLE compras_materia ADD COLUMN IF NOT EXISTS materia_id INTEGER REFERENCES materias_primas(id)"),
+        ("ALTER TABLE compras_materia ADD COLUMN IF NOT EXISTS tipo_compra VARCHAR(50) DEFAULT 'insumo'"),
+        ("ALTER TABLE compras_materia ADD COLUMN IF NOT EXISTS unidad VARCHAR(30) DEFAULT 'unidades'"),
+        ("ALTER TABLE compras_materia ADD COLUMN IF NOT EXISTS tiene_caducidad BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE compras_materia ADD COLUMN IF NOT EXISTS fecha_caducidad DATE"),
     ]
     for sql in migrations:
         try:
