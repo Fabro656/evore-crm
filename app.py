@@ -2305,24 +2305,61 @@ setupAutoTitulo('[name="titulo"]',['[name="modulo"]','[name="cliente_id"]','[nam
 T['calendario.html'] = """{% extends 'base.html' %}
 {% block title %}Calendario{% endblock %}{% block page_title %}Calendario{% endblock %}
 {% block topbar_actions %}
-<button id="prevM" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i></button>
-<span id="mesLabel" class="fw-semibold mx-2" style="min-width:140px;display:inline-block;text-align:center"></span>
-<button id="nextM" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-right"></i></button>
+<a href="{{ url_for('calendario') }}?mes={{ prev_mes }}&anio={{ prev_anio }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i></a>
+<span class="fw-semibold mx-2" style="min-width:160px;display:inline-block;text-align:center">{{ mes_nombre }} {{ anio }}</span>
+<a href="{{ url_for('calendario') }}?mes={{ next_mes }}&anio={{ next_anio }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-right"></i></a>
+<a href="{{ url_for('calendario') }}" class="btn btn-outline-secondary btn-sm ms-1">Hoy</a>
 <button class="btn btn-primary btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#modalEvento"><i class="bi bi-plus-lg me-1"></i>Nuevo evento</button>
 {% endblock %}
 {% block content %}
 <div class="row g-2 mb-3">
-  <div class="col-auto"><span class="cal-ev ev-tarea px-2 py-1" style="font-size:.75rem;display:inline-block">● Tarea</span></div>
-  <div class="col-auto"><span class="cal-ev ev-venta px-2 py-1" style="font-size:.75rem;display:inline-block">● Venta / Entrega</span></div>
-  <div class="col-auto"><span class="cal-ev ev-evento px-2 py-1" style="font-size:.75rem;display:inline-block">● Evento / Cita</span></div>
-  <div class="col-auto"><span class="cal-ev ev-nota px-2 py-1" style="font-size:.75rem;display:inline-block">● Revisión nota</span></div>
-  <div class="col-auto"><span class="cal-ev ev-caducidad px-2 py-1" style="font-size:.75rem;display:inline-block">● Caducidad producto</span></div>
+  <div class="col-auto"><span class="cal-ev ev-tarea px-2 py-1 rounded" style="font-size:.75rem;display:inline-block">● Tarea</span></div>
+  <div class="col-auto"><span class="cal-ev ev-venta px-2 py-1 rounded" style="font-size:.75rem;display:inline-block">● Venta / Entrega</span></div>
+  <div class="col-auto"><span class="cal-ev ev-evento px-2 py-1 rounded" style="font-size:.75rem;display:inline-block">● Evento / Cita</span></div>
+  <div class="col-auto"><span class="cal-ev ev-nota px-2 py-1 rounded" style="font-size:.75rem;display:inline-block">● Revisión nota</span></div>
+  <div class="col-auto"><span class="cal-ev ev-caducidad px-2 py-1 rounded" style="font-size:.75rem;display:inline-block">● Caducidad producto</span></div>
 </div>
 <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)">
-  <table style="width:100%;border-collapse:collapse" id="calTable">
-    <thead><tr id="calHead"></tr></thead>
-    <tbody id="calBody"></tbody>
-  </table>
+<table style="width:100%;border-collapse:collapse;table-layout:fixed">
+<thead><tr>
+  {% for dia in ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'] %}
+  <th style="padding:.6rem;text-align:center;font-size:.8rem;color:#8898aa;background:#f8f9fe;font-weight:600;border:1px solid #f0f2ff">{{ dia }}</th>
+  {% endfor %}
+</tr></thead>
+<tbody>
+{% for week in month_days %}
+<tr>
+  {% for day in week %}
+    {% if day == 0 %}
+    <td class="cal-day other-month" style="border:1px solid #f0f2ff;height:80px;vertical-align:top;padding:4px"></td>
+    {% else %}
+      {% set dk = '%04d-%02d-%02d'|format(anio, mes, day) %}
+      {% set evs = eventos.get(dk, []) %}
+      {% set is_today = (dk == today_str) %}
+      <td class="cal-day{% if is_today %} today{% endif %}"
+          style="border:1px solid #f0f2ff;height:80px;vertical-align:top;padding:4px;cursor:pointer{% if is_today %};background:#f5f7ff{% endif %}"
+          onclick="document.getElementById('evFecha').value='{{ dk }}';new bootstrap.Modal(document.getElementById('modalEvento')).show()">
+        {% if is_today %}
+        <div style="margin-bottom:3px">
+          <span style="background:#5e72e4;color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700">{{ day }}</span>
+        </div>
+        {% else %}
+        <div style="font-size:.82rem;font-weight:500;margin-bottom:3px;color:#1a1f36">{{ day }}</div>
+        {% endif %}
+        {% for ev in evs[:3] %}
+          {% set ev_cls = {'tarea':'ev-tarea','venta':'ev-venta','evento':'ev-evento','nota':'ev-nota','caducidad':'ev-caducidad'}.get(ev.t, 'ev-evento') %}
+          <div class="cal-ev {{ ev_cls }}" title="{{ ev.n|e }}" style="font-size:.68rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%">{{ ev.n|truncate(24,true,'…') }}</div>
+        {% endfor %}
+        {% if evs|length > 3 %}
+          <div style="font-size:.65rem;color:#8898aa">+{{ evs|length - 3 }} más</div>
+        {% endif %}
+      </td>
+    {% endif %}
+  {% endfor %}
+</tr>
+{% endfor %}
+</tbody>
+</table>
 </div>
 <!-- Modal nuevo evento -->
 <div class="modal fade" id="modalEvento" tabindex="-1">
@@ -2354,115 +2391,7 @@ T['calendario.html'] = """{% extends 'base.html' %}
     </div></form>
   </div></div>
 </div>
-{% endblock %}
-{% block scripts %}<script>
-var evData = {{ eventos_json|tojson }};
-var curYear = {{ anio }};
-var curMes  = {{ mes }};  // 1-based
-var DN = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
-var MN = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-var evColor = {tarea:'ev-tarea',venta:'ev-venta',evento:'ev-evento',nota:'ev-nota',caducidad:'ev-caducidad'};
-
-function pad2(n){return n<10?'0'+n:String(n);}
-
-function renderCal(yr, mo1){
-  // mo1 is 1-based (Jan=1)
-  var mo0 = mo1 - 1;  // 0-based for JS Date
-  document.getElementById('mesLabel').textContent = MN[mo0] + ' ' + yr;
-
-  // Header
-  var hd = '';
-  DN.forEach(function(n){
-    hd += '<th style="padding:.6rem;text-align:center;font-size:.8rem;color:#8898aa;background:#f8f9fe;font-weight:600;border:1px solid #f0f2ff">'+n+'</th>';
-  });
-  document.getElementById('calHead').innerHTML = hd;
-
-  // First day of month: JS getDay() → 0=Sun,1=Mon,...,6=Sat → convert to 1=Mon...7=Sun
-  var firstDate = new Date(yr, mo0, 1);
-  var startDow = firstDate.getDay();         // 0=Sun
-  if(startDow === 0) startDow = 7;           // remap Sunday to 7
-  var startDow1 = startDow;                  // 1=Mon..7=Sun
-
-  // Last day of month
-  var lastDay = new Date(yr, mo0+1, 0).getDate();
-
-  var today = new Date();
-  today.setHours(0,0,0,0);
-
-  var rows = [];
-  var week = [];
-
-  // Fill blank cells before first day (Mon=1 means 0 blanks, Tue=2 means 1 blank, etc.)
-  for(var b = 1; b < startDow1; b++){
-    week.push(null);
-  }
-
-  for(var day = 1; day <= lastDay; day++){
-    week.push(day);
-    if(week.length === 7){
-      rows.push(week);
-      week = [];
-    }
-  }
-  // Pad last week
-  while(week.length > 0 && week.length < 7){ week.push(null); }
-  if(week.length > 0) rows.push(week);
-
-  var html = '';
-  rows.forEach(function(row){
-    html += '<tr>';
-    row.forEach(function(day){
-      if(day === null){
-        html += '<td class="cal-day other-month"></td>';
-      } else {
-        var dk = yr + '-' + pad2(mo1) + '-' + pad2(day);
-        var evs = evData[dk] || [];
-        var cellDate = new Date(yr, mo0, day);
-        var isToday = (cellDate.getTime() === today.getTime());
-        var isPast  = (cellDate < today && !isToday);
-        var cls = 'cal-day' + (isToday?' today':'') + (isPast?' other-month':'');
-        html += '<td class="'+cls+'" onclick="openDay(\''+dk+'\',event)">';
-        // Day number
-        if(isToday){
-          html += '<div style="margin-bottom:3px"><span style="background:#5e72e4;color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700">'+day+'</span></div>';
-        } else {
-          html += '<div style="font-size:.82rem;font-weight:500;margin-bottom:3px;color:'+(isPast?'#b0b8d1':'#1a1f36')+'">'+day+'</div>';
-        }
-        // Events
-        var shown = evs.slice(0, 3);
-        shown.forEach(function(e){
-          var eN = String(e.n||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-          html += '<div class="cal-ev '+(evColor[e.t]||'ev-evento')+'" title="'+eN+'">'+eN+'</div>';
-        });
-        if(evs.length > 3) html += '<div style="font-size:.65rem;color:#8898aa">+'+(evs.length-3)+' más</div>';
-        html += '</td>';
-      }
-    });
-    html += '</tr>';
-  });
-
-  document.getElementById('calBody').innerHTML = html;
-}
-
-function openDay(dk, evt){
-  if(evt) evt.stopPropagation();
-  document.getElementById('evFecha').value = dk;
-  new bootstrap.Modal(document.getElementById('modalEvento')).show();
-}
-
-function navMes(delta){
-  curMes += delta;
-  if(curMes < 1){ curMes = 12; curYear--; }
-  if(curMes > 12){ curMes = 1;  curYear++; }
-  renderCal(curYear, curMes);
-}
-
-document.getElementById('prevM').onclick = function(){ navMes(-1); };
-document.getElementById('nextM').onclick = function(){ navMes(+1); };
-
-// Initial render
-renderCal(curYear, curMes);
-</script>{% endblock %}"""
+{% endblock %}"""
 
 T['ventas/factura.html'] = """<!DOCTYPE html>
 <html lang="es"><head>
@@ -3320,14 +3249,25 @@ T['produccion/reservas.html'] = """{% extends 'base.html' %}
 <div class="fc">
 <table class="table table-hover align-middle">
   <thead><tr>
-    <th>Materia Prima</th><th class="text-end">Cantidad</th>
+    <th>Materia Prima</th>
+    <th class="text-end">Reservado</th>
+    <th class="text-end">Stock disp.</th>
     <th>Producto</th><th>Estado</th><th>Notas</th><th>Fecha</th><th></th>
   </tr></thead>
   <tbody>
   {% for r in reservas %}
   <tr>
     <td><strong>{{ r.materia.nombre }}</strong><br><small class="text-muted">{{ r.materia.unidad }}</small></td>
-    <td class="text-end">{{ '%.3f'|format(r.cantidad) }}</td>
+    <td class="text-end fw-semibold">{{ '%.3f'|format(r.cantidad) }}</td>
+    <td class="text-end">
+      {% set disp = r.materia.stock_disponible %}
+      {% if disp < r.cantidad %}
+        <span class="text-danger fw-semibold">{{ '%.3f'|format(disp) }}
+          <i class="bi bi-exclamation-circle" title="Insuficiente"></i></span>
+      {% else %}
+        <span class="text-success">{{ '%.3f'|format(disp) }}</span>
+      {% endif %}
+    </td>
     <td>{{ r.producto.nombre if r.producto else '—' }}</td>
     <td>
       {% if r.estado == 'reservado' %}<span class="badge bg-primary">Reservado</span>
@@ -3336,24 +3276,30 @@ T['produccion/reservas.html'] = """{% extends 'base.html' %}
     </td>
     <td><small class="text-muted">{{ r.notas or '' }}</small></td>
     <td><small>{{ r.creado_en.strftime('%d/%m/%Y') }}</small></td>
-    <td class="d-flex gap-1 flex-wrap">
+    <td>
       {% if r.estado == 'reservado' %}
-      <form method="POST" action="{{ url_for('reserva_cancelar', id=r.id) }}" class="d-inline"
-            onsubmit="return confirm('¿Cancelar esta reserva?')">
-        <button class="btn btn-sm btn-outline-warning">Cancelar</button>
-      </form>
-      <button type="button" class="btn btn-sm btn-outline-danger"
-        data-bs-toggle="modal" data-bs-target="#modalFalta"
-        data-reserva="{{ r.id }}"
-        data-materia="{{ r.materia.nombre }}"
-        onclick="prepFalta(this)">
-        <i class="bi bi-exclamation-triangle me-1"></i>Falta material
-      </button>
+      <div class="d-flex gap-1 flex-wrap">
+        <form method="POST" action="{{ url_for('reserva_cancelar', id=r.id) }}" class="d-inline"
+              onsubmit="return confirm('¿Cancelar esta reserva?')">
+          <button class="btn btn-sm btn-outline-warning">Cancelar</button>
+        </form>
+        <button type="button" class="btn btn-sm btn-outline-danger"
+          data-bs-toggle="modal" data-bs-target="#modalFalta"
+          data-reserva="{{ r.id }}"
+          data-materia="{{ r.materia.nombre }}"
+          data-unidad="{{ r.materia.unidad }}"
+          data-reservado="{{ '%.3f'|format(r.cantidad) }}"
+          data-disponible="{{ '%.3f'|format(r.materia.stock_disponible) }}"
+          data-faltante="{{ '%.3f'|format([r.cantidad - r.materia.stock_disponible, 0]|max) }}"
+          onclick="prepFalta(this)">
+          <i class="bi bi-exclamation-triangle me-1"></i>Falta material
+        </button>
+      </div>
       {% endif %}
     </td>
   </tr>
   {% else %}
-  <tr><td colspan="7" class="text-center text-muted py-4">No hay reservas registradas.</td></tr>
+  <tr><td colspan="8" class="text-center text-muted py-4">No hay reservas registradas.</td></tr>
   {% endfor %}
   </tbody>
 </table>
@@ -3370,7 +3316,32 @@ T['produccion/reservas.html'] = """{% extends 'base.html' %}
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <p class="mb-3">Materia prima: <strong id="faltaMateriaNombre"></strong></p>
+          <div class="p-3 rounded mb-3" style="background:#fff4f4;border:1px solid #f5c2c7">
+            <div class="fw-semibold mb-1" id="faltaMateriaNombre"></div>
+            <div class="row g-2 text-center mt-1">
+              <div class="col-4">
+                <div style="font-size:.72rem;color:#6c757d">Reservado</div>
+                <div class="fw-bold" id="faltaReservado"></div>
+              </div>
+              <div class="col-4">
+                <div style="font-size:.72rem;color:#6c757d">Disponible</div>
+                <div class="fw-bold text-warning" id="faltaDisponible"></div>
+              </div>
+              <div class="col-4">
+                <div style="font-size:.72rem;color:#6c757d">Faltante</div>
+                <div class="fw-bold text-danger" id="faltaCantMostrar"></div>
+              </div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Cantidad a comprar *</label>
+            <div class="input-group">
+              <input type="number" name="cantidad_faltante" id="faltaCantInput"
+                class="form-control" step="0.001" min="0.001" required>
+              <span class="input-group-text" id="faltaUnidad"></span>
+            </div>
+            <div class="form-text">Se incluirá en el título de la tarea de compra.</div>
+          </div>
           <div class="mb-3">
             <label class="form-label fw-semibold">Asignar tareas a:</label>
             <select name="usuario_id" class="form-select" required>
@@ -3381,13 +3352,14 @@ T['produccion/reservas.html'] = """{% extends 'base.html' %}
             </select>
           </div>
           <div class="mb-3">
-            <label class="form-label">Descripción del faltante</label>
-            <textarea name="descripcion" class="form-control" rows="3"
-              placeholder="Detalle qué falta, cantidades, proveedor sugerido..."></textarea>
+            <label class="form-label">Notas adicionales</label>
+            <textarea name="descripcion" class="form-control" rows="2"
+              placeholder="Proveedor sugerido, urgencia, precio estimado..."></textarea>
           </div>
-          <div class="alert alert-info py-2 mb-0" style="font-size:.85rem">
-            <i class="bi bi-info-circle me-1"></i>Se crearán dos tareas: <strong>Comprar materias</strong> y
-            <strong>Verificar abono</strong>, asignadas al usuario seleccionado.
+          <div class="alert alert-info py-2 mb-0" style="font-size:.82rem">
+            <i class="bi bi-info-circle me-1"></i>Se crearán dos tareas pareadas:
+            <strong>Comprar materias</strong> + <strong>Verificar abono</strong>.
+            Al completar ambas se notifica al cliente que comienza producción.
           </div>
         </div>
         <div class="modal-footer">
@@ -3400,8 +3372,13 @@ T['produccion/reservas.html'] = """{% extends 'base.html' %}
 </div>
 {% block scripts %}<script>
 function prepFalta(btn){
-  document.getElementById('faltaReservaId').value = btn.dataset.reserva;
+  document.getElementById('faltaReservaId').value   = btn.dataset.reserva;
   document.getElementById('faltaMateriaNombre').textContent = btn.dataset.materia;
+  document.getElementById('faltaReservado').textContent    = btn.dataset.reservado + ' ' + btn.dataset.unidad;
+  document.getElementById('faltaDisponible').textContent   = btn.dataset.disponible + ' ' + btn.dataset.unidad;
+  document.getElementById('faltaCantMostrar').textContent  = btn.dataset.faltante + ' ' + btn.dataset.unidad;
+  document.getElementById('faltaCantInput').value          = btn.dataset.faltante;
+  document.getElementById('faltaUnidad').textContent       = btn.dataset.unidad;
 }
 </script>{% endblock %}
 {% endblock %}"""
@@ -3498,7 +3475,7 @@ function addRow(){
     '<div class="col-md-5"><label class="form-label mb-1" style="font-size:.8rem">Nota (opcional)</label>' +
     '<input type="text" name="nota_fila[]" class="form-control form-control-sm" placeholder="Ej: bodega norte, proveedor X..."></div>' +
     '<div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem"> </label>' +
-    '<button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="document.getElementById(\'ir'+rowIdx+'\').remove()"><i class="bi bi-x"></i></button></div>';
+    '<button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="this.closest(&#39;.ingreso-row&#39;).remove()"><i class="bi bi-x"></i></button></div>';
   cont.appendChild(div);
 }
 addRow();
@@ -3975,7 +3952,9 @@ def venta_nueva():
             fecha_entrega_est=datetime.strptime(fe,'%Y-%m-%d').date() if fe else None,
             notas=request.form.get('notas',''), creado_por=current_user.id)
         db.session.add(v); db.session.flush()
-        _save_items(v); db.session.commit()
+        _save_items(v); db.session.flush()
+        _procesar_venta_produccion(v)
+        db.session.commit()
         _log('crear','venta',v.id,f'Venta creada: {v.titulo}'); db.session.commit()
         flash('Venta creada.','success'); return redirect(url_for('ventas'))
     return render_template('ventas/form.html', obj=None, clientes_list=cl,
@@ -4001,7 +3980,9 @@ def venta_editar(id):
         obj.dias_entrega=int(request.form.get('dias_entrega') or 30)
         obj.fecha_entrega_est=datetime.strptime(fe,'%Y-%m-%d').date() if fe else None
         obj.notas=request.form.get('notas','')
-        db.session.flush(); _save_items(obj); db.session.commit()
+        db.session.flush(); _save_items(obj); db.session.flush()
+        _procesar_venta_produccion(obj)
+        db.session.commit()
         _log('editar','venta',obj.id,f'Venta editada: {obj.titulo}'); db.session.commit()
         flash('Venta actualizada.','success'); return redirect(url_for('ventas'))
     items_j = [{'pid':it.producto_id or '','nombre':it.nombre_prod,
@@ -4347,6 +4328,24 @@ def _save_compra(c, form):
         m = MateriaPrima.query.get(int(mid))
         if m:
             m.stock_disponible = (m.stock_disponible or 0) + cant
+    # Auto-register as GastoOperativo
+    tipo_label = {'materia_prima': 'Materia prima', 'insumo': 'Insumo',
+                  'producto': 'Producto', 'servicio': 'Servicio'}.get(c.tipo_compra, c.tipo_compra.capitalize())
+    desc_gasto = (f'{c.nombre_item} — {tipo_label}')
+    if c.proveedor: desc_gasto += f' | Proveedor: {c.proveedor}'
+    if c.nro_factura: desc_gasto += f' | Factura: {c.nro_factura}'
+    gasto = GastoOperativo(
+        fecha=c.fecha,
+        tipo='compra_produccion',
+        tipo_custom=f'Compra / {tipo_label}',
+        descripcion=desc_gasto,
+        monto=costo_total,
+        recurrencia='unica',
+        es_plantilla=False,
+        notas=f'Registrado automáticamente desde módulo Compras.',
+        creado_por=getattr(c, 'creado_por', None)
+    )
+    db.session.add(gasto)
     return c
 
 @app.route('/produccion/compras/nueva', methods=['GET','POST'])
@@ -4938,7 +4937,26 @@ def calendario():
             k = p.fecha_caducidad.strftime('%Y-%m-%d')
             eventos.setdefault(k, []).append({'t':'caducidad','n':p.nombre,'s':'caducidad'})
     except Exception: db.session.rollback()
-    return render_template('calendario.html', eventos_json=eventos, anio=anio, mes=mes)
+    import calendar as cal_mod
+    from datetime import date as _date
+    # Build week matrix: list of 7-element lists; 0 = filler day from other month
+    cal_obj = cal_mod.Calendar(firstweekday=0)   # 0 = Monday first
+    month_days = cal_obj.monthdayscalendar(anio, mes)
+    # Compute prev / next month for nav links
+    prev_mes  = mes - 1 if mes > 1 else 12
+    prev_anio = anio if mes > 1 else anio - 1
+    next_mes  = mes + 1 if mes < 12 else 1
+    next_anio = anio if mes < 12 else anio + 1
+    today_str = _date.today().strftime('%Y-%m-%d')
+    mes_nombres = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                   'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+    return render_template('calendario.html',
+                           eventos=eventos, anio=anio, mes=mes,
+                           month_days=month_days,
+                           prev_mes=prev_mes, prev_anio=prev_anio,
+                           next_mes=next_mes, next_anio=next_anio,
+                           today_str=today_str,
+                           mes_nombre=mes_nombres[mes])
 
 # =============================================================
 # EVENTOS
@@ -5253,6 +5271,122 @@ def _procesar_orden_produccion(cot):
                     f'Se crearon tareas de compra y abono.',
                     url_for('tareas')
                 )
+
+
+def _procesar_venta_produccion(venta):
+    """
+    Al guardar una venta, por cada item con producto:
+    1. Compara stock actual vs cantidad requerida
+    2. Si falta stock → crea OrdenProduccion
+    3. Reserva materias primas disponibles según BOM
+    4. Si faltan materias, crea tareas comprar_materias + verificar_abono
+    Solo actúa si no existe ya una OrdenProduccion activa para esta venta+producto.
+    """
+    try:
+        admins = User.query.filter_by(rol='admin', activo=True).all()
+        primer_admin_id = admins[0].id if admins else current_user.id
+        from datetime import timedelta
+
+        for item in venta.items:
+            if not item.producto_id:
+                continue
+            prod = Producto.query.get(item.producto_id)
+            if not prod:
+                continue
+            cant_requerida = item.cantidad
+            cant_en_stock  = min(prod.stock or 0, cant_requerida)
+            cant_producir  = max(0.0, cant_requerida - cant_en_stock)
+
+            if cant_producir <= 0:
+                continue  # stock suficiente
+
+            # Evitar duplicar órdenes activas para este producto/venta
+            existente = OrdenProduccion.query.filter_by(
+                producto_id=prod.id,
+                estado='en_produccion'
+            ).first()
+            if existente:
+                continue
+
+            orden = OrdenProduccion(
+                producto_id=prod.id,
+                cantidad_total=cant_requerida,
+                cantidad_stock=cant_en_stock,
+                cantidad_producir=cant_producir,
+                estado='en_produccion',
+                notas=f'Venta: {venta.titulo} — {prod.nombre} x{cant_requerida}',
+                creado_por=current_user.id
+            )
+            db.session.add(orden)
+
+            # Verificar BOM y reservar
+            receta = RecetaProducto.query.filter_by(producto_id=prod.id, activo=True).first()
+            materias_faltantes = []
+            if receta and receta.unidades_produce > 0:
+                factor = cant_producir / receta.unidades_produce
+                for ri in receta.items:
+                    mp = MateriaPrima.query.get(ri.materia_prima_id)
+                    if not mp: continue
+                    necesaria  = ri.cantidad_por_unidad * factor
+                    disponible = mp.stock_disponible or 0
+                    if disponible >= necesaria:
+                        mp.stock_disponible -= necesaria
+                        mp.stock_reservado   = (mp.stock_reservado or 0) + necesaria
+                        db.session.add(ReservaProduccion(
+                            materia_prima_id=mp.id, cantidad=necesaria,
+                            producto_id=prod.id, estado='reservado',
+                            notas=f'Auto-reserva venta: {venta.titulo}',
+                            creado_por=current_user.id
+                        ))
+                    else:
+                        faltante = necesaria - disponible
+                        materias_faltantes.append(
+                            f'{mp.nombre}: falta {faltante:.3f} {mp.unidad} (disp. {disponible:.3f})'
+                        )
+                        if disponible > 0:
+                            mp.stock_disponible = 0
+                            mp.stock_reservado   = (mp.stock_reservado or 0) + disponible
+                            db.session.add(ReservaProduccion(
+                                materia_prima_id=mp.id, cantidad=disponible,
+                                producto_id=prod.id, estado='reservado',
+                                notas=f'Parcial venta: {venta.titulo}',
+                                creado_por=current_user.id
+                            ))
+
+            if materias_faltantes:
+                desc_falta = '\n'.join(materias_faltantes)
+                desc_t = (f'Venta: {venta.titulo}\n'
+                          f'Producto: {prod.nombre} (x{cant_producir:.2f})\n\n'
+                          f'Materiales faltantes:\n{desc_falta}')
+                venc = (datetime.utcnow() + timedelta(days=3)).date()
+                t_compra = Tarea(
+                    titulo=f'Comprar materiales — {prod.nombre} (venta)',
+                    descripcion=desc_t, estado='pendiente', prioridad='alta',
+                    asignado_a=primer_admin_id, creado_por=current_user.id,
+                    fecha_vencimiento=venc, tarea_tipo='comprar_materias'
+                )
+                db.session.add(t_compra); db.session.flush()
+                t_abono = Tarea(
+                    titulo=f'Verificar abono — compra {prod.nombre}',
+                    descripcion=f'Confirmar anticipo antes de comprar materiales para {prod.nombre}.\n\n{desc_falta}',
+                    estado='pendiente', prioridad='alta',
+                    asignado_a=primer_admin_id, creado_por=current_user.id,
+                    fecha_vencimiento=venc, tarea_tipo='verificar_abono',
+                    tarea_pareja_id=t_compra.id
+                )
+                db.session.add(t_abono); db.session.flush()
+                t_compra.tarea_pareja_id = t_abono.id
+                orden.estado = 'pendiente_materiales'
+                for adm in admins:
+                    _crear_notificacion(
+                        adm.id, 'alerta_stock',
+                        f'⚠️ Materiales insuficientes — {prod.nombre}',
+                        f'Venta "{venta.titulo}" requiere producción. Faltan materias.',
+                        url_for('tareas')
+                    )
+    except Exception as ex:
+        db.session.rollback()
+        print(f'_procesar_venta_produccion error: {ex}')
 
 
 @app.route('/cotizaciones/<int:id>/estado', methods=['POST'])
@@ -5577,14 +5711,24 @@ def reserva_solicitar_compra():
     reserva_id = request.form.get('reserva_id')
     usuario_id = int(request.form.get('usuario_id'))
     descripcion = request.form.get('descripcion','')
+    cantidad_faltante = request.form.get('cantidad_faltante','')
     r = ReservaProduccion.query.get_or_404(int(reserva_id))
     mp = r.materia
     from datetime import timedelta
     venc = (datetime.utcnow() + timedelta(days=3)).date()
 
+    # Format the title with the missing quantity
+    try:
+        cant_fmt = f'{float(cantidad_faltante):.3f} {mp.unidad}' if cantidad_faltante else ''
+    except (ValueError, TypeError):
+        cant_fmt = ''
+    titulo_compra = f'Comprar {cant_fmt} de {mp.nombre}' if cant_fmt else f'Comprar materia: {mp.nombre}'
+
     t_compra = Tarea(
-        titulo=f'Comprar materia: {mp.nombre}',
-        descripcion=(f'Falta material en reserva.\nMateria: {mp.nombre}\n'
+        titulo=titulo_compra,
+        descripcion=(f'Falta material en reserva de producción.\n'
+                     f'Materia: {mp.nombre}\n'
+                     f'Cantidad faltante: {cant_fmt or "ver descripción"}\n'
                      f'Producto: {r.producto.nombre if r.producto else "N/A"}\n\n{descripcion}'),
         estado='pendiente', prioridad='alta',
         asignado_a=usuario_id,
@@ -5595,8 +5739,9 @@ def reserva_solicitar_compra():
     db.session.add(t_compra); db.session.flush()
 
     t_abono = Tarea(
-        titulo=f'Verificar abono — compra {mp.nombre}',
-        descripcion=(f'Confirmar anticipo antes de comprar {mp.nombre}.\n\n{descripcion}'),
+        titulo=f'Verificar abono — {titulo_compra}',
+        descripcion=(f'Confirmar anticipo antes de comprar {mp.nombre}.\n'
+                     f'Cantidad requerida: {cant_fmt or "ver descripción"}\n\n{descripcion}'),
         estado='pendiente', prioridad='alta',
         asignado_a=usuario_id,
         creado_por=current_user.id,
