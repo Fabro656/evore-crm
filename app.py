@@ -290,7 +290,7 @@ T['base.html'] = """<!DOCTYPE html>
 """ + _CDN + _CSS + """
 </head><body>
 <nav id="sb">
-  <div class="sb-brand">E<span>vore</span><span class="bt"> CRM</span></div>
+  <div class="sb-brand" style="padding:.85rem 1rem .7rem"><a href="/" style="text-decoration:none;color:inherit"><div class="d-flex align-items-center gap-2"><svg width="31" height="28" viewBox="0 0 100 90" fill="none" stroke="rgba(255,255,255,.88)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M50,67 C44,63 41,35 50,5 C59,35 56,63 50,67Z"/><path d="M50,67 C41,64 23,43 27,20 C33,32 46,57 50,67Z"/><path d="M50,67 C59,64 77,43 73,20 C67,32 54,57 50,67Z"/><path d="M50,67 C37,65 11,53 13,35 C17,43 36,60 50,67Z"/><path d="M50,67 C63,65 89,53 87,35 C83,43 64,60 50,67Z"/><path d="M50,69 C39,74 19,76 4,69 C6,62 28,65 50,69Z"/><path d="M50,69 C61,74 81,76 96,69 C94,62 72,65 50,69Z"/><path d="M50,69 C46,73 46,81 50,83 C54,81 54,73 50,69Z"/></svg><span style="letter-spacing:4px;font-size:1.05rem;font-weight:700">EVORE<span class="bt" style="font-weight:300;font-size:.72rem;letter-spacing:1px;opacity:.65"> CRM</span></span></div></a></div>
   <div class="sb-nav py-2" style="overflow-y:auto;flex:1">
     <div class="sb-sec">Principal</div>
     <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint=='dashboard' %}active{% endif %}">
@@ -366,8 +366,11 @@ body{background:linear-gradient(135deg,#1a1f36,#2d3561);min-height:100vh;display
 .btn-lg:hover{transform:translateY(-1px);box-shadow:0 4px 15px rgba(94,114,228,.4);color:#fff}
 </style></head><body>
 <div class="card bg-white">
-  <div class="text-center mb-4"><div class="brand">E<span>vore</span></div>
-    <p class="text-muted mb-0" style="font-size:.9rem">Sistema de Gestión CRM</p></div>
+  <div class="text-center mb-4">
+    <svg width="68" height="61" viewBox="0 0 100 90" fill="none" stroke="#d3af37" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M50,67 C44,63 41,35 50,5 C59,35 56,63 50,67Z"/><path d="M50,67 C41,64 23,43 27,20 C33,32 46,57 50,67Z"/><path d="M50,67 C59,64 77,43 73,20 C67,32 54,57 50,67Z"/><path d="M50,67 C37,65 11,53 13,35 C17,43 36,60 50,67Z"/><path d="M50,67 C63,65 89,53 87,35 C83,43 64,60 50,67Z"/><path d="M50,69 C39,74 19,76 4,69 C6,62 28,65 50,69Z"/><path d="M50,69 C61,74 81,76 96,69 C94,62 72,65 50,69Z"/><path d="M50,69 C46,73 46,81 50,83 C54,81 54,73 50,69Z"/></svg>
+    <div style="font-size:1.85rem;font-weight:700;letter-spacing:10px;color:#1d1d1b;font-family:Georgia,'Times New Roman',serif;line-height:1.1;margin-top:.15rem">EVORE</div>
+    <p class="text-muted mb-0" style="font-size:.78rem;letter-spacing:3px;margin-top:.25rem">SISTEMA DE GESTIÓN</p>
+  </div>
   {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}{% for cat, msg in messages %}
   <div class="alert alert-{{ cat }} py-2 mb-3" style="border-radius:10px;border:none;font-size:.875rem">{{ msg }}</div>
