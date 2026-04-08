@@ -1,5 +1,6 @@
 # =============================================================
-# EVORE CRM — v8 (Tareas+Chat, Producción, Compras, Granel, Impuestos, NSO)
+# EVORE CRM — v11 (Calendario+Eventos, Cotizaciones, Notas mejoradas,
+#                  Inventario caducidad, Impuestos con alcance, Gastos recurrentes)
 # =============================================================
 
 from flask import Flask, render_template, redirect, url_for, flash, request, jsonify
@@ -7,16 +8,14 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import (LoginManager, UserMixin, login_user,
                          logout_user, login_required, current_user)
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date as date_type
 import os, json, secrets
 from jinja2 import DictLoader
 
 app = Flask(__name__)
-_secret_key = os.environ.get('SECRET_KEY')
-if not _secret_key:
-    _secret_key = secrets.token_hex(32)
-    print('SECURITY WARNING: SECRET_KEY env var not set. Sessions will reset on each restart. '
-          'Set SECRET_KEY in Railway Variables for production.')
+_secret_key = os.environ.get('SECRET_KEY', 'evore-crm-stable-fallback-key-2026-xK9mP')
+if _secret_key == 'evore-crm-stable-fallback-key-2026-xK9mP':
+    print('INFO: Using fallback SECRET_KEY. Set SECRET_KEY in Railway Variables for better security.')
 app.config['SECRET_KEY'] = _secret_key
 _db_url = os.environ.get('DATABASE_URL', 'sqlite:///crm.db')
 if _db_url.startswith('postgres://'): _db_url = _db_url.replace('postgres://', 'postgresql://', 1)
@@ -171,11 +170,12 @@ class Producto(db.Model):
     precio       = db.Column(db.Float, default=0)
     costo        = db.Column(db.Float, default=0)
     stock        = db.Column(db.Integer, default=0)
-    stock_minimo = db.Column(db.Integer, default=5)
-    categoria    = db.Column(db.String(100))
-    activo       = db.Column(db.Boolean, default=True)
-    creado_en    = db.Column(db.DateTime, default=datetime.utcnow)
-    venta_items  = db.relationship('VentaProducto', backref='producto', lazy=True)
+    stock_minimo    = db.Column(db.Integer, default=5)
+    categoria       = db.Column(db.String(100))
+    activo          = db.Column(db.Boolean, default=True)
+    fecha_caducidad = db.Column(db.Date, nullable=True)
+    creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
+    venta_items     = db.relationship('VentaProducto', backref='producto', lazy=True)
 
 class CompraMateria(db.Model):
     __tablename__ = 'compras_materia'
@@ -216,24 +216,28 @@ class CotizacionGranel(db.Model):
 
 class ReglaTributaria(db.Model):
     __tablename__ = 'reglas_tributarias'
-    id          = db.Column(db.Integer, primary_key=True)
-    nombre      = db.Column(db.String(100), nullable=False)
-    descripcion = db.Column(db.Text)
-    porcentaje  = db.Column(db.Float, default=0)
-    aplica_a    = db.Column(db.String(100))
-    activo      = db.Column(db.Boolean, default=True)
-    creado_en   = db.Column(db.DateTime, default=datetime.utcnow)
+    id               = db.Column(db.Integer, primary_key=True)
+    nombre           = db.Column(db.String(100), nullable=False)
+    descripcion      = db.Column(db.Text)
+    porcentaje       = db.Column(db.Float, default=0)
+    aplica_a         = db.Column(db.String(30), default='ventas')  # ventas, ingresos, profit, proveedor_producto, proveedor_granel
+    proveedor_nombre = db.Column(db.String(200))
+    activo           = db.Column(db.Boolean, default=True)
+    creado_en        = db.Column(db.DateTime, default=datetime.utcnow)
 
 class GastoOperativo(db.Model):
     __tablename__ = 'gastos_operativos'
-    id          = db.Column(db.Integer, primary_key=True)
-    fecha       = db.Column(db.Date, nullable=False)
-    tipo        = db.Column(db.String(50), nullable=False)
-    descripcion = db.Column(db.String(200))
-    monto       = db.Column(db.Float, default=0, nullable=False)
-    notas       = db.Column(db.Text)
-    creado_por  = db.Column(db.Integer, db.ForeignKey('users.id'))
-    creado_en   = db.Column(db.DateTime, default=datetime.utcnow)
+    id           = db.Column(db.Integer, primary_key=True)
+    fecha        = db.Column(db.Date, nullable=False)
+    tipo         = db.Column(db.String(50), nullable=False)
+    tipo_custom  = db.Column(db.String(100))
+    descripcion  = db.Column(db.String(200))
+    monto        = db.Column(db.Float, default=0, nullable=False)
+    recurrencia  = db.Column(db.String(10), default='unico')  # unico, mensual
+    es_plantilla = db.Column(db.Boolean, default=False)
+    notas        = db.Column(db.Text)
+    creado_por   = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en    = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Nota(db.Model):
     __tablename__ = 'notas'
@@ -241,10 +245,14 @@ class Nota(db.Model):
     titulo         = db.Column(db.String(200))
     contenido      = db.Column(db.Text, nullable=False)
     cliente_id     = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=True)
+    producto_id    = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=True)
+    modulo         = db.Column(db.String(50))   # ventas, produccion, inventario, gastos, tareas, otro
+    fecha_revision = db.Column(db.Date, nullable=True)
     creado_por     = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en      = db.Column(db.DateTime, default=datetime.utcnow)
     actualizado_en = db.Column(db.DateTime, default=datetime.utcnow)
     cliente        = db.relationship('Cliente', foreign_keys=[cliente_id])
+    producto       = db.relationship('Producto', foreign_keys=[producto_id])
     autor          = db.relationship('User', foreign_keys=[creado_por])
 
 class Actividad(db.Model):
@@ -268,6 +276,53 @@ class ConfigEmpresa(db.Model):
     email     = db.Column(db.String(120))
     ciudad    = db.Column(db.String(100))
     sitio_web = db.Column(db.String(200))
+
+class Evento(db.Model):
+    __tablename__ = 'eventos'
+    id          = db.Column(db.Integer, primary_key=True)
+    titulo      = db.Column(db.String(200), nullable=False)
+    tipo        = db.Column(db.String(20), default='recordatorio')  # cita, reunion, recordatorio
+    fecha       = db.Column(db.Date, nullable=False)
+    hora_inicio = db.Column(db.String(5))
+    hora_fin    = db.Column(db.String(5))
+    descripcion = db.Column(db.Text)
+    usuario_id  = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en   = db.Column(db.DateTime, default=datetime.utcnow)
+    usuario     = db.relationship('User', foreign_keys=[usuario_id])
+
+class CotizacionItem(db.Model):
+    __tablename__ = 'cotizacion_items'
+    id            = db.Column(db.Integer, primary_key=True)
+    cotizacion_id = db.Column(db.Integer, db.ForeignKey('cotizaciones.id'), nullable=False)
+    producto_id   = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=True)
+    nombre_prod   = db.Column(db.String(200))
+    cantidad      = db.Column(db.Float, default=1)
+    precio_unit   = db.Column(db.Float, default=0)
+    subtotal      = db.Column(db.Float, default=0)
+
+class Cotizacion(db.Model):
+    __tablename__ = 'cotizaciones'
+    id                  = db.Column(db.Integer, primary_key=True)
+    numero              = db.Column(db.String(20))
+    titulo              = db.Column(db.String(200), nullable=False)
+    cliente_id          = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=True)
+    subtotal            = db.Column(db.Float, default=0)
+    iva                 = db.Column(db.Float, default=0)
+    total               = db.Column(db.Float, default=0)
+    porcentaje_anticipo = db.Column(db.Float, default=50)
+    monto_anticipo      = db.Column(db.Float, default=0)
+    saldo               = db.Column(db.Float, default=0)
+    estado              = db.Column(db.String(30), default='borrador')  # borrador, enviada, aprobada, confirmacion_orden
+    fecha_emision       = db.Column(db.Date, default=date_type.today)
+    fecha_validez       = db.Column(db.Date)
+    dias_entrega        = db.Column(db.Integer, default=30)
+    fecha_entrega_est   = db.Column(db.Date)
+    condiciones_pago    = db.Column(db.Text)
+    notas               = db.Column(db.Text)
+    creado_en           = db.Column(db.DateTime, default=datetime.utcnow)
+    creado_por          = db.Column(db.Integer, db.ForeignKey('users.id'))
+    items               = db.relationship('CotizacionItem', backref='cotizacion', lazy=True, cascade='all, delete-orphan')
+    cliente             = db.relationship('Cliente', foreign_keys=[cliente_id])
 
 @login_manager.user_loader
 def load_user(uid): return User.query.get(int(uid))
@@ -307,10 +362,26 @@ body{background:var(--bg);font-family:'Segoe UI',sans-serif}
 .table tbody tr:last-child td{border-bottom:none}
 .table tbody tr:hover{background:#f8f9fe}
 .b{padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600}
-.b-activo,.b-ganado,.b-completada,.b-baja,.b-vip,.b-vigente{background:#d4edda;color:#155724}
+.b-activo,.b-ganado,.b-completada,.b-baja,.b-vip,.b-vigente,.b-aprobada{background:#d4edda;color:#155724}
 .b-inactivo,.b-perdido,.b-alta,.b-vencida{background:#f8d7da;color:#721c24}
-.b-prospecto,.b-pendiente,.b-media,.b-anticipo_pagado,.b-en_revision{background:#fff3cd;color:#856404}
-.b-negociacion,.b-en_progreso,.b-cliente_activo{background:#cce5ff;color:#004085}
+.b-prospecto,.b-pendiente,.b-media,.b-anticipo_pagado,.b-en_revision,.b-enviada{background:#fff3cd;color:#856404}
+.b-negociacion,.b-en_progreso,.b-cliente_activo,.b-confirmacion_orden{background:#cce5ff;color:#004085}
+.b-borrador{background:#e9ecef;color:#495057}
+.b-unico{background:#e8f4fd;color:#0c5460}
+.b-mensual{background:#d1ecf1;color:#0c5460}
+.b-cita{background:#fce4ec;color:#880e4f}
+.b-reunion{background:#e8eaf6;color:#283593}
+.b-recordatorio{background:#fff8e1;color:#f57f17}
+.ev-tarea{background:#fff4e5;color:#fb6340;border-left:3px solid #fb6340}
+.ev-evento{background:#e8eeff;color:#5e72e4;border-left:3px solid #5e72e4}
+.ev-nota{background:#f3e8ff;color:#8965e0;border-left:3px solid #8965e0}
+.ev-caducidad{background:#fde8e8;color:#f5365c;border-left:3px solid #f5365c}
+.ev-venta{background:#e3f9ee;color:#2dce89;border-left:3px solid #2dce89}
+.cal-day{border:1px solid #f0f2ff;min-height:110px;vertical-align:top;padding:.3rem;cursor:pointer;transition:background .15s}
+.cal-day:hover{background:#f8f9fe}
+.cal-day.today{background:#eef0ff}
+.cal-day.other-month{background:#fafbff;opacity:.6}
+.cal-ev{font-size:.7rem;padding:2px 5px;border-radius:4px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 .fc{background:#fff;border-radius:12px;padding:1.8rem;box-shadow:0 2px 8px rgba(0,0,0,.06);max-width:820px}
 .form-label{font-weight:600;font-size:.875rem;color:#525f7f}
 .form-control,.form-select{border:1.5px solid #e9ecef;border-radius:8px;padding:.5rem .75rem;font-size:.9rem;transition:border-color .2s}
@@ -350,9 +421,11 @@ T['base.html'] = """<!DOCTYPE html>
       <i class="bi bi-people-fill"></i><span>Clientes</span></a>
     <a href="{{ url_for('ventas') }}" class="nav-link {% if 'venta' in request.endpoint %}active{% endif %}">
       <i class="bi bi-graph-up-arrow"></i><span>Ventas</span></a>
+    <a href="{{ url_for('cotizaciones') }}" class="nav-link {% if 'cotizacion' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-file-earmark-text-fill"></i><span>Cotizaciones</span></a>
     <a href="{{ url_for('tareas') }}" class="nav-link {% if 'tarea' in request.endpoint %}active{% endif %}">
       <i class="bi bi-check2-square"></i><span>Tareas</span></a>
-    <a href="{{ url_for('calendario') }}" class="nav-link {% if request.endpoint=='calendario' %}active{% endif %}">
+    <a href="{{ url_for('calendario') }}" class="nav-link {% if request.endpoint=='calendario' or 'evento' in request.endpoint %}active{% endif %}">
       <i class="bi bi-calendar3"></i><span>Calendario</span></a>
     <a href="{{ url_for('notas') }}" class="nav-link {% if 'nota' in request.endpoint %}active{% endif %}">
       <i class="bi bi-sticky-fill"></i><span>Notas</span></a>
@@ -1004,14 +1077,18 @@ T['inventario/index.html'] = """{% extends 'base.html' %}
 </form></div></div>
 <div class="tc"><div class="ch"><i class="bi bi-box-seam-fill me-2"></i>{{ items|length }} producto(s)</div>
 {% if items %}<div class="table-responsive"><table class="table">
-  <thead><tr><th>Producto</th><th>SKU</th><th>NSO (INVIMA)</th><th>Precio venta</th><th>Costo</th><th>Stock</th><th></th></tr></thead>
+  <thead><tr><th>Producto</th><th>SKU</th><th>NSO (INVIMA)</th><th>Caducidad</th><th>Precio venta</th><th>Stock</th><th></th></tr></thead>
   <tbody>{% for p in items %}<tr>
     <td><div class="fw-semibold" style="color:#1a1f36">{{ p.nombre }}</div>
       {% if p.categoria %}<small class="text-muted">{{ p.categoria }}</small>{% endif %}</td>
     <td><small class="text-muted">{{ p.sku or '—' }}</small></td>
     <td><small class="text-muted">{{ p.nso or '—' }}</small></td>
+    <td>{% if p.fecha_caducidad %}
+      {% set dias_cad = (p.fecha_caducidad - now.date()).days %}
+      <span class="b {% if dias_cad < 30 %}b-alta{% elif dias_cad < 90 %}b-media{% else %}b-activo{% endif %}"
+            title="{{ dias_cad }} días">{{ p.fecha_caducidad.strftime('%d/%m/%Y') }}</span>
+      {% else %}<small class="text-muted">—</small>{% endif %}</td>
     <td class="fw-semibold">$ {{ '{:,.0f}'.format(p.precio).replace(',','.') }}</td>
-    <td>$ {{ '{:,.0f}'.format(p.costo).replace(',','.') }}</td>
     <td><span class="fw-semibold {{ 'text-danger' if p.stock <= p.stock_minimo else 'text-success' }}">{{ p.stock }}</span>
       <small class="text-muted"> / mín {{ p.stock_minimo }}</small>
       {% if p.stock <= p.stock_minimo %}<span class="badge bg-danger ms-1" style="font-size:.65rem">BAJO</span>{% endif %}</td>
@@ -1036,6 +1113,8 @@ T['inventario/form.html'] = """{% extends 'base.html' %}
     <input type="text" name="sku" class="form-control" value="{{ obj.sku if obj else '' }}"></div>
   <div class="col-md-3"><label class="form-label">NSO (INVIMA)</label>
     <input type="text" name="nso" class="form-control" placeholder="NSO-XXXX-XXXX" value="{{ obj.nso if obj else '' }}"></div>
+  <div class="col-md-3"><label class="form-label">Fecha de caducidad</label>
+    <input type="date" name="fecha_caducidad" class="form-control" value="{{ obj.fecha_caducidad.strftime('%Y-%m-%d') if obj and obj.fecha_caducidad else '' }}"></div>
   <div class="col-md-3"><label class="form-label">Precio venta COP</label>
     <div class="input-group"><span class="input-group-text">$</span>
       <input type="number" name="precio" class="form-control" step="1" min="0" value="{{ obj.precio|int if obj else '0' }}"></div></div>
@@ -1299,7 +1378,14 @@ T['produccion/impuestos.html'] = """{% extends 'base.html' %}
     <td class="fw-semibold" style="color:#1a1f36">{{ r.nombre }}</td>
     <td><small class="text-muted">{{ r.descripcion or '—' }}</small></td>
     <td class="fw-semibold">{{ r.porcentaje }}%</td>
-    <td>{{ r.aplica_a or '—' }}</td>
+    <td><span class="badge bg-light text-dark border">
+      {% if r.aplica_a=='ventas' %}Ventas (IVA)
+      {% elif r.aplica_a=='ingresos' %}Ingresos generales
+      {% elif r.aplica_a=='profit' %}Utilidad/Profit
+      {% elif r.aplica_a=='proveedor_producto' %}Proveedor producto{% if r.proveedor_nombre %}: {{ r.proveedor_nombre }}{% endif %}
+      {% elif r.aplica_a=='proveedor_granel' %}Proveedor granel{% if r.proveedor_nombre %}: {{ r.proveedor_nombre }}{% endif %}
+      {% else %}{{ r.aplica_a or '—' }}{% endif %}
+    </span></td>
     <td><span class="b b-{{ 'activo' if r.activo else 'inactivo' }}">{{ 'Activa' if r.activo else 'Inactiva' }}</span></td>
     <td><div class="d-flex gap-1">
       <a href="{{ url_for('impuesto_editar', id=r.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
@@ -1326,16 +1412,31 @@ T['produccion/impuesto_form.html'] = """{% extends 'base.html' %}
       <option value="1" {% if not obj or obj.activo %}selected{% endif %}>Activa</option>
       <option value="0" {% if obj and not obj.activo %}selected{% endif %}>Inactiva</option>
     </select></div>
-  <div class="col-12"><label class="form-label">Aplica a</label>
-    <input type="text" name="aplica_a" class="form-control" placeholder="Ej: Materias primas importadas, servicios de maquila..."
-      value="{{ obj.aplica_a if obj else '' }}"></div>
-  <div class="col-12"><label class="form-label">Descripción / Instrucciones para el equipo</label>
-    <textarea name="descripcion" class="form-control" rows="4" placeholder="Explicar cuándo y cómo aplicar esta regla...">{{ obj.descripcion if obj else '' }}</textarea></div>
+  <div class="col-md-6"><label class="form-label">Aplica a *</label>
+    <select name="aplica_a" id="aplicaA" class="form-select" onchange="toggleProveedor()" required>
+      <option value="ventas" {% if not obj or obj.aplica_a=='ventas' %}selected{% endif %}>Ventas (IVA en ventas)</option>
+      <option value="ingresos" {% if obj and obj.aplica_a=='ingresos' %}selected{% endif %}>Ingresos generales</option>
+      <option value="profit" {% if obj and obj.aplica_a=='profit' %}selected{% endif %}>Sobre utilidad / profit</option>
+      <option value="proveedor_producto" {% if obj and obj.aplica_a=='proveedor_producto' %}selected{% endif %}>Proveedor de productos</option>
+      <option value="proveedor_granel" {% if obj and obj.aplica_a=='proveedor_granel' %}selected{% endif %}>Proveedor de granel</option>
+    </select></div>
+  <div class="col-md-6" id="divProveedor" style="display:{% if obj and 'proveedor' in (obj.aplica_a or '') %}block{% else %}none{% endif %}">
+    <label class="form-label">Nombre del proveedor</label>
+    <input type="text" name="proveedor_nombre" class="form-control" placeholder="Nombre del proveedor específico"
+      value="{{ obj.proveedor_nombre if obj else '' }}"></div>
+  <div class="col-12"><label class="form-label">Descripción / Instrucciones</label>
+    <textarea name="descripcion" class="form-control" rows="3" placeholder="Explicar cuándo y cómo aplicar esta regla...">{{ obj.descripcion if obj else '' }}</textarea></div>
 </div>
 <div class="d-flex gap-2 mt-4">
   <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Guardar Regla' }}</button>
   <a href="{{ url_for('impuestos') }}" class="btn btn-outline-secondary">Cancelar</a>
-</div></form></div>{% endblock %}"""
+</div></form></div>
+{% block scripts %}<script>
+function toggleProveedor(){
+  var v=document.getElementById('aplicaA').value;
+  document.getElementById('divProveedor').style.display=v.startsWith('proveedor')?'block':'none';
+}
+</script>{% endblock %}{% endblock %}"""
 
 T['gastos/index.html'] = """{% extends 'base.html' %}
 {% block title %}Gastos Operativos{% endblock %}{% block page_title %}Gastos Operativos{% endblock %}
@@ -1346,6 +1447,26 @@ T['gastos/index.html'] = """{% extends 'base.html' %}
   <div class="col-md-3"><div class="sc"><div class="sv">$ {{ '{:,.0f}'.format(total_mes).replace(',','.') }}</div><div class="sl">Este mes</div></div></div>
   <div class="col-md-3"><div class="sc"><div class="sv">{{ total_registros }}</div><div class="sl">Registros totales</div></div></div>
 </div>
+{% if plantillas %}
+<div class="tc mb-4">
+  <div class="ch"><i class="bi bi-arrow-repeat me-2"></i>Gastos recurrentes mensuales — pendientes de registrar</div>
+  <div class="p-3">
+    <div class="row g-2">
+      {% for p in plantillas %}
+      <div class="col-md-4">
+        <div class="border rounded p-3 d-flex align-items-center justify-content-between" style="background:#f8f9fe">
+          <div>
+            <div class="fw-semibold" style="color:#1a1f36">{{ p.tipo_custom if p.tipo=='Otro' and p.tipo_custom else p.tipo }}</div>
+            <small class="text-muted">$ {{ '{:,.0f}'.format(p.monto).replace(',','.') }} · mensual</small>
+          </div>
+          <form method="POST" action="{{ url_for('gasto_plantilla_usar', id=p.id) }}">
+            <button class="btn btn-sm btn-primary" title="Registrar gasto de este mes"><i class="bi bi-plus-lg"></i> Registrar</button>
+          </form>
+        </div>
+      </div>{% endfor %}
+    </div>
+  </div>
+</div>{% endif %}
 <div class="tc mb-3"><div class="p-3"><form method="GET" class="row g-2 align-items-end">
   <div class="col-sm-3"><select name="tipo" class="form-select form-select-sm">
     <option value="">Todos los tipos</option>
@@ -1360,18 +1481,21 @@ T['gastos/index.html'] = """{% extends 'base.html' %}
 </form></div></div>
 <div class="tc"><div class="ch"><i class="bi bi-receipt me-2"></i>{{ items|length }} gasto(s)</div>
 {% if items %}<div class="table-responsive"><table class="table">
-  <thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción</th><th>Monto COP</th><th></th></tr></thead>
-  <tbody>{% for g in items %}<tr>
+  <thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción</th><th>Monto COP</th><th>Recurrencia</th><th></th></tr></thead>
+  <tbody>{% for g in items %}{% if not g.es_plantilla %}<tr>
     <td><small>{{ g.fecha.strftime('%d/%m/%Y') }}</small></td>
-    <td><span class="badge bg-secondary">{{ g.tipo }}</span></td>
+    <td>
+      <span class="badge bg-secondary">{{ g.tipo_custom if g.tipo=='Otro' and g.tipo_custom else g.tipo }}</span>
+    </td>
     <td>{{ g.descripcion or '—' }}</td>
     <td class="fw-semibold">$ {{ '{:,.0f}'.format(g.monto).replace(',','.') }}</td>
+    <td><span class="b b-{{ g.recurrencia or 'unico' }}">{{ 'Mensual' if g.recurrencia=='mensual' else 'Único' }}</span></td>
     <td><div class="d-flex gap-1">
       <a href="{{ url_for('gasto_editar', id=g.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
       <form method="POST" action="{{ url_for('gasto_eliminar', id=g.id) }}" onsubmit="return confirm('¿Eliminar?')">
         <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
     </div></td>
-  </tr>{% endfor %}</tbody>
+  </tr>{% endif %}{% endfor %}</tbody>
 </table></div>
 {% else %}<div class="text-center text-muted py-5"><i class="bi bi-receipt" style="font-size:3rem"></i>
   <p class="mt-3">Sin gastos.</p><a href="{{ url_for('gasto_nuevo') }}" class="btn btn-primary">Agregar primero</a></div>
@@ -1384,13 +1508,35 @@ T['gastos/form.html'] = """{% extends 'base.html' %}
   <div class="col-md-4"><label class="form-label">Fecha *</label>
     <input type="date" name="fecha" class="form-control" value="{{ obj.fecha.strftime('%Y-%m-%d') if obj else today }}" required></div>
   <div class="col-md-4"><label class="form-label">Tipo *</label>
-    <select name="tipo" class="form-select" required>
-      {% for t in ['Arriendo','Servicios públicos','Nómina','Transporte','Mercadeo','Materia prima','Maquinaria','Impuestos','Logística','Mantenimiento','Otros'] %}
+    <select name="tipo" id="tipoSel" class="form-select" onchange="chkTipo()" required>
+      {% for t in ['Arriendo','Servicios públicos','Nómina','Transporte','Mercadeo','Materia prima','Maquinaria','Impuestos','Logística','Mantenimiento','Otro'] %}
       <option value="{{ t }}" {% if obj and obj.tipo==t %}selected{% endif %}>{{ t }}</option>{% endfor %}
     </select></div>
   <div class="col-md-4"><label class="form-label">Monto COP *</label>
     <div class="input-group"><span class="input-group-text">$</span>
       <input type="number" name="monto" class="form-control" step="1" min="0" value="{{ obj.monto|int if obj else '0' }}" required></div></div>
+  <div class="col-md-6" id="divTipoCustom" style="display:{{ 'block' if obj and obj.tipo=='Otro' else 'none' }}">
+    <label class="form-label">¿Cuál? (nombre del gasto)</label>
+    <input type="text" name="tipo_custom" class="form-control" placeholder="Ej: Suscripción Canva, Gastos notariales..."
+      value="{{ obj.tipo_custom if obj else '' }}"></div>
+  <div class="col-md-6"><label class="form-label">Recurrencia</label>
+    <div class="d-flex gap-3 mt-2">
+      <div class="form-check"><input class="form-check-input" type="radio" name="recurrencia" value="unico" id="rUnico"
+        {% if not obj or obj.recurrencia=='unico' %}checked{% endif %} onchange="chkRec()">
+        <label class="form-check-label" for="rUnico">Único</label></div>
+      <div class="form-check"><input class="form-check-input" type="radio" name="recurrencia" value="mensual" id="rMensual"
+        {% if obj and obj.recurrencia=='mensual' %}checked{% endif %} onchange="chkRec()">
+        <label class="form-check-label" for="rMensual">Mensual</label></div>
+    </div></div>
+  <div class="col-12" id="divPlantilla" style="display:{{ 'block' if obj and obj.recurrencia=='mensual' else 'none' }}">
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" name="es_plantilla" id="esPlantilla" value="1"
+        {% if obj and obj.es_plantilla %}checked{% endif %}>
+      <label class="form-check-label" for="esPlantilla">
+        <strong>Guardar como plantilla mensual</strong> — aparecerá cada mes para registrar rápidamente
+      </label>
+    </div>
+  </div>
   <div class="col-12"><label class="form-label">Descripción</label>
     <input type="text" name="descripcion" class="form-control" value="{{ obj.descripcion if obj else '' }}"></div>
   <div class="col-12"><label class="form-label">Notas</label>
@@ -1399,7 +1545,11 @@ T['gastos/form.html'] = """{% extends 'base.html' %}
 <div class="d-flex gap-2 mt-4">
   <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Guardar Gasto' }}</button>
   <a href="{{ url_for('gastos') }}" class="btn btn-outline-secondary">Cancelar</a>
-</div></form></div>{% endblock %}"""
+</div></form></div>
+{% block scripts %}<script>
+function chkTipo(){document.getElementById('divTipoCustom').style.display=document.getElementById('tipoSel').value=='Otro'?'block':'none';}
+function chkRec(){document.getElementById('divPlantilla').style.display=document.getElementById('rMensual').checked?'block':'none';}
+</script>{% endblock %}{% endblock %}"""
 
 T['admin/usuarios.html'] = """{% extends 'base.html' %}
 {% block title %}Usuarios{% endblock %}{% block page_title %}Gestión de Usuarios{% endblock %}
@@ -1588,7 +1738,10 @@ T['notas/index.html'] = """{% extends 'base.html' %}
     <p style="font-size:.88rem;color:#525f7f;white-space:pre-line;margin-bottom:.75rem">{{ n.contenido[:300] }}{% if n.contenido|length > 300 %}…{% endif %}</p>
     <div style="font-size:.75rem;color:#adb5bd;border-top:1px solid #f0f2ff;padding-top:.5rem;margin-top:auto">
       {% if n.cliente %}<span class="badge bg-light text-dark me-1"><i class="bi bi-person me-1"></i>{{ n.cliente.empresa or n.cliente.nombre }}</span>{% endif %}
-      {{ n.autor.nombre if n.autor else '' }} · {{ n.creado_en.strftime('%d/%m/%Y') }}
+      {% if n.producto %}<span class="badge bg-light text-dark me-1"><i class="bi bi-box me-1"></i>{{ n.producto.nombre }}</span>{% endif %}
+      {% if n.modulo %}<span class="badge" style="background:#e8eeff;color:#5e72e4">{{ n.modulo }}</span>{% endif %}
+      {% if n.fecha_revision %}<span class="badge" style="background:#f3e8ff;color:#8965e0"><i class="bi bi-calendar-check me-1"></i>Rev. {{ n.fecha_revision.strftime('%d/%m/%Y') }}</span>{% endif %}
+      <br>{{ n.autor.nombre if n.autor else '' }} · {{ n.creado_en.strftime('%d/%m/%Y') }}
     </div>
   </div>
 </div>{% endfor %}
@@ -1603,10 +1756,26 @@ T['notas/form.html'] = """{% extends 'base.html' %}
 {% block content %}<div class="fc"><form method="POST"><div class="row g-3">
   <div class="col-md-8"><label class="form-label">Título</label>
     <input type="text" name="titulo" class="form-control" placeholder="Título opcional" value="{{ obj.titulo if obj else '' }}"></div>
-  <div class="col-md-4"><label class="form-label">Vincular a cliente</label>
+  <div class="col-md-4"><label class="form-label">Fecha de revisión</label>
+    <input type="date" name="fecha_revision" class="form-control"
+      value="{{ obj.fecha_revision.strftime('%Y-%m-%d') if obj and obj.fecha_revision else '' }}">
+    <small class="text-muted">Aparecerá en el calendario</small></div>
+  <div class="col-12"><label class="form-label fw-bold">Vincular a (opcional)</label></div>
+  <div class="col-md-4"><label class="form-label">Cliente</label>
     <select name="cliente_id" class="form-select">
-      <option value="">— Global —</option>
+      <option value="">— Ninguno —</option>
       {% for c in clientes_list %}<option value="{{ c.id }}" {% if obj and obj.cliente_id==c.id %}selected{% endif %}>{{ c.empresa or c.nombre }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-4"><label class="form-label">Producto</label>
+    <select name="producto_id" class="form-select">
+      <option value="">— Ninguno —</option>
+      {% for p in productos_list %}<option value="{{ p.id }}" {% if obj and obj.producto_id==p.id %}selected{% endif %}>{{ p.nombre }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-4"><label class="form-label">Módulo del sistema</label>
+    <select name="modulo" class="form-select">
+      <option value="">— Ninguno —</option>
+      {% for m in ['Ventas','Cotizaciones','Producción','Inventario','Gastos','Tareas','Compras','Granel','Otro'] %}
+      <option value="{{ m }}" {% if obj and obj.modulo==m %}selected{% endif %}>{{ m }}</option>{% endfor %}
     </select></div>
   <div class="col-12"><label class="form-label">Contenido *</label>
     <textarea name="contenido" class="form-control" rows="10" style="font-size:.9rem" required>{{ obj.contenido if obj else '' }}</textarea></div>
@@ -1617,49 +1786,98 @@ T['notas/form.html'] = """{% extends 'base.html' %}
 </div></form></div>{% endblock %}"""
 
 T['calendario.html'] = """{% extends 'base.html' %}
-{% block title %}Calendario{% endblock %}{% block page_title %}Calendario de Tareas{% endblock %}
+{% block title %}Calendario{% endblock %}{% block page_title %}Calendario{% endblock %}
 {% block topbar_actions %}
 <button id="prevM" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i></button>
-<span id="mesLabel" class="fw-semibold mx-2" style="min-width:130px;display:inline-block;text-align:center"></span>
+<span id="mesLabel" class="fw-semibold mx-2" style="min-width:140px;display:inline-block;text-align:center"></span>
 <button id="nextM" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-right"></i></button>
+<button class="btn btn-primary btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#modalEvento"><i class="bi bi-plus-lg me-1"></i>Nuevo evento</button>
 {% endblock %}
 {% block content %}
-<div class="row g-2 mb-2">
-  <div class="col-auto"><span class="badge" style="background:#fff4e5;color:#fb6340;border:1px solid #fb6340">● Tarea pendiente</span></div>
-  <div class="col-auto"><span class="badge" style="background:#e3f9ee;color:#2dce89;border:1px solid #2dce89">● Tarea completada</span></div>
-  <div class="col-auto"><span class="badge" style="background:#e8eeff;color:#5e72e4;border:1px solid #5e72e4">● Venta</span></div>
+<div class="row g-2 mb-3">
+  <div class="col-auto"><span class="cal-ev ev-tarea px-2 py-1" style="font-size:.75rem;display:inline-block">● Tarea</span></div>
+  <div class="col-auto"><span class="cal-ev ev-venta px-2 py-1" style="font-size:.75rem;display:inline-block">● Venta / Entrega</span></div>
+  <div class="col-auto"><span class="cal-ev ev-evento px-2 py-1" style="font-size:.75rem;display:inline-block">● Evento / Cita</span></div>
+  <div class="col-auto"><span class="cal-ev ev-nota px-2 py-1" style="font-size:.75rem;display:inline-block">● Revisión nota</span></div>
+  <div class="col-auto"><span class="cal-ev ev-caducidad px-2 py-1" style="font-size:.75rem;display:inline-block">● Caducidad producto</span></div>
 </div>
-<div id="cal" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)"></div>
+<div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)">
+  <table style="width:100%;border-collapse:collapse" id="calTable">
+    <thead><tr id="calHead"></tr></thead>
+    <tbody id="calBody"></tbody>
+  </table>
+</div>
+<!-- Modal nuevo evento -->
+<div class="modal fade" id="modalEvento" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-calendar-plus me-2"></i>Nuevo Evento</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <form method="POST" action="{{ url_for('evento_nuevo') }}">
+    <div class="modal-body"><div class="row g-3">
+      <div class="col-12"><label class="form-label">Título *</label>
+        <input type="text" name="titulo" class="form-control" id="evTitulo" required></div>
+      <div class="col-md-6"><label class="form-label">Tipo</label>
+        <select name="tipo" class="form-select">
+          <option value="recordatorio">Recordatorio</option>
+          <option value="cita">Cita</option>
+          <option value="reunion">Reunión</option>
+        </select></div>
+      <div class="col-md-6"><label class="form-label">Fecha *</label>
+        <input type="date" name="fecha" class="form-control" id="evFecha" required></div>
+      <div class="col-md-6"><label class="form-label">Hora inicio</label>
+        <input type="time" name="hora_inicio" class="form-control"></div>
+      <div class="col-md-6"><label class="form-label">Hora fin</label>
+        <input type="time" name="hora_fin" class="form-control"></div>
+      <div class="col-12"><label class="form-label">Descripción</label>
+        <textarea name="descripcion" class="form-control" rows="3"></textarea></div>
+    </div></div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+      <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Guardar evento</button>
+    </div></form>
+  </div></div>
+</div>
 {% endblock %}
 {% block scripts %}<script>
-const eventos = {{ eventos_json|tojson }};
+const evData = {{ eventos_json|tojson }};
 let cur = new Date({{ anio }}, {{ mes }}-1, 1);
-const dias = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
-const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const DN = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+const MN = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const evColor = {tarea:'ev-tarea',venta:'ev-venta',evento:'ev-evento',nota:'ev-nota',caducidad:'ev-caducidad'};
+function pad(n){return String(n).padStart(2,'0');}
 function renderCal(d){
-  document.getElementById('mesLabel').textContent = meses[d.getMonth()]+' '+d.getFullYear();
-  const yr=d.getFullYear(),mo=d.getMonth();
-  const first=new Date(yr,mo,1);
-  const last=new Date(yr,mo+1,0);
-  let startDow=first.getDay();if(startDow===0)startDow=7;
-  let html='<table style="width:100%;border-collapse:collapse">';
-  html+='<thead><tr>'+dias.map(d=>'<th style="padding:.6rem;text-align:center;font-size:.8rem;color:#8898aa;background:#f8f9fe;font-weight:600">'+d+'</th>').join('')+'</tr></thead>';
-  html+='<tbody><tr>';
-  for(let i=1;i<startDow;i++) html+='<td style="background:#fafbff;border:1px solid #f0f2ff;height:90px;vertical-align:top;padding:.35rem"></td>';
-  let dow=startDow;
+  document.getElementById('mesLabel').textContent = MN[d.getMonth()]+' '+d.getFullYear();
+  const yr=d.getFullYear(), mo=d.getMonth();
+  const first=new Date(yr,mo,1), last=new Date(yr,mo+1,0);
+  const today=new Date(); today.setHours(0,0,0,0);
+  let hd=''; DN.forEach(n=>{hd+='<th style="padding:.6rem;text-align:center;font-size:.8rem;color:#8898aa;background:#f8f9fe;font-weight:600;border:1px solid #f0f2ff">'+n+'</th>';});
+  document.getElementById('calHead').innerHTML=hd;
+  let startDow=first.getDay(); if(startDow===0)startDow=7;
+  let html='<tr>'; let dow=startDow;
+  for(let i=1;i<startDow;i++) html+='<td class="cal-day other-month"></td>';
   for(let day=1;day<=last.getDate();day++){
-    const dk=yr+'-'+String(mo+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
-    const evs=eventos[dk]||[];
-    const isToday=(new Date().toDateString()===new Date(yr,mo,day).toDateString());
-    html+='<td style="border:1px solid #f0f2ff;height:90px;vertical-align:top;padding:.3rem;cursor:pointer" onclick="window.location=\'/tareas/nueva?fecha='+dk+'\'">'+
-      '<div style="font-size:.82rem;font-weight:'+(isToday?'700':'500')+';color:'+(isToday?'#5e72e4':'#1a1f36')+(isToday?';background:#e8eeff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center':'')+'">'+(isToday?'<span>'+day+'</span>':day)+'</div>'+
-      evs.map(e=>'<div style="font-size:.72rem;margin-top:.2rem;padding:.15rem .35rem;border-radius:5px;background:'+(e.t==="tarea"?(e.s==="completada"?"#e3f9ee":"#fff4e5"):"#e8eeff")+';color:'+(e.t==="tarea"?(e.s==="completada"?"#2dce89":"#fb6340"):"#5e72e4")+';overflow:hidden;white-space:nowrap;text-overflow:ellipsis" title="'+e.n+'">'+e.n+'</div>').join('')+
-      '</td>';
+    const dk=yr+'-'+pad(mo+1)+'-'+pad(day);
+    const evs=evData[dk]||[];
+    const isToday=(new Date(yr,mo,day).getTime()===today.getTime());
+    const isPast=(new Date(yr,mo,day)<today);
+    html+='<td class="cal-day'+(isToday?' today':'')+(isPast&&!isToday?' other-month':'')+'" onclick="openDay(\''+dk+'\')">';
+    html+='<div style="font-size:.82rem;font-weight:'+(isToday?'700':'500')+';margin-bottom:3px;'+(isToday?'color:#5e72e4;':'')+'">';
+    if(isToday) html+='<span style="background:#5e72e4;color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.78rem">'+day+'</span>';
+    else html+=day;
+    html+='</div>';
+    const shown=evs.slice(0,3);
+    shown.forEach(e=>{html+='<div class="cal-ev '+(evColor[e.t]||'ev-evento')+'" title="'+e.n+'">'+e.n+'</div>';});
+    if(evs.length>3) html+='<div style="font-size:.65rem;color:#8898aa">+' + (evs.length-3)+' más</div>';
+    html+='</td>';
     if(dow===7&&day!==last.getDate()){html+='</tr><tr>';dow=1;}else{dow++;}
   }
-  while(dow<=7){html+='<td style="background:#fafbff;border:1px solid #f0f2ff;height:90px"></td>';dow++;}
-  html+='</tr></tbody></table>';
-  document.getElementById('cal').innerHTML=html;
+  while(dow>1&&dow<=7){html+='<td class="cal-day other-month"></td>';dow++;}
+  html+='</tr>';
+  document.getElementById('calBody').innerHTML=html;
+}
+function openDay(dk){
+  document.getElementById('evFecha').value=dk;
+  new bootstrap.Modal(document.getElementById('modalEvento')).show();
 }
 renderCal(cur);
 document.getElementById('prevM').onclick=function(){cur=new Date(cur.getFullYear(),cur.getMonth()-1,1);renderCal(cur);};
@@ -1791,6 +2009,312 @@ table.items tbody tr:hover{background:#fafbff}
   </div>
 </div>
 </body></html>"""
+
+T['cotizaciones/index.html'] = """{% extends 'base.html' %}
+{% block title %}Cotizaciones{% endblock %}{% block page_title %}Cotizaciones{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('cotizacion_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva cotización</a>{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="sc"><div class="sv">{{ items|length }}</div><div class="sl">Total cotizaciones</div></div></div>
+  <div class="col-md-3"><div class="sc"><div class="sv">{{ items|selectattr('estado','eq','borrador')|list|length }}</div><div class="sl">Borradores</div></div></div>
+  <div class="col-md-3"><div class="sc"><div class="sv">{{ items|selectattr('estado','eq','enviada')|list|length }}</div><div class="sl">Enviadas</div></div></div>
+  <div class="col-md-3"><div class="sc"><div class="sv">{{ items|selectattr('estado','eq','aprobada')|list|length }}</div><div class="sl">Aprobadas</div></div></div>
+</div>
+<div class="tc"><div class="ch"><i class="bi bi-file-earmark-text me-2"></i>Cotizaciones</div>
+{% if items %}<div class="table-responsive"><table class="table">
+  <thead><tr><th>Número</th><th>Título</th><th>Cliente</th><th>Total</th><th>Estado</th><th>Fecha</th><th></th></tr></thead>
+  <tbody>{% for c in items %}<tr>
+    <td><a href="{{ url_for('cotizacion_ver', id=c.id) }}" class="fw-semibold text-decoration-none" style="color:#5e72e4">{{ c.numero or '—' }}</a></td>
+    <td style="color:#1a1f36">{{ c.titulo }}</td>
+    <td><small class="text-muted">{{ c.cliente.empresa or c.cliente.nombre if c.cliente else '—' }}</small></td>
+    <td class="fw-semibold">$ {{ '{:,.0f}'.format(c.total).replace(',','.') }}</td>
+    <td><span class="b b-{% if c.estado=='borrador' %}media{% elif c.estado=='enviada' %}info{% elif c.estado=='aprobada' %}activo{% elif c.estado=='confirmacion_orden' %}alta{% else %}inactivo{% endif %}">
+      {{ {'borrador':'Borrador','enviada':'Enviada','aprobada':'Aprobada','confirmacion_orden':'Orden confirmada'}.get(c.estado, c.estado) }}
+    </span></td>
+    <td><small class="text-muted">{{ c.fecha_emision.strftime('%d/%m/%Y') }}</small></td>
+    <td><div class="d-flex gap-1">
+      <a href="{{ url_for('cotizacion_ver', id=c.id) }}" class="btn btn-sm btn-outline-primary" title="Ver"><i class="bi bi-eye"></i></a>
+      <a href="{{ url_for('cotizacion_editar', id=c.id) }}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
+      <a href="{{ url_for('cotizacion_pdf', id=c.id) }}" class="btn btn-sm btn-outline-dark" title="PDF" target="_blank"><i class="bi bi-file-pdf"></i></a>
+      <form method="POST" action="{{ url_for('cotizacion_eliminar', id=c.id) }}" onsubmit="return confirm('¿Eliminar cotización?')">
+        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+    </div></td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+{% else %}<div class="text-center text-muted py-5"><i class="bi bi-file-earmark-text" style="font-size:3rem"></i>
+  <p class="mt-3">Sin cotizaciones.</p><a href="{{ url_for('cotizacion_nueva') }}" class="btn btn-primary">Crear primera</a></div>
+{% endif %}</div>{% endblock %}"""
+
+T['cotizaciones/form.html'] = """{% extends 'base.html' %}
+{% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('cotizaciones') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
+{% block content %}<div class="fc" style="max-width:900px"><form method="POST"><div class="row g-3">
+  <div class="col-md-8"><label class="form-label">Título de la cotización *</label>
+    <input type="text" name="titulo" class="form-control" placeholder="Ej: Diseño y producción de catálogo Q2 2026" value="{{ obj.titulo if obj else '' }}" required></div>
+  <div class="col-md-4"><label class="form-label">Cliente</label>
+    <select name="cliente_id" class="form-select">
+      <option value="">— Sin cliente —</option>
+      {% for c in clientes_list %}<option value="{{ c.id }}" {% if obj and obj.cliente_id==c.id %}selected{% endif %}>{{ c.empresa or c.nombre }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-3"><label class="form-label">Fecha de emisión</label>
+    <input type="date" name="fecha_emision" class="form-control" value="{{ obj.fecha_emision.strftime('%Y-%m-%d') if obj else today }}"></div>
+  <div class="col-md-3"><label class="form-label">Válida hasta</label>
+    <input type="date" name="fecha_validez" class="form-control" value="{{ obj.fecha_validez.strftime('%Y-%m-%d') if obj and obj.fecha_validez else '' }}"></div>
+  <div class="col-md-3"><label class="form-label">Días de entrega estimados</label>
+    <input type="number" name="dias_entrega" class="form-control" min="1" value="{{ obj.dias_entrega if obj else '30' }}"></div>
+  <div class="col-md-3"><label class="form-label">% Anticipo</label>
+    <div class="input-group"><input type="number" name="porcentaje_anticipo" id="pctAnticipo" class="form-control" min="0" max="100" step="1" value="{{ obj.porcentaje_anticipo|int if obj else '50' }}"><span class="input-group-text">%</span></div></div>
+  <div class="col-12"><label class="form-label fw-semibold">Ítems / Servicios</label>
+    <div id="itemsWrap">
+      {% if obj and obj.items %}
+        {% for it in obj.items %}
+        <div class="row g-2 mb-2 item-row">
+          <div class="col-md-5"><input type="text" name="item_nombre[]" class="form-control form-control-sm" placeholder="Nombre del ítem" value="{{ it.nombre_prod }}" required></div>
+          <div class="col-md-2"><input type="number" name="item_cantidad[]" class="form-control form-control-sm item-cant" placeholder="Cant." step="0.01" min="0" value="{{ it.cantidad }}" oninput="calcRow(this)"></div>
+          <div class="col-md-3"><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="Precio unit." step="1" min="0" value="{{ it.precio_unit|int }}" oninput="calcRow(this)"></div></div>
+          <div class="col-md-1 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:#5e72e4">$ {{ '{:,.0f}'.format(it.subtotal).replace(',','.') }}</span></div>
+          <div class="col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.item-row').remove();calcTotal()"><i class="bi bi-trash"></i></button></div>
+        </div>{% endfor %}
+      {% else %}
+        <div class="row g-2 mb-2 item-row">
+          <div class="col-md-5"><input type="text" name="item_nombre[]" class="form-control form-control-sm" placeholder="Nombre del ítem o servicio" required></div>
+          <div class="col-md-2"><input type="number" name="item_cantidad[]" class="form-control form-control-sm item-cant" placeholder="1" step="0.01" min="0" value="1" oninput="calcRow(this)"></div>
+          <div class="col-md-3"><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0" step="1" min="0" value="0" oninput="calcRow(this)"></div></div>
+          <div class="col-md-1 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:#5e72e4">$ 0</span></div>
+          <div class="col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.item-row').remove();calcTotal()"><i class="bi bi-trash"></i></button></div>
+        </div>
+      {% endif %}
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addRow()"><i class="bi bi-plus-lg me-1"></i>Agregar ítem</button>
+  </div>
+  <div class="col-12"><hr class="my-2"></div>
+  <div class="col-md-6 offset-md-6">
+    <div class="d-flex justify-content-between mb-1"><span class="text-muted">Subtotal:</span><span id="lblSub" class="fw-semibold">$ 0</span></div>
+    <div class="d-flex justify-content-between mb-1 align-items-center">
+      <span class="text-muted">IVA:</span>
+      <div class="d-flex align-items-center gap-2">
+        <input type="number" name="iva_pct" id="ivaPct" class="form-control form-control-sm" style="width:70px" step="0.01" min="0" max="100" value="{{ obj.iva_pct if obj else '19' }}" oninput="calcTotal()">
+        <span class="text-muted">%</span>
+        <span id="lblIva" class="fw-semibold">$ 0</span>
+      </div>
+    </div>
+    <div class="d-flex justify-content-between mb-1"><span class="fw-bold">Total:</span><span id="lblTotal" class="fw-bold" style="color:#5e72e4;font-size:1.1rem">$ 0</span></div>
+    <div class="d-flex justify-content-between text-muted"><span>Anticipo (<span id="lblPct">50</span>%):</span><span id="lblAnticipo">$ 0</span></div>
+    <div class="d-flex justify-content-between text-muted"><span>Saldo:</span><span id="lblSaldo">$ 0</span></div>
+  </div>
+  <div class="col-12"><label class="form-label">Condiciones de pago</label>
+    <textarea name="condiciones_pago" class="form-control" rows="2" placeholder="Ej: 50% anticipo, 50% contra entrega">{{ obj.condiciones_pago if obj else '' }}</textarea></div>
+  <div class="col-12"><label class="form-label">Notas adicionales</label>
+    <textarea name="notas" class="form-control" rows="2" placeholder="Observaciones, alcance, exclusiones...">{{ obj.notas if obj else '' }}</textarea></div>
+</div>
+<div class="d-flex gap-2 mt-4">
+  <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear Cotización' }}</button>
+  <a href="{{ url_for('cotizaciones') }}" class="btn btn-outline-secondary">Cancelar</a>
+</div></form></div>
+{% block scripts %}<script>
+var IVA_DEFAULT = {{ iva_default|tojson }};
+function fmt(n){return'$ '+Math.round(n).toLocaleString('es-CO');}
+function calcRow(el){
+  var row=el.closest('.item-row');
+  var c=parseFloat(row.querySelector('.item-cant').value)||0;
+  var p=parseFloat(row.querySelector('.item-precio').value)||0;
+  row.querySelector('.item-sub').textContent=fmt(c*p);
+  calcTotal();
+}
+function calcTotal(){
+  var sub=0;
+  document.querySelectorAll('.item-row').forEach(function(r){
+    var c=parseFloat(r.querySelector('.item-cant').value)||0;
+    var p=parseFloat(r.querySelector('.item-precio').value)||0;
+    sub+=c*p;
+  });
+  var ivaPct=parseFloat(document.getElementById('ivaPct').value)||0;
+  var iva=sub*ivaPct/100;
+  var total=sub+iva;
+  var pct=parseFloat(document.getElementById('pctAnticipo').value)||50;
+  var anticipo=total*pct/100;
+  document.getElementById('lblSub').textContent=fmt(sub);
+  document.getElementById('lblIva').textContent=fmt(iva);
+  document.getElementById('lblTotal').textContent=fmt(total);
+  document.getElementById('lblPct').textContent=Math.round(pct);
+  document.getElementById('lblAnticipo').textContent=fmt(anticipo);
+  document.getElementById('lblSaldo').textContent=fmt(total-anticipo);
+}
+function addRow(){
+  var wrap=document.getElementById('itemsWrap');
+  var div=document.createElement('div');
+  div.className='row g-2 mb-2 item-row';
+  div.innerHTML='<div class="col-md-5"><input type="text" name="item_nombre[]" class="form-control form-control-sm" placeholder="Nombre del ítem o servicio" required></div>'
+    +'<div class="col-md-2"><input type="number" name="item_cantidad[]" class="form-control form-control-sm item-cant" placeholder="1" step="0.01" min="0" value="1" oninput="calcRow(this)"></div>'
+    +'<div class="col-md-3"><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0" step="1" min="0" value="0" oninput="calcRow(this)"></div></div>'
+    +'<div class="col-md-1 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:#5e72e4">$ 0</span></div>'
+    +'<div class="col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest(\'.item-row\').remove();calcTotal()"><i class="bi bi-trash"></i></button></div>';
+  wrap.appendChild(div);
+}
+document.getElementById('pctAnticipo').addEventListener('input',calcTotal);
+calcTotal();
+</script>{% endblock %}{% endblock %}"""
+
+T['cotizaciones/ver.html'] = """{% extends 'base.html' %}
+{% block title %}{{ obj.numero or 'Cotización' }}{% endblock %}{% block page_title %}{{ obj.numero or 'Cotización' }} — {{ obj.titulo }}{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('cotizacion_editar', id=obj.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i>Editar</a>
+<a href="{{ url_for('cotizacion_pdf', id=obj.id) }}" class="btn btn-outline-dark btn-sm" target="_blank"><i class="bi bi-file-pdf me-1"></i>PDF</a>
+<a href="{{ url_for('cotizaciones') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>
+{% endblock %}
+{% block content %}
+<div class="row g-3 mb-3">
+  <div class="col-md-8">
+    <div class="tc h-100"><div class="ch">Datos generales</div><div class="p-3">
+      <div class="row g-2">
+        <div class="col-sm-6"><small class="text-muted d-block">Cliente</small><span class="fw-semibold">{{ obj.cliente.empresa or obj.cliente.nombre if obj.cliente else '—' }}</span></div>
+        <div class="col-sm-3"><small class="text-muted d-block">Emisión</small><span>{{ obj.fecha_emision.strftime('%d/%m/%Y') }}</span></div>
+        <div class="col-sm-3"><small class="text-muted d-block">Válida hasta</small><span>{{ obj.fecha_validez.strftime('%d/%m/%Y') if obj.fecha_validez else '—' }}</span></div>
+        <div class="col-sm-3"><small class="text-muted d-block">Entrega est.</small><span>{{ obj.dias_entrega }} días</span></div>
+        <div class="col-sm-3"><small class="text-muted d-block">Estado</small>
+          <span class="b b-{% if obj.estado=='borrador' %}media{% elif obj.estado=='enviada' %}info{% elif obj.estado=='aprobada' %}activo{% elif obj.estado=='confirmacion_orden' %}alta{% else %}inactivo{% endif %}">
+            {{ {'borrador':'Borrador','enviada':'Enviada','aprobada':'Aprobada','confirmacion_orden':'Orden confirmada'}.get(obj.estado,obj.estado) }}
+          </span></div>
+        {% if obj.condiciones_pago %}<div class="col-12"><small class="text-muted d-block">Condiciones de pago</small><span style="font-size:.9rem">{{ obj.condiciones_pago }}</span></div>{% endif %}
+        {% if obj.notas %}<div class="col-12"><small class="text-muted d-block">Notas</small><span style="font-size:.9rem">{{ obj.notas }}</span></div>{% endif %}
+      </div>
+    </div></div>
+  </div>
+  <div class="col-md-4">
+    <div class="tc h-100"><div class="ch">Resumen financiero</div><div class="p-3">
+      <div class="d-flex justify-content-between mb-2"><span class="text-muted">Subtotal</span><span class="fw-semibold">$ {{ '{:,.0f}'.format(obj.subtotal).replace(',','.') }}</span></div>
+      <div class="d-flex justify-content-between mb-2"><span class="text-muted">IVA</span><span class="fw-semibold">$ {{ '{:,.0f}'.format(obj.iva).replace(',','.') }}</span></div>
+      <div class="d-flex justify-content-between mb-2 pb-2" style="border-bottom:2px solid #5e72e4"><span class="fw-bold">Total</span><span class="fw-bold" style="color:#5e72e4;font-size:1.15rem">$ {{ '{:,.0f}'.format(obj.total).replace(',','.') }}</span></div>
+      <div class="d-flex justify-content-between mb-1"><span class="text-muted">Anticipo ({{ obj.porcentaje_anticipo|int }}%)</span><span>$ {{ '{:,.0f}'.format(obj.monto_anticipo).replace(',','.') }}</span></div>
+      <div class="d-flex justify-content-between"><span class="text-muted">Saldo</span><span>$ {{ '{:,.0f}'.format(obj.saldo).replace(',','.') }}</span></div>
+    </div></div>
+  </div>
+</div>
+<div class="tc mb-3"><div class="ch">Ítems</div>
+<div class="table-responsive"><table class="table">
+  <thead><tr><th>#</th><th>Descripción</th><th class="text-end">Cant.</th><th class="text-end">Precio unit.</th><th class="text-end">Subtotal</th></tr></thead>
+  <tbody>{% for it in obj.items %}
+  <tr>
+    <td><small class="text-muted">{{ loop.index }}</small></td>
+    <td>{{ it.nombre_prod }}</td>
+    <td class="text-end">{{ it.cantidad }}</td>
+    <td class="text-end">$ {{ '{:,.0f}'.format(it.precio_unit).replace(',','.') }}</td>
+    <td class="text-end fw-semibold">$ {{ '{:,.0f}'.format(it.subtotal).replace(',','.') }}</td>
+  </tr>{% endfor %}</tbody>
+</table></div></div>
+<div class="tc"><div class="ch">Cambiar estado</div><div class="p-3">
+  <div class="d-flex flex-wrap gap-2">
+    {% for e,lbl in [('borrador','Borrador'),('enviada','Enviada al cliente'),('aprobada','Aprobada'),('confirmacion_orden','Orden confirmada')] %}
+    <form method="POST" action="{{ url_for('cotizacion_cambiar_estado', id=obj.id) }}">
+      <input type="hidden" name="estado" value="{{ e }}">
+      <button class="btn btn-sm {% if obj.estado==e %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ lbl }}</button>
+    </form>{% endfor %}
+  </div>
+</div></div>{% endblock %}"""
+
+T['cotizaciones/pdf.html'] = """<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8">
+<title>{{ obj.numero or 'Cotización' }} — {{ empresa.nombre }}</title>
+<style>
+{% raw %}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:11pt;color:#1a1f36;background:#fff}
+.page{width:210mm;min-height:297mm;margin:0 auto;padding:16mm 16mm 20mm}
+.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1a1f36;padding-bottom:12px;margin-bottom:18px}
+.logo-wrap{display:flex;align-items:center}
+.logo-wrap img{max-height:48px;max-width:180px}
+.doc-title{text-align:right}
+.doc-title h1{font-size:22pt;font-weight:800;color:#1a1f36;letter-spacing:-0.5px}
+.doc-title .numero{font-size:10pt;color:#525f7f;margin-top:4px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.info-box{background:#f8f9fe;border-radius:8px;padding:10px 14px}
+.info-box h4{font-size:8pt;text-transform:uppercase;letter-spacing:.5px;color:#8898aa;margin-bottom:6px}
+.info-box p{font-size:10pt;color:#1a1f36;line-height:1.5}
+table{width:100%;border-collapse:collapse;margin:12px 0}
+th{background:#1a1f36;color:#fff;font-size:9pt;padding:8px 10px;text-align:left}
+th.r,td.r{text-align:right}
+td{padding:7px 10px;font-size:10pt;border-bottom:1px solid #e8ecf5}
+tr:nth-child(even) td{background:#f8f9fe}
+.totals{margin-left:auto;width:260px;margin-top:12px}
+.totals table td{font-size:10pt}
+.totals .grand{background:#1a1f36;color:#fff;font-weight:700;font-size:12pt}
+.anticipo-box{margin-top:10px;padding:10px 14px;background:#e8ecff;border-radius:8px;display:flex;justify-content:space-between}
+.footer-notes{margin-top:18px;padding-top:12px;border-top:1px solid #e8ecf5;font-size:9pt;color:#525f7f}
+.estado-badge{display:inline-block;padding:3px 12px;border-radius:20px;font-size:9pt;font-weight:600;background:#e8ecff;color:#5e72e4}
+@media print{body{background:#fff}.page{padding:10mm 12mm}}
+{% endraw %}
+</style></head>
+<body><div class="page">
+<div class="header">
+  <div class="logo-wrap">
+    {% if empresa.nombre %}
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 341.94 261.01" style="height:48px">
+      <path d="M171.13,0C76.58,0,0,58.38,0,130.38s76.58,130.38,171.13,130.38,170.81-58.38,170.81-130.38S265.51,0,171.13,0Zm0,235.17c-59.28,0-107.34-46.99-107.34-104.93S111.85,25.32,171.13,25.32s107.02,46.99,107.02,104.93-47.9,104.93-107.02,104.93Z" fill="#1a1f36"/>
+      <path d="M248.21,88.31c-3.52-5.7-9.76-9.16-16.49-9.16h-121.18c-6.73,0-12.97,3.46-16.49,9.16-3.52,5.7-3.76,12.79-.63,18.72l60.59,114.27c3.27,6.16,9.67,10.01,16.65,10.01s13.38-3.84,16.65-10.01l60.59-114.27c3.13-5.93,2.9-13.02-.63-18.72Zm-77.08,99.59l-43.65-82.33h87.3l-43.65,82.33Z" fill="#1a1f36"/>
+    </svg>
+    <span style="font-size:14pt;font-weight:700;color:#1a1f36;margin-left:10px">{{ empresa.nombre }}</span>
+    {% endif %}
+  </div>
+  <div class="doc-title">
+    <h1>COTIZACIÓN</h1>
+    <div class="numero">{{ obj.numero or '—' }}</div>
+    <div style="margin-top:6px"><span class="estado-badge">{{ {'borrador':'Borrador','enviada':'Enviada','aprobada':'Aprobada','confirmacion_orden':'Orden confirmada'}.get(obj.estado,obj.estado) }}</span></div>
+  </div>
+</div>
+<div class="info-grid">
+  <div class="info-box">
+    <h4>Para</h4>
+    <p><strong>{{ obj.cliente.empresa or obj.cliente.nombre if obj.cliente else '—' }}</strong><br>
+    {% if obj.cliente and obj.cliente.email %}{{ obj.cliente.email }}<br>{% endif %}
+    {% if obj.cliente and obj.cliente.telefono %}{{ obj.cliente.telefono }}{% endif %}</p>
+  </div>
+  <div class="info-box">
+    <h4>De parte de</h4>
+    <p><strong>{{ empresa.nombre }}</strong><br>
+    {% if empresa.email %}{{ empresa.email }}<br>{% endif %}
+    {% if empresa.telefono %}{{ empresa.telefono }}<br>{% endif %}
+    {% if empresa.nit %}NIT: {{ empresa.nit }}{% endif %}</p>
+  </div>
+  <div class="info-box">
+    <h4>Descripción del proyecto</h4>
+    <p>{{ obj.titulo }}</p>
+  </div>
+  <div class="info-box">
+    <h4>Fechas</h4>
+    <p>Emisión: {{ obj.fecha_emision.strftime('%d/%m/%Y') }}<br>
+    Validez: {{ obj.fecha_validez.strftime('%d/%m/%Y') if obj.fecha_validez else '—' }}<br>
+    Entrega estimada: {{ obj.dias_entrega }} días hábiles</p>
+  </div>
+</div>
+<table>
+  <thead><tr><th>#</th><th>Descripción</th><th class="r">Cant.</th><th class="r">Precio unit.</th><th class="r">Subtotal</th></tr></thead>
+  <tbody>{% for it in obj.items %}
+  <tr><td>{{ loop.index }}</td><td>{{ it.nombre_prod }}</td><td class="r">{{ it.cantidad }}</td>
+    <td class="r">$ {{ '{:,.0f}'.format(it.precio_unit).replace(',','.') }}</td>
+    <td class="r">$ {{ '{:,.0f}'.format(it.subtotal).replace(',','.') }}</td></tr>
+  {% endfor %}</tbody>
+</table>
+<div class="totals">
+  <table>
+    <tr><td>Subtotal</td><td class="r">$ {{ '{:,.0f}'.format(obj.subtotal).replace(',','.') }}</td></tr>
+    <tr><td>IVA</td><td class="r">$ {{ '{:,.0f}'.format(obj.iva).replace(',','.') }}</td></tr>
+    <tr class="grand"><td>TOTAL</td><td class="r">$ {{ '{:,.0f}'.format(obj.total).replace(',','.') }}</td></tr>
+  </table>
+  <div class="anticipo-box">
+    <span><strong>Anticipo requerido ({{ obj.porcentaje_anticipo|int }}%)</strong></span>
+    <span><strong>$ {{ '{:,.0f}'.format(obj.monto_anticipo).replace(',','.') }}</strong></span>
+  </div>
+  <div style="text-align:right;font-size:10pt;color:#525f7f;margin-top:6px">Saldo: $ {{ '{:,.0f}'.format(obj.saldo).replace(',','.') }}</div>
+</div>
+{% if obj.condiciones_pago or obj.notas %}
+<div class="footer-notes">
+  {% if obj.condiciones_pago %}<p><strong>Condiciones de pago:</strong> {{ obj.condiciones_pago }}</p>{% endif %}
+  {% if obj.notas %}<p style="margin-top:6px"><strong>Notas:</strong> {{ obj.notas }}</p>{% endif %}
+</div>{% endif %}
+<div class="footer-notes" style="margin-top:12px;text-align:center;font-size:8pt">
+  Generado por sistema Evore CRM · {{ empresa.nombre }} {% if empresa.sitio_web %}· {{ empresa.sitio_web }}{% endif %}
+</div>
+</div></body></html>"""
 
 T['actividad.html'] = """{% extends 'base.html' %}
 {% block title %}Actividad{% endblock %}{% block page_title %}Historial de Actividad{% endblock %}
@@ -2173,12 +2697,14 @@ def inventario():
     cats=[c[0] for c in db.session.query(Producto.categoria).filter(
         Producto.activo==True,Producto.categoria!=None,Producto.categoria!='').distinct().all()]
     return render_template('inventario/index.html', items=q.order_by(Producto.nombre).all(),
-                           busqueda=busqueda, categoria_f=categoria_f, categorias=cats)
+                           busqueda=busqueda, categoria_f=categoria_f, categorias=cats,
+                           now=datetime.utcnow())
 
 @app.route('/inventario/nuevo', methods=['GET','POST'])
 @login_required
 def producto_nuevo():
     if request.method == 'POST':
+        fd_cad = request.form.get('fecha_caducidad')
         db.session.add(Producto(
             nombre=request.form['nombre'], descripcion=request.form.get('descripcion',''),
             sku=request.form.get('sku') or None, nso=request.form.get('nso') or None,
@@ -2186,7 +2712,8 @@ def producto_nuevo():
             costo=float(request.form.get('costo',0) or 0),
             stock=int(request.form.get('stock',0) or 0),
             stock_minimo=int(request.form.get('stock_minimo',5) or 5),
-            categoria=request.form.get('categoria','')))
+            categoria=request.form.get('categoria',''),
+            fecha_caducidad=datetime.strptime(fd_cad,'%Y-%m-%d').date() if fd_cad else None))
         db.session.commit(); flash('Producto creado.','success'); return redirect(url_for('inventario'))
     return render_template('inventario/form.html', obj=None, titulo='Nuevo Producto')
 
@@ -2195,6 +2722,7 @@ def producto_nuevo():
 def producto_editar(id):
     obj=Producto.query.get_or_404(id)
     if request.method == 'POST':
+        fd_cad = request.form.get('fecha_caducidad')
         obj.nombre=request.form['nombre']; obj.descripcion=request.form.get('descripcion','')
         obj.sku=request.form.get('sku') or None; obj.nso=request.form.get('nso') or None
         obj.precio=float(request.form.get('precio',0) or 0)
@@ -2202,6 +2730,7 @@ def producto_editar(id):
         obj.stock=int(request.form.get('stock',0) or 0)
         obj.stock_minimo=int(request.form.get('stock_minimo',5) or 5)
         obj.categoria=request.form.get('categoria','')
+        obj.fecha_caducidad=datetime.strptime(fd_cad,'%Y-%m-%d').date() if fd_cad else None
         db.session.commit(); flash('Producto actualizado.','success'); return redirect(url_for('inventario'))
     return render_template('inventario/form.html', obj=obj, titulo='Editar Producto')
 
@@ -2410,7 +2939,8 @@ def impuesto_nuevo():
             nombre=request.form['nombre'],
             descripcion=request.form.get('descripcion',''),
             porcentaje=float(request.form.get('porcentaje',0) or 0),
-            aplica_a=request.form.get('aplica_a',''),
+            aplica_a=request.form.get('aplica_a','ventas'),
+            proveedor_nombre=request.form.get('proveedor_nombre','') or None,
             activo=True))
         db.session.commit(); flash('Regla tributaria creada.','success')
         return redirect(url_for('impuestos'))
@@ -2424,7 +2954,8 @@ def impuesto_editar(id):
         obj.nombre=request.form['nombre']
         obj.descripcion=request.form.get('descripcion','')
         obj.porcentaje=float(request.form.get('porcentaje',0) or 0)
-        obj.aplica_a=request.form.get('aplica_a','')
+        obj.aplica_a=request.form.get('aplica_a','ventas')
+        obj.proveedor_nombre=request.form.get('proveedor_nombre','') or None
         obj.activo = request.form.get('activo') == '1'
         db.session.commit(); flash('Regla actualizada.','success')
         return redirect(url_for('impuestos'))
@@ -2443,32 +2974,41 @@ def impuesto_eliminar(id):
 @app.route('/gastos')
 @login_required
 def gastos():
-    from datetime import date
+    from datetime import date as date_t
     tipo_f  = request.args.get('tipo','')
     desde_f = request.args.get('desde','')
     hasta_f = request.args.get('hasta','')
-    q = GastoOperativo.query
+    q = GastoOperativo.query.filter_by(es_plantilla=False)
     if tipo_f:  q = q.filter_by(tipo=tipo_f)
     if desde_f: q = q.filter(GastoOperativo.fecha >= datetime.strptime(desde_f,'%Y-%m-%d').date())
     if hasta_f: q = q.filter(GastoOperativo.fecha <= datetime.strptime(hasta_f,'%Y-%m-%d').date())
     items = q.order_by(GastoOperativo.fecha.desc()).all()
-    total_g  = db.session.query(db.func.sum(GastoOperativo.monto)).scalar() or 0
-    mes_ini  = date.today().replace(day=1)
-    total_mes= db.session.query(db.func.sum(GastoOperativo.monto)).filter(GastoOperativo.fecha>=mes_ini).scalar() or 0
-    tipos    = [t[0] for t in db.session.query(GastoOperativo.tipo).distinct().order_by(GastoOperativo.tipo).all()]
+    total_g   = db.session.query(db.func.sum(GastoOperativo.monto)).filter_by(es_plantilla=False).scalar() or 0
+    mes_ini   = date_t.today().replace(day=1)
+    total_mes = db.session.query(db.func.sum(GastoOperativo.monto)).filter(
+        GastoOperativo.es_plantilla==False, GastoOperativo.fecha>=mes_ini).scalar() or 0
+    tipos     = [t[0] for t in db.session.query(GastoOperativo.tipo).filter_by(es_plantilla=False).distinct().order_by(GastoOperativo.tipo).all()]
+    plantillas = GastoOperativo.query.filter_by(es_plantilla=True).order_by(GastoOperativo.tipo).all()
     return render_template('gastos/index.html', items=items, tipo_f=tipo_f,
         desde_f=desde_f, hasta_f=hasta_f, total_general=total_g,
-        total_mes=total_mes, total_registros=GastoOperativo.query.count(), tipos=tipos)
+        total_mes=total_mes, total_registros=GastoOperativo.query.filter_by(es_plantilla=False).count(),
+        tipos=tipos, plantillas=plantillas)
 
 @app.route('/gastos/nuevo', methods=['GET','POST'])
 @login_required
 def gasto_nuevo():
     if request.method == 'POST':
         fd = request.form.get('fecha')
+        rec = request.form.get('recurrencia','unico')
+        es_pl = request.form.get('es_plantilla') == '1' and rec == 'mensual'
         db.session.add(GastoOperativo(
             fecha=datetime.strptime(fd,'%Y-%m-%d').date() if fd else datetime.utcnow().date(),
-            tipo=request.form['tipo'], descripcion=request.form.get('descripcion',''),
+            tipo=request.form['tipo'],
+            tipo_custom=request.form.get('tipo_custom','') or None,
+            descripcion=request.form.get('descripcion',''),
             monto=float(request.form.get('monto',0) or 0),
+            recurrencia=rec,
+            es_plantilla=es_pl,
             notas=request.form.get('notas',''), creado_por=current_user.id))
         db.session.commit(); flash('Gasto registrado.','success'); return redirect(url_for('gastos'))
     return render_template('gastos/form.html', obj=None, titulo='Nuevo Gasto',
@@ -2480,9 +3020,15 @@ def gasto_editar(id):
     obj = GastoOperativo.query.get_or_404(id)
     if request.method == 'POST':
         fd = request.form.get('fecha')
+        rec = request.form.get('recurrencia','unico')
         obj.fecha=datetime.strptime(fd,'%Y-%m-%d').date() if fd else obj.fecha
-        obj.tipo=request.form['tipo']; obj.descripcion=request.form.get('descripcion','')
-        obj.monto=float(request.form.get('monto',0) or 0); obj.notas=request.form.get('notas','')
+        obj.tipo=request.form['tipo']
+        obj.tipo_custom=request.form.get('tipo_custom','') or None
+        obj.descripcion=request.form.get('descripcion','')
+        obj.monto=float(request.form.get('monto',0) or 0)
+        obj.recurrencia=rec
+        obj.es_plantilla=request.form.get('es_plantilla') == '1' and rec == 'mensual'
+        obj.notas=request.form.get('notas','')
         db.session.commit(); flash('Gasto actualizado.','success'); return redirect(url_for('gastos'))
     return render_template('gastos/form.html', obj=obj, titulo='Editar Gasto',
                            today=datetime.utcnow().strftime('%Y-%m-%d'))
@@ -2492,6 +3038,25 @@ def gasto_editar(id):
 def gasto_eliminar(id):
     obj=GastoOperativo.query.get_or_404(id); db.session.delete(obj); db.session.commit()
     flash('Gasto eliminado.','info'); return redirect(url_for('gastos'))
+
+@app.route('/gastos/plantilla/<int:id>/usar', methods=['POST'])
+@login_required
+def gasto_plantilla_usar(id):
+    from datetime import date as date_t
+    plantilla = GastoOperativo.query.get_or_404(id)
+    nuevo = GastoOperativo(
+        fecha=date_t.today(),
+        tipo=plantilla.tipo,
+        tipo_custom=plantilla.tipo_custom,
+        descripcion=plantilla.descripcion,
+        monto=plantilla.monto,
+        recurrencia='mensual',
+        es_plantilla=False,
+        notas=f'Registrado desde plantilla mensual',
+        creado_por=current_user.id)
+    db.session.add(nuevo); db.session.commit()
+    flash(f'Gasto "{plantilla.tipo_custom or plantilla.tipo}" registrado para este mes.','success')
+    return redirect(url_for('gastos'))
 
 # =============================================================
 # ADMIN
@@ -2731,36 +3296,49 @@ def notas():
     return render_template('notas/index.html',
         items=q.order_by(Nota.actualizado_en.desc()).all(),
         clientes_list=Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all(),
+        productos_list=Producto.query.filter_by(activo=True).order_by(Producto.nombre).all(),
         cliente_f=cliente_f)
 
 @app.route('/notas/nueva', methods=['GET','POST'])
 @login_required
 def nota_nueva():
     cl = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
+    pl = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
     if request.method == 'POST':
+        fd_rev = request.form.get('fecha_revision')
         n = Nota(titulo=request.form.get('titulo','').strip() or None,
             contenido=request.form['contenido'],
             cliente_id=request.form.get('cliente_id') or None,
+            producto_id=request.form.get('producto_id') or None,
+            modulo=request.form.get('modulo','') or None,
+            fecha_revision=datetime.strptime(fd_rev,'%Y-%m-%d').date() if fd_rev else None,
             creado_por=current_user.id)
         db.session.add(n); db.session.commit()
         _log('crear','nota',n.id,f'Nota creada: {n.titulo or "(sin título)"}'); db.session.commit()
         flash('Nota guardada.','success'); return redirect(url_for('notas'))
-    return render_template('notas/form.html', obj=None, titulo='Nueva Nota', clientes_list=cl)
+    return render_template('notas/form.html', obj=None, titulo='Nueva Nota',
+        clientes_list=cl, productos_list=pl)
 
 @app.route('/notas/<int:id>/editar', methods=['GET','POST'])
 @login_required
 def nota_editar(id):
     obj = Nota.query.get_or_404(id)
     cl  = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
+    pl  = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
     if request.method == 'POST':
+        fd_rev = request.form.get('fecha_revision')
         obj.titulo=request.form.get('titulo','').strip() or None
         obj.contenido=request.form['contenido']
         obj.cliente_id=request.form.get('cliente_id') or None
+        obj.producto_id=request.form.get('producto_id') or None
+        obj.modulo=request.form.get('modulo','') or None
+        obj.fecha_revision=datetime.strptime(fd_rev,'%Y-%m-%d').date() if fd_rev else None
         obj.actualizado_en=datetime.utcnow()
         db.session.commit()
         _log('editar','nota',obj.id,f'Nota editada: {obj.titulo or "(sin título)"}'); db.session.commit()
         flash('Nota actualizada.','success'); return redirect(url_for('notas'))
-    return render_template('notas/form.html', obj=obj, titulo='Editar Nota', clientes_list=cl)
+    return render_template('notas/form.html', obj=obj, titulo='Editar Nota',
+        clientes_list=cl, productos_list=pl)
 
 @app.route('/notas/<int:id>/eliminar', methods=['POST'])
 @login_required
@@ -2775,22 +3353,76 @@ def nota_eliminar(id):
 @app.route('/calendario')
 @login_required
 def calendario():
-    from datetime import date
-    import json as _json
-    hoy = date.today()
+    from datetime import date as date_t
+    hoy = date_t.today()
     anio = int(request.args.get('anio', hoy.year))
     mes  = int(request.args.get('mes',  hoy.month))
-    # Recolectar eventos
     eventos = {}
-    tareas = Tarea.query.filter(Tarea.fecha_vencimiento != None).all()
-    for t in tareas:
+    # 1. Tareas con fecha de vencimiento
+    for t in Tarea.query.filter(Tarea.fecha_vencimiento != None).all():
         k = t.fecha_vencimiento.strftime('%Y-%m-%d')
         eventos.setdefault(k, []).append({'t':'tarea','n':t.titulo,'s':t.estado})
-    ventas_cal = Venta.query.filter(Venta.fecha_entrega_est != None).all()
-    for v in ventas_cal:
+    # 2. Ventas con fecha entrega estimada
+    for v in Venta.query.filter(Venta.fecha_entrega_est != None).all():
         k = v.fecha_entrega_est.strftime('%Y-%m-%d')
         eventos.setdefault(k, []).append({'t':'venta','n':v.titulo,'s':v.estado})
+    # 3. Eventos manuales
+    for e in Evento.query.all():
+        k = e.fecha.strftime('%Y-%m-%d')
+        eventos.setdefault(k, []).append({'t':'evento','n':e.titulo,'s':e.tipo})
+    # 4. Notas con fecha de revisión
+    for n in Nota.query.filter(Nota.fecha_revision != None).all():
+        k = n.fecha_revision.strftime('%Y-%m-%d')
+        eventos.setdefault(k, []).append({'t':'nota','n':n.titulo or '(nota sin título)','s':'revision'})
+    # 5. Productos próximos a caducar (mostrar hasta 6 meses adelante)
+    for p in Producto.query.filter(Producto.fecha_caducidad != None, Producto.activo == True).all():
+        k = p.fecha_caducidad.strftime('%Y-%m-%d')
+        eventos.setdefault(k, []).append({'t':'caducidad','n':p.nombre,'s':'caducidad'})
     return render_template('calendario.html', eventos_json=eventos, anio=anio, mes=mes)
+
+# =============================================================
+# EVENTOS
+# =============================================================
+
+@app.route('/eventos/nuevo', methods=['GET','POST'])
+@login_required
+def evento_nuevo():
+    if request.method == 'POST':
+        fd = request.form.get('fecha')
+        ev = Evento(
+            titulo=request.form['titulo'],
+            tipo=request.form.get('tipo','recordatorio'),
+            fecha=datetime.strptime(fd,'%Y-%m-%d').date() if fd else datetime.utcnow().date(),
+            hora_inicio=request.form.get('hora_inicio','') or None,
+            hora_fin=request.form.get('hora_fin','') or None,
+            descripcion=request.form.get('descripcion',''),
+            usuario_id=current_user.id)
+        db.session.add(ev); db.session.commit()
+        flash('Evento creado.','success')
+        return redirect(url_for('calendario'))
+    return redirect(url_for('calendario'))
+
+@app.route('/eventos/<int:id>/editar', methods=['POST'])
+@login_required
+def evento_editar(id):
+    obj = Evento.query.get_or_404(id)
+    fd = request.form.get('fecha')
+    obj.titulo = request.form.get('titulo', obj.titulo)
+    obj.tipo = request.form.get('tipo', obj.tipo)
+    if fd: obj.fecha = datetime.strptime(fd,'%Y-%m-%d').date()
+    obj.hora_inicio = request.form.get('hora_inicio','') or None
+    obj.hora_fin    = request.form.get('hora_fin','') or None
+    obj.descripcion = request.form.get('descripcion','')
+    db.session.commit(); flash('Evento actualizado.','success')
+    return redirect(url_for('calendario'))
+
+@app.route('/eventos/<int:id>/eliminar', methods=['POST'])
+@login_required
+def evento_eliminar(id):
+    obj = Evento.query.get_or_404(id)
+    db.session.delete(obj); db.session.commit()
+    flash('Evento eliminado.','info')
+    return redirect(url_for('calendario'))
 
 # =============================================================
 # FACTURA / COTIZACIÓN
@@ -2809,6 +3441,163 @@ def venta_factura(id):
     return render_template('ventas/factura.html',
         obj=obj, empresa=empresa, doc_tipo=doc_tipo,
         doc_numero=doc_numero, fecha_doc=fecha_doc)
+
+# =============================================================
+# COTIZACIONES
+# =============================================================
+
+@app.route('/cotizaciones')
+@login_required
+def cotizaciones():
+    items = Cotizacion.query.order_by(Cotizacion.fecha_emision.desc()).all()
+    return render_template('cotizaciones/index.html', items=items)
+
+@app.route('/cotizaciones/nueva', methods=['GET','POST'])
+@login_required
+def cotizacion_nueva():
+    from datetime import date as date_t
+    clientes_list = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
+    regla_iva = ReglaTributaria.query.filter_by(aplica_a='ventas', activo=True).first()
+    iva_default = regla_iva.porcentaje if regla_iva else 19.0
+    if request.method == 'POST':
+        hoy = date_t.today()
+        # Generar número secuencial
+        ultimo = Cotizacion.query.filter(
+            Cotizacion.numero.like(f'COT-{hoy.year}-%')
+        ).order_by(Cotizacion.id.desc()).first()
+        if ultimo and ultimo.numero:
+            try: seq = int(ultimo.numero.split('-')[-1]) + 1
+            except: seq = 1
+        else: seq = 1
+        numero = f'COT-{hoy.year}-{seq:03d}'
+        fd_em = request.form.get('fecha_emision')
+        fd_val = request.form.get('fecha_validez')
+        iva_pct = float(request.form.get('iva_pct', iva_default) or iva_default)
+        nombres = request.form.getlist('item_nombre[]')
+        cantidades = request.form.getlist('item_cantidad[]')
+        precios = request.form.getlist('item_precio[]')
+        items_data = []
+        subtotal = 0.0
+        for i in range(len(nombres)):
+            nm = nombres[i].strip() if i < len(nombres) else ''
+            if not nm: continue
+            cant = float(cantidades[i]) if i < len(cantidades) else 1.0
+            precio = float(precios[i]) if i < len(precios) else 0.0
+            sub = cant * precio
+            subtotal += sub
+            items_data.append({'nombre': nm, 'cantidad': cant, 'precio': precio, 'subtotal': sub})
+        iva_monto = subtotal * iva_pct / 100.0
+        total = subtotal + iva_monto
+        pct_anticipo = float(request.form.get('porcentaje_anticipo', 50) or 50)
+        monto_anticipo = total * pct_anticipo / 100.0
+        saldo = total - monto_anticipo
+        cot = Cotizacion(
+            numero=numero,
+            titulo=request.form['titulo'],
+            cliente_id=request.form.get('cliente_id') or None,
+            subtotal=subtotal, iva=iva_monto, total=total,
+            porcentaje_anticipo=pct_anticipo,
+            monto_anticipo=monto_anticipo, saldo=saldo,
+            fecha_emision=datetime.strptime(fd_em,'%Y-%m-%d').date() if fd_em else date_t.today(),
+            fecha_validez=datetime.strptime(fd_val,'%Y-%m-%d').date() if fd_val else None,
+            dias_entrega=int(request.form.get('dias_entrega',30) or 30),
+            condiciones_pago=request.form.get('condiciones_pago',''),
+            notas=request.form.get('notas',''),
+            estado='borrador', creado_por=current_user.id)
+        db.session.add(cot); db.session.flush()
+        for it in items_data:
+            db.session.add(CotizacionItem(
+                cotizacion_id=cot.id, nombre_prod=it['nombre'],
+                cantidad=it['cantidad'], precio_unit=it['precio'], subtotal=it['subtotal']))
+        db.session.commit()
+        _log('crear','cotizacion',cot.id,f'Cotización {numero}: {cot.titulo}'); db.session.commit()
+        flash(f'Cotización {numero} creada.','success')
+        return redirect(url_for('cotizacion_ver', id=cot.id))
+    return render_template('cotizaciones/form.html', obj=None, titulo='Nueva Cotización',
+        clientes_list=clientes_list, today=datetime.utcnow().strftime('%Y-%m-%d'),
+        iva_default=iva_default)
+
+@app.route('/cotizaciones/<int:id>')
+@login_required
+def cotizacion_ver(id):
+    obj = Cotizacion.query.get_or_404(id)
+    empresa = ConfigEmpresa.query.first() or ConfigEmpresa(nombre='Evore')
+    return render_template('cotizaciones/ver.html', obj=obj, empresa=empresa)
+
+@app.route('/cotizaciones/<int:id>/editar', methods=['GET','POST'])
+@login_required
+def cotizacion_editar(id):
+    from datetime import date as date_t
+    obj = Cotizacion.query.get_or_404(id)
+    clientes_list = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
+    regla_iva = ReglaTributaria.query.filter_by(aplica_a='ventas', activo=True).first()
+    iva_default = regla_iva.porcentaje if regla_iva else 19.0
+    if request.method == 'POST':
+        fd_em = request.form.get('fecha_emision')
+        fd_val = request.form.get('fecha_validez')
+        iva_pct = float(request.form.get('iva_pct', iva_default) or iva_default)
+        nombres = request.form.getlist('item_nombre[]')
+        cantidades = request.form.getlist('item_cantidad[]')
+        precios = request.form.getlist('item_precio[]')
+        # Borrar items existentes
+        for it in obj.items: db.session.delete(it)
+        db.session.flush()
+        subtotal = 0.0
+        for i in range(len(nombres)):
+            nm = nombres[i].strip() if i < len(nombres) else ''
+            if not nm: continue
+            cant = float(cantidades[i]) if i < len(cantidades) else 1.0
+            precio = float(precios[i]) if i < len(precios) else 0.0
+            sub = cant * precio
+            subtotal += sub
+            db.session.add(CotizacionItem(
+                cotizacion_id=obj.id, nombre_prod=nm,
+                cantidad=cant, precio_unit=precio, subtotal=sub))
+        iva_monto = subtotal * iva_pct / 100.0
+        total = subtotal + iva_monto
+        pct_anticipo = float(request.form.get('porcentaje_anticipo', 50) or 50)
+        obj.titulo = request.form['titulo']
+        obj.cliente_id = request.form.get('cliente_id') or None
+        obj.subtotal = subtotal; obj.iva = iva_monto; obj.total = total
+        obj.porcentaje_anticipo = pct_anticipo
+        obj.monto_anticipo = total * pct_anticipo / 100.0
+        obj.saldo = total - obj.monto_anticipo
+        if fd_em: obj.fecha_emision = datetime.strptime(fd_em,'%Y-%m-%d').date()
+        obj.fecha_validez = datetime.strptime(fd_val,'%Y-%m-%d').date() if fd_val else None
+        obj.dias_entrega = int(request.form.get('dias_entrega',30) or 30)
+        obj.condiciones_pago = request.form.get('condiciones_pago','')
+        obj.notas = request.form.get('notas','')
+        db.session.commit()
+        flash('Cotización actualizada.','success')
+        return redirect(url_for('cotizacion_ver', id=obj.id))
+    return render_template('cotizaciones/form.html', obj=obj, titulo='Editar Cotización',
+        clientes_list=clientes_list, today=datetime.utcnow().strftime('%Y-%m-%d'),
+        iva_default=iva_default)
+
+@app.route('/cotizaciones/<int:id>/estado', methods=['POST'])
+@login_required
+def cotizacion_cambiar_estado(id):
+    obj = Cotizacion.query.get_or_404(id)
+    nuevo = request.form.get('estado','borrador')
+    if nuevo in ('borrador','enviada','aprobada','confirmacion_orden'):
+        obj.estado = nuevo; db.session.commit()
+        flash(f'Estado actualizado a: {nuevo}.','success')
+    return redirect(url_for('cotizacion_ver', id=id))
+
+@app.route('/cotizaciones/<int:id>/eliminar', methods=['POST'])
+@login_required
+def cotizacion_eliminar(id):
+    obj = Cotizacion.query.get_or_404(id)
+    db.session.delete(obj); db.session.commit()
+    flash('Cotización eliminada.','info')
+    return redirect(url_for('cotizaciones'))
+
+@app.route('/cotizaciones/<int:id>/pdf')
+@login_required
+def cotizacion_pdf(id):
+    obj = Cotizacion.query.get_or_404(id)
+    empresa = ConfigEmpresa.query.first() or ConfigEmpresa(nombre='Evore')
+    return render_template('cotizaciones/pdf.html', obj=obj, empresa=empresa)
 
 # =============================================================
 # HISTORIAL DE ACTIVIDAD
