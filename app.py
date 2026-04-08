@@ -1,5 +1,5 @@
 # =============================================================
-# EVORE CRM — v5 (archivo único, crash-safe)
+# EVORE CRM — v6 (archivo único, fix Jinja2 CSS comment bug)
 # =============================================================
 
 from flask import Flask, render_template, redirect, url_for, flash, request
@@ -134,7 +134,7 @@ def load_user(uid): return User.query.get(int(uid))
 # TEMPLATES
 # =============================================================
 
-_CSS = """<style>
+_CSS = """{% raw %}<style>
 :root{--sb:#1a1f36;--ac:#5e72e4;--bg:#f4f6fb}
 body{background:var(--bg);font-family:'Segoe UI',sans-serif}
 #sb{position:fixed;top:0;left:0;height:100vh;width:252px;background:var(--sb);
@@ -190,7 +190,7 @@ body{background:var(--bg);font-family:'Segoe UI',sans-serif}
 .btn-primary:hover{background:#4a5bd4;border-color:#4a5bd4}
 .alert{border-radius:10px;border:none}
 @media(max-width:768px){#sb{width:54px}#sb .nav-link span,.sb-brand .bt,.sb-sec,.ui{display:none}#main{margin-left:54px}}
-</style>"""
+</style>{% endraw %}"""
 
 _CDN = """<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">"""
@@ -1069,6 +1069,10 @@ def init_db():
             print('Admin creado: admin@evore.us / Evore2024!')
 
 
-if __name__ == '__main__':
+try:
     init_db()
+except Exception as _e:
+    print(f'init_db() error (no crítico): {_e}')
+
+if __name__ == '__main__':
     app.run(debug=True)
