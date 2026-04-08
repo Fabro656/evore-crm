@@ -631,6 +631,7 @@ T['base.html'] = """<!DOCTYPE html>
     {% if 'inventario' in m %}<a href="{{ url_for('inventario_ingresos') }}" class="nav-link {% if request.endpoint=='inventario_ingresos' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-plus-square"></i><span>Multi-Ingreso</span></a>{% endif %}
     {% if 'produccion' in m %}<a href="{{ url_for('produccion_index') }}" class="nav-link {% if 'produccion' in request.endpoint or 'compra' in request.endpoint or 'granel' in request.endpoint or 'impuesto' in request.endpoint or 'materia' in request.endpoint or 'receta' in request.endpoint or 'reserva' in request.endpoint %}active{% endif %}"><i class="bi bi-gear-fill"></i><span>Producción</span></a>{% endif %}
     {% if 'produccion' in m %}<a href="{{ url_for('ordenes_produccion') }}" class="nav-link {% if request.endpoint=='ordenes_produccion' or request.endpoint=='orden_completar' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-list-check"></i><span>Órdenes</span></a>{% endif %}
+    {% if 'produccion' in m %}<a href="{{ url_for('gantt') }}" class="nav-link {% if request.endpoint=='gantt' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-bar-chart-steps"></i><span>Gantt</span></a>{% endif %}
     {% if 'gastos' in m %}<a href="{{ url_for('gastos') }}" class="nav-link {% if 'gasto' in request.endpoint %}active{% endif %}"><i class="bi bi-receipt"></i><span>Gastos</span></a>{% endif %}
     {% if 'reportes' in m %}<a href="{{ url_for('reportes') }}" class="nav-link {% if 'reporte' in request.endpoint %}active{% endif %}"><i class="bi bi-bar-chart-fill"></i><span>Reportes</span></a>{% endif %}
     {% endif %}
@@ -1563,6 +1564,14 @@ T['produccion/index.html'] = """{% extends 'base.html' %}
     </div>
     <a href="{{ url_for('ordenes_produccion') }}" class="btn btn-sm btn-outline-info ms-auto">Ver órdenes</a>
   </div></div>
+  <div class="col-md-4"><div class="fc d-flex align-items-center gap-3 py-3">
+    <i class="bi bi-bar-chart-steps fs-2 text-primary"></i>
+    <div>
+      <div class="fw-semibold">Diagrama Gantt</div>
+      <small class="text-muted">Visualizar línea de tiempo de producción</small>
+    </div>
+    <a href="{{ url_for('gantt') }}" class="btn btn-sm btn-outline-primary ms-auto">Ver Gantt</a>
+  </div></div>
 </div>
 {% endblock %}"""
 
@@ -2347,49 +2356,112 @@ T['calendario.html'] = """{% extends 'base.html' %}
 </div>
 {% endblock %}
 {% block scripts %}<script>
-const evData = {{ eventos_json|tojson }};
-let cur = new Date({{ anio }}, {{ mes }}-1, 1);
-const DN = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
-const MN = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-const evColor = {tarea:'ev-tarea',venta:'ev-venta',evento:'ev-evento',nota:'ev-nota',caducidad:'ev-caducidad'};
-function pad(n){return String(n).padStart(2,'0');}
-function renderCal(d){
-  document.getElementById('mesLabel').textContent = MN[d.getMonth()]+' '+d.getFullYear();
-  const yr=d.getFullYear(), mo=d.getMonth();
-  const first=new Date(yr,mo,1), last=new Date(yr,mo+1,0);
-  const today=new Date(); today.setHours(0,0,0,0);
-  let hd=''; DN.forEach(n=>{hd+='<th style="padding:.6rem;text-align:center;font-size:.8rem;color:#8898aa;background:#f8f9fe;font-weight:600;border:1px solid #f0f2ff">'+n+'</th>';});
-  document.getElementById('calHead').innerHTML=hd;
-  let startDow=first.getDay(); if(startDow===0)startDow=7;
-  let html='<tr>'; let dow=startDow;
-  for(let i=1;i<startDow;i++) html+='<td class="cal-day other-month"></td>';
-  for(let day=1;day<=last.getDate();day++){
-    const dk=yr+'-'+pad(mo+1)+'-'+pad(day);
-    const evs=evData[dk]||[];
-    const isToday=(new Date(yr,mo,day).getTime()===today.getTime());
-    const isPast=(new Date(yr,mo,day)<today);
-    html+='<td class="cal-day'+(isToday?' today':'')+(isPast&&!isToday?' other-month':'')+'" onclick="openDay(\''+dk+'\')">';
-    html+='<div style="font-size:.82rem;font-weight:'+(isToday?'700':'500')+';margin-bottom:3px;'+(isToday?'color:#5e72e4;':'')+'">';
-    if(isToday) html+='<span style="background:#5e72e4;color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.78rem">'+day+'</span>';
-    else html+=day;
-    html+='</div>';
-    const shown=evs.slice(0,3);
-    shown.forEach(e=>{html+='<div class="cal-ev '+(evColor[e.t]||'ev-evento')+'" title="'+e.n+'">'+e.n+'</div>';});
-    if(evs.length>3) html+='<div style="font-size:.65rem;color:#8898aa">+' + (evs.length-3)+' más</div>';
-    html+='</td>';
-    if(dow===7&&day!==last.getDate()){html+='</tr><tr>';dow=1;}else{dow++;}
+var evData = {{ eventos_json|tojson }};
+var curYear = {{ anio }};
+var curMes  = {{ mes }};  // 1-based
+var DN = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+var MN = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+var evColor = {tarea:'ev-tarea',venta:'ev-venta',evento:'ev-evento',nota:'ev-nota',caducidad:'ev-caducidad'};
+
+function pad2(n){return n<10?'0'+n:String(n);}
+
+function renderCal(yr, mo1){
+  // mo1 is 1-based (Jan=1)
+  var mo0 = mo1 - 1;  // 0-based for JS Date
+  document.getElementById('mesLabel').textContent = MN[mo0] + ' ' + yr;
+
+  // Header
+  var hd = '';
+  DN.forEach(function(n){
+    hd += '<th style="padding:.6rem;text-align:center;font-size:.8rem;color:#8898aa;background:#f8f9fe;font-weight:600;border:1px solid #f0f2ff">'+n+'</th>';
+  });
+  document.getElementById('calHead').innerHTML = hd;
+
+  // First day of month: JS getDay() → 0=Sun,1=Mon,...,6=Sat → convert to 1=Mon...7=Sun
+  var firstDate = new Date(yr, mo0, 1);
+  var startDow = firstDate.getDay();         // 0=Sun
+  if(startDow === 0) startDow = 7;           // remap Sunday to 7
+  var startDow1 = startDow;                  // 1=Mon..7=Sun
+
+  // Last day of month
+  var lastDay = new Date(yr, mo0+1, 0).getDate();
+
+  var today = new Date();
+  today.setHours(0,0,0,0);
+
+  var rows = [];
+  var week = [];
+
+  // Fill blank cells before first day (Mon=1 means 0 blanks, Tue=2 means 1 blank, etc.)
+  for(var b = 1; b < startDow1; b++){
+    week.push(null);
   }
-  while(dow>1&&dow<=7){html+='<td class="cal-day other-month"></td>';dow++;}
-  html+='</tr>';
-  document.getElementById('calBody').innerHTML=html;
+
+  for(var day = 1; day <= lastDay; day++){
+    week.push(day);
+    if(week.length === 7){
+      rows.push(week);
+      week = [];
+    }
+  }
+  // Pad last week
+  while(week.length > 0 && week.length < 7){ week.push(null); }
+  if(week.length > 0) rows.push(week);
+
+  var html = '';
+  rows.forEach(function(row){
+    html += '<tr>';
+    row.forEach(function(day){
+      if(day === null){
+        html += '<td class="cal-day other-month"></td>';
+      } else {
+        var dk = yr + '-' + pad2(mo1) + '-' + pad2(day);
+        var evs = evData[dk] || [];
+        var cellDate = new Date(yr, mo0, day);
+        var isToday = (cellDate.getTime() === today.getTime());
+        var isPast  = (cellDate < today && !isToday);
+        var cls = 'cal-day' + (isToday?' today':'') + (isPast?' other-month':'');
+        html += '<td class="'+cls+'" onclick="openDay(\''+dk+'\',event)">';
+        // Day number
+        if(isToday){
+          html += '<div style="margin-bottom:3px"><span style="background:#5e72e4;color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700">'+day+'</span></div>';
+        } else {
+          html += '<div style="font-size:.82rem;font-weight:500;margin-bottom:3px;color:'+(isPast?'#b0b8d1':'#1a1f36')+'">'+day+'</div>';
+        }
+        // Events
+        var shown = evs.slice(0, 3);
+        shown.forEach(function(e){
+          var eN = String(e.n||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          html += '<div class="cal-ev '+(evColor[e.t]||'ev-evento')+'" title="'+eN+'">'+eN+'</div>';
+        });
+        if(evs.length > 3) html += '<div style="font-size:.65rem;color:#8898aa">+'+(evs.length-3)+' más</div>';
+        html += '</td>';
+      }
+    });
+    html += '</tr>';
+  });
+
+  document.getElementById('calBody').innerHTML = html;
 }
-function openDay(dk){
-  document.getElementById('evFecha').value=dk;
+
+function openDay(dk, evt){
+  if(evt) evt.stopPropagation();
+  document.getElementById('evFecha').value = dk;
   new bootstrap.Modal(document.getElementById('modalEvento')).show();
 }
-renderCal(cur);
-document.getElementById('prevM').onclick=function(){cur=new Date(cur.getFullYear(),cur.getMonth()-1,1);renderCal(cur);};
-document.getElementById('nextM').onclick=function(){cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);renderCal(cur);};
+
+function navMes(delta){
+  curMes += delta;
+  if(curMes < 1){ curMes = 12; curYear--; }
+  if(curMes > 12){ curMes = 1;  curYear++; }
+  renderCal(curYear, curMes);
+}
+
+document.getElementById('prevM').onclick = function(){ navMes(-1); };
+document.getElementById('nextM').onclick = function(){ navMes(+1); };
+
+// Initial render
+renderCal(curYear, curMes);
 </script>{% endblock %}"""
 
 T['ventas/factura.html'] = """<!DOCTYPE html>
@@ -3436,7 +3508,8 @@ addRow();
 T['produccion/ordenes.html'] = """{% extends 'base.html' %}
 {% block title %}Órdenes de Producción{% endblock %}{% block page_title %}Órdenes de Producción{% endblock %}
 {% block topbar_actions %}
-<a href="{{ url_for('produccion') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Producción</a>
+<a href="{{ url_for('produccion_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Producción</a>
+<a href="{{ url_for('gantt') }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-bar-chart-steps me-1"></i>Diagrama Gantt</a>
 {% endblock %}
 {% block content %}
 <div class="fc">
@@ -3545,6 +3618,179 @@ function prepCompletar(btn){
   document.getElementById('compProdNombre').textContent = btn.dataset.prod;
   document.getElementById('compCant').textContent = btn.dataset.cant;
   document.getElementById('compLote').value = '';
+}
+</script>{% endblock %}
+{% endblock %}"""
+
+T['produccion/gantt.html'] = """{% extends 'base.html' %}
+{% block title %}Gantt — Producción{% endblock %}{% block page_title %}Diagrama de Gantt — Producción{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('ordenes_produccion') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Órdenes</a>
+<a href="{{ url_for('produccion_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-gear me-1"></i>Producción</a>
+{% endblock %}
+{% block content %}
+<style>
+.gantt-wrap{overflow-x:auto;padding-bottom:1rem}
+.gantt-grid{display:grid;font-size:.82rem;min-width:900px}
+.gantt-header{display:contents}
+.gantt-header .gh-label{background:#f8f9fe;font-weight:700;color:#525f7f;padding:.55rem .8rem;border-bottom:2px solid #e8ecf0;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0;z-index:2}
+.gantt-row{display:contents}
+.gantt-row:hover .gc{background:#f4f6fb}
+.gc{padding:.55rem .8rem;border-bottom:1px solid #f0f2ff;display:flex;align-items:center;background:#fff;transition:background .12s}
+.gc.timeline{padding:.4rem .3rem;position:relative;overflow:visible}
+.bar-outer{position:relative;height:26px;border-radius:6px;overflow:hidden;background:#f0f2ff}
+.bar-fill{height:100%;border-radius:6px;display:flex;align-items:center;padding:0 8px;font-size:.72rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:width .4s ease}
+.bar-fill.en_produccion{background:linear-gradient(90deg,#5e72e4,#825ee4)}
+.bar-fill.pendiente_materiales{background:linear-gradient(90deg,#fb6340,#f5365c)}
+.bar-fill.completado{background:linear-gradient(90deg,#2dce89,#26b07b)}
+.day-marks{position:absolute;top:0;bottom:0;display:flex;pointer-events:none}
+.day-mark{border-left:1px dashed #e0e4f0;height:100%;flex-shrink:0}
+.today-line{position:absolute;top:-4px;bottom:-4px;width:2px;background:#f5365c;z-index:3;border-radius:2px}
+.today-line::before{content:'Hoy';position:absolute;top:-18px;left:50%;transform:translateX(-50%);background:#f5365c;color:#fff;font-size:.65rem;font-weight:700;padding:1px 5px;border-radius:4px;white-space:nowrap}
+.legend-dot{width:12px;height:12px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:middle}
+.empty-gantt{text-align:center;padding:4rem 2rem;color:#8898aa}
+</style>
+
+{% if not ordenes %}
+<div class="empty-gantt">
+  <i class="bi bi-bar-chart-steps" style="font-size:3rem;display:block;margin-bottom:1rem;opacity:.3"></i>
+  <div class="fw-semibold mb-1">No hay órdenes de producción activas</div>
+  <small>Las órdenes aparecerán aquí cuando se confirmen cotizaciones o se creen manualmente.</small>
+</div>
+{% else %}
+<!-- Leyenda -->
+<div class="d-flex gap-3 mb-3 flex-wrap">
+  <span><span class="legend-dot" style="background:#5e72e4"></span>En producción</span>
+  <span><span class="legend-dot" style="background:#fb6340"></span>Pendiente materiales</span>
+  <span><span class="legend-dot" style="background:#2dce89"></span>Completado</span>
+</div>
+
+<!-- Resumen rápido -->
+<div class="row g-2 mb-4">
+  <div class="col-auto"><div class="fc px-3 py-2 d-flex align-items-center gap-2">
+    <i class="bi bi-hourglass-split text-primary"></i>
+    <span class="fw-semibold">{{ ordenes|selectattr('estado','equalto','en_produccion')|list|length }}</span>
+    <span class="text-muted" style="font-size:.82rem">en producción</span>
+  </div></div>
+  <div class="col-auto"><div class="fc px-3 py-2 d-flex align-items-center gap-2">
+    <i class="bi bi-exclamation-triangle text-warning"></i>
+    <span class="fw-semibold">{{ ordenes|selectattr('estado','equalto','pendiente_materiales')|list|length }}</span>
+    <span class="text-muted" style="font-size:.82rem">sin materiales</span>
+  </div></div>
+  <div class="col-auto"><div class="fc px-3 py-2 d-flex align-items-center gap-2">
+    <i class="bi bi-check-circle text-success"></i>
+    <span class="fw-semibold">{{ ordenes|selectattr('estado','equalto','completado')|list|length }}</span>
+    <span class="text-muted" style="font-size:.82rem">completadas</span>
+  </div></div>
+</div>
+
+<div class="fc p-3">
+<div class="gantt-wrap">
+  <div class="gantt-grid" id="ganttGrid" style="grid-template-columns:220px 110px 100px 1fr">
+    <!-- Header -->
+    <div class="gantt-header">
+      <div class="gh-label">Producto</div>
+      <div class="gh-label">Cant. producir</div>
+      <div class="gh-label">Estado</div>
+      <div class="gh-label">Línea de tiempo (<span id="spanLabel"></span>)</div>
+    </div>
+    <!-- Rows filled by JS -->
+    <div id="ganttRows"></div>
+  </div>
+</div>
+</div>
+{% endif %}
+
+{% block scripts %}<script>
+var ORDENES = {{ ordenes_json|tojson }};
+
+if(ORDENES.length > 0){
+  // Calcular rango de fechas total
+  var allDates = [];
+  ORDENES.forEach(function(o){
+    allDates.push(new Date(o.inicio));
+    allDates.push(new Date(o.fin));
+  });
+  var minD = new Date(Math.min.apply(null, allDates));
+  var maxD = new Date(Math.max.apply(null, allDates));
+  // Agregar padding de 2 días a cada lado
+  minD.setDate(minD.getDate() - 2);
+  maxD.setDate(maxD.getDate() + 2);
+
+  var totalMs = maxD - minD;
+  var totalDays = Math.ceil(totalMs / 86400000);
+  var today = new Date(); today.setHours(0,0,0,0);
+
+  document.getElementById('spanLabel').textContent = totalDays + ' días';
+
+  function pct(d){
+    return Math.max(0, Math.min(100, (new Date(d) - minD) / totalMs * 100));
+  }
+  function fmtDate(s){
+    var d = new Date(s);
+    return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();
+  }
+  function estadoLabel(s){
+    if(s==='en_produccion') return 'En producción';
+    if(s==='pendiente_materiales') return 'Sin materiales';
+    if(s==='completado') return 'Completado';
+    return s;
+  }
+  function estadoBadge(s){
+    if(s==='en_produccion') return '<span class="badge" style="background:#5e72e4">En producción</span>';
+    if(s==='pendiente_materiales') return '<span class="badge" style="background:#fb6340">Sin materiales</span>';
+    if(s==='completado') return '<span class="badge" style="background:#2dce89">Completado</span>';
+    return '<span class="badge bg-secondary">'+s+'</span>';
+  }
+
+  // Today marker position
+  var todayPct = pct(today);
+
+  // Build day grid markers (every ~7 days)
+  var markerHtml = '';
+  var step = totalDays <= 30 ? 7 : (totalDays <= 90 ? 14 : 30);
+  for(var di=0; di<=totalDays; di+=step){
+    var mp = di/totalDays*100;
+    var md = new Date(minD); md.setDate(md.getDate()+di);
+    markerHtml += '<div class="day-mark" style="left:'+mp+'%;width:'+(step/totalDays*100)+'%;position:absolute;top:0;bottom:0;border-left:1px dashed #e0e4f0">'
+      + '<span style="position:absolute;top:2px;left:3px;font-size:.6rem;color:#b0b8d1;white-space:nowrap">'
+      + md.getDate()+'/'+(md.getMonth()+1) + '</span></div>';
+  }
+
+  var rowsHtml = '';
+  ORDENES.forEach(function(o){
+    var leftPct  = pct(o.inicio);
+    var rightPct = pct(o.fin);
+    var widthPct = Math.max(1, rightPct - leftPct);
+    var durDias  = Math.round((new Date(o.fin) - new Date(o.inicio)) / 86400000);
+
+    rowsHtml += '<div class="gantt-row">'
+      // Col 1: Producto
+      + '<div class="gc"><div>'
+        + '<div class="fw-semibold" style="color:#1a1f36;font-size:.85rem">'+o.producto+'</div>'
+        + (o.cotizacion ? '<small class="text-muted">Cot #'+o.cotizacion+'</small>' : '')
+        + '</div></div>'
+      // Col 2: Cantidad
+      + '<div class="gc" style="font-weight:600;color:#525f7f">'+o.cantidad+' uds</div>'
+      // Col 3: Estado badge
+      + '<div class="gc">'+estadoBadge(o.estado)+'</div>'
+      // Col 4: Barra Gantt
+      + '<div class="gc timeline"><div style="position:relative;height:40px;background:#f8f9fe;border-radius:8px;overflow:visible">'
+        // Day markers
+        + '<div style="position:absolute;top:0;left:0;right:0;bottom:0;border-radius:8px;overflow:hidden">'+markerHtml+'</div>'
+        // Today line
+        + (todayPct>=0&&todayPct<=100 ? '<div class="today-line" style="left:'+todayPct+'%"></div>' : '')
+        // Bar
+        + '<div class="bar-outer" style="position:absolute;top:7px;left:'+leftPct+'%;width:'+widthPct+'%;height:26px">'
+          + '<div class="bar-fill '+o.estado+'" style="width:100%" title="'+o.producto+': '+fmtDate(o.inicio)+' → '+fmtDate(o.fin)+' ('+durDias+' días)">'
+            + (widthPct > 8 ? durDias+'d' : '')
+          + '</div>'
+        + '</div>'
+      + '</div></div>'
+    + '</div>';
+  });
+
+  document.getElementById('ganttRows').innerHTML = rowsHtml;
 }
 </script>{% endblock %}
 {% endblock %}"""
@@ -5527,6 +5773,37 @@ def orden_completar():
         )
     flash(f'Producción completada. {orden.cantidad_producir:.0f} unidades agregadas al inventario.','success')
     return redirect(url_for('ordenes_produccion'))
+
+@app.route('/produccion/gantt')
+@login_required
+@requiere_modulo('produccion')
+def gantt():
+    from datetime import timedelta
+    # Incluye todas las órdenes (activas + completadas recientes)
+    ordenes = OrdenProduccion.query.order_by(OrdenProduccion.creado_en).all()
+
+    ordenes_json = []
+    for o in ordenes:
+        inicio = o.creado_en.date()
+        # Fecha estimada de fin: cotizacion.fecha_entrega_est si existe, sino 30 días
+        if o.cotizacion and o.cotizacion.fecha_entrega_est:
+            fin = o.cotizacion.fecha_entrega_est
+        elif o.completado_en:
+            fin = o.completado_en.date()
+        else:
+            fin = inicio + timedelta(days=30)
+
+        ordenes_json.append({
+            'id':       o.id,
+            'producto': o.producto.nombre,
+            'cantidad': int(o.cantidad_producir),
+            'estado':   o.estado,
+            'cotizacion': o.cotizacion.numero or str(o.cotizacion_id) if o.cotizacion else None,
+            'inicio':   inicio.strftime('%Y-%m-%d'),
+            'fin':      fin.strftime('%Y-%m-%d'),
+        })
+
+    return render_template('produccion/gantt.html', ordenes=ordenes, ordenes_json=ordenes_json)
 
 # =============================================================
 # ADMIN — EDITAR USUARIO
