@@ -10,7 +10,7 @@
 {% if items %}<div class="table-responsive"><table class="table">
   <thead><tr><th>N°</th><th>Proveedor</th><th>Cotización</th><th>Estado</th><th>Emisión</th><th>Entrega esp.</th><th>Est. pago</th><th>Transportista</th><th>Total</th><th></th></tr></thead>
   <tbody>{% for oc in items %}<tr>
-    <td class="fw-semibold" style="color:#1a1f36">{{ oc.numero or '—' }}</td>
+    <td class="fw-semibold" style="color:var(--text)">{{ oc.numero or '—' }}</td>
     <td>{{ oc.proveedor.empresa or oc.proveedor.nombre if oc.proveedor else '—' }}</td>
     <td>{% if oc.cotizacion_ref %}<small class="text-muted">{{ oc.cotizacion_ref.numero }}</small>{% else %}—{% endif %}</td>
     <td>

@@ -12,8 +12,8 @@
 {% if items %}<div class="table-responsive"><table class="table">
   <thead><tr><th>Número</th><th>Título</th><th>Cliente</th><th>Total</th><th>Estado</th><th>Fecha</th><th></th></tr></thead>
   <tbody>{% for c in items %}<tr>
-    <td><a href="{{ url_for('cotizacion_ver', id=c.id) }}" class="fw-semibold text-decoration-none" style="color:#5e72e4">{{ c.numero or '—' }}</a></td>
-    <td style="color:#1a1f36">{{ c.titulo }}</td>
+    <td><a href="{{ url_for('cotizacion_ver', id=c.id) }}" class="fw-semibold text-decoration-none" style="color:var(--ac)">{{ c.numero or '—' }}</a></td>
+    <td style="color:var(--text)">{{ c.titulo }}</td>
     <td><small class="text-muted">{{ c.cliente.empresa or c.cliente.nombre if c.cliente else '—' }}</small></td>
     <td class="fw-semibold">$ {{ '{:,.0f}'.format(c.total).replace(',','.') }}</td>
     <td><span class="b b-{% if c.estado=='borrador' %}media{% elif c.estado=='enviada' %}info{% elif c.estado=='aprobada' %}activo{% elif c.estado=='confirmacion_orden' %}alta{% else %}inactivo{% endif %}">

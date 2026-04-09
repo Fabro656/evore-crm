@@ -13,7 +13,7 @@
 {% if items %}<div class="table-responsive"><table class="table">
   <thead><tr><th>Ítem</th><th>Proveedor</th><th>Fecha</th><th># Factura</th><th>Cto. Producto</th><th>Impuestos</th><th>Transporte</th><th>Total</th><th>Cant.</th><th>P. Unitario</th><th>Producto vinculado</th><th></th></tr></thead>
   <tbody>{% for c in items %}<tr>
-    <td class="fw-semibold" style="color:#1a1f36">{{ c.nombre_item }}</td>
+    <td class="fw-semibold" style="color:var(--text)">{{ c.nombre_item }}</td>
     <td>{{ c.proveedor or '—' }}</td>
     <td><small>{{ c.fecha.strftime('%d/%m/%Y') }}</small></td>
     <td><small class="text-muted">{{ c.nro_factura or '—' }}</small></td>

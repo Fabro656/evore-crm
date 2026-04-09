@@ -39,7 +39,7 @@
         <td>
           <span class="b b-{{ oc.estado or 'pendiente' }}">{{ (oc.estado or 'pendiente').replace('_',' ').title() }}</span>
         </td>
-        <td style="font-size:.82rem;color:#6B778C">{{ oc.fecha_entrega.strftime('%d/%m/%Y') if oc.fecha_entrega else '—' }}</td>
+        <td style="font-size:.82rem;color:var(--text2)">{{ oc.fecha_entrega.strftime('%d/%m/%Y') if oc.fecha_entrega else '—' }}</td>
         <td>
           {% if oc.estado in ['pendiente','enviada'] %}
           <form method="POST" action="{{ url_for('portal_prov_confirmar_oc', id=oc.id) }}" style="display:inline">

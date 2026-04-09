@@ -16,10 +16,10 @@
     <td><div class="d-flex align-items-center gap-2">
       <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
            style="width:30px;height:30px;flex-shrink:0;font-size:.8rem;
-           background:{% if u.rol=='admin' %}#DE350B{% elif u.rol=='cliente' %}#00875A{% elif u.rol=='proveedor' %}#5243AA{% elif u.rol=='sales_manager' %}#FF8B00{% else %}#0052CC{% endif %}">
+           background:{% if u.rol=='admin' %}#DE350B{% elif u.rol=='cliente' %}#00875A{% elif u.rol=='proveedor' %}#5243AA{% elif u.rol=='sales_manager' %}#FF8B00{% else %}var(--ac){% endif %}">
         {{ u.nombre[0].upper() }}</div>
       <div>
-        <div class="fw-semibold" style="color:#1a1f36;font-size:.88rem">{{ u.nombre }}</div>
+        <div class="fw-semibold" style="color:var(--text);font-size:.88rem">{{ u.nombre }}</div>
         <div class="text-muted" style="font-size:.75rem">{{ u.email }}</div>
       </div>
     </div></td>

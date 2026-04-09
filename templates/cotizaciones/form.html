@@ -25,7 +25,7 @@
           <div class="col-md-5"><input type="text" name="item_nombre[]" class="form-control form-control-sm" placeholder="Nombre del ítem" value="{{ it.nombre_prod }}" required></div>
           <div class="col-md-2"><input type="number" name="item_cantidad[]" class="form-control form-control-sm item-cant" placeholder="Cant." step="0.01" min="0" value="{{ it.cantidad }}" oninput="calcRow(this)"></div>
           <div class="col-md-3"><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="Precio unit." step="1" min="0" value="{{ it.precio_unit|int }}" oninput="calcRow(this)"></div></div>
-          <div class="col-md-1 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:#5e72e4">$ {{ '{:,.0f}'.format(it.subtotal).replace(',','.') }}</span></div>
+          <div class="col-md-1 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:var(--ac)">$ {{ '{:,.0f}'.format(it.subtotal).replace(',','.') }}</span></div>
           <div class="col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.item-row').remove();calcTotal()"><i class="bi bi-trash"></i></button></div>
         </div>{% endfor %}
       {% else %}
@@ -33,7 +33,7 @@
           <div class="col-md-5"><input type="text" name="item_nombre[]" class="form-control form-control-sm" placeholder="Nombre del ítem o servicio" required></div>
           <div class="col-md-2"><input type="number" name="item_cantidad[]" class="form-control form-control-sm item-cant" placeholder="1" step="0.01" min="0" value="1" oninput="calcRow(this)"></div>
           <div class="col-md-3"><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0" step="1" min="0" value="0" oninput="calcRow(this)"></div></div>
-          <div class="col-md-1 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:#5e72e4">$ 0</span></div>
+          <div class="col-md-1 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:var(--ac)">$ 0</span></div>
           <div class="col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.item-row').remove();calcTotal()"><i class="bi bi-trash"></i></button></div>
         </div>
       {% endif %}
@@ -51,7 +51,7 @@
         <span id="lblIva" class="fw-semibold">$ 0</span>
       </div>
     </div>
-    <div class="d-flex justify-content-between mb-1"><span class="fw-bold">Total:</span><span id="lblTotal" class="fw-bold" style="color:#5e72e4;font-size:1.1rem">$ 0</span></div>
+    <div class="d-flex justify-content-between mb-1"><span class="fw-bold">Total:</span><span id="lblTotal" class="fw-bold" style="color:var(--ac);font-size:1.1rem">$ 0</span></div>
     <div class="d-flex justify-content-between text-muted"><span>Anticipo (<span id="lblPct">50</span>%):</span><span id="lblAnticipo">$ 0</span></div>
     <div class="d-flex justify-content-between text-muted"><span>Saldo:</span><span id="lblSaldo">$ 0</span></div>
   </div>
@@ -100,7 +100,7 @@ function addRow(){
   div.innerHTML='<div class="col-md-5"><input type="text" name="item_nombre[]" class="form-control form-control-sm" placeholder="Nombre del ítem o servicio" required></div>'
     +'<div class="col-md-2"><input type="number" name="item_cantidad[]" class="form-control form-control-sm item-cant" placeholder="1" step="0.01" min="0" value="1" oninput="calcRow(this)"></div>'
     +'<div class="col-md-3"><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0" step="1" min="0" value="0" oninput="calcRow(this)"></div></div>'
-    +'<div class="col-md-1 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:#5e72e4">$ 0</span></div>'
+    +'<div class="col-md-1 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:var(--ac)">$ 0</span></div>'
     +'<div class="col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest(\'.item-row\').remove();calcTotal()"><i class="bi bi-trash"></i></button></div>';
   wrap.appendChild(div);
 }

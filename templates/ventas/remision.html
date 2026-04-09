@@ -134,7 +134,7 @@ table.items-table tr:nth-child(even) td{background:#F4F5F7}
       </div>
       <button type="submit">Calcular</button>
     </form>
-    <div style="margin-top:8px;font-size:9pt;color:#6B778C">
+    <div style="margin-top:8px;font-size:9pt;color:var(--text2)">
       Total de unidades en este pedido: <strong>{{ total_unidades }}</strong>
     </div>
   </div>
@@ -146,7 +146,7 @@ table.items-table tr:nth-child(even) td{background:#F4F5F7}
     <div style="display:flex;gap:28px;flex-wrap:wrap;margin-top:8px">
       <div>
         <div class="box-label">Total unidades</div>
-        <div class="box-value" style="color:#172B4D">{{ cajas_info.total_unidades }}</div>
+        <div class="box-value" style="color:var(--text)">{{ cajas_info.total_unidades }}</div>
       </div>
       <div>
         <div class="box-label">Cajas completas</div>

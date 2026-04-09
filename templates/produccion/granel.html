@@ -13,7 +13,7 @@
 {% if items %}<div class="table-responsive"><table class="table">
   <thead><tr><th>Producto</th><th>SKU</th><th>NSO (INVIMA)</th><th>Proveedor</th><th>P. Unitario</th><th>Mín. unidades</th><th>Vigencia</th><th>Estado</th><th>Producto inv.</th><th></th></tr></thead>
   <tbody>{% for g in items %}<tr>
-    <td class="fw-semibold" style="color:#1a1f36">{{ g.nombre_producto }}</td>
+    <td class="fw-semibold" style="color:var(--text)">{{ g.nombre_producto }}</td>
     <td><small class="text-muted">{{ g.sku or '—' }}</small></td>
     <td><small class="text-muted">{{ g.nso or '—' }}</small></td>
     <td>{{ g.proveedor or '—' }}</td>

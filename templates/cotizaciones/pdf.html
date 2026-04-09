@@ -86,7 +86,7 @@ tr:nth-child(even) td{background:#f8f9fe}
     <span><strong>Anticipo requerido ({{ obj.porcentaje_anticipo|int }}%)</strong></span>
     <span><strong>$ {{ '{:,.0f}'.format(obj.monto_anticipo).replace(',','.') }}</strong></span>
   </div>
-  <div style="text-align:right;font-size:10pt;color:#525f7f;margin-top:6px">Saldo: $ {{ '{:,.0f}'.format(obj.saldo).replace(',','.') }}</div>
+  <div style="text-align:right;font-size:10pt;color:var(--text2);margin-top:6px">Saldo: $ {{ '{:,.0f}'.format(obj.saldo).replace(',','.') }}</div>
 </div>
 {% if obj.condiciones_pago or obj.notas %}
 <div class="footer-notes">

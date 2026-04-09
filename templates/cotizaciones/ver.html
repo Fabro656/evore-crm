@@ -27,7 +27,7 @@
     <div class="tc h-100"><div class="ch">Resumen financiero</div><div class="p-3">
       <div class="d-flex justify-content-between mb-2"><span class="text-muted">Subtotal</span><span class="fw-semibold">$ {{ '{:,.0f}'.format(obj.subtotal).replace(',','.') }}</span></div>
       <div class="d-flex justify-content-between mb-2"><span class="text-muted">IVA</span><span class="fw-semibold">$ {{ '{:,.0f}'.format(obj.iva).replace(',','.') }}</span></div>
-      <div class="d-flex justify-content-between mb-2 pb-2" style="border-bottom:2px solid #5e72e4"><span class="fw-bold">Total</span><span class="fw-bold" style="color:#5e72e4;font-size:1.15rem">$ {{ '{:,.0f}'.format(obj.total).replace(',','.') }}</span></div>
+      <div class="d-flex justify-content-between mb-2 pb-2" style="border-bottom:2px solid var(--ac)"><span class="fw-bold">Total</span><span class="fw-bold" style="color:var(--ac);font-size:1.15rem">$ {{ '{:,.0f}'.format(obj.total).replace(',','.') }}</span></div>
       <div class="d-flex justify-content-between mb-1"><span class="text-muted">Anticipo ({{ obj.porcentaje_anticipo|int }}%)</span><span>$ {{ '{:,.0f}'.format(obj.monto_anticipo).replace(',','.') }}</span></div>
       <div class="d-flex justify-content-between"><span class="text-muted">Saldo</span><span>$ {{ '{:,.0f}'.format(obj.saldo).replace(',','.') }}</span></div>
     </div></div>

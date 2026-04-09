@@ -89,8 +89,8 @@ table.items tbody tr:hover{background:#fafbff}
     </div>
   </div>
   <div style="margin-bottom:16px">
-    <div style="font-size:15px;font-weight:700;color:#1a1f36;margin-bottom:4px">{{ obj.titulo }}</div>
-    {% if obj.dias_entrega %}<div style="font-size:11px;color:#525f7f">Entrega estimada: {{ obj.dias_entrega }} días{% if obj.fecha_entrega_est %} ({{ obj.fecha_entrega_est.strftime('%d/%m/%Y') }}){% endif %}</div>{% endif %}
+    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px">{{ obj.titulo }}</div>
+    {% if obj.dias_entrega %}<div style="font-size:11px;color:var(--text2)">Entrega estimada: {{ obj.dias_entrega }} días{% if obj.fecha_entrega_est %} ({{ obj.fecha_entrega_est.strftime('%d/%m/%Y') }}){% endif %}</div>{% endif %}
   </div>
   <table class="items">
     <thead><tr><th>#</th><th>Producto / Descripción</th><th>Cant.</th><th>P. Unitario</th><th>Subtotal</th></tr></thead>

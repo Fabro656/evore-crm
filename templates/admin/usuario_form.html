@@ -63,7 +63,7 @@
       {% set modulos_map = [('clientes','Clientes','people-fill'),('ventas','Ventas','graph-up-arrow'),('cotizaciones','Cotizaciones','file-earmark-text-fill'),('tareas','Tareas','check2-square'),('calendario','Calendario','calendar3'),('notas','Notas','sticky-fill'),('inventario','Inventario','box-seam-fill'),('produccion','Producción','gear-fill'),('gastos','Gastos','receipt'),('reportes','Reportes','bar-chart-fill'),('proveedores','Proveedores','truck'),('ordenes_compra','Órdenes de Compra','cart-check'),('legal','Legal','shield-check'),('finanzas','Finanzas','calculator'),('cotizaciones_proveedor','Cot. Proveedor','file-earmark-check'),('comercial','Comercial','briefcase-fill'),('config','Configuración','gear')] %}
       {% for key,label,icon in modulos_map %}
       <div class="col-md-3 col-6">
-        <div class="form-check p-2 border rounded" style="background:#f8f9fe">
+        <div class="form-check p-2 border rounded" style="background:var(--surface2)">
           <input class="form-check-input mod-check" type="checkbox" name="modulos" value="{{ key }}" id="mod_{{ key }}"
             {% if obj and key in (obj.modulos_permitidos or '[]') %}checked
             {% elif not obj %}checked{% endif %}>

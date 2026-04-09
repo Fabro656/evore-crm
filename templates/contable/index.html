@@ -10,22 +10,22 @@
 {# ── Fila 1: indicadores principales ─────────────────── #}
 <div class="row g-3 mb-3">
   <div class="col-6 col-md-3"><div class="fc text-center py-3">
-    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Ingresos del mes</div>
+    <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Ingresos del mes</div>
     <div class="fw-bold mt-1" style="font-size:1.35rem;color:#2dce89">$ {{ '{:,.0f}'.format(total_ingresos).replace(',','.') }}</div>
     <small class="text-muted">{{ ventas_mes|length }} venta(s)</small>
   </div></div>
   <div class="col-6 col-md-3"><div class="fc text-center py-3">
-    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Egresos del mes</div>
+    <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Egresos del mes</div>
     <div class="fw-bold mt-1" style="font-size:1.35rem;color:#f5365c">$ {{ '{:,.0f}'.format(total_egresos).replace(',','.') }}</div>
     <small class="text-muted">Gastos + compras</small>
   </div></div>
   <div class="col-6 col-md-3"><div class="fc text-center py-3">
-    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Utilidad bruta</div>
+    <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Utilidad bruta</div>
     <div class="fw-bold mt-1" style="font-size:1.35rem;color:{{ '#2dce89' if utilidad >= 0 else '#f5365c' }}">$ {{ '{:,.0f}'.format(utilidad).replace(',','.') }}</div>
     <small class="text-muted">Ingresos − Egresos</small>
   </div></div>
   <div class="col-6 col-md-3"><div class="fc text-center py-3">
-    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Impuestos estimados</div>
+    <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Impuestos estimados</div>
     <div class="fw-bold mt-1" style="font-size:1.35rem;color:#e83e8c">$ {{ '{:,.0f}'.format(total_impuestos).replace(',','.') }}</div>
     <small class="text-muted">{{ detalle_impuestos|length }} regla(s) activa(s)</small>
   </div></div>
@@ -33,21 +33,21 @@
 {# ── Fila 2: utilidad neta + otros ─────────────────────── #}
 <div class="row g-3 mb-3">
   <div class="col-6 col-md-3"><div class="fc text-center py-3" style="border:2px solid {{ '#2dce89' if utilidad_neta >= 0 else '#f5365c' }}">
-    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Utilidad neta</div>
+    <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Utilidad neta</div>
     <div class="fw-bold mt-1" style="font-size:1.45rem;color:{{ '#2dce89' if utilidad_neta >= 0 else '#f5365c' }}">$ {{ '{:,.0f}'.format(utilidad_neta).replace(',','.') }}</div>
     <small class="text-muted">Utilidad − Impuestos</small>
   </div></div>
   <div class="col-6 col-md-3"><div class="fc text-center py-3">
-    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Cuentas por cobrar</div>
+    <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Cuentas por cobrar</div>
     <div class="fw-bold mt-1" style="font-size:1.2rem;color:#fb6340">$ {{ '{:,.0f}'.format(total_cxc).replace(',','.') }}</div>
     <small class="text-muted">{{ cxc|length }} venta(s) pendientes</small>
   </div></div>
   <div class="col-6 col-md-3"><div class="fc text-center py-3">
-    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Inventario valorizado</div>
-    <div class="fw-bold mt-1" style="font-size:1.2rem;color:#5e72e4">$ {{ '{:,.0f}'.format(inventario_valor).replace(',','.') }}</div>
+    <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Inventario valorizado</div>
+    <div class="fw-bold mt-1" style="font-size:1.2rem;color:var(--ac)">$ {{ '{:,.0f}'.format(inventario_valor).replace(',','.') }}</div>
   </div></div>
   <div class="col-6 col-md-3"><div class="fc text-center py-3">
-    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Anticipo cobrado</div>
+    <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Anticipo cobrado</div>
     <div class="fw-bold mt-1" style="font-size:1.2rem;color:#11cdef">$ {{ '{:,.0f}'.format(total_anticipo).replace(',','.') }}</div>
   </div></div>
 </div>

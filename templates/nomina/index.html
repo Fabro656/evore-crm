@@ -68,7 +68,7 @@
           <td><strong>{{ e.nombre }} {{ e.apellido }}</strong></td>
           <td>{{ e.cedula or '—' }}</td>
           <td>{{ e.cargo or '—' }}</td>
-          <td><span class="b" style="background:{% if e.tipo_contrato=='indefinido' %}#0052CC{% elif e.tipo_contrato=='fijo' %}#00875A{% elif e.tipo_contrato=='obra_labor' %}#FF8B00{% else %}#6D42C8{% endif %}">{{ e.tipo_contrato }}</span></td>
+          <td><span class="b" style="background:{% if e.tipo_contrato=='indefinido' %}var(--ac){% elif e.tipo_contrato=='fijo' %}#00875A{% elif e.tipo_contrato=='obra_labor' %}#FF8B00{% else %}#6D42C8{% endif %}">{{ e.tipo_contrato }}</span></td>
           <td>{{ e.salario_base|cop }}</td>
           <td>{% set n=e %}{# set e to dict using helper #}{{ (e.salario_base|cop) }}</td>
           <td>{{ e.fecha_ingreso.strftime('%d/%m/%Y') if e.fecha_ingreso else '—' }}</td>

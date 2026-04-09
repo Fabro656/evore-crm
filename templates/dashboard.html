@@ -26,8 +26,8 @@
 {% else %}
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem;flex-wrap:wrap;gap:.5rem">
   <div>
-    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Resumen acumulado</div>
-    <div style="font-size:1.05rem;font-weight:700;color:#1a1f36">Hola, {{ current_user.nombre }}</div>
+    <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Resumen acumulado</div>
+    <div style="font-size:1.05rem;font-weight:700;color:var(--text)">Hola, {{ current_user.nombre }}</div>
   </div>
   <small class="text-muted" id="tasaInfo2"></small>
 </div>
@@ -45,12 +45,12 @@
 {# ── Fila 1: métricas operativas ───────────────────── #}
 <div class="row g-3 mb-3 dash-stats">
   <div class="col-6 col-lg-3">
-    <div class="sc sc-accent" style="border-top-color:#5e72e4">
+    <div class="sc sc-accent" style="border-top-color:var(--ac)">
       <div class="d-flex justify-content-between align-items-start">
         <div><div class="sv">{{ total_clientes }}</div><div class="sl">Clientes activos</div></div>
-        <div class="si" style="background:#e8eeff"><i class="bi bi-people-fill" style="color:#5e72e4"></i></div>
+        <div class="si" style="background:#e8eeff"><i class="bi bi-people-fill" style="color:var(--ac)"></i></div>
       </div>
-      <div class="mt-2"><a href="{{ url_for('clientes') }}" style="font-size:.75rem;color:#5e72e4;text-decoration:none">Ver clientes →</a></div>
+      <div class="mt-2"><a href="{{ url_for('clientes') }}" style="font-size:.75rem;color:var(--ac);text-decoration:none">Ver clientes →</a></div>
     </div>
   </div>
   <div class="col-6 col-lg-3">
@@ -121,13 +121,13 @@
         <div>
           <div class="sv valor-cop" data-cop="{{ saldo_neto }}" style="color:{{ '#2dce89' if saldo_neto >= 0 else '#f5365c' }}">$ {{ '{:,.0f}'.format(saldo_neto).replace(',','.') }}</div>
           <div class="sl" style="font-weight:700">Saldo neto real</div>
-          <div style="font-size:.7rem;color:#8898aa;margin-top:2px">Ingresos − gastos − impuestos</div>
+          <div style="font-size:.7rem;color:var(--text2);margin-top:2px">Ingresos − gastos − impuestos</div>
         </div>
         <div class="si" style="background:{{ '#e8fff3' if saldo_neto >= 0 else '#ffeaea' }}">
           <i class="bi bi-cash-stack" style="color:{{ '#2dce89' if saldo_neto >= 0 else '#f5365c' }}"></i>
         </div>
       </div>
-      <div class="mt-2"><a href="{{ url_for('contable_index') }}" style="font-size:.73rem;color:#5e72e4;text-decoration:none">Ver desglose →</a></div>
+      <div class="mt-2"><a href="{{ url_for('contable_index') }}" style="font-size:.73rem;color:var(--ac);text-decoration:none">Ver desglose →</a></div>
     </div>
   </div>
 </div>
@@ -154,7 +154,7 @@
       <table class="table">
         <tbody>{% for t in tareas_recientes %}<tr>
           <td>
-            <a href="{{ url_for('tarea_ver', id=t.id) }}" class="fw-semibold text-decoration-none" style="color:#1a1f36;font-size:.88rem">{{ t.titulo }}</a>
+            <a href="{{ url_for('tarea_ver', id=t.id) }}" class="fw-semibold text-decoration-none" style="color:var(--text);font-size:.88rem">{{ t.titulo }}</a>
             {% if t.asignado_user %}<div><small class="text-muted"><i class="bi bi-person me-1"></i>{{ t.asignado_user.nombre }}</small></div>{% endif %}
           </td>
           <td style="white-space:nowrap"><span class="b b-{{ t.prioridad }}">{{ t.prioridad.title() }}</span></td>
@@ -182,7 +182,7 @@
       <table class="table">
         <tbody>{% for v in ventas_recientes %}<tr>
           <td>
-            <div class="fw-semibold" style="color:#1a1f36;font-size:.88rem">{{ v.titulo }}</div>
+            <div class="fw-semibold" style="color:var(--text);font-size:.88rem">{{ v.titulo }}</div>
             <small class="text-muted">{{ v.cliente.empresa or v.cliente.nombre if v.cliente else '—' }}</small>
           </td>
           <td class="hide-mobile fw-semibold valor-cop" data-cop="{{ v.total }}" style="white-space:nowrap">$ {{ '{:,.0f}'.format(v.total).replace(',','.') }}</td>

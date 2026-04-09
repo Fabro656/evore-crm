@@ -31,7 +31,7 @@
   <div class="totales-box mt-3 mb-2"><div class="row g-2 justify-content-end"><div class="col-md-4">
     <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">Subtotal:</span><strong id="lblSub">$ 0</strong></div>
     <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">IVA 19%:</span><strong id="lblIva">$ 0</strong></div>
-    <div class="d-flex justify-content-between py-1"><span class="fw-bold">Total:</span><strong id="lblTot" style="color:#5e72e4;font-size:1.1rem">$ 0</strong></div>
+    <div class="d-flex justify-content-between py-1"><span class="fw-bold">Total:</span><strong id="lblTot" style="color:var(--ac);font-size:1.1rem">$ 0</strong></div>
   </div></div></div>
 </div>
 
@@ -54,13 +54,13 @@
     </div>
     <div class="col-md-3">
       <label class="form-label">Monto anticipo COP</label>
-      <input type="text" id="montoAVis" class="form-control" readonly style="background:#f8f9fe" placeholder="Se calcula solo">
+      <input type="text" id="montoAVis" class="form-control" readonly style="background:var(--surface2)" placeholder="Se calcula solo">
       <input type="hidden" name="monto_anticipo" id="montoAHid">
       <div class="form-text">Se calcula automáticamente.</div>
     </div>
     <div class="col-md-3">
       <label class="form-label">Saldo a pagar</label>
-      <input type="text" id="saldoVis" class="form-control" readonly style="background:#f8f9fe" placeholder="Se calcula solo">
+      <input type="text" id="saldoVis" class="form-control" readonly style="background:var(--surface2)" placeholder="Se calcula solo">
       <input type="hidden" name="saldo" id="saldoHid">
     </div>
     <div class="col-md-4">
@@ -79,7 +79,7 @@
     </div>
     <div class="col-md-4">
       <label class="form-label">Entrega estimada</label>
-      <input type="text" id="entVis" class="form-control" readonly style="background:#f8f9fe" placeholder="Se calcula sola">
+      <input type="text" id="entVis" class="form-control" readonly style="background:var(--surface2)" placeholder="Se calcula sola">
       <input type="hidden" name="fecha_entrega_est" id="entHid" value="{{ obj.fecha_entrega_est.strftime('%Y-%m-%d') if obj and obj.fecha_entrega_est else '' }}">
       <div class="form-text">Fecha anticipo + días producción.</div>
     </div>
@@ -123,7 +123,7 @@ function addProd(pid='',cant=1,precio=0){
       <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Precio unit. COP sin IVA</label>
         <input type="number" name="prod_precio[]" id="pp${idx}" class="form-control form-control-sm" min="0" step="1" value="${precio}" oninput="calcRow(${idx})"></div>
       <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Subtotal</label>
-        <input type="text" id="ps${idx}" class="form-control form-control-sm" readonly style="background:#f8f9fe"></div>
+        <input type="text" id="ps${idx}" class="form-control form-control-sm" readonly style="background:var(--surface2)"></div>
       <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem"> </label>
         <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="document.getElementById('pr${idx}').remove();calcTot()"><i class="bi bi-trash"></i></button></div>
     </div></div>`);

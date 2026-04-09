@@ -40,7 +40,7 @@
 <!-- Leyenda -->
 <div class="d-flex gap-4 mb-3 flex-wrap align-items-center">
   <span style="font-size:.82rem"><span class="legend-dot" style="background:linear-gradient(90deg,#fb6340,#f5365c)"></span>Entrega materiales (OC)</span>
-  <span style="font-size:.82rem"><span class="legend-dot" style="background:linear-gradient(90deg,#5e72e4,#825ee4)"></span>Producción en curso</span>
+  <span style="font-size:.82rem"><span class="legend-dot" style="background:linear-gradient(90deg,var(--ac),#825ee4)"></span>Producción en curso</span>
   <span style="font-size:.82rem"><span class="legend-dot" style="background:linear-gradient(90deg,#2dce89,#26b07b)"></span>Producción completada</span>
   <span style="font-size:.82rem"><span class="legend-dot" style="background:#f5365c"></span>Línea de hoy</span>
 </div>
@@ -100,7 +100,7 @@ if(PEDIDOS.length > 0){
   function fmtD(s){ var d=new Date(s); return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear(); }
 
   function estadoBadge(s){
-    if(s==='en_produccion') return '<span class="badge" style="background:#5e72e4;font-size:.7rem">En producción</span>';
+    if(s==='en_produccion') return '<span class="badge" style="background:var(--ac);font-size:.7rem">En producción</span>';
     if(s==='pendiente_materiales') return '<span class="badge" style="background:#fb6340;font-size:.7rem">Sin materiales</span>';
     if(s==='completado') return '<span class="badge" style="background:#2dce89;font-size:.7rem">Completado</span>';
     return '<span class="badge bg-secondary" style="font-size:.7rem">'+s+'</span>';
@@ -123,7 +123,7 @@ if(PEDIDOS.length > 0){
     // Section header (pedido)
     rowsHtml+='<div class="gantt-section-hdr'+(p.venta_id?'':' no-venta')+'">'
       +'<i class="bi bi-bag'+(p.venta_id?'-fill':'')+'"></i>'
-      +(p.venta_numero?'<span style="color:#5e72e4">'+p.venta_numero+'</span>':'')
+      +(p.venta_numero?'<span style="color:var(--ac)">'+p.venta_numero+'</span>':'')
       +'<span>'+(p.titulo||'Sin pedido asociado')+'</span>'
       +(p.cliente?'<small class="text-muted ms-auto">'+p.cliente+'</small>':'')
       +(p.fecha_entrega?'<small class="badge bg-warning text-dark ms-1">Entrega: '+p.fecha_entrega+'</small>':'')
@@ -142,10 +142,10 @@ if(PEDIDOS.length > 0){
 
       rowsHtml+='<div class="gantt-row">'
         +'<div class="gc"><div>'
-          +'<div class="fw-semibold" style="color:#1a1f36;font-size:.83rem">'+o.producto+'</div>'
+          +'<div class="fw-semibold" style="color:var(--text);font-size:.83rem">'+o.producto+'</div>'
           +(o.lote?'<small class="text-muted">Lote: '+o.lote+'</small>':'')
         +'</div></div>'
-        +'<div class="gc" style="font-weight:600;color:#525f7f">'+o.cantidad+' uds</div>'
+        +'<div class="gc" style="font-weight:600;color:var(--text2)">'+o.cantidad+' uds</div>'
         +'<div class="gc">'+estadoBadge(o.estado)+'</div>'
         +'<div class="gc timeline"><div class="bar-wrap">'
           +'<div class="bar-track">'+markerHtml+'</div>'

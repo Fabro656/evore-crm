@@ -13,7 +13,7 @@
 {% block content %}
 <div class="row g-3 mb-4">
   <div class="col-md-3"><div class="sc">
-    <div class="sv" style="color:#5e72e4">{{ total_clientes }}</div>
+    <div class="sv" style="color:var(--ac)">{{ total_clientes }}</div>
     <div class="sl">Clientes activos</div></div></div>
   <div class="col-md-3"><div class="sc">
     <div class="sv valor-cop" data-cop="{{ ingresos_totales }}">$ {{ '{:,.0f}'.format(ingresos_totales).replace(',','.') }}</div>
@@ -43,7 +43,7 @@
       <span><i class="bi bi-trophy me-2 text-warning"></i>Top 5 clientes por ventas</span></div>
       <table class="table"><tbody>
       {% for c in top_clientes %}
-      <tr><td><a href="{{ url_for('cliente_ver', id=c.id) }}" class="fw-semibold text-decoration-none" style="color:#1a1f36">{{ c.empresa or c.nombre }}</a></td>
+      <tr><td><a href="{{ url_for('cliente_ver', id=c.id) }}" class="fw-semibold text-decoration-none" style="color:var(--text)">{{ c.empresa or c.nombre }}</a></td>
         <td class="text-end fw-semibold">$ {{ '{:,.0f}'.format(c.total_ventas or 0).replace(',','.') }}</td></tr>
       {% else %}<tr><td colspan="2" class="text-muted text-center">Sin datos</td></tr>{% endfor %}
       </tbody></table>

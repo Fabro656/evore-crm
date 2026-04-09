@@ -18,7 +18,7 @@
       <a href="{{ url_for('compras') }}" class="btn btn-sm btn-outline-primary">Ver todas</a></div>
     {% if compras_recientes %}<table class="table"><tbody>
     {% for c in compras_recientes %}<tr>
-      <td><div class="fw-semibold" style="font-size:.88rem;color:#1a1f36">{{ c.nombre_item }}</div>
+      <td><div class="fw-semibold" style="font-size:.88rem;color:var(--text)">{{ c.nombre_item }}</div>
         <small class="text-muted">{{ c.proveedor or '—' }} · {{ c.fecha.strftime('%d/%m/%Y') }}</small></td>
       <td class="fw-semibold" style="white-space:nowrap">$ {{ '{:,.0f}'.format(c.costo_total).replace(',','.') }}</td>
     </tr>{% endfor %}</tbody></table>
@@ -31,7 +31,7 @@
       <a href="{{ url_for('granel') }}" class="btn btn-sm btn-outline-success">Ver todas</a></div>
     {% if granel_recientes %}<table class="table"><tbody>
     {% for g in granel_recientes %}<tr>
-      <td><div class="fw-semibold" style="font-size:.88rem;color:#1a1f36">{{ g.nombre_producto }}</div>
+      <td><div class="fw-semibold" style="font-size:.88rem;color:var(--text)">{{ g.nombre_producto }}</div>
         <small class="text-muted">SKU: {{ g.sku or '—' }} · NSO: {{ g.nso or '—' }}</small></td>
       <td><span class="b b-{{ g.estado }}">{{ g.estado.title() }}</span></td>
     </tr>{% endfor %}</tbody></table>

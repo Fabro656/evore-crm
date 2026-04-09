@@ -14,9 +14,9 @@
     <div class="row g-2">
       {% for p in plantillas %}
       <div class="col-md-4">
-        <div class="border rounded p-3 d-flex align-items-center justify-content-between" style="background:#f8f9fe">
+        <div class="border rounded p-3 d-flex align-items-center justify-content-between" style="background:var(--surface2)">
           <div>
-            <div class="fw-semibold" style="color:#1a1f36">{{ p.tipo_custom if p.tipo=='Otro' and p.tipo_custom else p.tipo }}</div>
+            <div class="fw-semibold" style="color:var(--text)">{{ p.tipo_custom if p.tipo=='Otro' and p.tipo_custom else p.tipo }}</div>
             <small class="text-muted">$ {{ '{:,.0f}'.format(p.monto).replace(',','.') }} · mensual</small>
           </div>
           <form method="POST" action="{{ url_for('gasto_plantilla_usar', id=p.id) }}">

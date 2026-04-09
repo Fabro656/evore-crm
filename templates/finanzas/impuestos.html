@@ -12,7 +12,7 @@
 {% if items %}<div class="table-responsive"><table class="table">
   <thead><tr><th>Nombre</th><th>Descripción</th><th>%</th><th>Aplica a</th><th>Estado</th><th></th></tr></thead>
   <tbody>{% for r in items %}<tr>
-    <td class="fw-semibold" style="color:#1a1f36">{{ r.nombre }}</td>
+    <td class="fw-semibold" style="color:var(--text)">{{ r.nombre }}</td>
     <td><small class="text-muted">{{ r.descripcion or '—' }}</small></td>
     <td class="fw-semibold">{{ r.porcentaje }}%</td>
     <td><span class="badge bg-light text-dark border">

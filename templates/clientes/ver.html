@@ -10,7 +10,7 @@
     <div class="fc mb-3">
       <div class="d-flex align-items-center gap-3 mb-3">
         <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
-             style="width:50px;height:50px;background:#5e72e4;font-size:1.2rem;flex-shrink:0">{{ (obj.empresa or obj.nombre)[0].upper() }}</div>
+             style="width:50px;height:50px;background:var(--ac);font-size:1.2rem;flex-shrink:0">{{ (obj.empresa or obj.nombre)[0].upper() }}</div>
         <div><h5 class="mb-1">{{ obj.empresa or obj.nombre }}</h5>
           <span class="b b-{{ obj.estado_relacion }}">{{ obj.estado_relacion.replace('_',' ').title() }}</span></div>
       </div><hr>
@@ -27,7 +27,7 @@
       {% for c in obj.contactos %}
       <div class="d-flex gap-2 mb-3">
         <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
-             style="width:34px;height:34px;background:#8898aa;font-size:.8rem;flex-shrink:0">{{ c.nombre[0].upper() }}</div>
+             style="width:34px;height:34px;background:var(--text2);font-size:.8rem;flex-shrink:0">{{ c.nombre[0].upper() }}</div>
         <div style="font-size:.88rem">
           <div class="fw-semibold">{{ c.nombre }}{% if c.cargo %} <span class="text-muted fw-normal">· {{ c.cargo }}</span>{% endif %}</div>
           {% if c.email %}<div><a href="mailto:{{ c.email }}" class="text-decoration-none">{{ c.email }}</a></div>{% endif %}

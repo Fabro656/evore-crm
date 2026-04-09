@@ -28,12 +28,12 @@
   <tbody>{% for v in items %}<tr>
     <td><span class="text-muted fw-semibold" style="font-size:.78rem">{{ v.numero or '—' }}</span></td>
     <td>
-      <div class="fw-semibold" style="color:#172B4D">{{ v.titulo }}</div>
-      {% if v.cliente %}<div class="d-md-none" style="font-size:.75rem;color:#6B778C">{{ v.cliente.empresa or v.cliente.nombre }}</div>{% endif %}
+      <div class="fw-semibold" style="color:var(--text)">{{ v.titulo }}</div>
+      {% if v.cliente %}<div class="d-md-none" style="font-size:.75rem;color:var(--text2)">{{ v.cliente.empresa or v.cliente.nombre }}</div>{% endif %}
     </td>
-    <td class="hide-mobile">{% if v.cliente %}<a href="{{ url_for('cliente_ver', id=v.cliente.id) }}" class="text-decoration-none" style="color:#0052CC">{{ v.cliente.empresa or v.cliente.nombre }}</a>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+    <td class="hide-mobile">{% if v.cliente %}<a href="{{ url_for('cliente_ver', id=v.cliente.id) }}" class="text-decoration-none" style="color:var(--ac)">{{ v.cliente.empresa or v.cliente.nombre }}</a>{% else %}<span class="text-muted">—</span>{% endif %}</td>
     <td class="hide-mobile fw-semibold">$ {{ '{:,.0f}'.format(v.total).replace(',','.') }}</td>
-    <td class="hide-mobile {{ 'fw-semibold' if v.saldo > 0 else '' }}" style="{{ 'color:#DE350B' if v.saldo > 0 else 'color:#6B778C' }}">$ {{ '{:,.0f}'.format(v.saldo).replace(',','.') }}</td>
+    <td class="hide-mobile {{ 'fw-semibold' if v.saldo > 0 else '' }}" style="{{ 'color:#DE350B' if v.saldo > 0 else 'color:var(--text2)' }}">$ {{ '{:,.0f}'.format(v.saldo).replace(',','.') }}</td>
     <td>
       {# Inline status dropdown #}
       <form method="POST" action="{{ url_for('venta_cambiar_estado', id=v.id) }}" style="display:inline" onchange="this.submit()">

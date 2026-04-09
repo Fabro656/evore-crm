@@ -26,7 +26,7 @@
 {% if items %}<div class="table-responsive"><table class="table">
   <thead><tr><th>Empresa / Nombre</th><th>Tipo</th><th>NIT</th><th>Categoría</th><th>Email</th><th>Teléfono</th><th></th></tr></thead>
   <tbody>{% for p in items %}<tr>
-    <td><span class="fw-semibold" style="color:#1a1f36">{{ p.empresa or p.nombre }}</span>
+    <td><span class="fw-semibold" style="color:var(--text)">{{ p.empresa or p.nombre }}</span>
       {% if p.empresa %}<div><small class="text-muted">{{ p.nombre }}</small></div>{% endif %}</td>
     <td>
       {% if p.tipo == 'transportista' %}<span class="badge bg-success">Transportista</span>

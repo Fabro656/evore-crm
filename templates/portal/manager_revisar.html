@@ -24,9 +24,9 @@
           </tbody>
         </table>
       </div>
-      <div style="padding:.75rem 1.25rem;text-align:right;border-top:1px solid #DFE1E6">
+      <div style="padding:.75rem 1.25rem;text-align:right;border-top:1px solid var(--border)">
         <strong>Total estimado: $ {{ '{:,.0f}'.format(pc.total).replace(',','.') }}</strong>
-        <div style="font-size:.78rem;color:#6B778C">Incluye IVA 19%</div>
+        <div style="font-size:.78rem;color:var(--text2)">Incluye IVA 19%</div>
       </div>
     </div>
     {% if pc.notas_cliente %}
@@ -63,7 +63,7 @@
       <div style="text-align:center;padding:1rem">
         <i class="bi bi-check-circle-fill" style="color:#00875A;font-size:2rem;display:block;margin-bottom:.75rem"></i>
         <h6 class="fw-bold">Cliente aceptó</h6>
-        <p style="font-size:.85rem;color:#42526E">Puedes ahora convertir esto en una cotización o venta formal.</p>
+        <p style="font-size:.85rem;color:var(--text2)">Puedes ahora convertir esto en una cotización o venta formal.</p>
         <a href="{{ url_for('cotizacion_nueva') }}" class="btn btn-primary btn-sm">Crear Cotización formal</a>
       </div>
     </div>

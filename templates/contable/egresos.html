@@ -15,15 +15,15 @@
 
 <div class="row g-3 mb-4">
   <div class="col-md-4"><div class="fc text-center py-2">
-    <div style="font-size:.75rem;color:#8898aa;text-transform:uppercase">Total gastos</div>
+    <div style="font-size:.75rem;color:var(--text2);text-transform:uppercase">Total gastos</div>
     <div class="fw-bold text-danger" style="font-size:1.2rem">$ {{ '{:,.0f}'.format(gastos|sum(attribute='monto')).replace(',','.') }}</div>
   </div></div>
   <div class="col-md-4"><div class="fc text-center py-2">
-    <div style="font-size:.75rem;color:#8898aa;text-transform:uppercase">Total compras</div>
+    <div style="font-size:.75rem;color:var(--text2);text-transform:uppercase">Total compras</div>
     <div class="fw-bold text-danger" style="font-size:1.2rem">$ {{ '{:,.0f}'.format(compras|sum(attribute='costo_total')).replace(',','.') }}</div>
   </div></div>
   <div class="col-md-4"><div class="fc text-center py-2">
-    <div style="font-size:.75rem;color:#8898aa;text-transform:uppercase">Total egresos</div>
+    <div style="font-size:.75rem;color:var(--text2);text-transform:uppercase">Total egresos</div>
     <div class="fw-bold text-danger" style="font-size:1.3rem">$ {{ '{:,.0f}'.format((gastos|sum(attribute='monto'))+(compras|sum(attribute='costo_total'))).replace(',','.') }}</div>
   </div></div>
 </div>

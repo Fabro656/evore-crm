@@ -19,7 +19,7 @@
 <table style="width:100%;border-collapse:collapse;table-layout:fixed">
 <thead><tr>
   {% for dia in ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'] %}
-  <th style="padding:.6rem;text-align:center;font-size:.8rem;color:#8898aa;background:#f8f9fe;font-weight:600;border:1px solid #f0f2ff">{{ dia }}</th>
+  <th style="padding:.6rem;text-align:center;font-size:.8rem;color:var(--text2);background:var(--surface2);font-weight:600;border:1px solid #f0f2ff">{{ dia }}</th>
   {% endfor %}
 </tr></thead>
 <tbody>
@@ -37,10 +37,10 @@
           onclick="document.getElementById('evFecha').value='{{ dk }}';new bootstrap.Modal(document.getElementById('modalEvento')).show()">
         {% if is_today %}
         <div style="margin-bottom:3px">
-          <span style="background:#5e72e4;color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700">{{ day }}</span>
+          <span style="background:var(--ac);color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700">{{ day }}</span>
         </div>
         {% else %}
-        <div style="font-size:.82rem;font-weight:500;margin-bottom:3px;color:#1a1f36">{{ day }}</div>
+        <div style="font-size:.82rem;font-weight:500;margin-bottom:3px;color:var(--text)">{{ day }}</div>
         {% endif %}
         {% for ev in evs[:3] %}
           {% set ev_cls = {'tarea':'ev-tarea','venta':'ev-venta','evento':'ev-evento','nota':'ev-nota','caducidad':'ev-caducidad'}.get(ev.t, 'ev-evento') %}
@@ -53,7 +53,7 @@
                style="font-size:.68rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%;cursor:pointer">{{ ev.n|truncate(24,true,'…') }}</div>
         {% endfor %}
         {% if evs|length > 3 %}
-          <div style="font-size:.65rem;color:#8898aa">+{{ evs|length - 3 }} más</div>
+          <div style="font-size:.65rem;color:var(--text2)">+{{ evs|length - 3 }} más</div>
         {% endif %}
       </td>
     {% endif %}
