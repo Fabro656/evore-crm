@@ -1155,6 +1155,17 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 img,svg{max-width:100%;height:auto}
 .logo-area svg{max-height:40px!important}
 
+/* ── Search overlay result classes ──────────────── */
+.sr-empty{text-align:center;padding:2rem;color:var(--text2);font-size:.85rem}
+.sr-item{display:flex;align-items:center;gap:.75rem;padding:.6rem 1.1rem;text-decoration:none;transition:background .12s;border-radius:0}
+.sr-item:hover{background:var(--surface2)}
+.sr-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.9rem}
+.sr-body{flex:1;min-width:0}
+.sr-label{display:block;font-size:.85rem;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sr-sub{display:block;font-size:.75rem;color:var(--text2)}
+.sr-badge{font-size:.7rem;color:var(--text2);background:var(--surface2);padding:2px 7px;border-radius:10px;flex-shrink:0;white-space:nowrap}
+.sr-footer{padding:.5rem 1.1rem;border-top:1px solid var(--border);text-align:center}
+.sr-footer a{font-size:.78rem;color:var(--ac);text-decoration:none}
 /* ══════════════════════════════════════════════════
    DARK THEME — Modern & Elegant
    ══════════════════════════════════════════════════ */
@@ -1166,13 +1177,20 @@ html[data-theme="dark"]{
   --shadow-md:0 4px 6px rgba(0,0,0,.3), 0 2px 4px rgba(0,0,0,.2);
   --green:#2DA44E;--red:#F85149;--orange:#F0883E;
   --card-shadow:0 1px 3px rgba(0,0,0,.3),0 1px 2px rgba(0,0,0,.2);
+  /* Override Bootstrap 5 CSS vars so its components respect the dark theme */
+  --bs-body-color:#E6EDF3;--bs-body-bg:#0D1117;
+  --bs-table-color:#E6EDF3;--bs-table-bg:transparent;
+  --bs-table-striped-color:#E6EDF3;--bs-table-hover-color:#E6EDF3;
+  --bs-border-color:#30363D;--bs-emphasis-color:#E6EDF3;
+  --bs-secondary-color:#8B949E;--bs-secondary-bg:#1C2333;
+  --bs-tertiary-bg:#161B22;--bs-link-color:#60A5FA;
 }
 html[data-theme="dark"] body{background:var(--bg);color:var(--text);transition:background-color .2s ease,color .2s ease}
 html[data-theme="dark"] .topbar{background:var(--topbar-bg);border-color:var(--topbar-border)}
 html[data-theme="dark"] .tc,html[data-theme="dark"] .fc,html[data-theme="dark"] .sc{background:var(--surface);border-color:var(--border);color:var(--text)}
 html[data-theme="dark"] .table{background:var(--surface);color:var(--text)}
-html[data-theme="dark"] .table th{background:var(--surface2);color:var(--text2);border-color:var(--border)}
-html[data-theme="dark"] .table td{border-color:var(--border);color:var(--text)}
+html[data-theme="dark"] .table th{background:var(--surface2)!important;color:var(--text2)!important;border-color:var(--border)!important}
+html[data-theme="dark"] .table td{border-color:var(--border)!important;color:var(--text)!important}
 html[data-theme="dark"] .table tbody tr:hover{background:var(--surface2)}
 html[data-theme="dark"] .form-control,html[data-theme="dark"] .form-select{background:var(--input-bg);border-color:var(--border);color:var(--text)}
 html[data-theme="dark"] .form-control:focus,html[data-theme="dark"] .form-select:focus{border-color:var(--ac)}
@@ -1452,12 +1470,7 @@ T['base.html'] = """<!DOCTYPE html>
               onclick="toggleTheme()" title="Cambiar tema">
         <i class="bi bi-sun-fill" id="themeIcon" style="font-size:.9rem"></i>
       </button>
-      <button class="btn btn-sm d-none d-md-inline-flex" id="demoToggleBtn"
-        style="background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;border:none;padding:4px 10px;font-size:.78rem;border-radius:6px"
-        onclick="toggleDemoLayout()" title="Cambiar interfaz">
-        <i class="bi bi-stars me-1"></i><span id="demoLabel">Demo</span>
-      </button>
-      <button class="btn btn-sm d-none d-md-inline-flex" style="background:none;border:1px solid var(--border);color:var(--text2);padding:4px 10px;font-size:.78rem" onclick="new bootstrap.Modal(document.getElementById('modalOnboarding')).show();goStep(0);" title="Ver tutorial">
+<button class="btn btn-sm d-none d-md-inline-flex" style="background:none;border:1px solid var(--border);color:var(--text2);padding:4px 10px;font-size:.78rem" onclick="new bootstrap.Modal(document.getElementById('modalOnboarding')).show();goStep(0);" title="Ver tutorial">
         <i class="bi bi-question-circle me-1"></i>Ayuda
       </button>
       <div class="dropdown">
@@ -1606,16 +1619,18 @@ function doBuscar(q){
       .then(function(data){
         var html='';
         if(!data.results||data.results.length===0){
-          html='<div style="text-align:center;padding:2rem;color:var(--text2);font-size:.85rem"><i class="bi bi-emoji-frown" style="font-size:1.3rem;display:block;margin-bottom:.5rem;opacity:.35"></i>Sin resultados para "'+q+'"</div>';
+          html='<div class="sr-empty">'+
+            '<i class="bi bi-emoji-frown" style="font-size:1.3rem;display:block;margin-bottom:.5rem;opacity:.35"></i>'+
+            'Sin resultados para <em>'+q+'</em></div>';
         } else {
           data.results.forEach(function(r){
-            html+='<a href="'+r.url+'" onclick="cerrarBuscador()" style="display:flex;align-items:center;gap:.75rem;padding:.6rem 1.1rem;text-decoration:none;transition:background .12s" onmouseover="this.style.background=\'var(--surface2)\'" onmouseout="this.style.background=\'transparent\'">'
-              +'<span style="width:32px;height:32px;border-radius:8px;background:'+r.color+'22;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-'+r.icon+'" style="color:'+r.color+';font-size:.9rem"></i></span>'
-              +'<span style="flex:1;min-width:0"><span style="display:block;font-size:.85rem;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.label+'</span>'
-              +(r.sub?'<span style="display:block;font-size:.75rem;color:var(--text2)">'+r.sub+'</span>':'')+'</span>'
-              +'<span style="font-size:.7rem;color:var(--text2);background:var(--surface2);padding:2px 7px;border-radius:10px;flex-shrink:0">'+r.type+'</span></a>';
+            html+='<a href="'+r.url+'" class="sr-item" onclick="cerrarBuscador()">'
+              +'<span class="sr-icon" style="background:'+r.color+'18"><i class="bi bi-'+r.icon+'" style="color:'+r.color+'"></i></span>'
+              +'<span class="sr-body"><span class="sr-label">'+r.label+'</span>'
+              +(r.sub?'<span class="sr-sub">'+r.sub+'</span>':'')+'</span>'
+              +'<span class="sr-badge">'+r.type+'</span></a>';
           });
-          html+='<div style="padding:.5rem 1.1rem;border-top:1px solid var(--border);text-align:center"><a href="/buscador?q='+encodeURIComponent(q)+'" onclick="cerrarBuscador()" style="font-size:.78rem;color:var(--ac);text-decoration:none">Ver todos los resultados →</a></div>';
+          html+='<div class="sr-footer"><a href="/buscador?q='+encodeURIComponent(q)+'" onclick="cerrarBuscador()">Ver todos los resultados →</a></div>';
         }
         document.getElementById('searchResults').innerHTML=html;
       })
