@@ -2977,6 +2977,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;fo
 /* Header */
 .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #172B4D;padding-bottom:14px;margin-bottom:20px}
 .logo-area{display:flex;align-items:center;gap:10px}
+.brand-block{display:flex;align-items:center}
+.brand-name{font-size:18pt;font-weight:800;color:#172B4D;letter-spacing:-0.5px}
 .doc-title{text-align:right}
 .doc-title h1{font-size:22pt;font-weight:800;color:#172B4D;letter-spacing:-1px}
 .doc-number{font-size:9.5pt;color:#6B778C;margin-top:4px}
@@ -4755,6 +4757,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;fo
 /* Header */
 .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #172B4D;padding-bottom:14px;margin-bottom:20px}
 .logo-area{display:flex;align-items:center;gap:10px}
+.brand-block{display:flex;align-items:center}
+.brand-name{font-size:18pt;font-weight:800;color:#172B4D;letter-spacing:-0.5px}
 .doc-title{text-align:right}
 .doc-title h1{font-size:22pt;font-weight:800;color:#172B4D;letter-spacing:-1px}
 .doc-number{font-size:9.5pt;color:#6B778C;margin-top:4px}
@@ -4808,7 +4812,9 @@ table.items-table tr:nth-child(even) td{background:#F4F5F7}
   <!-- Header -->
   <div class="header">
     <div class="logo-area">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 341.94 261.01" height="52" style="display:block"><defs><style>.cls-1{fill:#1d1d1b;stroke:#1d1d1b;}</style></defs><g id="EVORE"><path class="cls-1" d="M28.41,217.71V184.78C28.41,171.75,27,169,27,169H72.31V173s-4.09-2.22-23.45-2.22H32.41V195.7h30.9v4.07s-2.64-2.32-15.36-2.32H32.41v34.22H51.58c19.36,0,23.45-2.22,23.45-2.22v4.07H27S28.41,230.75,28.41,217.71Z"/><path class="cls-1" d="M79.67,169h7s-.28,2.78,4.72,15.81l17.91,46.33,18.45-46.33c5.18-13,3.82-15.81,3.82-15.81h5.81s-2.45,2.68-7.45,15.17L110.3,233.52H106l-19-49C82.12,171.65,79.67,169,79.67,169Z"/><path class="cls-1" d="M138.61,201.15c0-18.49,14.45-33.38,32.36-33.38s32.36,14.89,32.36,33.38S188.87,234.54,171,234.54,138.61,219.65,138.61,201.15Zm60.81,0c0-17.47-12.73-31.62-28.45-31.62s-28.45,14.15-28.45,31.62,12.72,31.63,28.45,31.63S199.42,218.63,199.42,201.15Z"/><path class="cls-1" d="M210.64,217.71V184.78c0-13-1.36-15.81-1.36-15.81h28.63c11,0,19.9,9.34,19.9,20.81s-8.72,20.62-19.54,20.81l7.27,7.39c12.55,12.86,16.64,15.54,16.64,15.54h-8.36s-1.28-2.68-13.55-15.17l-7.54-7.76H214.64v7.12c0,13,1.36,15.81,1.36,15.81h-6.72S210.64,230.75,210.64,217.71Zm43.27-27.93c0-10.36-7.18-19-16-19H214.64v37.92h23.27C246.73,208.74,253.91,200.14,253.91,189.78Z"/><path class="cls-1" d="M268.26,217.71V184.78c0-13-1.36-15.81-1.36-15.81h45.27V173s-4.09-2.22-23.45-2.22H272.26V195.7h30.91v4.07s-2.64-2.32-15.36-2.32H272.26v34.22h19.18c19.36,0,23.45-2.22,23.45-2.22v4.07h-48S268.26,230.75,268.26,217.71Z"/><path d="M239.09,111.71C234.61,109,225,105.23,225,105.23s-1.42-.5-1.34-.9c.21-1.2,2.76-1.54,9.63-10.7,7.11-9.49,8.6-13.94,9.94-17.84,1.14-3.3,2.38-11,1.72-11.79s-9.12-1.35-16.48.3c-7.06,1.58-11.1,3.47-11.5,3-.64-.71.95-6.23,1.11-11.33.17-5.28.32-6.75-.41-11.49-.61-4-1.47-7.57-2.65-7.91s-5,.82-7,1.69A81.41,81.41,0,0,0,198.41,44c-2.91,2-6.52,5.48-7.55,5.69s-2.79-6-6.9-13.15a86,86,0,0,0-5.69-9.09c-1.74-2.45-4.91-7-7.28-7h0c-2.38,0-5.54,4.59-7.28,7A84.29,84.29,0,0,0,158,36.52c-4.12,7.13-5.76,13.38-6.9,13.15s-4.73-3.8-7.64-5.8a79.94,79.94,0,0,0-9.56-5.58c-2-.87-5.81-2-7-1.69s-2,3.94-2.65,7.91c-.73,4.74-.58,6.21-.41,11.49.16,5.1,1.74,10.62,1.11,11.33-.4.44-4.44-1.45-11.5-3C106.08,62.65,97.72,63.08,97,64s.57,8.49,1.71,11.79c1.35,3.9,2.83,8.35,10,17.84,6.87,9.16,9.41,9.5,9.63,10.7.07.4-1.35.9-1.35.9s-9.57,3.72-14.06,6.48C99.17,114,95,117.34,95,119.08c0,2.11,3.54,4.62,8.14,7.67s15.36,7.83,26.75,6.75c12.82-1.22,20.68-7.21,21.76-6.74.49.21.11,5.24,5.16,10.44,4.43,4.56,10.58,10,14.15,10s9.72-5.42,14.15-10c5-5.2,4.67-10.23,5.16-10.44,1.07-.47,8.93,5.52,21.76,6.74,11.39,1.08,22.07-3.65,26.74-6.75s8.17-5.56,8.15-7.67C246.93,117.34,242.76,114,239.09,111.71Z"/></g></svg>
+      <div class="brand-block">
+        {% if empresa and empresa.nombre %}<span class="brand-name">{{ empresa.nombre }}</span>{% endif %}
+      </div>
     </div>
     <div class="doc-title">
       <h1>REMISIÓN</h1>
@@ -5272,7 +5278,8 @@ body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:11pt;color:#1a1f36;
 .page{width:210mm;min-height:297mm;margin:0 auto;padding:16mm 16mm 20mm}
 .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1a1f36;padding-bottom:12px;margin-bottom:18px}
 .logo-wrap{display:flex;align-items:center}
-.logo-wrap img{max-height:48px;max-width:180px}
+.brand-block{display:flex;flex-direction:column;justify-content:center}
+.brand-name{font-size:18pt;font-weight:800;color:#1a1f36;letter-spacing:-0.5px;font-family:'Helvetica Neue',Arial,sans-serif}
 .doc-title{text-align:right}
 .doc-title h1{font-size:22pt;font-weight:800;color:#1a1f36;letter-spacing:-0.5px}
 .doc-title .numero{font-size:10pt;color:#525f7f;margin-top:4px}
@@ -5297,7 +5304,9 @@ tr:nth-child(even) td{background:#f8f9fe}
 <body><div class="page">
 <div class="header">
   <div class="logo-wrap">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 341.94 261.01" height="56" style="display:block"><defs><style>.cls-1{fill:#1d1d1b;stroke:#1d1d1b;}</style></defs><g id="EVORE"><path class="cls-1" d="M28.41,217.71V184.78C28.41,171.75,27,169,27,169H72.31V173s-4.09-2.22-23.45-2.22H32.41V195.7h30.9v4.07s-2.64-2.32-15.36-2.32H32.41v34.22H51.58c19.36,0,23.45-2.22,23.45-2.22v4.07H27S28.41,230.75,28.41,217.71Z"/><path class="cls-1" d="M79.67,169h7s-.28,2.78,4.72,15.81l17.91,46.33,18.45-46.33c5.18-13,3.82-15.81,3.82-15.81h5.81s-2.45,2.68-7.45,15.17L110.3,233.52H106l-19-49C82.12,171.65,79.67,169,79.67,169Z"/><path class="cls-1" d="M138.61,201.15c0-18.49,14.45-33.38,32.36-33.38s32.36,14.89,32.36,33.38S188.87,234.54,171,234.54,138.61,219.65,138.61,201.15Zm60.81,0c0-17.47-12.73-31.62-28.45-31.62s-28.45,14.15-28.45,31.62,12.72,31.63,28.45,31.63S199.42,218.63,199.42,201.15Z"/><path class="cls-1" d="M210.64,217.71V184.78c0-13-1.36-15.81-1.36-15.81h28.63c11,0,19.9,9.34,19.9,20.81s-8.72,20.62-19.54,20.81l7.27,7.39c12.55,12.86,16.64,15.54,16.64,15.54h-8.36s-1.28-2.68-13.55-15.17l-7.54-7.76H214.64v7.12c0,13,1.36,15.81,1.36,15.81h-6.72S210.64,230.75,210.64,217.71Zm43.27-27.93c0-10.36-7.18-19-16-19H214.64v37.92h23.27C246.73,208.74,253.91,200.14,253.91,189.78Z"/><path class="cls-1" d="M268.26,217.71V184.78c0-13-1.36-15.81-1.36-15.81h45.27V173s-4.09-2.22-23.45-2.22H272.26V195.7h30.91v4.07s-2.64-2.32-15.36-2.32H272.26v34.22h19.18c19.36,0,23.45-2.22,23.45-2.22v4.07h-48S268.26,230.75,268.26,217.71Z"/><path d="M239.09,111.71C234.61,109,225,105.23,225,105.23s-1.42-.5-1.34-.9c.21-1.2,2.76-1.54,9.63-10.7,7.11-9.49,8.6-13.94,9.94-17.84,1.14-3.3,2.38-11,1.72-11.79s-9.12-1.35-16.48.3c-7.06,1.58-11.1,3.47-11.5,3-.64-.71.95-6.23,1.11-11.33.17-5.28.32-6.75-.41-11.49-.61-4-1.47-7.57-2.65-7.91s-5,.82-7,1.69A81.41,81.41,0,0,0,198.41,44c-2.91,2-6.52,5.48-7.55,5.69s-2.79-6-6.9-13.15a86,86,0,0,0-5.69-9.09c-1.74-2.45-4.91-7-7.28-7h0c-2.38,0-5.54,4.59-7.28,7A84.29,84.29,0,0,0,158,36.52c-4.12,7.13-5.76,13.38-6.9,13.15s-4.73-3.8-7.64-5.8a79.94,79.94,0,0,0-9.56-5.58c-2-.87-5.81-2-7-1.69s-2,3.94-2.65,7.91c-.73,4.74-.58,6.21-.41,11.49.16,5.1,1.74,10.62,1.11,11.33-.4.44-4.44-1.45-11.5-3C106.08,62.65,97.72,63.08,97,64s.57,8.49,1.71,11.79c1.35,3.9,2.83,8.35,10,17.84,6.87,9.16,9.41,9.5,9.63,10.7.07.4-1.35.9-1.35.9s-9.57,3.72-14.06,6.48C99.17,114,95,117.34,95,119.08c0,2.11,3.54,4.62,8.14,7.67s15.36,7.83,26.75,6.75c12.82-1.22,20.68-7.21,21.76-6.74.49.21.11,5.24,5.16,10.44,4.43,4.56,10.58,10,14.15,10s9.72-5.42,14.15-10c5-5.2,4.67-10.23,5.16-10.44,1.07-.47,8.93,5.52,21.76,6.74,11.39,1.08,22.07-3.65,26.74-6.75s8.17-5.56,8.15-7.67C246.93,117.34,242.76,114,239.09,111.71Z"/></g></svg>
+    <div class="brand-block">
+      {% if empresa and empresa.nombre %}<span class="brand-name">{{ empresa.nombre }}</span>{% endif %}
+    </div>
   </div>
   <div class="doc-title">
     <h1>COTIZACIÓN</h1>
@@ -8408,7 +8417,7 @@ def cliente_nuevo():
             anticipo_pct=anticipo_pct,
             minimo_pedido=minimo_pedido)
         db.session.add(c); db.session.flush()
-        _save_contactos(c); db.session.commit()
+        _save_contactos(c)
         _log('crear','cliente',c.id,f'Cliente creado: {c.empresa or c.nombre}'); db.session.commit()
         flash('Cliente creado.','success'); return redirect(url_for('clientes'))
     sales_managers = User.query.filter(User.rol.in_(['sales_manager','admin']), User.activo==True).order_by(User.nombre).all()
@@ -8450,7 +8459,7 @@ def cliente_editar(id):
             obj.minimo_pedido = float(minimo_pedido) if minimo_pedido else None
         except (ValueError, TypeError):
             obj.minimo_pedido = None
-        db.session.flush(); _save_contactos(obj); db.session.commit()
+        db.session.flush(); _save_contactos(obj)
         _log('editar','cliente',obj.id,f'Cliente editado: {obj.empresa or obj.nombre}'); db.session.commit()
         flash('Cliente actualizado.','success'); return redirect(url_for('cliente_ver', id=obj.id))
     sales_managers = User.query.filter(User.rol.in_(['sales_manager','admin']), User.activo==True).order_by(User.nombre).all()
@@ -8700,7 +8709,7 @@ def portal_prov_confirmar_oc(id):
         _crear_notificacion(a.id, 'info',
             f'OC confirmada por {prov.nombre}',
             f'Orden {oc.numero or oc.id} confirmada. Fecha estimada: {fecha_est}',
-            url=url_for('orden_compra_ver', id=oc.id))
+            url=url_for('orden_compra_editar', id=oc.id))
     db.session.commit()
     flash('Orden de compra confirmada exitosamente.','success')
     return redirect(url_for('portal_proveedor'))
@@ -9220,7 +9229,6 @@ def venta_nueva():
         v.numero = f'VNT-{hoy.year}-{seq:03d}'
         _save_items(v); db.session.flush()
         _procesar_venta_produccion(v)
-        db.session.commit()
         _log('crear','venta',v.id,f'Venta creada: {v.titulo} ({v.numero})'); db.session.commit()
         flash('Venta creada.','success'); return redirect(url_for('ventas'))
     return render_template('ventas/form.html', obj=None, clientes_list=cl,
@@ -9248,7 +9256,6 @@ def venta_editar(id):
         obj.notas=request.form.get('notas','')
         db.session.flush(); _save_items(obj); db.session.flush()
         _procesar_venta_produccion(obj)
-        db.session.commit()
         _log('editar','venta',obj.id,f'Venta editada: {obj.titulo}'); db.session.commit()
         flash('Venta actualizada.','success'); return redirect(url_for('ventas'))
     items_j = [{'pid':it.producto_id or '','nombre':it.nombre_prod,
@@ -9283,7 +9290,6 @@ def venta_cambiar_estado(id):
     estados_validos = ['prospecto','negociacion','anticipo_pagado','completado','perdido']
     if nuevo in estados_validos:
         venta.estado = nuevo
-        db.session.commit()
         _log('editar','venta',venta.id,f'Estado → {nuevo}'); db.session.commit()
     return redirect(url_for('ventas'))
 
@@ -9408,7 +9414,7 @@ def tarea_nueva():
             fecha_vencimiento=datetime.strptime(fs,'%Y-%m-%d').date() if fs else None,
             asignado_a=asignado_id, creado_por=current_user.id)
         db.session.add(t); db.session.flush()
-        _save_asignados(t); db.session.commit()
+        _save_asignados(t)
         _log('crear','tarea',t.id,f'Tarea creada: {t.titulo}'); db.session.commit()
         # Notificación al asignado (si no es quien la crea)
         if asignado_id != current_user.id:
@@ -9451,7 +9457,7 @@ def tarea_editar(id):
         obj.estado=request.form.get('estado','pendiente'); obj.prioridad=request.form.get('prioridad','media')
         obj.fecha_vencimiento=datetime.strptime(fs,'%Y-%m-%d').date() if fs else None
         obj.asignado_a=int(request.form.get('asignado_a') or current_user.id)
-        db.session.flush(); _save_asignados(obj); db.session.commit()
+        db.session.flush(); _save_asignados(obj)
         _log('editar','tarea',obj.id,f'Tarea editada: {obj.titulo}'); db.session.commit()
         # Notificar si cambió el asignado
         if obj.asignado_a != prev_asignado and obj.asignado_a != current_user.id:
@@ -9472,7 +9478,6 @@ def tarea_editar(id):
 def tarea_completar(id):
     obj = Tarea.query.get_or_404(id)
     obj.estado = 'completada'
-    db.session.commit()
     _log('completar','tarea',obj.id,f'Tarea completada: {obj.titulo}')
     db.session.commit()
 
@@ -10200,7 +10205,6 @@ def nomina_cerrar_mes():
         creado_por=current_user.id
     )
     db.session.add(g)
-    db.session.commit()
     _log('crear', 'gasto', g.id, f'Nómina mensual {mes}: ${total_costo:,.0f}')
     db.session.commit()
     flash(f'Nómina de {mes} cerrada. Gasto registrado: ${total_costo:,.0f} ({n_empleados} empleados).', 'success')
@@ -10297,7 +10301,6 @@ def empleado_retirar(id):
         empleado.estado = 'despedido'
     else:
         empleado.estado = 'retirado'
-    db.session.commit()
     _log('editar', 'empleado', empleado.id, f'Marcado como {empleado.estado} por: {motivo}')
     db.session.commit()
     flash(f'Empleado {empleado.nombre} marcado como {empleado.estado}.','success')
@@ -10568,7 +10571,7 @@ def nota_nueva():
             modulo=request.form.get('modulo','') or None,
             fecha_revision=datetime.strptime(fd_rev,'%Y-%m-%d').date() if fd_rev else None,
             creado_por=current_user.id)
-        db.session.add(n); db.session.commit()
+        db.session.add(n)
         _log('crear','nota',n.id,f'Nota creada: {n.titulo or "(sin título)"}'); db.session.commit()
         flash('Nota guardada.','success'); return redirect(url_for('notas'))
     return render_template('notas/form.html', obj=None, titulo='Nueva Nota',
@@ -10589,7 +10592,6 @@ def nota_editar(id):
         obj.modulo=request.form.get('modulo','') or None
         obj.fecha_revision=datetime.strptime(fd_rev,'%Y-%m-%d').date() if fd_rev else None
         obj.actualizado_en=datetime.utcnow()
-        db.session.commit()
         _log('editar','nota',obj.id,f'Nota editada: {obj.titulo or "(sin título)"}'); db.session.commit()
         flash('Nota actualizada.','success'); return redirect(url_for('notas'))
     return render_template('notas/form.html', obj=obj, titulo='Editar Nota',
@@ -10653,7 +10655,7 @@ def calendario():
             desc = ('Cliente: ' + cliente_nom + ' · ' if cliente_nom else '') + 'Estado: ' + v.estado
             if v.numero: desc = 'Venta ' + v.numero + ' · ' + desc
             eventos.setdefault(k, []).append({'t':'venta','n':v.titulo,'s':v.estado,
-                'd':desc,'url':url_for('venta_ver', id=v.id),'tid':v.id})
+                'd':desc,'url':url_for('venta_editar', id=v.id),'tid':v.id})
     except Exception: db.session.rollback()
     # 3. Eventos manuales
     try:
@@ -10830,7 +10832,6 @@ def cotizacion_nueva():
             db.session.add(CotizacionItem(
                 cotizacion_id=cot.id, nombre_prod=it['nombre'],
                 cantidad=it['cantidad'], precio_unit=it['precio'], subtotal=it['subtotal']))
-        db.session.commit()
         _log('crear','cotizacion',cot.id,f'Cotización {numero}: {cot.titulo}'); db.session.commit()
         flash(f'Cotización {numero} creada.','success')
         return redirect(url_for('cotizacion_ver', id=cot.id))
