@@ -118,12 +118,19 @@ def inject_globals():
             notif_count = Notificacion.query.filter_by(
                 usuario_id=current_user.id, leida=False).count()
         except: pass
-        if current_user.rol == 'cliente' and current_user.cliente_id:
-            cli = Cliente.query.get(current_user.cliente_id)
-            if cli: empresa_cliente_nombre = cli.empresa or cli.nombre
-        if current_user.rol == 'proveedor' and current_user.proveedor_id:
-            prov = Proveedor.query.get(current_user.proveedor_id)
-            if prov: empresa_proveedor_nombre = prov.nombre
+        if current_user.rol == 'cliente':
+            try:
+                if current_user.cliente_id:
+                    cli = Cliente.query.get(current_user.cliente_id)
+                    if cli: empresa_cliente_nombre = cli.empresa or cli.nombre
+            except Exception: pass
+        if current_user.rol == 'proveedor':
+            try:
+                prov_id = getattr(current_user, 'proveedor_id', None)
+                if prov_id:
+                    prov = Proveedor.query.get(prov_id)
+                    if prov: empresa_proveedor_nombre = prov.nombre
+            except Exception: pass
     return {'now': datetime.utcnow(), 'modulos_user': modulos, 'notif_count': notif_count,
             'empresa_cliente_nombre': empresa_cliente_nombre, 'empresa_proveedor_nombre': empresa_proveedor_nombre}
 
@@ -214,6 +221,9 @@ class OrdenCompra(db.Model):
     notas                   = db.Column(db.Text)
     creado_por              = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en               = db.Column(db.DateTime, default=datetime.utcnow)
+    estado_proveedor        = db.Column(db.String(30), default='pendiente')  # pendiente, confirmada
+    confirmado_en           = db.Column(db.DateTime, nullable=True)
+    confirmado_por          = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     proveedor               = db.relationship('Proveedor', foreign_keys=[proveedor_id])
     transportista           = db.relationship('Proveedor', foreign_keys=[transportista_id])
     cotizacion_ref          = db.relationship('CotizacionProveedor', foreign_keys=[cotizacion_id])
@@ -7320,16 +7330,20 @@ def portal_prov_confirmar_oc(id):
     if not prov or oc.proveedor_id != prov.id:
         flash('Sin permisos.','danger'); return redirect(url_for('portal_proveedor'))
     oc.estado = 'confirmada'
+    oc.estado_proveedor = 'confirmada'
+    oc.confirmado_en = datetime.utcnow()
+    oc.confirmado_por = current_user.id
     db.session.commit()
     # Notify purchaser
     admins = User.query.filter(User.rol.in_(['admin','vendedor','sales_manager']), User.activo==True).all()
+    fecha_est = oc.fecha_esperada.strftime('%d/%m/%Y') if oc.fecha_esperada else 'por confirmar'
     for a in admins[:2]:
         _crear_notificacion(a.id, 'info',
             f'OC confirmada por {prov.nombre}',
-            f'Orden {oc.numero or oc.id} confirmada. Fecha estimada: {oc.fecha_entrega or "por confirmar"}',
+            f'Orden {oc.numero or oc.id} confirmada. Fecha estimada: {fecha_est}',
             url=url_for('orden_compra_ver', id=oc.id))
     db.session.commit()
-    flash('Orden de compra confirmada.','success')
+    flash('Orden de compra confirmada exitosamente.','success')
     return redirect(url_for('portal_proveedor'))
 
 @app.route('/portal-proveedor/ticket/nuevo', methods=['GET','POST'])
@@ -10643,6 +10657,12 @@ def _migrate(conn):
         # v18 — Pre-cotizaciones
         ("CREATE TABLE IF NOT EXISTS pre_cotizaciones (id SERIAL PRIMARY KEY, numero VARCHAR(30), cliente_id INTEGER NOT NULL REFERENCES clientes(id), cliente_user_id INTEGER REFERENCES users(id), sales_manager_id INTEGER REFERENCES users(id), estado VARCHAR(30) DEFAULT 'pendiente', notas_cliente TEXT, notas_manager TEXT, subtotal FLOAT DEFAULT 0, iva FLOAT DEFAULT 0, total FLOAT DEFAULT 0, creado_en TIMESTAMP DEFAULT NOW(), actualizado_en TIMESTAMP DEFAULT NOW())"),
         ("CREATE TABLE IF NOT EXISTS pre_cotizacion_items (id SERIAL PRIMARY KEY, precot_id INTEGER NOT NULL REFERENCES pre_cotizaciones(id), nombre_prod VARCHAR(200), cantidad FLOAT DEFAULT 0, precio_unit FLOAT DEFAULT 0, subtotal FLOAT DEFAULT 0, notas VARCHAR(300))"),
+        # v19 — User proveedor link
+        ("ALTER TABLE users ADD COLUMN IF NOT EXISTS proveedor_id INTEGER REFERENCES proveedores(id)"),
+        # v19 — OrdenCompra confirmación por proveedor
+        ("ALTER TABLE ordenes_compra ADD COLUMN IF NOT EXISTS confirmado_en TIMESTAMP"),
+        ("ALTER TABLE ordenes_compra ADD COLUMN IF NOT EXISTS confirmado_por INTEGER REFERENCES users(id)"),
+        ("ALTER TABLE ordenes_compra ADD COLUMN IF NOT EXISTS estado_proveedor VARCHAR(30) DEFAULT 'pendiente'"),
     ]
     for sql in migrations:
         try:
