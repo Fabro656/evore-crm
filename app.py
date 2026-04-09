@@ -82,6 +82,7 @@ _MODULOS_ROL = {
     'usuario':    ['tareas','notas','calendario'],
     'sales_manager': ['clientes','ventas','cotizaciones','tareas','calendario','notas','ordenes_compra'],
     'cliente':       ['portal_cliente'],
+    'proveedor':     ['portal_proveedor'],
 }
 
 def _modulos_user(user):
@@ -110,12 +111,21 @@ def requiere_modulo(modulo):
 def inject_globals():
     modulos = _modulos_user(current_user) if current_user.is_authenticated else []
     notif_count = 0
+    empresa_cliente_nombre = None
+    empresa_proveedor_nombre = None
     if current_user.is_authenticated:
         try:
             notif_count = Notificacion.query.filter_by(
                 usuario_id=current_user.id, leida=False).count()
         except: pass
-    return {'now': datetime.utcnow(), 'modulos_user': modulos, 'notif_count': notif_count}
+        if current_user.rol == 'cliente' and current_user.cliente_id:
+            cli = Cliente.query.get(current_user.cliente_id)
+            if cli: empresa_cliente_nombre = cli.empresa or cli.nombre
+        if current_user.rol == 'proveedor' and current_user.proveedor_id:
+            prov = Proveedor.query.get(current_user.proveedor_id)
+            if prov: empresa_proveedor_nombre = prov.nombre
+    return {'now': datetime.utcnow(), 'modulos_user': modulos, 'notif_count': notif_count,
+            'empresa_cliente_nombre': empresa_cliente_nombre, 'empresa_proveedor_nombre': empresa_proveedor_nombre}
 
 @app.template_filter('cop')
 def cop(value):
@@ -148,6 +158,7 @@ class User(UserMixin, db.Model):
     creado_en           = db.Column(db.DateTime, default=datetime.utcnow)
     onboarding_dismissed = db.Column(db.Boolean, default=False)
     cliente_id           = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=True)
+    proveedor_id        = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
     def set_password(self, p):   self.password_hash = generate_password_hash(p)
     def check_password(self, p): return check_password_hash(self.password_hash, p)
 
@@ -230,6 +241,7 @@ class Proveedor(db.Model):
     telefono   = db.Column(db.String(50))
     direccion  = db.Column(db.Text)
     categoria  = db.Column(db.String(100))
+    contacto_nombre = db.Column(db.String(100))
     tipo       = db.Column(db.String(20), default='proveedor')  # proveedor, transportista, ambos
     notas      = db.Column(db.Text)
     activo     = db.Column(db.Boolean, default=True)
@@ -940,7 +952,21 @@ T['base.html'] = """<!DOCTYPE html>
 """ + _CDN + _CSS + """
 </head><body>
 <nav id="sb">
-  <div class="sb-brand" style="padding:.85rem 1rem .7rem"><a href="/" style="text-decoration:none;color:inherit"><div style="overflow:hidden;line-height:0"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 474.45 119.52" width="188" height="47" style="filter:brightness(0) invert(1);opacity:.88;display:block"><path d="M163.87,76.22V43.3c0-13-1.37-15.81-1.37-15.81h45.27v4.07s-4.09-2.22-23.45-2.22H167.87V54.21h30.9v4.07S196.13,56,183.41,56H167.87V90.18H187C206.4,90.18,210.5,88,210.5,88V92h-48S163.87,89.26,163.87,76.22Z"/><path d="M215.13,27.49h7s-.28,2.77,4.72,15.81l17.91,46.33L263.21,43.3c5.18-13,3.82-15.81,3.82-15.81h5.82s-2.46,2.68-7.46,15.16L245.76,92h-4.27l-19-49C217.58,30.17,215.13,27.49,215.13,27.49Z"/><path d="M274.07,59.67c0-18.5,14.45-33.39,32.36-33.39s32.36,14.89,32.36,33.39-14.46,33.38-32.36,33.38S274.07,78.16,274.07,59.67Zm60.81,0c0-17.48-12.73-31.63-28.45-31.63S278,42.19,278,59.67s12.72,31.62,28.45,31.62S334.88,77.15,334.88,59.67Z"/><path d="M346.1,76.22V43.3c0-13-1.36-15.81-1.36-15.81h28.63c11,0,19.91,9.34,19.91,20.8s-8.73,20.63-19.55,20.81L381,76.5C393.55,89.35,397.64,92,397.64,92h-8.36S388,89.35,375.73,76.87l-7.54-7.77H350.1v7.12c0,13,1.36,15.81,1.36,15.81h-6.72S346.1,89.26,346.1,76.22Zm43.27-27.93c0-10.35-7.18-18.95-16-18.95H350.1V67.25h23.27C382.19,67.25,389.37,58.65,389.37,48.29Z"/><path d="M403.73,76.22V43.3c0-13-1.37-15.81-1.37-15.81h45.27v4.07s-4.09-2.22-23.45-2.22H407.72V54.21h30.91v4.07S436,56,423.27,56H407.72V90.18H426.9c19.36,0,23.45-2.21,23.45-2.21V92h-48S403.73,89.26,403.73,76.22Z"/><path d="M132.51,80.73a88.84,88.84,0,0,0-10.58-4.88s-1.06-.37-1-.67c.16-.91,2.08-1.17,7.25-8.06,5.35-7.14,6.47-10.49,7.48-13.42.86-2.49,1.79-8.27,1.29-8.87s-6.86-1-12.4.22c-5.31,1.2-8.35,2.62-8.65,2.28-.48-.53.71-4.69.83-8.52a36.63,36.63,0,0,0-.3-8.65c-.47-3-1.11-5.7-2-5.95s-3.76.62-5.26,1.27a62.18,62.18,0,0,0-7.26,4.28c-2.19,1.52-4.91,4.13-5.68,4.29s-2.1-4.53-5.19-9.9a64.94,64.94,0,0,0-4.29-6.84C85.44,15.47,83.05,12,81.26,12h0c-1.79,0-4.17,3.45-5.48,5.29a63.75,63.75,0,0,0-4.28,6.84c-3.1,5.37-4.34,10.07-5.19,9.9s-3.56-2.86-5.75-4.37a60.26,60.26,0,0,0-7.2-4.2c-1.5-.65-4.37-1.53-5.26-1.27s-1.53,3-2,5.95a36.08,36.08,0,0,0-.31,8.65c.12,3.83,1.32,8,.84,8.52-.3.34-3.35-1.08-8.66-2.28-5.53-1.24-11.82-.92-12.4-.22s.44,6.38,1.29,8.87c1,2.93,2.13,6.28,7.49,13.42,5.17,6.89,7.08,7.15,7.24,8.06.06.3-1,.67-1,.67A88.84,88.84,0,0,0,30,80.73c-2.76,1.7-5.9,4.24-5.9,5.54,0,1.59,2.67,3.48,6.14,5.78s11.55,5.88,20.12,5.07c9.65-.91,15.56-5.42,16.37-5.07.37.16.08,3.94,3.88,7.86,3.34,3.43,8,7.5,10.65,7.5s7.31-4.07,10.65-7.5c3.8-3.92,3.51-7.7,3.88-7.86.81-.35,6.73,4.16,16.37,5.07,8.58.81,16.61-2.75,20.13-5.07s6.14-4.19,6.13-5.78C138.41,85,135.27,82.43,132.51,80.73ZM120.37,48.38c6.29-2.14,13.77-2.27,14.29-1.59s-.51,11.81-13.15,24.48c-8.57,8.59-16.05,9.66-22.83,10.46a49.69,49.69,0,0,1-12.32-.54,26.06,26.06,0,0,0,8.55-9c3.31-5.9,4.74-10.88,10.5-15.29S114.07,50.51,120.37,48.38ZM104.31,30.92c5.53-3.75,8.42-4.45,8.92-4.12s1.29,3.49,1.25,9.2a88,88,0,0,1-1.28,12.24s-1.74.95-6.5,4.28a38.24,38.24,0,0,0-7.13,6.11,56.1,56.1,0,0,0-.32-12A73.79,73.79,0,0,0,97,37.13S98.78,34.67,104.31,30.92Zm-33-1.39c3-6,8.24-14.66,9.91-14.66s7,8.68,9.91,14.66a59.24,59.24,0,0,1,6.13,25,32.38,32.38,0,0,1-7.47,20c-3.88,4.88-8.13,6.14-8.57,6.14s-4.69-1.26-8.57-6.14a32.38,32.38,0,0,1-7.47-20A59.24,59.24,0,0,1,71.35,29.53ZM49.29,26.8c.5-.33,3.4.37,8.92,4.12s7.36,6.21,7.36,6.21a72.86,72.86,0,0,0-2.3,9.53,56.1,56.1,0,0,0-.32,12,38.24,38.24,0,0,0-7.13-6.11c-4.76-3.33-6.5-4.28-6.5-4.28A88,88,0,0,1,48,36C48,30.29,48.77,27.14,49.29,26.8ZM41,71.27C28.37,58.6,27.35,47.47,27.86,46.79s8-.55,14.3,1.59,9.19,4.14,15,8.54,7.2,9.39,10.5,15.29a26.06,26.06,0,0,0,8.55,9,49.69,49.69,0,0,1-12.32.54C57.06,80.93,49.58,79.86,41,71.27ZM62.77,91.11a31.75,31.75,0,0,1-17.52,3.76c-4.91-.33-8.86-2.14-12.74-4.16s-5.77-3.82-5.77-4.54,3.57-3.23,6.92-4.81a85.68,85.68,0,0,1,9-3.93c.81-.28,1-.05,2.33.69a30.76,30.76,0,0,0,9.68,4.43,107,107,0,0,0,14,2S66.75,89.14,62.77,91.11Zm25.1,9.17c-4.37,4.22-6,4.41-6.61,4.41s-2.24-.19-6.61-4.41-6.23-8.18-4.86-12.1a5.72,5.72,0,0,1,1.6-2.69c2.73-2.62,9.86-2.33,9.86-2.33h0s7.12-.29,9.85,2.33a5.72,5.72,0,0,1,1.6,2.69C94.1,92.1,92.23,96.06,87.87,100.28ZM130,90.71c-3.88,2-7.83,3.83-12.74,4.16a31.75,31.75,0,0,1-17.52-3.76c-4-2-6-6.58-6-6.58a107,107,0,0,0,14-2,30.63,30.63,0,0,0,9.68-4.43c1.39-.74,1.52-1,2.34-.69a86.72,86.72,0,0,1,9,3.93c3.36,1.58,6.92,4.1,6.92,4.81S134,88.63,130,90.71Z"/></svg><span class="bt" style="font-size:.65rem;letter-spacing:1px;opacity:.9;white-space:nowrap"> CRM</span></div></a></div>
+  <div class="sb-brand" style="padding:.85rem 1rem .7rem;display:flex;align-items:center;gap:.5rem">
+    {% if current_user.is_authenticated %}
+      {% if current_user.rol == 'cliente' and empresa_cliente_nombre %}
+        <i class="bi bi-building" style="font-size:1rem;opacity:.7"></i>
+        <span style="font-weight:800;font-size:.88rem;letter-spacing:-.2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px">{{ empresa_cliente_nombre }} <span style="color:#4C9AFF;font-weight:600">CRM</span></span>
+      {% elif current_user.rol == 'proveedor' and empresa_proveedor_nombre %}
+        <i class="bi bi-truck" style="font-size:1rem;opacity:.7"></i>
+        <span style="font-weight:800;font-size:.88rem;letter-spacing:-.2px">{{ empresa_proveedor_nombre }} <span style="color:#4C9AFF;font-weight:600">CRM</span></span>
+      {% else %}
+        <a href="/" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:.5rem;overflow:hidden"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 474.45 119.52" width="188" height="47" style="filter:brightness(0) invert(1);opacity:.88;display:block"><path d="M163.87,76.22V43.3c0-13-1.37-15.81-1.37-15.81h45.27v4.07s-4.09-2.22-23.45-2.22H167.87V54.21h30.9v4.07S196.13,56,183.41,56H167.87V90.18H187C206.4,90.18,210.5,88,210.5,88V92h-48S163.87,89.26,163.87,76.22Z"/><path d="M215.13,27.49h7s-.28,2.77,4.72,15.81l17.91,46.33L263.21,43.3c5.18-13,3.82-15.81,3.82-15.81h5.82s-2.46,2.68-7.46,15.16L245.76,92h-4.27l-19-49C217.58,30.17,215.13,27.49,215.13,27.49Z"/><path d="M274.07,59.67c0-18.5,14.45-33.39,32.36-33.39s32.36,14.89,32.36,33.39-14.46,33.38-32.36,33.38S274.07,78.16,274.07,59.67Zm60.81,0c0-17.48-12.73-31.63-28.45-31.63S278,42.19,278,59.67s12.72,31.62,28.45,31.62S334.88,77.15,334.88,59.67Z"/><path d="M346.1,76.22V43.3c0-13-1.36-15.81-1.36-15.81h28.63c11,0,19.91,9.34,19.91,20.8s-8.73,20.63-19.55,20.81L381,76.5C393.55,89.35,397.64,92,397.64,92h-8.36S388,89.35,375.73,76.87l-7.54-7.77H350.1v7.12c0,13,1.36,15.81,1.36,15.81h-6.72S346.1,89.26,346.1,76.22Zm43.27-27.93c0-10.35-7.18-18.95-16-18.95H350.1V67.25h23.27C382.19,67.25,389.37,58.65,389.37,48.29Z"/><path d="M403.73,76.22V43.3c0-13-1.37-15.81-1.37-15.81h45.27v4.07s-4.09-2.22-23.45-2.22H407.72V54.21h30.91v4.07S436,56,423.27,56H407.72V90.18H426.9c19.36,0,23.45-2.21,23.45-2.21V92h-48S403.73,89.26,403.73,76.22Z"/><path d="M132.51,80.73a88.84,88.84,0,0,0-10.58-4.88s-1.06-.37-1-.67c.16-.91,2.08-1.17,7.25-8.06,5.35-7.14,6.47-10.49,7.48-13.42.86-2.49,1.79-8.27,1.29-8.87s-6.86-1-12.4.22c-5.31,1.2-8.35,2.62-8.65,2.28-.48-.53.71-4.69.83-8.52a36.63,36.63,0,0,0-.3-8.65c-.47-3-1.11-5.7-2-5.95s-3.76.62-5.26,1.27a62.18,62.18,0,0,0-7.26,4.28c-2.19,1.52-4.91,4.13-5.68,4.29s-2.1-4.53-5.19-9.9a64.94,64.94,0,0,0-4.29-6.84C85.44,15.47,83.05,12,81.26,12h0c-1.79,0-4.17,3.45-5.48,5.29a63.75,63.75,0,0,0-4.28,6.84c-3.1,5.37-4.34,10.07-5.19,9.9s-3.56-2.86-5.75-4.37a60.26,60.26,0,0,0-7.2-4.2c-1.5-.65-4.37-1.53-5.26-1.27s-1.53,3-2,5.95a36.08,36.08,0,0,0-.31,8.65c.12,3.83,1.32,8,.84,8.52-.3.34-3.35-1.08-8.66-2.28-5.53-1.24-11.82-.92-12.4-.22s.44,6.38,1.29,8.87c1,2.93,2.13,6.28,7.49,13.42,5.17,6.89,7.08,7.15,7.24,8.06.06.3-1,.67-1,.67A88.84,88.84,0,0,0,30,80.73c-2.76,1.7-5.9,4.24-5.9,5.54,0,1.59,2.67,3.48,6.14,5.78s11.55,5.88,20.12,5.07c9.65-.91,15.56-5.42,16.37-5.07.37.16.08,3.94,3.88,7.86,3.34,3.43,8,7.5,10.65,7.5s7.31-4.07,10.65-7.5c3.8-3.92,3.51-7.7,3.88-7.86.81-.35,6.73,4.16,16.37,5.07,8.58.81,16.61-2.75,20.13-5.07s6.14-4.19,6.13-5.78C138.41,85,135.27,82.43,132.51,80.73ZM120.37,48.38c6.29-2.14,13.77-2.27,14.29-1.59s-.51,11.81-13.15,24.48c-8.57,8.59-16.05,9.66-22.83,10.46a49.69,49.69,0,0,1-12.32-.54,26.06,26.06,0,0,0,8.55-9c3.31-5.9,4.74-10.88,10.5-15.29S114.07,50.51,120.37,48.38ZM104.31,30.92c5.53-3.75,8.42-4.45,8.92-4.12s1.29,3.49,1.25,9.2a88,88,0,0,1-1.28,12.24s-1.74.95-6.5,4.28a38.24,38.24,0,0,0-7.13,6.11,56.1,56.1,0,0,0-.32-12A73.79,73.79,0,0,0,97,37.13S98.78,34.67,104.31,30.92Zm-33-1.39c3-6,8.24-14.66,9.91-14.66s7,8.68,9.91,14.66a59.24,59.24,0,0,1,6.13,25,32.38,32.38,0,0,1-7.47,20c-3.88,4.88-8.13,6.14-8.57,6.14s-4.69-1.26-8.57-6.14a32.38,32.38,0,0,1-7.47-20A59.24,59.24,0,0,1,71.35,29.53ZM49.29,26.8c.5-.33,3.4.37,8.92,4.12s7.36,6.21,7.36,6.21a72.86,72.86,0,0,0-2.3,9.53,56.1,56.1,0,0,0-.32,12,38.24,38.24,0,0,0-7.13-6.11c-4.76-3.33-6.5-4.28-6.5-4.28A88,88,0,0,1,48,36C48,30.29,48.77,27.14,49.29,26.8ZM41,71.27C28.37,58.6,27.35,47.47,27.86,46.79s8-.55,14.3,1.59,9.19,4.14,15,8.54,7.2,9.39,10.5,15.29a26.06,26.06,0,0,0,8.55,9,49.69,49.69,0,0,1-12.32.54C57.06,80.93,49.58,79.86,41,71.27ZM62.77,91.11a31.75,31.75,0,0,1-17.52,3.76c-4.91-.33-8.86-2.14-12.74-4.16s-5.77-3.82-5.77-4.54,3.57-3.23,6.92-4.81a85.68,85.68,0,0,1,9-3.93c.81-.28,1-.05,2.33.69a30.76,30.76,0,0,0,9.68,4.43,107,107,0,0,0,14,2S66.75,89.14,62.77,91.11Zm25.1,9.17c-4.37,4.22-6,4.41-6.61,4.41s-2.24-.19-6.61-4.41-6.23-8.18-4.86-12.1a5.72,5.72,0,0,1,1.6-2.69c2.73-2.62,9.86-2.33,9.86-2.33h0s7.12-.29,9.85,2.33a5.72,5.72,0,0,1,1.6,2.69C94.1,92.1,92.23,96.06,87.87,100.28ZM130,90.71c-3.88,2-7.83,3.83-12.74,4.16a31.75,31.75,0,0,1-17.52-3.76c-4-2-6-6.58-6-6.58a107,107,0,0,0,14-2,30.63,30.63,0,0,0,9.68-4.43c1.39-.74,1.52-1,2.34-.69a86.72,86.72,0,0,1,9,3.93c3.36,1.58,6.92,4.1,6.92,4.81S134,88.63,130,90.71Z"/></svg><span class="bt" style="font-size:.65rem;letter-spacing:1px;opacity:.9;white-space:nowrap"> CRM</span></a>
+      {% endif %}
+    {% else %}
+      <a href="/" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:.5rem;overflow:hidden"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 474.45 119.52" width="188" height="47" style="filter:brightness(0) invert(1);opacity:.88;display:block"><path d="M163.87,76.22V43.3c0-13-1.37-15.81-1.37-15.81h45.27v4.07s-4.09-2.22-23.45-2.22H167.87V54.21h30.9v4.07S196.13,56,183.41,56H167.87V90.18H187C206.4,90.18,210.5,88,210.5,88V92h-48S163.87,89.26,163.87,76.22Z"/><path d="M215.13,27.49h7s-.28,2.77,4.72,15.81l17.91,46.33L263.21,43.3c5.18-13,3.82-15.81,3.82-15.81h5.82s-2.46,2.68-7.46,15.16L245.76,92h-4.27l-19-49C217.58,30.17,215.13,27.49,215.13,27.49Z"/><path d="M274.07,59.67c0-18.5,14.45-33.39,32.36-33.39s32.36,14.89,32.36,33.39-14.46,33.38-32.36,33.38S274.07,78.16,274.07,59.67Zm60.81,0c0-17.48-12.73-31.63-28.45-31.63S278,42.19,278,59.67s12.72,31.62,28.45,31.62S334.88,77.15,334.88,59.67Z"/><path d="M346.1,76.22V43.3c0-13-1.36-15.81-1.36-15.81h28.63c11,0,19.91,9.34,19.91,20.8s-8.73,20.63-19.55,20.81L381,76.5C393.55,89.35,397.64,92,397.64,92h-8.36S388,89.35,375.73,76.87l-7.54-7.77H350.1v7.12c0,13,1.36,15.81,1.36,15.81h-6.72S346.1,89.26,346.1,76.22Zm43.27-27.93c0-10.35-7.18-18.95-16-18.95H350.1V67.25h23.27C382.19,67.25,389.37,58.65,389.37,48.29Z"/><path d="M403.73,76.22V43.3c0-13-1.37-15.81-1.37-15.81h45.27v4.07s-4.09-2.22-23.45-2.22H407.72V54.21h30.91v4.07S436,56,423.27,56H407.72V90.18H426.9c19.36,0,23.45-2.21,23.45-2.21V92h-48S403.73,89.26,403.73,76.22Z"/><path d="M132.51,80.73a88.84,88.84,0,0,0-10.58-4.88s-1.06-.37-1-.67c.16-.91,2.08-1.17,7.25-8.06,5.35-7.14,6.47-10.49,7.48-13.42.86-2.49,1.79-8.27,1.29-8.87s-6.86-1-12.4.22c-5.31,1.2-8.35,2.62-8.65,2.28-.48-.53.71-4.69.83-8.52a36.63,36.63,0,0,0-.3-8.65c-.47-3-1.11-5.7-2-5.95s-3.76.62-5.26,1.27a62.18,62.18,0,0,0-7.26,4.28c-2.19,1.52-4.91,4.13-5.68,4.29s-2.1-4.53-5.19-9.9a64.94,64.94,0,0,0-4.29-6.84C85.44,15.47,83.05,12,81.26,12h0c-1.79,0-4.17,3.45-5.48,5.29a63.75,63.75,0,0,0-4.28,6.84c-3.1,5.37-4.34,10.07-5.19,9.9s-3.56-2.86-5.75-4.37a60.26,60.26,0,0,0-7.2-4.2c-1.5-.65-4.37-1.53-5.26-1.27s-1.53,3-2,5.95a36.08,36.08,0,0,0-.31,8.65c.12,3.83,1.32,8,.84,8.52-.3.34-3.35-1.08-8.66-2.28-5.53-1.24-11.82-.92-12.4-.22s.44,6.38,1.29,8.87c1,2.93,2.13,6.28,7.49,13.42,5.17,6.89,7.08,7.15,7.24,8.06.06.3-1,.67-1,.67A88.84,88.84,0,0,0,30,80.73c-2.76,1.7-5.9,4.24-5.9,5.54,0,1.59,2.67,3.48,6.14,5.78s11.55,5.88,20.12,5.07c9.65-.91,15.56-5.42,16.37-5.07.37.16.08,3.94,3.88,7.86,3.34,3.43,8,7.5,10.65,7.5s7.31-4.07,10.65-7.5c3.8-3.92,3.51-7.7,3.88-7.86.81-.35,6.73,4.16,16.37,5.07,8.58.81,16.61-2.75,20.13-5.07s6.14-4.19,6.13-5.78C138.41,85,135.27,82.43,132.51,80.73ZM120.37,48.38c6.29-2.14,13.77-2.27,14.29-1.59s-.51,11.81-13.15,24.48c-8.57,8.59-16.05,9.66-22.83,10.46a49.69,49.69,0,0,1-12.32-.54,26.06,26.06,0,0,0,8.55-9c3.31-5.9,4.74-10.88,10.5-15.29S114.07,50.51,120.37,48.38ZM104.31,30.92c5.53-3.75,8.42-4.45,8.92-4.12s1.29,3.49,1.25,9.2a88,88,0,0,1-1.28,12.24s-1.74.95-6.5,4.28a38.24,38.24,0,0,0-7.13,6.11,56.1,56.1,0,0,0-.32-12A73.79,73.79,0,0,0,97,37.13S98.78,34.67,104.31,30.92Zm-33-1.39c3-6,8.24-14.66,9.91-14.66s7,8.68,9.91,14.66a59.24,59.24,0,0,1,6.13,25,32.38,32.38,0,0,1-7.47,20c-3.88,4.88-8.13,6.14-8.57,6.14s-4.69-1.26-8.57-6.14a32.38,32.38,0,0,1-7.47-20A59.24,59.24,0,0,1,71.35,29.53ZM49.29,26.8c.5-.33,3.4.37,8.92,4.12s7.36,6.21,7.36,6.21a72.86,72.86,0,0,0-2.3,9.53,56.1,56.1,0,0,0-.32,12,38.24,38.24,0,0,0-7.13-6.11c-4.76-3.33-6.5-4.28-6.5-4.28A88,88,0,0,1,48,36C48,30.29,48.77,27.14,49.29,26.8ZM41,71.27C28.37,58.6,27.35,47.47,27.86,46.79s8-.55,14.3,1.59,9.19,4.14,15,8.54,7.2,9.39,10.5,15.29a26.06,26.06,0,0,0,8.55,9,49.69,49.69,0,0,1-12.32.54C57.06,80.93,49.58,79.86,41,71.27ZM62.77,91.11a31.75,31.75,0,0,1-17.52,3.76c-4.91-.33-8.86-2.14-12.74-4.16s-5.77-3.82-5.77-4.54,3.57-3.23,6.92-4.81a85.68,85.68,0,0,1,9-3.93c.81-.28,1-.05,2.33.69a30.76,30.76,0,0,0,9.68,4.43,107,107,0,0,0,14,2S66.75,89.14,62.77,91.11Zm25.1,9.17c-4.37,4.22-6,4.41-6.61,4.41s-2.24-.19-6.61-4.41-6.23-8.18-4.86-12.1a5.72,5.72,0,0,1,1.6-2.69c2.73-2.62,9.86-2.33,9.86-2.33h0s7.12-.29,9.85,2.33a5.72,5.72,0,0,1,1.6,2.69C94.1,92.1,92.23,96.06,87.87,100.28ZM130,90.71c-3.88,2-7.83,3.83-12.74,4.16a31.75,31.75,0,0,1-17.52-3.76c-4-2-6-6.58-6-6.58a107,107,0,0,0,14-2,30.63,30.63,0,0,0,9.68-4.43c1.39-.74,1.52-1,2.34-.69a86.72,86.72,0,0,1,9,3.93c3.36,1.58,6.92,4.1,6.92,4.81S134,88.63,130,90.71Z"/></svg><span class="bt" style="font-size:.65rem;letter-spacing:1px;opacity:.9;white-space:nowrap"> CRM</span></a>
+    {% endif %}
+  </div>
   <div class="sb-nav py-2" style="overflow-y:auto;flex:1">
     <div class="sb-sec">Principal</div>
     <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint=='dashboard' %}active{% endif %}">
@@ -986,6 +1012,11 @@ T['base.html'] = """<!DOCTYPE html>
     {% if 'reportes' in m %}<a href="{{ url_for('reportes') }}" class="nav-link {% if 'reporte' in request.endpoint %}active{% endif %}"><i class="bi bi-bar-chart-fill"></i><span>Reportes</span></a>{% endif %}
     <div class="sb-sec">Herramientas</div>
     <a href="{{ url_for('buscador') }}" class="nav-link {% if request.endpoint=='buscador' %}active{% endif %}"><i class="bi bi-search"></i><span>Buscador</span></a>
+    {% if current_user.rol == 'proveedor' %}
+    <div class="sb-sec">Portal</div>
+    <a href="{{ url_for('portal_proveedor') }}" class="nav-link {% if request.endpoint=='portal_proveedor' %}active{% endif %}"><i class="bi bi-house-fill"></i><span>Mi Portal</span></a>
+    <a href="{{ url_for('portal_prov_ticket') }}" class="nav-link {% if request.endpoint=='portal_prov_ticket' %}active{% endif %}"><i class="bi bi-chat-left-text"></i><span>Enviar Mensaje</span></a>
+    {% endif %}
     {% if current_user.rol == 'admin' %}
     <div class="sb-sec">Admin</div>
     <a href="{{ url_for('admin_usuarios') }}" class="nav-link {% if 'admin_usuario' in request.endpoint %}active{% endif %}"><i class="bi bi-shield-person-fill"></i><span>Usuarios</span></a>
@@ -1182,12 +1213,13 @@ function copiarTexto(el,txt){
 </button>
 
 <!-- Onboarding Tutorial Modal -->
-<div class="modal fade" id="modalOnboarding" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+<div class="modal fade" id="modalOnboarding" tabindex="-1" data-bs-backdrop="true" data-bs-keyboard="true">
   <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
     <div class="modal-content" style="border-radius:16px;border:none;overflow:hidden">
       <!-- Header -->
       <div style="background:linear-gradient(135deg,#253858 0%,#0747A6 100%);padding:2rem;color:#fff;position:relative">
         <div style="position:absolute;top:-20px;right:-20px;width:120px;height:120px;background:rgba(255,255,255,.05);border-radius:50%"></div>
+        <button type="button" onclick="bootstrap.Modal.getInstance(document.getElementById('modalOnboarding')).hide()" style="background:none;border:none;color:rgba(255,255,255,.7);font-size:1.2rem;cursor:pointer;padding:.25rem .5rem;border-radius:4px;position:absolute;top:.75rem;right:.75rem" title="Cerrar">&times;</button>
         <div class="d-flex align-items-center gap-3 mb-2">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 341.94 261.01" height="38" style="flex-shrink:0"><path fill="rgba(255,255,255,.9)" d="M239.09,111.71C234.61,109,225,105.23,225,105.23s-1.42-.5-1.34-.9c.21-1.2,2.76-1.54,9.63-10.7,7.11-9.49,8.6-13.94,9.94-17.84,1.14-3.3,2.38-11,1.72-11.79s-9.12-1.35-16.48.3c-7.06,1.58-11.1,3.47-11.5,3-.64-.71.95-6.23,1.11-11.33.17-5.28.32-6.75-.41-11.49-.61-4-1.47-7.57-2.65-7.91s-5,.82-7,1.69A81.41,81.41,0,0,0,198.41,44c-2.91,2-6.52,5.48-7.55,5.69s-2.79-6-6.9-13.15a86,86,0,0,0-5.69-9.09c-1.74-2.45-4.91-7-7.28-7h0c-2.38,0-5.54,4.59-7.28,7A84.29,84.29,0,0,0,158,36.52c-4.12,7.13-5.76,13.38-6.9,13.15s-4.73-3.8-7.64-5.8a79.94,79.94,0,0,0-9.56-5.58c-2-.87-5.81-2-7-1.69s-2,3.94-2.65,7.91c-.73,4.74-.58,6.21-.41,11.49.16,5.1,1.74,10.62,1.11,11.33-.4.44-4.44-1.45-11.5-3C106.08,62.65,97.72,63.08,97,64s.57,8.49,1.71,11.79c1.35,3.9,2.83,8.35,10,17.84,6.87,9.16,9.41,9.5,9.63,10.7.07.4-1.35.9-1.35.9s-9.57,3.72-14.06,6.48C99.17,114,95,117.34,95,119.08c0,2.11,3.54,4.62,8.14,7.67s15.36,7.83,26.75,6.75c12.82-1.22,20.68-7.21,21.76-6.74.49.21.11,5.24,5.16,10.44,4.43,4.56,10.58,10,14.15,10s9.72-5.42,14.15-10c5-5.2,4.67-10.23,5.16-10.44,1.07-.47,8.93,5.52,21.76,6.74,11.39,1.08,22.07-3.65,26.74-6.75s8.17-5.56,8.15-7.67C246.93,117.34,242.76,114,239.09,111.71Z"/></svg>
           <div>
@@ -1281,7 +1313,71 @@ function copiarTexto(el,txt){
                 </div>
                 <p style="color:#42526E;font-size:.9rem">Cada usuario tiene un <strong>resumen de actividad mensual</strong> accesible desde "Mi perfil": tareas completadas, clientes creados y más.</p>
                 <div style="background:#E3FCEF;border-radius:8px;padding:1rem;font-size:.83rem;color:#006644">
-                  ✅ <strong>¡Listo para empezar!</strong> Puedes consultar este tutorial en cualquier momento desde el menú de tu perfil.
+                  ✅ Puedes consultar este tutorial en cualquier momento desde el menú de tu perfil.
+                </div>
+              </div>
+            </div>
+            <!-- Step 7: Proveedores y OC -->
+            <div class="carousel-item">
+              <div style="padding:1.75rem">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <div style="width:36px;height:36px;background:#EAE6FF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-truck" style="color:#5243AA;font-size:1.1rem"></i></div>
+                  <h5 class="mb-0 fw-bold" style="font-size:1rem">Proveedores y Órdenes de Compra</h5>
+                </div>
+                <p style="color:#42526E;font-size:.9rem">Gestiona tu cadena de suministro con el módulo de <strong>Proveedores</strong> y crea <strong>Órdenes de Compra</strong> formales que tus proveedores pueden confirmar directamente desde su portal.</p>
+                <ul style="color:#42526E;font-size:.85rem;padding-left:1.2rem">
+                  <li>Crea órdenes de compra y envíalas como <strong>PDF profesional</strong>.</li>
+                  <li>Los proveedores con acceso al portal pueden <strong>confirmar la recepción</strong> de sus órdenes.</li>
+                  <li>Lleva un historial de cotizaciones por proveedor para <strong>comparar precios</strong>.</li>
+                </ul>
+              </div>
+            </div>
+            <!-- Step 8: Inventario -->
+            <div class="carousel-item">
+              <div style="padding:1.75rem">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <div style="width:36px;height:36px;background:#E3FCEF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-box-seam" style="color:#00875A;font-size:1.1rem"></i></div>
+                  <h5 class="mb-0 fw-bold" style="font-size:1rem">Inventario y Producción</h5>
+                </div>
+                <p style="color:#42526E;font-size:.9rem">Control completo de tu <strong>inventario de productos</strong> con lotes, NSO, y vencimientos. Gestiona <strong>órdenes de producción</strong> y reservas de materias primas.</p>
+                <ul style="color:#42526E;font-size:.85rem;padding-left:1.2rem">
+                  <li>Cada producto tiene <strong>código NSO, SKU y categoría</strong>.</li>
+                  <li>Las <strong>recetas (BOM)</strong> definen qué materias primas usa cada producto.</li>
+                  <li>Al crear una orden de producción, el sistema <strong>reserva automáticamente</strong> las materias.</li>
+                </ul>
+              </div>
+            </div>
+            <!-- Step 9: Finanzas -->
+            <div class="carousel-item">
+              <div style="padding:1.75rem">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <div style="width:36px;height:36px;background:#DEEBFF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-calculator" style="color:#0052CC;font-size:1.1rem"></i></div>
+                  <h5 class="mb-0 fw-bold" style="font-size:1rem">Finanzas y Gastos</h5>
+                </div>
+                <p style="color:#42526E;font-size:.9rem">Registra <strong>gastos operativos</strong>, configura <strong>reglas tributarias</strong> (IVA, retenciones) y lleva el libro contable de ingresos y egresos.</p>
+                <ul style="color:#42526E;font-size:.85rem;padding-left:1.2rem">
+                  <li>Las reglas tributarias se aplican automáticamente al calcular cotizaciones.</li>
+                  <li>El <strong>dashboard financiero</strong> muestra el balance del mes en tiempo real.</li>
+                  <li>Exporta reportes para tu contador.</li>
+                </ul>
+              </div>
+            </div>
+            <!-- Step 10: Admin -->
+            <div class="carousel-item">
+              <div style="padding:1.75rem">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <div style="width:36px;height:36px;background:#FFEBE6;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-shield-lock" style="color:#DE350B;font-size:1.1rem"></i></div>
+                  <h5 class="mb-0 fw-bold" style="font-size:1rem">Administración y Seguridad</h5>
+                </div>
+                <p style="color:#42526E;font-size:.9rem">Como administrador, controlas <strong>quién accede a qué</strong> en el sistema. Cada usuario tiene un rol con permisos específicos.</p>
+                <ul style="color:#42526E;font-size:.85rem;padding-left:1.2rem">
+                  <li><strong>Admin:</strong> acceso total al sistema.</li>
+                  <li><strong>Sales Manager / Vendedor:</strong> clientes, ventas, cotizaciones.</li>
+                  <li><strong>Portal Cliente:</strong> solo ve sus pedidos y puede solicitar cotizaciones.</li>
+                  <li><strong>Portal Proveedor:</strong> solo ve sus órdenes de compra.</li>
+                </ul>
+                <div style="background:#FFEBE6;border-radius:8px;padding:1rem;font-size:.83rem;color:#BF2600;margin-top:.75rem">
+                  La sesión se cierra automáticamente tras <strong>5 minutos</strong> de inactividad por seguridad.
                 </div>
               </div>
             </div>
@@ -1294,6 +1390,10 @@ function copiarTexto(el,txt){
             <button onclick="goStep(3)" class="ob-dot"></button>
             <button onclick="goStep(4)" class="ob-dot"></button>
             <button onclick="goStep(5)" class="ob-dot"></button>
+            <button onclick="goStep(6)" class="ob-dot"></button>
+            <button onclick="goStep(7)" class="ob-dot"></button>
+            <button onclick="goStep(8)" class="ob-dot"></button>
+            <button onclick="goStep(9)" class="ob-dot"></button>
           </div>
         </div>
       </div>
@@ -1317,7 +1417,7 @@ function copiarTexto(el,txt){
 .ob-dot-active{background:#0052CC;width:20px;border-radius:4px}
 </style>
 <script>
-var _obStep=0,_obTotal=6;
+var _obStep=0,_obTotal=10;
 function goStep(n){
   _obStep=n;
   var c=document.getElementById('onboardCarousel');
@@ -1337,14 +1437,13 @@ function cerrarOnboarding(){
 }
 document.getElementById('onboardCarousel').addEventListener('slid.bs.carousel',function(e){goStep(e.to);});
 </script>
-{% if not current_user.onboarding_dismissed %}
+{% if session.pop('show_onboarding_once', False) and not current_user.onboarding_dismissed %}
 <script>
 document.addEventListener('DOMContentLoaded',function(){
   setTimeout(function(){
     var m=document.getElementById('modalOnboarding');
-    if(m) new bootstrap.Modal(m).show();
-    goStep(0);
-  },900);
+    if(m){new bootstrap.Modal(m).show(); goStep(0);}
+  },800);
 });
 </script>
 {% endif %}
@@ -1400,9 +1499,6 @@ document.addEventListener('DOMContentLoaded',function(){
   </div>
 </div>
 
-{% if session.pop('show_quick_menu', False) %}
-<script>document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){new bootstrap.Modal(document.getElementById('modalQuickActions')).show();},700);});</script>
-{% endif %}
 {% block scripts %}{% endblock %}
 </body></html>"""
 
@@ -3844,11 +3940,12 @@ T['calendario.html'] = """{% extends 'base.html' %}
         {% endif %}
         {% for ev in evs[:3] %}
           {% set ev_cls = {'tarea':'ev-tarea','venta':'ev-venta','evento':'ev-evento','nota':'ev-nota','caducidad':'ev-caducidad'}.get(ev.t, 'ev-evento') %}
-          {% if ev.t == 'tarea' %}
-            <div class="cal-ev {{ ev_cls }}" data-titulo="{{ ev.n|e }}" data-desc="{{ ev.d|e }}" onclick="verTarea(event,this)" style="font-size:.68rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%;cursor:pointer">{{ ev.n|truncate(24,true,'…') }}</div>
-          {% else %}
-            <div class="cal-ev {{ ev_cls }}" title="{{ ev.n|e }}" style="font-size:.68rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%">{{ ev.n|truncate(24,true,'…') }}</div>
-          {% endif %}
+          <div class="cal-ev {{ ev_cls }}"
+               data-titulo="{{ ev.n|e }}"
+               data-desc="{{ ev.d|e }}"
+               data-tipo="{{ ev.t }}"
+               onclick="verEvento(event,this)"
+               style="font-size:.68rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%;cursor:pointer">{{ ev.n|truncate(24,true,'…') }}</div>
         {% endfor %}
         {% if evs|length > 3 %}
           <div style="font-size:.65rem;color:#8898aa">+{{ evs|length - 3 }} más</div>
@@ -3903,12 +4000,18 @@ T['calendario.html'] = """{% extends 'base.html' %}
 </div>
 {% block scripts %}
 <script>
-function verTarea(e,el){
+function verEvento(e,el){
   e.stopPropagation();
-  document.getElementById('modalTareaTitle').textContent = el.dataset.titulo||'Sin título';
-  document.getElementById('modalTareaDesc').textContent = el.dataset.desc||'Sin descripción';
+  var tipo = el.dataset.tipo || 'evento';
+  var iconMap = {tarea:'bi-check2-square',evento:'bi-calendar-event',venta:'bi-bag-fill',nota:'bi-sticky',caducidad:'bi-exclamation-triangle'};
+  var colorMap = {tarea:'#FF8B00',evento:'#0052CC',venta:'#00875A',nota:'#5243AA',caducidad:'#DE350B'};
+  var ic = iconMap[tipo]||'bi-calendar-event';
+  var col = colorMap[tipo]||'#172B4D';
+  document.getElementById('modalTareaTitle').innerHTML = '<i class="bi '+ic+' me-2" style="color:'+col+'"></i>'+( el.dataset.titulo||'Sin título');
+  document.getElementById('modalTareaDesc').textContent = el.dataset.desc||'Sin descripción adicional';
   new bootstrap.Modal(document.getElementById('modalVerTarea')).show();
 }
+function verTarea(e,el){ verEvento(e,el); }
 </script>
 {% endblock %}{% endblock %}"""
 
@@ -6698,6 +6801,125 @@ T['portal/manager_revisar.html'] = """{% extends 'base.html' %}
 </div>
 {% endblock %}"""
 
+T['portal/proveedor_sin_empresa.html'] = """{% extends 'base.html' %}
+{% block title %}Portal Proveedor{% endblock %}
+{% block page_title %}Portal Proveedor{% endblock %}
+{% block content %}
+<div class="empty-state" style="padding:4rem 2rem">
+  <i class="bi bi-truck"></i>
+  <h5>Cuenta no vinculada</h5>
+  <p>Tu cuenta no está asociada a ninguna empresa proveedora. Contacta al administrador.</p>
+</div>{% endblock %}"""
+
+T['portal/proveedor_index.html'] = """{% extends 'base.html' %}
+{% block title %}Portal Proveedor{% endblock %}
+{% block page_title %}Portal — {{ prov.nombre }}{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('portal_prov_ticket') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chat-left-text me-1"></i>Enviar Mensaje</a>
+{% endblock %}
+{% block content %}
+<div class="onboard-banner mb-3" style="background:linear-gradient(135deg,#253858,#344563)">
+  <div class="d-flex align-items-center gap-3 flex-wrap">
+    <div>
+      <h4 class="mb-1 fw-bold">{{ prov.nombre }}</h4>
+      {% if prov.nit %}<div style="opacity:.7;font-size:.85rem">NIT: {{ prov.nit }}</div>{% endif %}
+      {% if prov.contacto_nombre %}<div style="opacity:.8;font-size:.83rem;margin-top:.4rem"><i class="bi bi-person me-1"></i>Contacto: {{ prov.contacto_nombre }}</div>{% endif %}
+    </div>
+    <div class="ms-auto">
+      <span class="b" style="background:rgba(255,255,255,.15);color:#fff">{{ prov.categoria or 'Proveedor' }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- Órdenes de Compra -->
+<div class="tc mb-3">
+  <div class="ch"><i class="bi bi-cart-fill me-2"></i>Órdenes de Compra
+    <span class="b b-borrador">{{ ordenes|length }}</span>
+  </div>
+  {% if ordenes %}
+  <div class="table-responsive">
+    <table class="table">
+      <thead><tr>
+        <th>#</th><th>Fecha</th><th>Items</th><th>Total</th><th>Estado</th><th>Entrega</th><th></th>
+      </tr></thead>
+      <tbody>
+      {% for oc in ordenes %}
+      <tr>
+        <td><strong>{{ oc.numero or ('OC-'+oc.id|string) }}</strong></td>
+        <td>{{ oc.creado_en.strftime('%d/%m/%Y') }}</td>
+        <td>{{ oc.items|length }} ítem(s)</td>
+        <td>$ {{ '{:,.0f}'.format(oc.total or 0).replace(',','.') }}</td>
+        <td>
+          <span class="b b-{{ oc.estado or 'pendiente' }}">{{ (oc.estado or 'pendiente').replace('_',' ').title() }}</span>
+        </td>
+        <td style="font-size:.82rem;color:#6B778C">{{ oc.fecha_entrega.strftime('%d/%m/%Y') if oc.fecha_entrega else '—' }}</td>
+        <td>
+          {% if oc.estado in ['pendiente','enviada'] %}
+          <form method="POST" action="{{ url_for('portal_prov_confirmar_oc', id=oc.id) }}" style="display:inline">
+            <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('¿Confirmar recepción de esta orden?')">
+              <i class="bi bi-check-circle me-1"></i>Confirmar
+            </button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><i class="bi bi-cart"></i><p>Sin órdenes de compra aún</p></div>
+  {% endif %}
+</div>
+
+<!-- Cotizaciones de proveedor -->
+{% if cotizaciones %}
+<div class="tc mb-3">
+  <div class="ch"><i class="bi bi-file-text me-2"></i>Mis Cotizaciones</div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead><tr><th>#</th><th>Fecha</th><th>Descripción</th><th>Total</th><th>Estado</th></tr></thead>
+      <tbody>
+      {% for c in cotizaciones %}
+      <tr>
+        <td><strong>{{ c.numero or c.id }}</strong></td>
+        <td>{{ c.creado_en.strftime('%d/%m/%Y') }}</td>
+        <td>{{ c.descripcion or '—' }}</td>
+        <td>$ {{ '{:,.0f}'.format(c.total or 0).replace(',','.') }}</td>
+        <td><span class="b b-{{ c.estado or 'borrador' }}">{{ (c.estado or 'borrador').title() }}</span></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}"""
+
+T['portal/proveedor_ticket.html'] = """{% extends 'base.html' %}
+{% block title %}Mensaje{% endblock %}
+{% block page_title %}Enviar Mensaje al Equipo{% endblock %}
+{% block content %}
+<div class="fc">
+  <p style="color:#42526E;font-size:.9rem">Envía un mensaje o consulta directamente al equipo de compras.</p>
+  <form method="POST">
+    <div class="mb-3"><label class="form-label">Asunto <span class="req">*</span></label>
+      <input type="text" name="asunto" class="form-control" required placeholder="¿En qué podemos ayudarte?"></div>
+    <div class="mb-3"><label class="form-label">Mensaje <span class="req">*</span></label>
+      <textarea name="mensaje" class="form-control" rows="5" required placeholder="Describe tu consulta..."></textarea></div>
+    <div class="mb-3"><label class="form-label">Prioridad</label>
+      <select name="prioridad" class="form-select">
+        <option value="baja">Baja</option>
+        <option value="media" selected>Media</option>
+        <option value="alta">Alta — urgente</option>
+      </select></div>
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-primary"><i class="bi bi-send me-1"></i>Enviar</button>
+      <a href="{{ url_for('portal_proveedor') }}" class="btn btn-outline-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>{% endblock %}"""
+
 app.jinja_loader = DictLoader(T)
 
 # =============================================================
@@ -6712,7 +6934,7 @@ def login():
         if user and user.check_password(request.form.get('password','')) and user.activo:
             login_user(user, remember=bool(request.form.get('remember')))
             from flask import session as flask_session
-            flask_session['show_quick_menu'] = True
+            flask_session['show_onboarding_once'] = True
             ses = UserSesion(user_id=user.id); db.session.add(ses); db.session.commit()
             flask_session['sesion_id'] = ses.id
             flash(f'¡Bienvenido, {user.nombre}!', 'success')
@@ -7031,6 +7253,75 @@ def portal_precot_aceptar(id):
             url_for('portal_manager_revisar', id=pc.id)); db.session.commit()
     flash('Aceptaste la pre-cotización. Tu sales manager continuará el proceso.','success')
     return redirect(url_for('portal_cliente'))
+
+# =============================================================
+# PORTAL PROVEEDOR
+# =============================================================
+
+@app.route('/portal-proveedor')
+@login_required
+def portal_proveedor():
+    if current_user.rol != 'proveedor':
+        return redirect(url_for('dashboard'))
+    prov = Proveedor.query.get(current_user.proveedor_id) if current_user.proveedor_id else None
+    if not prov:
+        flash('Tu cuenta no está vinculada a una empresa proveedora.', 'warning')
+        return render_template('portal/proveedor_sin_empresa.html')
+    ordenes = OrdenCompra.query.filter_by(proveedor_id=prov.id).order_by(OrdenCompra.creado_en.desc()).limit(30).all()
+    cotizaciones = CotizacionProveedor.query.filter_by(proveedor_id=prov.id).order_by(CotizacionProveedor.creado_en.desc()).limit(20).all()
+    return render_template('portal/proveedor_index.html', prov=prov,
+                           ordenes=ordenes, cotizaciones=cotizaciones)
+
+@app.route('/portal-proveedor/confirmar-oc/<int:id>', methods=['POST'])
+@login_required
+def portal_prov_confirmar_oc(id):
+    if current_user.rol != 'proveedor':
+        return redirect(url_for('dashboard'))
+    oc = OrdenCompra.query.get_or_404(id)
+    prov = Proveedor.query.get(current_user.proveedor_id)
+    if not prov or oc.proveedor_id != prov.id:
+        flash('Sin permisos.','danger'); return redirect(url_for('portal_proveedor'))
+    oc.estado = 'confirmada'
+    db.session.commit()
+    # Notify purchaser
+    admins = User.query.filter(User.rol.in_(['admin','vendedor','sales_manager']), User.activo==True).all()
+    for a in admins[:2]:
+        _crear_notificacion(a.id, 'info',
+            f'OC confirmada por {prov.nombre}',
+            f'Orden {oc.numero or oc.id} confirmada. Fecha estimada: {oc.fecha_entrega or "por confirmar"}',
+            url=url_for('orden_compra_ver', id=oc.id))
+    db.session.commit()
+    flash('Orden de compra confirmada.','success')
+    return redirect(url_for('portal_proveedor'))
+
+@app.route('/portal-proveedor/ticket/nuevo', methods=['GET','POST'])
+@login_required
+def portal_prov_ticket():
+    if current_user.rol != 'proveedor':
+        return redirect(url_for('dashboard'))
+    prov = Proveedor.query.get(current_user.proveedor_id) if current_user.proveedor_id else None
+    if not prov:
+        flash('Sin empresa vinculada.','danger'); return redirect(url_for('portal_proveedor'))
+    if request.method == 'POST':
+        admins = User.query.filter(User.rol.in_(['admin','vendedor']), User.activo==True).all()
+        asignado = admins[0].id if admins else current_user.id
+        t = Tarea(
+            titulo=f"[Prov] {request.form.get('asunto','')}",
+            descripcion=f"De proveedor: {prov.nombre}\n\n{request.form.get('mensaje','')}",
+            estado='pendiente', prioridad=request.form.get('prioridad','media'),
+            asignado_a=asignado, creado_por=current_user.id
+        )
+        db.session.add(t); db.session.flush()
+        db.session.add(TareaAsignado(tarea_id=t.id, user_id=asignado))
+        db.session.commit()
+        if asignado != current_user.id:
+            _crear_notificacion(asignado,'tarea_asignada',
+                f'Mensaje de proveedor {prov.nombre}: {request.form.get("asunto","")}',
+                request.form.get('mensaje','')[:120],
+                url=url_for('tarea_ver', id=t.id)); db.session.commit()
+        flash('Mensaje enviado al equipo.','success')
+        return redirect(url_for('portal_proveedor'))
+    return render_template('portal/proveedor_ticket.html', prov=prov)
 
 # =============================================================
 # PROVEEDORES
@@ -8409,6 +8700,13 @@ def perfil():
 def mi_actividad():
     from datetime import date as date_type
     hoy = date_type.today()
+    # Compute uid ONCE at the beginning
+    uid = request.args.get('user_id', type=int, default=current_user.id)
+    if uid != current_user.id and current_user.rol != 'admin':
+        uid = current_user.id
+    target_user = User.query.get(uid) if uid != current_user.id else current_user
+    usuarios_lista = User.query.filter_by(activo=True).all() if current_user.rol == 'admin' else []
+
     # Last 6 months of activity
     meses = []
     for i in range(5, -1, -1):
@@ -8419,24 +8717,21 @@ def mi_actividad():
         inicio = datetime(y, m, 1)
         if m == 12: fin = datetime(y+1, 1, 1)
         else:       fin = datetime(y, m+1, 1)
-        # Target user (admin can view others)
-        uid = request.args.get('user_id', type=int, default=current_user.id)
-        if uid != current_user.id and current_user.rol != 'admin':
-            uid = current_user.id
         tareas_hechas = Tarea.query.filter(
             db.or_(Tarea.asignado_a==uid, Tarea.creado_por==uid),
             Tarea.estado=='completada',
             Tarea.creado_en>=inicio, Tarea.creado_en<fin
         ).count()
         act_count = Actividad.query.filter(
-            Actividad.user_id==uid,
+            Actividad.usuario_id==uid,
             Actividad.creado_en>=inicio, Actividad.creado_en<fin
         ).count()
-        clientes_nuevos = Cliente.query.join(Actividad, db.and_(
-            Actividad.tabla=='cliente', Actividad.registro_id==Cliente.id,
-            Actividad.tipo=='crear', Actividad.user_id==uid,
+        clientes_nuevos = Actividad.query.filter(
+            Actividad.usuario_id==uid,
+            Actividad.entidad=='cliente',
+            Actividad.tipo=='crear',
             Actividad.creado_en>=inicio, Actividad.creado_en<fin
-        )).count() if current_user.rol in ['admin','vendedor','sales_manager'] else 0
+        ).count() if current_user.rol in ['admin','vendedor','sales_manager'] else 0
         tiempo = db.session.query(db.func.sum(UserSesion.duracion_min)).filter(
             UserSesion.user_id==uid,
             UserSesion.login_at>=inicio, UserSesion.login_at<fin
@@ -8446,12 +8741,6 @@ def mi_actividad():
             'acciones': act_count, 'clientes': clientes_nuevos,
             'tiempo_min': round(tiempo)
         })
-    # Current month summary
-    mes_inicio = datetime(hoy.year, hoy.month, 1)
-    uid = request.args.get('user_id', type=int, default=current_user.id)
-    if uid != current_user.id and current_user.rol != 'admin': uid = current_user.id
-    target_user = User.query.get(uid) if uid != current_user.id else current_user
-    usuarios_lista = User.query.filter_by(activo=True).all() if current_user.rol == 'admin' else []
     return render_template('mi_actividad.html', meses=meses, target_user=target_user,
                            usuarios_lista=usuarios_lista, uid=uid)
 
