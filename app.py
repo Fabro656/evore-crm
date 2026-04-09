@@ -9312,6 +9312,12 @@ def _migrate(conn):
         # v14 — OrdenProduccion fechas para Gantt
         ("ALTER TABLE ordenes_produccion ADD COLUMN IF NOT EXISTS fecha_inicio_real DATE"),
         ("ALTER TABLE ordenes_produccion ADD COLUMN IF NOT EXISTS fecha_fin_estimada DATE"),
+        # v18 — Cliente información bancaria y legal
+        ("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS banco_nombre VARCHAR(120)"),
+        ("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS banco_cuenta VARCHAR(80)"),
+        ("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS banco_tipo VARCHAR(40)"),
+        ("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS banco_titular VARCHAR(120)"),
+        ("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS info_legal TEXT"),
     ]
     for sql in migrations:
         try:
