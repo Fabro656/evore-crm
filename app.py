@@ -1077,6 +1077,16 @@ T['base.html'] = """<!DOCTYPE html>
 <!-- Mobile overlay -->
 <div id="sb-overlay" onclick="closeSB()"></div>
 <div id="main">
+  {% if session.get('admin_real_id') %}
+  <div style="background:#FF8B00;color:#fff;padding:.55rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;font-size:.84rem;font-weight:600;position:sticky;top:0;z-index:200">
+    <span><i class="bi bi-eye-fill me-2"></i>Viendo como: <strong>{{ current_user.nombre }}</strong> ({{ current_user.rol }})</span>
+    <form method="POST" action="{{ url_for('admin_volver') }}" style="margin:0">
+      <button type="submit" class="btn btn-sm" style="background:#fff;color:#FF8B00;border:none;font-weight:700;padding:4px 12px;border-radius:4px">
+        <i class="bi bi-arrow-left-circle me-1"></i>Volver a Admin
+      </button>
+    </form>
+  </div>
+  {% endif %}
   <div class="topbar">
     <!-- Hamburger for mobile -->
     <button id="sb-tog" onclick="openSB()" aria-label="Menú"><i class="bi bi-list"></i></button>
@@ -3664,44 +3674,120 @@ function chkRec(){document.getElementById('divPlantilla').style.display=document
 T['admin/usuarios.html'] = """{% extends 'base.html' %}
 {% block title %}Usuarios{% endblock %}{% block page_title %}Gestión de Usuarios{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('admin_usuario_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo Usuario</a>{% endblock %}
-{% block content %}<div class="tc"><div class="ch"><i class="bi bi-shield-person-fill me-2"></i>{{ items|length }} usuario(s)</div>
-<table class="table"><thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th>Alta</th><th></th></tr></thead>
-<tbody>{% for u in items %}<tr>
-  <td><div class="d-flex align-items-center gap-2">
-    <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
-         style="width:30px;height:30px;background:#5e72e4;font-size:.8rem;flex-shrink:0">{{ u.nombre[0].upper() }}</div>
-    <div class="fw-semibold" style="color:#1a1f36">{{ u.nombre }}</div></div></td>
-  <td>{{ u.email }}</td>
-  <td><span class="badge {{ 'bg-primary' if u.rol=='admin' else 'bg-secondary' }}">{{ u.rol.title() }}</span></td>
-  <td><span class="b b-{{ 'activo' if u.activo else 'inactivo' }}">{{ 'Activo' if u.activo else 'Inactivo' }}</span></td>
-  <td><small class="text-muted">{{ u.creado_en.strftime('%d/%m/%Y') }}</small></td>
-  <td>
-    <a href="{{ url_for('admin_usuario_editar', id=u.id) }}" class="btn btn-sm btn-outline-secondary me-1"><i class="bi bi-pencil"></i></a>
-    {% if u.id != current_user.id %}
-    <form method="POST" action="{{ url_for('admin_usuario_toggle', id=u.id) }}" class="d-inline">
-      <button class="btn btn-sm {{ 'btn-outline-warning' if u.activo else 'btn-outline-success' }}">
-        {{ 'Desactivar' if u.activo else 'Activar' }}</button></form>
-    {% else %}<small class="text-muted">(tú)</small>{% endif %}</td>
-</tr>{% endfor %}</tbody></table></div>{% endblock %}"""
+{% block content %}
+<div class="tc mb-3">
+  <div class="ch"><i class="bi bi-shield-person-fill me-2"></i>{{ items|length }} usuario(s)
+    <small class="text-muted fw-normal ms-2">— Click en <i class="bi bi-eye"></i> para ver la app desde la perspectiva de ese usuario</small>
+  </div>
+  <div class="table-responsive">
+  <table class="table"><thead><tr>
+    <th>Nombre</th><th>Email</th><th>Rol</th>
+    <th class="hide-mobile">Empresa vinculada</th>
+    <th>Estado</th><th class="hide-mobile">Alta</th><th></th>
+  </tr></thead>
+  <tbody>{% for u in items %}<tr>
+    <td><div class="d-flex align-items-center gap-2">
+      <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
+           style="width:30px;height:30px;flex-shrink:0;font-size:.8rem;
+           background:{% if u.rol=='admin' %}#DE350B{% elif u.rol=='cliente' %}#00875A{% elif u.rol=='proveedor' %}#5243AA{% elif u.rol=='sales_manager' %}#FF8B00{% else %}#0052CC{% endif %}">
+        {{ u.nombre[0].upper() }}</div>
+      <div>
+        <div class="fw-semibold" style="color:#1a1f36;font-size:.88rem">{{ u.nombre }}</div>
+        <div class="text-muted" style="font-size:.75rem">{{ u.email }}</div>
+      </div>
+    </div></td>
+    <td class="hide-mobile"><small class="text-muted">{{ u.email }}</small></td>
+    <td>
+      <span class="b b-{% if u.rol=='admin' %}alta{% elif u.rol=='cliente' %}activo{% elif u.rol=='proveedor' %}reunion{% elif u.rol=='sales_manager' %}negociacion{% else %}borrador{% endif %}">
+        {{ {'admin':'Admin','cliente':'Cliente','proveedor':'Proveedor','sales_manager':'Sales Mgr','vendedor':'Vendedor','produccion':'Producción','contador':'Contador'}.get(u.rol, u.rol) }}
+      </span>
+    </td>
+    <td class="hide-mobile">
+      {% if u.rol=='cliente' and u.cliente_id %}
+        {% set cli=None %}{% for c in clientes_all %}{% if c.id==u.cliente_id %}{% set cli=c %}{% endif %}{% endfor %}
+        <small><i class="bi bi-building me-1 text-success"></i>{{ cli.empresa or cli.nombre if cli else '—' }}</small>
+      {% elif u.rol=='proveedor' and u.proveedor_id %}
+        {% set prov=None %}{% for p in proveedores_all %}{% if p.id==u.proveedor_id %}{% set prov=p %}{% endif %}{% endfor %}
+        <small><i class="bi bi-truck me-1 text-primary"></i>{{ prov.empresa or prov.nombre if prov else '—' }}</small>
+      {% else %}<span class="text-muted">—</span>{% endif %}
+    </td>
+    <td><span class="b b-{{ 'activo' if u.activo else 'inactivo' }}">{{ 'Activo' if u.activo else 'Inactivo' }}</span></td>
+    <td class="hide-mobile"><small class="text-muted">{{ u.creado_en.strftime('%d/%m/%Y') }}</small></td>
+    <td>
+      <div class="d-flex gap-1 flex-wrap">
+        <a href="{{ url_for('admin_usuario_editar', id=u.id) }}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
+        {% if u.id != current_user.id %}
+        <form method="POST" action="{{ url_for('admin_impersonar', id=u.id) }}" class="d-inline" title="Ver app como este usuario">
+          <button class="btn btn-sm btn-outline-primary" title="Ver como {{ u.nombre }}"><i class="bi bi-eye"></i></button></form>
+        <form method="POST" action="{{ url_for('admin_usuario_toggle', id=u.id) }}" class="d-inline">
+          <button class="btn btn-sm {{ 'btn-outline-warning' if u.activo else 'btn-outline-success' }}" title="{{ 'Desactivar' if u.activo else 'Activar' }}">
+            <i class="bi bi-{{ 'pause-circle' if u.activo else 'play-circle' }}"></i></button></form>
+        {% else %}<span class="text-muted small">(tú)</span>{% endif %}
+      </div>
+    </td>
+  </tr>{% endfor %}</tbody></table>
+  </div>
+</div>{% endblock %}"""
 
 T['admin/usuario_form.html'] = """{% extends 'base.html' %}
 {% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('admin_usuarios') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
-{% block content %}<div class="fc"><form method="POST"><div class="row g-3">
+{% block content %}<div class="fc" style="max-width:860px"><form method="POST"><div class="row g-3">
   <div class="col-md-6"><label class="form-label">Nombre *</label>
     <input type="text" name="nombre" class="form-control" value="{{ obj.nombre if obj else '' }}" required></div>
   <div class="col-md-6"><label class="form-label">Email *</label>
     <input type="email" name="email" class="form-control" value="{{ obj.email if obj else '' }}" required></div>
   <div class="col-md-6"><label class="form-label">Contraseña {% if obj %}(dejar vacío para no cambiar){% else %}*{% endif %}</label>
-    <input type="password" name="password" class="form-control" {% if not obj %}required{% endif %}></div>
-  <div class="col-md-6"><label class="form-label">Rol base</label>
+    <input type="password" name="password" class="form-control" {% if not obj %}required{% endif %} autocomplete="new-password"></div>
+  <div class="col-md-6"><label class="form-label">Rol</label>
     <select name="rol" id="rolSel" class="form-select" onchange="applyRol()">
-      <option value="usuario" {% if obj and obj.rol=='usuario' %}selected{% endif %}>Usuario básico</option>
-      <option value="vendedor" {% if obj and obj.rol=='vendedor' %}selected{% endif %}>Vendedor</option>
-      <option value="produccion" {% if obj and obj.rol=='produccion' %}selected{% endif %}>Producción</option>
-      <option value="contador" {% if obj and obj.rol=='contador' %}selected{% endif %}>Contador</option>
-      <option value="admin" {% if obj and obj.rol=='admin' %}selected{% endif %}>Administrador (acceso total)</option>
-    </select></div>
+      <optgroup label="— Equipo interno —">
+        <option value="usuario" {% if obj and obj.rol=='usuario' %}selected{% endif %}>👤 Usuario básico</option>
+        <option value="vendedor" {% if obj and obj.rol=='vendedor' %}selected{% endif %}>🤝 Vendedor</option>
+        <option value="sales_manager" {% if obj and obj.rol=='sales_manager' %}selected{% endif %}>⭐ Sales Manager</option>
+        <option value="produccion" {% if obj and obj.rol=='produccion' %}selected{% endif %}>🏭 Producción</option>
+        <option value="contador" {% if obj and obj.rol=='contador' %}selected{% endif %}>📊 Contador</option>
+        <option value="admin" {% if obj and obj.rol=='admin' %}selected{% endif %}>🔐 Administrador (acceso total)</option>
+      </optgroup>
+      <optgroup label="— Portales externos —">
+        <option value="cliente" {% if obj and obj.rol=='cliente' %}selected{% endif %}>🏢 Portal Cliente</option>
+        <option value="proveedor" {% if obj and obj.rol=='proveedor' %}selected{% endif %}>🚚 Portal Proveedor</option>
+      </optgroup>
+    </select>
+    <div class="form-text">Los portales Cliente y Proveedor ven una interfaz simplificada con solo su información.</div>
+  </div>
+
+  <!-- Cliente selector — solo visible cuando rol=cliente -->
+  <div class="col-12" id="divCliente" style="display:none">
+    <div class="form-section">
+      <div class="form-section-title"><i class="bi bi-building me-1"></i>Empresa cliente vinculada</div>
+      <select name="cliente_id" class="form-select">
+        <option value="">— Seleccionar cliente —</option>
+        {% for c in clientes_list %}
+        <option value="{{ c.id }}" {% if obj and obj.cliente_id==c.id %}selected{% endif %}>
+          {{ c.empresa or c.nombre }}{% if c.empresa %} ({{ c.nombre }}){% endif %}
+        </option>{% endfor %}
+      </select>
+      <div class="form-text">El usuario solo verá pedidos, cotizaciones y datos de esta empresa.</div>
+    </div>
+  </div>
+
+  <!-- Proveedor selector — solo visible cuando rol=proveedor -->
+  <div class="col-12" id="divProveedor" style="display:none">
+    <div class="form-section">
+      <div class="form-section-title"><i class="bi bi-truck me-1"></i>Empresa proveedora vinculada</div>
+      <select name="proveedor_id" class="form-select">
+        <option value="">— Seleccionar proveedor —</option>
+        {% for p in proveedores_list %}
+        <option value="{{ p.id }}" {% if obj and obj.proveedor_id==p.id %}selected{% endif %}>
+          {{ p.empresa or p.nombre }}
+        </option>{% endfor %}
+      </select>
+      <div class="form-text">El usuario solo verá las órdenes de compra y datos de esta empresa.</div>
+    </div>
+  </div>
+
+  <!-- Módulos — oculto para portales externos -->
   <div class="col-12" id="divModulos">
     <label class="form-label fw-semibold">Módulos permitidos <small class="text-muted fw-normal">(personalizar acceso)</small></label>
     <div class="row g-2 mt-1">
@@ -3718,7 +3804,7 @@ T['admin/usuario_form.html'] = """{% extends 'base.html' %}
         </div>
       </div>{% endfor %}
     </div>
-    <small class="text-muted">El rol "Administrador" ignora esta lista y tiene acceso a todo.</small>
+    <small class="text-muted">Los roles Admin, Cliente y Proveedor ignoran esta lista.</small>
   </div>
 </div>
 <div class="d-flex gap-2 mt-4">
@@ -3727,18 +3813,26 @@ T['admin/usuario_form.html'] = """{% extends 'base.html' %}
 </div></form></div>
 {% block scripts %}<script>
 var ROL_MODULOS = {
-  usuario:    ['tareas','notas','calendario'],
-  vendedor:   ['clientes','ventas','cotizaciones','tareas','calendario','notas','proveedores','cotizaciones_proveedor'],
-  produccion: ['inventario','produccion','gastos','notas','calendario','tareas'],
-  contador:   ['gastos','reportes','produccion','notas','finanzas'],
-  admin:      ['clientes','ventas','cotizaciones','tareas','calendario','notas','inventario','produccion','gastos','reportes','proveedores','ordenes_compra','legal','finanzas','cotizaciones_proveedor','comercial','config']
+  usuario:       ['tareas','notas','calendario'],
+  vendedor:      ['clientes','ventas','cotizaciones','tareas','calendario','notas','proveedores','cotizaciones_proveedor'],
+  sales_manager: ['clientes','ventas','cotizaciones','tareas','calendario','notas','proveedores','ordenes_compra','cotizaciones_proveedor'],
+  produccion:    ['inventario','produccion','gastos','notas','calendario','tareas'],
+  contador:      ['gastos','reportes','produccion','notas','finanzas'],
+  admin:         ['clientes','ventas','cotizaciones','tareas','calendario','notas','inventario','produccion','gastos','reportes','proveedores','ordenes_compra','legal','finanzas','cotizaciones_proveedor','comercial','config'],
+  cliente:       [],
+  proveedor:     []
 };
+var PORTAL_ROLES = ['cliente','proveedor'];
 function applyRol(){
-  var rol=document.getElementById('rolSel').value;
-  var mods=ROL_MODULOS[rol]||[];
+  var rol = document.getElementById('rolSel').value;
+  var mods = ROL_MODULOS[rol] || [];
   document.querySelectorAll('.mod-check').forEach(function(c){c.checked=mods.includes(c.value);});
-  document.getElementById('divModulos').style.opacity=rol==='admin'?'0.5':'1';
+  var isPortal = PORTAL_ROLES.includes(rol);
+  document.getElementById('divModulos').style.display = (rol==='admin' || isPortal) ? 'none' : '';
+  document.getElementById('divCliente').style.display  = rol==='cliente'   ? '' : 'none';
+  document.getElementById('divProveedor').style.display = rol==='proveedor' ? '' : 'none';
 }
+document.addEventListener('DOMContentLoaded', applyRol);
 </script>{% endblock %}{% endblock %}"""
 
 T['perfil.html'] = """{% extends 'base.html' %}
@@ -8680,7 +8774,10 @@ def gasto_plantilla_usar(id):
 def admin_usuarios():
     if current_user.rol != 'admin':
         flash('Sin permisos.','danger'); return redirect(url_for('dashboard'))
-    return render_template('admin/usuarios.html', items=User.query.order_by(User.nombre).all())
+    return render_template('admin/usuarios.html',
+        items=User.query.order_by(User.nombre).all(),
+        clientes_all=Cliente.query.filter_by(estado='activo').all(),
+        proveedores_all=Proveedor.query.filter_by(activo=True).all())
 
 @app.route('/admin/usuarios/nuevo', methods=['GET','POST'])
 @login_required
@@ -8695,12 +8792,22 @@ def admin_usuario_nuevo():
             flash('Ya existe ese email.','danger')
         else:
             modulos_sel = request.form.getlist('modulos')
-            u=User(nombre=request.form['nombre'],email=request.form['email'],
-                   rol=request.form.get('rol','usuario'),
-                   modulos_permitidos=json.dumps(modulos_sel) if modulos_sel else '[]')
+            rol = request.form.get('rol','usuario')
+            u = User(nombre=request.form['nombre'], email=request.form['email'],
+                     rol=rol,
+                     modulos_permitidos=json.dumps(modulos_sel) if modulos_sel else '[]')
+            if rol == 'cliente':
+                cli_id = request.form.get('cliente_id')
+                u.cliente_id = int(cli_id) if cli_id else None
+            if rol == 'proveedor':
+                prov_id = request.form.get('proveedor_id')
+                u.proveedor_id = int(prov_id) if prov_id else None
             u.set_password(_pwd); db.session.add(u); db.session.commit()
             flash('Usuario creado.','success'); return redirect(url_for('admin_usuarios'))
-    return render_template('admin/usuario_form.html', obj=None, titulo='Nuevo Usuario')
+    clientes_list  = Cliente.query.filter_by(estado='activo').order_by(Cliente.empresa, Cliente.nombre).all()
+    proveedores_list = Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa, Proveedor.nombre).all()
+    return render_template('admin/usuario_form.html', obj=None, titulo='Nuevo Usuario',
+                           clientes_list=clientes_list, proveedores_list=proveedores_list)
 
 @app.route('/admin/usuarios/<int:id>/toggle', methods=['POST'])
 @login_required
@@ -8711,6 +8818,42 @@ def admin_usuario_toggle(id):
     if u.id != current_user.id:
         u.activo=not u.activo; db.session.commit()
         flash(f'Usuario {"activado" if u.activo else "desactivado"}.','info')
+    return redirect(url_for('admin_usuarios'))
+
+@app.route('/admin/impersonar/<int:id>', methods=['POST'])
+@login_required
+def admin_impersonar(id):
+    """Admin can temporarily view the app as another user."""
+    if current_user.rol != 'admin':
+        flash('Sin permisos.','danger'); return redirect(url_for('dashboard'))
+    target = User.query.get_or_404(id)
+    # Save real admin id in session
+    flask_session['admin_real_id'] = current_user.id
+    from flask_login import login_user
+    login_user(target, remember=False)
+    flash(f'Viendo la app como: {target.nombre} ({target.rol}). Usa "Volver a admin" para regresar.','warning')
+    # Redirect to appropriate portal
+    if target.rol == 'cliente':
+        return redirect(url_for('portal_cliente'))
+    elif target.rol == 'proveedor':
+        return redirect(url_for('portal_proveedor'))
+    return redirect(url_for('dashboard'))
+
+@app.route('/admin/volver', methods=['POST'])
+@login_required
+def admin_volver():
+    """Return to real admin account after impersonation."""
+    admin_id = flask_session.pop('admin_real_id', None)
+    if not admin_id:
+        flash('No hay sesión de administrador guardada.','warning')
+        return redirect(url_for('dashboard'))
+    admin_user = User.query.get(admin_id)
+    if not admin_user or admin_user.rol != 'admin':
+        flash('Administrador no encontrado.','danger')
+        return redirect(url_for('dashboard'))
+    from flask_login import login_user
+    login_user(admin_user, remember=False)
+    flash(f'Bienvenido de vuelta, {admin_user.nombre}.','success')
     return redirect(url_for('admin_usuarios'))
 
 # =============================================================
@@ -10168,13 +10311,30 @@ def admin_usuario_editar(id):
             u.set_password(_pwd)
         elif _pwd and len(_pwd) < 8:
             flash('Contraseña muy corta (mín. 8 caracteres).','danger')
-            return render_template('admin/usuario_form.html', obj=u, titulo='Editar Usuario')
+            clientes_list  = Cliente.query.filter_by(estado='activo').order_by(Cliente.empresa, Cliente.nombre).all()
+            proveedores_list = Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa, Proveedor.nombre).all()
+            return render_template('admin/usuario_form.html', obj=u, titulo='Editar Usuario',
+                                   clientes_list=clientes_list, proveedores_list=proveedores_list)
+        # Roles de portal: vincular empresa
+        if u.rol == 'cliente':
+            cli_id = request.form.get('cliente_id')
+            u.cliente_id = int(cli_id) if cli_id else None
+        else:
+            u.cliente_id = None
+        if u.rol == 'proveedor':
+            prov_id = request.form.get('proveedor_id')
+            u.proveedor_id = int(prov_id) if prov_id else None
+        else:
+            u.proveedor_id = None
         # Guardar módulos personalizados
         modulos_sel = request.form.getlist('modulos')
         u.modulos_permitidos = json.dumps(modulos_sel) if modulos_sel else '[]'
         db.session.commit()
         flash('Usuario actualizado.','success'); return redirect(url_for('admin_usuarios'))
-    return render_template('admin/usuario_form.html', obj=u, titulo='Editar Usuario')
+    clientes_list  = Cliente.query.filter_by(estado='activo').order_by(Cliente.empresa, Cliente.nombre).all()
+    proveedores_list = Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa, Proveedor.nombre).all()
+    return render_template('admin/usuario_form.html', obj=u, titulo='Editar Usuario',
+                           clientes_list=clientes_list, proveedores_list=proveedores_list)
 
 # =============================================================
 # =============================================================
@@ -10663,6 +10823,14 @@ def _migrate(conn):
         ("ALTER TABLE ordenes_compra ADD COLUMN IF NOT EXISTS confirmado_en TIMESTAMP"),
         ("ALTER TABLE ordenes_compra ADD COLUMN IF NOT EXISTS confirmado_por INTEGER REFERENCES users(id)"),
         ("ALTER TABLE ordenes_compra ADD COLUMN IF NOT EXISTS estado_proveedor VARCHAR(30) DEFAULT 'pendiente'"),
+        # v19 — Cotizaciones columnas faltantes (anticipo, saldo, numero, fecha_entrega_est)
+        ("ALTER TABLE cotizaciones ADD COLUMN IF NOT EXISTS numero VARCHAR(20)"),
+        ("ALTER TABLE cotizaciones ADD COLUMN IF NOT EXISTS porcentaje_anticipo FLOAT DEFAULT 50"),
+        ("ALTER TABLE cotizaciones ADD COLUMN IF NOT EXISTS monto_anticipo FLOAT DEFAULT 0"),
+        ("ALTER TABLE cotizaciones ADD COLUMN IF NOT EXISTS saldo FLOAT DEFAULT 0"),
+        ("ALTER TABLE cotizaciones ADD COLUMN IF NOT EXISTS fecha_entrega_est DATE"),
+        # v19 — Proveedor contacto
+        ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS contacto_nombre VARCHAR(100)"),
     ]
     for sql in migrations:
         try:
