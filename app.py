@@ -1181,6 +1181,13 @@ html[data-theme="dark"] .form-section{background:var(--surface2);border-color:va
 html[data-theme="dark"] .dropdown-menu{background:var(--surface);border-color:var(--border)}
 html[data-theme="dark"] .dropdown-item{color:var(--text)}
 html[data-theme="dark"] .dropdown-item:hover{background:var(--surface2)}
+html[data-theme="dark"] .table>:not(caption)>*>*{background-color:var(--surface);color:var(--text);border-color:var(--border)}
+html[data-theme="dark"] .table-striped>tbody>tr:nth-of-type(odd)>*{background-color:var(--surface2);color:var(--text)}
+html[data-theme="dark"] .table tbody tr:hover>*{background-color:var(--surface2)!important;color:var(--text)}
+html[data-theme="dark"] .table tbody tr:last-child td{border-bottom:none}
+html[data-theme="dark"] .thead-light th,html[data-theme="dark"] .table th{background:var(--surface2)!important;color:var(--text2)!important;border-color:var(--border)!important}
+html[data-theme="dark"] .dropdown-menu{color:var(--text)}
+html[data-theme="dark"] .dropdown-menu .dropdown-divider{border-color:var(--border)}
 html[data-theme="dark"] .modal-content{background:var(--surface);color:var(--text)}
 html[data-theme="dark"] .modal-header{border-color:var(--border)}
 html[data-theme="dark"] .modal-footer{background:var(--surface);border-color:var(--border)}
@@ -1333,18 +1340,18 @@ T['base.html'] = """<!DOCTYPE html>
               onclick="toggleTheme()" title="Cambiar tema">
         <i class="bi bi-sun-fill" id="themeIcon" style="font-size:.9rem"></i>
       </button>
-      <button class="btn btn-sm d-none d-md-inline-flex" style="background:none;border:1px solid #DFE1E6;color:#42526E;padding:4px 10px;font-size:.78rem" onclick="new bootstrap.Modal(document.getElementById('modalOnboarding')).show();goStep(0);" title="Ver tutorial">
+      <button class="btn btn-sm d-none d-md-inline-flex" style="background:none;border:1px solid var(--border);color:var(--text2);padding:4px 10px;font-size:.78rem" onclick="new bootstrap.Modal(document.getElementById('modalOnboarding')).show();goStep(0);" title="Ver tutorial">
         <i class="bi bi-question-circle me-1"></i>Ayuda
       </button>
       <div class="dropdown">
-        <button class="btn btn-sm dropdown-toggle d-flex align-items-center gap-2" style="background:none;border:1px solid #DFE1E6;padding:5px 10px;border-radius:20px;color:#172B4D" data-bs-toggle="dropdown">
+        <button class="btn btn-sm dropdown-toggle d-flex align-items-center gap-2" style="background:none;border:1px solid var(--border);padding:5px 10px;border-radius:20px;color:var(--text)" data-bs-toggle="dropdown">
           <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold" style="width:26px;height:26px;font-size:.72rem;flex-shrink:0">{{ current_user.nombre[0].upper() }}</div>
           <span class="d-none d-md-inline" style="font-size:.82rem;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ current_user.nombre.split()[0] }}</span>
         </button>
-        <ul class="dropdown-menu dropdown-menu-end" style="min-width:200px;border-radius:8px;box-shadow:0 8px 24px rgba(9,30,66,.15);border:1px solid #DFE1E6;padding:.4rem 0">
+        <ul class="dropdown-menu dropdown-menu-end" style="min-width:200px;border-radius:8px;box-shadow:0 8px 24px rgba(9,30,66,.15);border:1px solid var(--border);padding:.4rem 0">
           <li><div style="padding:.6rem 1rem .3rem">
-            <div style="font-weight:700;font-size:.85rem;color:#172B4D">{{ current_user.nombre }}</div>
-            <div style="font-size:.75rem;color:#6B778C">{{ current_user.email }}</div>
+            <div style="font-weight:700;font-size:.85rem;color:var(--text)">{{ current_user.nombre }}</div>
+            <div style="font-size:.75rem;color:var(--text2)">{{ current_user.email }}</div>
             <span class="b b-negociacion mt-1 d-inline-block">{{ current_user.rol }}</span>
           </div></li>
           <li><hr class="dropdown-divider my-1"></li>
@@ -1379,7 +1386,27 @@ T['base.html'] = """<!DOCTYPE html>
   </div>
 </div>
 <!-- Buscador flotante -->
-<button id="diagBtn" onclick="window.location='/buscador'" title="Buscador global"><i class="bi bi-search"></i></button>
+<button id="diagBtn" onclick="abrirBuscador()" title="Buscador global (Ctrl+K)"><i class="bi bi-search"></i></button>
+<!-- Search overlay -->
+<div id="searchOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);backdrop-filter:blur(3px)" onclick="if(event.target===this)cerrarBuscador()">
+  <div style="max-width:580px;margin:80px auto 0;padding:0 1rem">
+    <div style="background:var(--surface);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;border:1px solid var(--border)">
+      <div style="padding:.85rem 1rem;display:flex;align-items:center;gap:.75rem;border-bottom:1px solid var(--border)">
+        <i class="bi bi-search" style="color:var(--text2);font-size:1.05rem;flex-shrink:0"></i>
+        <input type="text" id="searchInput" placeholder="Buscar clientes, ventas, productos, proveedores..."
+               style="border:none;outline:none;flex:1;font-size:.95rem;background:transparent;color:var(--text)"
+               oninput="doBuscar(this.value)" onkeydown="handleSearchKey(event)">
+        <kbd style="font-size:.7rem;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;flex-shrink:0">ESC</kbd>
+      </div>
+      <div id="searchResults" style="max-height:380px;overflow-y:auto;padding:.5rem 0">
+        <div style="text-align:center;padding:2rem;color:var(--text2);font-size:.85rem">
+          <i class="bi bi-search" style="font-size:1.5rem;display:block;margin-bottom:.5rem;opacity:.35"></i>
+          Escribe para buscar en todo el sistema
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 """ + _BSJ + """
 <script>
 // ── Sidebar mobile drawer ─────────────────────────
@@ -1431,7 +1458,57 @@ document.addEventListener('click',function(e){
   var dd=document.getElementById('notifDd');
   if(dd&&!dd.contains(e.target)&&e.target.id!=='notifBtn')dd.style.display='none';
 });
-// Buscador: handled by direct link
+// ── Overlay Buscador ──────────────────────────
+var _srchTimer=null;
+function abrirBuscador(){
+  document.getElementById('searchOverlay').style.display='block';
+  setTimeout(function(){document.getElementById('searchInput').focus();},50);
+  document.getElementById('searchResults').innerHTML='<div style="text-align:center;padding:2rem;color:var(--text2);font-size:.85rem"><i class="bi bi-search" style="font-size:1.5rem;display:block;margin-bottom:.5rem;opacity:.35"></i>Escribe para buscar en todo el sistema</div>';
+  document.getElementById('searchInput').value='';
+}
+function cerrarBuscador(){
+  document.getElementById('searchOverlay').style.display='none';
+}
+function handleSearchKey(e){
+  if(e.key==='Escape') cerrarBuscador();
+  if(e.key==='Enter'){
+    var q=document.getElementById('searchInput').value.trim();
+    if(q) window.location='/buscador?q='+encodeURIComponent(q);
+  }
+}
+function doBuscar(q){
+  clearTimeout(_srchTimer);
+  if(!q||q.length<2){
+    document.getElementById('searchResults').innerHTML='<div style="text-align:center;padding:2rem;color:var(--text2);font-size:.85rem"><i class="bi bi-search" style="font-size:1.5rem;display:block;margin-bottom:.5rem;opacity:.35"></i>Escribe para buscar en todo el sistema</div>';
+    return;
+  }
+  document.getElementById('searchResults').innerHTML='<div style="text-align:center;padding:1.5rem;color:var(--text2);font-size:.85rem"><i class="bi bi-hourglass-split"></i> Buscando...</div>';
+  _srchTimer=setTimeout(function(){
+    fetch('/api/buscar?q='+encodeURIComponent(q))
+      .then(function(r){return r.json();})
+      .then(function(data){
+        var html='';
+        if(!data.results||data.results.length===0){
+          html='<div style="text-align:center;padding:2rem;color:var(--text2);font-size:.85rem"><i class="bi bi-emoji-frown" style="font-size:1.3rem;display:block;margin-bottom:.5rem;opacity:.35"></i>Sin resultados para "'+q+'"</div>';
+        } else {
+          data.results.forEach(function(r){
+            html+='<a href="'+r.url+'" onclick="cerrarBuscador()" style="display:flex;align-items:center;gap:.75rem;padding:.6rem 1.1rem;text-decoration:none;transition:background .12s" onmouseover="this.style.background=\'var(--surface2)\'" onmouseout="this.style.background=\'transparent\'">'
+              +'<span style="width:32px;height:32px;border-radius:8px;background:'+r.color+'22;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-'+r.icon+'" style="color:'+r.color+';font-size:.9rem"></i></span>'
+              +'<span style="flex:1;min-width:0"><span style="display:block;font-size:.85rem;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.label+'</span>'
+              +(r.sub?'<span style="display:block;font-size:.75rem;color:var(--text2)">'+r.sub+'</span>':'')+'</span>'
+              +'<span style="font-size:.7rem;color:var(--text2);background:var(--surface2);padding:2px 7px;border-radius:10px;flex-shrink:0">'+r.type+'</span></a>';
+          });
+          html+='<div style="padding:.5rem 1.1rem;border-top:1px solid var(--border);text-align:center"><a href="/buscador?q='+encodeURIComponent(q)+'" onclick="cerrarBuscador()" style="font-size:.78rem;color:var(--ac);text-decoration:none">Ver todos los resultados →</a></div>';
+        }
+        document.getElementById('searchResults').innerHTML=html;
+      })
+      .catch(function(){document.getElementById('searchResults').innerHTML='<div style="text-align:center;padding:1.5rem;color:var(--text2);font-size:.85rem">Error al buscar</div>';});
+  }, 300);
+}
+// Ctrl+K shortcut to open search
+document.addEventListener('keydown',function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();abrirBuscador();}
+});
 </script>
 <script>
 /* ── Auto-título global ─────────────────────────────────────────
@@ -6940,7 +7017,141 @@ T['mi_actividad.html'] = """{% extends 'base.html' %}
 </div>
 {% endblock %}"""
 
-T['portal/sin_empresa.html'] = """{% extends 'base.html' %}
+T['portal_base.html'] = """<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}Portal{% endblock %} — EVORE</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<script>
+(function(){
+  var t=localStorage.getItem('evore_theme')||'light';
+  document.documentElement.setAttribute('data-theme',t);
+})();
+</script>
+<style>
+:root{
+  --ac:#2563EB;--bg:#F8FAFC;--surface:#FFFFFF;--surface2:#F1F5F9;
+  --border:#E2E8F0;--text:#0F172A;--text2:#64748B;
+  --topbar-bg:#FFFFFF;--topbar-border:#E2E8F0;--input-bg:#FFFFFF;
+  --shadow:0 1px 3px rgba(0,0,0,.07);--radius:10px;
+  --green:#00875A;--red:#DE350B;--orange:#FF8B00;
+}
+html[data-theme="dark"]{
+  --ac:#3B82F6;--bg:#0D1117;--surface:#161B22;--surface2:#1C2333;
+  --border:#30363D;--text:#E6EDF3;--text2:#8B949E;
+  --topbar-bg:#161B22;--topbar-border:#30363D;--input-bg:#1C2333;
+  --shadow:0 1px 3px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px;color:var(--text);transition:background-color .2s ease,color .2s ease;margin:0}
+.portal-topbar{background:var(--topbar-bg);border-bottom:1px solid var(--topbar-border);padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 3px rgba(0,0,0,.07);transition:background-color .2s ease,border-color .2s ease}
+.portal-brand{font-weight:800;font-size:1.1rem;color:var(--ac);letter-spacing:-0.5px;display:flex;align-items:center;gap:.5rem}
+.portal-user{display:flex;align-items:center;gap:.75rem}
+.portal-content{padding:1.5rem;max-width:1200px;margin:0 auto}
+.tc{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;transition:background-color .2s ease,border-color .2s ease}
+.ch{background:var(--surface);border-bottom:1px solid var(--border);padding:.75rem 1.25rem;font-weight:600;color:var(--text);font-size:.88rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem}
+.table{margin:0;width:100%}
+.table th{font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);border-bottom:2px solid var(--border);padding:.55rem 1rem;white-space:nowrap;background:var(--surface2)}
+.table td{padding:.55rem 1rem;vertical-align:middle;border-bottom:1px solid var(--border);color:var(--text);font-size:.85rem}
+.table>:not(caption)>*>*{background-color:transparent;color:var(--text);border-color:var(--border)}
+html[data-theme="dark"] .table>:not(caption)>*>*{background-color:var(--surface);color:var(--text);border-color:var(--border)}
+html[data-theme="dark"] .table tbody tr:hover>*{background-color:var(--surface2)!important}
+.table tbody tr:last-child td{border-bottom:none}
+.table tbody tr:hover{background:var(--surface2)}
+.table-responsive{overflow-x:auto}
+.b{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:.72rem;font-weight:600;letter-spacing:.2px;white-space:nowrap}
+.b-pendiente{background:#FFFAE6;color:#FF8B00}
+.b-aprobada,.b-completado,.b-activo,.b-cliente_activo{background:#E3FCEF;color:#00875A}
+.b-rechazada,.b-cancelado{background:#FFEBE6;color:#DE350B}
+.b-en_revision,.b-en-revision,.b-borrador,.b-negociacion{background:#DEEBFF;color:#0052CC}
+.b-aceptada_cliente{background:#E3FCEF;color:#00875A}
+.b-prospecto{background:#EAE6FF;color:#5243AA}
+.b-vip{background:#FFF0B3;color:#FF991F}
+.b-anticipo_pagado{background:#DEEBFF;color:#0052CC}
+.empty-state{text-align:center;padding:3rem 1rem;color:var(--text2)}
+.empty-state i{font-size:2.5rem;display:block;margin-bottom:.75rem;opacity:.4}
+html[data-theme="dark"] .tc,.html[data-theme="dark"] .ch{background:var(--surface);border-color:var(--border)}
+html[data-theme="dark"] .form-control,html[data-theme="dark"] .form-select{background:var(--input-bg);border-color:var(--border);color:var(--text)}
+html[data-theme="dark"] .modal-content{background:var(--surface);color:var(--text);border-color:var(--border)}
+html[data-theme="dark"] .modal-header{border-color:var(--border)}
+html[data-theme="dark"] .text-muted{color:var(--text2)!important}
+html[data-theme="dark"] .nav-tabs .nav-link{color:var(--text2);border-color:transparent}
+html[data-theme="dark"] .nav-tabs .nav-link.active{color:var(--ac);border-color:var(--border) var(--border) var(--surface);background:var(--surface)}
+html[data-theme="dark"] .nav-tabs{border-color:var(--border)}
+html[data-theme="dark"] .tab-content{background:var(--surface)}
+html[data-theme="dark"] input::placeholder,html[data-theme="dark"] textarea::placeholder{color:var(--text2)}
+html[data-theme="dark"] .btn-outline-secondary{border-color:var(--border);color:var(--text2)}
+html[data-theme="dark"] .btn-outline-secondary:hover{background:var(--surface2)}
+html[data-theme="dark"] .dropdown-menu{background:var(--surface);border-color:var(--border);color:var(--text)}
+html[data-theme="dark"] .dropdown-item{color:var(--text)}
+html[data-theme="dark"] .dropdown-item:hover{background:var(--surface2)}
+.form-control,.form-select{border:2px solid var(--border);border-radius:4px;padding:.48rem .75rem;font-size:.88rem;background:var(--input-bg);color:var(--text);transition:border-color .12s,background-color .2s,color .2s}
+.form-control:focus,.form-select:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(37,99,235,.15);outline:none}
+.form-label{font-weight:600;font-size:.82rem;color:var(--text);margin-bottom:.3rem;display:block}
+.alert{padding:.75rem 1rem;border-radius:var(--radius);margin-bottom:1rem;display:flex;align-items:flex-start;gap:.5rem;font-size:.85rem}
+.alert-success{background:#E3FCEF;color:#00875A;border:1px solid #ABF5D1}
+.alert-warning{background:#FFFAE6;color:#FF8B00;border:1px solid #FFE380}
+.alert-danger{background:#FFEBE6;color:#DE350B;border:1px solid #FFBDAD}
+.alert-info{background:#DEEBFF;color:#0052CC;border:1px solid #B3D4FF}
+html[data-theme="dark"] .alert-success{background:#0D2B1F;color:#4ADE80;border-color:#166534}
+html[data-theme="dark"] .alert-warning{background:#2B1E05;color:#FCD34D;border-color:#854D0E}
+html[data-theme="dark"] .alert-danger{background:#2B0A0A;color:#F87171;border-color:#991B1B}
+html[data-theme="dark"] .alert-info{background:#0A1628;color:#60A5FA;border-color:#1E3A5F}
+@media(max-width:768px){.portal-content{padding:.85rem .75rem}.portal-topbar{padding:.6rem 1rem}}
+</style>
+</head>
+<body>
+<div class="portal-topbar">
+  <div class="portal-brand">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 341.94 261.01" height="28" style="display:block">
+      <path fill="var(--ac)" d="M239.09,111.71C234.61,109,225,105.23,225,105.23s-1.42-.5-1.34-.9c.21-1.2,2.76-1.54,9.63-10.7,7.11-9.49,8.6-13.94,9.94-17.84,1.14-3.3,2.38-11,1.72-11.79s-9.12-1.35-16.48.3c-7.06,1.58-11.1,3.47-11.5,3-.64-.71.95-6.23,1.11-11.33.17-5.28.32-6.75-.41-11.49-.61-4-1.47-7.57-2.65-7.91s-5,.82-7,1.69A81.41,81.41,0,0,0,198.41,44c-2.91,2-6.52,5.48-7.55,5.69s-2.79-6-6.9-13.15a86,86,0,0,0-5.69-9.09c-1.74-2.45-4.91-7-7.28-7h0c-2.38,0-5.54,4.59-7.28,7A84.29,84.29,0,0,0,158,36.52c-4.12,7.13-5.76,13.38-6.9,13.15s-4.73-3.8-7.64-5.8a79.94,79.94,0,0,0-9.56-5.58c-2-.87-5.81-2-7-1.69s-2,3.94-2.65,7.91c-.73,4.74-.58,6.21-.41,11.49.16,5.1,1.74,10.62,1.11,11.33-.4.44-4.44-1.45-11.5-3C106.08,62.65,97.72,63.08,97,64s.57,8.49,1.71,11.79c1.35,3.9,2.83,8.35,10,17.84,6.87,9.16,9.41,9.5,9.63,10.7.07.4-1.35.9-1.35.9s-9.57,3.72-14.06,6.48C99.17,114,95,117.34,95,119.08c0,2.11,3.54,4.62,8.14,7.67s15.36,7.83,26.75,6.75c12.82-1.22,20.68-7.21,21.76-6.74.49.21.11,5.24,5.16,10.44,4.43,4.56,10.58,10,14.15,10s9.72-5.42,14.15-10c5-5.2,4.67-10.23,5.16-10.44,1.07-.47,8.93,5.52,21.76,6.74,11.39,1.08,22.07-3.65,26.74-6.75s8.17-5.56,8.15-7.67C246.93,117.34,242.76,114,239.09,111.71Z"/>
+    </svg>
+    EVORE
+  </div>
+  <div class="portal-user">
+    <span style="font-size:.83rem;color:var(--text2)" class="d-none d-md-inline">
+      {{ current_user.nombre }}
+    </span>
+    <button onclick="toggleTheme()" class="btn btn-sm" style="background:none;border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:.25rem .5rem" title="Cambiar tema">
+      <i class="bi bi-sun-fill" id="themeIcon" style="font-size:.85rem"></i>
+    </button>
+    <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-danger" style="font-size:.8rem;padding:4px 10px">
+      <i class="bi bi-box-arrow-right me-1"></i>Salir
+    </a>
+  </div>
+</div>
+<div class="portal-content">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}{% for cat, msg in messages %}
+  <div class="alert alert-{{ cat }} alert-dismissible fade show" role="alert">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert" style="margin-left:auto;background:none;border:none;font-size:1.1rem;cursor:pointer;opacity:.6">×</button>
+  </div>
+  {% endfor %}{% endif %}{% endwith %}
+  {% block content %}{% endblock %}
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(function(){
+  var t=localStorage.getItem('evore_theme')||'light';
+  document.documentElement.setAttribute('data-theme',t);
+  function updateIcon(){var el=document.getElementById('themeIcon');if(el){el.className=t==='dark'?'bi bi-sun-fill':'bi bi-moon-fill';}}
+  window.toggleTheme=function(){
+    t=document.documentElement.getAttribute('data-theme');
+    var next=t==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    localStorage.setItem('evore_theme',next);
+    t=next;updateIcon();
+  };
+  updateIcon();
+})();
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>"""
+
+T['portal/sin_empresa.html'] = """{% extends 'portal_base.html' %}
 {% block title %}Portal{% endblock %}
 {% block page_title %}Portal Cliente{% endblock %}
 {% block content %}
@@ -6950,13 +7161,13 @@ T['portal/sin_empresa.html'] = """{% extends 'base.html' %}
   <p>Tu cuenta no está asociada a ninguna empresa todavía. Contacta al administrador para completar la configuración.</p>
 </div>{% endblock %}"""
 
-T['portal/index.html'] = """{% extends 'base.html' %}
+T['portal/index.html'] = """{% extends 'portal_base.html' %}
 {% block title %}Mi Portal{% endblock %}
-{% block page_title %}Portal — {{ cliente.empresa or cliente.nombre }}{% endblock %}
-{% block topbar_actions %}
-<a href="{{ url_for('portal_pre_cotizacion_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-file-earmark-plus me-1"></i>Nueva Solicitud de Compra</a>
-{% endblock %}
 {% block content %}
+<div style="margin-bottom:1.5rem">
+  <h5 style="font-weight:700;margin-bottom:.5rem">Portal — {{ cliente.empresa or cliente.nombre }}</h5>
+  <a href="{{ url_for('portal_pre_cotizacion_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-file-earmark-plus me-1"></i>Nueva Solicitud de Compra</a>
+</div>
 <div class="row g-4">
   <!-- Left: Client Card -->
   <div class="col-lg-3">
@@ -7166,10 +7377,10 @@ T['portal/index.html'] = """{% extends 'base.html' %}
 </div>
 {% endblock %}"""
 
-T['portal/pre_cotizacion_form.html'] = """{% extends 'base.html' %}
+T['portal/pre_cotizacion_form.html'] = """{% extends 'portal_base.html' %}
 {% block title %}Nueva Solicitud{% endblock %}
-{% block page_title %}Nueva Solicitud de Cotización{% endblock %}
 {% block content %}
+<h5 style="font-weight:700;margin-bottom:1.5rem">Nueva Solicitud de Cotización</h5>
 <div class="fc">
   <div class="form-section" style="border-left-color:#FF8B00;margin-bottom:1rem">
     <div class="form-section-title" style="color:#FF8B00">Información importante</div>
@@ -7223,10 +7434,10 @@ function calcRow(el){}
 </script>
 {% endblock %}"""
 
-T['portal/ticket_form.html'] = """{% extends 'base.html' %}
+T['portal/ticket_form.html'] = """{% extends 'portal_base.html' %}
 {% block title %}Nuevo Ticket{% endblock %}
-{% block page_title %}Enviar Mensaje / Ticket{% endblock %}
 {% block content %}
+<h5 style="font-weight:700;margin-bottom:1.5rem">Enviar Mensaje / Ticket</h5>
 <div class="fc">
   <p style="color:#42526E;font-size:.9rem">Envía un mensaje o ticket directamente a tu sales manager. Se creará una tarea para que te dé seguimiento.</p>
   <form method="POST">
@@ -7329,9 +7540,8 @@ T['portal/manager_revisar.html'] = """{% extends 'base.html' %}
 </div>
 {% endblock %}"""
 
-T['portal/proveedor_sin_empresa.html'] = """{% extends 'base.html' %}
+T['portal/proveedor_sin_empresa.html'] = """{% extends 'portal_base.html' %}
 {% block title %}Portal Proveedor{% endblock %}
-{% block page_title %}Portal Proveedor{% endblock %}
 {% block content %}
 <div class="empty-state" style="padding:4rem 2rem">
   <i class="bi bi-truck"></i>
@@ -7339,13 +7549,13 @@ T['portal/proveedor_sin_empresa.html'] = """{% extends 'base.html' %}
   <p>Tu cuenta no está asociada a ninguna empresa proveedora. Contacta al administrador.</p>
 </div>{% endblock %}"""
 
-T['portal/proveedor_index.html'] = """{% extends 'base.html' %}
+T['portal/proveedor_index.html'] = """{% extends 'portal_base.html' %}
 {% block title %}Portal Proveedor{% endblock %}
-{% block page_title %}Portal — {{ prov.nombre }}{% endblock %}
-{% block topbar_actions %}
-<a href="{{ url_for('portal_prov_ticket') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chat-left-text me-1"></i>Enviar Mensaje</a>
-{% endblock %}
 {% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem">
+  <h5 style="font-weight:700;margin:0">Portal — {{ prov.nombre }}</h5>
+  <a href="{{ url_for('portal_prov_ticket') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chat-left-text me-1"></i>Enviar Mensaje</a>
+</div>
 <div class="onboard-banner mb-3" style="background:linear-gradient(135deg,#253858,#344563)">
   <div class="d-flex align-items-center gap-3 flex-wrap">
     <div>
@@ -7424,10 +7634,10 @@ T['portal/proveedor_index.html'] = """{% extends 'base.html' %}
 {% endif %}
 {% endblock %}"""
 
-T['portal/proveedor_ticket.html'] = """{% extends 'base.html' %}
+T['portal/proveedor_ticket.html'] = """{% extends 'portal_base.html' %}
 {% block title %}Mensaje{% endblock %}
-{% block page_title %}Enviar Mensaje al Equipo{% endblock %}
 {% block content %}
+<h5 style="font-weight:700;margin-bottom:1.5rem">Enviar Mensaje al Equipo</h5>
 <div class="fc">
   <p style="color:#42526E;font-size:.9rem">Envía un mensaje o consulta directamente al equipo de compras.</p>
   <form method="POST">
@@ -11594,6 +11804,55 @@ def buscador():
             ).limit(20).all()
         except: resultados['ordenes_compra'] = []
     return render_template('buscador.html', q=q, resultados=resultados)
+
+@app.route('/api/buscar')
+@login_required
+def api_buscar():
+    """JSON search API for the overlay search."""
+    q = request.args.get('q','').strip()
+    if not q or len(q) < 2:
+        return jsonify({'results': []})
+    like = f'%{q}%'
+    results = []
+    try:
+        for c in Cliente.query.filter(
+            db.or_(Cliente.nombre.ilike(like), Cliente.empresa.ilike(like), Cliente.nit.ilike(like))
+        ).limit(6).all():
+            results.append({'type':'Cliente','icon':'people-fill','color':'#0052CC',
+                'label': c.empresa or c.nombre, 'sub': c.nit or '',
+                'url': '/clientes/'+str(c.id)})
+    except: pass
+    try:
+        for p in Proveedor.query.filter(
+            db.or_(Proveedor.nombre.ilike(like), Proveedor.empresa.ilike(like), Proveedor.nit.ilike(like))
+        ).limit(4).all():
+            results.append({'type':'Proveedor','icon':'truck','color':'#00875A',
+                'label': p.empresa or p.nombre, 'sub': p.nit or '',
+                'url': '/proveedores/'+str(p.id)})
+    except: pass
+    try:
+        for pr in Producto.query.filter(
+            db.or_(Producto.nombre.ilike(like), Producto.sku.ilike(like))
+        ).filter_by(activo=True).limit(4).all():
+            results.append({'type':'Producto','icon':'box-seam-fill','color':'#FF8B00',
+                'label': pr.nombre, 'sub': pr.sku or '',
+                'url': '/inventario'})
+    except: pass
+    try:
+        for v in Venta.query.filter(
+            db.or_(Venta.titulo.ilike(like), Venta.numero.ilike(like))
+        ).limit(4).all():
+            results.append({'type':'Venta','icon':'graph-up-arrow','color':'#36B37E',
+                'label': v.titulo or v.numero or f'Venta #{v.id}', 'sub': v.estado or '',
+                'url': '/ventas/'+str(v.id)})
+    except: pass
+    try:
+        for oc in OrdenCompra.query.filter(OrdenCompra.numero.ilike(like)).limit(3).all():
+            results.append({'type':'OC','icon':'cart-check','color':'#6554C0',
+                'label': oc.numero or f'OC #{oc.id}', 'sub': oc.estado or '',
+                'url': '/ordenes_compra/'+str(oc.id)})
+    except: pass
+    return jsonify({'results': results, 'q': q})
 
 # =============================================================
 # DIAGNÓSTICO
