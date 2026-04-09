@@ -67,7 +67,14 @@ except ImportError:
     _mail = None
     _mail_ok = False
 
-# Models imported lazily inside functions to avoid circular imports
+# ── Model imports (no circular dependency: models.py only imports from extensions)
+from models import (
+    User, Cliente, ContactoCliente, Proveedor,
+    Venta, VentaProducto, Producto, LoteProducto,
+    MateriaPrima, RecetaProducto, OrdenProduccion, ReservaProduccion,
+    OrdenCompraItem, Tarea, TareaAsignado,
+    GastoOperativo, Actividad, Notificacion, ReglaTributaria,
+)
 
 def cop(value):
     try: return '$ {:,.0f}'.format(float(value or 0)).replace(',','.')
