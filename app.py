@@ -631,166 +631,175 @@ def load_user(uid): return User.query.get(int(uid))
 
 _CSS = """{% raw %}<style>
 /* ══════════════════════════════════════════════════
-   EVORE CRM v16 — CSS Mobile-First
+   EVORE CRM v17 — Atlassian-inspired Design System
    ══════════════════════════════════════════════════ */
 :root{
-  --sb:#1a1f36;--ac:#5e72e4;--ac2:#825ee4;--bg:#f4f6fb;
-  --green:#2dce89;--red:#f5365c;--orange:#fb6340;--yellow:#ffc107;
-  --card-shadow:0 2px 12px rgba(0,0,0,.07);
-  --radius:14px;--radius-sm:8px;
+  --sb:#253858;--ac:#0052CC;--ac2:#0065FF;--bg:#F4F5F7;
+  --green:#00875A;--red:#DE350B;--orange:#FF8B00;--yellow:#FF991F;
+  --card-shadow:0 1px 3px rgba(9,30,66,.13),0 0 0 1px rgba(9,30,66,.08);
+  --radius:6px;--radius-sm:3px;
 }
 *{box-sizing:border-box}
-body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;font-size:15px;line-height:1.55;color:#1a1f36}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;font-size:14px;line-height:1.57;color:#172B4D}
 
 /* ── Sidebar ───────────────────────────────────── */
-#sb{position:fixed;top:0;left:0;height:100vh;width:252px;background:var(--sb);display:flex;flex-direction:column;z-index:1050;transition:transform .28s cubic-bezier(.4,0,.2,1)}
-.sb-brand{padding:1.1rem 1.1rem .8rem;color:#fff;font-weight:700;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:.5rem}
-.sb-sec{font-size:.65rem;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:rgba(255,255,255,.28);padding:.7rem 1.2rem .15rem;margin-top:.15rem}
-.sb-nav{overflow-y:auto;flex:1;padding-bottom:.5rem;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent}
-.sb-nav .nav-link{color:#a8b0d3;padding:.52rem 1.1rem;border-radius:9px;margin:.05rem .6rem;display:flex;align-items:center;gap:.7rem;font-size:.88rem;transition:all .18s;white-space:nowrap;overflow:hidden}
-.sb-nav .nav-link:hover{background:rgba(255,255,255,.08);color:#fff}
-.sb-nav .nav-link.active{background:var(--ac);color:#fff;box-shadow:0 3px 12px rgba(94,114,228,.35)}
-.sb-nav .nav-link i{font-size:1.05rem;width:20px;flex-shrink:0}
-.sb-foot{padding:.8rem 1.1rem;border-top:1px solid rgba(255,255,255,.08);color:#a8b0d3;font-size:.82rem;margin-top:auto}
-.u-name{color:#fff;font-weight:600;font-size:.88rem}
-.u-rol{font-size:.63rem;padding:2px 8px;border-radius:20px;background:rgba(94,114,228,.3);color:var(--ac)}
+#sb{position:fixed;top:0;left:0;height:100vh;width:256px;background:var(--sb);display:flex;flex-direction:column;z-index:1050;transition:transform .25s cubic-bezier(.4,0,.2,1)}
+.sb-brand{padding:1rem 1rem .85rem;color:#fff;font-weight:700;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:.5rem}
+.sb-sec{font-size:.62rem;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:rgba(255,255,255,.35);padding:.85rem 1.1rem .2rem;margin-top:.1rem}
+.sb-nav{overflow-y:auto;flex:1;padding-bottom:.5rem;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.08) transparent}
+.sb-nav .nav-link{color:rgba(255,255,255,.72);padding:.48rem 1rem;border-radius:4px;margin:.06rem .5rem;display:flex;align-items:center;gap:.65rem;font-size:.84rem;font-weight:500;transition:background .15s,color .15s;white-space:nowrap;overflow:hidden}
+.sb-nav .nav-link:hover{background:rgba(255,255,255,.1);color:#fff}
+.sb-nav .nav-link.active{background:var(--ac);color:#fff;font-weight:600}
+.sb-nav .nav-link i{font-size:1rem;width:18px;flex-shrink:0;opacity:.9}
+.sb-foot{padding:.75rem 1rem;border-top:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-size:.8rem;margin-top:auto}
+.u-name{color:#fff;font-weight:600;font-size:.84rem}
+.u-rol{font-size:.62rem;padding:2px 7px;border-radius:3px;background:rgba(0,82,204,.4);color:#4C9AFF}
 
 /* ── Overlay mobile ──────────────────────────────── */
-#sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:1040;backdrop-filter:blur(2px)}
+#sb-overlay{display:none;position:fixed;inset:0;background:rgba(9,30,66,.54);z-index:1040}
 #sb-overlay.open{display:block}
 
 /* ── Topbar ──────────────────────────────────────── */
-#main{margin-left:252px;min-height:100vh}
-.topbar{background:#fff;padding:.65rem 1.3rem;border-bottom:1px solid #e8ecf0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 6px rgba(0,0,0,.06);gap:.75rem}
-.pg-title{font-size:1.05rem;font-weight:700;color:#1a1f36;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#sb-tog{display:none;background:none;border:none;color:#1a1f36;font-size:1.35rem;padding:.25rem .4rem;border-radius:8px;cursor:pointer;flex-shrink:0;line-height:1}
-#sb-tog:hover{background:#f0f2ff}
+#main{margin-left:256px;min-height:100vh}
+.topbar{background:#fff;padding:.6rem 1.25rem;border-bottom:1px solid #DFE1E6;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 0 rgba(9,30,66,.13);gap:.75rem}
+.pg-title{font-size:1rem;font-weight:600;color:#172B4D;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#sb-tog{display:none;background:none;border:none;color:#172B4D;font-size:1.25rem;padding:.3rem .4rem;border-radius:3px;cursor:pointer;flex-shrink:0;line-height:1}
+#sb-tog:hover{background:#F4F5F7}
 
 /* ── Content ─────────────────────────────────────── */
-.content{padding:1.3rem}
+.content{padding:1.25rem}
 
 /* ── Stat Cards ──────────────────────────────────── */
-.sc{background:#fff;border-radius:var(--radius);padding:1.1rem 1.3rem;box-shadow:var(--card-shadow);transition:transform .2s,box-shadow .2s;height:100%}
-.sc:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.1)}
+.sc{background:#fff;border-radius:var(--radius);padding:1.1rem 1.25rem;box-shadow:var(--card-shadow);transition:box-shadow .15s;height:100%;border:1px solid #DFE1E6}
+.sc:hover{box-shadow:0 3px 10px rgba(9,30,66,.15),0 0 0 1px rgba(9,30,66,.1)}
 .sc-accent{border-top:3px solid var(--ac)}
-.si{width:46px;height:46px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0}
-.sv{font-size:1.65rem;font-weight:700;color:#1a1f36;line-height:1.1}
-.sl{color:#8898aa;font-size:.8rem;margin-top:.15rem;font-weight:500}
+.si{width:42px;height:42px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0}
+.sv{font-size:1.55rem;font-weight:700;color:#172B4D;line-height:1.1}
+.sl{color:#6B778C;font-size:.77rem;margin-top:.15rem;font-weight:500}
 .sc-highlight{border:2px solid var(--ac)}
 
 /* ── Table Cards ─────────────────────────────────── */
-.tc{background:#fff;border-radius:var(--radius);box-shadow:var(--card-shadow);overflow:hidden}
-.ch{background:#fff;border-bottom:1px solid #f0f0f0;padding:.8rem 1.3rem;font-weight:600;color:#1a1f36;font-size:.93rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem}
+.tc{background:#fff;border-radius:var(--radius);border:1px solid #DFE1E6;overflow:hidden}
+.ch{background:#fff;border-bottom:1px solid #DFE1E6;padding:.75rem 1.25rem;font-weight:600;color:#172B4D;font-size:.88rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem}
 .table{margin:0}
-.table th{font-size:.69rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#8898aa;border-bottom:1px solid #f0f0f0;padding:.6rem 1rem;white-space:nowrap}
-.table td{padding:.6rem 1rem;vertical-align:middle;border-bottom:1px solid #f8f9fa;color:#525f7f;font-size:.88rem}
+.table th{font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#6B778C;border-bottom:2px solid #DFE1E6;padding:.55rem 1rem;white-space:nowrap;background:#F4F5F7}
+.table td{padding:.55rem 1rem;vertical-align:middle;border-bottom:1px solid #F4F5F7;color:#172B4D;font-size:.85rem}
 .table tbody tr:last-child td{border-bottom:none}
-.table tbody tr:hover{background:#f8f9fe}
+.table tbody tr:hover{background:#F8F9FA}
 
 /* ── Form Card ───────────────────────────────────── */
-.fc{background:#fff;border-radius:var(--radius);padding:1.6rem 1.8rem;box-shadow:var(--card-shadow);max-width:860px}
-.form-label{font-weight:600;font-size:.85rem;color:#525f7f;margin-bottom:.3rem}
+.fc{background:#fff;border-radius:var(--radius);padding:1.5rem 1.75rem;border:1px solid #DFE1E6;max-width:860px}
+.form-label{font-weight:600;font-size:.82rem;color:#172B4D;margin-bottom:.3rem}
 .form-label .req{color:var(--red);margin-left:2px}
-.form-text{font-size:.78rem;color:#8898aa;margin-top:.2rem}
-.form-control,.form-select{border:1.5px solid #e2e8f0;border-radius:9px;padding:.52rem .8rem;font-size:.9rem;transition:border-color .18s,box-shadow .18s;background:#fff}
-.form-control:focus,.form-select:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(94,114,228,.13);outline:none}
+.form-text{font-size:.76rem;color:#6B778C;margin-top:.2rem}
+.form-control,.form-select{border:2px solid #DFE1E6;border-radius:var(--radius-sm);padding:.48rem .75rem;font-size:.88rem;transition:border-color .12s,box-shadow .12s;background:#fff;color:#172B4D}
+.form-control:focus,.form-select:focus{border-color:var(--ac);box-shadow:0 0 0 2px rgba(0,82,204,.2);outline:none}
 .form-control.is-invalid{border-color:var(--red)}
-.form-section{background:#f8f9fe;border-radius:10px;padding:1rem 1.2rem;margin-bottom:1rem;border-left:3px solid var(--ac)}
-.form-section-title{font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.8px;color:var(--ac);margin-bottom:.65rem}
-.input-hint{display:flex;align-items:center;gap:.4rem;padding:.4rem .7rem;background:#f0f4ff;border-radius:7px;font-size:.78rem;color:#525f7f;margin-top:.4rem}
-.input-hint i{color:var(--ac);flex-shrink:0}
+.form-section{background:#FAFBFC;border-radius:var(--radius);padding:1rem 1.2rem;margin-bottom:1rem;border:1px solid #DFE1E6;border-left:3px solid var(--ac)}
+.form-section-title{font-weight:700;font-size:.75rem;text-transform:uppercase;letter-spacing:1px;color:var(--ac);margin-bottom:.65rem}
+.input-hint{display:flex;align-items:flex-start;gap:.4rem;padding:.45rem .75rem;background:#DEEBFF;border-radius:var(--radius-sm);font-size:.77rem;color:#0747A6;margin-top:.4rem}
+.input-hint i{color:#0052CC;flex-shrink:0;margin-top:1px}
 
 /* ── Buttons ─────────────────────────────────────── */
-.btn{border-radius:9px;font-weight:600;font-size:.86rem;transition:all .18s;min-height:38px}
-.btn-primary{background:var(--ac);border-color:var(--ac)}
-.btn-primary:hover{background:#4a5bd4;border-color:#4a5bd4;transform:translateY(-1px);box-shadow:0 4px 12px rgba(94,114,228,.3)}
-.btn-lg{min-height:46px;font-size:.93rem;padding:.7rem 1.5rem}
-.btn-action{background:linear-gradient(135deg,var(--ac),var(--ac2));border:none;color:#fff;border-radius:10px;padding:.5rem 1rem;font-weight:600;font-size:.84rem;display:flex;align-items:center;gap:.5rem;cursor:pointer;transition:all .2s;white-space:nowrap}
-.btn-action:hover{transform:translateY(-2px);box-shadow:0 4px 15px rgba(94,114,228,.35);color:#fff}
+.btn{border-radius:var(--radius-sm);font-weight:600;font-size:.84rem;transition:background .12s,box-shadow .12s;min-height:36px}
+.btn-primary{background:var(--ac);border-color:var(--ac);color:#fff}
+.btn-primary:hover{background:#0065FF;border-color:#0065FF;box-shadow:0 2px 8px rgba(0,82,204,.3)}
+.btn-lg{min-height:44px;font-size:.9rem;padding:.65rem 1.4rem}
+.btn-action{background:var(--ac);border:none;color:#fff;border-radius:var(--radius-sm);padding:.5rem 1rem;font-weight:600;font-size:.82rem;display:flex;align-items:center;gap:.5rem;cursor:pointer;transition:background .12s;white-space:nowrap}
+.btn-action:hover{background:#0065FF;color:#fff}
 
 /* ── Badges ──────────────────────────────────────── */
-.b{padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600;display:inline-block;white-space:nowrap}
-.b-activo,.b-ganado,.b-completada,.b-baja,.b-vip,.b-vigente,.b-aprobada{background:#d4edda;color:#155724}
-.b-inactivo,.b-perdido,.b-alta,.b-vencida{background:#f8d7da;color:#721c24}
-.b-prospecto,.b-pendiente,.b-media,.b-anticipo_pagado,.b-en_revision,.b-enviada{background:#fff3cd;color:#856404}
-.b-negociacion,.b-en_progreso,.b-cliente_activo,.b-confirmacion_orden{background:#cce5ff;color:#004085}
-.b-borrador{background:#e9ecef;color:#495057}
-.b-unico{background:#e8f4fd;color:#0c5460}
-.b-mensual{background:#d1ecf1;color:#0c5460}
-.b-cita{background:#fce4ec;color:#880e4f}
-.b-reunion{background:#e8eaf6;color:#283593}
-.b-recordatorio{background:#fff8e1;color:#f57f17}
-.b-en_transito,.b-recibida{background:#d1ecf1;color:#0c5460}
+.b{padding:2px 8px;border-radius:3px;font-size:.72rem;font-weight:700;display:inline-block;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px}
+.b-activo,.b-completado,.b-completada,.b-baja,.b-vip,.b-vigente,.b-aprobada{background:#E3FCEF;color:#006644}
+.b-inactivo,.b-perdido,.b-alta,.b-vencida{background:#FFEBE6;color:#BF2600}
+.b-prospecto,.b-pendiente,.b-media,.b-anticipo_pagado,.b-en_revision,.b-enviada{background:#FFFAE6;color:#172B4D}
+.b-negociacion,.b-en_progreso,.b-cliente_activo,.b-confirmacion_orden{background:#DEEBFF;color:#0747A6}
+.b-borrador{background:#F4F5F7;color:#42526E}
+.b-unico{background:#E6FCFF;color:#006C84}
+.b-mensual{background:#E6FCFF;color:#006C84}
+.b-cita{background:#FFF0F6;color:#97145E}
+.b-reunion{background:#EAE6FF;color:#403294}
+.b-recordatorio{background:#FFFAE6;color:#172B4D}
+.b-en_transito,.b-recibida{background:#E3FCEF;color:#006644}
+
+/* ── Status select (inline state changer) ─────────── */
+.status-select{-webkit-appearance:none;appearance:none;border:none;padding:2px 20px 2px 8px;border-radius:3px;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='currentColor' opacity='.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 5px center;transition:filter .12s}
+.status-select:hover{filter:brightness(.92)}
+.status-select:focus{outline:2px solid var(--ac);outline-offset:1px}
+.status-select.b-activo,.status-select.b-completado,.status-select.b-completada,.status-select.b-vip,.status-select.b-vigente,.status-select.b-aprobada{background-color:#E3FCEF;color:#006644}
+.status-select.b-inactivo,.status-select.b-perdido{background-color:#FFEBE6;color:#BF2600}
+.status-select.b-prospecto,.status-select.b-pendiente,.status-select.b-anticipo_pagado{background-color:#FFFAE6;color:#172B4D}
+.status-select.b-negociacion,.status-select.b-en_progreso,.status-select.b-cliente_activo{background-color:#DEEBFF;color:#0747A6}
+.status-select.b-borrador{background-color:#F4F5F7;color:#42526E}
 
 /* ── Calendar / Events ───────────────────────────── */
-.ev-tarea{background:#fff4e5;color:#fb6340;border-left:3px solid #fb6340}
-.ev-evento{background:#e8eeff;color:#5e72e4;border-left:3px solid #5e72e4}
-.ev-nota{background:#f3e8ff;color:#8965e0;border-left:3px solid #8965e0}
-.ev-caducidad{background:#fde8e8;color:#f5365c;border-left:3px solid #f5365c}
-.ev-venta{background:#e3f9ee;color:#2dce89;border-left:3px solid #2dce89}
-.cal-day{border:1px solid #f0f2ff;min-height:110px;vertical-align:top;padding:.3rem;cursor:pointer;transition:background .15s}
-.cal-day:hover{background:#f8f9fe}
-.cal-day.today{background:#eef0ff}
-.cal-day.other-month{background:#fafbff;opacity:.6}
-.cal-ev{font-size:.7rem;padding:2px 5px;border-radius:4px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.ev-tarea{background:#FFFAE6;color:#FF8B00;border-left:3px solid #FF8B00}
+.ev-evento{background:#DEEBFF;color:#0052CC;border-left:3px solid #0052CC}
+.ev-nota{background:#EAE6FF;color:#5243AA;border-left:3px solid #5243AA}
+.ev-caducidad{background:#FFEBE6;color:#DE350B;border-left:3px solid #DE350B}
+.ev-venta{background:#E3FCEF;color:#00875A;border-left:3px solid #00875A}
+.cal-day{border:1px solid #DFE1E6;min-height:110px;vertical-align:top;padding:.3rem;cursor:pointer;transition:background .12s}
+.cal-day:hover{background:#F8F9FA}
+.cal-day.today{background:#DEEBFF}
+.cal-day.other-month{background:#FAFBFC;opacity:.65}
+.cal-ev{font-size:.69rem;padding:2px 5px;border-radius:2px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 
 /* ── Misc components ─────────────────────────────── */
-.alert{border-radius:10px;border:none}
-.prod-row{background:#f8f9fe;border-radius:8px;padding:.75rem;margin-bottom:.5rem;border:1px solid #e8ecf0}
-.totales-box{background:#f8f9fe;border-radius:10px;padding:1rem 1.4rem;border:1px solid #e8ecf0}
-.chat-bubble{background:#f0f2ff;border-radius:12px 12px 12px 2px;padding:.65rem 1rem;margin-bottom:.5rem;max-width:80%}
-.chat-bubble.mine{background:#5e72e4;color:#fff;border-radius:12px 12px 2px 12px;margin-left:auto}
-.chat-bubble.mine .chat-meta{color:rgba(255,255,255,.7)}
-.chat-meta{font-size:.72rem;color:#8898aa;margin-top:.25rem}
-.mp-row{background:#f8f9fe;border-radius:8px;padding:.6rem .9rem;margin-bottom:.4rem;border-left:3px solid #5e72e4}
-.lote-row{background:#f8f9fe;border-radius:8px;padding:.6rem .9rem;margin-bottom:.4rem;border-left:3px solid #2dce89}
-.lote-venc{border-left-color:#f5365c!important}
-.lote-warn{border-left-color:#fb6340!important}
-.stock-bar-wrap{background:#e8ecf5;border-radius:4px;height:7px;overflow:hidden;flex:1}
-.stock-bar{height:100%;border-radius:4px;background:#2dce89}
-.stock-bar.warn{background:#fb6340}.stock-bar.bad{background:#f5365c}
+.alert{border-radius:var(--radius);border:none}
+.prod-row{background:#FAFBFC;border-radius:var(--radius);padding:.75rem;margin-bottom:.5rem;border:1px solid #DFE1E6}
+.totales-box{background:#FAFBFC;border-radius:var(--radius);padding:1rem 1.4rem;border:1px solid #DFE1E6}
+.chat-bubble{background:#F4F5F7;border-radius:4px 12px 12px 4px;padding:.6rem .9rem;margin-bottom:.5rem;max-width:80%}
+.chat-bubble.mine{background:#0052CC;color:#fff;border-radius:12px 4px 4px 12px;margin-left:auto}
+.chat-bubble.mine .chat-meta{color:rgba(255,255,255,.65)}
+.chat-meta{font-size:.7rem;color:#6B778C;margin-top:.2rem}
+.mp-row{background:#FAFBFC;border-radius:var(--radius);padding:.6rem .9rem;margin-bottom:.4rem;border-left:3px solid #0052CC}
+.lote-row{background:#FAFBFC;border-radius:var(--radius);padding:.6rem .9rem;margin-bottom:.4rem;border-left:3px solid #00875A}
+.lote-venc{border-left-color:#DE350B!important}
+.lote-warn{border-left-color:#FF8B00!important}
+.stock-bar-wrap{background:#DFE1E6;border-radius:3px;height:6px;overflow:hidden;flex:1}
+.stock-bar{height:100%;border-radius:3px;background:#00875A}
+.stock-bar.warn{background:#FF8B00}.stock-bar.bad{background:#DE350B}
 
 /* ── Quick actions bar ───────────────────────────── */
-.qa-bar{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1.2rem}
-.qa-btn{background:#fff;border:1.5px solid #e8ecf0;border-radius:10px;padding:.45rem .9rem;font-size:.82rem;font-weight:600;color:#525f7f;display:flex;align-items:center;gap:.4rem;cursor:pointer;text-decoration:none;transition:all .18s;white-space:nowrap}
-.qa-btn:hover{border-color:var(--ac);color:var(--ac);background:#f0f4ff;transform:translateY(-1px)}
-.qa-btn i{font-size:.95rem}
+.qa-bar{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.2rem}
+.qa-btn{background:#fff;border:2px solid #DFE1E6;border-radius:var(--radius-sm);padding:.4rem .85rem;font-size:.8rem;font-weight:600;color:#42526E;display:flex;align-items:center;gap:.4rem;cursor:pointer;text-decoration:none;transition:border-color .12s,color .12s;white-space:nowrap}
+.qa-btn:hover{border-color:var(--ac);color:var(--ac);background:#DEEBFF}
+.qa-btn i{font-size:.9rem}
 
 /* ── Onboarding / Empty states ───────────────────── */
-.onboard-banner{background:linear-gradient(135deg,#1a1f36 0%,#2d3561 60%,#3a4a8a 100%);border-radius:var(--radius);padding:1.5rem 1.8rem;color:#fff;margin-bottom:1.2rem;position:relative;overflow:hidden}
+.onboard-banner{background:linear-gradient(135deg,#253858 0%,#0747A6 100%);border-radius:var(--radius);padding:1.5rem 1.75rem;color:#fff;margin-bottom:1.2rem;position:relative;overflow:hidden}
 .onboard-banner::before{content:'';position:absolute;top:-30px;right:-30px;width:140px;height:140px;background:rgba(255,255,255,.04);border-radius:50%}
-.onboard-banner::after{content:'';position:absolute;bottom:-20px;right:60px;width:80px;height:80px;background:rgba(94,114,228,.15);border-radius:50%}
 .onboard-steps{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.8rem}
-.onboard-step{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:.35rem .75rem;font-size:.78rem;display:flex;align-items:center;gap:.35rem;cursor:pointer;text-decoration:none;color:#fff;transition:all .18s}
-.onboard-step:hover{background:rgba(255,255,255,.18);color:#fff}
-.onboard-step.done{background:rgba(45,206,137,.18);border-color:rgba(45,206,137,.3)}
-.empty-state{text-align:center;padding:3rem 1.5rem;color:#8898aa}
-.empty-state i{font-size:3rem;margin-bottom:.75rem;display:block;opacity:.45}
-.empty-state p{margin-bottom:1rem;font-size:.93rem}
+.onboard-step{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:3px;padding:.35rem .7rem;font-size:.77rem;display:flex;align-items:center;gap:.35rem;cursor:pointer;text-decoration:none;color:#fff;transition:background .12s}
+.onboard-step:hover{background:rgba(255,255,255,.2);color:#fff}
+.onboard-step.done{background:rgba(0,135,90,.25);border-color:rgba(0,135,90,.4)}
+.empty-state{text-align:center;padding:2.5rem 1.5rem;color:#6B778C}
+.empty-state i{font-size:2.5rem;margin-bottom:.75rem;display:block;opacity:.4}
+.empty-state p{margin-bottom:1rem;font-size:.9rem}
 
 /* ── Notifications ───────────────────────────────── */
-.notif-btn{position:relative;background:none;border:none;color:rgba(255,255,255,.7);font-size:1.1rem;padding:.3rem .45rem;border-radius:8px;cursor:pointer;transition:all .2s}
+.notif-btn{position:relative;background:none;border:none;color:rgba(255,255,255,.65);font-size:1.05rem;padding:.3rem .45rem;border-radius:3px;cursor:pointer;transition:color .15s}
 .notif-btn:hover{color:#fff;background:rgba(255,255,255,.1)}
-.notif-badge{position:absolute;top:0;right:0;background:#f5365c;color:#fff;font-size:.6rem;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px;line-height:1}
-.notif-dd{position:fixed;bottom:70px;left:0;width:300px;max-height:400px;overflow-y:auto;background:#fff;border-radius:12px;box-shadow:0 -4px 30px rgba(0,0,0,.18);z-index:9999}
-.notif-dd-head{padding:.75rem 1rem;font-size:.8rem;font-weight:700;color:#1a1f36;border-bottom:1px solid #f0f2ff;display:flex;justify-content:space-between;align-items:center}
-.notif-item{padding:.65rem 1rem;border-bottom:1px solid #f8f9fe;cursor:pointer;transition:background .15s}
-.notif-item:hover{background:#f8f9fe}
-.notif-item.unread{background:#f0f4ff}
-.notif-item .ni-title{font-size:.82rem;font-weight:600;color:#1a1f36}
-.notif-item .ni-msg{font-size:.75rem;color:#525f7f;margin-top:2px}
-.notif-item .ni-time{font-size:.68rem;color:#adb5bd}
+.notif-badge{position:absolute;top:0;right:0;background:#DE350B;color:#fff;font-size:.6rem;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px;line-height:1}
+.notif-dd{position:fixed;bottom:70px;left:0;width:300px;max-height:400px;overflow-y:auto;background:#fff;border-radius:var(--radius);border:1px solid #DFE1E6;box-shadow:0 8px 24px rgba(9,30,66,.18);z-index:9999}
+.notif-dd-head{padding:.7rem 1rem;font-size:.78rem;font-weight:700;color:#172B4D;border-bottom:1px solid #DFE1E6;display:flex;justify-content:space-between;align-items:center}
+.notif-item{padding:.6rem 1rem;border-bottom:1px solid #F4F5F7;cursor:pointer;transition:background .12s}
+.notif-item:hover{background:#F4F5F7}
+.notif-item.unread{background:#DEEBFF}
+.notif-item .ni-title{font-size:.8rem;font-weight:600;color:#172B4D}
+.notif-item .ni-msg{font-size:.74rem;color:#42526E;margin-top:2px}
+.notif-item .ni-time{font-size:.67rem;color:#6B778C}
 
 /* ── Float search button ─────────────────────────── */
-#diagBtn{position:fixed;bottom:24px;right:24px;z-index:2000;width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#5e72e4,#825ee4);border:none;color:#fff;font-size:1.2rem;box-shadow:0 4px 20px rgba(94,114,228,.4);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .25s}
-#diagBtn:hover{transform:scale(1.1)}
-#diagPanel{position:fixed;bottom:85px;right:24px;width:340px;background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.18);z-index:1999;overflow:hidden;display:none}
-#diagPanel .dp-head{padding:.9rem 1.2rem;background:linear-gradient(135deg,#1a1f36,#2d3561);color:#fff;font-weight:700;font-size:.9rem;display:flex;justify-content:space-between}
+#diagBtn{position:fixed;bottom:24px;right:24px;z-index:2000;width:48px;height:48px;border-radius:50%;background:var(--ac);border:none;color:#fff;font-size:1.1rem;box-shadow:0 4px 16px rgba(0,82,204,.35);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
+#diagBtn:hover{background:#0065FF}
+#diagPanel{position:fixed;bottom:82px;right:24px;width:340px;background:#fff;border-radius:var(--radius);border:1px solid #DFE1E6;box-shadow:0 8px 32px rgba(9,30,66,.18);z-index:1999;overflow:hidden;display:none}
+#diagPanel .dp-head{padding:.85rem 1.2rem;background:#253858;color:#fff;font-weight:600;font-size:.88rem;display:flex;justify-content:space-between}
 #diagPanel .dp-body{max-height:420px;overflow-y:auto;padding:.75rem 1rem}
-.diag-item{padding:.5rem .75rem;border-radius:8px;margin-bottom:.4rem;font-size:.82rem;display:flex;gap:.6rem;align-items:flex-start}
-.diag-rojo{background:#fde8e8;color:#f5365c}
-.diag-amarillo{background:#fff4e5;color:#fb6340}
-.diag-verde{background:#e3f9ee;color:#2dce89}
+.diag-item{padding:.45rem .7rem;border-radius:var(--radius-sm);margin-bottom:.35rem;font-size:.8rem;display:flex;gap:.6rem;align-items:flex-start}
+.diag-rojo{background:#FFEBE6;color:#DE350B}
+.diag-amarillo{background:#FFFAE6;color:#FF8B00}
+.diag-verde{background:#E3FCEF;color:#00875A}
 
 /* ══════════════════════════════════════════════════
    RESPONSIVE — Mobile first (max 768px)
@@ -1135,7 +1144,7 @@ T['dashboard.html'] = """{% extends 'base.html' %}
   <div class="col-6 col-lg-3">
     <div class="sc sc-accent" style="border-top-color:#2dce89">
       <div class="d-flex justify-content-between align-items-start">
-        <div><div class="sv">{{ ventas_ganadas }}</div><div class="sl">Ventas ganadas</div></div>
+        <div><div class="sv">{{ ventas_completadas }}</div><div class="sl">Ventas ganadas</div></div>
         <div class="si" style="background:#e3f9ee"><i class="bi bi-graph-up-arrow" style="color:#2dce89"></i></div>
       </div>
       <div class="mt-2"><a href="{{ url_for('ventas') }}" style="font-size:.75rem;color:#2dce89;text-decoration:none">Ver ventas →</a></div>
@@ -1515,7 +1524,7 @@ T['clientes/ver.html'] = """{% extends 'base.html' %}
             {% else %}
               <span class="badge bg-primary">{{ comp }}/{{ total_ops }} ords.</span>
             {% endif %}
-          {% elif v.estado in ['anticipo_pagado','ganado'] %}
+          {% elif v.estado in ['anticipo_pagado','completado'] %}
             <span class="badge bg-secondary">Sin prod.</span>
           {% else %}
             <span class="text-muted" style="font-size:.8rem">—</span>
@@ -1891,56 +1900,90 @@ T['proveedores/form.html'] = """{% extends 'base.html' %}
 
 T['ventas/index.html'] = """{% extends 'base.html' %}
 {% block title %}Ventas{% endblock %}{% block page_title %}Ventas{% endblock %}
-{% block topbar_actions %}<a href="{{ url_for('venta_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva</a>{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('venta_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva venta</a>{% endblock %}
 {% block content %}
-<div class="mb-3 d-flex gap-2 flex-wrap">
-  {% for est,lbl in [('','Todas'),('prospecto','Prospecto'),('negociacion','Negociación'),('anticipo_pagado','Anticipo'),('ganado','Ganado'),('perdido','Perdido')] %}
-  <a href="{{ url_for('ventas', estado=est) }}" class="btn btn-sm {{ 'btn-primary' if estado_f==est else 'btn-outline-secondary' }}">{{ lbl }}</a>{% endfor %}
+<div class="mb-3 d-flex gap-2 flex-wrap align-items-center">
+  {% for est,lbl,cnt in [('','Todas',items|length)] %}
+  <span class="text-muted me-1" style="font-size:.8rem">Filtrar:</span>{% endfor %}
+  {% for est,lbl in [('','Todas'),('prospecto','Prospecto'),('negociacion','Negociación'),('anticipo_pagado','Anticipo'),('completado','Completado'),('perdido','Perdido')] %}
+  <a href="{{ url_for('ventas', estado=est) }}"
+     class="b {% if estado_f==est %}b-negociacion{% else %}b-borrador{% endif %}"
+     style="text-decoration:none;cursor:pointer;padding:4px 12px">{{ lbl }}</a>{% endfor %}
 </div>
-<div class="tc"><div class="ch"><i class="bi bi-graph-up-arrow me-2"></i>{{ items|length }} venta(s)</div>
+<div class="tc">
+  <div class="ch">
+    <span><i class="bi bi-graph-up-arrow me-2 text-primary"></i>{{ items|length }} venta{{ 's' if items|length != 1 else '' }}</span>
+  </div>
 {% if items %}<div class="table-responsive"><table class="table">
-  <thead><tr><th>N°</th><th>Título</th><th>Cliente</th><th>Total</th><th>Anticipo</th><th>Saldo</th><th>Estado</th><th>Entrega est.</th><th></th></tr></thead>
+  <thead><tr>
+    <th>N°</th>
+    <th>Título</th>
+    <th class="hide-mobile">Cliente</th>
+    <th class="hide-mobile">Total</th>
+    <th class="hide-mobile">Saldo</th>
+    <th>Estado</th>
+    <th class="hide-mobile">Entrega est.</th>
+    <th style="width:1px"></th>
+  </tr></thead>
   <tbody>{% for v in items %}<tr>
-    <td><small class="text-muted fw-semibold">{{ v.numero or '—' }}</small></td>
-    <td class="fw-semibold" style="color:#1a1f36">{{ v.titulo }}</td>
-    <td>{% if v.cliente %}<a href="{{ url_for('cliente_ver', id=v.cliente.id) }}" class="text-decoration-none">{{ v.cliente.empresa or v.cliente.nombre }}</a>{% else %}—{% endif %}</td>
-    <td class="fw-semibold">$ {{ '{:,.0f}'.format(v.total).replace(',','.') }}</td>
-    <td>$ {{ '{:,.0f}'.format(v.monto_anticipo).replace(',','.') }}</td>
-    <td class="{{ 'text-danger fw-semibold' if v.saldo > 0 else '' }}">$ {{ '{:,.0f}'.format(v.saldo).replace(',','.') }}</td>
-    <td><span class="b b-{{ v.estado }}">{{ v.estado.replace('_',' ').title() }}</span></td>
-    <td>{% if v.fecha_entrega_est %}<small>{{ v.fecha_entrega_est.strftime('%d/%m/%Y') }}</small>{% else %}—{% endif %}</td>
-    <td><div class="d-flex gap-1 flex-wrap">
-      <a href="{{ url_for('venta_factura', id=v.id) }}" class="btn btn-sm btn-outline-primary" target="_blank" title="Ver factura/cotización"><i class="bi bi-file-earmark-text"></i></a>
-      <a href="{{ url_for('venta_editar', id=v.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
-      {# Botón Informar al cliente: visible si hay producción completada y aún no se informó #}
-      {% set ops_completadas = v.ordenes_produccion|selectattr('estado','equalto','completado')|list %}
-      {% if ops_completadas and not v.cliente_informado_en and not v.entregado_en %}
-      <form method="POST" action="{{ url_for('venta_informar_cliente', id=v.id) }}" class="d-inline">
-        <button class="btn btn-sm btn-warning" title="Producción lista — Informar al cliente">
-          <i class="bi bi-envelope-check me-1"></i>Informar cliente
-        </button>
+    <td><span class="text-muted fw-semibold" style="font-size:.78rem">{{ v.numero or '—' }}</span></td>
+    <td>
+      <div class="fw-semibold" style="color:#172B4D">{{ v.titulo }}</div>
+      {% if v.cliente %}<div class="d-md-none" style="font-size:.75rem;color:#6B778C">{{ v.cliente.empresa or v.cliente.nombre }}</div>{% endif %}
+    </td>
+    <td class="hide-mobile">{% if v.cliente %}<a href="{{ url_for('cliente_ver', id=v.cliente.id) }}" class="text-decoration-none" style="color:#0052CC">{{ v.cliente.empresa or v.cliente.nombre }}</a>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+    <td class="hide-mobile fw-semibold">$ {{ '{:,.0f}'.format(v.total).replace(',','.') }}</td>
+    <td class="hide-mobile {{ 'fw-semibold' if v.saldo > 0 else '' }}" style="{{ 'color:#DE350B' if v.saldo > 0 else 'color:#6B778C' }}">$ {{ '{:,.0f}'.format(v.saldo).replace(',','.') }}</td>
+    <td>
+      {# Inline status dropdown #}
+      <form method="POST" action="{{ url_for('venta_cambiar_estado', id=v.id) }}" style="display:inline" onchange="this.submit()">
+        <select name="estado" class="status-select b-{{ v.estado }}" title="Cambiar estado"
+                onchange="this.className='status-select b-'+this.value">
+          {% for est,lbl in [('prospecto','Prospecto'),('negociacion','Negociación'),('anticipo_pagado','Anticipo Pagado'),('completado','Completado'),('perdido','Perdido')] %}
+          <option value="{{ est }}" {% if v.estado==est %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
+        </select>
       </form>
-      {% endif %}
-      {# Botón Entregado: visible si ya se informó al cliente y aún no está entregado #}
-      {% if v.cliente_informado_en and not v.entregado_en %}
-      <form method="POST" action="{{ url_for('venta_entregar', id=v.id) }}" class="d-inline"
-            onsubmit="return confirm('¿Marcar como entregado? Esto descontará las unidades del inventario.')">
-        <button class="btn btn-sm btn-success" title="Marcar como entregado y descontar stock">
-          <i class="bi bi-box-arrow-up me-1"></i>Entregado
-        </button>
-      </form>
-      {% endif %}
-      {# Estado entregado #}
-      {% if v.entregado_en %}
-      <span class="badge bg-success align-self-center"><i class="bi bi-check2-all me-1"></i>Entregado</span>
-      {% endif %}
-      <form method="POST" action="{{ url_for('venta_eliminar', id=v.id) }}" onsubmit="return confirm('¿Eliminar?')">
-        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
-    </div></td>
+    </td>
+    <td class="hide-mobile">{% if v.fecha_entrega_est %}<span style="font-size:.8rem">{{ v.fecha_entrega_est.strftime('%d/%m/%Y') }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+    <td>
+      <div class="d-flex gap-1 flex-wrap justify-content-end">
+        <a href="{{ url_for('venta_factura', id=v.id) }}" class="btn btn-sm btn-outline-secondary" target="_blank" title="Ver factura"><i class="bi bi-file-earmark-text"></i></a>
+        <a href="{{ url_for('venta_editar', id=v.id) }}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
+        {# Informar al cliente: producción completada y aún no notificado #}
+        {% set ops_completadas = v.ordenes_produccion|selectattr('estado','equalto','completado')|list %}
+        {% if ops_completadas and not v.cliente_informado_en and not v.entregado_en %}
+        <form method="POST" action="{{ url_for('venta_informar_cliente', id=v.id) }}" class="d-inline">
+          <button class="btn btn-sm btn-warning" title="Producción lista — Notificar al cliente">
+            <i class="bi bi-envelope-check"></i>
+          </button>
+        </form>
+        {% endif %}
+        {# Marcar entregado: ya notificado, no entregado aún #}
+        {% if v.cliente_informado_en and not v.entregado_en %}
+        <form method="POST" action="{{ url_for('venta_entregar', id=v.id) }}" class="d-inline"
+              onsubmit="return confirm('¿Marcar como entregado? Se descontará el stock.')">
+          <button class="btn btn-sm btn-success" title="Marcar como entregado"><i class="bi bi-box-arrow-up"></i></button>
+        </form>
+        {% endif %}
+        {# Remisión: disponible cuando ya fue entregado #}
+        {% if v.entregado_en %}
+        <a href="{{ url_for('venta_remision', id=v.id) }}" class="btn btn-sm btn-primary" title="Ver remisión de entrega" target="_blank">
+          <i class="bi bi-receipt me-1"></i><span class="d-none d-lg-inline">Remisión</span>
+        </a>
+        {% endif %}
+        <form method="POST" action="{{ url_for('venta_eliminar', id=v.id) }}" onsubmit="return confirm('¿Eliminar esta venta?')">
+          <button class="btn btn-sm btn-outline-danger" title="Eliminar"><i class="bi bi-trash"></i></button>
+        </form>
+      </div>
+    </td>
   </tr>{% endfor %}</tbody>
 </table></div>
-{% else %}<div class="text-center text-muted py-5"><i class="bi bi-graph-up-arrow" style="font-size:3rem"></i>
-  <p class="mt-3">Sin ventas.</p><a href="{{ url_for('venta_nueva') }}" class="btn btn-primary">Crear primera</a></div>
+{% else %}
+<div class="empty-state">
+  <i class="bi bi-graph-up-arrow"></i>
+  <p>No hay ventas{% if estado_f %} con estado "{{ estado_f }}"{% endif %}.</p>
+  <a href="{{ url_for('venta_nueva') }}" class="btn btn-primary">Crear primera venta</a>
+</div>
 {% endif %}</div>{% endblock %}"""
 
 T['ventas/form.html'] = """{% extends 'base.html' %}
@@ -1986,7 +2029,7 @@ T['ventas/form.html'] = """{% extends 'base.html' %}
     <div class="col-md-3">
       <label class="form-label">Estado</label>
       <select name="estado" class="form-select">
-        {% for est,lbl in [('prospecto','Prospecto'),('negociacion','Negociación'),('anticipo_pagado','Anticipo Pagado'),('ganado','Ganado'),('perdido','Perdido')] %}
+        {% for est,lbl in [('prospecto','Prospecto'),('negociacion','Negociación'),('anticipo_pagado','Anticipo Pagado'),('completado','Completado'),('perdido','Perdido')] %}
         <option value="{{ est }}" {% if obj and obj.estado==est %}selected{% elif not obj and est=='prospecto' %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
       </select>
       <div class="form-text">Refleja en qué etapa va el negocio.</div>
@@ -3282,6 +3325,204 @@ T['calendario.html'] = """{% extends 'base.html' %}
 </div>
 {% endblock %}"""
 
+T['ventas/remision.html'] = """<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Remisión — {{ venta.numero or venta.titulo }}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:11.5pt;color:#172B4D;background:#fff}
+.page{max-width:800px;margin:0 auto;padding:24px 32px}
+.no-print{position:fixed;top:14px;right:14px;display:flex;gap:8px;z-index:999}
+.btn-print{background:#0052CC;color:#fff;border:none;padding:8px 18px;border-radius:3px;cursor:pointer;font-size:13px;font-weight:600}
+.btn-back{background:#DFE1E6;color:#172B4D;border:none;padding:8px 14px;border-radius:3px;cursor:pointer;font-size:13px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+/* Header */
+.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #172B4D;padding-bottom:14px;margin-bottom:20px}
+.logo-area{display:flex;align-items:center;gap:10px}
+.doc-title{text-align:right}
+.doc-title h1{font-size:22pt;font-weight:800;color:#172B4D;letter-spacing:-1px}
+.doc-number{font-size:9.5pt;color:#6B778C;margin-top:4px}
+/* Info boxes */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+.info-box{background:#F4F5F7;border-radius:3px;padding:10px 14px}
+.info-box h4{font-size:7.5pt;text-transform:uppercase;letter-spacing:.8px;color:#6B778C;margin-bottom:6px;font-weight:700}
+.info-box p{font-size:10pt;color:#172B4D;line-height:1.5}
+/* Table */
+table.items-table{width:100%;border-collapse:collapse;margin:12px 0}
+table.items-table th{background:#172B4D;color:#fff;font-size:8.5pt;padding:7px 10px;text-align:left;font-weight:600;letter-spacing:.4px;text-transform:uppercase}
+table.items-table th.r,table.items-table td.r{text-align:right}
+table.items-table td{padding:7px 10px;font-size:10pt;border-bottom:1px solid #DFE1E6}
+table.items-table tr:nth-child(even) td{background:#F4F5F7}
+/* Totals */
+.totals{margin-left:auto;width:260px;margin-top:10px}
+.totals table td{font-size:10pt;padding:5px 10px;border-bottom:1px solid #DFE1E6}
+.totals .grand{background:#172B4D;color:#fff;font-weight:700;font-size:11.5pt}
+/* Packaging box */
+.packaging-form{background:#DEEBFF;border-radius:3px;padding:16px 18px;margin-top:16px;border:1px solid #B3D4FF}
+.packaging-form h3{font-size:10pt;font-weight:700;color:#0747A6;margin-bottom:10px}
+.packaging-form label{font-size:9.5pt;color:#172B4D;font-weight:600;display:block;margin-bottom:4px}
+.packaging-form input{padding:6px 10px;border:2px solid #DFE1E6;border-radius:3px;font-size:10pt;width:120px}
+.packaging-form button{background:#0052CC;color:#fff;border:none;padding:7px 16px;border-radius:3px;cursor:pointer;font-size:10pt;font-weight:600;margin-left:10px}
+.boxes-result{background:#E3FCEF;border-radius:3px;padding:14px 18px;margin-top:12px;border:1px solid #ABF5D1}
+.boxes-result h3{font-size:10pt;font-weight:700;color:#006644;margin-bottom:8px}
+.box-row{display:flex;align-items:center;gap:12px;margin-bottom:6px;font-size:10pt}
+.box-icon{font-size:20pt;line-height:1}
+.box-label{font-size:9pt;color:#6B778C}
+.box-value{font-size:18pt;font-weight:800;color:#006644;line-height:1}
+.box-partial{background:#FFFAE6;border-radius:3px;padding:10px 14px;margin-top:6px;border:1px solid #FFE380;font-size:9.5pt;color:#172B4D}
+/* Signature */
+.signatures{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:36px}
+.sig-line{border-top:1.5px solid #172B4D;padding-top:8px;font-size:9pt;color:#6B778C;text-align:center}
+/* Footer */
+.footer-bar{margin-top:24px;padding-top:12px;border-top:1px solid #DFE1E6;font-size:8.5pt;color:#6B778C;display:flex;justify-content:space-between;align-items:center}
+@media print{
+  .no-print,.packaging-form{display:none!important}
+  .boxes-result{display:block!important}
+  body{background:#fff}
+  .page{padding:12mm 14mm}
+}
+</style>
+</head>
+<body>
+<div class="no-print">
+  <a href="{{ url_for('ventas') }}" class="btn-back">← Volver</a>
+  <button onclick="window.print()" class="btn-print">🖨 Imprimir / Guardar PDF</button>
+</div>
+<div class="page">
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-area">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 474.45 119.52" height="40" style="display:block">
+        <path fill="#172B4D" d="M163.87,76.22V43.3c0-13-1.37-15.81-1.37-15.81h45.27v4.07s-4.09-2.22-23.45-2.22H167.87V54.21h30.9v4.07S196.13,56,183.41,56H167.87V90.18H187C206.4,90.18,210.5,88,210.5,88V92h-48S163.87,89.26,163.87,76.22Z"/>
+        <path fill="#172B4D" d="M215.13,27.49h7s-.28,2.77,4.72,15.81l17.91,46.33L263.21,43.3c5.18-13,3.82-15.81,3.82-15.81h5.82s-2.46,2.68-7.46,15.16L245.76,92h-4.27l-19-49C217.58,30.17,215.13,27.49,215.13,27.49Z"/>
+        <path fill="#172B4D" d="M274.07,59.67c0-18.5,14.45-33.39,32.36-33.39s32.36,14.89,32.36,33.39-14.46,33.38-32.36,33.38S274.07,78.16,274.07,59.67Zm60.81,0c0-17.48-12.73-31.63-28.45-31.63S278,42.19,278,59.67s12.72,31.62,28.45,31.62S334.88,77.15,334.88,59.67Z"/>
+        <path fill="#172B4D" d="M346.1,76.22V43.3c0-13-1.36-15.81-1.36-15.81h28.63c11,0,19.91,9.34,19.91,20.8s-8.73,20.63-19.55,20.81L381,76.5C393.55,89.35,397.64,92,397.64,92h-8.36S388,89.35,375.73,76.87l-7.54-7.77H350.1v7.12c0,13,1.36,15.81,1.36,15.81h-6.72S346.1,89.26,346.1,76.22Zm43.27-27.93c0-10.35-7.18-18.95-16-18.95H350.1V67.25h23.27C382.19,67.25,389.37,58.65,389.37,48.29Z"/>
+        <path fill="#172B4D" d="M403.73,76.22V43.3c0-13-1.37-15.81-1.37-15.81h45.27v4.07s-4.09-2.22-23.45-2.22H407.72V54.21h30.91v4.07S436,56,423.27,56H407.72V90.18H426.9c19.36,0,23.45-2.21,23.45-2.21V92h-48S403.73,89.26,403.73,76.22Z"/>
+      </svg>
+      {% if empresa and empresa.nombre %}<span style="font-size:11pt;font-weight:700;color:#172B4D">{{ empresa.nombre }}</span>{% endif %}
+    </div>
+    <div class="doc-title">
+      <h1>REMISIÓN</h1>
+      <div class="doc-number">{{ venta.numero or '—' }}</div>
+      <div class="doc-number" style="margin-top:2px">{{ venta.entregado_en.strftime('%d/%m/%Y') if venta.entregado_en else '' }}</div>
+    </div>
+  </div>
+
+  <!-- Info grid -->
+  <div class="info-grid">
+    <div class="info-box">
+      <h4>Entregado a</h4>
+      <p><strong>{{ venta.cliente.empresa or venta.cliente.nombre if venta.cliente else '—' }}</strong><br>
+      {% if venta.cliente and venta.cliente.dir_entrega %}{{ venta.cliente.dir_entrega }}<br>{% endif %}
+      {% if venta.cliente and venta.cliente.nit %}NIT: {{ venta.cliente.nit }}{% endif %}</p>
+    </div>
+    <div class="info-box">
+      <h4>Entregado por</h4>
+      <p><strong>{{ empresa.nombre if empresa else '—' }}</strong><br>
+      {% if empresa and empresa.nit %}NIT: {{ empresa.nit }}<br>{% endif %}
+      {% if empresa and empresa.telefono %}{{ empresa.telefono }}{% endif %}</p>
+    </div>
+    <div class="info-box">
+      <h4>Pedido</h4>
+      <p>{{ venta.titulo }}</p>
+    </div>
+    <div class="info-box">
+      <h4>Fecha entrega</h4>
+      <p>{{ venta.entregado_en.strftime('%d de %B de %Y') if venta.entregado_en else '—' }}</p>
+    </div>
+  </div>
+
+  <!-- Items table -->
+  <table class="items-table">
+    <thead><tr>
+      <th>#</th><th>Descripción</th>
+      <th class="r">Cant.</th><th class="r">Precio unit.</th><th class="r">Subtotal</th>
+    </tr></thead>
+    <tbody>{% for it in items_data %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td>{{ it.nombre }}</td>
+      <td class="r">{{ it.cantidad }}</td>
+      <td class="r">$ {{ '{:,.0f}'.format(it.precio_unit).replace(',','.') }}</td>
+      <td class="r">$ {{ '{:,.0f}'.format(it.subtotal).replace(',','.') }}</td>
+    </tr>{% endfor %}</tbody>
+  </table>
+  <div class="totals">
+    <table style="width:100%;border-collapse:collapse">
+      <tr><td>Subtotal:</td><td class="r">$ {{ '{:,.0f}'.format(venta.subtotal).replace(',','.') }}</td></tr>
+      <tr><td>IVA 19%:</td><td class="r">$ {{ '{:,.0f}'.format(venta.iva).replace(',','.') }}</td></tr>
+      <tr class="grand"><td style="padding:7px 10px">Total:</td><td class="r" style="padding:7px 10px">$ {{ '{:,.0f}'.format(venta.total).replace(',','.') }}</td></tr>
+    </table>
+  </div>
+
+  <!-- Packaging calculator (no-print) -->
+  <div class="packaging-form no-print">
+    <h3>📦 Cálculo de embalaje</h3>
+    <form method="GET" action="{{ url_for('venta_remision', id=venta.id) }}" style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
+      <div>
+        <label>Unidades por caja / paquete</label>
+        <input type="number" name="upp" min="1" step="1" value="{{ upp or '' }}" placeholder="Ej: 12" required>
+      </div>
+      <button type="submit">Calcular</button>
+    </form>
+    <div style="margin-top:8px;font-size:9pt;color:#6B778C">
+      Total de unidades en este pedido: <strong>{{ total_unidades }}</strong>
+    </div>
+  </div>
+
+  {% if cajas_info %}
+  <!-- Boxes result (visible always when calculated) -->
+  <div class="boxes-result" style="margin-top:14px">
+    <h3>Resultado de embalaje — {{ cajas_info.upp }} unid./caja</h3>
+    <div style="display:flex;gap:28px;flex-wrap:wrap;margin-top:8px">
+      <div>
+        <div class="box-label">Total unidades</div>
+        <div class="box-value" style="color:#172B4D">{{ cajas_info.total_unidades }}</div>
+      </div>
+      <div>
+        <div class="box-label">Cajas completas</div>
+        <div class="box-value">{{ cajas_info.cajas_completas }}</div>
+      </div>
+      {% if cajas_info.cajas_parciales > 0 %}
+      <div>
+        <div class="box-label">Caja parcial</div>
+        <div class="box-value" style="color:#FF8B00">{{ cajas_info.cajas_parciales }}</div>
+      </div>
+      {% endif %}
+    </div>
+    {% if cajas_info.cajas_parciales > 0 %}
+    <div class="box-partial">
+      <strong>⚠️ Caja incompleta:</strong> {{ cajas_info.sobrante }} unidad{{ 'es' if cajas_info.sobrante != 1 else '' }} en la última caja
+      ({{ cajas_info.cajas_completas + cajas_info.cajas_parciales }} cajas en total).
+    </div>
+    {% else %}
+    <div style="margin-top:8px;font-size:9.5pt;color:#006644;font-weight:600">✓ Todas las cajas están completas.</div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Signature lines -->
+  <div class="signatures">
+    <div class="sig-line">
+      <div style="margin-bottom:40px"></div>
+      Entregado por<br>
+      <strong>{{ empresa.nombre if empresa else '' }}</strong>
+    </div>
+    <div class="sig-line">
+      <div style="margin-bottom:40px"></div>
+      Recibido por<br>
+      <strong>{{ venta.cliente.empresa or venta.cliente.nombre if venta.cliente else '___________________' }}</strong>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer-bar">
+    <span>Remisión generada por Evore CRM</span>
+    <span>{{ venta.entregado_en.strftime('%d/%m/%Y %H:%M') if venta.entregado_en else '' }}</span>
+  </div>
+</div>
+</body></html>"""
+
 T['ventas/factura.html'] = """<!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -3646,14 +3887,15 @@ tr:nth-child(even) td{background:#f8f9fe}
 </style></head>
 <body><div class="page">
 <div class="header">
-  <div class="logo-wrap">
-    {% if empresa.nombre %}
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 341.94 261.01" style="height:48px">
-      <path d="M171.13,0C76.58,0,0,58.38,0,130.38s76.58,130.38,171.13,130.38,170.81-58.38,170.81-130.38S265.51,0,171.13,0Zm0,235.17c-59.28,0-107.34-46.99-107.34-104.93S111.85,25.32,171.13,25.32s107.02,46.99,107.02,104.93-47.9,104.93-107.02,104.93Z" fill="#1a1f36"/>
-      <path d="M248.21,88.31c-3.52-5.7-9.76-9.16-16.49-9.16h-121.18c-6.73,0-12.97,3.46-16.49,9.16-3.52,5.7-3.76,12.79-.63,18.72l60.59,114.27c3.27,6.16,9.67,10.01,16.65,10.01s13.38-3.84,16.65-10.01l60.59-114.27c3.13-5.93,2.9-13.02-.63-18.72Zm-77.08,99.59l-43.65-82.33h87.3l-43.65,82.33Z" fill="#1a1f36"/>
+  <div class="logo-wrap" style="display:flex;align-items:center;gap:10px">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 474.45 119.52" height="44" style="display:block">
+      <path fill="#172B4D" d="M163.87,76.22V43.3c0-13-1.37-15.81-1.37-15.81h45.27v4.07s-4.09-2.22-23.45-2.22H167.87V54.21h30.9v4.07S196.13,56,183.41,56H167.87V90.18H187C206.4,90.18,210.5,88,210.5,88V92h-48S163.87,89.26,163.87,76.22Z"/>
+      <path fill="#172B4D" d="M215.13,27.49h7s-.28,2.77,4.72,15.81l17.91,46.33L263.21,43.3c5.18-13,3.82-15.81,3.82-15.81h5.82s-2.46,2.68-7.46,15.16L245.76,92h-4.27l-19-49C217.58,30.17,215.13,27.49,215.13,27.49Z"/>
+      <path fill="#172B4D" d="M274.07,59.67c0-18.5,14.45-33.39,32.36-33.39s32.36,14.89,32.36,33.39-14.46,33.38-32.36,33.38S274.07,78.16,274.07,59.67Zm60.81,0c0-17.48-12.73-31.63-28.45-31.63S278,42.19,278,59.67s12.72,31.62,28.45,31.62S334.88,77.15,334.88,59.67Z"/>
+      <path fill="#172B4D" d="M346.1,76.22V43.3c0-13-1.36-15.81-1.36-15.81h28.63c11,0,19.91,9.34,19.91,20.8s-8.73,20.63-19.55,20.81L381,76.5C393.55,89.35,397.64,92,397.64,92h-8.36S388,89.35,375.73,76.87l-7.54-7.77H350.1v7.12c0,13,1.36,15.81,1.36,15.81h-6.72S346.1,89.26,346.1,76.22Zm43.27-27.93c0-10.35-7.18-18.95-16-18.95H350.1V67.25h23.27C382.19,67.25,389.37,58.65,389.37,48.29Z"/>
+      <path fill="#172B4D" d="M403.73,76.22V43.3c0-13-1.37-15.81-1.37-15.81h45.27v4.07s-4.09-2.22-23.45-2.22H407.72V54.21h30.91v4.07S436,56,423.27,56H407.72V90.18H426.9c19.36,0,23.45-2.21,23.45-2.21V92h-48S403.73,89.26,403.73,76.22Z"/>
     </svg>
-    <span style="font-size:14pt;font-weight:700;color:#1a1f36;margin-left:10px">{{ empresa.nombre }}</span>
-    {% endif %}
+    {% if empresa and empresa.nombre %}<span style="font-size:11pt;font-weight:600;color:#172B4D">{{ empresa.nombre }}</span>{% endif %}
   </div>
   <div class="doc-title">
     <h1>COTIZACIÓN</h1>
@@ -4863,7 +5105,7 @@ T['produccion/reservas.html'] = """{% extends 'base.html' %}
   {% set hay_faltante = namespace(v=false) %}
   {% for r in grupo %}{% if r.estado=='reservado' and r.materia.stock_disponible < r.cantidad %}{% set hay_faltante.v = true %}{% endif %}{% endfor %}
   {# Determinar si hay anticipo pagado #}
-  {% set anticipo_ok = venta_obj and venta_obj.estado in ['anticipo_pagado','ganado'] %}
+  {% set anticipo_ok = venta_obj and venta_obj.estado in ['anticipo_pagado','completado'] %}
 
 <div class="mb-4 border rounded overflow-hidden">
   <div class="d-flex align-items-center justify-content-between px-3 py-2" style="background:#f0f3ff;border-bottom:1px solid #dee2f0">
@@ -5519,7 +5761,7 @@ def dashboard():
     from datetime import date
     hoy = date.today()
     mes_inicio = hoy.replace(day=1)
-    ingresos = db.session.query(db.func.sum(Venta.total)).filter(Venta.estado.in_(['ganado','anticipo_pagado'])).scalar() or 0
+    ingresos = db.session.query(db.func.sum(Venta.total)).filter(Venta.estado.in_(['completado','anticipo_pagado'])).scalar() or 0
     gastos_tot = db.session.query(db.func.sum(GastoOperativo.monto)).scalar() or 0
     gastos_mes = db.session.query(db.func.sum(GastoOperativo.monto)).filter(GastoOperativo.fecha >= mes_inicio).scalar() or 0
     compras_tot = db.session.query(db.func.sum(CompraMateria.costo_total)).scalar() or 0
@@ -5531,7 +5773,7 @@ def dashboard():
     saldo_neto = ingresos - total_egresos_global - impuestos_estimados
     return render_template('dashboard.html',
         total_clientes       = Cliente.query.filter_by(estado='activo').count(),
-        ventas_ganadas       = Venta.query.filter_by(estado='ganado').count(),
+        ventas_completadas       = Venta.query.filter_by(estado='completado').count(),
         tareas_pendientes    = Tarea.query.filter(Tarea.estado != 'completada').count(),
         ingresos_totales     = ingresos,
         gastos_totales       = gastos_tot,
@@ -6048,7 +6290,7 @@ def _descontar_stock_venta(venta):
     """
     Descuenta del inventario (Producto.stock) las cantidades de los items
     de la venta. Se llama exactamente una vez, cuando la venta pasa a
-    anticipo_pagado o ganado por primera vez.
+    anticipo_pagado o completado por primera vez.
     """
     try:
         for item in venta.items:
@@ -6136,6 +6378,46 @@ def venta_editar(id):
 def venta_eliminar(id):
     obj=Venta.query.get_or_404(id); db.session.delete(obj); db.session.commit()
     flash('Venta eliminada.','info'); return redirect(url_for('ventas'))
+
+@app.route('/ventas/<int:id>/estado', methods=['POST'])
+@login_required
+def venta_cambiar_estado(id):
+    venta = Venta.query.get_or_404(id)
+    nuevo = request.form.get('estado', '')
+    estados_validos = ['prospecto','negociacion','anticipo_pagado','completado','perdido']
+    if nuevo in estados_validos:
+        venta.estado = nuevo
+        db.session.commit()
+        _log('editar','venta',venta.id,f'Estado → {nuevo}'); db.session.commit()
+    return redirect(url_for('ventas'))
+
+@app.route('/ventas/<int:id>/remision')
+@login_required
+def venta_remision(id):
+    venta = Venta.query.get_or_404(id)
+    upp   = request.args.get('upp', type=int, default=0)
+    empresa = ConfigEmpresa.query.first()
+    # Calcular totales de unidades por ítem
+    items_data = []
+    total_unidades = 0
+    for it in venta.items:
+        qty = it.cantidad if it.cantidad else 0
+        items_data.append({'nombre': it.nombre_prod, 'cantidad': qty,
+                           'precio_unit': it.precio_unit, 'subtotal': it.subtotal})
+        total_unidades += qty
+    # Cálculo de cajas
+    cajas_info = None
+    if upp and upp > 0:
+        import math
+        cajas_completas = math.floor(total_unidades / upp)
+        sobrante       = total_unidades % upp
+        cajas_parciales = 1 if sobrante > 0 else 0
+        cajas_info = {'upp': upp, 'total_unidades': total_unidades,
+                      'cajas_completas': cajas_completas, 'sobrante': sobrante,
+                      'cajas_parciales': cajas_parciales}
+    return render_template('ventas/remision.html', venta=venta, empresa=empresa,
+                           items_data=items_data, total_unidades=total_unidades,
+                           cajas_info=cajas_info, upp=upp)
 
 @app.route('/ventas/<int:id>/informar_cliente', methods=['POST'])
 @login_required
@@ -6908,7 +7190,7 @@ def reportes():
     from datetime import date
     from calendar import month_abbr
     # Estadísticas generales
-    ingresos_totales = db.session.query(db.func.sum(Venta.total)).filter(Venta.estado.in_(['ganado','anticipo_pagado'])).scalar() or 0
+    ingresos_totales = db.session.query(db.func.sum(Venta.total)).filter(Venta.estado.in_(['completado','anticipo_pagado'])).scalar() or 0
     gastos_totales   = db.session.query(db.func.sum(GastoOperativo.monto)).scalar() or 0
     balance          = ingresos_totales - gastos_totales
     total_clientes   = Cliente.query.filter_by(estado='activo').count()
@@ -8361,7 +8643,7 @@ def contable_index():
     hasta = datetime(anio, mes, ultimo_dia).date()
     # Ingresos del mes (ventas ganadas/anticipo)
     ventas_mes = Venta.query.filter(
-        Venta.estado.in_(['anticipo_pagado','ganado']),
+        Venta.estado.in_(['anticipo_pagado','completado']),
         db.func.date(Venta.creado_en) >= desde,
         db.func.date(Venta.creado_en) <= hasta
     ).all()
@@ -8382,7 +8664,7 @@ def contable_index():
     total_impuestos, detalle_impuestos = _calcular_impuestos(total_ingresos, utilidad)
     utilidad_neta = utilidad - total_impuestos
     # Cuentas por cobrar (ventas con saldo > 0)
-    cxc = Venta.query.filter(Venta.saldo > 0, Venta.estado.in_(['anticipo_pagado','ganado'])).all()
+    cxc = Venta.query.filter(Venta.saldo > 0, Venta.estado.in_(['anticipo_pagado','completado'])).all()
     total_cxc = sum(v.saldo for v in cxc)
     # Inventario valorizado
     inventario_valor = sum((p.stock or 0) * (p.costo or 0) for p in Producto.query.filter_by(activo=True).all())
@@ -8406,7 +8688,7 @@ def contable_index():
 def contable_ingresos():
     desde_s = request.args.get('desde','')
     hasta_s = request.args.get('hasta','')
-    q = Venta.query.filter(Venta.estado.in_(['anticipo_pagado','ganado','prospecto','negociacion','perdido']))
+    q = Venta.query.filter(Venta.estado.in_(['anticipo_pagado','completado','prospecto','negociacion','perdido']))
     if desde_s:
         try: q = q.filter(db.func.date(Venta.creado_en) >= datetime.strptime(desde_s,'%Y-%m-%d').date())
         except: pass
