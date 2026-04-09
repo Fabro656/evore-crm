@@ -9,14 +9,14 @@ from flask_login import (LoginManager, UserMixin, login_user,
                          logout_user, login_required, current_user)
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta, date as date_type
-import os, json, secrets
+import os, json, secrets, logging
 from functools import wraps
 from jinja2 import DictLoader
 
 app = Flask(__name__)
 _secret_key = os.environ.get('SECRET_KEY', 'evore-crm-stable-fallback-key-2026-xK9mP')
 if _secret_key == 'evore-crm-stable-fallback-key-2026-xK9mP':
-    print('INFO: Using fallback SECRET_KEY. Set SECRET_KEY in Railway Variables for better security.')
+    logging.info('Using fallback SECRET_KEY. Set SECRET_KEY in Railway Variables for better security.')
 app.config['SECRET_KEY'] = _secret_key
 _db_url = os.environ.get('DATABASE_URL', 'sqlite:///crm.db')
 if _db_url.startswith('postgres://'): _db_url = _db_url.replace('postgres://', 'postgresql://', 1)
@@ -143,14 +143,14 @@ def inject_globals():
         if current_user.rol == 'cliente':
             try:
                 if current_user.cliente_id:
-                    cli = Cliente.query.get(current_user.cliente_id)
+                    cli = db.session.get(Cliente, current_user.cliente_id)
                     if cli: empresa_cliente_nombre = cli.empresa or cli.nombre
             except Exception: pass
         if current_user.rol == 'proveedor':
             try:
                 prov_id = getattr(current_user, 'proveedor_id', None)
                 if prov_id:
-                    prov = Proveedor.query.get(prov_id)
+                    prov = db.session.get(Proveedor, prov_id)
                     if prov: empresa_proveedor_nombre = prov.nombre
             except Exception: pass
     return {'now': datetime.utcnow(), 'modulos_user': modulos, 'notif_count': notif_count,
@@ -882,7 +882,7 @@ class PreCotizacion(db.Model):
     items            = db.relationship('PreCotizacionItem', backref='precot', lazy=True, cascade='all, delete-orphan')
 
 @login_manager.user_loader
-def load_user(uid): return User.query.get(int(uid))
+def load_user(uid): return db.session.get(User, int(uid))
 
 # =============================================================
 # TEMPLATES
@@ -8290,7 +8290,7 @@ def login():
 def logout():
     from flask import session as flask_session
     if 'sesion_id' in flask_session:
-        ses = UserSesion.query.get(flask_session.get('sesion_id'))
+        ses = db.session.get(UserSesion, flask_session.get('sesion_id'))
         if ses and not ses.logout_at:
             ses.logout_at = datetime.utcnow()
             delta = ses.logout_at - ses.login_at
@@ -8483,7 +8483,7 @@ def cliente_eliminar(id):
 def portal_cliente():
     if current_user.rol != 'cliente':
         return redirect(url_for('dashboard'))
-    cliente = Cliente.query.get(current_user.cliente_id) if current_user.cliente_id else None
+    cliente = db.session.get(Cliente, current_user.cliente_id) if current_user.cliente_id else None
     if not cliente:
         flash('Tu cuenta no está vinculada a una empresa. Contacta al administrador.', 'warning')
         return render_template('portal/sin_empresa.html')
@@ -8493,7 +8493,7 @@ def portal_cliente():
     mensajes = Tarea.query.filter(Tarea.titulo.like('[Mensaje]%'),
                                   db.or_(Tarea.creado_por==current_user.id,
                                          Tarea.asignado_a==cliente.sales_manager_id)).order_by(Tarea.creado_en.desc()).limit(50).all()
-    sales_manager_user = User.query.get(cliente.sales_manager_id) if cliente.sales_manager_id else User.query.filter_by(rol='admin', activo=True).first()
+    sales_manager_user = db.session.get(User, cliente.sales_manager_id) if cliente.sales_manager_id else User.query.filter_by(rol='admin', activo=True).first()
     return render_template('portal/index.html', cliente=cliente, ventas=ventas,
                            cotizaciones=cotizaciones, pre_cots=pre_cots, mensajes=mensajes,
                            sales_manager_user=sales_manager_user)
@@ -8503,7 +8503,7 @@ def portal_cliente():
 def portal_mensaje_nuevo():
     if current_user.rol != 'cliente':
         return redirect(url_for('dashboard'))
-    cliente = Cliente.query.get(current_user.cliente_id) if current_user.cliente_id else None
+    cliente = db.session.get(Cliente, current_user.cliente_id) if current_user.cliente_id else None
     if not cliente:
         flash('Sin empresa vinculada.', 'danger')
         return redirect(url_for('portal_cliente'))
@@ -8536,7 +8536,7 @@ def portal_mensaje_nuevo():
 def portal_pre_cotizacion_nueva():
     if current_user.rol != 'cliente':
         return redirect(url_for('dashboard'))
-    cliente = Cliente.query.get(current_user.cliente_id) if current_user.cliente_id else None
+    cliente = db.session.get(Cliente, current_user.cliente_id) if current_user.cliente_id else None
     if not cliente:
         flash('Sin empresa vinculada.','danger'); return redirect(url_for('portal_cliente'))
     if request.method == 'POST':
@@ -8589,7 +8589,7 @@ def portal_pre_cotizacion_nueva():
 def portal_ticket_nuevo():
     if current_user.rol != 'cliente':
         return redirect(url_for('dashboard'))
-    cliente = Cliente.query.get(current_user.cliente_id) if current_user.cliente_id else None
+    cliente = db.session.get(Cliente, current_user.cliente_id) if current_user.cliente_id else None
     if not cliente:
         flash('Sin empresa vinculada.','danger'); return redirect(url_for('portal_cliente'))
     if request.method == 'POST':
@@ -8679,7 +8679,7 @@ def portal_precot_aceptar(id):
 def portal_proveedor():
     if current_user.rol != 'proveedor':
         return redirect(url_for('dashboard'))
-    prov = Proveedor.query.get(current_user.proveedor_id) if current_user.proveedor_id else None
+    prov = db.session.get(Proveedor, current_user.proveedor_id) if current_user.proveedor_id else None
     if not prov:
         flash('Tu cuenta no está vinculada a una empresa proveedora.', 'warning')
         return render_template('portal/proveedor_sin_empresa.html')
@@ -8694,7 +8694,7 @@ def portal_prov_confirmar_oc(id):
     if current_user.rol != 'proveedor':
         return redirect(url_for('dashboard'))
     oc = OrdenCompra.query.get_or_404(id)
-    prov = Proveedor.query.get(current_user.proveedor_id)
+    prov = db.session.get(Proveedor, current_user.proveedor_id)
     if not prov or oc.proveedor_id != prov.id:
         flash('Sin permisos.','danger'); return redirect(url_for('portal_proveedor'))
     oc.estado = 'confirmada'
@@ -8719,7 +8719,7 @@ def portal_prov_confirmar_oc(id):
 def portal_prov_ticket():
     if current_user.rol != 'proveedor':
         return redirect(url_for('dashboard'))
-    prov = Proveedor.query.get(current_user.proveedor_id) if current_user.proveedor_id else None
+    prov = db.session.get(Proveedor, current_user.proveedor_id) if current_user.proveedor_id else None
     if not prov:
         flash('Sin empresa vinculada.','danger'); return redirect(url_for('portal_proveedor'))
     if request.method == 'POST':
@@ -9009,7 +9009,7 @@ def orden_compra_nueva():
         if fes:
             fecha_esp = datetime.strptime(fes,'%Y-%m-%d').date()
         elif cot_id:
-            cot_obj = CotizacionProveedor.query.get(cot_id)
+            cot_obj = db.session.get(CotizacionProveedor, cot_id)
             if cot_obj and cot_obj.plazo_entrega_dias:
                 fecha_esp = fecha_emision + timedelta(days=cot_obj.plazo_entrega_dias)
         oc = OrdenCompra(
@@ -9038,7 +9038,7 @@ def orden_compra_nueva():
         for it in _oc_save_items(oc.id): db.session.add(it)
         # Auto-tarea para transportista
         if tra_id and fer:
-            tra = Proveedor.query.get(tra_id)
+            tra = db.session.get(Proveedor, tra_id)
             fecha_rec = datetime.strptime(fer,'%Y-%m-%d').date()
             t = Tarea(titulo=f'Contratar transporte para OC {oc.numero}',
                       descripcion=f'Contactar a {tra.nombre or tra.empresa} para coordinar recogida el {fecha_rec.strftime("%d/%m/%Y")}. OC: {oc.numero}',
@@ -9073,7 +9073,7 @@ def orden_compra_editar(id):
         if fes:
             fecha_esp = datetime.strptime(fes,'%Y-%m-%d').date()
         elif cot_id:
-            cot_obj = CotizacionProveedor.query.get(cot_id)
+            cot_obj = db.session.get(CotizacionProveedor, cot_id)
             if cot_obj and cot_obj.plazo_entrega_dias:
                 fecha_esp = fecha_emision + timedelta(days=cot_obj.plazo_entrega_dias)
         obj.proveedor_id        = int(request.form.get('proveedor_id')) if request.form.get('proveedor_id') else None
@@ -9171,7 +9171,7 @@ def _save_items(venta_obj):
     for i, pid in enumerate(pids):
         cant  = float(cants[i]) if i < len(cants) else 1
         precio= float(precios[i]) if i < len(precios) else 0
-        prod  = Producto.query.get(int(pid)) if pid else None
+        prod  = db.session.get(Producto, int(pid)) if pid else None
         db.session.add(VentaProducto(
             venta_id=venta_obj.id,
             producto_id=int(pid) if pid else None,
@@ -9188,7 +9188,7 @@ def _descontar_stock_venta(venta):
         for item in venta.items:
             if not item.producto_id:
                 continue
-            prod = Producto.query.get(item.producto_id)
+            prod = db.session.get(Producto, item.producto_id)
             if not prod:
                 continue
             cant = item.cantidad
@@ -9422,7 +9422,7 @@ def tarea_nueva():
                 f'Nueva tarea asignada: {t.titulo}',
                 f'Te asignó una tarea: {current_user.nombre}',
                 url_for('tarea_ver', id=t.id))
-            asignado = User.query.get(asignado_id)
+            asignado = db.session.get(User, asignado_id)
             if asignado and asignado.email:
                 _send_email(asignado.email, f'Nueva tarea: {t.titulo}',
                     f'Hola {asignado.nombre},\n\n{current_user.nombre} te asignó la tarea "{t.titulo}".\n\nDescripción: {t.descripcion or "—"}')
@@ -9465,7 +9465,7 @@ def tarea_editar(id):
                 f'Tarea reasignada: {obj.titulo}',
                 f'{current_user.nombre} te reasignó esta tarea.',
                 url_for('tarea_ver', id=obj.id))
-            asignado = User.query.get(obj.asignado_a)
+            asignado = db.session.get(User, obj.asignado_a)
             if asignado and asignado.email:
                 _send_email(asignado.email, f'Tarea reasignada: {obj.titulo}',
                     f'Hola {asignado.nombre},\n\n{current_user.nombre} te reasignó la tarea "{obj.titulo}".')
@@ -9483,10 +9483,10 @@ def tarea_completar(id):
 
     # Lógica tareas pareadas: comprar_materias + verificar_abono
     if obj.tarea_tipo in ('comprar_materias','verificar_abono') and obj.tarea_pareja_id:
-        pareja = Tarea.query.get(obj.tarea_pareja_id)
+        pareja = db.session.get(Tarea, obj.tarea_pareja_id)
         if pareja and pareja.estado == 'completada' and obj.cotizacion_id:
             # Ambas tareas completadas → enviar email al cliente
-            cot = Cotizacion.query.get(obj.cotizacion_id)
+            cot = db.session.get(Cotizacion, obj.cotizacion_id)
             if cot and cot.cliente:
                 cliente = cot.cliente
                 email_dest = None
@@ -9581,7 +9581,7 @@ def _descontar_materias(form):
         if not mid or not cant_str: continue
         try:
             cant = float(cant_str)
-            m = MateriaPrima.query.get(int(mid))
+            m = db.session.get(MateriaPrima, int(mid))
             if not m:
                 errores.append(f'Materia prima ID {mid} no encontrada')
                 continue
@@ -9712,11 +9712,11 @@ def _save_compra(c, form):
     c.notas = form.get('notas','')
     # Update linked product cost
     if pid:
-        prod = Producto.query.get(int(pid))
+        prod = db.session.get(Producto, int(pid))
         if prod: prod.costo = precio_unit
     # Update materia prima stock if tipo=materia_prima
     if mid and c.tipo_compra == 'materia_prima':
-        m = MateriaPrima.query.get(int(mid))
+        m = db.session.get(MateriaPrima, int(mid))
         if m:
             m.stock_disponible = (m.stock_disponible or 0) + cant
     # Auto-register as GastoOperativo
@@ -9807,7 +9807,7 @@ def granel_nuevo():
             estado=estado, notas=request.form.get('notas',''), creado_por=current_user.id)
         db.session.add(g)
         if pid and estado == 'vigente':
-            prod = Producto.query.get(int(pid))
+            prod = db.session.get(Producto, int(pid))
             if prod: prod.costo = precio_u
         db.session.commit()
         flash('Cotización guardada.','success')
@@ -9835,7 +9835,7 @@ def granel_editar(id):
         obj.vigencia=datetime.strptime(fv,'%Y-%m-%d').date() if fv else None
         obj.estado=estado; obj.notas=request.form.get('notas','')
         if pid and estado == 'vigente':
-            prod = Producto.query.get(int(pid))
+            prod = db.session.get(Producto, int(pid))
             if prod: prod.costo = precio_u
         db.session.commit()
         flash('Cotización actualizada.','success')
@@ -10123,7 +10123,7 @@ def admin_volver():
     if not admin_id:
         flash('No hay sesión de administrador guardada.','warning')
         return redirect(url_for('dashboard'))
-    admin_user = User.query.get(admin_id)
+    admin_user = db.session.get(User, admin_id)
     if not admin_user or admin_user.rol != 'admin':
         flash('Administrador no encontrado.','danger')
         return redirect(url_for('dashboard'))
@@ -10238,6 +10238,7 @@ def empleado_nuevo():
             flash(f'Empleado {e.nombre} creado exitosamente.','success')
             return redirect(url_for('empleado_ver', id=e.id))
         except Exception as ex:
+            db.session.rollback()
             flash(f'Error al crear empleado: {str(ex)}','danger')
     return render_template('nomina/form.html', empleado=None)
 
@@ -10274,6 +10275,7 @@ def empleado_editar(id):
             flash('Empleado actualizado.','success')
             return redirect(url_for('empleado_ver', id=empleado.id))
         except Exception as ex:
+            db.session.rollback()
             flash(f'Error al actualizar: {str(ex)}','danger')
     return render_template('nomina/form.html', empleado=empleado)
 
@@ -10349,7 +10351,7 @@ def mi_actividad():
     uid = request.args.get('user_id', type=int, default=current_user.id)
     if uid != current_user.id and current_user.rol != 'admin':
         uid = current_user.id
-    target_user = User.query.get(uid) if uid != current_user.id else current_user
+    target_user = db.session.get(User, uid) if uid != current_user.id else current_user
     usuarios_lista = User.query.filter_by(activo=True).all() if current_user.rol == 'admin' else []
 
     # Last 6 months of activity
@@ -10626,7 +10628,7 @@ def calendario():
             desc_parts = []
             if t.tarea_tipo in ('comprar_materias', 'verificar_abono') and t.cotizacion_id:
                 try:
-                    cot = Cotizacion.query.get(t.cotizacion_id)
+                    cot = db.session.get(Cotizacion, t.cotizacion_id)
                     if cot:
                         desc_parts.append('Cotización: ' + (cot.numero or ('#' + str(cot.id))))
                         ref_url = url_for('cotizacion_ver', id=cot.id)
@@ -10908,7 +10910,7 @@ def _procesar_orden_produccion(cot):
 
     for item in cot.items:
         if not item.producto_id: continue
-        prod = Producto.query.get(item.producto_id)
+        prod = db.session.get(Producto, item.producto_id)
         if not prod: continue
         cant_requerida = item.cantidad
         cant_en_stock  = min(prod.stock, cant_requerida)
@@ -10936,7 +10938,7 @@ def _procesar_orden_produccion(cot):
         if receta and receta.unidades_produce > 0:
             factor = cant_producir / receta.unidades_produce
             for ri in receta.items:
-                mp = MateriaPrima.query.get(ri.materia_prima_id)
+                mp = db.session.get(MateriaPrima, ri.materia_prima_id)
                 if not mp: continue
                 necesaria = ri.cantidad_por_unidad * factor
                 disponible = mp.stock_disponible
@@ -11035,7 +11037,7 @@ def _procesar_venta_produccion(venta):
         for item in venta.items:
             if not item.producto_id:
                 continue
-            prod = Producto.query.get(item.producto_id)
+            prod = db.session.get(Producto, item.producto_id)
             if not prod:
                 continue
             cant_requerida = item.cantidad
@@ -11072,7 +11074,7 @@ def _procesar_venta_produccion(venta):
             if receta and receta.unidades_produce > 0:
                 factor = cant_producir / receta.unidades_produce
                 for ri in receta.items:
-                    mp = MateriaPrima.query.get(ri.materia_prima_id)
+                    mp = db.session.get(MateriaPrima, ri.materia_prima_id)
                     if not mp: continue
                     necesaria  = ri.cantidad_por_unidad * factor
                     disponible = mp.stock_disponible or 0
@@ -11567,7 +11569,7 @@ def reserva_nueva():
 def reserva_cancelar(id):
     r = ReservaProduccion.query.get_or_404(id)
     if r.estado == 'reservado':
-        m = MateriaPrima.query.get(r.materia_prima_id)
+        m = db.session.get(MateriaPrima, r.materia_prima_id)
         if m:
             m.stock_disponible += r.cantidad
             m.stock_reservado = max(0, m.stock_reservado - r.cantidad)
@@ -12389,7 +12391,7 @@ def init_db():
             _admin_pass = os.environ.get('ADMIN_PASSWORD')
             if not _admin_pass:
                 _admin_pass = secrets.token_urlsafe(14)
-                print(f'ADMIN AUTO-GENERATED PASSWORD (save this!): {_admin_pass}')
+                logging.warning('ADMIN AUTO-GENERATED PASSWORD (save this!): %s', _admin_pass)
             admin = User(nombre='Administrador', email=_admin_email, rol='admin')
             admin.set_password(_admin_pass)
             db.session.add(admin); db.session.commit()
