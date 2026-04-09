@@ -1070,7 +1070,7 @@ document.addEventListener('DOMContentLoaded',function(){
 <!-- ══════════════════════════════════════════════════
      EVORE AI ASSISTANT PANEL
      ══════════════════════════════════════════════════ -->
-<div id="ai-panel" style="display:none;position:fixed;bottom:24px;right:88px;width:380px;height:540px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.18);z-index:2000;display:none;flex-direction:column;overflow:hidden;transition:all .25s cubic-bezier(.4,0,.2,1)" id="aiPanel">
+<div id="aiPanel" style="position:fixed;bottom:84px;right:24px;width:380px;height:540px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.18);z-index:2000;flex-direction:column;overflow:hidden;transition:all .25s cubic-bezier(.4,0,.2,1)">
   <!-- Header -->
   <div style="background:var(--sb);padding:.85rem 1.1rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
     <div style="display:flex;align-items:center;gap:.6rem">
@@ -1123,7 +1123,7 @@ document.addEventListener('DOMContentLoaded',function(){
 </div>
 
 <!-- AI Floating Button -->
-<button id="aiFab" onclick="aiToggle()" title="Asistente IA" style="position:fixed;bottom:24px;right:88px;z-index:1999;width:50px;height:50px;border-radius:50%;background:var(--sb);color:#fff;border:none;box-shadow:0 4px 16px rgba(0,0,0,.25);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.25rem;transition:all .2s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+<button id="aiFab" onclick="aiToggle()" title="Asistente IA" style="position:fixed;bottom:24px;right:24px;z-index:1999;width:50px;height:50px;border-radius:50%;background:var(--sb);color:#fff;border:none;box-shadow:0 4px 16px rgba(0,0,0,.25);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.25rem;transition:all .2s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
   <i class="bi bi-stars"></i>
 </button>
 
@@ -1155,8 +1155,9 @@ document.addEventListener('DOMContentLoaded',function(){
   fetch('/api/ai/status').then(r=>r.json()).then(d=>{
     var lbl = document.getElementById('aiProviderLabel');
     if(!lbl) return;
-    if(d.anthropic) lbl.textContent = 'Claude (Anthropic) · activo';
-    else if(d.openai) lbl.textContent = 'GPT-4o (OpenAI) · activo';
+    if(d.openai) lbl.textContent = 'GPT-4o (OpenAI) · activo';
+    else if(d.anthropic) lbl.textContent = 'Claude (Anthropic) · activo';
+    else if(d.ollama) lbl.textContent = 'Ollama (local) · activo';
     else lbl.textContent = 'Sin clave API configurada';
   }).catch(()=>{});
 

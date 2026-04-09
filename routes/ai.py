@@ -84,8 +84,25 @@ Si el usuario pide crear algo, confirma los datos antes de ejecutar."""
         response_text = None
         provider_used = None
 
-        # ── 1. Anthropic / Claude (primary) ───────────────────────────
-        if anthropic_key:
+        # ── 1. OpenAI / GPT-4o (primary) ─────────────────────────────
+        if openai_key:
+            try:
+                from openai import OpenAI
+                client = OpenAI(api_key=openai_key)
+                msgs_with_system = [{'role': 'system', 'content': system_prompt}] + messages
+                resp = client.chat.completions.create(
+                    model='gpt-4o',
+                    messages=msgs_with_system,
+                    max_tokens=1024,
+                    temperature=0.7
+                )
+                response_text = resp.choices[0].message.content
+                provider_used = 'openai'
+            except Exception as e:
+                logging.warning(f'OpenAI AI error: {e}')
+
+        # ── 2. Anthropic / Claude (second) ────────────────────────────
+        if response_text is None and anthropic_key:
             try:
                 import anthropic
                 client = anthropic.Anthropic(api_key=anthropic_key)
@@ -100,7 +117,7 @@ Si el usuario pide crear algo, confirma los datos antes de ejecutar."""
             except Exception as e:
                 logging.warning(f'Anthropic AI error: {e}')
 
-        # ── 2. Ollama local LLM (second option) ───────────────────────
+        # ── 3. Ollama local LLM (third option) ────────────────────────
         if response_text is None and ollama_enabled:
             try:
                 import urllib.request
@@ -130,27 +147,10 @@ Si el usuario pide crear algo, confirma los datos antes de ejecutar."""
             except Exception as e:
                 logging.warning(f'Ollama AI error: {e}')
 
-        # ── 3. OpenAI / GPT (fallback) ────────────────────────────────
-        if response_text is None and openai_key:
-            try:
-                from openai import OpenAI
-                client = OpenAI(api_key=openai_key)
-                msgs_with_system = [{'role': 'system', 'content': system_prompt}] + messages
-                resp = client.chat.completions.create(
-                    model='gpt-4o',
-                    messages=msgs_with_system,
-                    max_tokens=1024,
-                    temperature=0.7
-                )
-                response_text = resp.choices[0].message.content
-                provider_used = 'openai'
-            except Exception as e:
-                logging.warning(f'OpenAI AI error: {e}')
-
         if response_text is None:
             return jsonify({
                 'error': 'No hay un proveedor de IA configurado. '
-                         'Agrega ANTHROPIC_API_KEY en Railway, o activa Ollama con OLLAMA_ENABLED=true.'
+                         'Agrega OPENAI_API_KEY o ANTHROPIC_API_KEY en Railway.'
             }), 503
 
         # ── Check if response contains a create action ─────────────────
@@ -202,9 +202,9 @@ Si el usuario pide crear algo, confirma los datos antes de ejecutar."""
             'ollama':       ollama_online,
             'ollama_model': ollama_model if ollama_online else None,
             'available':    has_anthropic or has_openai or ollama_online,
-            'primary':      'claude' if has_anthropic else (
-                            f'ollama:{ollama_model}' if ollama_online else (
-                            'openai' if has_openai else None))
+            'primary':      'openai' if has_openai else (
+                            'claude' if has_anthropic else (
+                            f'ollama:{ollama_model}' if ollama_online else None))
         })
 
 
