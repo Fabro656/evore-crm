@@ -80,6 +80,8 @@ _MODULOS_ROL = {
     'produccion': ['inventario','produccion','gastos','notas','calendario','tareas'],
     'contador':   ['gastos','reportes','produccion','notas'],
     'usuario':    ['tareas','notas','calendario'],
+    'sales_manager': ['clientes','ventas','cotizaciones','tareas','calendario','notas','ordenes_compra'],
+    'cliente':       ['portal_cliente'],
 }
 
 def _modulos_user(user):
@@ -144,6 +146,8 @@ class User(UserMixin, db.Model):
     activo              = db.Column(db.Boolean, default=True)
     modulos_permitidos  = db.Column(db.Text, default='[]')   # JSON list
     creado_en           = db.Column(db.DateTime, default=datetime.utcnow)
+    onboarding_dismissed = db.Column(db.Boolean, default=False)
+    cliente_id           = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=True)
     def set_password(self, p):   self.password_hash = generate_password_hash(p)
     def check_password(self, p): return check_password_hash(self.password_hash, p)
 
@@ -174,8 +178,12 @@ class Cliente(db.Model):
     banco_tipo      = db.Column(db.String(40))
     banco_titular   = db.Column(db.String(120))
     info_legal      = db.Column(db.Text)
+    sales_manager_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    anticipo_pct     = db.Column(db.Float, default=50.0)
+    minimo_pedido    = db.Column(db.Integer, default=1)
     contactos       = db.relationship('ContactoCliente', backref='cliente_rel', lazy=True, cascade='all, delete-orphan')
     ventas          = db.relationship('Venta', backref='cliente', lazy=True)
+    sales_manager    = db.relationship('User', foreign_keys=[sales_manager_id])
 
 class OrdenCompra(db.Model):
     __tablename__ = 'ordenes_compra'
@@ -635,6 +643,44 @@ class Notificacion(db.Model):
     creado_en  = db.Column(db.DateTime, default=datetime.utcnow)
     usuario    = db.relationship('User', foreign_keys=[usuario_id])
 
+class UserSesion(db.Model):
+    __tablename__ = 'user_sesiones'
+    id         = db.Column(db.Integer, primary_key=True)
+    user_id    = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    login_at   = db.Column(db.DateTime, default=datetime.utcnow)
+    logout_at  = db.Column(db.DateTime, nullable=True)
+    duracion_min = db.Column(db.Float, default=0)
+
+class PreCotizacionItem(db.Model):
+    __tablename__ = 'pre_cotizacion_items'
+    id              = db.Column(db.Integer, primary_key=True)
+    precot_id       = db.Column(db.Integer, db.ForeignKey('pre_cotizaciones.id'), nullable=False)
+    nombre_prod     = db.Column(db.String(200))
+    cantidad        = db.Column(db.Float, default=0)
+    precio_unit     = db.Column(db.Float, default=0)
+    subtotal        = db.Column(db.Float, default=0)
+    notas           = db.Column(db.String(300))
+
+class PreCotizacion(db.Model):
+    __tablename__ = 'pre_cotizaciones'
+    id               = db.Column(db.Integer, primary_key=True)
+    numero           = db.Column(db.String(30))
+    cliente_id       = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=False)
+    cliente_user_id  = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    sales_manager_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    estado           = db.Column(db.String(30), default='pendiente')
+    notas_cliente    = db.Column(db.Text)
+    notas_manager    = db.Column(db.Text)
+    subtotal         = db.Column(db.Float, default=0)
+    iva              = db.Column(db.Float, default=0)
+    total            = db.Column(db.Float, default=0)
+    creado_en        = db.Column(db.DateTime, default=datetime.utcnow)
+    actualizado_en   = db.Column(db.DateTime, default=datetime.utcnow)
+    cliente          = db.relationship('Cliente', foreign_keys=[cliente_id])
+    cliente_user     = db.relationship('User', foreign_keys=[cliente_user_id])
+    sales_manager    = db.relationship('User', foreign_keys=[sales_manager_id])
+    items            = db.relationship('PreCotizacionItem', backref='precot', lazy=True, cascade='all, delete-orphan')
+
 @login_manager.user_loader
 def load_user(uid): return User.query.get(int(uid))
 
@@ -962,8 +1008,6 @@ T['base.html'] = """<!DOCTYPE html>
         </button>
       </div>
     </div>
-    <a href="{{ url_for('perfil') }}" class="nav-link mt-1"><i class="bi bi-person-gear"></i><span>Mi perfil</span></a>
-    <a href="{{ url_for('logout') }}" class="nav-link mt-1 text-danger"><i class="bi bi-box-arrow-right"></i><span>Salir</span></a>
   </div>
 </nav>
 <!-- Mobile overlay -->
@@ -976,6 +1020,28 @@ T['base.html'] = """<!DOCTYPE html>
     <div class="d-flex align-items-center gap-2 flex-wrap">
       {% block topbar_actions %}{% endblock %}
       <span class="text-muted d-none d-md-inline" style="font-size:.8rem;white-space:nowrap"><i class="bi bi-calendar3 me-1"></i>{{ now.strftime('%d %b %Y') }}</span>
+      <button class="btn btn-sm" style="background:none;border:1px solid #DFE1E6;color:#42526E;padding:4px 10px;font-size:.78rem" onclick="new bootstrap.Modal(document.getElementById('modalOnboarding')).show();goStep(0);" title="Ver tutorial">
+        <i class="bi bi-question-circle me-1"></i>Ayuda
+      </button>
+      <div class="dropdown">
+        <button class="btn btn-sm dropdown-toggle d-flex align-items-center gap-2" style="background:none;border:1px solid #DFE1E6;padding:5px 10px;border-radius:20px;color:#172B4D" data-bs-toggle="dropdown">
+          <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold" style="width:26px;height:26px;font-size:.72rem;flex-shrink:0">{{ current_user.nombre[0].upper() }}</div>
+          <span class="d-none d-md-inline" style="font-size:.82rem;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ current_user.nombre.split()[0] }}</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" style="min-width:200px;border-radius:8px;box-shadow:0 8px 24px rgba(9,30,66,.15);border:1px solid #DFE1E6;padding:.4rem 0">
+          <li><div style="padding:.6rem 1rem .3rem">
+            <div style="font-weight:700;font-size:.85rem;color:#172B4D">{{ current_user.nombre }}</div>
+            <div style="font-size:.75rem;color:#6B778C">{{ current_user.email }}</div>
+            <span class="b b-negociacion mt-1 d-inline-block">{{ current_user.rol }}</span>
+          </div></li>
+          <li><hr class="dropdown-divider my-1"></li>
+          <li><a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('perfil') }}" style="font-size:.85rem;padding:.5rem 1rem"><i class="bi bi-person-gear" style="color:#0052CC"></i>Mi perfil</a></li>
+          <li><a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('mi_actividad') }}" style="font-size:.85rem;padding:.5rem 1rem"><i class="bi bi-bar-chart-fill" style="color:#00875A"></i>Mi actividad</a></li>
+          <li><a class="dropdown-item d-flex align-items-center gap-2" href="#" onclick="new bootstrap.Modal(document.getElementById('modalOnboarding')).show();goStep(0);" style="font-size:.85rem;padding:.5rem 1rem"><i class="bi bi-question-circle" style="color:#FF8B00"></i>Ver tutorial</a></li>
+          <li><hr class="dropdown-divider my-1"></li>
+          <li><a class="dropdown-item d-flex align-items-center gap-2 text-danger" href="{{ url_for('logout') }}" style="font-size:.85rem;padding:.5rem 1rem"><i class="bi bi-box-arrow-right"></i>Cerrar sesión</a></li>
+        </ul>
+      </div>
     </div>
   </div>
   <div class="content">
@@ -1114,6 +1180,174 @@ function copiarTexto(el,txt){
 <button class="fab" id="btnFAB" title="Acciones rápidas" data-bs-toggle="modal" data-bs-target="#modalQuickActions" aria-label="Acciones rápidas">
   <i class="bi bi-plus-lg"></i>
 </button>
+
+<!-- Onboarding Tutorial Modal -->
+<div class="modal fade" id="modalOnboarding" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+    <div class="modal-content" style="border-radius:16px;border:none;overflow:hidden">
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,#253858 0%,#0747A6 100%);padding:2rem;color:#fff;position:relative">
+        <div style="position:absolute;top:-20px;right:-20px;width:120px;height:120px;background:rgba(255,255,255,.05);border-radius:50%"></div>
+        <div class="d-flex align-items-center gap-3 mb-2">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 341.94 261.01" height="38" style="flex-shrink:0"><path fill="rgba(255,255,255,.9)" d="M239.09,111.71C234.61,109,225,105.23,225,105.23s-1.42-.5-1.34-.9c.21-1.2,2.76-1.54,9.63-10.7,7.11-9.49,8.6-13.94,9.94-17.84,1.14-3.3,2.38-11,1.72-11.79s-9.12-1.35-16.48.3c-7.06,1.58-11.1,3.47-11.5,3-.64-.71.95-6.23,1.11-11.33.17-5.28.32-6.75-.41-11.49-.61-4-1.47-7.57-2.65-7.91s-5,.82-7,1.69A81.41,81.41,0,0,0,198.41,44c-2.91,2-6.52,5.48-7.55,5.69s-2.79-6-6.9-13.15a86,86,0,0,0-5.69-9.09c-1.74-2.45-4.91-7-7.28-7h0c-2.38,0-5.54,4.59-7.28,7A84.29,84.29,0,0,0,158,36.52c-4.12,7.13-5.76,13.38-6.9,13.15s-4.73-3.8-7.64-5.8a79.94,79.94,0,0,0-9.56-5.58c-2-.87-5.81-2-7-1.69s-2,3.94-2.65,7.91c-.73,4.74-.58,6.21-.41,11.49.16,5.1,1.74,10.62,1.11,11.33-.4.44-4.44-1.45-11.5-3C106.08,62.65,97.72,63.08,97,64s.57,8.49,1.71,11.79c1.35,3.9,2.83,8.35,10,17.84,6.87,9.16,9.41,9.5,9.63,10.7.07.4-1.35.9-1.35.9s-9.57,3.72-14.06,6.48C99.17,114,95,117.34,95,119.08c0,2.11,3.54,4.62,8.14,7.67s15.36,7.83,26.75,6.75c12.82-1.22,20.68-7.21,21.76-6.74.49.21.11,5.24,5.16,10.44,4.43,4.56,10.58,10,14.15,10s9.72-5.42,14.15-10c5-5.2,4.67-10.23,5.16-10.44,1.07-.47,8.93,5.52,21.76,6.74,11.39,1.08,22.07-3.65,26.74-6.75s8.17-5.56,8.15-7.67C246.93,117.34,242.76,114,239.09,111.71Z"/></svg>
+          <div>
+            <h4 class="mb-0 fw-bold" style="font-size:1.2rem">Bienvenido a EVORE CRM</h4>
+            <p class="mb-0" style="opacity:.8;font-size:.85rem">Tu sistema de gestión comercial</p>
+          </div>
+        </div>
+      </div>
+      <!-- Steps carousel -->
+      <div class="modal-body p-0">
+        <div id="onboardCarousel" class="carousel slide" data-bs-ride="false">
+          <div class="carousel-inner">
+            <!-- Step 1 -->
+            <div class="carousel-item active">
+              <div style="padding:1.75rem">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <div style="width:36px;height:36px;background:#DEEBFF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-speedometer2" style="color:#0052CC;font-size:1.1rem"></i></div>
+                  <h5 class="mb-0 fw-bold" style="font-size:1rem">Dashboard principal</h5>
+                </div>
+                <p style="color:#42526E;font-size:.9rem">El dashboard es tu centro de control. Aquí verás un resumen de <strong>ventas activas, clientes, tareas pendientes</strong> y los KPIs más importantes del negocio en tiempo real.</p>
+                <div style="background:#F4F5F7;border-radius:8px;padding:1rem;font-size:.83rem;color:#6B778C">
+                  💡 <strong>Tip:</strong> Usa el botón <strong>+</strong> (esquina inferior derecha) para acceder rápidamente a las acciones más frecuentes sin navegar por el menú.
+                </div>
+              </div>
+            </div>
+            <!-- Step 2 -->
+            <div class="carousel-item">
+              <div style="padding:1.75rem">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <div style="width:36px;height:36px;background:#E3FCEF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-people-fill" style="color:#00875A;font-size:1.1rem"></i></div>
+                  <h5 class="mb-0 fw-bold" style="font-size:1rem">Clientes y Ventas</h5>
+                </div>
+                <p style="color:#42526E;font-size:.9rem">Gestiona tu cartera de clientes y el <strong>pipeline de ventas</strong> con estados: <em>Prospecto → Negociación → Anticipo pagado → Completado</em>.</p>
+                <ul style="color:#42526E;font-size:.85rem;padding-left:1.2rem">
+                  <li>En ventas puedes cambiar el estado <strong>directamente desde la lista</strong> con el selector de estado.</li>
+                  <li>Al completar una venta puedes generar la <strong>remisión de entrega</strong>.</li>
+                  <li>Almacena información bancaria del cliente para <strong>copiar con un clic</strong>.</li>
+                </ul>
+              </div>
+            </div>
+            <!-- Step 3 -->
+            <div class="carousel-item">
+              <div style="padding:1.75rem">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <div style="width:36px;height:36px;background:#FFFAE6;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-file-earmark-text-fill" style="color:#FF8B00;font-size:1.1rem"></i></div>
+                  <h5 class="mb-0 fw-bold" style="font-size:1rem">Cotizaciones</h5>
+                </div>
+                <p style="color:#42526E;font-size:.9rem">Crea cotizaciones profesionales con <strong>cálculo automático de IVA</strong> y exporta en PDF listo para enviar al cliente.</p>
+                <div style="background:#FFFAE6;border-radius:8px;padding:1rem;font-size:.83rem;color:#6B778C">
+                  💡 <strong>Tip:</strong> Desde la cotización puedes <strong>convertirla en venta</strong> directamente con un clic para no repetir datos.
+                </div>
+              </div>
+            </div>
+            <!-- Step 4 -->
+            <div class="carousel-item">
+              <div style="padding:1.75rem">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <div style="width:36px;height:36px;background:#EAE6FF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-check2-all" style="color:#5243AA;font-size:1.1rem"></i></div>
+                  <h5 class="mb-0 fw-bold" style="font-size:1rem">Tareas y Calendario</h5>
+                </div>
+                <p style="color:#42526E;font-size:.9rem">Organiza el trabajo del equipo con <strong>tareas asignadas, prioridades y fechas límite</strong>. El calendario muestra todo de un vistazo.</p>
+                <ul style="color:#42526E;font-size:.85rem;padding-left:1.2rem">
+                  <li>Cada tarea puede tener <strong>múltiples asignados</strong> y comentarios.</li>
+                  <li>Los <strong>administradores</strong> ven todas las tareas del equipo.</li>
+                  <li>Otros usuarios ven únicamente <strong>sus propias tareas</strong>.</li>
+                </ul>
+              </div>
+            </div>
+            <!-- Step 5 -->
+            <div class="carousel-item">
+              <div style="padding:1.75rem">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <div style="width:36px;height:36px;background:#DEEBFF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-cart-fill" style="color:#0052CC;font-size:1.1rem"></i></div>
+                  <h5 class="mb-0 fw-bold" style="font-size:1rem">Portal de Cliente</h5>
+                </div>
+                <p style="color:#42526E;font-size:.9rem">Los usuarios con perfil <strong>cliente</strong> acceden a un portal personalizado donde pueden:</p>
+                <ul style="color:#42526E;font-size:.85rem;padding-left:1.2rem">
+                  <li>Ver el historial de <strong>pedidos y cotizaciones</strong> de su empresa.</li>
+                  <li>Crear una <strong>pre-cotización</strong> que su sales manager aprueba.</li>
+                  <li>Descargar <strong>facturas, remisiones y cotizaciones</strong> en PDF.</li>
+                  <li>Enviar <strong>tickets o mensajes</strong> directamente a su sales manager.</li>
+                </ul>
+              </div>
+            </div>
+            <!-- Step 6 -->
+            <div class="carousel-item">
+              <div style="padding:1.75rem">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <div style="width:36px;height:36px;background:#E3FCEF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-graph-up-arrow" style="color:#00875A;font-size:1.1rem"></i></div>
+                  <h5 class="mb-0 fw-bold" style="font-size:1rem">Tu actividad mensual</h5>
+                </div>
+                <p style="color:#42526E;font-size:.9rem">Cada usuario tiene un <strong>resumen de actividad mensual</strong> accesible desde "Mi perfil": tareas completadas, clientes creados y más.</p>
+                <div style="background:#E3FCEF;border-radius:8px;padding:1rem;font-size:.83rem;color:#006644">
+                  ✅ <strong>¡Listo para empezar!</strong> Puedes consultar este tutorial en cualquier momento desde el menú de tu perfil.
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Indicators -->
+          <div style="padding:.75rem 1.75rem;display:flex;justify-content:center;gap:6px" id="onboardDots">
+            <button onclick="goStep(0)" class="ob-dot ob-dot-active"></button>
+            <button onclick="goStep(1)" class="ob-dot"></button>
+            <button onclick="goStep(2)" class="ob-dot"></button>
+            <button onclick="goStep(3)" class="ob-dot"></button>
+            <button onclick="goStep(4)" class="ob-dot"></button>
+            <button onclick="goStep(5)" class="ob-dot"></button>
+          </div>
+        </div>
+      </div>
+      <!-- Footer -->
+      <div class="modal-footer border-0" style="padding:1rem 1.75rem;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+        <div class="form-check mb-0">
+          <input class="form-check-input" type="checkbox" id="chkNoMostrar">
+          <label class="form-check-label" for="chkNoMostrar" style="font-size:.83rem;color:#6B778C">No volver a mostrar</label>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-outline-secondary" id="btnObPrev" onclick="obNav(-1)" style="display:none">← Anterior</button>
+          <button class="btn btn-sm btn-primary" id="btnObNext" onclick="obNav(1)">Siguiente →</button>
+          <button class="btn btn-sm btn-success" id="btnObFin" onclick="cerrarOnboarding()" style="display:none">¡Entendido! ✓</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<style>
+.ob-dot{width:8px;height:8px;border-radius:50%;background:#DFE1E6;border:none;padding:0;cursor:pointer;transition:background .2s}
+.ob-dot-active{background:#0052CC;width:20px;border-radius:4px}
+</style>
+<script>
+var _obStep=0,_obTotal=6;
+function goStep(n){
+  _obStep=n;
+  var c=document.getElementById('onboardCarousel');
+  bootstrap.Carousel.getInstance(c)||new bootstrap.Carousel(c,{ride:false,wrap:false});
+  bootstrap.Carousel.getInstance(c).to(n);
+  document.querySelectorAll('.ob-dot').forEach(function(d,i){d.className='ob-dot'+(i===n?' ob-dot-active':'');});
+  document.getElementById('btnObPrev').style.display=n>0?'':'none';
+  document.getElementById('btnObNext').style.display=n<_obTotal-1?'':'none';
+  document.getElementById('btnObFin').style.display=n===_obTotal-1?'':'none';
+}
+function obNav(dir){goStep(Math.min(Math.max(_obStep+dir,0),_obTotal-1));}
+function cerrarOnboarding(){
+  if(document.getElementById('chkNoMostrar').checked){
+    fetch('/onboarding/dismiss',{method:'POST',headers:{'Content-Type':'application/json'}});
+  }
+  bootstrap.Modal.getInstance(document.getElementById('modalOnboarding')).hide();
+}
+document.getElementById('onboardCarousel').addEventListener('slid.bs.carousel',function(e){goStep(e.to);});
+</script>
+{% if not current_user.onboarding_dismissed %}
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  setTimeout(function(){
+    var m=document.getElementById('modalOnboarding');
+    if(m) new bootstrap.Modal(m).show();
+    goStep(0);
+  },900);
+});
+</script>
+{% endif %}
 
 <!-- Quick Actions Modal -->
 <div class="modal fade" id="modalQuickActions" tabindex="-1" aria-labelledby="qaModalLabel" aria-hidden="true">
@@ -6077,6 +6311,393 @@ if(PEDIDOS.length > 0){
 </script>{% endblock %}
 {% endblock %}"""
 
+T['mi_actividad.html'] = """{% extends 'base.html' %}
+{% block title %}Mi Actividad{% endblock %}
+{% block page_title %}Mi Actividad Mensual{% endblock %}
+{% block content %}
+<div class="row g-3 mb-3">
+  {% if usuarios_lista %}
+  <div class="col-12">
+    <div class="tc">
+      <div class="ch"><span><i class="bi bi-person-fill me-2"></i>Ver actividad de usuario</span></div>
+      <div style="padding:.75rem 1.25rem">
+        <div class="d-flex gap-2 flex-wrap">
+        {% for u in usuarios_lista %}
+          <a href="{{ url_for('mi_actividad', user_id=u.id) }}"
+             class="btn btn-sm {% if uid==u.id %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+            {{ u.nombre }}
+          </a>
+        {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-12">
+    <div class="tc">
+      <div class="ch">
+        <span><i class="bi bi-person-circle me-2"></i>Resumen de {{ target_user.nombre }}</span>
+        <span class="b b-negociacion">{{ target_user.rol }}</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="table">
+          <thead><tr>
+            <th>Mes</th>
+            <th class="text-end">Tareas completadas</th>
+            <th class="text-end">Acciones</th>
+            <th class="text-end">Clientes creados</th>
+            <th class="text-end">Tiempo en sistema</th>
+          </tr></thead>
+          <tbody>
+          {% for m in meses %}
+          <tr>
+            <td><strong>{{ m.mes }}</strong></td>
+            <td class="text-end">
+              <span class="b b-activo">{{ m.tareas }}</span>
+            </td>
+            <td class="text-end">{{ m.acciones }}</td>
+            <td class="text-end">{{ m.clientes }}</td>
+            <td class="text-end">
+              {% if m.tiempo_min >= 60 %}
+                {{ (m.tiempo_min // 60)|int }}h {{ (m.tiempo_min % 60)|int }}m
+              {% else %}
+                {{ m.tiempo_min }}m
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Bar chart visual -->
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="sc">
+      <div class="sl mb-3">Tareas completadas por mes</div>
+      {% for m in meses %}
+      <div class="mb-2">
+        <div class="d-flex justify-content-between mb-1" style="font-size:.78rem">
+          <span>{{ m.mes }}</span><span class="fw-bold">{{ m.tareas }}</span>
+        </div>
+        {% set max_t = meses|map(attribute='tareas')|max or 1 %}
+        <div class="stock-bar-wrap"><div class="stock-bar" style="width:{{ [(m.tareas/max_t*100)|int, 100]|min }}%"></div></div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="sc">
+      <div class="sl mb-3">Tiempo en sistema (minutos por mes)</div>
+      {% for m in meses %}
+      <div class="mb-2">
+        <div class="d-flex justify-content-between mb-1" style="font-size:.78rem">
+          <span>{{ m.mes }}</span>
+          <span class="fw-bold">
+            {% if m.tiempo_min >= 60 %}{{ (m.tiempo_min//60)|int }}h {{ (m.tiempo_min%60)|int }}m{% else %}{{ m.tiempo_min }}m{% endif %}
+          </span>
+        </div>
+        {% set max_t = meses|map(attribute='tiempo_min')|max or 1 %}
+        <div class="stock-bar-wrap"><div class="stock-bar" style="width:{{ [(m.tiempo_min/max_t*100)|int, 100]|min }}%;background:#5243AA"></div></div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}"""
+
+T['portal/sin_empresa.html'] = """{% extends 'base.html' %}
+{% block title %}Portal{% endblock %}
+{% block page_title %}Portal Cliente{% endblock %}
+{% block content %}
+<div class="empty-state" style="padding:4rem 2rem">
+  <i class="bi bi-building-x"></i>
+  <h5>Cuenta no vinculada</h5>
+  <p>Tu cuenta no está asociada a ninguna empresa todavía. Contacta al administrador para completar la configuración.</p>
+</div>{% endblock %}"""
+
+T['portal/index.html'] = """{% extends 'base.html' %}
+{% block title %}Mi Portal{% endblock %}
+{% block page_title %}Portal — {{ cliente.empresa or cliente.nombre }}{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('portal_pre_cotizacion_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-file-earmark-plus me-1"></i>Nueva Solicitud</a>
+<a href="{{ url_for('portal_ticket_nuevo') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chat-left-text me-1"></i>Enviar Ticket</a>
+{% endblock %}
+{% block content %}
+<!-- Company info banner -->
+<div class="onboard-banner mb-3">
+  <div class="d-flex align-items-center gap-3 flex-wrap">
+    <div>
+      <h4 class="mb-1 fw-bold">{{ cliente.empresa or cliente.nombre }}</h4>
+      {% if cliente.nit %}<div style="opacity:.7;font-size:.85rem">NIT: {{ cliente.nit }}</div>{% endif %}
+      {% if cliente.sales_manager %}
+      <div style="opacity:.8;font-size:.83rem;margin-top:.4rem"><i class="bi bi-person-check me-1"></i>Sales Manager: <strong>{{ cliente.sales_manager.nombre }}</strong></div>
+      {% endif %}
+    </div>
+    <div class="ms-auto text-end" style="opacity:.8;font-size:.83rem">
+      {% if cliente.anticipo_pct %}<div>Anticipo requerido: <strong>{{ cliente.anticipo_pct|int }}%</strong></div>{% endif %}
+      {% if cliente.minimo_pedido and cliente.minimo_pedido > 1 %}<div>Mínimo por pedido: <strong>{{ cliente.minimo_pedido }} uds.</strong></div>{% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Pre-cotizaciones pendientes/en revisión -->
+{% set pcs_activas = pre_cots|selectattr('estado','in',['pendiente','en_revision','aprobada'])|list %}
+{% if pcs_activas %}
+<div class="tc mb-3">
+  <div class="ch"><i class="bi bi-hourglass-split me-2"></i>Solicitudes en proceso</div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead><tr><th>#</th><th>Fecha</th><th>Total</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+      {% for pc in pcs_activas %}
+      <tr>
+        <td><strong>{{ pc.numero }}</strong></td>
+        <td>{{ pc.creado_en.strftime('%d/%m/%Y') }}</td>
+        <td>$ {{ '{:,.0f}'.format(pc.total).replace(',','.') }}</td>
+        <td><span class="b b-{{ pc.estado|replace('_','-') }}">{{ pc.estado.replace('_',' ').title() }}</span></td>
+        <td>
+          {% if pc.estado == 'aprobada' %}
+          <form method="POST" action="{{ url_for('portal_precot_aceptar', id=pc.id) }}" style="display:inline">
+            <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('¿Aceptar esta cotización?')"><i class="bi bi-check-circle me-1"></i>Aceptar</button>
+          </form>
+          {% elif pc.estado == 'en_revision' %}
+          <span style="font-size:.8rem;color:#6B778C">{{ pc.notas_manager or 'Revisando ajustes...' }}</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Pedidos / Ventas -->
+<div class="tc mb-3">
+  <div class="ch"><i class="bi bi-bag-fill me-2"></i>Mis Pedidos
+    <span class="b b-borrador">{{ ventas|length }}</span>
+  </div>
+  {% if ventas %}
+  <div class="table-responsive">
+    <table class="table">
+      <thead><tr><th>#</th><th>Título</th><th>Fecha</th><th>Total</th><th>Estado</th><th>Docs</th></tr></thead>
+      <tbody>
+      {% for v in ventas %}
+      <tr>
+        <td><strong>{{ v.numero or ('PED-'+v.id|string) }}</strong></td>
+        <td>{{ v.titulo }}</td>
+        <td>{{ v.creado_en.strftime('%d/%m/%Y') }}</td>
+        <td>$ {{ '{:,.0f}'.format(v.total or 0).replace(',','.') }}</td>
+        <td><span class="b b-{{ v.estado }}">{{ v.estado.replace('_',' ').title() }}</span></td>
+        <td>
+          {% if v.estado in ['completado','anticipo_pagado'] %}
+          <a href="{{ url_for('venta_remision', id=v.id) }}" class="btn btn-xs btn-outline-primary" style="font-size:.72rem;padding:2px 7px" target="_blank"><i class="bi bi-file-earmark me-1"></i>Remisión</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><i class="bi bi-bag"></i><p>Sin pedidos aún</p></div>
+  {% endif %}
+</div>
+
+<!-- Cotizaciones -->
+<div class="tc mb-3">
+  <div class="ch"><i class="bi bi-file-text me-2"></i>Cotizaciones</div>
+  {% if cotizaciones %}
+  <div class="table-responsive">
+    <table class="table">
+      <thead><tr><th>#</th><th>Fecha</th><th>Total</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+      {% for c in cotizaciones %}
+      <tr>
+        <td><strong>{{ c.numero }}</strong></td>
+        <td>{{ c.creado_en.strftime('%d/%m/%Y') }}</td>
+        <td>$ {{ '{:,.0f}'.format(c.total or 0).replace(',','.') }}</td>
+        <td><span class="b b-{{ c.estado }}">{{ c.estado.title() }}</span></td>
+        <td><a href="{{ url_for('cotizacion_pdf', id=c.id) }}" class="btn btn-xs btn-outline-secondary" style="font-size:.72rem;padding:2px 7px" target="_blank"><i class="bi bi-download me-1"></i>PDF</a></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><i class="bi bi-file-text"></i><p>Sin cotizaciones aún</p></div>
+  {% endif %}
+</div>
+{% endblock %}"""
+
+T['portal/pre_cotizacion_form.html'] = """{% extends 'base.html' %}
+{% block title %}Nueva Solicitud{% endblock %}
+{% block page_title %}Nueva Solicitud de Cotización{% endblock %}
+{% block content %}
+<div class="fc">
+  <div class="form-section" style="border-left-color:#FF8B00;margin-bottom:1rem">
+    <div class="form-section-title" style="color:#FF8B00">Información importante</div>
+    <p style="font-size:.85rem;color:#42526E;margin:0">Esta es una <strong>solicitud de cotización</strong>. Tu sales manager la revisará y podrá ajustar precios antes de confirmarla. El precio final será confirmado por EVORE.</p>
+    {% if cliente.anticipo_pct %}
+    <div class="input-hint mt-2"><i class="bi bi-info-circle"></i>Se requiere un anticipo del <strong>{{ cliente.anticipo_pct|int }}%</strong> para confirmar el pedido.</div>
+    {% endif %}
+    {% if cliente.minimo_pedido and cliente.minimo_pedido > 1 %}
+    <div class="input-hint mt-1"><i class="bi bi-box-seam"></i>Pedido mínimo: <strong>{{ cliente.minimo_pedido }} unidades</strong> por producto.</div>
+    {% endif %}
+  </div>
+  <form method="POST" id="frmPreCot">
+    <div class="form-section">
+      <div class="form-section-title">Productos solicitados</div>
+      <div id="items-wrap">
+        <div class="prod-row item-row">
+          <div class="row g-2">
+            <div class="col-md-5"><label class="form-label">Producto / descripción</label>
+              <input type="text" name="item_nombre[]" class="form-control" required placeholder="Nombre del producto"></div>
+            <div class="col-md-2"><label class="form-label">Cantidad</label>
+              <input type="number" name="item_cantidad[]" class="form-control" min="1" value="1" required onchange="calcRow(this)"></div>
+            <div class="col-md-3"><label class="form-label">Precio ref. (opcional)</label>
+              <input type="number" name="item_precio[]" class="form-control" min="0" step="100" value="0" placeholder="0" onchange="calcRow(this)"></div>
+            <div class="col-md-2 d-flex align-items-end"><button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="remRow(this)"><i class="bi bi-trash"></i></button></div>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addRow()"><i class="bi bi-plus me-1"></i>Agregar producto</button>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Notas para tu sales manager</div>
+      <textarea name="notas" class="form-control" rows="3" placeholder="Fecha requerida, especificaciones, instrucciones de entrega..."></textarea>
+    </div>
+    <div class="d-flex gap-2 mt-3">
+      <button type="submit" class="btn btn-primary"><i class="bi bi-send me-1"></i>Enviar solicitud</button>
+      <a href="{{ url_for('portal_cliente') }}" class="btn btn-outline-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+<script>
+function addRow(){
+  var tpl=document.querySelector('.item-row').cloneNode(true);
+  tpl.querySelectorAll('input').forEach(function(i){i.value=i.defaultValue;});
+  document.getElementById('items-wrap').appendChild(tpl);
+}
+function remRow(btn){
+  var rows=document.querySelectorAll('.item-row');
+  if(rows.length>1) btn.closest('.item-row').remove();
+}
+function calcRow(el){}
+</script>
+{% endblock %}"""
+
+T['portal/ticket_form.html'] = """{% extends 'base.html' %}
+{% block title %}Nuevo Ticket{% endblock %}
+{% block page_title %}Enviar Mensaje / Ticket{% endblock %}
+{% block content %}
+<div class="fc">
+  <p style="color:#42526E;font-size:.9rem">Envía un mensaje o ticket directamente a tu sales manager. Se creará una tarea para que te dé seguimiento.</p>
+  <form method="POST">
+    <div class="mb-3">
+      <label class="form-label">Asunto <span class="req">*</span></label>
+      <input type="text" name="asunto" class="form-control" required placeholder="¿En qué podemos ayudarte?">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Mensaje <span class="req">*</span></label>
+      <textarea name="mensaje" class="form-control" rows="5" required placeholder="Describe tu consulta, problema o requerimiento..."></textarea>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Prioridad</label>
+      <select name="prioridad" class="form-select">
+        <option value="baja">Baja — cuando puedas</option>
+        <option value="media" selected>Media — en los próximos días</option>
+        <option value="alta">Alta — es urgente</option>
+      </select>
+    </div>
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-primary"><i class="bi bi-send me-1"></i>Enviar ticket</button>
+      <a href="{{ url_for('portal_cliente') }}" class="btn btn-outline-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>{% endblock %}"""
+
+T['portal/manager_revisar.html'] = """{% extends 'base.html' %}
+{% block title %}Revisar Pre-cotización{% endblock %}
+{% block page_title %}Pre-cotización {{ pc.numero }}{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-md-8">
+    <div class="tc mb-3">
+      <div class="ch">
+        <span>Solicitud de {{ pc.cliente.empresa or pc.cliente.nombre }}</span>
+        <span class="b b-{{ pc.estado }}">{{ pc.estado.replace('_',' ').title() }}</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table">
+          <thead><tr><th>Producto</th><th class="text-end">Cant.</th><th class="text-end">Precio ref.</th><th class="text-end">Subtotal</th></tr></thead>
+          <tbody>
+          {% for it in pc.items %}
+          <tr>
+            <td>{{ it.nombre_prod }}</td>
+            <td class="text-end">{{ it.cantidad }}</td>
+            <td class="text-end">$ {{ '{:,.0f}'.format(it.precio_unit).replace(',','.') }}</td>
+            <td class="text-end">$ {{ '{:,.0f}'.format(it.subtotal).replace(',','.') }}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div style="padding:.75rem 1.25rem;text-align:right;border-top:1px solid #DFE1E6">
+        <strong>Total estimado: $ {{ '{:,.0f}'.format(pc.total).replace(',','.') }}</strong>
+        <div style="font-size:.78rem;color:#6B778C">Incluye IVA 19%</div>
+      </div>
+    </div>
+    {% if pc.notas_cliente %}
+    <div class="sc mb-3"><div class="sl mb-2">Notas del cliente</div><p style="font-size:.88rem;margin:0">{{ pc.notas_cliente }}</p></div>
+    {% endif %}
+  </div>
+  <div class="col-md-4">
+    {% if pc.estado in ['pendiente','en_revision'] %}
+    <div class="fc">
+      <h6 class="fw-bold mb-3">Gestionar solicitud</h6>
+      <form method="POST">
+        <div class="mb-3">
+          <label class="form-label">Nota para el cliente</label>
+          <textarea name="notas_manager" class="form-control" rows="3" placeholder="Indica cambios, precios ajustados, condiciones...">{{ pc.notas_manager or '' }}</textarea>
+        </div>
+        {% for it in pc.items %}
+        <div class="mb-2">
+          <label class="form-label" style="font-size:.8rem">Precio ajustado — {{ it.nombre_prod }}</label>
+          <div class="input-group">
+            <span class="input-group-text" style="font-size:.82rem">$</span>
+            <input type="number" name="precio_{{ it.id }}" class="form-control" value="{{ it.precio_unit }}" min="0" step="100">
+          </div>
+        </div>
+        {% endfor %}
+        <div class="d-grid gap-2 mt-3">
+          <button type="submit" name="accion" value="aprobar" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>Aprobar</button>
+          <button type="submit" name="accion" value="corregir" class="btn btn-warning"><i class="bi bi-pencil me-1"></i>Ajustar precios</button>
+          <button type="submit" name="accion" value="rechazar" class="btn btn-outline-danger"><i class="bi bi-x-circle me-1"></i>Rechazar</button>
+        </div>
+      </form>
+    </div>
+    {% elif pc.estado == 'aceptada_cliente' %}
+    <div class="sc">
+      <div style="text-align:center;padding:1rem">
+        <i class="bi bi-check-circle-fill" style="color:#00875A;font-size:2rem;display:block;margin-bottom:.75rem"></i>
+        <h6 class="fw-bold">Cliente aceptó</h6>
+        <p style="font-size:.85rem;color:#42526E">Puedes ahora convertir esto en una cotización o venta formal.</p>
+        <a href="{{ url_for('cotizacion_nueva') }}" class="btn btn-primary btn-sm">Crear Cotización formal</a>
+      </div>
+    </div>
+    {% else %}
+    <div class="sc"><div class="empty-state"><i class="bi bi-check2-circle"></i><p>{{ pc.estado.replace('_',' ').title() }}</p></div></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}"""
+
 app.jinja_loader = DictLoader(T)
 
 # =============================================================
@@ -6090,8 +6711,10 @@ def login():
         user = User.query.filter_by(email=request.form.get('email','').strip()).first()
         if user and user.check_password(request.form.get('password','')) and user.activo:
             login_user(user, remember=bool(request.form.get('remember')))
-            from flask import session
-            session['show_quick_menu'] = True
+            from flask import session as flask_session
+            flask_session['show_quick_menu'] = True
+            ses = UserSesion(user_id=user.id); db.session.add(ses); db.session.commit()
+            flask_session['sesion_id'] = ses.id
             flash(f'¡Bienvenido, {user.nombre}!', 'success')
             return redirect(request.args.get('next') or url_for('dashboard'))
         flash('Email o contraseña incorrectos.', 'danger')
@@ -6100,7 +6723,30 @@ def login():
 @app.route('/logout')
 @login_required
 def logout():
+    from flask import session as flask_session
+    if 'sesion_id' in flask_session:
+        ses = UserSesion.query.get(flask_session.get('sesion_id'))
+        if ses and not ses.logout_at:
+            ses.logout_at = datetime.utcnow()
+            delta = ses.logout_at - ses.login_at
+            ses.duracion_min = round(delta.total_seconds()/60, 1)
+            db.session.commit()
     logout_user(); flash('Sesión cerrada.', 'info'); return redirect(url_for('login'))
+
+@app.route('/onboarding/dismiss', methods=['POST'])
+@login_required
+def onboarding_dismiss():
+    current_user.onboarding_dismissed = True
+    db.session.commit()
+    return ('', 204)
+
+@app.route('/onboarding/reset', methods=['POST'])
+@login_required
+def onboarding_reset():
+    current_user.onboarding_dismissed = False
+    db.session.commit()
+    flash('Tutorial restablecido.', 'info')
+    return redirect(request.referrer or url_for('dashboard'))
 
 # =============================================================
 # DASHBOARD
@@ -6227,6 +6873,164 @@ def cliente_eliminar(id):
         return redirect(request.referrer or url_for('dashboard'))
     obj=Cliente.query.get_or_404(id); db.session.delete(obj); db.session.commit()
     flash('Cliente eliminado.','info'); return redirect(url_for('clientes'))
+
+# =============================================================
+# PORTAL CLIENTE
+# =============================================================
+
+@app.route('/portal')
+@login_required
+def portal_cliente():
+    if current_user.rol != 'cliente':
+        return redirect(url_for('dashboard'))
+    cliente = Cliente.query.get(current_user.cliente_id) if current_user.cliente_id else None
+    if not cliente:
+        flash('Tu cuenta no está vinculada a una empresa. Contacta al administrador.', 'warning')
+        return render_template('portal/sin_empresa.html')
+    ventas = Venta.query.filter_by(cliente_id=cliente.id).order_by(Venta.creado_en.desc()).limit(20).all()
+    cotizaciones = Cotizacion.query.filter_by(cliente_id=cliente.id).order_by(Cotizacion.creado_en.desc()).limit(20).all()
+    pre_cots = PreCotizacion.query.filter_by(cliente_id=cliente.id).order_by(PreCotizacion.creado_en.desc()).limit(10).all()
+    return render_template('portal/index.html', cliente=cliente, ventas=ventas,
+                           cotizaciones=cotizaciones, pre_cots=pre_cots)
+
+@app.route('/portal/pre-cotizacion/nueva', methods=['GET','POST'])
+@login_required
+def portal_pre_cotizacion_nueva():
+    if current_user.rol != 'cliente':
+        return redirect(url_for('dashboard'))
+    cliente = Cliente.query.get(current_user.cliente_id) if current_user.cliente_id else None
+    if not cliente:
+        flash('Sin empresa vinculada.','danger'); return redirect(url_for('portal_cliente'))
+    if request.method == 'POST':
+        items_raw = []
+        nombres = request.form.getlist('item_nombre[]')
+        cantidades = request.form.getlist('item_cantidad[]')
+        precios = request.form.getlist('item_precio[]')
+        subtotal_total = 0
+        for i, nom in enumerate(nombres):
+            if not nom.strip(): continue
+            qty = float(cantidades[i] or 0)
+            prc = float(precios[i] or 0)
+            sub = round(qty * prc, 2)
+            subtotal_total += sub
+            items_raw.append({'nombre': nom, 'cantidad': qty, 'precio': prc, 'subtotal': sub})
+        iva = round(subtotal_total * 0.19, 2)
+        total = subtotal_total + iva
+        # Count pre-cots for numero
+        cnt = PreCotizacion.query.count() + 1
+        pc = PreCotizacion(
+            numero=f'PC-{cnt:04d}',
+            cliente_id=cliente.id,
+            cliente_user_id=current_user.id,
+            sales_manager_id=cliente.sales_manager_id,
+            notas_cliente=request.form.get('notas',''),
+            subtotal=subtotal_total, iva=iva, total=total
+        )
+        db.session.add(pc); db.session.flush()
+        for it in items_raw:
+            db.session.add(PreCotizacionItem(
+                precot_id=pc.id, nombre_prod=it['nombre'],
+                cantidad=it['cantidad'], precio_unit=it['precio'], subtotal=it['subtotal']
+            ))
+        db.session.commit()
+        # Notify sales manager
+        if cliente.sales_manager_id:
+            _crear_notificacion(
+                cliente.sales_manager_id, 'info',
+                f'Pre-cotización pendiente de revisión: {pc.numero}',
+                f'{cliente.empresa or cliente.nombre} envió una pre-cotización por ${total:,.0f}',
+                url_for('portal_manager_revisar', id=pc.id)
+            ); db.session.commit()
+        flash(f'Pre-cotización {pc.numero} enviada. Tu sales manager la revisará pronto.', 'success')
+        return redirect(url_for('portal_cliente'))
+    empresa = ConfigEmpresa.query.first()
+    return render_template('portal/pre_cotizacion_form.html', cliente=cliente, empresa=empresa)
+
+@app.route('/portal/ticket/nuevo', methods=['GET','POST'])
+@login_required
+def portal_ticket_nuevo():
+    if current_user.rol != 'cliente':
+        return redirect(url_for('dashboard'))
+    cliente = Cliente.query.get(current_user.cliente_id) if current_user.cliente_id else None
+    if not cliente:
+        flash('Sin empresa vinculada.','danger'); return redirect(url_for('portal_cliente'))
+    if request.method == 'POST':
+        asignado = cliente.sales_manager_id or current_user.id
+        t = Tarea(
+            titulo=f"[Ticket] {request.form.get('asunto','')}",
+            descripcion=f"De: {cliente.empresa or cliente.nombre}\n\n{request.form.get('mensaje','')}",
+            estado='pendiente', prioridad=request.form.get('prioridad','media'),
+            asignado_a=asignado, creado_por=current_user.id
+        )
+        db.session.add(t); db.session.flush()
+        db.session.add(TareaAsignado(tarea_id=t.id, user_id=asignado))
+        db.session.commit()
+        if asignado != current_user.id:
+            _crear_notificacion(asignado,'tarea_asignada',
+                f'Nuevo ticket de {cliente.empresa or cliente.nombre}: {request.form.get("asunto","")}',
+                request.form.get('mensaje','')[:120],
+                url_for('tarea_ver', id=t.id)); db.session.commit()
+        flash('Ticket enviado a tu sales manager.','success')
+        return redirect(url_for('portal_cliente'))
+    return render_template('portal/ticket_form.html', cliente=cliente)
+
+# Sales manager reviews pre-cotizacion
+@app.route('/portal/manager/pre-cotizacion/<int:id>', methods=['GET','POST'])
+@login_required
+def portal_manager_revisar(id):
+    if current_user.rol not in ['admin','sales_manager','vendedor']:
+        flash('Sin permisos.','danger'); return redirect(url_for('dashboard'))
+    pc = PreCotizacion.query.get_or_404(id)
+    if request.method == 'POST':
+        accion = request.form.get('accion','')
+        pc.notas_manager = request.form.get('notas_manager', pc.notas_manager or '')
+        pc.actualizado_en = datetime.utcnow()
+        if accion == 'aprobar':
+            pc.estado = 'aprobada'
+            msg = f'Tu pre-cotización {pc.numero} fue aprobada por tu sales manager.'
+        elif accion == 'rechazar':
+            pc.estado = 'rechazada'
+            msg = f'Tu pre-cotización {pc.numero} fue rechazada. Nota: {pc.notas_manager}'
+        elif accion == 'corregir':
+            pc.estado = 'en_revision'
+            # Update prices from form
+            for item in pc.items:
+                new_price = request.form.get(f'precio_{item.id}', type=float)
+                if new_price is not None:
+                    item.precio_unit = new_price
+                    item.subtotal = round(item.cantidad * new_price, 2)
+            pc.subtotal = sum(i.subtotal for i in pc.items)
+            pc.iva = round(pc.subtotal * 0.19, 2)
+            pc.total = pc.subtotal + pc.iva
+            msg = f'Tu pre-cotización {pc.numero} fue revisada y tiene ajustes. Por favor revísala.'
+        db.session.commit()
+        # Notify client user
+        if pc.cliente_user_id:
+            _crear_notificacion(pc.cliente_user_id,'info', msg, pc.notas_manager or '',
+                url_for('portal_cliente')); db.session.commit()
+        flash(f'Pre-cotización {accion}da.','success')
+        return redirect(url_for('portal_manager_revisar', id=id))
+    return render_template('portal/manager_revisar.html', pc=pc)
+
+# Client accepts approved pre-cotizacion
+@app.route('/portal/pre-cotizacion/<int:id>/aceptar', methods=['POST'])
+@login_required
+def portal_precot_aceptar(id):
+    if current_user.rol != 'cliente':
+        return redirect(url_for('dashboard'))
+    pc = PreCotizacion.query.get_or_404(id)
+    if pc.cliente_user_id != current_user.id:
+        flash('Sin permisos.','danger'); return redirect(url_for('portal_cliente'))
+    pc.estado = 'aceptada_cliente'
+    pc.actualizado_en = datetime.utcnow()
+    db.session.commit()
+    if pc.sales_manager_id:
+        _crear_notificacion(pc.sales_manager_id,'info',
+            f'Cliente aceptó la pre-cotización {pc.numero}',
+            f'{pc.cliente.empresa or pc.cliente.nombre} aceptó. Puedes convertirla en cotización formal.',
+            url_for('portal_manager_revisar', id=pc.id)); db.session.commit()
+    flash('Aceptaste la pre-cotización. Tu sales manager continuará el proceso.','success')
+    return redirect(url_for('portal_cliente'))
 
 # =============================================================
 # PROVEEDORES
@@ -6874,6 +7678,17 @@ def _save_asignados(tarea_obj):
 def tareas():
     estado_f=request.args.get('estado',''); prioridad_f=request.args.get('prioridad','')
     q=Tarea.query
+    # Non-admins only see their own tasks
+    if current_user.rol != 'admin':
+        q = q.filter(
+            db.or_(
+                Tarea.asignado_a == current_user.id,
+                Tarea.creado_por == current_user.id,
+                Tarea.id.in_(
+                    db.session.query(TareaAsignado.tarea_id).filter_by(user_id=current_user.id)
+                )
+            )
+        )
     if estado_f: q=q.filter_by(estado=estado_f)
     if prioridad_f: q=q.filter_by(prioridad=prioridad_f)
     return render_template('tareas/index.html', items=q.order_by(Tarea.creado_en.desc()).all(),
@@ -7588,6 +8403,57 @@ def perfil():
                 db.session.commit()
                 flash('Contraseña cambiada exitosamente.','success')
     return render_template('perfil.html')
+
+@app.route('/mi-actividad')
+@login_required
+def mi_actividad():
+    from datetime import date as date_type
+    hoy = date_type.today()
+    # Last 6 months of activity
+    meses = []
+    for i in range(5, -1, -1):
+        if hoy.month - i <= 0:
+            m = hoy.month - i + 12; y = hoy.year - 1
+        else:
+            m = hoy.month - i; y = hoy.year
+        inicio = datetime(y, m, 1)
+        if m == 12: fin = datetime(y+1, 1, 1)
+        else:       fin = datetime(y, m+1, 1)
+        # Target user (admin can view others)
+        uid = request.args.get('user_id', type=int, default=current_user.id)
+        if uid != current_user.id and current_user.rol != 'admin':
+            uid = current_user.id
+        tareas_hechas = Tarea.query.filter(
+            db.or_(Tarea.asignado_a==uid, Tarea.creado_por==uid),
+            Tarea.estado=='completada',
+            Tarea.creado_en>=inicio, Tarea.creado_en<fin
+        ).count()
+        act_count = Actividad.query.filter(
+            Actividad.user_id==uid,
+            Actividad.creado_en>=inicio, Actividad.creado_en<fin
+        ).count()
+        clientes_nuevos = Cliente.query.join(Actividad, db.and_(
+            Actividad.tabla=='cliente', Actividad.registro_id==Cliente.id,
+            Actividad.tipo=='crear', Actividad.user_id==uid,
+            Actividad.creado_en>=inicio, Actividad.creado_en<fin
+        )).count() if current_user.rol in ['admin','vendedor','sales_manager'] else 0
+        tiempo = db.session.query(db.func.sum(UserSesion.duracion_min)).filter(
+            UserSesion.user_id==uid,
+            UserSesion.login_at>=inicio, UserSesion.login_at<fin
+        ).scalar() or 0
+        meses.append({
+            'mes': inicio.strftime('%b %Y'), 'tareas': tareas_hechas,
+            'acciones': act_count, 'clientes': clientes_nuevos,
+            'tiempo_min': round(tiempo)
+        })
+    # Current month summary
+    mes_inicio = datetime(hoy.year, hoy.month, 1)
+    uid = request.args.get('user_id', type=int, default=current_user.id)
+    if uid != current_user.id and current_user.rol != 'admin': uid = current_user.id
+    target_user = User.query.get(uid) if uid != current_user.id else current_user
+    usuarios_lista = User.query.filter_by(activo=True).all() if current_user.rol == 'admin' else []
+    return render_template('mi_actividad.html', meses=meses, target_user=target_user,
+                           usuarios_lista=usuarios_lista, uid=uid)
 
 # =============================================================
 # REPORTES
@@ -8350,8 +9216,9 @@ def cotizacion_pdf(id):
 @login_required
 def actividad():
     if current_user.rol != 'admin':
-        flash('Sin permisos.','danger'); return redirect(url_for('dashboard'))
-    items = Actividad.query.order_by(Actividad.creado_en.desc()).limit(300).all()
+        items = Actividad.query.filter_by(user_id=current_user.id).order_by(Actividad.creado_en.desc()).limit(150).all()
+    else:
+        items = Actividad.query.order_by(Actividad.creado_en.desc()).limit(300).all()
     return render_template('actividad.html', items=items)
 
 # =============================================================
@@ -9437,6 +10304,18 @@ def _migrate(conn):
         ("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS banco_tipo VARCHAR(40)"),
         ("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS banco_titular VARCHAR(120)"),
         ("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS info_legal TEXT"),
+        # v18 — User onboarding y cliente link
+        ("ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_dismissed BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE users ADD COLUMN IF NOT EXISTS cliente_id INTEGER REFERENCES clientes(id)"),
+        # v18 — Cliente sales manager y parámetros
+        ("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS sales_manager_id INTEGER REFERENCES users(id)"),
+        ("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS anticipo_pct FLOAT DEFAULT 50"),
+        ("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS minimo_pedido INTEGER DEFAULT 1"),
+        # v18 — User Sessions
+        ("CREATE TABLE IF NOT EXISTS user_sesiones (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), login_at TIMESTAMP DEFAULT NOW(), logout_at TIMESTAMP, duracion_min FLOAT DEFAULT 0)"),
+        # v18 — Pre-cotizaciones
+        ("CREATE TABLE IF NOT EXISTS pre_cotizaciones (id SERIAL PRIMARY KEY, numero VARCHAR(30), cliente_id INTEGER NOT NULL REFERENCES clientes(id), cliente_user_id INTEGER REFERENCES users(id), sales_manager_id INTEGER REFERENCES users(id), estado VARCHAR(30) DEFAULT 'pendiente', notas_cliente TEXT, notas_manager TEXT, subtotal FLOAT DEFAULT 0, iva FLOAT DEFAULT 0, total FLOAT DEFAULT 0, creado_en TIMESTAMP DEFAULT NOW(), actualizado_en TIMESTAMP DEFAULT NOW())"),
+        ("CREATE TABLE IF NOT EXISTS pre_cotizacion_items (id SERIAL PRIMARY KEY, precot_id INTEGER NOT NULL REFERENCES pre_cotizaciones(id), nombre_prod VARCHAR(200), cantidad FLOAT DEFAULT 0, precio_unit FLOAT DEFAULT 0, subtotal FLOAT DEFAULT 0, notas VARCHAR(300))"),
     ]
     for sql in migrations:
         try:
