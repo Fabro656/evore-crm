@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, date as date_type
 from functools import wraps
 import json, io, re, logging
 
-__all__ = ['cop', 'moneda', 'moneda0', 'requiere_modulo', 'inject_globals', '_send_email', '_log', '_crear_notificacion', '_calcular_nomina', '_calcular_liquidacion', '_calcular_impuestos', '_descontar_materias', '_descontar_stock_venta', '_save_contactos', '_oc_save_items', '_prods_json', '_save_items', '_save_asignados', '_inv_form_ctx', '_save_compra', '_make_xlsx', '_procesar_orden_produccion', '_procesar_venta_produccion', '_modulos_user', 'register_app_hooks', 'decorator', 'wrapped']
+__all__ = ['cop', 'moneda', 'moneda0', 'requiere_modulo', 'inject_globals', '_send_email', '_log', '_crear_notificacion', '_calcular_nomina', '_calcular_liquidacion', '_calcular_impuestos', '_descontar_materias', '_descontar_stock_venta', '_save_contactos', '_oc_save_items', '_prods_json', '_save_items', '_save_asignados', '_inv_form_ctx', '_save_compra', '_make_xlsx', '_procesar_orden_produccion', '_procesar_venta_produccion', '_modulos_user', 'register_app_hooks']
 
 
 # Models imported lazily inside functions to avoid circular imports
