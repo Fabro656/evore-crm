@@ -577,8 +577,6 @@ class PreCotizacion(db.Model):
     sales_manager    = db.relationship('User', foreign_keys=[sales_manager_id])
     items            = db.relationship('PreCotizacionItem', backref='precot', lazy=True, cascade='all, delete-orphan')
 
-@db.event.listens_for(db.engine, "connect", insert=True)
-def connect(dbapi_connection, connection_record): pass
 
 @login_manager.user_loader
 def load_user(uid): return db.session.get(User, int(uid))
