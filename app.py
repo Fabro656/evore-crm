@@ -65,9 +65,9 @@ def create_app():
 
     # ── DB migrate on startup
     with app.app_context():
-        from models import _migrate, load_user as _luser
+        from models import init_db, load_user as _luser
         login_manager.user_loader(_luser)
-        _migrate()
+        init_db()
 
     return app
 

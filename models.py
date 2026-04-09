@@ -694,3 +694,26 @@ def _migrate(conn):
             try: conn.rollback()
             except: pass
             print(f'Migración omitida (puede ser SQLite o ya existe): {em}')
+
+def init_db():
+    """Create tables and run migrations. Call inside app context."""
+    db.create_all()
+    try:
+        with db.engine.connect() as conn:
+            _migrate(conn)
+    except Exception as em:
+        import logging
+        logging.warning(f'Migrate error (non-critical): {em}')
+    import os, secrets, logging
+    _admin_email = os.environ.get('ADMIN_EMAIL', 'admin@evore.us')
+    if not User.query.filter_by(email=_admin_email).first():
+        _admin_pass = os.environ.get('ADMIN_PASSWORD')
+        if not _admin_pass:
+            _admin_pass = secrets.token_urlsafe(14)
+            logging.warning('ADMIN AUTO-GENERATED PASSWORD (save this!): %s', _admin_pass)
+        admin = User(nombre='Administrador', email=_admin_email, rol='admin')
+        admin.set_password(_admin_pass)
+        db.session.add(admin); db.session.commit()
+    if not ConfigEmpresa.query.first():
+        db.session.add(ConfigEmpresa(nombre='Evore', email='contacto@evore.us', sitio_web='evore.us'))
+        db.session.commit()
