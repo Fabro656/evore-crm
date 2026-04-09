@@ -24,7 +24,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = _db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = False
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('RAILWAY_ENVIRONMENT') == 'production'
 # Flask-Mail (optional — set MAIL_* vars in Railway to enable email)
 app.config['MAIL_SERVER']   = os.environ.get('MAIL_SERVER', '')
 app.config['MAIL_PORT']     = int(os.environ.get('MAIL_PORT', 587))
@@ -55,6 +55,13 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Inicia sesión para continuar.'
 login_manager.login_message_category = 'warning'
+
+@app.before_request
+def force_https():
+    if os.environ.get('RAILWAY_ENVIRONMENT') == 'production':
+        if request.headers.get('X-Forwarded-Proto') == 'http':
+            url = request.url.replace('http://', 'https://', 1)
+            return redirect(url, code=301)
 
 @app.after_request
 def security_headers(response):
@@ -857,6 +864,92 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .copy-value:hover{background:#F4F5F7}
 .copy-value .bi-clipboard{color:#6B778C;font-size:.8rem}
 .copy-value .bi-check2{color:#00875A;font-size:.8rem}
+
+/* Quick Actions FAB */
+.fab{position:fixed;bottom:24px;right:24px;z-index:1040;width:52px;height:52px;border-radius:50%;background:var(--ac,#0052CC);color:#fff;border:none;box-shadow:0 4px 16px rgba(0,82,204,.4);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.4rem;transition:all .2s}
+.fab:hover{transform:scale(1.1);background:var(--ac2,#0065FF)}
+.quick-action-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:8px 0}
+.qa-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:16px 8px;border:1px solid #DFE1E6;border-radius:8px;background:#F4F5F7;cursor:pointer;text-decoration:none;color:#172B4D;transition:all .15s;text-align:center}
+.qa-btn:hover{background:#DEEBFF;border-color:#0052CC;color:#0052CC;transform:translateY(-2px)}
+.qa-btn i{font-size:1.6rem}
+.qa-btn span{font-size:.78rem;font-weight:600;line-height:1.2}
+@media(max-width:576px){.quick-action-grid{grid-template-columns:repeat(2,1fr)}.fab{bottom:16px;right:16px}}
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media(max-width:768px){
+  /* Sidebar: full-width drawer on mobile */
+  #sb{width:100%!important;max-width:280px}
+
+  /* Main content: full width */
+  #main-content,main,.main-content{margin-left:0!important;padding:0 12px 80px!important}
+
+  /* Page header */
+  .page-header,.d-flex.justify-content-between{flex-direction:column;gap:8px;align-items:flex-start!important}
+  .page-header .btn,.page-header a.btn{width:100%}
+
+  /* Tables: horizontal scroll */
+  .table-responsive{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{min-width:500px}
+
+  /* Cards grid: stack on mobile */
+  .row.g-3>[class*='col-md'],[class*='col-lg']{width:100%!important;max-width:100%!important;flex:0 0 100%!important}
+  .row.g-2>[class*='col-md']{width:100%!important;flex:0 0 100%!important}
+
+  /* Stats/metric cards */
+  .stat-card,.metric-card{min-width:auto}
+
+  /* Forms */
+  .form-section{padding:12px}
+  .input-group{flex-wrap:wrap}
+
+  /* Navbar/topbar */
+  .topbar,.navbar{padding:8px 12px}
+
+  /* Buttons: full width in forms */
+  .btn-group-mobile{display:flex;flex-direction:column;gap:6px}
+  .btn-group-mobile .btn{width:100%}
+
+  /* Status badges: wrap properly */
+  .status-select{max-width:120px}
+
+  /* Modal: full screen on mobile */
+  .modal-dialog{margin:8px;max-width:calc(100vw - 16px)}
+  .modal-content{border-radius:12px}
+
+  /* Dashboard quick stats row */
+  .quick-stats{grid-template-columns:repeat(2,1fr)!important}
+
+  /* Hide non-essential table columns */
+  .hide-mobile{display:none!important}
+
+  /* FAB position */
+  .fab{bottom:16px;right:16px;width:48px;height:48px;font-size:1.2rem}
+
+  /* Quick actions grid: 2 columns on small screens */
+  .quick-action-grid{grid-template-columns:repeat(2,1fr)}
+
+  /* Pagination */
+  .pagination{flex-wrap:wrap;gap:2px}
+
+  /* Toast/flash alerts */
+  .alert{font-size:.875rem;padding:10px 14px}
+}
+
+@media(max-width:480px){
+  /* Very small screens */
+  .qa-btn{padding:12px 4px}
+  .qa-btn i{font-size:1.3rem}
+  .quick-action-grid{grid-template-columns:repeat(2,1fr);gap:8px}
+  h1,.h1{font-size:1.4rem}
+  h2,.h2{font-size:1.2rem}
+  .card-header{padding:10px 12px;font-size:.9rem}
+  .card-body{padding:12px}
+  .btn-sm{font-size:.78rem;padding:4px 8px}
+}
+
+/* Ensure images/logos scale on mobile */
+img,svg{max-width:100%;height:auto}
+.logo-area svg{max-height:40px!important}
 </style>{% endraw %}"""
 
 _CDN = """<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -1088,6 +1181,57 @@ function copiarTexto(el,txt){
   _reset();
 })();
 </script>
+<!-- Floating Action Button -->
+<button class="fab" onclick="new bootstrap.Modal(document.getElementById('modalQuickActions')).show()" id="btnFAB" title="Acciones rápidas" data-bs-toggle="modal" data-bs-target="#modalQuickActions">
+  <i class="bi bi-plus-lg"></i>
+</button>
+
+<!-- Quick Actions Modal -->
+<div class="modal fade" id="modalQuickActions" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold">¿Qué quieres hacer?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <div class="quick-action-grid">
+          <a href="{{ url_for('venta_nueva') }}" class="qa-btn" data-bs-dismiss="modal">
+            <i class="bi bi-bag-plus"></i><span>Nueva Venta</span>
+          </a>
+          <a href="{{ url_for('cliente_nuevo') }}" class="qa-btn" data-bs-dismiss="modal">
+            <i class="bi bi-person-plus"></i><span>Nuevo Cliente</span>
+          </a>
+          <a href="{{ url_for('cotizacion_nueva') }}" class="qa-btn" data-bs-dismiss="modal">
+            <i class="bi bi-file-earmark-plus"></i><span>Cotización</span>
+          </a>
+          <a href="{{ url_for('orden_compra_nueva') }}" class="qa-btn" data-bs-dismiss="modal">
+            <i class="bi bi-cart-plus"></i><span>Orden de Compra</span>
+          </a>
+          <a href="{{ url_for('tarea_nueva') }}" class="qa-btn" data-bs-dismiss="modal">
+            <i class="bi bi-check2-square"></i><span>Nueva Tarea</span>
+          </a>
+          <a href="{{ url_for('proveedor_nuevo') }}" class="qa-btn" data-bs-dismiss="modal">
+            <i class="bi bi-truck"></i><span>Proveedor</span>
+          </a>
+          <a href="{{ url_for('gasto_nuevo') }}" class="qa-btn" data-bs-dismiss="modal">
+            <i class="bi bi-receipt"></i><span>Nuevo Gasto</span>
+          </a>
+          <a href="{{ url_for('producto_nuevo') }}" class="qa-btn" data-bs-dismiss="modal">
+            <i class="bi bi-box-seam"></i><span>Producto</span>
+          </a>
+          <a href="{{ url_for('nota_nueva') }}" class="qa-btn" data-bs-dismiss="modal">
+            <i class="bi bi-sticky"></i><span>Nueva Nota</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if session.pop('show_quick_menu', False) %}
+<script>document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){new bootstrap.Modal(document.getElementById('modalQuickActions')).show();},700);});</script>
+{% endif %}
 {% block scripts %}{% endblock %}
 </body></html>"""
 
@@ -6009,6 +6153,8 @@ def login():
         user = User.query.filter_by(email=request.form.get('email','').strip()).first()
         if user and user.check_password(request.form.get('password','')) and user.activo:
             login_user(user, remember=bool(request.form.get('remember')))
+            from flask import session
+            session['show_quick_menu'] = True
             flash(f'¡Bienvenido, {user.nombre}!', 'success')
             return redirect(request.args.get('next') or url_for('dashboard'))
         flash('Email o contraseña incorrectos.', 'danger')
@@ -6139,6 +6285,9 @@ def cliente_editar(id):
 @app.route('/clientes/<int:id>/eliminar', methods=['POST'])
 @login_required
 def cliente_eliminar(id):
+    if current_user.rol != 'admin':
+        flash('Solo administradores pueden eliminar registros.', 'danger')
+        return redirect(request.referrer or url_for('dashboard'))
     obj=Cliente.query.get_or_404(id); db.session.delete(obj); db.session.commit()
     flash('Cliente eliminado.','info'); return redirect(url_for('clientes'))
 
@@ -6200,6 +6349,9 @@ def proveedor_editar(id):
 @app.route('/proveedores/<int:id>/eliminar', methods=['POST'])
 @login_required
 def proveedor_eliminar(id):
+    if current_user.rol != 'admin':
+        flash('Solo administradores pueden eliminar registros.', 'danger')
+        return redirect(request.referrer or url_for('dashboard'))
     obj = Proveedor.query.get_or_404(id)
     obj.activo = False
     db.session.commit()
@@ -6534,6 +6686,9 @@ def orden_compra_estado(id):
 @app.route('/ordenes-compra/<int:id>/eliminar', methods=['POST'])
 @login_required
 def orden_compra_eliminar(id):
+    if current_user.rol != 'admin':
+        flash('Solo administradores pueden eliminar registros.', 'danger')
+        return redirect(request.referrer or url_for('dashboard'))
     obj = OrdenCompra.query.get_or_404(id)
     db.session.delete(obj); db.session.commit()
     flash('Orden de compra eliminada.','info')
@@ -6661,17 +6816,19 @@ def venta_editar(id):
 @app.route('/ventas/<int:id>/eliminar', methods=['POST'])
 @login_required
 def venta_eliminar(id):
+    if current_user.rol != 'admin':
+        flash('Solo administradores pueden eliminar ventas.', 'danger')
+        return redirect(url_for('ventas'))
     obj = Venta.query.get_or_404(id)
-    # Limpiar relaciones FK para evitar constraint errors
     try:
-        ops = OrdenProduccion.query.filter_by(venta_id=obj.id).all()
-        for op in ops:
-            ReservaLote.query.filter_by(orden_produccion_id=op.id).delete()
+        ReservaProduccion.query.filter_by(venta_id=obj.id).delete()
         OrdenProduccion.query.filter_by(venta_id=obj.id).delete()
-    except Exception:
-        pass
+        db.session.flush()
+    except Exception as e:
+        db.session.rollback()
     db.session.delete(obj)
     db.session.commit()
+    _log('eliminar','venta',id,'Venta eliminada'); db.session.commit()
     flash('Venta eliminada.', 'info')
     return redirect(url_for('ventas'))
 
@@ -6908,8 +7065,21 @@ def tarea_completar(id):
 @app.route('/tareas/<int:id>/eliminar', methods=['POST'])
 @login_required
 def tarea_eliminar(id):
-    obj=Tarea.query.get_or_404(id); db.session.delete(obj); db.session.commit()
-    flash('Tarea eliminada.','info'); return redirect(url_for('tareas'))
+    if current_user.rol != 'admin':
+        flash('Solo administradores pueden eliminar tareas.', 'danger')
+        return redirect(url_for('tareas'))
+    obj = Tarea.query.get_or_404(id)
+    try:
+        TareaAsignado.query.filter_by(tarea_id=obj.id).delete()
+        TareaComentario.query.filter_by(tarea_id=obj.id).delete()
+        db.session.flush()
+    except Exception:
+        db.session.rollback()
+    db.session.delete(obj)
+    db.session.commit()
+    _log('eliminar','tarea',id,'Tarea eliminada'); db.session.commit()
+    flash('Tarea eliminada.', 'info')
+    return redirect(url_for('tareas'))
 
 # =============================================================
 # INVENTARIO (v8: NSO + costo)
@@ -7007,6 +7177,9 @@ def producto_editar(id):
 @app.route('/inventario/<int:id>/eliminar', methods=['POST'])
 @login_required
 def producto_eliminar(id):
+    if current_user.rol != 'admin':
+        flash('Solo administradores pueden eliminar registros.', 'danger')
+        return redirect(request.referrer or url_for('dashboard'))
     obj=Producto.query.get_or_404(id); obj.activo=False; db.session.commit()
     flash('Producto eliminado.','info'); return redirect(url_for('inventario'))
 
@@ -7378,6 +7551,9 @@ def gasto_editar(id):
 @app.route('/gastos/<int:id>/eliminar', methods=['POST'])
 @login_required
 def gasto_eliminar(id):
+    if current_user.rol != 'admin':
+        flash('Solo administradores pueden eliminar registros.', 'danger')
+        return redirect(request.referrer or url_for('dashboard'))
     obj=GastoOperativo.query.get_or_404(id); db.session.delete(obj); db.session.commit()
     flash('Gasto eliminado.','info'); return redirect(url_for('gastos'))
 
@@ -7688,6 +7864,9 @@ def nota_editar(id):
 @app.route('/notas/<int:id>/eliminar', methods=['POST'])
 @login_required
 def nota_eliminar(id):
+    if current_user.rol != 'admin':
+        flash('Solo administradores pueden eliminar registros.', 'danger')
+        return redirect(request.referrer or url_for('dashboard'))
     obj=Nota.query.get_or_404(id); db.session.delete(obj); db.session.commit()
     flash('Nota eliminada.','info'); return redirect(url_for('notas'))
 
@@ -8211,6 +8390,9 @@ def cotizacion_cambiar_estado(id):
 @app.route('/cotizaciones/<int:id>/eliminar', methods=['POST'])
 @login_required
 def cotizacion_eliminar(id):
+    if current_user.rol != 'admin':
+        flash('Solo administradores pueden eliminar registros.', 'danger')
+        return redirect(request.referrer or url_for('dashboard'))
     obj = Cotizacion.query.get_or_404(id)
     db.session.delete(obj); db.session.commit()
     flash('Cotización eliminada.','info')
