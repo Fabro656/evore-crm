@@ -882,15 +882,16 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
   #sb .nav-link span,.sb-brand .bt,.ui{display:block}
   #sb .sb-sec{display:block}
   #sb-tog{display:flex}
-  #main{margin-left:0}
+  #main{margin-left:0;width:100%}
   .content{padding:.85rem .75rem}
-  .topbar{padding:.6rem .85rem}
-  .pg-title{font-size:.95rem}
+  .topbar{padding:.55rem .75rem;gap:.4rem}
+  .topbar-right{gap:.3rem!important}
+  .pg-title{font-size:.9rem;max-width:140px}
   /* Tables: horizontal scroll with touch */
   .table-responsive{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:0}
   .tc .table-responsive{margin:0}
-  /* Cards: full width */
-  .fc{padding:1.1rem;border-radius:10px}
+  /* Cards: full width, no horizontal overflow */
+  .fc{padding:1rem .85rem;border-radius:6px;max-width:100%}
   /* Form sections stack */
   .row.g-3>[class*='col-md']{margin-bottom:.2rem}
   /* Bigger touch targets */
@@ -906,10 +907,32 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
   .hide-mobile{display:none}
   /* Onboarding banner */
   .onboard-banner{padding:1.1rem 1.2rem}
+  /* Prevent horizontal scroll on entire page */
+  body{overflow-x:hidden}
+  /* Quick action modal */
+  .quick-action-grid{grid-template-columns:repeat(2,1fr)!important}
+  /* Totales box */
+  .totales-box{padding:.75rem}
+  /* Stat values smaller */
+  .sv{font-size:1.3rem}
+  /* Table headers smaller */
+  .table th{font-size:.62rem;padding:.45rem .65rem}
+  .table td{padding:.45rem .65rem;font-size:.82rem}
+  /* ch (card header) wrap */
+  .ch{padding:.65rem .85rem}
+  /* diag panel full width */
+  #diagPanel{width:calc(100vw - 32px);right:16px}
+  /* notif panel adjust */
+  .notif-dd{width:calc(100vw - 32px);left:16px}
+  /* onboarding modal */
+  #modalOnboarding .modal-dialog{margin:.5rem;max-width:calc(100vw - 1rem)!important}
+  #modalOnboarding .modal-content{height:520px}
 }
 @media(max-width:480px){
-  .sv{font-size:1.4rem}
+  .sv{font-size:1.2rem}
   .qa-bar{grid-template-columns:1fr}
+  .pg-title{max-width:100px}
+  .topbar-right .btn{padding:.3rem .4rem;font-size:.75rem}
 }
 @media(min-width:769px){
   #sb-overlay{display:none!important}
@@ -1048,10 +1071,10 @@ T['base.html'] = """<!DOCTYPE html>
     <!-- Hamburger for mobile -->
     <button id="sb-tog" onclick="openSB()" aria-label="Menú"><i class="bi bi-list"></i></button>
     <h1 class="pg-title">{% block page_title %}{% endblock %}</h1>
-    <div class="d-flex align-items-center gap-2 flex-wrap">
+    <div class="topbar-right d-flex align-items-center gap-2 ms-auto flex-nowrap">
       {% block topbar_actions %}{% endblock %}
       <span class="text-muted d-none d-md-inline" style="font-size:.8rem;white-space:nowrap"><i class="bi bi-calendar3 me-1"></i>{{ now.strftime('%d %b %Y') }}</span>
-      <button class="btn btn-sm" style="background:none;border:1px solid #DFE1E6;color:#42526E;padding:4px 10px;font-size:.78rem" onclick="new bootstrap.Modal(document.getElementById('modalOnboarding')).show();goStep(0);" title="Ver tutorial">
+      <button class="btn btn-sm d-none d-md-inline-flex" style="background:none;border:1px solid #DFE1E6;color:#42526E;padding:4px 10px;font-size:.78rem" onclick="new bootstrap.Modal(document.getElementById('modalOnboarding')).show();goStep(0);" title="Ver tutorial">
         <i class="bi bi-question-circle me-1"></i>Ayuda
       </button>
       <div class="dropdown">
@@ -1214,8 +1237,8 @@ function copiarTexto(el,txt){
 
 <!-- Onboarding Tutorial Modal -->
 <div class="modal fade" id="modalOnboarding" tabindex="-1" data-bs-backdrop="true" data-bs-keyboard="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
-    <div class="modal-content" style="border-radius:16px;border:none;overflow:hidden">
+  <div class="modal-dialog modal-dialog-centered modal-lg" style="max-width:660px">
+    <div class="modal-content" style="border-radius:16px;border:none;overflow:hidden;height:560px;display:flex;flex-direction:column">
       <!-- Header -->
       <div style="background:linear-gradient(135deg,#253858 0%,#0747A6 100%);padding:2rem;color:#fff;position:relative">
         <div style="position:absolute;top:-20px;right:-20px;width:120px;height:120px;background:rgba(255,255,255,.05);border-radius:50%"></div>
@@ -1229,11 +1252,11 @@ function copiarTexto(el,txt){
         </div>
       </div>
       <!-- Steps carousel -->
-      <div class="modal-body p-0">
-        <div id="onboardCarousel" class="carousel slide" data-bs-ride="false">
-          <div class="carousel-inner">
+      <div class="modal-body p-0" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+        <div id="onboardCarousel" class="carousel slide h-100" data-bs-ride="false" style="display:flex;flex-direction:column;height:100%">
+          <div class="carousel-inner" style="flex:1;overflow:hidden">
             <!-- Step 1 -->
-            <div class="carousel-item active">
+            <div class="carousel-item active" style="height:100%;overflow-y:auto">
               <div style="padding:1.75rem">
                 <div class="d-flex align-items-center gap-2 mb-3">
                   <div style="width:36px;height:36px;background:#DEEBFF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-speedometer2" style="color:#0052CC;font-size:1.1rem"></i></div>
@@ -1246,7 +1269,7 @@ function copiarTexto(el,txt){
               </div>
             </div>
             <!-- Step 2 -->
-            <div class="carousel-item">
+            <div class="carousel-item" style="height:100%;overflow-y:auto">
               <div style="padding:1.75rem">
                 <div class="d-flex align-items-center gap-2 mb-3">
                   <div style="width:36px;height:36px;background:#E3FCEF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-people-fill" style="color:#00875A;font-size:1.1rem"></i></div>
@@ -1261,7 +1284,7 @@ function copiarTexto(el,txt){
               </div>
             </div>
             <!-- Step 3 -->
-            <div class="carousel-item">
+            <div class="carousel-item" style="height:100%;overflow-y:auto">
               <div style="padding:1.75rem">
                 <div class="d-flex align-items-center gap-2 mb-3">
                   <div style="width:36px;height:36px;background:#FFFAE6;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-file-earmark-text-fill" style="color:#FF8B00;font-size:1.1rem"></i></div>
@@ -1274,7 +1297,7 @@ function copiarTexto(el,txt){
               </div>
             </div>
             <!-- Step 4 -->
-            <div class="carousel-item">
+            <div class="carousel-item" style="height:100%;overflow-y:auto">
               <div style="padding:1.75rem">
                 <div class="d-flex align-items-center gap-2 mb-3">
                   <div style="width:36px;height:36px;background:#EAE6FF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-check2-all" style="color:#5243AA;font-size:1.1rem"></i></div>
@@ -1289,7 +1312,7 @@ function copiarTexto(el,txt){
               </div>
             </div>
             <!-- Step 5 -->
-            <div class="carousel-item">
+            <div class="carousel-item" style="height:100%;overflow-y:auto">
               <div style="padding:1.75rem">
                 <div class="d-flex align-items-center gap-2 mb-3">
                   <div style="width:36px;height:36px;background:#DEEBFF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-cart-fill" style="color:#0052CC;font-size:1.1rem"></i></div>
@@ -1305,7 +1328,7 @@ function copiarTexto(el,txt){
               </div>
             </div>
             <!-- Step 6 -->
-            <div class="carousel-item">
+            <div class="carousel-item" style="height:100%;overflow-y:auto">
               <div style="padding:1.75rem">
                 <div class="d-flex align-items-center gap-2 mb-3">
                   <div style="width:36px;height:36px;background:#E3FCEF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-graph-up-arrow" style="color:#00875A;font-size:1.1rem"></i></div>
@@ -1318,7 +1341,7 @@ function copiarTexto(el,txt){
               </div>
             </div>
             <!-- Step 7: Proveedores y OC -->
-            <div class="carousel-item">
+            <div class="carousel-item" style="height:100%;overflow-y:auto">
               <div style="padding:1.75rem">
                 <div class="d-flex align-items-center gap-2 mb-3">
                   <div style="width:36px;height:36px;background:#EAE6FF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-truck" style="color:#5243AA;font-size:1.1rem"></i></div>
@@ -1333,7 +1356,7 @@ function copiarTexto(el,txt){
               </div>
             </div>
             <!-- Step 8: Inventario -->
-            <div class="carousel-item">
+            <div class="carousel-item" style="height:100%;overflow-y:auto">
               <div style="padding:1.75rem">
                 <div class="d-flex align-items-center gap-2 mb-3">
                   <div style="width:36px;height:36px;background:#E3FCEF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-box-seam" style="color:#00875A;font-size:1.1rem"></i></div>
@@ -1348,7 +1371,7 @@ function copiarTexto(el,txt){
               </div>
             </div>
             <!-- Step 9: Finanzas -->
-            <div class="carousel-item">
+            <div class="carousel-item" style="height:100%;overflow-y:auto">
               <div style="padding:1.75rem">
                 <div class="d-flex align-items-center gap-2 mb-3">
                   <div style="width:36px;height:36px;background:#DEEBFF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-calculator" style="color:#0052CC;font-size:1.1rem"></i></div>
@@ -1363,7 +1386,7 @@ function copiarTexto(el,txt){
               </div>
             </div>
             <!-- Step 10: Admin -->
-            <div class="carousel-item">
+            <div class="carousel-item" style="height:100%;overflow-y:auto">
               <div style="padding:1.75rem">
                 <div class="d-flex align-items-center gap-2 mb-3">
                   <div style="width:36px;height:36px;background:#FFEBE6;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-shield-lock" style="color:#DE350B;font-size:1.1rem"></i></div>
@@ -1398,15 +1421,16 @@ function copiarTexto(el,txt){
         </div>
       </div>
       <!-- Footer -->
-      <div class="modal-footer border-0" style="padding:1rem 1.75rem;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
-        <div class="form-check mb-0">
+      <div class="modal-footer border-0 flex-shrink-0" style="padding:.85rem 1.5rem;justify-content:space-between;flex-wrap:nowrap;gap:.5rem;background:#fff;border-top:1px solid #F4F5F7">
+        <div class="form-check mb-0 flex-shrink-0">
           <input class="form-check-input" type="checkbox" id="chkNoMostrar">
-          <label class="form-check-label" for="chkNoMostrar" style="font-size:.83rem;color:#6B778C">No volver a mostrar</label>
+          <label class="form-check-label" for="chkNoMostrar" style="font-size:.82rem;color:#6B778C;white-space:nowrap">No volver a mostrar</label>
         </div>
-        <div class="d-flex gap-2">
-          <button class="btn btn-sm btn-outline-secondary" id="btnObPrev" onclick="obNav(-1)" style="display:none">← Anterior</button>
-          <button class="btn btn-sm btn-primary" id="btnObNext" onclick="obNav(1)">Siguiente →</button>
-          <button class="btn btn-sm btn-success" id="btnObFin" onclick="cerrarOnboarding()" style="display:none">¡Entendido! ✓</button>
+        <div class="d-flex gap-2 flex-shrink-0" style="align-items:center">
+          <button class="btn btn-sm btn-outline-secondary" id="btnObPrev" onclick="obNav(-1)" style="visibility:hidden;min-width:94px">← Anterior</button>
+          <span id="obStepLbl" style="font-size:.78rem;color:#6B778C;min-width:36px;text-align:center">1/10</span>
+          <button class="btn btn-sm btn-primary" id="btnObNext" onclick="obNav(1)" style="min-width:94px">Siguiente →</button>
+          <button class="btn btn-sm btn-success" id="btnObFin" onclick="cerrarOnboarding()" style="visibility:hidden;position:absolute;pointer-events:none;min-width:94px">¡Listo! ✓</button>
         </div>
       </div>
     </div>
@@ -1415,18 +1439,31 @@ function copiarTexto(el,txt){
 <style>
 .ob-dot{width:8px;height:8px;border-radius:50%;background:#DFE1E6;border:none;padding:0;cursor:pointer;transition:background .2s}
 .ob-dot-active{background:#0052CC;width:20px;border-radius:4px}
+#onboardCarousel .carousel-item{display:block!important;position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;transition:opacity .25s ease;pointer-events:none}
+#onboardCarousel .carousel-item.active{opacity:1;position:relative;pointer-events:auto}
 </style>
 <script>
 var _obStep=0,_obTotal=10;
 function goStep(n){
   _obStep=n;
-  var c=document.getElementById('onboardCarousel');
-  bootstrap.Carousel.getInstance(c)||new bootstrap.Carousel(c,{ride:false,wrap:false});
-  bootstrap.Carousel.getInstance(c).to(n);
+  /* Manual slide — override Bootstrap's transform with opacity fade */
+  var items=document.querySelectorAll('#onboardCarousel .carousel-item');
+  items.forEach(function(el,i){
+    el.classList.toggle('active',i===n);
+  });
   document.querySelectorAll('.ob-dot').forEach(function(d,i){d.className='ob-dot'+(i===n?' ob-dot-active':'');});
-  document.getElementById('btnObPrev').style.display=n>0?'':'none';
-  document.getElementById('btnObNext').style.display=n<_obTotal-1?'':'none';
-  document.getElementById('btnObFin').style.display=n===_obTotal-1?'':'none';
+  document.getElementById('btnObPrev').style.visibility=n>0?'visible':'hidden';
+  var isLast=n===_obTotal-1;
+  var btnNext=document.getElementById('btnObNext');
+  var btnFin=document.getElementById('btnObFin');
+  if(isLast){
+    btnNext.style.visibility='hidden'; btnNext.style.position='absolute'; btnNext.style.pointerEvents='none';
+    btnFin.style.visibility='visible'; btnFin.style.position=''; btnFin.style.pointerEvents='';
+  } else {
+    btnNext.style.visibility='visible'; btnNext.style.position=''; btnNext.style.pointerEvents='';
+    btnFin.style.visibility='hidden'; btnFin.style.position='absolute'; btnFin.style.pointerEvents='none';
+  }
+  document.getElementById('obStepLbl').textContent=(n+1)+'/'+_obTotal;
 }
 function obNav(dir){goStep(Math.min(Math.max(_obStep+dir,0),_obTotal-1));}
 function cerrarOnboarding(){
@@ -1435,14 +1472,15 @@ function cerrarOnboarding(){
   }
   bootstrap.Modal.getInstance(document.getElementById('modalOnboarding')).hide();
 }
-document.getElementById('onboardCarousel').addEventListener('slid.bs.carousel',function(e){goStep(e.to);});
+/* Initialize step 0 on page load */
+document.addEventListener('DOMContentLoaded',function(){ goStep(0); });
 </script>
 {% if session.pop('show_onboarding_once', False) and not current_user.onboarding_dismissed %}
 <script>
 document.addEventListener('DOMContentLoaded',function(){
   setTimeout(function(){
     var m=document.getElementById('modalOnboarding');
-    if(m){new bootstrap.Modal(m).show(); goStep(0);}
+    if(m){new bootstrap.Modal(m,{backdrop:true,keyboard:true}).show();}
   },800);
 });
 </script>
@@ -10638,10 +10676,16 @@ def init_db():
             db.session.add(ConfigEmpresa(nombre='Evore', email='contacto@evore.us', sitio_web='evore.us'))
             db.session.commit()
 
+@app.route('/health')
+def health_check():
+    """Railway healthcheck — must respond fast without DB queries."""
+    return 'OK', 200
+
 try:
     init_db()
 except Exception as _e:
     print(f'init_db() error (no crítico): {_e}')
 
 if __name__ == '__main__':
-    app.run(debug=os.environ.get('FLASK_DEBUG', '0') == '1')
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)),
+            debug=os.environ.get('FLASK_DEBUG', '0') == '1')
