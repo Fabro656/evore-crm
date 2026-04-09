@@ -1254,27 +1254,20 @@ document.addEventListener('DOMContentLoaded',function(){
   }
 
   function _escHtml(t){
-    return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/
-/g,'<br>');
+    return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
   }
   function _mdToHtml(t){
-    // Simple markdown: bold, italic, code, lists, line breaks
     return t
       .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
       .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
       .replace(/\*(.*?)\*/g,'<em>$1</em>')
       .replace(/`(.*?)`/g,'<code style="background:var(--surface2);padding:1px 4px;border-radius:3px;font-size:.82em">$1</code>')
       .replace(/^[-•]\s+(.*)/gm,'<li>$1</li>')
-      .replace(/(<li>.*<\/li>)/s,'<ul style="margin:.3rem 0 0 1rem;padding:0">$1</ul>')
-      .replace(/✅[^
-]*/g,'<span style="color:var(--green)">$&</span>')
-      .replace(/⚠️[^
-]*/g,'<span style="color:var(--orange)">$&</span>')
-      .replace(/
-
-/g,'</p><p style="margin:.4rem 0 0 0">')
-      .replace(/
-/g,'<br>');
+      .replace(/(<li>[\s\S]*<\/li>)/,'<ul style="margin:.3rem 0 0 1rem;padding:0">$1</ul>')
+      .replace(/\u2705[^\n]*/g,'<span style="color:var(--green)">$&</span>')
+      .replace(/\u26a0\ufe0f[^\n]*/g,'<span style="color:var(--orange)">$&</span>')
+      .replace(/\n\n/g,'</p><p style="margin:.4rem 0 0 0">')
+      .replace(/\n/g,'<br>');
   }
 })();
 {% endraw %}</script>
