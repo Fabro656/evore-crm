@@ -1066,4 +1066,216 @@ document.addEventListener('DOMContentLoaded',function(){
   if(lbl&&l==='horizon') lbl.textContent='Default';
 })();
 </script>
+
+<!-- ══════════════════════════════════════════════════
+     EVORE AI ASSISTANT PANEL
+     ══════════════════════════════════════════════════ -->
+<div id="ai-panel" style="display:none;position:fixed;bottom:24px;right:88px;width:380px;height:540px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.18);z-index:2000;display:none;flex-direction:column;overflow:hidden;transition:all .25s cubic-bezier(.4,0,.2,1)" id="aiPanel">
+  <!-- Header -->
+  <div style="background:var(--sb);padding:.85rem 1.1rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:.6rem">
+      <div style="width:30px;height:30px;background:rgba(91,175,250,.2);border-radius:8px;display:flex;align-items:center;justify-content:center">
+        <i class="bi bi-stars" style="color:#5BAFFA;font-size:.95rem"></i>
+      </div>
+      <div>
+        <div style="color:#fff;font-weight:700;font-size:.88rem;line-height:1">Asistente IA</div>
+        <div id="aiProviderLabel" style="color:rgba(255,255,255,.45);font-size:.67rem">Verificando...</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:.4rem;align-items:center">
+      <button onclick="aiClearChat()" title="Nueva conversación" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;padding:.3rem;border-radius:4px;font-size:.8rem;transition:color .15s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.5)'">
+        <i class="bi bi-arrow-counterclockwise"></i>
+      </button>
+      <button onclick="aiToggle()" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;padding:.3rem;border-radius:4px;font-size:1rem;transition:color .15s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.5)'">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  </div>
+  <!-- Messages -->
+  <div id="aiMessages" style="flex:1;overflow-y:auto;padding:.85rem 1rem;display:flex;flex-direction:column;gap:.75rem;scroll-behavior:smooth">
+    <!-- Welcome message -->
+    <div class="ai-msg ai-msg-bot">
+      <div class="ai-bubble-bot">
+        👋 Hola <strong>{% if current_user.is_authenticated %}{{ current_user.nombre.split()[0] }}{% endif %}</strong>, soy tu asistente de Evore CRM.<br><br>
+        Puedo ayudarte a:
+        <ul style="margin:.4rem 0 0 1rem;padding:0;font-size:.82rem">
+          <li>Responder preguntas sobre tus datos</li>
+          <li>Redactar correos y mensajes</li>
+          <li>Resumir actividad reciente</li>
+          <li>Crear tareas, notas y eventos</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <!-- Quick prompts -->
+  <div id="aiQuickPrompts" style="padding:.5rem .85rem;border-top:1px solid var(--border);display:flex;gap:.4rem;flex-wrap:wrap;flex-shrink:0">
+    <button class="ai-quick-btn" onclick="aiQuickPrompt(this)">¿Qué tengo pendiente hoy?</button>
+    <button class="ai-quick-btn" onclick="aiQuickPrompt(this)">Redactar seguimiento cliente</button>
+    <button class="ai-quick-btn" onclick="aiQuickPrompt(this)">Resumir ventas del mes</button>
+  </div>
+  <!-- Input -->
+  <div style="padding:.65rem .85rem;border-top:1px solid var(--border);display:flex;gap:.5rem;flex-shrink:0;background:var(--surface)">
+    <textarea id="aiInput" rows="1" placeholder="Escribe tu pregunta..." style="flex:1;border:1.5px solid var(--border);border-radius:8px;padding:.45rem .7rem;font-size:.85rem;resize:none;background:var(--input-bg);color:var(--text);font-family:inherit;line-height:1.4;max-height:100px;overflow-y:auto;transition:border-color .15s" onkeydown="aiKeyDown(event)" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
+    <button id="aiSendBtn" onclick="aiSend()" style="background:var(--ac);border:none;color:#fff;border-radius:8px;padding:.45rem .75rem;cursor:pointer;flex-shrink:0;transition:background .15s;display:flex;align-items:center;justify-content:center" onmouseover="this.style.background='var(--ac2)'" onmouseout="this.style.background='var(--ac)'">
+      <i class="bi bi-send-fill" style="font-size:.9rem"></i>
+    </button>
+  </div>
+</div>
+
+<!-- AI Floating Button -->
+<button id="aiFab" onclick="aiToggle()" title="Asistente IA" style="position:fixed;bottom:24px;right:88px;z-index:1999;width:50px;height:50px;border-radius:50%;background:var(--sb);color:#fff;border:none;box-shadow:0 4px 16px rgba(0,0,0,.25);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.25rem;transition:all .2s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+  <i class="bi bi-stars"></i>
+</button>
+
+<style>{% raw %}
+/* AI Panel styles */
+#aiPanel{display:none}
+#aiPanel.ai-open{display:flex!important}
+.ai-msg{display:flex;flex-direction:column;gap:.2rem}
+.ai-bubble-bot{background:var(--surface2);color:var(--text);border-radius:4px 14px 14px 14px;padding:.6rem .85rem;font-size:.84rem;line-height:1.5;border:1px solid var(--border);max-width:92%}
+.ai-bubble-bot ul{margin:.3rem 0 0 1rem;font-size:.82rem}
+.ai-bubble-user{background:var(--ac);color:#fff;border-radius:14px 4px 14px 14px;padding:.6rem .85rem;font-size:.84rem;line-height:1.5;max-width:88%;margin-left:auto}
+.ai-meta{font-size:.68rem;color:var(--text2);margin-top:.15rem}
+.ai-meta-user{text-align:right}
+.ai-quick-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);border-radius:12px;padding:3px 10px;font-size:.74rem;cursor:pointer;white-space:nowrap;transition:all .15s}
+.ai-quick-btn:hover{border-color:var(--ac);color:var(--ac);background:rgba(var(--ac-rgb),.06)}
+.ai-typing{display:flex;align-items:center;gap:3px;padding:.5rem .7rem}
+.ai-typing span{width:7px;height:7px;background:var(--text2);border-radius:50%;animation:aiDot 1.2s infinite}
+.ai-typing span:nth-child(2){animation-delay:.2s}
+.ai-typing span:nth-child(3){animation-delay:.4s}
+@keyframes aiDot{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-5px);opacity:1}}
+{% endraw %}</style>
+
+<script>{% raw %}
+(function(){
+  var _history = [];
+  var _open = false;
+
+  // Check AI status on load
+  fetch('/api/ai/status').then(r=>r.json()).then(d=>{
+    var lbl = document.getElementById('aiProviderLabel');
+    if(!lbl) return;
+    if(d.anthropic) lbl.textContent = 'Claude (Anthropic) · activo';
+    else if(d.openai) lbl.textContent = 'GPT-4o (OpenAI) · activo';
+    else lbl.textContent = 'Sin clave API configurada';
+  }).catch(()=>{});
+
+  window.aiToggle = function(){
+    var panel = document.getElementById('aiPanel');
+    var fab   = document.getElementById('aiFab');
+    _open = !_open;
+    if(_open){
+      panel.classList.add('ai-open');
+      fab.innerHTML='<i class="bi bi-x-lg" style="font-size:1.1rem"></i>';
+      setTimeout(()=>{ var inp=document.getElementById('aiInput'); if(inp) inp.focus(); }, 200);
+    } else {
+      panel.classList.remove('ai-open');
+      fab.innerHTML='<i class="bi bi-stars" style="font-size:1.25rem"></i>';
+    }
+  };
+
+  window.aiClearChat = function(){
+    _history = [];
+    var msgs = document.getElementById('aiMessages');
+    msgs.innerHTML = '<div class="ai-msg ai-msg-bot"><div class="ai-bubble-bot">✨ Conversación reiniciada. ¿En qué te ayudo?</div></div>';
+  };
+
+  window.aiQuickPrompt = function(btn){
+    var inp = document.getElementById('aiInput');
+    if(inp){ inp.value = btn.textContent.trim(); inp.focus(); aiSend(); }
+  };
+
+  window.aiKeyDown = function(e){
+    if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); aiSend(); }
+  };
+
+  window.aiSend = function(){
+    var inp  = document.getElementById('aiInput');
+    var msgs = document.getElementById('aiMessages');
+    var btn  = document.getElementById('aiSendBtn');
+    var text = (inp.value||'').trim();
+    if(!text) return;
+
+    // Add user message
+    _appendMsg(msgs, 'user', text);
+    inp.value = ''; inp.style.height = 'auto';
+    _history.push({role:'user', content:text});
+
+    // Typing indicator
+    var typing = document.createElement('div');
+    typing.className='ai-msg';
+    typing.innerHTML='<div class="ai-bubble-bot ai-typing"><span></span><span></span><span></span></div>';
+    msgs.appendChild(typing);
+    msgs.scrollTop = msgs.scrollHeight;
+    btn.disabled = true;
+    btn.style.opacity='.5';
+
+    // Get current page context
+    var ctx = window.location.pathname.replace('/','') || 'inicio';
+
+    fetch('/api/ai/chat', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({message:text, history:_history.slice(-10), context:ctx})
+    })
+    .then(r=>r.json())
+    .then(d=>{
+      typing.remove();
+      if(d.error){
+        _appendMsg(msgs,'bot','⚠️ '+d.error);
+      } else {
+        _appendMsg(msgs,'bot',d.reply);
+        _history.push({role:'assistant', content:d.reply});
+      }
+    })
+    .catch(()=>{
+      typing.remove();
+      _appendMsg(msgs,'bot','⚠️ Error de conexión. Intenta de nuevo.');
+    })
+    .finally(()=>{ btn.disabled=false; btn.style.opacity='1'; });
+  };
+
+  function _appendMsg(container, role, text){
+    var el = document.createElement('div');
+    el.className = 'ai-msg';
+    var now = new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
+    if(role==='user'){
+      el.innerHTML = '<div class="ai-bubble-user">'+_escHtml(text)+'</div>'
+        +'<div class="ai-meta ai-meta-user">Tú · '+now+'</div>';
+    } else {
+      el.innerHTML = '<div class="ai-bubble-bot">'+_mdToHtml(text)+'</div>'
+        +'<div class="ai-meta">IA · '+now+'</div>';
+    }
+    container.appendChild(el);
+    container.scrollTop = container.scrollHeight;
+    // Hide quick prompts after first real exchange
+    if(_history.length>1){ var qp=document.getElementById('aiQuickPrompts'); if(qp) qp.style.display='none'; }
+  }
+
+  function _escHtml(t){
+    return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/
+/g,'<br>');
+  }
+  function _mdToHtml(t){
+    // Simple markdown: bold, italic, code, lists, line breaks
+    return t
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g,'<em>$1</em>')
+      .replace(/`(.*?)`/g,'<code style="background:var(--surface2);padding:1px 4px;border-radius:3px;font-size:.82em">$1</code>')
+      .replace(/^[-•]\s+(.*)/gm,'<li>$1</li>')
+      .replace(/(<li>.*<\/li>)/s,'<ul style="margin:.3rem 0 0 1rem;padding:0">$1</ul>')
+      .replace(/✅[^
+]*/g,'<span style="color:var(--green)">$&</span>')
+      .replace(/⚠️[^
+]*/g,'<span style="color:var(--orange)">$&</span>')
+      .replace(/
+
+/g,'</p><p style="margin:.4rem 0 0 0">')
+      .replace(/
+/g,'<br>');
+  }
+})();
+{% endraw %}</script>
+
 </body></html>

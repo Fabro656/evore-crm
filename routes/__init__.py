@@ -12,6 +12,7 @@ from routes import nomina
 from routes import admin
 from routes import portal
 from routes import api
+from routes import ai
 
 def register_all(app):
     auth.register(app)
@@ -27,3 +28,4 @@ def register_all(app):
     admin.register(app)
     portal.register(app)
     api.register(app)
+    ai.register(app)
