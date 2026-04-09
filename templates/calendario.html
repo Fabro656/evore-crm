@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% block title %}Calendario{% endblock %}{% block page_title %}Calendario{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('calendario') }}?mes={{ prev_mes }}&anio={{ prev_anio }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i></a>
+<span class="fw-semibold mx-2" style="min-width:160px;display:inline-block;text-align:center">{{ mes_nombre }} {{ anio }}</span>
+<a href="{{ url_for('calendario') }}?mes={{ next_mes }}&anio={{ next_anio }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-right"></i></a>
+<a href="{{ url_for('calendario') }}" class="btn btn-outline-secondary btn-sm ms-1">Hoy</a>
+<button class="btn btn-primary btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#modalEvento"><i class="bi bi-plus-lg me-1"></i>Nuevo evento</button>
+{% endblock %}
+{% block content %}
+<div class="row g-2 mb-3">
+  <div class="col-auto"><span class="cal-ev ev-tarea px-2 py-1 rounded" style="font-size:.75rem;display:inline-block">● Tarea</span></div>
+  <div class="col-auto"><span class="cal-ev ev-venta px-2 py-1 rounded" style="font-size:.75rem;display:inline-block">● Venta / Entrega</span></div>
+  <div class="col-auto"><span class="cal-ev ev-evento px-2 py-1 rounded" style="font-size:.75rem;display:inline-block">● Evento / Cita</span></div>
+  <div class="col-auto"><span class="cal-ev ev-nota px-2 py-1 rounded" style="font-size:.75rem;display:inline-block">● Revisión nota</span></div>
+  <div class="col-auto"><span class="cal-ev ev-caducidad px-2 py-1 rounded" style="font-size:.75rem;display:inline-block">● Caducidad producto</span></div>
+</div>
+<div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)">
+<table style="width:100%;border-collapse:collapse;table-layout:fixed">
+<thead><tr>
+  {% for dia in ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'] %}
+  <th style="padding:.6rem;text-align:center;font-size:.8rem;color:#8898aa;background:#f8f9fe;font-weight:600;border:1px solid #f0f2ff">{{ dia }}</th>
+  {% endfor %}
+</tr></thead>
+<tbody>
+{% for week in month_days %}
+<tr>
+  {% for day in week %}
+    {% if day == 0 %}
+    <td class="cal-day other-month" style="border:1px solid #f0f2ff;height:80px;vertical-align:top;padding:4px"></td>
+    {% else %}
+      {% set dk = '%04d-%02d-%02d'|format(anio, mes, day) %}
+      {% set evs = eventos.get(dk, []) %}
+      {% set is_today = (dk == today_str) %}
+      <td class="cal-day{% if is_today %} today{% endif %}"
+          style="border:1px solid #f0f2ff;height:80px;vertical-align:top;padding:4px;cursor:pointer{% if is_today %};background:#f5f7ff{% endif %}"
+          onclick="document.getElementById('evFecha').value='{{ dk }}';new bootstrap.Modal(document.getElementById('modalEvento')).show()">
+        {% if is_today %}
+        <div style="margin-bottom:3px">
+          <span style="background:#5e72e4;color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700">{{ day }}</span>
+        </div>
+        {% else %}
+        <div style="font-size:.82rem;font-weight:500;margin-bottom:3px;color:#1a1f36">{{ day }}</div>
+        {% endif %}
+        {% for ev in evs[:3] %}
+          {% set ev_cls = {'tarea':'ev-tarea','venta':'ev-venta','evento':'ev-evento','nota':'ev-nota','caducidad':'ev-caducidad'}.get(ev.t, 'ev-evento') %}
+          <div class="cal-ev {{ ev_cls }}"
+               data-titulo="{{ ev.n|e }}"
+               data-desc="{{ (ev.d or '')|e }}"
+               data-tipo="{{ ev.t }}"
+               data-url="{{ (ev.url or '')|e }}"
+               onclick="verEvento(event,this)"
+               style="font-size:.68rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%;cursor:pointer">{{ ev.n|truncate(24,true,'…') }}</div>
+        {% endfor %}
+        {% if evs|length > 3 %}
+          <div style="font-size:.65rem;color:#8898aa">+{{ evs|length - 3 }} más</div>
+        {% endif %}
+      </td>
+    {% endif %}
+  {% endfor %}
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+<!-- Modal nuevo evento -->
+<div class="modal fade" id="modalEvento" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-calendar-plus me-2"></i>Nuevo Evento</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <form method="POST" action="{{ url_for('evento_nuevo') }}">
+    <div class="modal-body"><div class="row g-3">
+      <div class="col-12"><label class="form-label">Título *</label>
+        <input type="text" name="titulo" class="form-control" id="evTitulo" required></div>
+      <div class="col-md-6"><label class="form-label">Tipo</label>
+        <select name="tipo" class="form-select">
+          <option value="recordatorio">Recordatorio</option>
+          <option value="cita">Cita</option>
+          <option value="reunion">Reunión</option>
+        </select></div>
+      <div class="col-md-6"><label class="form-label">Fecha *</label>
+        <input type="date" name="fecha" class="form-control" id="evFecha" required></div>
+      <div class="col-md-6"><label class="form-label">Hora inicio</label>
+        <input type="time" name="hora_inicio" class="form-control"></div>
+      <div class="col-md-6"><label class="form-label">Hora fin</label>
+        <input type="time" name="hora_fin" class="form-control"></div>
+      <div class="col-12"><label class="form-label">Descripción</label>
+        <textarea name="descripcion" class="form-control" rows="3"></textarea></div>
+    </div></div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+      <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Guardar evento</button>
+    </div></form>
+  </div></div>
+</div>
+<!-- Modal ver evento/tarea -->
+<div class="modal fade" id="modalVerTarea" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title" id="modalTareaTitle"></h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <p id="modalTareaDesc" class="text-muted mb-0" style="font-size:.88rem;line-height:1.6"></p>
+    </div>
+    <div class="modal-footer" id="modalTareaFooter" style="display:none">
+      <a id="modalTareaLink" href="#" class="btn btn-primary btn-sm" data-bs-dismiss="modal">
+        <i class="bi bi-arrow-right-circle me-1"></i>Ver detalle
+      </a>
+    </div>
+  </div></div>
+</div>
+{% block scripts %}
+<script>
+function verEvento(e,el){
+  e.stopPropagation();
+  var tipo = el.dataset.tipo || 'evento';
+  var iconMap = {tarea:'bi-check2-square',evento:'bi-calendar-event',venta:'bi-bag-fill',nota:'bi-sticky',caducidad:'bi-exclamation-triangle'};
+  var colorMap = {tarea:'#4B5563',evento:'#374151',venta:'#374151',nota:'#4B5563',caducidad:'#6B7280'};
+  var ic = iconMap[tipo]||'bi-calendar-event';
+  var col = colorMap[tipo]||'#374151';
+  document.getElementById('modalTareaTitle').innerHTML = '<i class="bi '+ic+' me-2" style="color:'+col+'"></i>'+(el.dataset.titulo||'Sin título');
+  var desc = el.dataset.desc||'';
+  document.getElementById('modalTareaDesc').textContent = desc || 'Sin información adicional';
+  var url = el.dataset.url||'';
+  var footer = document.getElementById('modalTareaFooter');
+  var link = document.getElementById('modalTareaLink');
+  if(url){ footer.style.display=''; link.href=url; }
+  else { footer.style.display='none'; }
+  new bootstrap.Modal(document.getElementById('modalVerTarea')).show();
+}
+function verTarea(e,el){ verEvento(e,el); }
+</script>
+{% endblock %}{% endblock %}

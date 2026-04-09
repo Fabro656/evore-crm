@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('legal_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
+{% block content %}<div class="fc" style="max-width:900px"><form method="POST">
+<div class="row g-3">
+  <div class="col-md-4"><label class="form-label">Tipo de documento *</label>
+    <select name="tipo" class="form-select" required>
+      {% for t,l in [('permiso_sanitario','Permiso Sanitario'),('registro_invima','Registro INVIMA'),('nso','NSO'),('contrato','Contrato'),('licencia','Licencia'),('certificado','Certificado'),('otro','Otro')] %}
+      <option value="{{ t }}" {% if obj and obj.tipo==t %}selected{% endif %}>{{ l }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-8"><label class="form-label">Título *</label>
+    <input type="text" name="titulo" class="form-control" value="{{ obj.titulo if obj else '' }}" required></div>
+  <div class="col-md-4"><label class="form-label">Número del documento</label>
+    <input type="text" name="numero" class="form-control" placeholder="Número de resolución, contrato..." value="{{ obj.numero if obj else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Entidad emisora</label>
+    <input type="text" name="entidad" class="form-control" placeholder="INVIMA, Secretaría, etc." value="{{ obj.entidad if obj else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Estado</label>
+    <select name="estado" class="form-select">
+      {% for est,lbl in [('vigente','Vigente'),('en_tramite','En trámite'),('vencido','Vencido'),('suspendido','Suspendido')] %}
+      <option value="{{ est }}" {% if obj and obj.estado==est %}selected{% elif not obj and est=='vigente' %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-4"><label class="form-label">Fecha de emisión</label>
+    <input type="date" name="fecha_emision" class="form-control" value="{{ obj.fecha_emision.strftime('%Y-%m-%d') if obj and obj.fecha_emision else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Fecha de vencimiento</label>
+    <input type="date" name="fecha_vencimiento" class="form-control" value="{{ obj.fecha_vencimiento.strftime('%Y-%m-%d') if obj and obj.fecha_vencimiento else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Recordatorio (días antes de vencer)</label>
+    <input type="number" name="recordatorio_dias" class="form-control" min="1" max="365" value="{{ obj.recordatorio_dias if obj else '30' }}"></div>
+  <div class="col-12"><label class="form-label">Descripción</label>
+    <textarea name="descripcion" class="form-control" rows="2">{{ obj.descripcion if obj else '' }}</textarea></div>
+  <div class="col-12"><label class="form-label">URL del archivo (Google Drive, Dropbox, etc.)</label>
+    <input type="url" name="archivo_url" class="form-control" placeholder="https://..." value="{{ obj.archivo_url if obj else '' }}"></div>
+  <div class="col-12"><label class="form-label">Notas</label>
+    <textarea name="notas" class="form-control" rows="2">{{ obj.notas if obj else '' }}</textarea></div>
+</div>
+<div class="d-flex gap-2 mt-4">
+  <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear Documento' }}</button>
+  <a href="{{ url_for('legal_index') }}" class="btn btn-outline-secondary">Cancelar</a>
+</div></form></div>{% endblock %}"""
+
+# ── CONTABLE TEMPLATES ─────────────────────────────────────────

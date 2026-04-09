@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}Gastos Operativos{% endblock %}{% block page_title %}Gastos Operativos{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('gasto_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Agregar gasto</a>{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="sc"><div class="sv">$ {{ '{:,.0f}'.format(total_general).replace(',','.') }}</div><div class="sl">Total acumulado COP</div></div></div>
+  <div class="col-md-3"><div class="sc"><div class="sv">$ {{ '{:,.0f}'.format(total_mes).replace(',','.') }}</div><div class="sl">Este mes</div></div></div>
+  <div class="col-md-3"><div class="sc"><div class="sv">{{ total_registros }}</div><div class="sl">Registros totales</div></div></div>
+</div>
+{% if plantillas %}
+<div class="tc mb-4">
+  <div class="ch"><i class="bi bi-arrow-repeat me-2"></i>Gastos recurrentes mensuales — pendientes de registrar</div>
+  <div class="p-3">
+    <div class="row g-2">
+      {% for p in plantillas %}
+      <div class="col-md-4">
+        <div class="border rounded p-3 d-flex align-items-center justify-content-between" style="background:#f8f9fe">
+          <div>
+            <div class="fw-semibold" style="color:#1a1f36">{{ p.tipo_custom if p.tipo=='Otro' and p.tipo_custom else p.tipo }}</div>
+            <small class="text-muted">$ {{ '{:,.0f}'.format(p.monto).replace(',','.') }} · mensual</small>
+          </div>
+          <form method="POST" action="{{ url_for('gasto_plantilla_usar', id=p.id) }}">
+            <button class="btn btn-sm btn-primary" title="Registrar gasto de este mes"><i class="bi bi-plus-lg"></i> Registrar</button>
+          </form>
+        </div>
+      </div>{% endfor %}
+    </div>
+  </div>
+</div>{% endif %}
+<div class="tc mb-3"><div class="p-3"><form method="GET" class="row g-2 align-items-end">
+  <div class="col-sm-3"><select name="tipo" class="form-select form-select-sm">
+    <option value="">Todos los tipos</option>
+    {% for t in tipos %}<option value="{{ t }}" {% if tipo_f==t %}selected{% endif %}>{{ t }}</option>{% endfor %}
+  </select></div>
+  <div class="col-sm-2"><input type="date" name="desde" class="form-control form-control-sm" value="{{ desde_f }}"></div>
+  <div class="col-sm-2"><input type="date" name="hasta" class="form-control form-control-sm" value="{{ hasta_f }}"></div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
+    <a href="{{ url_for('gastos') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
+  </div>
+</form></div></div>
+<div class="tc"><div class="ch"><i class="bi bi-receipt me-2"></i>{{ items|length }} gasto(s)</div>
+{% if items %}<div class="table-responsive"><table class="table">
+  <thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción</th><th>Monto COP</th><th>Recurrencia</th><th></th></tr></thead>
+  <tbody>{% for g in items %}{% if not g.es_plantilla %}<tr>
+    <td><small>{{ g.fecha.strftime('%d/%m/%Y') }}</small></td>
+    <td>
+      <span class="badge bg-secondary">{{ g.tipo_custom if g.tipo=='Otro' and g.tipo_custom else g.tipo }}</span>
+    </td>
+    <td>{{ g.descripcion or '—' }}</td>
+    <td class="fw-semibold">$ {{ '{:,.0f}'.format(g.monto).replace(',','.') }}</td>
+    <td><span class="b b-{{ g.recurrencia or 'unico' }}">{{ 'Mensual' if g.recurrencia=='mensual' else 'Único' }}</span></td>
+    <td><div class="d-flex gap-1">
+      <a href="{{ url_for('gasto_editar', id=g.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+      <form method="POST" action="{{ url_for('gasto_eliminar', id=g.id) }}" onsubmit="return confirm('¿Eliminar?')">
+        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+    </div></td>
+  </tr>{% endif %}{% endfor %}</tbody>
+</table></div>
+{% else %}<div class="text-center text-muted py-5"><i class="bi bi-receipt" style="font-size:3rem"></i>
+  <p class="mt-3">Sin gastos.</p><a href="{{ url_for('gasto_nuevo') }}" class="btn btn-primary">Agregar primero</a></div>
+{% endif %}</div>{% endblock %}

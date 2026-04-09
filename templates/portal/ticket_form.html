@@ -1,0 +1,29 @@
+{% extends 'portal_base.html' %}
+{% block title %}Nuevo Ticket{% endblock %}
+{% block content %}
+<h5 style="font-weight:700;margin-bottom:1.5rem">Enviar Mensaje / Ticket</h5>
+<div class="fc">
+  <p style="color:#42526E;font-size:.9rem">Envía un mensaje o ticket directamente a tu sales manager. Se creará una tarea para que te dé seguimiento.</p>
+  <form method="POST">
+    <div class="mb-3">
+      <label class="form-label">Asunto <span class="req">*</span></label>
+      <input type="text" name="asunto" class="form-control" required placeholder="¿En qué podemos ayudarte?">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Mensaje <span class="req">*</span></label>
+      <textarea name="mensaje" class="form-control" rows="5" required placeholder="Describe tu consulta, problema o requerimiento..."></textarea>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Prioridad</label>
+      <select name="prioridad" class="form-select">
+        <option value="baja">Baja — cuando puedas</option>
+        <option value="media" selected>Media — en los próximos días</option>
+        <option value="alta">Alta — es urgente</option>
+      </select>
+    </div>
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-primary"><i class="bi bi-send me-1"></i>Enviar ticket</button>
+      <a href="{{ url_for('portal_cliente') }}" class="btn btn-outline-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>{% endblock %}

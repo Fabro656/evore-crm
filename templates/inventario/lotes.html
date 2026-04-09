@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Lotes de Inventario{% endblock %}{% block page_title %}Lotes de Inventario{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('lote_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo Lote</a>
+{% endblock %}
+{% block content %}
+<div class="fc">
+<table class="table table-hover align-middle">
+  <thead><tr>
+    <th>Producto</th><th>Lote</th><th>NSO</th>
+    <th>Fecha Prod.</th><th>Vencimiento</th>
+    <th class="text-end">Producidas</th><th class="text-end">Restantes</th>
+    <th>Notas</th><th></th>
+  </tr></thead>
+  <tbody>
+  {% for l in lotes %}
+  <tr>
+    <td>{{ l.producto.nombre }}</td>
+    <td><span class="badge bg-secondary">{{ l.numero_lote }}</span></td>
+    <td>{{ l.nso or '—' }}</td>
+    <td>{{ l.fecha_produccion.strftime('%d/%m/%Y') if l.fecha_produccion else '—' }}</td>
+    <td>
+      {% if l.fecha_vencimiento %}
+        {% set hoy = now.date() %}
+        {% set dias = (l.fecha_vencimiento - hoy).days %}
+        <span class="badge {% if dias < 0 %}bg-danger{% elif dias <= 30 %}bg-warning text-dark{% else %}bg-success{% endif %}">
+          {{ l.fecha_vencimiento.strftime('%d/%m/%Y') }}
+          {% if dias < 0 %} (vencido){% elif dias <= 30 %} ({{ dias }}d){% endif %}
+        </span>
+      {% else %}—{% endif %}
+    </td>
+    <td class="text-end">{{ l.unidades_producidas }}</td>
+    <td class="text-end">{{ l.unidades_restantes }}</td>
+    <td><small class="text-muted">{{ l.notas or '' }}</small></td>
+    <td>
+      <a href="{{ url_for('lote_editar', id=l.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+      <form method="POST" action="{{ url_for('lote_eliminar', id=l.id) }}" class="d-inline"
+            onsubmit="return confirm('¿Eliminar lote?')">
+        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+      </form>
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="9" class="text-center text-muted py-4">No hay lotes registrados.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>{% endblock %}

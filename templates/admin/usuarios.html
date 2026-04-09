@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}Usuarios{% endblock %}{% block page_title %}Gestión de Usuarios{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('admin_usuario_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo Usuario</a>{% endblock %}
+{% block content %}
+<div class="tc mb-3">
+  <div class="ch"><i class="bi bi-shield-person-fill me-2"></i>{{ items|length }} usuario(s)
+    <small class="text-muted fw-normal ms-2">— Click en <i class="bi bi-eye"></i> para ver la app desde la perspectiva de ese usuario</small>
+  </div>
+  <div class="table-responsive">
+  <table class="table"><thead><tr>
+    <th>Nombre</th><th>Email</th><th>Rol</th>
+    <th class="hide-mobile">Empresa vinculada</th>
+    <th>Estado</th><th class="hide-mobile">Alta</th><th></th>
+  </tr></thead>
+  <tbody>{% for u in items %}<tr>
+    <td><div class="d-flex align-items-center gap-2">
+      <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
+           style="width:30px;height:30px;flex-shrink:0;font-size:.8rem;
+           background:{% if u.rol=='admin' %}#DE350B{% elif u.rol=='cliente' %}#00875A{% elif u.rol=='proveedor' %}#5243AA{% elif u.rol=='sales_manager' %}#FF8B00{% else %}#0052CC{% endif %}">
+        {{ u.nombre[0].upper() }}</div>
+      <div>
+        <div class="fw-semibold" style="color:#1a1f36;font-size:.88rem">{{ u.nombre }}</div>
+        <div class="text-muted" style="font-size:.75rem">{{ u.email }}</div>
+      </div>
+    </div></td>
+    <td class="hide-mobile"><small class="text-muted">{{ u.email }}</small></td>
+    <td>
+      <span class="b b-{% if u.rol=='admin' %}alta{% elif u.rol=='cliente' %}activo{% elif u.rol=='proveedor' %}reunion{% elif u.rol=='sales_manager' %}negociacion{% else %}borrador{% endif %}">
+        {{ {'admin':'Admin','cliente':'Cliente','proveedor':'Proveedor','sales_manager':'Sales Mgr','vendedor':'Vendedor','produccion':'Producción','contador':'Contador'}.get(u.rol, u.rol) }}
+      </span>
+    </td>
+    <td class="hide-mobile">
+      {% if u.rol=='cliente' and u.cliente_id %}
+        {% set cli=None %}{% for c in clientes_all %}{% if c.id==u.cliente_id %}{% set cli=c %}{% endif %}{% endfor %}
+        <small><i class="bi bi-building me-1 text-success"></i>{{ cli.empresa or cli.nombre if cli else '—' }}</small>
+      {% elif u.rol=='proveedor' and u.proveedor_id %}
+        {% set prov=None %}{% for p in proveedores_all %}{% if p.id==u.proveedor_id %}{% set prov=p %}{% endif %}{% endfor %}
+        <small><i class="bi bi-truck me-1 text-primary"></i>{{ prov.empresa or prov.nombre if prov else '—' }}</small>
+      {% else %}<span class="text-muted">—</span>{% endif %}
+    </td>
+    <td><span class="b b-{{ 'activo' if u.activo else 'inactivo' }}">{{ 'Activo' if u.activo else 'Inactivo' }}</span></td>
+    <td class="hide-mobile"><small class="text-muted">{{ u.creado_en.strftime('%d/%m/%Y') }}</small></td>
+    <td>
+      <div class="d-flex gap-1 flex-wrap">
+        <a href="{{ url_for('admin_usuario_editar', id=u.id) }}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
+        {% if u.id != current_user.id %}
+        <form method="POST" action="{{ url_for('admin_impersonar', id=u.id) }}" class="d-inline" title="Ver app como este usuario">
+          <button class="btn btn-sm btn-outline-primary" title="Ver como {{ u.nombre }}"><i class="bi bi-eye"></i></button></form>
+        <form method="POST" action="{{ url_for('admin_usuario_toggle', id=u.id) }}" class="d-inline">
+          <button class="btn btn-sm {{ 'btn-outline-warning' if u.activo else 'btn-outline-success' }}" title="{{ 'Desactivar' if u.activo else 'Activar' }}">
+            <i class="bi bi-{{ 'pause-circle' if u.activo else 'play-circle' }}"></i></button></form>
+        {% else %}<span class="text-muted small">(tú)</span>{% endif %}
+      </div>
+    </td>
+  </tr>{% endfor %}</tbody></table>
+  </div>
+</div>{% endblock %}

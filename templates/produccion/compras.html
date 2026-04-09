@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}Compras{% endblock %}{% block page_title %}Compras de Materia Prima{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('compra_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva compra</a>
+<a href="{{ url_for('produccion_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Producción</a>
+{% endblock %}
+{% block content %}
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="sc"><div class="sv">$ {{ '{:,.0f}'.format(total_general).replace(',','.') }}</div><div class="sl">Total acumulado</div></div></div>
+  <div class="col-md-3"><div class="sc"><div class="sv">$ {{ '{:,.0f}'.format(total_mes).replace(',','.') }}</div><div class="sl">Este mes</div></div></div>
+</div>
+<div class="tc"><div class="ch"><i class="bi bi-cart3 me-2"></i>{{ items|length }} compra(s)</div>
+{% if items %}<div class="table-responsive"><table class="table">
+  <thead><tr><th>Ítem</th><th>Proveedor</th><th>Fecha</th><th># Factura</th><th>Cto. Producto</th><th>Impuestos</th><th>Transporte</th><th>Total</th><th>Cant.</th><th>P. Unitario</th><th>Producto vinculado</th><th></th></tr></thead>
+  <tbody>{% for c in items %}<tr>
+    <td class="fw-semibold" style="color:#1a1f36">{{ c.nombre_item }}</td>
+    <td>{{ c.proveedor or '—' }}</td>
+    <td><small>{{ c.fecha.strftime('%d/%m/%Y') }}</small></td>
+    <td><small class="text-muted">{{ c.nro_factura or '—' }}</small></td>
+    <td>$ {{ '{:,.0f}'.format(c.costo_producto).replace(',','.') }}</td>
+    <td>$ {{ '{:,.0f}'.format(c.impuestos).replace(',','.') }}</td>
+    <td>$ {{ '{:,.0f}'.format(c.transporte).replace(',','.') }}</td>
+    <td class="fw-semibold">$ {{ '{:,.0f}'.format(c.costo_total).replace(',','.') }}</td>
+    <td>{{ c.cantidad }}</td>
+    <td class="fw-semibold">$ {{ '{:,.0f}'.format(c.precio_unitario).replace(',','.') }}</td>
+    <td>{% if c.producto %}<span class="badge bg-light text-dark">{{ c.producto.nombre }}</span>{% else %}—{% endif %}</td>
+    <td><div class="d-flex gap-1">
+      <a href="{{ url_for('compra_editar', id=c.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+      <form method="POST" action="{{ url_for('compra_eliminar', id=c.id) }}" onsubmit="return confirm('¿Eliminar?')">
+        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+    </div></td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+{% else %}<div class="text-center text-muted py-5"><i class="bi bi-cart3" style="font-size:3rem"></i>
+  <p class="mt-3">Sin compras.</p><a href="{{ url_for('compra_nueva') }}" class="btn btn-primary">Registrar primera</a></div>
+{% endif %}</div>{% endblock %}

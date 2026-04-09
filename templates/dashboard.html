@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}{% block page_title %}Dashboard{% endblock %}
+{% block topbar_actions %}
+<button id="btnM" class="btn btn-sm btn-outline-secondary" onclick="toggleMoneda()">
+  <i class="bi bi-currency-exchange me-1"></i><span id="lblM">USD</span></button>
+<small class="text-muted d-none d-md-inline" id="tasaInfo" style="font-size:.75rem"></small>
+{% endblock %}
+{% block content %}
+
+{# ── Banner bienvenida / onboarding ────────────────── #}
+{% if total_clientes == 0 %}
+<div class="onboard-banner mb-3">
+  <div style="position:relative;z-index:1">
+    <div style="font-size:.72rem;letter-spacing:2px;text-transform:uppercase;opacity:.6;margin-bottom:.3rem">Bienvenido/a al CRM</div>
+    <div style="font-size:1.25rem;font-weight:700;margin-bottom:.3rem">Hola, {{ current_user.nombre }}! 👋</div>
+    <div style="font-size:.87rem;opacity:.75;max-width:520px">Para empezar, sigue estos pasos rápidos. Cada sección del sistema tiene un propósito claro.</div>
+    <div class="onboard-steps mt-2">
+      <a href="{{ url_for('cliente_nuevo') }}" class="onboard-step"><i class="bi bi-person-plus"></i> 1. Agregar primer cliente</a>
+      <a href="{{ url_for('venta_nueva') }}" class="onboard-step"><i class="bi bi-plus-circle"></i> 2. Crear una venta</a>
+      <a href="{{ url_for('tarea_nueva') }}" class="onboard-step"><i class="bi bi-check2-square"></i> 3. Crear una tarea</a>
+      <a href="{{ url_for('impuestos') }}" class="onboard-step"><i class="bi bi-percent"></i> 4. Configurar impuestos</a>
+      <a href="{{ url_for('admin_config') }}" class="onboard-step"><i class="bi bi-gear"></i> 5. Configurar empresa</a>
+    </div>
+  </div>
+</div>
+{% else %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem;flex-wrap:wrap;gap:.5rem">
+  <div>
+    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Resumen acumulado</div>
+    <div style="font-size:1.05rem;font-weight:700;color:#1a1f36">Hola, {{ current_user.nombre }}</div>
+  </div>
+  <small class="text-muted" id="tasaInfo2"></small>
+</div>
+{% endif %}
+
+{# ── Acciones rápidas ──────────────────────────────── #}
+<div class="qa-bar">
+  <a href="{{ url_for('cliente_nuevo') }}" class="qa-btn"><i class="bi bi-person-plus"></i> Nuevo cliente</a>
+  <a href="{{ url_for('venta_nueva') }}" class="qa-btn"><i class="bi bi-plus-circle"></i> Nueva venta</a>
+  <a href="{{ url_for('tarea_nueva') }}" class="qa-btn"><i class="bi bi-check2-square"></i> Nueva tarea</a>
+  <a href="{{ url_for('cotizacion_nueva') }}" class="qa-btn"><i class="bi bi-file-earmark-text"></i> Cotización</a>
+  <a href="{{ url_for('contable_index') }}" class="qa-btn"><i class="bi bi-calculator"></i> Contabilidad</a>
+</div>
+
+{# ── Fila 1: métricas operativas ───────────────────── #}
+<div class="row g-3 mb-3 dash-stats">
+  <div class="col-6 col-lg-3">
+    <div class="sc sc-accent" style="border-top-color:#5e72e4">
+      <div class="d-flex justify-content-between align-items-start">
+        <div><div class="sv">{{ total_clientes }}</div><div class="sl">Clientes activos</div></div>
+        <div class="si" style="background:#e8eeff"><i class="bi bi-people-fill" style="color:#5e72e4"></i></div>
+      </div>
+      <div class="mt-2"><a href="{{ url_for('clientes') }}" style="font-size:.75rem;color:#5e72e4;text-decoration:none">Ver clientes →</a></div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="sc sc-accent" style="border-top-color:#2dce89">
+      <div class="d-flex justify-content-between align-items-start">
+        <div><div class="sv">{{ ventas_completadas }}</div><div class="sl">Ventas ganadas</div></div>
+        <div class="si" style="background:#e3f9ee"><i class="bi bi-graph-up-arrow" style="color:#2dce89"></i></div>
+      </div>
+      <div class="mt-2"><a href="{{ url_for('ventas') }}" style="font-size:.75rem;color:#2dce89;text-decoration:none">Ver ventas →</a></div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="sc sc-accent" style="border-top-color:#fb6340">
+      <div class="d-flex justify-content-between align-items-start">
+        <div><div class="sv">{{ tareas_pendientes }}</div><div class="sl">Tareas pendientes</div></div>
+        <div class="si" style="background:#fff4e5"><i class="bi bi-check2-square" style="color:#fb6340"></i></div>
+      </div>
+      <div class="mt-2"><a href="{{ url_for('tareas') }}" style="font-size:.75rem;color:#fb6340;text-decoration:none">Ver tareas →</a></div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="sc sc-accent" style="border-top-color:#f39c12">
+      <div class="d-flex justify-content-between align-items-start">
+        <div><div class="sv valor-cop" data-cop="{{ saldo_pendiente }}">$ {{ '{:,.0f}'.format(saldo_pendiente).replace(',','.') }}</div>
+          <div class="sl">Por cobrar</div></div>
+        <div class="si" style="background:#fff8e1"><i class="bi bi-hourglass-split" style="color:#f39c12"></i></div>
+      </div>
+      <div class="mt-2"><a href="{{ url_for('ventas') }}" style="font-size:.75rem;color:#f39c12;text-decoration:none">Ver pendientes →</a></div>
+    </div>
+  </div>
+</div>
+
+{# ── Fila 2: métricas financieras ─────────────────── #}
+<div class="row g-3 mb-4 dash-stats">
+  <div class="col-6 col-lg-3">
+    <div class="sc">
+      <div class="d-flex justify-content-between align-items-start">
+        <div><div class="sv valor-cop" data-cop="{{ ingresos_totales }}" style="color:#2dce89">$ {{ '{:,.0f}'.format(ingresos_totales).replace(',','.') }}</div>
+          <div class="sl">Ingresos totales</div></div>
+        <div class="si" style="background:#e3f9ee"><i class="bi bi-currency-dollar" style="color:#2dce89"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="sc">
+      <div class="d-flex justify-content-between align-items-start">
+        <div><div class="sv valor-cop" data-cop="{{ gastos_totales }}" style="color:#f5365c">$ {{ '{:,.0f}'.format(gastos_totales).replace(',','.') }}</div>
+          <div class="sl">Gastos + compras</div></div>
+        <div class="si" style="background:#ffeaea"><i class="bi bi-receipt" style="color:#f5365c"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="sc">
+      <div class="d-flex justify-content-between align-items-start">
+        <div><div class="sv valor-cop" data-cop="{{ impuestos_estimados }}" style="color:#e83e8c">$ {{ '{:,.0f}'.format(impuestos_estimados).replace(',','.') }}</div>
+          <div class="sl">Impuestos estimados</div></div>
+        <div class="si" style="background:#fce4ec"><i class="bi bi-percent" style="color:#e83e8c"></i></div>
+      </div>
+      {% if impuestos_estimados == 0 %}
+      <div class="mt-1"><a href="{{ url_for('impuestos') }}" style="font-size:.73rem;color:#e83e8c">Configurar reglas →</a></div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="sc" style="border:2px solid {{ '#2dce89' if saldo_neto >= 0 else '#f5365c' }}">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="sv valor-cop" data-cop="{{ saldo_neto }}" style="color:{{ '#2dce89' if saldo_neto >= 0 else '#f5365c' }}">$ {{ '{:,.0f}'.format(saldo_neto).replace(',','.') }}</div>
+          <div class="sl" style="font-weight:700">Saldo neto real</div>
+          <div style="font-size:.7rem;color:#8898aa;margin-top:2px">Ingresos − gastos − impuestos</div>
+        </div>
+        <div class="si" style="background:{{ '#e8fff3' if saldo_neto >= 0 else '#ffeaea' }}">
+          <i class="bi bi-cash-stack" style="color:{{ '#2dce89' if saldo_neto >= 0 else '#f5365c' }}"></i>
+        </div>
+      </div>
+      <div class="mt-2"><a href="{{ url_for('contable_index') }}" style="font-size:.73rem;color:#5e72e4;text-decoration:none">Ver desglose →</a></div>
+    </div>
+  </div>
+</div>
+
+{# ── Alerta stock bajo ─────────────────────────────── #}
+{% if productos_bajo_stock > 0 %}
+<div class="alert alert-warning d-flex align-items-center gap-2 mb-3 py-2" style="font-size:.87rem">
+  <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+  <span><strong>{{ productos_bajo_stock }} producto(s)</strong> con stock bajo o agotado.</span>
+  <a href="{{ url_for('inventario') }}" class="btn btn-sm btn-warning ms-auto">Ver inventario</a>
+</div>
+{% endif %}
+
+{# ── Tareas + Ventas ───────────────────────────────── #}
+<div class="row g-3 mb-3">
+  <div class="col-lg-6">
+    <div class="tc">
+      <div class="ch">
+        <span><i class="bi bi-check2-square me-2 text-warning"></i>Tareas pendientes</span>
+        <a href="{{ url_for('tarea_nueva') }}" class="btn btn-sm btn-primary"><i class="bi bi-plus me-1"></i>Nueva</a>
+      </div>
+      {% if tareas_recientes %}
+      <div class="table-responsive">
+      <table class="table">
+        <tbody>{% for t in tareas_recientes %}<tr>
+          <td>
+            <a href="{{ url_for('tarea_ver', id=t.id) }}" class="fw-semibold text-decoration-none" style="color:#1a1f36;font-size:.88rem">{{ t.titulo }}</a>
+            {% if t.asignado_user %}<div><small class="text-muted"><i class="bi bi-person me-1"></i>{{ t.asignado_user.nombre }}</small></div>{% endif %}
+          </td>
+          <td style="white-space:nowrap"><span class="b b-{{ t.prioridad }}">{{ t.prioridad.title() }}</span></td>
+          {% if t.fecha_vencimiento %}<td class="hide-mobile"><small class="text-muted">{{ t.fecha_vencimiento.strftime('%d/%m') }}</small></td>{% endif %}
+        </tr>{% endfor %}</tbody>
+      </table>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <i class="bi bi-check2-all"></i>
+        <p>Sin tareas pendientes</p>
+        <a href="{{ url_for('tarea_nueva') }}" class="btn btn-sm btn-primary">Crear primera tarea</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="tc">
+      <div class="ch">
+        <span><i class="bi bi-graph-up me-2 text-success"></i>Ventas recientes</span>
+        <a href="{{ url_for('venta_nueva') }}" class="btn btn-sm btn-primary"><i class="bi bi-plus me-1"></i>Nueva</a>
+      </div>
+      {% if ventas_recientes %}
+      <div class="table-responsive">
+      <table class="table">
+        <tbody>{% for v in ventas_recientes %}<tr>
+          <td>
+            <div class="fw-semibold" style="color:#1a1f36;font-size:.88rem">{{ v.titulo }}</div>
+            <small class="text-muted">{{ v.cliente.empresa or v.cliente.nombre if v.cliente else '—' }}</small>
+          </td>
+          <td class="hide-mobile fw-semibold valor-cop" data-cop="{{ v.total }}" style="white-space:nowrap">$ {{ '{:,.0f}'.format(v.total).replace(',','.') }}</td>
+          <td style="white-space:nowrap"><span class="b b-{{ v.estado }}">{{ v.estado.replace('_',' ').title() }}</span></td>
+        </tr>{% endfor %}</tbody>
+      </table>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <i class="bi bi-graph-up"></i>
+        <p>Sin ventas registradas</p>
+        <a href="{{ url_for('venta_nueva') }}" class="btn btn-sm btn-primary">Crear primera venta</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{# ── Actividad reciente ────────────────────────────── #}
+{% if actividades_recientes %}
+<div class="tc">
+  <div class="ch">
+    <span><i class="bi bi-clock-history me-2 text-secondary"></i>Actividad reciente</span>
+    {% if current_user.rol=='admin' %}<a href="{{ url_for('actividad') }}" class="btn btn-sm btn-outline-secondary btn-sm">Ver todo</a>{% endif %}
+  </div>
+  <div class="table-responsive">
+  <table class="table">
+    <tbody>{% for a in actividades_recientes %}<tr>
+      <td style="width:90px"><small class="text-muted">{{ a.creado_en.strftime('%d/%m %H:%M') }}</small></td>
+      <td style="width:75px"><span class="badge {% if a.tipo=='crear' %}bg-success{% elif a.tipo=='editar' %}bg-primary{% elif a.tipo=='eliminar' %}bg-danger{% elif a.tipo=='completar' %}bg-info{% else %}bg-secondary{% endif %}" style="font-size:.68rem">{{ a.tipo.title() }}</span></td>
+      <td style="font-size:.86rem">{{ a.descripcion }}</td>
+      <td class="hide-mobile" style="width:90px"><small class="text-muted">{{ a.usuario.nombre if a.usuario else '' }}</small></td>
+    </tr>{% endfor %}</tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}<script>
+(function(){
+let tasaCOP=null,enUSD=false;
+async function cargarTasa(){
+  try{
+    const r=await fetch('https://open.er-api.com/v6/latest/USD');
+    const d=await r.json();
+    tasaCOP=d.rates.COP;
+    var t='1 USD = $'+tasaCOP.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,'.')+' COP';
+    var e1=document.getElementById('tasaInfo'); if(e1)e1.textContent=t;
+    var e2=document.getElementById('tasaInfo2'); if(e2)e2.textContent=t;
+  }catch(e){}
+}
+function toggleMoneda(){
+  if(!tasaCOP)return;
+  enUSD=!enUSD;
+  document.getElementById('lblM').textContent=enUSD?'COP':'USD';
+  document.querySelectorAll('.valor-cop').forEach(function(el){
+    var c=parseFloat(el.dataset.cop)||0;
+    el.textContent=enUSD?'USD '+(c/tasaCOP).toLocaleString('en-US',{maximumFractionDigits:0}):'$ '+c.toLocaleString('es-CO',{maximumFractionDigits:0});
+  });
+}
+window.toggleMoneda=toggleMoneda;
+cargarTasa();
+})();
+</script>{% endblock %}

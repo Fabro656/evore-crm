@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('materias') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
+{% block content %}<div class="fc"><form method="POST"><div class="row g-3">
+  <div class="col-md-8"><label class="form-label">Nombre *</label>
+    <input type="text" name="nombre" class="form-control" value="{{ obj.nombre if obj else '' }}" required></div>
+  <div class="col-md-4"><label class="form-label">Categoría</label>
+    <input type="text" name="categoria" class="form-control" value="{{ obj.categoria if obj else '' }}" placeholder="Ingredientes, Químicos..."></div>
+  <div class="col-12"><label class="form-label">Descripción</label>
+    <textarea name="descripcion" class="form-control" rows="2">{{ obj.descripcion if obj else '' }}</textarea></div>
+
+  <!-- Producto al que pertenece esta materia prima -->
+  <div class="col-12">
+    <label class="form-label fw-semibold">Producto asociado <small class="text-muted fw-normal">(opcional — para qué producto se usa principalmente esta materia)</small></label>
+    <select name="producto_id" class="form-select">
+      <option value="">— Sin asignar —</option>
+      {% for p in productos %}
+      <option value="{{ p.id }}" {% if obj and obj.producto_id==p.id %}selected{% endif %}>{{ p.nombre }}{% if p.sku %} ({{ p.sku }}){% endif %}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col-md-4"><label class="form-label">Unidad de medida *</label>
+    <select name="unidad" class="form-select" required>
+      {% for u in ['kg','g','litros','ml','unidades','piezas','metros','cm'] %}
+      <option value="{{ u }}" {% if obj and obj.unidad==u %}selected{% endif %}>{{ u }}</option>
+      {% endfor %}
+    </select></div>
+  <div class="col-md-4"><label class="form-label">Stock disponible</label>
+    <input type="number" name="stock_disponible" step="0.001" class="form-control" value="{{ obj.stock_disponible if obj else 0 }}"></div>
+  <div class="col-md-4"><label class="form-label">Stock mínimo</label>
+    <input type="number" name="stock_minimo" step="0.001" class="form-control" value="{{ obj.stock_minimo if obj else 0 }}"></div>
+  <div class="col-md-4"><label class="form-label">Costo unitario</label>
+    <div class="input-group"><span class="input-group-text">$</span>
+    <input type="number" name="costo_unitario" step="0.01" class="form-control" value="{{ obj.costo_unitario if obj else 0 }}"></div></div>
+  <div class="col-md-8"><label class="form-label">Proveedor</label>
+    <select name="proveedor_id" class="form-select">
+      <option value="">— Sin proveedor —</option>
+      {% for pv in proveedores_list %}<option value="{{ pv.id }}" {% if obj and obj.proveedor_id==pv.id %}selected{% endif %}>{{ pv.empresa or pv.nombre }}</option>{% endfor %}
+    </select>
+    <input type="hidden" name="proveedor" value="{{ obj.proveedor if obj else '' }}"></div>
+</div>
+<div class="d-flex gap-2 mt-4">
+  <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear Materia Prima' }}</button>
+  <a href="{{ url_for('materias') }}" class="btn btn-outline-secondary">Cancelar</a>
+</div></form></div>{% endblock %}"""
+
+# =============================================================
+# TEMPLATES V12 — Recetas / BOM
+# =============================================================

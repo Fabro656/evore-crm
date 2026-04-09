@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}Inventario{% endblock %}{% block page_title %}Inventario{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('lotes') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-layers me-1"></i>Lotes</a>
+<a href="{{ url_for('inventario_ingresos') }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-plus-square me-1"></i>Multi-Ingreso</a>
+<a href="{{ url_for('producto_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo Producto</a>
+{% endblock %}
+{% block content %}
+<div class="tc mb-3"><div class="p-3"><form method="GET" class="row g-2 align-items-end">
+  <div class="col-sm-5"><input type="text" name="buscar" class="form-control form-control-sm" placeholder="Nombre, SKU, NSO..." value="{{ busqueda }}"></div>
+  <div class="col-sm-3"><select name="categoria" class="form-select form-select-sm">
+    <option value="">Todas las categorías</option>
+    {% for cat in categorias %}<option value="{{ cat }}" {% if categoria_f==cat %}selected{% endif %}>{{ cat }}</option>{% endfor %}
+  </select></div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
+    <a href="{{ url_for('inventario') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
+  </div>
+</form></div></div>
+<div class="tc"><div class="ch"><i class="bi bi-box-seam-fill me-2"></i>{{ items|length }} producto(s)</div>
+{% if items %}<div class="table-responsive"><table class="table">
+  <thead><tr><th>Producto</th><th>SKU</th><th>NSO (INVIMA)</th><th>Caducidad</th><th>Precio venta</th><th>Stock</th><th></th></tr></thead>
+  <tbody>{% for p in items %}<tr>
+    <td><div class="fw-semibold" style="color:#1a1f36">{{ p.nombre }}</div>
+      {% if p.categoria %}<small class="text-muted">{{ p.categoria }}</small>{% endif %}</td>
+    <td><small class="text-muted">{{ p.sku or '—' }}</small></td>
+    <td><small class="text-muted">{{ p.nso or '—' }}</small></td>
+    <td>{% if p.fecha_caducidad %}
+      {% set dias_cad = (p.fecha_caducidad - now.date()).days %}
+      <span class="b {% if dias_cad < 30 %}b-alta{% elif dias_cad < 90 %}b-media{% else %}b-activo{% endif %}"
+            title="{{ dias_cad }} días">{{ p.fecha_caducidad.strftime('%d/%m/%Y') }}</span>
+      {% else %}<small class="text-muted">—</small>{% endif %}</td>
+    <td class="fw-semibold">$ {{ '{:,.0f}'.format(p.precio).replace(',','.') }}</td>
+    <td><span class="fw-semibold {{ 'text-danger' if p.stock <= p.stock_minimo else 'text-success' }}">{{ p.stock }}</span>
+      <small class="text-muted"> / mín {{ p.stock_minimo }}</small>
+      {% if p.stock <= p.stock_minimo %}<span class="badge bg-danger ms-1" style="font-size:.65rem">BAJO</span>{% endif %}</td>
+    <td><div class="d-flex gap-1">
+      <a href="{{ url_for('producto_editar', id=p.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+      <form method="POST" action="{{ url_for('producto_eliminar', id=p.id) }}" onsubmit="return confirm('¿Eliminar?')">
+        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+    </div></td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+{% else %}<div class="text-center text-muted py-5"><i class="bi bi-box-seam" style="font-size:3rem"></i>
+  <p class="mt-3">Sin productos.</p><a href="{{ url_for('producto_nuevo') }}" class="btn btn-primary">Agregar</a></div>
+{% endif %}</div>{% endblock %}

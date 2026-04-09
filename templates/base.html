@@ -1,0 +1,1147 @@
+<html lang="es" id="htmlRoot"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}Evore CRM{% endblock %}</title>
+<script>document.documentElement.setAttribute('data-theme',localStorage.getItem('evore_theme')||'light');var l=localStorage.getItem('evore_layout')||'default';if(l==='horizon') document.documentElement.setAttribute('data-layout','horizon');</script>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">{% raw %}<style>
+/* ══════════════════════════════════════════════════
+   EVORE CRM v17 — Atlassian-inspired Design System
+   ══════════════════════════════════════════════════ */
+:root{
+  --sb:#1A1D23;--sb-text:#A8B2C1;--sb-active:#4C9AFF;--ac:#2563EB;--bg:#F8FAFC;
+  --surface:#FFFFFF;--surface2:#F1F5F9;--border:#E2E8F0;--text:#0F172A;--text2:#64748B;
+  --topbar-bg:#FFFFFF;--topbar-border:#E2E8F0;--input-bg:#FFFFFF;
+  --shadow:0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.05);
+  --shadow-md:0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.05);
+  --green:#00875A;--red:#DE350B;--orange:#FF8B00;--yellow:#FF991F;
+  --card-shadow:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.05);
+  --radius:10px;--radius-sm:3px;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;font-size:14px;line-height:1.57;color:var(--text);transition:background-color .2s ease,color .2s ease}
+
+/* ── Sidebar ───────────────────────────────────── */
+#sb{position:fixed;top:0;left:0;height:100vh;width:256px;background:var(--sb);display:flex;flex-direction:column;z-index:1050;transition:transform .25s cubic-bezier(.4,0,.2,1)}
+.sb-brand{padding:1rem 1rem .85rem;color:#fff;font-weight:700;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:.5rem}
+.sb-sec{font-size:.62rem;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--sb-text);opacity:.7;padding:.85rem 1.1rem .2rem;margin-top:.1rem}
+.sb-nav{overflow-y:auto;flex:1;padding-bottom:.5rem;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.08) transparent}
+.sb-nav .nav-link{color:var(--sb-text);padding:.48rem 1rem;border-radius:4px;margin:.06rem .5rem;display:flex;align-items:center;gap:.65rem;font-size:.84rem;font-weight:500;transition:background .15s,color .15s;white-space:nowrap;overflow:hidden}
+.sb-nav .nav-link:hover{background:rgba(255,255,255,.1);color:#fff}
+.sb-nav .nav-link.active{background:rgba(var(--ac-rgb, 37,99,235),.12);color:var(--sb-active);font-weight:600}
+.sb-nav .nav-link i{font-size:1rem;width:18px;flex-shrink:0;opacity:.9}
+.sb-foot{padding:.75rem 1rem;border-top:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-size:.8rem;margin-top:auto}
+.u-name{color:#fff;font-weight:600;font-size:.84rem}
+.u-rol{font-size:.62rem;padding:2px 7px;border-radius:3px;background:rgba(var(--ac-rgb, 37,99,235),.4);color:var(--sb-active)}
+
+/* ── Overlay mobile ──────────────────────────────── */
+#sb-overlay{display:none;position:fixed;inset:0;background:rgba(9,30,66,.54);z-index:1040}
+#sb-overlay.open{display:block}
+
+/* ── Topbar ──────────────────────────────────────── */
+#main{margin-left:256px;min-height:100vh}
+.topbar{background:var(--topbar-bg);padding:.6rem 1.25rem;border-bottom:1px solid var(--topbar-border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow);gap:.75rem;transition:background-color .2s ease,border-color .2s ease}
+.pg-title{font-size:1rem;font-weight:600;color:var(--text);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#sb-tog{display:none;background:none;border:none;color:var(--text);font-size:1.25rem;padding:.3rem .4rem;border-radius:3px;cursor:pointer;flex-shrink:0;line-height:1}
+#sb-tog:hover{background:var(--surface2)}
+
+/* ── Content ─────────────────────────────────────── */
+.content{padding:1.25rem}
+
+/* ── Stat Cards ──────────────────────────────────── */
+.sc{background:var(--surface);border-radius:var(--radius);padding:1.1rem 1.25rem;box-shadow:var(--shadow);transition:box-shadow .15s,background-color .2s ease,border-color .2s ease;height:100%;border:1px solid var(--border)}
+.sc:hover{box-shadow:var(--shadow-md)}
+.sc-accent{border-top:3px solid var(--ac)}
+.si{width:42px;height:42px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0}
+.sv{font-size:1.55rem;font-weight:700;color:var(--text);line-height:1.1}
+.sl{color:var(--text2);font-size:.77rem;margin-top:.15rem;font-weight:500}
+.sc-highlight{border:2px solid var(--ac)}
+
+/* ── Table Cards ─────────────────────────────────── */
+.tc{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;transition:background-color .2s ease,border-color .2s ease}
+.ch{background:var(--surface);border-bottom:1px solid var(--border);padding:.75rem 1.25rem;font-weight:600;color:var(--text);font-size:.88rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem}
+.table{margin:0}
+.table th{font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);border-bottom:2px solid var(--border);padding:.55rem 1rem;white-space:nowrap;background:var(--surface2)}
+.table td{padding:.55rem 1rem;vertical-align:middle;border-bottom:1px solid var(--border);color:var(--text);font-size:.85rem}
+.table tbody tr:last-child td{border-bottom:none}
+.table tbody tr:hover{background:var(--surface2)}
+
+/* ── Form Card ───────────────────────────────────── */
+.fc{background:var(--surface);border-radius:var(--radius);padding:1.5rem 1.75rem;border:1px solid var(--border);max-width:860px;transition:background-color .2s ease,border-color .2s ease}
+.form-label{font-weight:600;font-size:.82rem;color:var(--text);margin-bottom:.3rem}
+.form-label .req{color:var(--red);margin-left:2px}
+.form-text{font-size:.76rem;color:var(--text2);margin-top:.2rem}
+.form-control,.form-select{border:2px solid var(--border);border-radius:var(--radius-sm);padding:.48rem .75rem;font-size:.88rem;transition:border-color .12s,box-shadow .12s,background-color .2s ease,color .2s ease;background:var(--input-bg);color:var(--text)}
+.form-control:focus,.form-select:focus{border-color:var(--ac);box-shadow:0 0 0 2px rgba(37,99,235,.2);outline:none}
+.form-control.is-invalid{border-color:var(--red)}
+.form-section{background:var(--surface2);border-radius:var(--radius);padding:1rem 1.2rem;margin-bottom:1rem;border:1px solid var(--border);border-left:3px solid var(--ac);transition:background-color .2s ease,border-color .2s ease}
+.form-section-title{font-weight:700;font-size:.75rem;text-transform:uppercase;letter-spacing:1px;color:var(--ac);margin-bottom:.65rem}
+.input-hint{display:flex;align-items:flex-start;gap:.4rem;padding:.45rem .75rem;background:rgba(37,99,235,.1);border-radius:var(--radius-sm);font-size:.77rem;color:var(--ac);margin-top:.4rem}
+.input-hint i{color:var(--ac);flex-shrink:0;margin-top:1px}
+
+/* ── Buttons ─────────────────────────────────────── */
+.btn{border-radius:var(--radius-sm);font-weight:600;font-size:.84rem;transition:background .12s,box-shadow .12s,background-color .2s ease;min-height:36px}
+.btn-primary{background:var(--ac);border-color:var(--ac);color:#fff}
+.btn-primary:hover{background:var(--ac);opacity:.9;border-color:var(--ac);box-shadow:0 2px 8px rgba(37,99,235,.3)}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text);transition:all .2s ease}
+.btn-ghost:hover{background:var(--surface2);border-color:var(--border)}
+.btn-lg{min-height:44px;font-size:.9rem;padding:.65rem 1.4rem}
+.btn-action{background:var(--ac);border:none;color:#fff;border-radius:var(--radius-sm);padding:.5rem 1rem;font-weight:600;font-size:.82rem;display:flex;align-items:center;gap:.5rem;cursor:pointer;transition:background .12s,background-color .2s ease;white-space:nowrap}
+.btn-action:hover{background:var(--ac);opacity:.9;color:#fff}
+
+/* ── Badges ──────────────────────────────────────── */
+.b{padding:2px 8px;border-radius:3px;font-size:.72rem;font-weight:600;display:inline-block;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px}
+.b-activo,.b-completado,.b-completada,.b-baja,.b-vip,.b-vigente,.b-aprobada{background:#ECFDF5;color:#065F46;border:1px solid #D1FAE5}
+.b-inactivo,.b-perdido,.b-alta,.b-vencida{background:#FEF2F2;color:#7F1D1D;border:1px solid #FECACA}
+.b-prospecto,.b-pendiente,.b-media,.b-anticipo_pagado,.b-en_revision,.b-enviada{background:#FFFBEB;color:#78350F;border:1px solid #FDE68A}
+.b-negociacion,.b-en_progreso,.b-cliente_activo,.b-confirmacion_orden{background:#EFF6FF;color:#1E3A5F;border:1px solid #BFDBFE}
+.b-borrador{background:#F8FAFC;color:#475569;border:1px solid #E2E8F0}
+.b-unico{background:#F0FDFA;color:#134E4A;border:1px solid #CCFBF1}
+.b-mensual{background:#F0FDFA;color:#134E4A;border:1px solid #CCFBF1}
+.b-cita{background:#FDF4FF;color:#581C87;border:1px solid #E9D5FF}
+.b-reunion{background:#F5F3FF;color:#3730A3;border:1px solid #DDD6FE}
+.b-recordatorio{background:#FFFBEB;color:#78350F;border:1px solid #FDE68A}
+.b-en_transito,.b-recibida{background:#ECFDF5;color:#065F46;border:1px solid #D1FAE5}
+
+/* ── Status select (inline state changer) ─────────── */
+.status-select{-webkit-appearance:none;appearance:none;border:none;padding:2px 20px 2px 8px;border-radius:3px;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='currentColor' opacity='.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 5px center;transition:filter .12s}
+.status-select:hover{filter:brightness(.92)}
+.status-select:focus{outline:2px solid var(--ac);outline-offset:1px}
+.status-select.b-activo,.status-select.b-completado,.status-select.b-completada,.status-select.b-vip,.status-select.b-vigente,.status-select.b-aprobada{background-color:#ECFDF5;color:#065F46}
+.status-select.b-inactivo,.status-select.b-perdido{background-color:#FEF2F2;color:#7F1D1D}
+.status-select.b-prospecto,.status-select.b-pendiente,.status-select.b-anticipo_pagado{background-color:#FFFBEB;color:#78350F}
+.status-select.b-negociacion,.status-select.b-en_progreso,.status-select.b-cliente_activo{background-color:#EFF6FF;color:#1E3A5F}
+.status-select.b-borrador{background-color:#F8FAFC;color:#475569}
+
+/* ── Calendar / Events ───────────────────────────── */
+.ev-tarea{background:#FFFBEB;color:#78350F;border-left:2px solid #D97706}
+.ev-evento{background:#EFF6FF;color:#1E3A5F;border-left:2px solid #3B82F6}
+.ev-nota{background:#F5F3FF;color:#3730A3;border-left:2px solid #7C3AED}
+.ev-caducidad{background:#FEF2F2;color:#7F1D1D;border-left:2px solid #DC2626}
+.ev-venta{background:#ECFDF5;color:#065F46;border-left:2px solid #10B981}
+.cal-day{border:1px solid #E2E8F0;min-height:110px;vertical-align:top;padding:.3rem;cursor:pointer;transition:background .12s}
+.cal-day:hover{background:#F8FAFC}
+.cal-day.today{background:#EFF6FF}
+.cal-day.other-month{background:#FAFBFC;opacity:.65}
+.cal-ev{font-size:.69rem;padding:2px 5px;border-radius:2px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+
+/* ── Misc components ─────────────────────────────── */
+.alert{border-radius:var(--radius);border:none;transition:background-color .2s ease,border-color .2s ease}
+.prod-row{background:var(--surface2);border-radius:var(--radius);padding:.75rem;margin-bottom:.5rem;border:1px solid var(--border);transition:background-color .2s ease,border-color .2s ease}
+.totales-box{background:var(--surface2);border-radius:var(--radius);padding:1rem 1.4rem;border:1px solid var(--border);transition:background-color .2s ease,border-color .2s ease}
+.chat-bubble{background:var(--surface2);border-radius:4px 12px 12px 4px;padding:.6rem .9rem;margin-bottom:.5rem;max-width:80%;color:var(--text)}
+.chat-bubble.mine{background:var(--ac);color:#fff;border-radius:12px 4px 4px 12px;margin-left:auto}
+.chat-bubble.mine .chat-meta{color:rgba(255,255,255,.65)}
+.chat-meta{font-size:.7rem;color:var(--text2);margin-top:.2rem}
+.mp-row{background:var(--surface2);border-radius:var(--radius);padding:.6rem .9rem;margin-bottom:.4rem;border-left:3px solid var(--ac);color:var(--text)}
+.lote-row{background:var(--surface2);border-radius:var(--radius);padding:.6rem .9rem;margin-bottom:.4rem;border-left:3px solid #00875A;color:var(--text)}
+.lote-venc{border-left-color:#DE350B!important}
+.lote-warn{border-left-color:#FF8B00!important}
+.stock-bar-wrap{background:var(--border);border-radius:3px;height:6px;overflow:hidden;flex:1}
+.stock-bar{height:100%;border-radius:3px;background:#00875A}
+.stock-bar.warn{background:#FF8B00}.stock-bar.bad{background:#DE350B}
+
+/* ── Quick actions bar ───────────────────────────── */
+.qa-bar{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.2rem}
+.qa-btn{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius-sm);padding:.4rem .85rem;font-size:.8rem;font-weight:600;color:var(--text2);display:flex;align-items:center;gap:.4rem;cursor:pointer;text-decoration:none;transition:border-color .12s,color .12s,background-color .2s ease;white-space:nowrap}
+.qa-btn:hover{border-color:var(--ac);color:var(--ac);background:rgba(37,99,235,.08)}
+.qa-btn i{font-size:.9rem}
+
+/* ── Onboarding / Empty states ───────────────────── */
+.onboard-banner{background:linear-gradient(135deg,#253858 0%,#0747A6 100%);border-radius:var(--radius);padding:1.5rem 1.75rem;color:#fff;margin-bottom:1.2rem;position:relative;overflow:hidden}
+.onboard-banner::before{content:'';position:absolute;top:-30px;right:-30px;width:140px;height:140px;background:rgba(255,255,255,.04);border-radius:50%}
+.onboard-steps{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.8rem}
+.onboard-step{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:3px;padding:.35rem .7rem;font-size:.77rem;display:flex;align-items:center;gap:.35rem;cursor:pointer;text-decoration:none;color:#fff;transition:background .12s}
+.onboard-step:hover{background:rgba(255,255,255,.2);color:#fff}
+.onboard-step.done{background:rgba(0,135,90,.25);border-color:rgba(0,135,90,.4)}
+.empty-state{text-align:center;padding:2.5rem 1.5rem;color:#6B778C}
+.empty-state i{font-size:2.5rem;margin-bottom:.75rem;display:block;opacity:.4}
+.empty-state p{margin-bottom:1rem;font-size:.9rem}
+
+/* ── Notifications ───────────────────────────────── */
+.notif-btn{position:relative;background:none;border:none;color:rgba(255,255,255,.65);font-size:1.05rem;padding:.3rem .45rem;border-radius:3px;cursor:pointer;transition:color .15s}
+.notif-btn:hover{color:#fff;background:rgba(255,255,255,.1)}
+.notif-badge{position:absolute;top:0;right:0;background:#DE350B;color:#fff;font-size:.6rem;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px;line-height:1}
+.notif-dd{position:fixed;bottom:70px;left:0;width:300px;max-height:400px;overflow-y:auto;background:#fff;border-radius:var(--radius);border:1px solid #DFE1E6;box-shadow:0 8px 24px rgba(9,30,66,.18);z-index:9999}
+.notif-dd-head{padding:.7rem 1rem;font-size:.78rem;font-weight:700;color:#172B4D;border-bottom:1px solid #DFE1E6;display:flex;justify-content:space-between;align-items:center}
+.notif-item{padding:.6rem 1rem;border-bottom:1px solid #F4F5F7;cursor:pointer;transition:background .12s}
+.notif-item:hover{background:#F4F5F7}
+.notif-item.unread{background:#DEEBFF}
+.notif-item .ni-title{font-size:.8rem;font-weight:600;color:#172B4D}
+.notif-item .ni-msg{font-size:.74rem;color:#42526E;margin-top:2px}
+.notif-item .ni-time{font-size:.67rem;color:#6B778C}
+
+/* ── Float search button ─────────────────────────── */
+#diagBtn{position:fixed;bottom:88px;right:24px;z-index:1041;width:44px;height:44px;border-radius:50%;background:#42526E;border:none;color:#fff;font-size:.95rem;box-shadow:0 2px 10px rgba(9,30,66,.25);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
+#diagBtn:hover{background:#253858}
+#diagPanel{position:fixed;bottom:148px;right:24px;width:340px;background:#fff;border-radius:var(--radius);border:1px solid #DFE1E6;box-shadow:0 8px 32px rgba(9,30,66,.18);z-index:1999;overflow:hidden;display:none}
+#diagPanel .dp-head{padding:.85rem 1.2rem;background:#253858;color:#fff;font-weight:600;font-size:.88rem;display:flex;justify-content:space-between}
+#diagPanel .dp-body{max-height:420px;overflow-y:auto;padding:.75rem 1rem}
+.diag-item{padding:.45rem .7rem;border-radius:var(--radius-sm);margin-bottom:.35rem;font-size:.8rem;display:flex;gap:.6rem;align-items:flex-start}
+.diag-rojo{background:#FFEBE6;color:#DE350B}
+.diag-amarillo{background:#FFFAE6;color:#FF8B00}
+.diag-verde{background:#E3FCEF;color:#00875A}
+
+/* ══════════════════════════════════════════════════
+   RESPONSIVE — Mobile first (max 768px)
+   ══════════════════════════════════════════════════ */
+@media(max-width:768px){
+  /* Sidebar: hidden off-screen, opens as overlay drawer */
+  #sb{transform:translateX(-256px);box-shadow:none}
+  #sb.sb-open{transform:translateX(0);box-shadow:6px 0 40px rgba(0,0,0,.3)}
+  #sb .nav-link span,.sb-brand .bt,.ui{display:block}
+  #sb .sb-sec{display:block}
+  #sb-tog{display:flex}
+  #main{margin-left:0;width:100%}
+  .content{padding:.85rem .75rem}
+  .topbar{padding:.55rem .75rem;gap:.4rem}
+  .topbar-right{gap:.3rem!important}
+  .pg-title{font-size:.9rem;max-width:140px}
+  /* Tables: horizontal scroll with touch */
+  .table-responsive{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:0}
+  .tc .table-responsive{margin:0}
+  /* Cards: full width, no horizontal overflow */
+  .fc{padding:1rem .85rem;border-radius:6px;max-width:100%}
+  /* Form sections stack */
+  .row.g-3>[class*='col-md']{margin-bottom:.2rem}
+  /* Bigger touch targets */
+  .btn{min-height:42px}
+  .nav-link{min-height:42px}
+  .form-control,.form-select{min-height:42px;font-size:16px}/* Prevent iOS zoom */
+  /* Quick actions: 2-column grid */
+  .qa-bar{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+  .qa-btn{justify-content:center}
+  /* Stat cards: 2-column */
+  .dash-stats .col-6{width:50%}
+  /* Hide less important columns in tables */
+  .hide-mobile{display:none}
+  /* Onboarding banner */
+  .onboard-banner{padding:1.1rem 1.2rem}
+  /* Prevent horizontal scroll on entire page */
+  body{overflow-x:hidden}
+  /* Quick action modal */
+  .quick-action-grid{grid-template-columns:repeat(2,1fr)!important}
+  /* Totales box */
+  .totales-box{padding:.75rem}
+  /* Stat values smaller */
+  .sv{font-size:1.3rem}
+  /* Table headers smaller */
+  .table th{font-size:.62rem;padding:.45rem .65rem}
+  .table td{padding:.45rem .65rem;font-size:.82rem}
+  /* ch (card header) wrap */
+  .ch{padding:.65rem .85rem}
+  /* diag panel full width */
+  #diagPanel{width:calc(100vw - 32px);right:16px}
+  /* notif panel adjust */
+  .notif-dd{width:calc(100vw - 32px);left:16px}
+  /* onboarding modal */
+  #modalOnboarding .modal-dialog{margin:.5rem;max-width:calc(100vw - 1rem)!important}
+  #modalOnboarding .modal-content{height:520px}
+}
+@media(max-width:480px){
+  .sv{font-size:1.2rem}
+  .qa-bar{grid-template-columns:1fr}
+  .pg-title{max-width:100px}
+  .topbar-right .btn{padding:.3rem .4rem;font-size:.75rem}
+}
+@media(min-width:769px){
+  #sb-overlay{display:none!important}
+}
+/* Copy field styles */
+.copy-field{padding:6px 0;border-bottom:1px solid #f0f0f0}
+.copy-field:last-child{border-bottom:none}
+.copy-label{font-size:.75rem;color:#6B778C;display:block;margin-bottom:2px}
+.copy-value{cursor:pointer;font-weight:500;color:#172B4D;padding:4px 8px;border-radius:4px;display:inline-flex;align-items:center;gap:4px;transition:background .15s}
+.copy-value:hover{background:#F4F5F7}
+.copy-value .bi-clipboard{color:#6B778C;font-size:.8rem}
+.copy-value .bi-check2{color:#00875A;font-size:.8rem}
+
+/* Quick Actions FAB */
+.fab{position:fixed;bottom:24px;right:24px;z-index:1042;width:56px;height:56px;border-radius:50%;background:var(--ac,#0052CC);color:#fff;border:none;box-shadow:0 4px 20px rgba(0,82,204,.5);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.5rem;transition:all .2s}
+.fab:hover{transform:scale(1.08);background:var(--ac2,#0065FF);box-shadow:0 6px 24px rgba(0,82,204,.6)}
+.quick-action-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:8px 0}
+.qa-modal-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:16px 8px;border:1px solid #DFE1E6;border-radius:8px;background:#F4F5F7;cursor:pointer;text-decoration:none;color:#172B4D;transition:all .15s;text-align:center}
+.qa-modal-btn:hover{background:#DEEBFF;border-color:#0052CC;color:#0052CC;transform:translateY(-2px)}
+.qa-modal-btn i{font-size:1.6rem}
+.qa-modal-btn span{font-size:.78rem;font-weight:600;line-height:1.2}
+@media(max-width:576px){.quick-action-grid{grid-template-columns:repeat(2,1fr)}.fab{bottom:20px;right:20px;width:52px;height:52px;font-size:1.35rem}}
+@media(max-width:768px){#diagBtn{bottom:84px;right:20px}}
+
+/* Ensure images/logos scale on mobile */
+img,svg{max-width:100%;height:auto}
+.logo-area svg{max-height:40px!important}
+
+/* ── Search overlay result classes ──────────────── */
+.sr-empty{text-align:center;padding:2rem;color:var(--text2);font-size:.85rem}
+.sr-item{display:flex;align-items:center;gap:.75rem;padding:.6rem 1.1rem;text-decoration:none;transition:background .12s;border-radius:0}
+.sr-item:hover{background:var(--surface2)}
+.sr-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.9rem}
+.sr-body{flex:1;min-width:0}
+.sr-label{display:block;font-size:.85rem;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sr-sub{display:block;font-size:.75rem;color:var(--text2)}
+.sr-badge{font-size:.7rem;color:var(--text2);background:var(--surface2);padding:2px 7px;border-radius:10px;flex-shrink:0;white-space:nowrap}
+.sr-footer{padding:.5rem 1.1rem;border-top:1px solid var(--border);text-align:center}
+.sr-footer a{font-size:.78rem;color:var(--ac);text-decoration:none}
+/* ══════════════════════════════════════════════════
+   DARK THEME — Modern & Elegant
+   ══════════════════════════════════════════════════ */
+html[data-theme="dark"]{
+  --sb:#0A0E1A;--sb-text:#8892A4;--sb-active:#60A5FA;--ac:#3B82F6;--bg:#0D1117;
+  --surface:#161B22;--surface2:#1C2333;--border:#30363D;--text:#E6EDF3;--text2:#8B949E;
+  --topbar-bg:#161B22;--topbar-border:#30363D;--input-bg:#1C2333;
+  --shadow:0 1px 3px rgba(0,0,0,.3), 0 1px 2px rgba(0,0,0,.2);
+  --shadow-md:0 4px 6px rgba(0,0,0,.3), 0 2px 4px rgba(0,0,0,.2);
+  --green:#2DA44E;--red:#F85149;--orange:#F0883E;
+  --card-shadow:0 1px 3px rgba(0,0,0,.3),0 1px 2px rgba(0,0,0,.2);
+  /* Override Bootstrap 5 CSS vars so its components respect the dark theme */
+  --bs-body-color:#E6EDF3;--bs-body-bg:#0D1117;
+  --bs-table-color:#E6EDF3;--bs-table-bg:transparent;
+  --bs-table-striped-color:#E6EDF3;--bs-table-hover-color:#E6EDF3;
+  --bs-border-color:#30363D;--bs-emphasis-color:#E6EDF3;
+  --bs-secondary-color:#8B949E;--bs-secondary-bg:#1C2333;
+  --bs-tertiary-bg:#161B22;--bs-link-color:#60A5FA;
+}
+html[data-theme="dark"] body{background:var(--bg);color:var(--text);transition:background-color .2s ease,color .2s ease}
+html[data-theme="dark"] .topbar{background:var(--topbar-bg);border-color:var(--topbar-border)}
+html[data-theme="dark"] .tc,html[data-theme="dark"] .fc,html[data-theme="dark"] .sc{background:var(--surface);border-color:var(--border);color:var(--text)}
+html[data-theme="dark"] .table{background:var(--surface);color:var(--text)}
+html[data-theme="dark"] .table th{background:var(--surface2)!important;color:var(--text2)!important;border-color:var(--border)!important}
+html[data-theme="dark"] .table td{border-color:var(--border)!important;color:var(--text)!important}
+html[data-theme="dark"] .table tbody tr:hover{background:var(--surface2)}
+html[data-theme="dark"] .form-control,html[data-theme="dark"] .form-select{background:var(--input-bg);border-color:var(--border);color:var(--text)}
+html[data-theme="dark"] .form-control:focus,html[data-theme="dark"] .form-select:focus{border-color:var(--ac)}
+html[data-theme="dark"] .ch{background:var(--surface);border-color:var(--border);color:var(--text)}
+html[data-theme="dark"] .form-section{background:var(--surface2);border-color:var(--border)}
+html[data-theme="dark"] .dropdown-menu{background:var(--surface);border-color:var(--border)}
+html[data-theme="dark"] .dropdown-item{color:var(--text)}
+html[data-theme="dark"] .dropdown-item:hover{background:var(--surface2)}
+html[data-theme="dark"] .table>:not(caption)>*>*{background-color:var(--surface);color:var(--text);border-color:var(--border)}
+html[data-theme="dark"] .table-striped>tbody>tr:nth-of-type(odd)>*{background-color:var(--surface2);color:var(--text)}
+html[data-theme="dark"] .table tbody tr:hover>*{background-color:var(--surface2)!important;color:var(--text)}
+html[data-theme="dark"] .table tbody tr:last-child td{border-bottom:none}
+html[data-theme="dark"] .thead-light th,html[data-theme="dark"] .table th{background:var(--surface2)!important;color:var(--text2)!important;border-color:var(--border)!important}
+html[data-theme="dark"] .dropdown-menu{color:var(--text)}
+html[data-theme="dark"] .dropdown-menu .dropdown-divider{border-color:var(--border)}
+html[data-theme="dark"] .modal-content{background:var(--surface);color:var(--text)}
+html[data-theme="dark"] .modal-header{border-color:var(--border)}
+html[data-theme="dark"] .modal-footer{background:var(--surface);border-color:var(--border)}
+html[data-theme="dark"] .pg-title{color:var(--text)}
+html[data-theme="dark"] .notif-dd{background:var(--surface);border-color:var(--border)}
+html[data-theme="dark"] .notif-item:hover{background:var(--surface2)}
+html[data-theme="dark"] .notif-item.unread{background:#1C2D3F}
+html[data-theme="dark"] .onboard-step{color:#fff}
+html[data-theme="dark"] .alert-light{background:var(--surface2);border-color:var(--border);color:var(--text)}
+html[data-theme="dark"] input::placeholder,html[data-theme="dark"] textarea::placeholder{color:var(--text2)}
+html[data-theme="dark"] .text-muted{color:var(--text2)!important}
+html[data-theme="dark"] .b{opacity:.9}
+html[data-theme="dark"] .fc{color:var(--text)}
+html[data-theme="dark"] .sv{color:var(--text)}
+html[data-theme="dark"] .qa-btn{background:var(--surface);border-color:var(--border);color:var(--text2)}
+html[data-theme="dark"] .qa-btn:hover{background:var(--surface2);border-color:var(--ac);color:var(--ac)}
+html[data-theme="dark"] .prod-row,html[data-theme="dark"] .totales-box{background:var(--surface2);border-color:var(--border)}
+html[data-theme="dark"] .form-check-input{background-color:var(--input-bg);border-color:var(--border)}
+html[data-theme="dark"] .b-pendiente{background:rgba(217,119,6,.1);color:#FDE68A;border:1px solid rgba(217,119,6,.2)}
+html[data-theme="dark"] .b-aprobada,html[data-theme="dark"] .b-activo,html[data-theme="dark"] .b-cliente_activo{background:rgba(16,185,129,.1);color:#A7F3D0;border:1px solid rgba(16,185,129,.2)}
+html[data-theme="dark"] .b-rechazada,html[data-theme="dark"] .b-cancelado{background:rgba(220,38,38,.1);color:#FECACA;border:1px solid rgba(220,38,38,.2)}
+html[data-theme="dark"] .b-en_revision,html[data-theme="dark"] .b-en-revision,html[data-theme="dark"] .b-borrador,html[data-theme="dark"] .b-negociacion,html[data-theme="dark"] .b-info{background:rgba(59,130,246,.1);color:#BFDBFE;border:1px solid rgba(59,130,246,.2)}
+html[data-theme="dark"] .b-alta{background:rgba(220,38,38,.1);color:#FECACA;border:1px solid rgba(220,38,38,.2)}
+html[data-theme="dark"] .b-media{background:rgba(217,119,6,.1);color:#FDE68A;border:1px solid rgba(217,119,6,.2)}
+html[data-theme="dark"] .b-baja{background:rgba(16,185,129,.1);color:#A7F3D0;border:1px solid rgba(16,185,129,.2)}
+html[data-theme="dark"] .b-prospecto{background:rgba(124,58,237,.1);color:#DDD6FE;border:1px solid rgba(124,58,237,.2)}
+html[data-theme="dark"] .b-vip{background:rgba(100,116,139,.12);color:#CBD5E1;border:1px solid rgba(100,116,139,.2)}
+html[data-theme="dark"] .b-inactivo{background:rgba(100,116,139,.1);color:#94A3B8;border:1px solid rgba(100,116,139,.2)}
+html[data-theme="dark"] .b-completado,html[data-theme="dark"] .b-anticipo_pagado{background:rgba(16,185,129,.1);color:#A7F3D0;border:1px solid rgba(16,185,129,.2)}
+html[data-theme="dark"] .b-aceptada_cliente{background:rgba(16,185,129,.1);color:#A7F3D0;border:1px solid rgba(16,185,129,.2)}
+/* ══════════════════════════════════════════════════
+   HORIZON DEMO THEME — Dark Neon (Salesforce ref)
+   Palette: near-black bg, neon green #AAFF00 accent
+   ══════════════════════════════════════════════════ */
+html[data-layout="horizon"],html[data-theme="dark"][data-layout="horizon"]{
+  --hz-green:#AAFF00;--hz-green-dim:rgba(170,255,0,.15);
+  --sb:#0D0E14;--sb-text:rgba(255,255,255,.55);--sb-active:#AAFF00;
+  --ac:#AAFF00;--bg:#0A0B10;--surface:#131419;--surface2:#1C1D25;
+  --border:rgba(255,255,255,.07);--text:#F0F0F5;--text2:#8888A0;
+  --topbar-bg:#0D0E14;--topbar-border:rgba(255,255,255,.07);--input-bg:#1C1D25;
+  --shadow:0 4px 24px rgba(0,0,0,.5);--shadow-md:0 8px 40px rgba(0,0,0,.6);
+  --radius:20px;--radius-sm:12px;
+}
+/* Body & page */
+html[data-layout="horizon"] body,html[data-theme="dark"][data-layout="horizon"] body{background:var(--bg);color:var(--text)}
+/* Sidebar */
+html[data-layout="horizon"] #sb,html[data-theme="dark"][data-layout="horizon"] #sb{background:#0D0E14;border-right:1px solid rgba(255,255,255,.06)}
+html[data-layout="horizon"] .sb-brand,html[data-theme="dark"][data-layout="horizon"] .sb-brand{border-color:rgba(255,255,255,.07)}
+html[data-layout="horizon"] .sb-nav .nav-link,html[data-theme="dark"][data-layout="horizon"] .sb-nav .nav-link{color:rgba(255,255,255,.5);border-radius:12px;margin:.08rem .5rem}
+html[data-layout="horizon"] .sb-nav .nav-link:hover,html[data-theme="dark"][data-layout="horizon"] .sb-nav .nav-link:hover{background:rgba(255,255,255,.07);color:#fff}
+html[data-layout="horizon"] .sb-nav .nav-link.active,html[data-theme="dark"][data-layout="horizon"] .sb-nav .nav-link.active{background:rgba(170,255,0,.12);color:#AAFF00;font-weight:700}
+html[data-layout="horizon"] .sb-nav .nav-link.active i,html[data-theme="dark"][data-layout="horizon"] .sb-nav .nav-link.active i{color:#AAFF00}
+html[data-layout="horizon"] .sb-foot,html[data-theme="dark"][data-layout="horizon"] .sb-foot{border-color:rgba(255,255,255,.07)}
+html[data-layout="horizon"] .u-name,html[data-theme="dark"][data-layout="horizon"] .u-name{color:#fff}
+html[data-layout="horizon"] .u-rol,html[data-theme="dark"][data-layout="horizon"] .u-rol{background:rgba(170,255,0,.15);color:#AAFF00;border-radius:6px}
+/* Topbar */
+html[data-layout="horizon"] .topbar,html[data-theme="dark"][data-layout="horizon"] .topbar{background:#0D0E14;border-color:rgba(255,255,255,.07);box-shadow:none}
+html[data-layout="horizon"] .pg-title,html[data-theme="dark"][data-layout="horizon"] .pg-title{color:#F0F0F5;font-size:1.05rem;font-weight:700}
+/* Cards */
+html[data-layout="horizon"] .tc,html[data-theme="dark"][data-layout="horizon"] .tc{background:#131419;border-radius:20px;border:1px solid rgba(255,255,255,.07);box-shadow:0 4px 24px rgba(0,0,0,.4)}
+html[data-layout="horizon"] .fc,html[data-theme="dark"][data-layout="horizon"] .fc{background:#131419;border-radius:20px;border:1px solid rgba(255,255,255,.07);box-shadow:0 4px 24px rgba(0,0,0,.4)}
+html[data-layout="horizon"] .sc,html[data-theme="dark"][data-layout="horizon"] .sc{background:#131419;border-radius:20px;border:1px solid rgba(255,255,255,.07);box-shadow:0 4px 24px rgba(0,0,0,.4)}
+html[data-layout="horizon"] .sc-accent,html[data-theme="dark"][data-layout="horizon"] .sc-accent{border-top:2px solid #AAFF00}
+html[data-layout="horizon"] .sc:hover,html[data-theme="dark"][data-layout="horizon"] .sc:hover{box-shadow:0 8px 40px rgba(0,0,0,.5)}
+html[data-layout="horizon"] .sv,html[data-theme="dark"][data-layout="horizon"] .sv{color:#F0F0F5}
+html[data-layout="horizon"] .sl,html[data-theme="dark"][data-layout="horizon"] .sl{color:#8888A0}
+/* Card headers */
+html[data-layout="horizon"] .ch,html[data-theme="dark"][data-layout="horizon"] .ch{background:#131419;border-color:rgba(255,255,255,.07);color:#F0F0F5}
+/* Tables */
+html[data-layout="horizon"] .table th,html[data-theme="dark"][data-layout="horizon"] .table th{background:#1C1D25;color:#8888A0;border-color:rgba(255,255,255,.07);letter-spacing:.8px}
+html[data-layout="horizon"] .table td,html[data-theme="dark"][data-layout="horizon"] .table td{color:#E0E0EB;border-color:rgba(255,255,255,.06)}
+html[data-layout="horizon"] .table>:not(caption)>*>*,html[data-theme="dark"][data-layout="horizon"] .table>:not(caption)>*>*{background-color:#131419;color:#E0E0EB;border-color:rgba(255,255,255,.06)}
+html[data-layout="horizon"] .table tbody tr:hover>*,html[data-theme="dark"][data-layout="horizon"] .table tbody tr:hover>*{background-color:#1C1D25!important}
+/* Forms */
+html[data-layout="horizon"] .form-control,html[data-layout="horizon"] .form-select,html[data-theme="dark"][data-layout="horizon"] .form-control,html[data-theme="dark"][data-layout="horizon"] .form-select{background:#1C1D25;border-color:rgba(255,255,255,.12);color:#F0F0F5;border-radius:12px}
+html[data-layout="horizon"] .form-control:focus,html[data-layout="horizon"] .form-select:focus,html[data-theme="dark"][data-layout="horizon"] .form-control:focus,html[data-theme="dark"][data-layout="horizon"] .form-select:focus{border-color:#AAFF00;box-shadow:0 0 0 3px rgba(170,255,0,.15)}
+html[data-layout="horizon"] .form-label,html[data-theme="dark"][data-layout="horizon"] .form-label{color:#C0C0D0}
+html[data-layout="horizon"] .form-section,html[data-theme="dark"][data-layout="horizon"] .form-section{background:#1C1D25;border-color:rgba(255,255,255,.07);border-left-color:#AAFF00}
+/* Buttons */
+html[data-layout="horizon"] .btn-primary,html[data-theme="dark"][data-layout="horizon"] .btn-primary{background:#AAFF00;color:#0A0B10;border:none;font-weight:700;border-radius:12px}
+html[data-layout="horizon"] .btn-primary:hover,html[data-theme="dark"][data-layout="horizon"] .btn-primary:hover{background:#BBFF33;color:#0A0B10;box-shadow:0 4px 20px rgba(170,255,0,.35)}
+html[data-layout="horizon"] .btn-outline-primary,html[data-theme="dark"][data-layout="horizon"] .btn-outline-primary{border-color:#AAFF00;color:#AAFF00;border-radius:12px}
+html[data-layout="horizon"] .btn-outline-primary:hover,html[data-theme="dark"][data-layout="horizon"] .btn-outline-primary:hover{background:#AAFF00;color:#0A0B10}
+html[data-layout="horizon"] .btn-outline-secondary,html[data-theme="dark"][data-layout="horizon"] .btn-outline-secondary{border-color:rgba(255,255,255,.15);color:#C0C0D0;border-radius:12px}
+html[data-layout="horizon"] .btn-outline-secondary:hover,html[data-theme="dark"][data-layout="horizon"] .btn-outline-secondary:hover{background:rgba(255,255,255,.07);color:#fff}
+html[data-layout="horizon"] .btn-success,html[data-theme="dark"][data-layout="horizon"] .btn-success{background:#AAFF00;color:#0A0B10;border:none;font-weight:700;border-radius:12px}
+html[data-layout="horizon"] .btn-success:hover,html[data-theme="dark"][data-layout="horizon"] .btn-success:hover{background:#BBFF33;color:#0A0B10}
+/* Badges */
+html[data-layout="horizon"] .b,html[data-theme="dark"][data-layout="horizon"] .b{border-radius:20px;font-size:.7rem}
+html[data-layout="horizon"] .b-pendiente,html[data-theme="dark"][data-layout="horizon"] .b-pendiente{background:rgba(255,200,0,.15);color:#FFD700;border:1px solid rgba(255,200,0,.3)}
+html[data-layout="horizon"] .b-aprobada,.b-activo,.b-cliente_activo,html[data-theme="dark"][data-layout="horizon"] .b-aprobada,html[data-theme="dark"][data-layout="horizon"] .b-activo,html[data-theme="dark"][data-layout="horizon"] .b-cliente_activo{background:rgba(170,255,0,.12);color:#AAFF00;border:1px solid rgba(170,255,0,.3)}
+html[data-layout="horizon"] .b-rechazada,html[data-layout="horizon"] .b-cancelado,html[data-theme="dark"][data-layout="horizon"] .b-rechazada,html[data-theme="dark"][data-layout="horizon"] .b-cancelado{background:rgba(255,80,80,.12);color:#FF6060;border:1px solid rgba(255,80,80,.3)}
+html[data-layout="horizon"] .b-borrador,html[data-layout="horizon"] .b-negociacion,html[data-theme="dark"][data-layout="horizon"] .b-borrador,html[data-theme="dark"][data-layout="horizon"] .b-negociacion{background:rgba(255,255,255,.08);color:#C0C0D0;border:1px solid rgba(255,255,255,.12)}
+/* Quick actions */
+html[data-layout="horizon"] .qa-btn,html[data-theme="dark"][data-layout="horizon"] .qa-btn{background:#1C1D25;border-color:rgba(255,255,255,.1);color:#C0C0D0;border-radius:12px}
+html[data-layout="horizon"] .qa-btn:hover,html[data-theme="dark"][data-layout="horizon"] .qa-btn:hover{background:#252630;border-color:#AAFF00;color:#AAFF00}
+/* Dropdowns */
+html[data-layout="horizon"] .dropdown-menu,html[data-theme="dark"][data-layout="horizon"] .dropdown-menu{background:#1C1D25;border-color:rgba(255,255,255,.1);border-radius:16px;box-shadow:0 12px 48px rgba(0,0,0,.6)}
+html[data-layout="horizon"] .dropdown-item,html[data-theme="dark"][data-layout="horizon"] .dropdown-item{color:#C0C0D0;border-radius:8px;margin:.1rem .4rem;width:calc(100% - .8rem)}
+html[data-layout="horizon"] .dropdown-item:hover,html[data-theme="dark"][data-layout="horizon"] .dropdown-item:hover{background:rgba(255,255,255,.07);color:#fff}
+html[data-layout="horizon"] .dropdown-divider,html[data-theme="dark"][data-layout="horizon"] .dropdown-divider{border-color:rgba(255,255,255,.07)}
+/* Modals */
+html[data-layout="horizon"] .modal-content,html[data-theme="dark"][data-layout="horizon"] .modal-content{background:#131419;border:1px solid rgba(255,255,255,.1);border-radius:20px;box-shadow:0 20px 80px rgba(0,0,0,.7)}
+html[data-layout="horizon"] .modal-header,html[data-theme="dark"][data-layout="horizon"] .modal-header{border-color:rgba(255,255,255,.07)}
+html[data-layout="horizon"] .modal-footer,html[data-theme="dark"][data-layout="horizon"] .modal-footer{background:#131419;border-color:rgba(255,255,255,.07)}
+/* Search overlay */
+html[data-layout="horizon"] #searchOverlay .modal-inner,html[data-theme="dark"][data-layout="horizon"] #searchOverlay .modal-inner{background:#131419;border-color:rgba(255,255,255,.1)}
+/* Notif */
+html[data-layout="horizon"] .notif-dd,html[data-theme="dark"][data-layout="horizon"] .notif-dd{background:#1C1D25;border-color:rgba(255,255,255,.1)}
+html[data-layout="horizon"] .notif-item:hover,html[data-theme="dark"][data-layout="horizon"] .notif-item:hover{background:rgba(255,255,255,.05)}
+html[data-layout="horizon"] .notif-item.unread,html[data-theme="dark"][data-layout="horizon"] .notif-item.unread{background:rgba(170,255,0,.08)}
+/* Float search btn */
+html[data-layout="horizon"] #diagBtn,html[data-theme="dark"][data-layout="horizon"] #diagBtn{background:#AAFF00;color:#0A0B10}
+html[data-layout="horizon"] #diagBtn:hover,html[data-theme="dark"][data-layout="horizon"] #diagBtn:hover{background:#BBFF33;box-shadow:0 4px 20px rgba(170,255,0,.4)}
+/* Search input */
+html[data-layout="horizon"] #searchInput,html[data-theme="dark"][data-layout="horizon"] #searchInput{color:#F0F0F5}
+/* Onboarding banner */
+html[data-layout="horizon"] .onboard-banner,html[data-theme="dark"][data-layout="horizon"] .onboard-banner{background:linear-gradient(135deg,#1C1D25,#252630);border:1px solid rgba(170,255,0,.2)}
+html[data-layout="horizon"] .onboard-step,html[data-theme="dark"][data-layout="horizon"] .onboard-step{background:rgba(170,255,0,.12);color:#AAFF00;border-color:rgba(170,255,0,.25)}
+html[data-layout="horizon"] .onboard-step:hover,html[data-theme="dark"][data-layout="horizon"] .onboard-step:hover{background:rgba(170,255,0,.2)}
+/* Topbar demo button glow */
+html[data-layout="horizon"] #demoToggleBtn,html[data-theme="dark"][data-layout="horizon"] #demoToggleBtn{background:#AAFF00!important;color:#0A0B10!important;box-shadow:0 0 12px rgba(170,255,0,.4)}
+/* Misc text */
+html[data-layout="horizon"] .text-muted,html[data-theme="dark"][data-layout="horizon"] .text-muted{color:#8888A0!important}
+html[data-layout="horizon"] input::placeholder,html[data-layout="horizon"] textarea::placeholder,html[data-theme="dark"][data-layout="horizon"] input::placeholder,html[data-theme="dark"][data-layout="horizon"] textarea::placeholder{color:#555565}
+html[data-layout="horizon"] .prod-row,html[data-theme="dark"][data-layout="horizon"] .prod-row{background:#1C1D25;border-color:rgba(255,255,255,.07)}
+html[data-layout="horizon"] .totales-box,html[data-theme="dark"][data-layout="horizon"] .totales-box{background:#1C1D25;border-color:rgba(255,255,255,.07)}
+html[data-layout="horizon"] .form-check-input,html[data-theme="dark"][data-layout="horizon"] .form-check-input{background-color:#1C1D25;border-color:rgba(255,255,255,.2)}
+html[data-layout="horizon"] .form-check-input:checked,html[data-theme="dark"][data-layout="horizon"] .form-check-input:checked{background-color:#AAFF00;border-color:#AAFF00}
+html[data-layout="horizon"] hr,html[data-theme="dark"][data-layout="horizon"] hr{border-color:rgba(255,255,255,.07)}
+</style>{% endraw %}
+</head><body>
+<nav id="sb">
+  <div class="sb-brand" style="padding:.85rem 1rem .7rem;display:flex;align-items:center;gap:.5rem">
+    {% if current_user.is_authenticated %}
+      {% if current_user.rol == 'cliente' and empresa_cliente_nombre %}
+        <i class="bi bi-building" style="font-size:1rem;opacity:.7"></i>
+        <span style="font-weight:800;font-size:.88rem;letter-spacing:-.2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px">{{ empresa_cliente_nombre }} <span style="color:#4C9AFF;font-weight:600">CRM</span></span>
+      {% elif current_user.rol == 'proveedor' and empresa_proveedor_nombre %}
+        <i class="bi bi-truck" style="font-size:1rem;opacity:.7"></i>
+        <span style="font-weight:800;font-size:.88rem;letter-spacing:-.2px">{{ empresa_proveedor_nombre }} <span style="color:#4C9AFF;font-weight:600">CRM</span></span>
+      {% else %}
+        <a href="/" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:.5rem;overflow:hidden"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 474.45 119.52" width="188" height="47" style="filter:brightness(0) invert(1);opacity:.88;display:block"><path d="M163.87,76.22V43.3c0-13-1.37-15.81-1.37-15.81h45.27v4.07s-4.09-2.22-23.45-2.22H167.87V54.21h30.9v4.07S196.13,56,183.41,56H167.87V90.18H187C206.4,90.18,210.5,88,210.5,88V92h-48S163.87,89.26,163.87,76.22Z"/><path d="M215.13,27.49h7s-.28,2.77,4.72,15.81l17.91,46.33L263.21,43.3c5.18-13,3.82-15.81,3.82-15.81h5.82s-2.46,2.68-7.46,15.16L245.76,92h-4.27l-19-49C217.58,30.17,215.13,27.49,215.13,27.49Z"/><path d="M274.07,59.67c0-18.5,14.45-33.39,32.36-33.39s32.36,14.89,32.36,33.39-14.46,33.38-32.36,33.38S274.07,78.16,274.07,59.67Zm60.81,0c0-17.48-12.73-31.63-28.45-31.63S278,42.19,278,59.67s12.72,31.62,28.45,31.62S334.88,77.15,334.88,59.67Z"/><path d="M346.1,76.22V43.3c0-13-1.36-15.81-1.36-15.81h28.63c11,0,19.91,9.34,19.91,20.8s-8.73,20.63-19.55,20.81L381,76.5C393.55,89.35,397.64,92,397.64,92h-8.36S388,89.35,375.73,76.87l-7.54-7.77H350.1v7.12c0,13,1.36,15.81,1.36,15.81h-6.72S346.1,89.26,346.1,76.22Zm43.27-27.93c0-10.35-7.18-18.95-16-18.95H350.1V67.25h23.27C382.19,67.25,389.37,58.65,389.37,48.29Z"/><path d="M403.73,76.22V43.3c0-13-1.37-15.81-1.37-15.81h45.27v4.07s-4.09-2.22-23.45-2.22H407.72V54.21h30.91v4.07S436,56,423.27,56H407.72V90.18H426.9c19.36,0,23.45-2.21,23.45-2.21V92h-48S403.73,89.26,403.73,76.22Z"/><path d="M132.51,80.73a88.84,88.84,0,0,0-10.58-4.88s-1.06-.37-1-.67c.16-.91,2.08-1.17,7.25-8.06,5.35-7.14,6.47-10.49,7.48-13.42.86-2.49,1.79-8.27,1.29-8.87s-6.86-1-12.4.22c-5.31,1.2-8.35,2.62-8.65,2.28-.48-.53.71-4.69.83-8.52a36.63,36.63,0,0,0-.3-8.65c-.47-3-1.11-5.7-2-5.95s-3.76.62-5.26,1.27a62.18,62.18,0,0,0-7.26,4.28c-2.19,1.52-4.91,4.13-5.68,4.29s-2.1-4.53-5.19-9.9a64.94,64.94,0,0,0-4.29-6.84C85.44,15.47,83.05,12,81.26,12h0c-1.79,0-4.17,3.45-5.48,5.29a63.75,63.75,0,0,0-4.28,6.84c-3.1,5.37-4.34,10.07-5.19,9.9s-3.56-2.86-5.75-4.37a60.26,60.26,0,0,0-7.2-4.2c-1.5-.65-4.37-1.53-5.26-1.27s-1.53,3-2,5.95a36.08,36.08,0,0,0-.31,8.65c.12,3.83,1.32,8,.84,8.52-.3.34-3.35-1.08-8.66-2.28-5.53-1.24-11.82-.92-12.4-.22s.44,6.38,1.29,8.87c1,2.93,2.13,6.28,7.49,13.42,5.17,6.89,7.08,7.15,7.24,8.06.06.3-1,.67-1,.67A88.84,88.84,0,0,0,30,80.73c-2.76,1.7-5.9,4.24-5.9,5.54,0,1.59,2.67,3.48,6.14,5.78s11.55,5.88,20.12,5.07c9.65-.91,15.56-5.42,16.37-5.07.37.16.08,3.94,3.88,7.86,3.34,3.43,8,7.5,10.65,7.5s7.31-4.07,10.65-7.5c3.8-3.92,3.51-7.7,3.88-7.86.81-.35,6.73,4.16,16.37,5.07,8.58.81,16.61-2.75,20.13-5.07s6.14-4.19,6.13-5.78C138.41,85,135.27,82.43,132.51,80.73ZM120.37,48.38c6.29-2.14,13.77-2.27,14.29-1.59s-.51,11.81-13.15,24.48c-8.57,8.59-16.05,9.66-22.83,10.46a49.69,49.69,0,0,1-12.32-.54,26.06,26.06,0,0,0,8.55-9c3.31-5.9,4.74-10.88,10.5-15.29S114.07,50.51,120.37,48.38ZM104.31,30.92c5.53-3.75,8.42-4.45,8.92-4.12s1.29,3.49,1.25,9.2a88,88,0,0,1-1.28,12.24s-1.74.95-6.5,4.28a38.24,38.24,0,0,0-7.13,6.11,56.1,56.1,0,0,0-.32-12A73.79,73.79,0,0,0,97,37.13S98.78,34.67,104.31,30.92Zm-33-1.39c3-6,8.24-14.66,9.91-14.66s7,8.68,9.91,14.66a59.24,59.24,0,0,1,6.13,25,32.38,32.38,0,0,1-7.47,20c-3.88,4.88-8.13,6.14-8.57,6.14s-4.69-1.26-8.57-6.14a32.38,32.38,0,0,1-7.47-20A59.24,59.24,0,0,1,71.35,29.53ZM49.29,26.8c.5-.33,3.4.37,8.92,4.12s7.36,6.21,7.36,6.21a72.86,72.86,0,0,0-2.3,9.53,56.1,56.1,0,0,0-.32,12,38.24,38.24,0,0,0-7.13-6.11c-4.76-3.33-6.5-4.28-6.5-4.28A88,88,0,0,1,48,36C48,30.29,48.77,27.14,49.29,26.8ZM41,71.27C28.37,58.6,27.35,47.47,27.86,46.79s8-.55,14.3,1.59,9.19,4.14,15,8.54,7.2,9.39,10.5,15.29a26.06,26.06,0,0,0,8.55,9,49.69,49.69,0,0,1-12.32.54C57.06,80.93,49.58,79.86,41,71.27ZM62.77,91.11a31.75,31.75,0,0,1-17.52,3.76c-4.91-.33-8.86-2.14-12.74-4.16s-5.77-3.82-5.77-4.54,3.57-3.23,6.92-4.81a85.68,85.68,0,0,1,9-3.93c.81-.28,1-.05,2.33.69a30.76,30.76,0,0,0,9.68,4.43,107,107,0,0,0,14,2S66.75,89.14,62.77,91.11Zm25.1,9.17c-4.37,4.22-6,4.41-6.61,4.41s-2.24-.19-6.61-4.41-6.23-8.18-4.86-12.1a5.72,5.72,0,0,1,1.6-2.69c2.73-2.62,9.86-2.33,9.86-2.33h0s7.12-.29,9.85,2.33a5.72,5.72,0,0,1,1.6,2.69C94.1,92.1,92.23,96.06,87.87,100.28ZM130,90.71c-3.88,2-7.83,3.83-12.74,4.16a31.75,31.75,0,0,1-17.52-3.76c-4-2-6-6.58-6-6.58a107,107,0,0,0,14-2,30.63,30.63,0,0,0,9.68-4.43c1.39-.74,1.52-1,2.34-.69a86.72,86.72,0,0,1,9,3.93c3.36,1.58,6.92,4.1,6.92,4.81S134,88.63,130,90.71Z"/></svg><span class="bt" style="font-size:.65rem;letter-spacing:1px;opacity:.9;white-space:nowrap"> CRM</span></a>
+      {% endif %}
+    {% else %}
+      <a href="/" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:.5rem;overflow:hidden"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 474.45 119.52" width="188" height="47" style="filter:brightness(0) invert(1);opacity:.88;display:block"><path d="M163.87,76.22V43.3c0-13-1.37-15.81-1.37-15.81h45.27v4.07s-4.09-2.22-23.45-2.22H167.87V54.21h30.9v4.07S196.13,56,183.41,56H167.87V90.18H187C206.4,90.18,210.5,88,210.5,88V92h-48S163.87,89.26,163.87,76.22Z"/><path d="M215.13,27.49h7s-.28,2.77,4.72,15.81l17.91,46.33L263.21,43.3c5.18-13,3.82-15.81,3.82-15.81h5.82s-2.46,2.68-7.46,15.16L245.76,92h-4.27l-19-49C217.58,30.17,215.13,27.49,215.13,27.49Z"/><path d="M274.07,59.67c0-18.5,14.45-33.39,32.36-33.39s32.36,14.89,32.36,33.39-14.46,33.38-32.36,33.38S274.07,78.16,274.07,59.67Zm60.81,0c0-17.48-12.73-31.63-28.45-31.63S278,42.19,278,59.67s12.72,31.62,28.45,31.62S334.88,77.15,334.88,59.67Z"/><path d="M346.1,76.22V43.3c0-13-1.36-15.81-1.36-15.81h28.63c11,0,19.91,9.34,19.91,20.8s-8.73,20.63-19.55,20.81L381,76.5C393.55,89.35,397.64,92,397.64,92h-8.36S388,89.35,375.73,76.87l-7.54-7.77H350.1v7.12c0,13,1.36,15.81,1.36,15.81h-6.72S346.1,89.26,346.1,76.22Zm43.27-27.93c0-10.35-7.18-18.95-16-18.95H350.1V67.25h23.27C382.19,67.25,389.37,58.65,389.37,48.29Z"/><path d="M403.73,76.22V43.3c0-13-1.37-15.81-1.37-15.81h45.27v4.07s-4.09-2.22-23.45-2.22H407.72V54.21h30.91v4.07S436,56,423.27,56H407.72V90.18H426.9c19.36,0,23.45-2.21,23.45-2.21V92h-48S403.73,89.26,403.73,76.22Z"/><path d="M132.51,80.73a88.84,88.84,0,0,0-10.58-4.88s-1.06-.37-1-.67c.16-.91,2.08-1.17,7.25-8.06,5.35-7.14,6.47-10.49,7.48-13.42.86-2.49,1.79-8.27,1.29-8.87s-6.86-1-12.4.22c-5.31,1.2-8.35,2.62-8.65,2.28-.48-.53.71-4.69.83-8.52a36.63,36.63,0,0,0-.3-8.65c-.47-3-1.11-5.7-2-5.95s-3.76.62-5.26,1.27a62.18,62.18,0,0,0-7.26,4.28c-2.19,1.52-4.91,4.13-5.68,4.29s-2.1-4.53-5.19-9.9a64.94,64.94,0,0,0-4.29-6.84C85.44,15.47,83.05,12,81.26,12h0c-1.79,0-4.17,3.45-5.48,5.29a63.75,63.75,0,0,0-4.28,6.84c-3.1,5.37-4.34,10.07-5.19,9.9s-3.56-2.86-5.75-4.37a60.26,60.26,0,0,0-7.2-4.2c-1.5-.65-4.37-1.53-5.26-1.27s-1.53,3-2,5.95a36.08,36.08,0,0,0-.31,8.65c.12,3.83,1.32,8,.84,8.52-.3.34-3.35-1.08-8.66-2.28-5.53-1.24-11.82-.92-12.4-.22s.44,6.38,1.29,8.87c1,2.93,2.13,6.28,7.49,13.42,5.17,6.89,7.08,7.15,7.24,8.06.06.3-1,.67-1,.67A88.84,88.84,0,0,0,30,80.73c-2.76,1.7-5.9,4.24-5.9,5.54,0,1.59,2.67,3.48,6.14,5.78s11.55,5.88,20.12,5.07c9.65-.91,15.56-5.42,16.37-5.07.37.16.08,3.94,3.88,7.86,3.34,3.43,8,7.5,10.65,7.5s7.31-4.07,10.65-7.5c3.8-3.92,3.51-7.7,3.88-7.86.81-.35,6.73,4.16,16.37,5.07,8.58.81,16.61-2.75,20.13-5.07s6.14-4.19,6.13-5.78C138.41,85,135.27,82.43,132.51,80.73ZM120.37,48.38c6.29-2.14,13.77-2.27,14.29-1.59s-.51,11.81-13.15,24.48c-8.57,8.59-16.05,9.66-22.83,10.46a49.69,49.69,0,0,1-12.32-.54,26.06,26.06,0,0,0,8.55-9c3.31-5.9,4.74-10.88,10.5-15.29S114.07,50.51,120.37,48.38ZM104.31,30.92c5.53-3.75,8.42-4.45,8.92-4.12s1.29,3.49,1.25,9.2a88,88,0,0,1-1.28,12.24s-1.74.95-6.5,4.28a38.24,38.24,0,0,0-7.13,6.11,56.1,56.1,0,0,0-.32-12A73.79,73.79,0,0,0,97,37.13S98.78,34.67,104.31,30.92Zm-33-1.39c3-6,8.24-14.66,9.91-14.66s7,8.68,9.91,14.66a59.24,59.24,0,0,1,6.13,25,32.38,32.38,0,0,1-7.47,20c-3.88,4.88-8.13,6.14-8.57,6.14s-4.69-1.26-8.57-6.14a32.38,32.38,0,0,1-7.47-20A59.24,59.24,0,0,1,71.35,29.53ZM49.29,26.8c.5-.33,3.4.37,8.92,4.12s7.36,6.21,7.36,6.21a72.86,72.86,0,0,0-2.3,9.53,56.1,56.1,0,0,0-.32,12,38.24,38.24,0,0,0-7.13-6.11c-4.76-3.33-6.5-4.28-6.5-4.28A88,88,0,0,1,48,36C48,30.29,48.77,27.14,49.29,26.8ZM41,71.27C28.37,58.6,27.35,47.47,27.86,46.79s8-.55,14.3,1.59,9.19,4.14,15,8.54,7.2,9.39,10.5,15.29a26.06,26.06,0,0,0,8.55,9,49.69,49.69,0,0,1-12.32.54C57.06,80.93,49.58,79.86,41,71.27ZM62.77,91.11a31.75,31.75,0,0,1-17.52,3.76c-4.91-.33-8.86-2.14-12.74-4.16s-5.77-3.82-5.77-4.54,3.57-3.23,6.92-4.81a85.68,85.68,0,0,1,9-3.93c.81-.28,1-.05,2.33.69a30.76,30.76,0,0,0,9.68,4.43,107,107,0,0,0,14,2S66.75,89.14,62.77,91.11Zm25.1,9.17c-4.37,4.22-6,4.41-6.61,4.41s-2.24-.19-6.61-4.41-6.23-8.18-4.86-12.1a5.72,5.72,0,0,1,1.6-2.69c2.73-2.62,9.86-2.33,9.86-2.33h0s7.12-.29,9.85,2.33a5.72,5.72,0,0,1,1.6,2.69C94.1,92.1,92.23,96.06,87.87,100.28ZM130,90.71c-3.88,2-7.83,3.83-12.74,4.16a31.75,31.75,0,0,1-17.52-3.76c-4-2-6-6.58-6-6.58a107,107,0,0,0,14-2,30.63,30.63,0,0,0,9.68-4.43c1.39-.74,1.52-1,2.34-.69a86.72,86.72,0,0,1,9,3.93c3.36,1.58,6.92,4.1,6.92,4.81S134,88.63,130,90.71Z"/></svg><span class="bt" style="font-size:.65rem;letter-spacing:1px;opacity:.9;white-space:nowrap"> CRM</span></a>
+    {% endif %}
+  </div>
+  <div class="sb-nav py-2" style="overflow-y:auto;flex:1">
+    <div class="sb-sec">Principal</div>
+    <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint=='dashboard' %}active{% endif %}">
+      <i class="bi bi-grid-1x2-fill"></i><span>Dashboard</span></a>
+    {% set m=modulos_user %}
+    {% if 'clientes' in m or 'ventas' in m or 'cotizaciones' in m or 'tareas' in m or 'calendario' in m or 'notas' in m %}
+    <div class="sb-sec">Comercial</div>
+    {% if 'clientes' in m %}<a href="{{ url_for('clientes') }}" class="nav-link {% if 'cliente' in request.endpoint %}active{% endif %}"><i class="bi bi-people-fill"></i><span>Clientes</span></a>{% endif %}
+    {% if 'ventas' in m %}<a href="{{ url_for('ventas') }}" class="nav-link {% if 'venta' in request.endpoint %}active{% endif %}"><i class="bi bi-graph-up-arrow"></i><span>Ventas</span></a>{% endif %}
+    {% if 'cotizaciones' in m %}<a href="{{ url_for('cotizaciones') }}" class="nav-link {% if request.endpoint in ['cotizaciones','cotizacion_nueva','cotizacion_ver','cotizacion_editar'] %}active{% endif %}"><i class="bi bi-file-earmark-text-fill"></i><span>Cotizaciones</span></a>{% endif %}
+    {% if 'tareas' in m %}<a href="{{ url_for('tareas') }}" class="nav-link {% if 'tarea' in request.endpoint %}active{% endif %}"><i class="bi bi-check2-square"></i><span>Tareas</span></a>{% endif %}
+    {% if 'calendario' in m %}<a href="{{ url_for('calendario') }}" class="nav-link {% if request.endpoint=='calendario' or 'evento' in request.endpoint %}active{% endif %}"><i class="bi bi-calendar3"></i><span>Calendario</span></a>{% endif %}
+    {% if 'notas' in m %}<a href="{{ url_for('notas') }}" class="nav-link {% if 'nota' in request.endpoint %}active{% endif %}"><i class="bi bi-sticky-fill"></i><span>Notas</span></a>{% endif %}
+    {% endif %}
+    {% if 'clientes' in m %}
+    <div class="sb-sec">Proveedores</div>
+    <a href="{{ url_for('proveedores') }}" class="nav-link {% if request.endpoint in ['proveedores','proveedor_nuevo','proveedor_editar'] %}active{% endif %}"><i class="bi bi-truck"></i><span>Proveedores</span></a>
+    <a href="{{ url_for('proveedores', tipo_f='transportista') }}" class="nav-link {% if request.endpoint in ['proveedores'] and request.args.get('tipo_f')=='transportista' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-truck-front"></i><span>Transportistas</span></a>
+    <a href="{{ url_for('cotizaciones_proveedor') }}" class="nav-link {% if 'cotizacion_proveedor' in request.endpoint or 'cotizaciones_proveedor' in request.endpoint %}active{% endif %}"><i class="bi bi-file-earmark-check"></i><span>Cotizaciones</span></a>
+    <a href="{{ url_for('cotizaciones_proveedor', tipo='granel') }}" class="nav-link" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-building"></i><span>Granel</span></a>
+    <a href="{{ url_for('cotizaciones_proveedor', tipo='general') }}" class="nav-link" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-box"></i><span>General</span></a>
+    <a href="{{ url_for('ordenes_compra') }}" class="nav-link {% if 'orden_compra' in request.endpoint %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-cart-check"></i><span>Órd. Compra</span></a>
+    {% endif %}
+    {% if 'inventario' in m or 'produccion' in m %}
+    <div class="sb-sec">Operaciones</div>
+    {% if 'inventario' in m %}<a href="{{ url_for('inventario') }}" class="nav-link {% if 'inventario' in request.endpoint or 'producto' in request.endpoint or 'lote' in request.endpoint %}active{% endif %}"><i class="bi bi-box-seam-fill"></i><span>Inventario</span></a>{% endif %}
+    {% if 'inventario' in m %}<a href="{{ url_for('inventario_ingresos') }}" class="nav-link {% if request.endpoint=='inventario_ingresos' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-plus-square"></i><span>Multi-Ingreso</span></a>{% endif %}
+    {% if 'produccion' in m %}<a href="{{ url_for('produccion_index') }}" class="nav-link {% if 'produccion' in request.endpoint or 'compra' in request.endpoint or 'materia' in request.endpoint or 'receta' in request.endpoint or 'reserva' in request.endpoint %}active{% endif %}"><i class="bi bi-gear-fill"></i><span>Producción</span></a>{% endif %}
+    {% if 'produccion' in m %}<a href="{{ url_for('ordenes_produccion') }}" class="nav-link {% if request.endpoint=='ordenes_produccion' or request.endpoint=='orden_completar' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-list-check"></i><span>Órdenes</span></a>{% endif %}
+    {% if 'produccion' in m %}<a href="{{ url_for('gantt') }}" class="nav-link {% if request.endpoint=='gantt' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-bar-chart-steps"></i><span>Gantt</span></a>{% endif %}
+    {% endif %}
+    <div class="sb-sec">Legal</div>
+    <a href="{{ url_for('legal_index') }}" class="nav-link {% if 'legal' in request.endpoint %}active{% endif %}"><i class="bi bi-shield-check"></i><span>Documentos legales</span></a>
+    <div class="sb-sec">Finanzas</div>
+    <a href="{{ url_for('contable_index') }}" class="nav-link {% if 'contable' in request.endpoint %}active{% endif %}"><i class="bi bi-calculator"></i><span>Contabilidad</span></a>
+    {% if 'contable' in request.endpoint %}
+    <a href="{{ url_for('contable_ingresos') }}" class="nav-link {% if request.endpoint=='contable_ingresos' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-graph-up"></i><span>Ingresos</span></a>
+    <a href="{{ url_for('contable_egresos') }}" class="nav-link {% if request.endpoint=='contable_egresos' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-graph-down"></i><span>Egresos</span></a>
+    <a href="{{ url_for('contable_libro_diario') }}" class="nav-link {% if request.endpoint=='contable_libro_diario' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-journal-text"></i><span>Libro diario</span></a>
+    {% endif %}
+    {% if 'gastos' in m %}<a href="{{ url_for('gastos') }}" class="nav-link {% if 'gasto' in request.endpoint %}active{% endif %}"><i class="bi bi-receipt"></i><span>Gastos</span></a>{% endif %}
+    <a href="{{ url_for('impuestos') }}" class="nav-link {% if 'impuesto' in request.endpoint %}active{% endif %}"><i class="bi bi-percent"></i><span>Reglas tributarias</span></a>
+    {% if 'reportes' in m %}<a href="{{ url_for('reportes') }}" class="nav-link {% if 'reporte' in request.endpoint %}active{% endif %}"><i class="bi bi-bar-chart-fill"></i><span>Reportes</span></a>{% endif %}
+    {% if 'nomina' in m %}
+    <div class="sb-sec">Recursos Humanos</div>
+    <a href="{{ url_for('nomina_index') }}" class="nav-link {% if 'nomina' in request.endpoint or 'empleado' in request.endpoint %}active{% endif %}"><i class="bi bi-people-fill"></i><span>Nómina</span></a>
+    {% endif %}
+    <div class="sb-sec">Herramientas</div>
+    <a href="{{ url_for('buscador') }}" class="nav-link {% if request.endpoint=='buscador' %}active{% endif %}"><i class="bi bi-search"></i><span>Buscador</span></a>
+    {% if current_user.rol == 'proveedor' %}
+    <div class="sb-sec">Portal</div>
+    <a href="{{ url_for('portal_proveedor') }}" class="nav-link {% if request.endpoint=='portal_proveedor' %}active{% endif %}"><i class="bi bi-house-fill"></i><span>Mi Portal</span></a>
+    <a href="{{ url_for('portal_prov_ticket') }}" class="nav-link {% if request.endpoint=='portal_prov_ticket' %}active{% endif %}"><i class="bi bi-chat-left-text"></i><span>Enviar Mensaje</span></a>
+    {% endif %}
+    {% if current_user.rol == 'admin' %}
+    <div class="sb-sec">Admin</div>
+    <a href="{{ url_for('admin_usuarios') }}" class="nav-link {% if 'admin_usuario' in request.endpoint %}active{% endif %}"><i class="bi bi-shield-person-fill"></i><span>Usuarios</span></a>
+    <a href="{{ url_for('actividad') }}" class="nav-link {% if request.endpoint=='actividad' %}active{% endif %}"><i class="bi bi-clock-history"></i><span>Actividad</span></a>
+    <a href="{{ url_for('admin_config') }}" class="nav-link {% if request.endpoint=='admin_config' %}active{% endif %}"><i class="bi bi-gear"></i><span>Empresa</span></a>
+    {% endif %}
+  </div>
+  <div class="sb-foot">
+    <div class="d-flex align-items-center justify-content-between mb-1">
+      <div class="d-flex align-items-center gap-2">
+        <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold"
+             style="width:31px;height:31px;font-size:.8rem;flex-shrink:0">{{ current_user.nombre[0].upper() }}</div>
+        <div class="ui"><div class="u-name">{{ current_user.nombre }}</div>
+          <span class="u-rol">{{ current_user.rol }}</span></div>
+      </div>
+      <div>
+        <button class="notif-btn" id="notifBtn" onclick="toggleNotif(event)" title="Notificaciones">
+          <i class="bi bi-bell-fill"></i>
+          {% if notif_count > 0 %}<span class="notif-badge">{{ notif_count if notif_count < 10 else '9+' }}</span>{% endif %}
+        </button>
+      </div>
+    </div>
+  </div>
+</nav>
+<!-- Mobile overlay -->
+<div id="sb-overlay" onclick="closeSB()"></div>
+<div id="main">
+  {% if session.get('admin_real_id') %}
+  <div style="background:#FF8B00;color:#fff;padding:.55rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;font-size:.84rem;font-weight:600;position:sticky;top:0;z-index:200">
+    <span><i class="bi bi-eye-fill me-2"></i>Viendo como: <strong>{{ current_user.nombre }}</strong> ({{ current_user.rol }})</span>
+    <form method="POST" action="{{ url_for('admin_volver') }}" style="margin:0">
+      <button type="submit" class="btn btn-sm" style="background:#fff;color:#FF8B00;border:none;font-weight:700;padding:4px 12px;border-radius:4px">
+        <i class="bi bi-arrow-left-circle me-1"></i>Volver a Admin
+      </button>
+    </form>
+  </div>
+  {% endif %}
+  <div class="topbar">
+    <!-- Hamburger for mobile -->
+    <button id="sb-tog" onclick="openSB()" aria-label="Menú"><i class="bi bi-list"></i></button>
+    <h1 class="pg-title">{% block page_title %}{% endblock %}</h1>
+    <div class="topbar-right d-flex align-items-center gap-2 ms-auto flex-nowrap">
+      {% block topbar_actions %}{% endblock %}
+      <span class="text-muted d-none d-md-inline" style="font-size:.8rem;white-space:nowrap"><i class="bi bi-calendar3 me-1"></i>{{ now.strftime('%d %b %Y') }}</span>
+      <button class="btn btn-sm btn-ghost d-none d-md-inline-flex align-items-center"
+              style="padding:.3rem .5rem;border-radius:8px;border:1px solid var(--border)"
+              onclick="toggleTheme()" title="Cambiar tema">
+        <i class="bi bi-sun-fill" id="themeIcon" style="font-size:.9rem"></i>
+      </button>
+<button class="btn btn-sm d-none d-md-inline-flex" style="background:none;border:1px solid var(--border);color:var(--text2);padding:4px 10px;font-size:.78rem" onclick="new bootstrap.Modal(document.getElementById('modalOnboarding')).show();goStep(0);" title="Ver tutorial">
+        <i class="bi bi-question-circle me-1"></i>Ayuda
+      </button>
+      <div class="dropdown">
+        <button class="btn btn-sm dropdown-toggle d-flex align-items-center gap-2" style="background:none;border:1px solid var(--border);padding:5px 10px;border-radius:20px;color:var(--text)" data-bs-toggle="dropdown">
+          <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold" style="width:26px;height:26px;font-size:.72rem;flex-shrink:0">{{ current_user.nombre[0].upper() }}</div>
+          <span class="d-none d-md-inline" style="font-size:.82rem;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ current_user.nombre.split()[0] }}</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" style="min-width:200px;border-radius:8px;box-shadow:0 8px 24px rgba(9,30,66,.15);border:1px solid var(--border);padding:.4rem 0">
+          <li><div style="padding:.6rem 1rem .3rem">
+            <div style="font-weight:700;font-size:.85rem;color:var(--text)">{{ current_user.nombre }}</div>
+            <div style="font-size:.75rem;color:var(--text2)">{{ current_user.email }}</div>
+            <span class="b b-negociacion mt-1 d-inline-block">{{ current_user.rol }}</span>
+          </div></li>
+          <li><hr class="dropdown-divider my-1"></li>
+          <li><a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('perfil') }}" style="font-size:.85rem;padding:.5rem 1rem"><i class="bi bi-person-gear" style="color:#0052CC"></i>Mi perfil</a></li>
+          <li><a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('mi_actividad') }}" style="font-size:.85rem;padding:.5rem 1rem"><i class="bi bi-bar-chart-fill" style="color:#00875A"></i>Mi actividad</a></li>
+          <li><a class="dropdown-item d-flex align-items-center gap-2" href="#" onclick="new bootstrap.Modal(document.getElementById('modalOnboarding')).show();goStep(0);" style="font-size:.85rem;padding:.5rem 1rem"><i class="bi bi-question-circle" style="color:#FF8B00"></i>Ver tutorial</a></li>
+          <li><hr class="dropdown-divider my-1"></li>
+          <li><a class="dropdown-item d-flex align-items-center gap-2 text-danger" href="{{ url_for('logout') }}" style="font-size:.85rem;padding:.5rem 1rem"><i class="bi bi-box-arrow-right"></i>Cerrar sesión</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }} alert-dismissible fade show">{{ msg }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+    {% endfor %}{% endif %}{% endwith %}
+    {% block content %}{% endblock %}
+  </div>
+</div>
+<!-- Panel notificaciones flotante -->
+<div class="notif-dd" id="notifDd" style="display:none">
+  <div class="notif-dd-head"><span><i class="bi bi-bell me-1"></i>Notificaciones</span>
+    <form method="POST" action="{{ url_for('notificaciones_marcar_todas') }}" style="display:inline;margin:0">
+      <button type="submit" style="font-size:.75rem;color:#5e72e4;text-decoration:none;background:none;border:none;padding:0;cursor:pointer" onclick="document.getElementById('notifDd').style.display='none'">Marcar leídas</button>
+    </form>
+  </div>
+  <div id="notifList"><div class="p-3 text-center text-muted" style="font-size:.8rem">Cargando...</div></div>
+  <div style="padding:.5rem 1rem;text-align:center;border-top:1px solid #f0f2ff">
+    <a href="{{ url_for('notificaciones') }}" style="font-size:.78rem;color:#5e72e4;text-decoration:none">Ver todas</a>
+  </div>
+</div>
+<!-- Buscador flotante -->
+<button id="diagBtn" onclick="abrirBuscador()" title="Buscador global (Ctrl+K)"><i class="bi bi-search"></i></button>
+<!-- Search overlay -->
+<div id="searchOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);backdrop-filter:blur(3px)" onclick="if(event.target===this)cerrarBuscador()">
+  <div style="max-width:580px;margin:80px auto 0;padding:0 1rem">
+    <div style="background:var(--surface);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;border:1px solid var(--border)">
+      <div style="padding:.85rem 1rem;display:flex;align-items:center;gap:.75rem;border-bottom:1px solid var(--border)">
+        <i class="bi bi-search" style="color:var(--text2);font-size:1.05rem;flex-shrink:0"></i>
+        <input type="text" id="searchInput" placeholder="Buscar clientes, ventas, productos, proveedores..."
+               style="border:none;outline:none;flex:1;font-size:.95rem;background:transparent;color:var(--text)"
+               oninput="doBuscar(this.value)" onkeydown="handleSearchKey(event)">
+        <kbd style="font-size:.7rem;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;flex-shrink:0">ESC</kbd>
+      </div>
+      <div id="searchResults" style="max-height:380px;overflow-y:auto;padding:.5rem 0">
+        <div style="text-align:center;padding:2rem;color:var(--text2);font-size:.85rem">
+          <i class="bi bi-search" style="font-size:1.5rem;display:block;margin-bottom:.5rem;opacity:.35"></i>
+          Escribe para buscar en todo el sistema
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// ── Sidebar mobile drawer ─────────────────────────
+function openSB(){
+  document.getElementById('sb').classList.add('sb-open');
+  document.getElementById('sb-overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeSB(){
+  document.getElementById('sb').classList.remove('sb-open');
+  document.getElementById('sb-overlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+// Close on ESC
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeSB();});
+// Close sidebar when a nav link is clicked on mobile
+document.querySelectorAll('#sb .nav-link').forEach(function(el){
+  el.addEventListener('click',function(){if(window.innerWidth<=768)closeSB();});
+});
+// Notificaciones
+function toggleNotif(e){
+  e.stopPropagation();
+  var dd=document.getElementById('notifDd');
+  if(dd.style.display==='block'){dd.style.display='none';return;}
+  dd.style.display='block';
+  fetch('/notificaciones/recientes').then(r=>r.json()).then(data=>{
+    var html='';
+    if(data.length===0){html='<div class="p-3 text-center text-muted" style="font-size:.8rem">Sin notificaciones</div>';}
+    else{data.forEach(n=>{html+='<div class="notif-item'+(n.leida?'':' unread')+'" onclick="marcarLeida(event,this,'+n.id+')">'
+      +'<div class="ni-title">'+n.titulo+'</div>'
+      +'<div class="ni-msg">'+n.mensaje+'</div>'
+      +'<div class="ni-time">'+n.tiempo+'</div>'
+      +'<a href="'+n.url+'" style="display:none" id="notif-link-'+n.id+'"></a></div>';});}
+    document.getElementById('notifList').innerHTML=html;
+  }).catch(()=>{});
+}
+function marcarLeida(e,el,id){
+  e.stopPropagation();
+  fetch('/notificaciones/'+id+'/leida',{method:'POST',headers:{'Content-Type':'application/json'}})
+    .then(()=>{
+      el.parentElement.removeChild(el);
+      var badge=document.getElementById('notif-badge');
+      if(badge){var c=parseInt(badge.textContent||0)-1;if(c<=0){if(badge.parentElement)badge.parentElement.removeChild(badge);}else badge.textContent=c;}
+      var dest=document.getElementById('notif-link-'+id);
+      if(dest&&dest.href&&dest.href!=='#'){setTimeout(function(){window.location=dest.href;},100);}
+    });
+}
+document.addEventListener('click',function(e){
+  var dd=document.getElementById('notifDd');
+  if(dd&&!dd.contains(e.target)&&e.target.id!=='notifBtn')dd.style.display='none';
+});
+// ── Overlay Buscador ──────────────────────────
+var _srchTimer=null;
+function abrirBuscador(){
+  document.getElementById('searchOverlay').style.display='block';
+  setTimeout(function(){document.getElementById('searchInput').focus();},50);
+  document.getElementById('searchResults').innerHTML='<div style="text-align:center;padding:2rem;color:var(--text2);font-size:.85rem"><i class="bi bi-search" style="font-size:1.5rem;display:block;margin-bottom:.5rem;opacity:.35"></i>Escribe para buscar en todo el sistema</div>';
+  document.getElementById('searchInput').value='';
+}
+function cerrarBuscador(){
+  document.getElementById('searchOverlay').style.display='none';
+}
+function handleSearchKey(e){
+  if(e.key==='Escape') cerrarBuscador();
+  if(e.key==='Enter'){
+    var q=document.getElementById('searchInput').value.trim();
+    if(q) window.location='/buscador?q='+encodeURIComponent(q);
+  }
+}
+function doBuscar(q){
+  clearTimeout(_srchTimer);
+  if(!q||q.length<2){
+    document.getElementById('searchResults').innerHTML='<div style="text-align:center;padding:2rem;color:var(--text2);font-size:.85rem"><i class="bi bi-search" style="font-size:1.5rem;display:block;margin-bottom:.5rem;opacity:.35"></i>Escribe para buscar en todo el sistema</div>';
+    return;
+  }
+  document.getElementById('searchResults').innerHTML='<div style="text-align:center;padding:1.5rem;color:var(--text2);font-size:.85rem"><i class="bi bi-hourglass-split"></i> Buscando...</div>';
+  _srchTimer=setTimeout(function(){
+    fetch('/api/buscar?q='+encodeURIComponent(q),{headers:{'X-Requested-With':'XMLHttpRequest'}})
+      .then(function(r){return r.json();})
+      .then(function(data){
+        var html='';
+        if(!data.results||data.results.length===0){
+          html='<div class="sr-empty">'+
+            '<i class="bi bi-emoji-frown" style="font-size:1.3rem;display:block;margin-bottom:.5rem;opacity:.35"></i>'+
+            'Sin resultados para <em>'+q+'</em></div>';
+        } else {
+          data.results.forEach(function(r){
+            html+='<a href="'+r.url+'" class="sr-item" onclick="cerrarBuscador()">'
+              +'<span class="sr-icon" style="background:'+r.color+'18"><i class="bi bi-'+r.icon+'" style="color:'+r.color+'"></i></span>'
+              +'<span class="sr-body"><span class="sr-label">'+r.label+'</span>'
+              +(r.sub?'<span class="sr-sub">'+r.sub+'</span>':'')+'</span>'
+              +'<span class="sr-badge">'+r.type+'</span></a>';
+          });
+          html+='<div class="sr-footer"><a href="/buscador?q='+encodeURIComponent(q)+'" onclick="cerrarBuscador()">Ver todos los resultados →</a></div>';
+        }
+        document.getElementById('searchResults').innerHTML=html;
+      })
+      .catch(function(){document.getElementById('searchResults').innerHTML='<div style="text-align:center;padding:1.5rem;color:var(--text2);font-size:.85rem">Error al buscar</div>';});
+  }, 300);
+}
+// Ctrl+K shortcut to open search
+document.addEventListener('keydown',function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();abrirBuscador();}
+});
+</script>
+<script>
+/* ── Auto-título global ─────────────────────────────────────────
+   setupAutoTitulo('#idTitulo', ['#campo1','#campo2',...])
+   Rellena el campo título uniendo los valores de los campos fuente
+   con ", ". Si el usuario edita el título manualmente, deja de
+   rellenarlo automáticamente.
+   ─────────────────────────────────────────────────────────────── */
+function setupAutoTitulo(tituloSel, sourceIds){
+  var tEl = document.querySelector(tituloSel);
+  if(!tEl) return;
+  function build(){
+    if(tEl._editadoManual) return;
+    var partes = [];
+    sourceIds.forEach(function(sid){
+      var el = document.querySelector(sid);
+      if(!el) return;
+      var v = '';
+      if(el.tagName === 'SELECT'){
+        var o = el.options[el.selectedIndex];
+        v = (o && o.value) ? o.text : '';
+      } else {
+        v = (el.value || '').trim();
+      }
+      if(el.type === 'date' && v){
+        try{
+          var d = new Date(v + 'T00:00:00');
+          v = d.toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit',year:'numeric'});
+        }catch(e){}
+      }
+      if(v) partes.push(v);
+    });
+    if(partes.length) tEl.value = partes.join(', ');
+  }
+  tEl.addEventListener('input', function(){ this._editadoManual = true; });
+  sourceIds.forEach(function(sid){
+    var el = document.querySelector(sid);
+    if(el){ el.addEventListener('change', build); el.addEventListener('input', build); }
+  });
+  build();
+}
+function copiarTexto(el,txt){
+  navigator.clipboard.writeText(txt).then(function(){
+    var ic=el.querySelector('.bi');
+    if(ic){ic.className='bi bi-check2';}
+    setTimeout(function(){if(ic)ic.className='bi bi-clipboard ms-1';},1500);
+  });
+}
+</script>
+<script>
+(function(){
+  var _t=null,_LIMIT=5*60*1000;
+  function _reset(){clearTimeout(_t);_t=setTimeout(function(){window.location='/logout';},_LIMIT);}
+  ['mousemove','keypress','click','scroll','touchstart'].forEach(function(e){document.addEventListener(e,_reset,{passive:true});});
+  _reset();
+})();
+</script>
+<!-- Floating Action Button — Acciones Rápidas -->
+<button class="fab" id="btnFAB" title="Acciones rápidas" data-bs-toggle="modal" data-bs-target="#modalQuickActions" aria-label="Acciones rápidas">
+  <i class="bi bi-plus-lg"></i>
+</button>
+
+<!-- Onboarding Tutorial Modal -->
+<div class="modal fade" id="modalOnboarding" tabindex="-1" data-bs-backdrop="true" data-bs-keyboard="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg" style="max-width:660px">
+    <div class="modal-content" style="border-radius:16px;border:none;overflow:hidden;height:560px;display:flex;flex-direction:column">
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,#253858 0%,#0747A6 100%);padding:2rem;color:#fff;position:relative">
+        <div style="position:absolute;top:-20px;right:-20px;width:120px;height:120px;background:rgba(255,255,255,.05);border-radius:50%"></div>
+        <button type="button" onclick="bootstrap.Modal.getInstance(document.getElementById('modalOnboarding')).hide()" style="background:none;border:none;color:rgba(255,255,255,.7);font-size:1.2rem;cursor:pointer;padding:.25rem .5rem;border-radius:4px;position:absolute;top:.75rem;right:.75rem" title="Cerrar">&times;</button>
+        <div class="d-flex align-items-center gap-3 mb-2">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 341.94 261.01" height="38" style="flex-shrink:0"><path fill="rgba(255,255,255,.9)" d="M239.09,111.71C234.61,109,225,105.23,225,105.23s-1.42-.5-1.34-.9c.21-1.2,2.76-1.54,9.63-10.7,7.11-9.49,8.6-13.94,9.94-17.84,1.14-3.3,2.38-11,1.72-11.79s-9.12-1.35-16.48.3c-7.06,1.58-11.1,3.47-11.5,3-.64-.71.95-6.23,1.11-11.33.17-5.28.32-6.75-.41-11.49-.61-4-1.47-7.57-2.65-7.91s-5,.82-7,1.69A81.41,81.41,0,0,0,198.41,44c-2.91,2-6.52,5.48-7.55,5.69s-2.79-6-6.9-13.15a86,86,0,0,0-5.69-9.09c-1.74-2.45-4.91-7-7.28-7h0c-2.38,0-5.54,4.59-7.28,7A84.29,84.29,0,0,0,158,36.52c-4.12,7.13-5.76,13.38-6.9,13.15s-4.73-3.8-7.64-5.8a79.94,79.94,0,0,0-9.56-5.58c-2-.87-5.81-2-7-1.69s-2,3.94-2.65,7.91c-.73,4.74-.58,6.21-.41,11.49.16,5.1,1.74,10.62,1.11,11.33-.4.44-4.44-1.45-11.5-3C106.08,62.65,97.72,63.08,97,64s.57,8.49,1.71,11.79c1.35,3.9,2.83,8.35,10,17.84,6.87,9.16,9.41,9.5,9.63,10.7.07.4-1.35.9-1.35.9s-9.57,3.72-14.06,6.48C99.17,114,95,117.34,95,119.08c0,2.11,3.54,4.62,8.14,7.67s15.36,7.83,26.75,6.75c12.82-1.22,20.68-7.21,21.76-6.74.49.21.11,5.24,5.16,10.44,4.43,4.56,10.58,10,14.15,10s9.72-5.42,14.15-10c5-5.2,4.67-10.23,5.16-10.44,1.07-.47,8.93,5.52,21.76,6.74,11.39,1.08,22.07-3.65,26.74-6.75s8.17-5.56,8.15-7.67C246.93,117.34,242.76,114,239.09,111.71Z"/></svg>
+          <div>
+            <h4 class="mb-0 fw-bold" style="font-size:1.2rem">Bienvenido a EVORE CRM</h4>
+            <p class="mb-0" style="opacity:.8;font-size:.85rem">Tu sistema de gestión comercial</p>
+          </div>
+        </div>
+      </div>
+      <!-- Steps carousel -->
+      <div class="modal-body p-0" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+        <div id="onboardCarousel" class="carousel slide h-100" data-bs-ride="false" style="display:flex;flex-direction:column;height:100%">
+          <div class="carousel-inner" style="flex:1;overflow:hidden">
+            <!-- Step 1 -->
+            <div class="carousel-item active" style="height:100%;overflow-y:auto">
+              <div style="padding:1.75rem">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <div style="width:36px;height:36px;background:#DEEBFF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-speedometer2" style="color:#0052CC;font-size:1.1rem"></i></div>
+                  <h5 class="mb-0 fw-bold" style="font-size:1rem">Dashboard principal</h5>
+                </div>
+                <p style="color:#42526E;font-size:.9rem">El dashboard es tu centro de control. Aquí verás un resumen de <strong>ventas activas, clientes, tareas pendientes</strong> y los KPIs más importantes del negocio en tiempo real.</p>
+                <div style="background:#F4F5F7;border-radius:8px;padding:1rem;font-size:.83rem;color:#6B778C">
+                  💡 <strong>Tip:</strong> Usa el botón <strong>+</strong> (esquina inferior derecha) para acceder rápidamente a las acciones más frecuentes sin navegar por el menú.
+                </div>
+              </div>
+            </div>
+            <!-- Step 2 -->
+            <div class="carousel-item" style="height:100%;overflow-y:auto">
+              <div style="padding:1.75rem">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <div style="width:36px;height:36px;background:#E3FCEF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-people-fill" style="color:#00875A;font-size:1.1rem"></i></div>
+                  <h5 class="mb-0 fw-bold" style="font-size:1rem">Clientes y Ventas</h5>
+                </div>
+                <p style="color:#42526E;font-size:.9rem">Gestiona tu cartera de clientes y el <strong>pipeline de ventas</strong> con estados: <em>Prospecto → Negociación → Anticipo pagado → Completado</em>.</p>
+                <ul style="color:#42526E;font-size:.85rem;padding-left:1.2rem">
+                  <li>En ventas puedes cambiar el estado <strong>directamente desde la lista</strong> con el selector de estado.</li>
+                  <li>Al completar una venta puedes generar la <strong>remisión de entrega</strong>.</li>
+                  <li>Almacena información bancaria del cliente para <strong>copiar con un clic</strong>.</li>
+                </ul>
+              </div>
+            </div>
+            <!-- Step 3 -->
+            <div class="carousel-item" style="height:100%;overflow-y:auto">
+              <div style="padding:1.75rem">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <div style="width:36px;height:36px;background:#FFFAE6;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-file-earmark-text-fill" style="color:#FF8B00;font-size:1.1rem"></i></div>
+                  <h5 class="mb-0 fw-bold" style="font-size:1rem">Cotizaciones</h5>
+                </div>
+                <p style="color:#42526E;font-size:.9rem">Crea cotizaciones profesionales con <strong>cálculo automático de IVA</strong> y exporta en PDF listo para enviar al cliente.</p>
+                <div style="background:#FFFAE6;border-radius:8px;padding:1rem;font-size:.83rem;color:#6B778C">
+                  💡 <strong>Tip:</strong> Desde la cotización puedes <strong>convertirla en venta</strong> directamente con un clic para no repetir datos.
+                </div>
+              </div>
+            </div>
+            <!-- Step 4 -->
+            <div class="carousel-item" style="height:100%;overflow-y:auto">
+              <div style="padding:1.75rem">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <div style="width:36px;height:36px;background:#EAE6FF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-check2-all" style="color:#5243AA;font-size:1.1rem"></i></div>
+                  <h5 class="mb-0 fw-bold" style="font-size:1rem">Tareas y Calendario</h5>
+                </div>
+                <p style="color:#42526E;font-size:.9rem">Organiza el trabajo del equipo con <strong>tareas asignadas, prioridades y fechas límite</strong>. El calendario muestra todo de un vistazo.</p>
+                <ul style="color:#42526E;font-size:.85rem;padding-left:1.2rem">
+                  <li>Cada tarea puede tener <strong>múltiples asignados</strong> y comentarios.</li>
+                  <li>Los <strong>administradores</strong> ven todas las tareas del equipo.</li>
+                  <li>Otros usuarios ven únicamente <strong>sus propias tareas</strong>.</li>
+                </ul>
+              </div>
+            </div>
+            <!-- Step 5 -->
+            <div class="carousel-item" style="height:100%;overflow-y:auto">
+              <div style="padding:1.75rem">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <div style="width:36px;height:36px;background:#DEEBFF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-cart-fill" style="color:#0052CC;font-size:1.1rem"></i></div>
+                  <h5 class="mb-0 fw-bold" style="font-size:1rem">Portal de Cliente</h5>
+                </div>
+                <p style="color:#42526E;font-size:.9rem">Los usuarios con perfil <strong>cliente</strong> acceden a un portal personalizado donde pueden:</p>
+                <ul style="color:#42526E;font-size:.85rem;padding-left:1.2rem">
+                  <li>Ver el historial de <strong>pedidos y cotizaciones</strong> de su empresa.</li>
+                  <li>Crear una <strong>pre-cotización</strong> que su sales manager aprueba.</li>
+                  <li>Descargar <strong>facturas, remisiones y cotizaciones</strong> en PDF.</li>
+                  <li>Enviar <strong>tickets o mensajes</strong> directamente a su sales manager.</li>
+                </ul>
+              </div>
+            </div>
+            <!-- Step 6 -->
+            <div class="carousel-item" style="height:100%;overflow-y:auto">
+              <div style="padding:1.75rem">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <div style="width:36px;height:36px;background:#E3FCEF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-graph-up-arrow" style="color:#00875A;font-size:1.1rem"></i></div>
+                  <h5 class="mb-0 fw-bold" style="font-size:1rem">Tu actividad mensual</h5>
+                </div>
+                <p style="color:#42526E;font-size:.9rem">Cada usuario tiene un <strong>resumen de actividad mensual</strong> accesible desde "Mi perfil": tareas completadas, clientes creados y más.</p>
+                <div style="background:#E3FCEF;border-radius:8px;padding:1rem;font-size:.83rem;color:#006644">
+                  ✅ Puedes consultar este tutorial en cualquier momento desde el menú de tu perfil.
+                </div>
+              </div>
+            </div>
+            <!-- Step 7: Proveedores y OC -->
+            <div class="carousel-item" style="height:100%;overflow-y:auto">
+              <div style="padding:1.75rem">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <div style="width:36px;height:36px;background:#EAE6FF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-truck" style="color:#5243AA;font-size:1.1rem"></i></div>
+                  <h5 class="mb-0 fw-bold" style="font-size:1rem">Proveedores y Órdenes de Compra</h5>
+                </div>
+                <p style="color:#42526E;font-size:.9rem">Gestiona tu cadena de suministro con el módulo de <strong>Proveedores</strong> y crea <strong>Órdenes de Compra</strong> formales que tus proveedores pueden confirmar directamente desde su portal.</p>
+                <ul style="color:#42526E;font-size:.85rem;padding-left:1.2rem">
+                  <li>Crea órdenes de compra y envíalas como <strong>PDF profesional</strong>.</li>
+                  <li>Los proveedores con acceso al portal pueden <strong>confirmar la recepción</strong> de sus órdenes.</li>
+                  <li>Lleva un historial de cotizaciones por proveedor para <strong>comparar precios</strong>.</li>
+                </ul>
+              </div>
+            </div>
+            <!-- Step 8: Inventario -->
+            <div class="carousel-item" style="height:100%;overflow-y:auto">
+              <div style="padding:1.75rem">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <div style="width:36px;height:36px;background:#E3FCEF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-box-seam" style="color:#00875A;font-size:1.1rem"></i></div>
+                  <h5 class="mb-0 fw-bold" style="font-size:1rem">Inventario y Producción</h5>
+                </div>
+                <p style="color:#42526E;font-size:.9rem">Control completo de tu <strong>inventario de productos</strong> con lotes, NSO, y vencimientos. Gestiona <strong>órdenes de producción</strong> y reservas de materias primas.</p>
+                <ul style="color:#42526E;font-size:.85rem;padding-left:1.2rem">
+                  <li>Cada producto tiene <strong>código NSO, SKU y categoría</strong>.</li>
+                  <li>Las <strong>recetas (BOM)</strong> definen qué materias primas usa cada producto.</li>
+                  <li>Al crear una orden de producción, el sistema <strong>reserva automáticamente</strong> las materias.</li>
+                </ul>
+              </div>
+            </div>
+            <!-- Step 9: Finanzas -->
+            <div class="carousel-item" style="height:100%;overflow-y:auto">
+              <div style="padding:1.75rem">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <div style="width:36px;height:36px;background:#DEEBFF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-calculator" style="color:#0052CC;font-size:1.1rem"></i></div>
+                  <h5 class="mb-0 fw-bold" style="font-size:1rem">Finanzas y Gastos</h5>
+                </div>
+                <p style="color:#42526E;font-size:.9rem">Registra <strong>gastos operativos</strong>, configura <strong>reglas tributarias</strong> (IVA, retenciones) y lleva el libro contable de ingresos y egresos.</p>
+                <ul style="color:#42526E;font-size:.85rem;padding-left:1.2rem">
+                  <li>Las reglas tributarias se aplican automáticamente al calcular cotizaciones.</li>
+                  <li>El <strong>dashboard financiero</strong> muestra el balance del mes en tiempo real.</li>
+                  <li>Exporta reportes para tu contador.</li>
+                </ul>
+              </div>
+            </div>
+            <!-- Step 10: Admin -->
+            <div class="carousel-item" style="height:100%;overflow-y:auto">
+              <div style="padding:1.75rem">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <div style="width:36px;height:36px;background:#FFEBE6;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-shield-lock" style="color:#DE350B;font-size:1.1rem"></i></div>
+                  <h5 class="mb-0 fw-bold" style="font-size:1rem">Administración y Seguridad</h5>
+                </div>
+                <p style="color:#42526E;font-size:.9rem">Como administrador, controlas <strong>quién accede a qué</strong> en el sistema. Cada usuario tiene un rol con permisos específicos.</p>
+                <ul style="color:#42526E;font-size:.85rem;padding-left:1.2rem">
+                  <li><strong>Admin:</strong> acceso total al sistema.</li>
+                  <li><strong>Sales Manager / Vendedor:</strong> clientes, ventas, cotizaciones.</li>
+                  <li><strong>Portal Cliente:</strong> solo ve sus pedidos y puede solicitar cotizaciones.</li>
+                  <li><strong>Portal Proveedor:</strong> solo ve sus órdenes de compra.</li>
+                </ul>
+                <div style="background:#FFEBE6;border-radius:8px;padding:1rem;font-size:.83rem;color:#BF2600;margin-top:.75rem">
+                  La sesión se cierra automáticamente tras <strong>5 minutos</strong> de inactividad por seguridad.
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Indicators -->
+          <div style="padding:.75rem 1.75rem;display:flex;justify-content:center;gap:6px" id="onboardDots">
+            <button onclick="goStep(0)" class="ob-dot ob-dot-active"></button>
+            <button onclick="goStep(1)" class="ob-dot"></button>
+            <button onclick="goStep(2)" class="ob-dot"></button>
+            <button onclick="goStep(3)" class="ob-dot"></button>
+            <button onclick="goStep(4)" class="ob-dot"></button>
+            <button onclick="goStep(5)" class="ob-dot"></button>
+            <button onclick="goStep(6)" class="ob-dot"></button>
+            <button onclick="goStep(7)" class="ob-dot"></button>
+            <button onclick="goStep(8)" class="ob-dot"></button>
+            <button onclick="goStep(9)" class="ob-dot"></button>
+          </div>
+        </div>
+      </div>
+      <!-- Footer -->
+      <div class="modal-footer border-0 flex-shrink-0" style="padding:.85rem 1.5rem;justify-content:space-between;flex-wrap:nowrap;gap:.5rem;background:#fff;border-top:1px solid #F4F5F7">
+        <div class="form-check mb-0 flex-shrink-0">
+          <input class="form-check-input" type="checkbox" id="chkNoMostrar">
+          <label class="form-check-label" for="chkNoMostrar" style="font-size:.82rem;color:#6B778C;white-space:nowrap">No volver a mostrar</label>
+        </div>
+        <div class="d-flex gap-2 flex-shrink-0" style="align-items:center">
+          <button class="btn btn-sm btn-outline-secondary" id="btnObPrev" onclick="obNav(-1)" style="visibility:hidden;min-width:94px">← Anterior</button>
+          <span id="obStepLbl" style="font-size:.78rem;color:#6B778C;min-width:36px;text-align:center">1/10</span>
+          <button class="btn btn-sm btn-primary" id="btnObNext" onclick="obNav(1)" style="min-width:94px">Siguiente →</button>
+          <button class="btn btn-sm btn-success" id="btnObFin" onclick="cerrarOnboarding()" style="visibility:hidden;position:absolute;pointer-events:none;min-width:94px">¡Listo! ✓</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<style>
+.ob-dot{width:8px;height:8px;border-radius:50%;background:#DFE1E6;border:none;padding:0;cursor:pointer;transition:background .2s}
+.ob-dot-active{background:#0052CC;width:20px;border-radius:4px}
+#onboardCarousel .carousel-item{display:block!important;position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;transition:opacity .25s ease;pointer-events:none}
+#onboardCarousel .carousel-item.active{opacity:1;position:relative;pointer-events:auto}
+</style>
+<script>
+var _obStep=0,_obTotal=10;
+function goStep(n){
+  _obStep=n;
+  /* Manual slide — override Bootstrap's transform with opacity fade */
+  var items=document.querySelectorAll('#onboardCarousel .carousel-item');
+  items.forEach(function(el,i){
+    el.classList.toggle('active',i===n);
+  });
+  document.querySelectorAll('.ob-dot').forEach(function(d,i){d.className='ob-dot'+(i===n?' ob-dot-active':'');});
+  document.getElementById('btnObPrev').style.visibility=n>0?'visible':'hidden';
+  var isLast=n===_obTotal-1;
+  var btnNext=document.getElementById('btnObNext');
+  var btnFin=document.getElementById('btnObFin');
+  if(isLast){
+    btnNext.style.visibility='hidden'; btnNext.style.position='absolute'; btnNext.style.pointerEvents='none';
+    btnFin.style.visibility='visible'; btnFin.style.position=''; btnFin.style.pointerEvents='';
+  } else {
+    btnNext.style.visibility='visible'; btnNext.style.position=''; btnNext.style.pointerEvents='';
+    btnFin.style.visibility='hidden'; btnFin.style.position='absolute'; btnFin.style.pointerEvents='none';
+  }
+  document.getElementById('obStepLbl').textContent=(n+1)+'/'+_obTotal;
+}
+function obNav(dir){goStep(Math.min(Math.max(_obStep+dir,0),_obTotal-1));}
+function cerrarOnboarding(){
+  if(document.getElementById('chkNoMostrar').checked){
+    fetch('/onboarding/dismiss',{method:'POST',headers:{'Content-Type':'application/json'}});
+  }
+  bootstrap.Modal.getInstance(document.getElementById('modalOnboarding')).hide();
+}
+/* Initialize step 0 on page load */
+document.addEventListener('DOMContentLoaded',function(){ goStep(0); });
+</script>
+{% if session.pop('show_onboarding_once', False) and not current_user.onboarding_dismissed %}
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  setTimeout(function(){
+    var m=document.getElementById('modalOnboarding');
+    if(m){new bootstrap.Modal(m,{backdrop:true,keyboard:true}).show();}
+  },800);
+});
+</script>
+{% endif %}
+
+<!-- Quick Actions Modal -->
+<div class="modal fade" id="modalQuickActions" tabindex="-1" aria-labelledby="qaModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:480px">
+    <div class="modal-content" style="border-radius:16px;border:none;box-shadow:0 20px 60px rgba(9,30,66,.25)">
+      <div class="modal-header" style="background:var(--sb);border-radius:16px 16px 0 0;padding:1rem 1.25rem;border:none">
+        <div class="d-flex align-items-center gap-2">
+          <div style="width:32px;height:32px;background:rgba(255,255,255,.15);border-radius:8px;display:flex;align-items:center;justify-content:center">
+            <i class="bi bi-lightning-fill text-white" style="font-size:.95rem"></i>
+          </div>
+          <div>
+            <h5 class="modal-title text-white fw-bold mb-0" id="qaModalLabel" style="font-size:.95rem">Acción rápida</h5>
+            <p class="text-white mb-0" style="font-size:.72rem;opacity:.7">¿Qué quieres hacer ahora?</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body" style="padding:1.25rem">
+        <div class="quick-action-grid">
+          <a href="{{ url_for('venta_nueva') }}" class="qa-modal-btn">
+            <i class="bi bi-bag-plus" style="color:#0052CC"></i><span>Nueva Venta</span>
+          </a>
+          <a href="{{ url_for('cliente_nuevo') }}" class="qa-modal-btn">
+            <i class="bi bi-person-plus" style="color:#00875A"></i><span>Nuevo Cliente</span>
+          </a>
+          <a href="{{ url_for('cotizacion_nueva') }}" class="qa-modal-btn">
+            <i class="bi bi-file-earmark-plus" style="color:#FF8B00"></i><span>Cotización</span>
+          </a>
+          <a href="{{ url_for('orden_compra_nueva') }}" class="qa-modal-btn">
+            <i class="bi bi-cart-plus" style="color:#5243AA"></i><span>Orden de Compra</span>
+          </a>
+          <a href="{{ url_for('tarea_nueva') }}" class="qa-modal-btn">
+            <i class="bi bi-check2-square" style="color:#00875A"></i><span>Nueva Tarea</span>
+          </a>
+          <a href="{{ url_for('proveedor_nuevo') }}" class="qa-modal-btn">
+            <i class="bi bi-truck" style="color:#42526E"></i><span>Proveedor</span>
+          </a>
+          <a href="{{ url_for('gasto_nuevo') }}" class="qa-modal-btn">
+            <i class="bi bi-receipt" style="color:#DE350B"></i><span>Nuevo Gasto</span>
+          </a>
+          <a href="{{ url_for('producto_nuevo') }}" class="qa-modal-btn">
+            <i class="bi bi-box-seam" style="color:#0052CC"></i><span>Producto</span>
+          </a>
+          <a href="{{ url_for('nota_nueva') }}" class="qa-modal-btn">
+            <i class="bi bi-sticky" style="color:#FF991F"></i><span>Nueva Nota</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% block scripts %}{% endblock %}
+<script>
+// Theme toggle
+(function(){
+  var t = localStorage.getItem('evore_theme') || 'light';
+  document.documentElement.setAttribute('data-theme', t);
+  function updateIcon(){
+    var t = document.documentElement.getAttribute('data-theme');
+    var el = document.getElementById('themeIcon');
+    if(el) el.className = t==='dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+  }
+  window.toggleTheme = function(){
+    var cur = document.documentElement.getAttribute('data-theme');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('evore_theme', next);
+    updateIcon();
+  };
+  document.addEventListener('DOMContentLoaded', updateIcon);
+})();
+// -- Demo Layout Toggle --
+(function(){
+  var l=localStorage.getItem('evore_layout')||'default';
+  if(l==='horizon') document.documentElement.setAttribute('data-layout','horizon');
+  window.toggleDemoLayout=function(){
+    var cur=document.documentElement.getAttribute('data-layout')||'default';
+    var next=cur==='horizon'?'default':'horizon';
+    if(next==='horizon'){document.documentElement.setAttribute('data-layout','horizon');}
+    else{document.documentElement.removeAttribute('data-layout');}
+    localStorage.setItem('evore_layout',next);
+    var lbl=document.getElementById('demoLabel');
+    if(lbl) lbl.textContent=next==='horizon'?'Default':'Demo';
+  };
+  var lbl=document.getElementById('demoLabel');
+  if(lbl&&l==='horizon') lbl.textContent='Default';
+})();
+</script>
+</body></html>

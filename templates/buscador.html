@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% block title %}Buscador{% endblock %}{% block page_title %}Buscador Global{% endblock %}
+{% block content %}
+<div class="fc" style="max-width:900px">
+<form method="GET" class="mb-4">
+  <div class="input-group input-group-lg">
+    <span class="input-group-text"><i class="bi bi-search"></i></span>
+    <input type="text" name="q" class="form-control" placeholder="Buscar por producto, cliente, proveedor, NSO, número de venta, orden..." value="{{ q or '' }}" autofocus>
+    <button type="submit" class="btn btn-primary">Buscar</button>
+    {% if q %}<a href="{{ url_for('buscador') }}" class="btn btn-outline-secondary">Limpiar</a>{% endif %}
+  </div>
+</form>
+
+{% if q %}
+<div class="mb-2 text-muted" style="font-size:.85rem">Resultados para: <strong>{{ q }}</strong></div>
+
+{# CLIENTES #}
+{% if resultados.clientes %}
+<div class="tc mb-3">
+  <div class="ch"><i class="bi bi-people-fill me-2 text-primary"></i>Clientes ({{ resultados.clientes|length }})</div>
+  <table class="table table-hover">
+    <thead><tr><th>Empresa</th><th>NIT</th><th>Relación</th><th>Contacto</th><th></th></tr></thead>
+    <tbody>{% for c in resultados.clientes %}<tr>
+      <td><a href="{{ url_for('cliente_ver', id=c.id) }}" class="fw-semibold text-decoration-none">{{ c.empresa or c.nombre }}</a></td>
+      <td><small>{{ c.nit or '—' }}</small></td>
+      <td><span class="b b-{{ c.estado_relacion }}">{{ c.estado_relacion.replace('_',' ').title() }}</span></td>
+      <td><small>{% if c.contactos %}{{ c.contactos[0].nombre }}{% else %}—{% endif %}</small></td>
+      <td><a href="{{ url_for('cliente_ver', id=c.id) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a></td>
+    </tr>{% endfor %}</tbody>
+  </table>
+</div>
+{% endif %}
+
+{# PROVEEDORES #}
+{% if resultados.proveedores %}
+<div class="tc mb-3">
+  <div class="ch"><i class="bi bi-truck me-2 text-info"></i>Proveedores ({{ resultados.proveedores|length }})</div>
+  <table class="table table-hover">
+    <thead><tr><th>Empresa</th><th>NIT</th><th>Categoría</th><th>Email</th></tr></thead>
+    <tbody>{% for p in resultados.proveedores %}<tr>
+      <td class="fw-semibold">{{ p.empresa or p.nombre }}</td>
+      <td><small>{{ p.nit or '—' }}</small></td>
+      <td><small>{{ p.categoria or '—' }}</small></td>
+      <td><small>{{ p.email or '—' }}</small></td>
+    </tr>{% endfor %}</tbody>
+  </table>
+</div>
+{% endif %}
+
+{# PRODUCTOS #}
+{% if resultados.productos %}
+<div class="tc mb-3">
+  <div class="ch"><i class="bi bi-box-seam me-2 text-success"></i>Productos ({{ resultados.productos|length }})</div>
+  <table class="table table-hover">
+    <thead><tr><th>Nombre</th><th>SKU</th><th>NSO</th><th>Stock</th><th>Precio</th></tr></thead>
+    <tbody>{% for p in resultados.productos %}<tr>
+      <td class="fw-semibold">{{ p.nombre }}</td>
+      <td><small>{{ p.sku or '—' }}</small></td>
+      <td><small>{{ p.nso or '—' }}</small></td>
+      <td>{{ p.stock }}</td>
+      <td>$ {{ '{:,.0f}'.format(p.precio).replace(',','.') }}</td>
+    </tr>{% endfor %}</tbody>
+  </table>
+</div>
+{% endif %}
+
+{# VENTAS #}
+{% if resultados.ventas %}
+<div class="tc mb-3">
+  <div class="ch"><i class="bi bi-graph-up-arrow me-2 text-warning"></i>Ventas ({{ resultados.ventas|length }})</div>
+  <table class="table table-hover">
+    <thead><tr><th>N°</th><th>Título</th><th>Cliente</th><th>Total</th><th>Estado</th><th>Producción</th></tr></thead>
+    <tbody>{% for v in resultados.ventas %}<tr>
+      <td class="fw-semibold">{{ v.numero or '—' }}</td>
+      <td>{{ v.titulo }}</td>
+      <td>{{ v.cliente.empresa or v.cliente.nombre if v.cliente else '—' }}</td>
+      <td>$ {{ '{:,.0f}'.format(v.total).replace(',','.') }}</td>
+      <td><span class="b b-{{ v.estado }}">{{ v.estado.replace('_',' ').title() }}</span></td>
+      <td>{% set ops = v.ordenes_produccion %}
+        {% if ops %}
+          {% set comp = ops|selectattr('estado','equalto','completado')|list|length %}
+          <small>{{ comp }}/{{ ops|length }} completadas</small>
+        {% else %}—{% endif %}
+      </td>
+    </tr>{% endfor %}</tbody>
+  </table>
+</div>
+{% endif %}
+
+{# ÓRDENES DE PRODUCCIÓN #}
+{% if resultados.ordenes_prod %}
+<div class="tc mb-3">
+  <div class="ch"><i class="bi bi-gear me-2 text-danger"></i>Órdenes de Producción ({{ resultados.ordenes_prod|length }})</div>
+  <table class="table table-hover">
+    <thead><tr><th>ID</th><th>Producto</th><th>Cant.</th><th>Estado</th><th>Venta</th><th>Creada</th></tr></thead>
+    <tbody>{% for o in resultados.ordenes_prod %}<tr>
+      <td>#{{ o.id }}</td>
+      <td class="fw-semibold">{{ o.producto.nombre }}</td>
+      <td>{{ o.cantidad_producir|int }}</td>
+      <td>
+        {% if o.estado=='en_produccion' %}<span class="badge bg-primary">En producción</span>
+        {% elif o.estado=='completado' %}<span class="badge bg-success">Completado</span>
+        {% else %}<span class="badge bg-warning text-dark">Pendiente material</span>{% endif %}
+      </td>
+      <td>{% if o.venta %}{{ o.venta.numero or ('VNT-'+o.venta_id|string) }}{% else %}—{% endif %}</td>
+      <td><small>{{ o.creado_en.strftime('%d/%m/%Y') }}</small></td>
+    </tr>{% endfor %}</tbody>
+  </table>
+</div>
+{% endif %}
+
+{# ÓRDENES DE COMPRA #}
+{% if resultados.ordenes_compra %}
+<div class="tc mb-3">
+  <div class="ch"><i class="bi bi-cart-check me-2"></i>Órdenes de Compra ({{ resultados.ordenes_compra|length }})</div>
+  <table class="table table-hover">
+    <thead><tr><th>N°</th><th>Proveedor</th><th>Estado</th><th>Total</th><th>Emisión</th></tr></thead>
+    <tbody>{% for oc in resultados.ordenes_compra %}<tr>
+      <td class="fw-semibold">{{ oc.numero or '—' }}</td>
+      <td>{{ oc.proveedor.empresa or oc.proveedor.nombre if oc.proveedor else '—' }}</td>
+      <td>{% if oc.estado=='recibida' %}<span class="badge bg-success">Recibida</span>
+          {% elif oc.estado=='enviada' %}<span class="badge bg-primary">Enviada</span>
+          {% elif oc.estado=='cancelada' %}<span class="badge bg-danger">Cancelada</span>
+          {% else %}<span class="badge bg-secondary">Borrador</span>{% endif %}</td>
+      <td>$ {{ '{:,.0f}'.format(oc.total).replace(',','.') }}</td>
+      <td><small>{{ oc.fecha_emision.strftime('%d/%m/%Y') if oc.fecha_emision else '—' }}</small></td>
+    </tr>{% endfor %}</tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if not (resultados.clientes or resultados.proveedores or resultados.productos or resultados.ventas or resultados.ordenes_prod or resultados.ordenes_compra) %}
+<div class="text-center text-muted py-5">
+  <i class="bi bi-search" style="font-size:3rem"></i>
+  <p class="mt-3">No se encontraron resultados para <strong>{{ q }}</strong></p>
+</div>
+{% endif %}
+
+{% else %}
+<div class="text-center text-muted py-5">
+  <i class="bi bi-search" style="font-size:4rem;opacity:.3"></i>
+  <p class="mt-3" style="font-size:1.1rem">Busca en toda la base de datos</p>
+  <p class="text-muted" style="font-size:.88rem">Clientes, proveedores, productos, ventas (por número), órdenes de producción, órdenes de compra, NSO...</p>
+</div>
+{% endif %}
+</div>{% endblock %}

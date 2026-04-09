@@ -1,0 +1,99 @@
+<html lang="es"><head><meta charset="UTF-8">
+<title>{{ obj.numero or 'Cotización' }} — {{ empresa.nombre }}</title>
+<style>
+{% raw %}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:11pt;color:#1a1f36;background:#fff}
+.page{width:210mm;min-height:297mm;margin:0 auto;padding:16mm 16mm 20mm}
+.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1a1f36;padding-bottom:12px;margin-bottom:18px}
+.logo-wrap{display:flex;align-items:center}
+.brand-block{display:flex;flex-direction:column;justify-content:center}
+.brand-name{font-size:18pt;font-weight:800;color:#1a1f36;letter-spacing:-0.5px;font-family:'Helvetica Neue',Arial,sans-serif}
+.doc-title{text-align:right}
+.doc-title h1{font-size:22pt;font-weight:800;color:#1a1f36;letter-spacing:-0.5px}
+.doc-title .numero{font-size:10pt;color:#525f7f;margin-top:4px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.info-box{background:#f8f9fe;border-radius:8px;padding:10px 14px}
+.info-box h4{font-size:8pt;text-transform:uppercase;letter-spacing:.5px;color:#8898aa;margin-bottom:6px}
+.info-box p{font-size:10pt;color:#1a1f36;line-height:1.5}
+table{width:100%;border-collapse:collapse;margin:12px 0}
+th{background:#1a1f36;color:#fff;font-size:9pt;padding:8px 10px;text-align:left}
+th.r,td.r{text-align:right}
+td{padding:7px 10px;font-size:10pt;border-bottom:1px solid #e8ecf5}
+tr:nth-child(even) td{background:#f8f9fe}
+.totals{margin-left:auto;width:260px;margin-top:12px}
+.totals table td{font-size:10pt}
+.totals .grand{background:#1a1f36;color:#fff;font-weight:700;font-size:12pt}
+.anticipo-box{margin-top:10px;padding:10px 14px;background:#e8ecff;border-radius:8px;display:flex;justify-content:space-between}
+.footer-notes{margin-top:18px;padding-top:12px;border-top:1px solid #e8ecf5;font-size:9pt;color:#525f7f}
+.estado-badge{display:inline-block;padding:3px 12px;border-radius:20px;font-size:9pt;font-weight:600;background:#e8ecff;color:#5e72e4}
+@media print{body{background:#fff}.page{padding:10mm 12mm}}
+{% endraw %}
+</style></head>
+<body><div class="page">
+<div class="header">
+  <div class="logo-wrap">
+    <div class="brand-block">
+      {% if empresa and empresa.nombre %}<span class="brand-name">{{ empresa.nombre }}</span>{% endif %}
+    </div>
+  </div>
+  <div class="doc-title">
+    <h1>COTIZACIÓN</h1>
+    <div class="numero">{{ obj.numero or '—' }}</div>
+    <div style="margin-top:6px"><span class="estado-badge">{{ {'borrador':'Borrador','enviada':'Enviada','aprobada':'Aprobada','confirmacion_orden':'Orden confirmada'}.get(obj.estado,obj.estado) }}</span></div>
+  </div>
+</div>
+<div class="info-grid">
+  <div class="info-box">
+    <h4>Para</h4>
+    <p><strong>{{ obj.cliente.empresa or obj.cliente.nombre if obj.cliente else '—' }}</strong><br>
+    {% if obj.cliente and obj.cliente.email %}{{ obj.cliente.email }}<br>{% endif %}
+    {% if obj.cliente and obj.cliente.telefono %}{{ obj.cliente.telefono }}{% endif %}</p>
+  </div>
+  <div class="info-box">
+    <h4>De parte de</h4>
+    <p><strong>{{ empresa.nombre }}</strong><br>
+    {% if empresa.email %}{{ empresa.email }}<br>{% endif %}
+    {% if empresa.telefono %}{{ empresa.telefono }}<br>{% endif %}
+    {% if empresa.nit %}NIT: {{ empresa.nit }}{% endif %}</p>
+  </div>
+  <div class="info-box">
+    <h4>Descripción del proyecto</h4>
+    <p>{{ obj.titulo }}</p>
+  </div>
+  <div class="info-box">
+    <h4>Fechas</h4>
+    <p>Emisión: {{ obj.fecha_emision.strftime('%d/%m/%Y') }}<br>
+    Validez: {{ obj.fecha_validez.strftime('%d/%m/%Y') if obj.fecha_validez else '—' }}<br>
+    Entrega estimada: {{ obj.dias_entrega }} días hábiles</p>
+  </div>
+</div>
+<table>
+  <thead><tr><th>#</th><th>Descripción</th><th class="r">Cant.</th><th class="r">Precio unit.</th><th class="r">Subtotal</th></tr></thead>
+  <tbody>{% for it in obj.items %}
+  <tr><td>{{ loop.index }}</td><td>{{ it.nombre_prod }}</td><td class="r">{{ it.cantidad }}</td>
+    <td class="r">$ {{ '{:,.0f}'.format(it.precio_unit).replace(',','.') }}</td>
+    <td class="r">$ {{ '{:,.0f}'.format(it.subtotal).replace(',','.') }}</td></tr>
+  {% endfor %}</tbody>
+</table>
+<div class="totals">
+  <table>
+    <tr><td>Subtotal</td><td class="r">$ {{ '{:,.0f}'.format(obj.subtotal).replace(',','.') }}</td></tr>
+    <tr><td>IVA</td><td class="r">$ {{ '{:,.0f}'.format(obj.iva).replace(',','.') }}</td></tr>
+    <tr class="grand"><td>TOTAL</td><td class="r">$ {{ '{:,.0f}'.format(obj.total).replace(',','.') }}</td></tr>
+  </table>
+  <div class="anticipo-box">
+    <span><strong>Anticipo requerido ({{ obj.porcentaje_anticipo|int }}%)</strong></span>
+    <span><strong>$ {{ '{:,.0f}'.format(obj.monto_anticipo).replace(',','.') }}</strong></span>
+  </div>
+  <div style="text-align:right;font-size:10pt;color:#525f7f;margin-top:6px">Saldo: $ {{ '{:,.0f}'.format(obj.saldo).replace(',','.') }}</div>
+</div>
+{% if obj.condiciones_pago or obj.notas %}
+<div class="footer-notes">
+  {% if obj.condiciones_pago %}<p><strong>Condiciones de pago:</strong> {{ obj.condiciones_pago }}</p>{% endif %}
+  {% if obj.notas %}<p style="margin-top:6px"><strong>Notas:</strong> {{ obj.notas }}</p>{% endif %}
+</div>{% endif %}
+<div class="footer-notes" style="margin-top:12px;text-align:center;font-size:8pt">
+  Generado por sistema Evore CRM · {{ empresa.nombre }} {% if empresa.sitio_web %}· {{ empresa.sitio_web }}{% endif %}
+</div>
+</div></body></html>

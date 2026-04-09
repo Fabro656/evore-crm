@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block title %}{{ empleado.nombre }} {{ empleado.apellido }}{% endblock %}
+{% block page_title %}{{ empleado.nombre }} {{ empleado.apellido }}{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('empleado_editar', id=empleado.id) }}" class="btn btn-sm btn-primary"><i class="bi bi-pencil me-1"></i>Editar</a>{% endblock %}
+{% block content %}
+<div class="fc">
+  <div class="row g-3 mb-3">
+    <div class="col-md-8">
+      <div class="tc">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+          <div><label style="color:#666;font-size:.85rem">Cédula</label><div style="font-weight:600">{{ empleado.cedula or '—' }}</div></div>
+          <div><label style="color:#666;font-size:.85rem">Email</label><div style="font-weight:600">{{ empleado.email or '—' }}</div></div>
+          <div><label style="color:#666;font-size:.85rem">Cargo</label><div style="font-weight:600">{{ empleado.cargo or '—' }}</div></div>
+          <div><label style="color:#666;font-size:.85rem">Departamento</label><div style="font-weight:600">{{ empleado.departamento or '—' }}</div></div>
+          <div><label style="color:#666;font-size:.85rem">Tipo contrato</label><div><span class="b" style="background:{% if empleado.tipo_contrato=='indefinido' %}#0052CC{% elif empleado.tipo_contrato=='fijo' %}#00875A{% elif empleado.tipo_contrato=='obra_labor' %}#FF8B00{% else %}#6D42C8{% endif %}">{{ empleado.tipo_contrato }}</span></div></div>
+          <div><label style="color:#666;font-size:.85rem">Estado</label><div><span class="b" style="background:{% if empleado.estado=='activo' %}#00875A{% elif empleado.estado=='inactivo' %}#FF8B00{% else %}#6D42C8{% endif %}">{{ empleado.estado }}</span></div></div>
+          <div><label style="color:#666;font-size:.85rem">Fecha ingreso</label><div style="font-weight:600">{{ empleado.fecha_ingreso.strftime('%d/%m/%Y') if empleado.fecha_ingreso else '—' }}</div></div>
+          <div><label style="color:#666;font-size:.85rem">Nivel ARL</label><div style="font-weight:600">{{ empleado.nivel_riesgo_arl }}</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="tc">
+        <div style="text-align:center">
+          <div style="font-size:2rem;color:var(--ac);font-weight:700">{{ (empleado.salario_base|cop) }}</div>
+          <div style="font-size:.9rem;color:#666">Salario base</div>
+        </div>
+        <hr style="margin:1rem 0">
+        <div style="text-align:center">
+          <div style="font-size:1.4rem;color:var(--green);font-weight:700">{{ (calc.salario_neto|cop) }}</div>
+          <div style="font-size:.9rem;color:#666">Salario neto</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="tc">
+        <h6 style="margin-bottom:1rem"><i class="bi bi-person me-2"></i>Lo que recibe el empleado</h6>
+        <table style="font-size:.9rem;width:100%">
+          <tr><td style="padding:6px">Salario bruto:</td><td style="text-align:right"><strong>{{ (calc.salario|cop) }}</strong></td></tr>
+          <tr><td style="padding:6px">+ Auxilio transporte:</td><td style="text-align:right">{{ (calc.aux_transporte|cop) }}</td></tr>
+          <tr style="border-top:1px solid #ddd"><td style="padding:6px">— Salud (4%):</td><td style="text-align:right" style="color:#999">{{ (calc.deduccion_salud|cop) }}</td></tr>
+          <tr><td style="padding:6px">— Pensión (4%):</td><td style="text-align:right" style="color:#999">{{ (calc.deduccion_pension|cop) }}</td></tr>
+          {% if calc.fondo_solidaridad > 0 %}<tr><td style="padding:6px">— Fondo solidaridad:</td><td style="text-align:right" style="color:#999">{{ (calc.fondo_solidaridad|cop) }}</td></tr>{% endif %}
+          <tr style="border-top:2px solid var(--ac);background:#f5f8ff"><td style="padding:8px"><strong>= NETO:</strong></td><td style="text-align:right"><strong style="color:var(--green);font-size:1.1rem">{{ (calc.salario_neto|cop) }}</strong></td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="tc">
+        <h6 style="margin-bottom:1rem"><i class="bi bi-briefcase me-2"></i>Lo que paga la empresa</h6>
+        <table style="font-size:.9rem;width:100%">
+          <tr><td style="padding:6px">Salario + auxilio:</td><td style="text-align:right"><strong>{{ ((calc.salario + calc.aux_transporte)|cop) }}</strong></td></tr>
+          <tr style="border-top:1px solid #ddd"><td style="padding:6px">+ Salud (8.5%):</td><td style="text-align:right">{{ (calc.aporte_salud_empr|cop) }}</td></tr>
+          <tr><td style="padding:6px">+ Pensión (12%):</td><td style="text-align:right">{{ (calc.aporte_pension_empr|cop) }}</td></tr>
+          <tr><td style="padding:6px">+ ARL:</td><td style="text-align:right">{{ (calc.aporte_arl|cop) }}</td></tr>
+          <tr><td style="padding:6px">+ Caja compensación:</td><td style="text-align:right">{{ (calc.aporte_caja|cop) }}</td></tr>
+          <tr><td style="padding:6px">+ SENA:</td><td style="text-align:right">{{ (calc.aporte_sena|cop) }}</td></tr>
+          <tr><td style="padding:6px">+ ICBF:</td><td style="text-align:right">{{ (calc.aporte_icbf|cop) }}</td></tr>
+          <tr style="border-top:2px solid var(--ac);background:#f5f8ff"><td style="padding:8px"><strong>COSTO TOTAL:</strong></td><td style="text-align:right"><strong style="color:var(--ac);font-size:1.1rem">{{ (calc.costo_total_empresa|cop) }}</strong></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% if empleado.estado == 'activo' %}
+  <div style="margin-top:2rem;display:flex;gap:1rem;flex-wrap:wrap">
+    <form method="GET" action="{{ url_for('empleado_liquidacion', id=empleado.id) }}" style="display:inline">
+      <input type="hidden" name="motivo" value="renuncia">
+      <button type="submit" class="btn btn-outline-warning" onclick="return confirm('¿Liquidar por renuncia?')"><i class="bi bi-file-text me-1"></i>Liquidar - Renuncia</button>
+    </form>
+    <form method="GET" action="{{ url_for('empleado_liquidacion', id=empleado.id) }}" style="display:inline">
+      <input type="hidden" name="motivo" value="despido_justa">
+      <button type="submit" class="btn btn-outline-warning" onclick="return confirm('¿Liquidar por despido con justa causa?')"><i class="bi bi-file-text me-1"></i>Liquidar - Despido (justa)</button>
+    </form>
+    <form method="GET" action="{{ url_for('empleado_liquidacion', id=empleado.id) }}" style="display:inline">
+      <input type="hidden" name="motivo" value="despido_sin_justa">
+      <button type="submit" class="btn btn-outline-danger" onclick="return confirm('¿Liquidar por despido sin justa causa?')"><i class="bi bi-file-text me-1"></i>Liquidar - Despido (sin justa)</button>
+    </form>
+    <form method="POST" action="{{ url_for('empleado_retirar', id=empleado.id) }}" style="display:inline">
+      <input type="hidden" name="motivo" value="despido_sin_justa">
+      <button type="submit" class="btn btn-danger" onclick="return confirm('¿Confirmar retiro del empleado? Esto marcará su estado como despedido.')"><i class="bi bi-person-x me-1"></i>Marcar como Despedido</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
