@@ -19,6 +19,13 @@ def create_app():
         _db_url = _db_url.replace('postgres://', 'postgresql://', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = _db_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,       # verifica la conexión antes de usarla
+        'pool_recycle':  280,        # recicla conexiones cada 280s (Railway las cierra a los 300s)
+        'pool_timeout':  20,
+        'pool_size':     5,
+        'max_overflow':  10,
+    }
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     app.config['SESSION_COOKIE_SECURE'] = os.environ.get('RAILWAY_ENVIRONMENT') == 'production'
