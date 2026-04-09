@@ -804,9 +804,9 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .notif-item .ni-time{font-size:.67rem;color:#6B778C}
 
 /* ── Float search button ─────────────────────────── */
-#diagBtn{position:fixed;bottom:24px;right:24px;z-index:2000;width:48px;height:48px;border-radius:50%;background:var(--ac);border:none;color:#fff;font-size:1.1rem;box-shadow:0 4px 16px rgba(0,82,204,.35);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
-#diagBtn:hover{background:#0065FF}
-#diagPanel{position:fixed;bottom:82px;right:24px;width:340px;background:#fff;border-radius:var(--radius);border:1px solid #DFE1E6;box-shadow:0 8px 32px rgba(9,30,66,.18);z-index:1999;overflow:hidden;display:none}
+#diagBtn{position:fixed;bottom:88px;right:24px;z-index:1041;width:44px;height:44px;border-radius:50%;background:#42526E;border:none;color:#fff;font-size:.95rem;box-shadow:0 2px 10px rgba(9,30,66,.25);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
+#diagBtn:hover{background:#253858}
+#diagPanel{position:fixed;bottom:148px;right:24px;width:340px;background:#fff;border-radius:var(--radius);border:1px solid #DFE1E6;box-shadow:0 8px 32px rgba(9,30,66,.18);z-index:1999;overflow:hidden;display:none}
 #diagPanel .dp-head{padding:.85rem 1.2rem;background:#253858;color:#fff;font-weight:600;font-size:.88rem;display:flex;justify-content:space-between}
 #diagPanel .dp-body{max-height:420px;overflow-y:auto;padding:.75rem 1rem}
 .diag-item{padding:.45rem .7rem;border-radius:var(--radius-sm);margin-bottom:.35rem;font-size:.8rem;display:flex;gap:.6rem;align-items:flex-start}
@@ -819,7 +819,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
    ══════════════════════════════════════════════════ */
 @media(max-width:768px){
   /* Sidebar: hidden off-screen, opens as overlay drawer */
-  #sb{transform:translateX(-252px);box-shadow:none}
+  #sb{transform:translateX(-256px);box-shadow:none}
   #sb.sb-open{transform:translateX(0);box-shadow:6px 0 40px rgba(0,0,0,.3)}
   #sb .nav-link span,.sb-brand .bt,.ui{display:block}
   #sb .sb-sec{display:block}
@@ -866,86 +866,15 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .copy-value .bi-check2{color:#00875A;font-size:.8rem}
 
 /* Quick Actions FAB */
-.fab{position:fixed;bottom:24px;right:24px;z-index:1040;width:52px;height:52px;border-radius:50%;background:var(--ac,#0052CC);color:#fff;border:none;box-shadow:0 4px 16px rgba(0,82,204,.4);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.4rem;transition:all .2s}
-.fab:hover{transform:scale(1.1);background:var(--ac2,#0065FF)}
+.fab{position:fixed;bottom:24px;right:24px;z-index:1042;width:56px;height:56px;border-radius:50%;background:var(--ac,#0052CC);color:#fff;border:none;box-shadow:0 4px 20px rgba(0,82,204,.5);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.5rem;transition:all .2s}
+.fab:hover{transform:scale(1.08);background:var(--ac2,#0065FF);box-shadow:0 6px 24px rgba(0,82,204,.6)}
 .quick-action-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:8px 0}
-.qa-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:16px 8px;border:1px solid #DFE1E6;border-radius:8px;background:#F4F5F7;cursor:pointer;text-decoration:none;color:#172B4D;transition:all .15s;text-align:center}
-.qa-btn:hover{background:#DEEBFF;border-color:#0052CC;color:#0052CC;transform:translateY(-2px)}
-.qa-btn i{font-size:1.6rem}
-.qa-btn span{font-size:.78rem;font-weight:600;line-height:1.2}
-@media(max-width:576px){.quick-action-grid{grid-template-columns:repeat(2,1fr)}.fab{bottom:16px;right:16px}}
-
-/* ===== MOBILE RESPONSIVE ===== */
-@media(max-width:768px){
-  /* Sidebar: full-width drawer on mobile */
-  #sb{width:100%!important;max-width:280px}
-
-  /* Main content: full width */
-  #main-content,main,.main-content{margin-left:0!important;padding:0 12px 80px!important}
-
-  /* Page header */
-  .page-header,.d-flex.justify-content-between{flex-direction:column;gap:8px;align-items:flex-start!important}
-  .page-header .btn,.page-header a.btn{width:100%}
-
-  /* Tables: horizontal scroll */
-  .table-responsive{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  table{min-width:500px}
-
-  /* Cards grid: stack on mobile */
-  .row.g-3>[class*='col-md'],[class*='col-lg']{width:100%!important;max-width:100%!important;flex:0 0 100%!important}
-  .row.g-2>[class*='col-md']{width:100%!important;flex:0 0 100%!important}
-
-  /* Stats/metric cards */
-  .stat-card,.metric-card{min-width:auto}
-
-  /* Forms */
-  .form-section{padding:12px}
-  .input-group{flex-wrap:wrap}
-
-  /* Navbar/topbar */
-  .topbar,.navbar{padding:8px 12px}
-
-  /* Buttons: full width in forms */
-  .btn-group-mobile{display:flex;flex-direction:column;gap:6px}
-  .btn-group-mobile .btn{width:100%}
-
-  /* Status badges: wrap properly */
-  .status-select{max-width:120px}
-
-  /* Modal: full screen on mobile */
-  .modal-dialog{margin:8px;max-width:calc(100vw - 16px)}
-  .modal-content{border-radius:12px}
-
-  /* Dashboard quick stats row */
-  .quick-stats{grid-template-columns:repeat(2,1fr)!important}
-
-  /* Hide non-essential table columns */
-  .hide-mobile{display:none!important}
-
-  /* FAB position */
-  .fab{bottom:16px;right:16px;width:48px;height:48px;font-size:1.2rem}
-
-  /* Quick actions grid: 2 columns on small screens */
-  .quick-action-grid{grid-template-columns:repeat(2,1fr)}
-
-  /* Pagination */
-  .pagination{flex-wrap:wrap;gap:2px}
-
-  /* Toast/flash alerts */
-  .alert{font-size:.875rem;padding:10px 14px}
-}
-
-@media(max-width:480px){
-  /* Very small screens */
-  .qa-btn{padding:12px 4px}
-  .qa-btn i{font-size:1.3rem}
-  .quick-action-grid{grid-template-columns:repeat(2,1fr);gap:8px}
-  h1,.h1{font-size:1.4rem}
-  h2,.h2{font-size:1.2rem}
-  .card-header{padding:10px 12px;font-size:.9rem}
-  .card-body{padding:12px}
-  .btn-sm{font-size:.78rem;padding:4px 8px}
-}
+.qa-modal-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:16px 8px;border:1px solid #DFE1E6;border-radius:8px;background:#F4F5F7;cursor:pointer;text-decoration:none;color:#172B4D;transition:all .15s;text-align:center}
+.qa-modal-btn:hover{background:#DEEBFF;border-color:#0052CC;color:#0052CC;transform:translateY(-2px)}
+.qa-modal-btn i{font-size:1.6rem}
+.qa-modal-btn span{font-size:.78rem;font-weight:600;line-height:1.2}
+@media(max-width:576px){.quick-action-grid{grid-template-columns:repeat(2,1fr)}.fab{bottom:20px;right:20px;width:52px;height:52px;font-size:1.35rem}}
+@media(max-width:768px){#diagBtn{bottom:84px;right:20px}}
 
 /* Ensure images/logos scale on mobile */
 img,svg{max-width:100%;height:auto}
@@ -1181,47 +1110,55 @@ function copiarTexto(el,txt){
   _reset();
 })();
 </script>
-<!-- Floating Action Button -->
-<button class="fab" onclick="new bootstrap.Modal(document.getElementById('modalQuickActions')).show()" id="btnFAB" title="Acciones rápidas" data-bs-toggle="modal" data-bs-target="#modalQuickActions">
+<!-- Floating Action Button — Acciones Rápidas -->
+<button class="fab" id="btnFAB" title="Acciones rápidas" data-bs-toggle="modal" data-bs-target="#modalQuickActions" aria-label="Acciones rápidas">
   <i class="bi bi-plus-lg"></i>
 </button>
 
 <!-- Quick Actions Modal -->
-<div class="modal fade" id="modalQuickActions" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title fw-bold">¿Qué quieres hacer?</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal fade" id="modalQuickActions" tabindex="-1" aria-labelledby="qaModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:480px">
+    <div class="modal-content" style="border-radius:16px;border:none;box-shadow:0 20px 60px rgba(9,30,66,.25)">
+      <div class="modal-header" style="background:var(--sb);border-radius:16px 16px 0 0;padding:1rem 1.25rem;border:none">
+        <div class="d-flex align-items-center gap-2">
+          <div style="width:32px;height:32px;background:rgba(255,255,255,.15);border-radius:8px;display:flex;align-items:center;justify-content:center">
+            <i class="bi bi-lightning-fill text-white" style="font-size:.95rem"></i>
+          </div>
+          <div>
+            <h5 class="modal-title text-white fw-bold mb-0" id="qaModalLabel" style="font-size:.95rem">Acción rápida</h5>
+            <p class="text-white mb-0" style="font-size:.72rem;opacity:.7">¿Qué quieres hacer ahora?</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
-      <div class="modal-body pt-2">
+      <div class="modal-body" style="padding:1.25rem">
         <div class="quick-action-grid">
-          <a href="{{ url_for('venta_nueva') }}" class="qa-btn" data-bs-dismiss="modal">
-            <i class="bi bi-bag-plus"></i><span>Nueva Venta</span>
+          <a href="{{ url_for('venta_nueva') }}" class="qa-modal-btn">
+            <i class="bi bi-bag-plus" style="color:#0052CC"></i><span>Nueva Venta</span>
           </a>
-          <a href="{{ url_for('cliente_nuevo') }}" class="qa-btn" data-bs-dismiss="modal">
-            <i class="bi bi-person-plus"></i><span>Nuevo Cliente</span>
+          <a href="{{ url_for('cliente_nuevo') }}" class="qa-modal-btn">
+            <i class="bi bi-person-plus" style="color:#00875A"></i><span>Nuevo Cliente</span>
           </a>
-          <a href="{{ url_for('cotizacion_nueva') }}" class="qa-btn" data-bs-dismiss="modal">
-            <i class="bi bi-file-earmark-plus"></i><span>Cotización</span>
+          <a href="{{ url_for('cotizacion_nueva') }}" class="qa-modal-btn">
+            <i class="bi bi-file-earmark-plus" style="color:#FF8B00"></i><span>Cotización</span>
           </a>
-          <a href="{{ url_for('orden_compra_nueva') }}" class="qa-btn" data-bs-dismiss="modal">
-            <i class="bi bi-cart-plus"></i><span>Orden de Compra</span>
+          <a href="{{ url_for('orden_compra_nueva') }}" class="qa-modal-btn">
+            <i class="bi bi-cart-plus" style="color:#5243AA"></i><span>Orden de Compra</span>
           </a>
-          <a href="{{ url_for('tarea_nueva') }}" class="qa-btn" data-bs-dismiss="modal">
-            <i class="bi bi-check2-square"></i><span>Nueva Tarea</span>
+          <a href="{{ url_for('tarea_nueva') }}" class="qa-modal-btn">
+            <i class="bi bi-check2-square" style="color:#00875A"></i><span>Nueva Tarea</span>
           </a>
-          <a href="{{ url_for('proveedor_nuevo') }}" class="qa-btn" data-bs-dismiss="modal">
-            <i class="bi bi-truck"></i><span>Proveedor</span>
+          <a href="{{ url_for('proveedor_nuevo') }}" class="qa-modal-btn">
+            <i class="bi bi-truck" style="color:#42526E"></i><span>Proveedor</span>
           </a>
-          <a href="{{ url_for('gasto_nuevo') }}" class="qa-btn" data-bs-dismiss="modal">
-            <i class="bi bi-receipt"></i><span>Nuevo Gasto</span>
+          <a href="{{ url_for('gasto_nuevo') }}" class="qa-modal-btn">
+            <i class="bi bi-receipt" style="color:#DE350B"></i><span>Nuevo Gasto</span>
           </a>
-          <a href="{{ url_for('producto_nuevo') }}" class="qa-btn" data-bs-dismiss="modal">
-            <i class="bi bi-box-seam"></i><span>Producto</span>
+          <a href="{{ url_for('producto_nuevo') }}" class="qa-modal-btn">
+            <i class="bi bi-box-seam" style="color:#0052CC"></i><span>Producto</span>
           </a>
-          <a href="{{ url_for('nota_nueva') }}" class="qa-btn" data-bs-dismiss="modal">
-            <i class="bi bi-sticky"></i><span>Nueva Nota</span>
+          <a href="{{ url_for('nota_nueva') }}" class="qa-modal-btn">
+            <i class="bi bi-sticky" style="color:#FF991F"></i><span>Nueva Nota</span>
           </a>
         </div>
       </div>
