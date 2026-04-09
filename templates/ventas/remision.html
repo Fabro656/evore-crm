@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Remisión — {{ venta.numero or venta.titulo }}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:11.5pt;color:#172B4D;background:#fff}
+.page{max-width:800px;margin:0 auto;padding:24px 32px}
+.no-print{display:flex;gap:8px;padding:10px 16px;background:#fff;border-bottom:1px solid #DFE1E6;box-shadow:0 1px 3px rgba(0,0,0,.07);position:sticky;top:0;z-index:10}
+.btn-print{background:#0052CC;color:#fff;border:none;padding:8px 18px;border-radius:3px;cursor:pointer;font-size:13px;font-weight:600}
+.btn-back{background:#DFE1E6;color:#172B4D;border:none;padding:8px 14px;border-radius:3px;cursor:pointer;font-size:13px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+/* Header */
+.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #172B4D;padding-bottom:14px;margin-bottom:20px}
+.logo-area{display:flex;align-items:center;gap:10px}
+.brand-block{display:flex;align-items:center}
+.brand-name{font-size:18pt;font-weight:800;color:#172B4D;letter-spacing:-0.5px}
+.doc-title{text-align:right}
+.doc-title h1{font-size:22pt;font-weight:800;color:#172B4D;letter-spacing:-1px}
+.doc-number{font-size:9.5pt;color:#6B778C;margin-top:4px}
+/* Info boxes */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+.info-box{background:#F4F5F7;border-radius:3px;padding:10px 14px}
+.info-box h4{font-size:7.5pt;text-transform:uppercase;letter-spacing:.8px;color:#6B778C;margin-bottom:6px;font-weight:700}
+.info-box p{font-size:10pt;color:#172B4D;line-height:1.5}
+/* Table */
+table.items-table{width:100%;border-collapse:collapse;margin:12px 0}
+table.items-table th{background:#172B4D;color:#fff;font-size:8.5pt;padding:7px 10px;text-align:left;font-weight:600;letter-spacing:.4px;text-transform:uppercase}
+table.items-table th.r,table.items-table td.r{text-align:right}
+table.items-table td{padding:7px 10px;font-size:10pt;border-bottom:1px solid #DFE1E6}
+table.items-table tr:nth-child(even) td{background:#F4F5F7}
+/* Totals */
+.totals{margin-left:auto;width:260px;margin-top:10px}
+.totals table td{font-size:10pt;padding:5px 10px;border-bottom:1px solid #DFE1E6}
+.totals .grand{background:#172B4D;color:#fff;font-weight:700;font-size:11.5pt}
+/* Packaging box */
+.packaging-form{background:#DEEBFF;border-radius:3px;padding:16px 18px;margin-top:16px;border:1px solid #B3D4FF}
+.packaging-form h3{font-size:10pt;font-weight:700;color:#0747A6;margin-bottom:10px}
+.packaging-form label{font-size:9.5pt;color:#172B4D;font-weight:600;display:block;margin-bottom:4px}
+.packaging-form input{padding:6px 10px;border:2px solid #DFE1E6;border-radius:3px;font-size:10pt;width:120px}
+.packaging-form button{background:#0052CC;color:#fff;border:none;padding:7px 16px;border-radius:3px;cursor:pointer;font-size:10pt;font-weight:600;margin-left:10px}
+.boxes-result{background:#E3FCEF;border-radius:3px;padding:14px 18px;margin-top:12px;border:1px solid #ABF5D1}
+.boxes-result h3{font-size:10pt;font-weight:700;color:#006644;margin-bottom:8px}
+.box-row{display:flex;align-items:center;gap:12px;margin-bottom:6px;font-size:10pt}
+.box-icon{font-size:20pt;line-height:1}
+.box-label{font-size:9pt;color:#6B778C}
+.box-value{font-size:18pt;font-weight:800;color:#006644;line-height:1}
+.box-partial{background:#FFFAE6;border-radius:3px;padding:10px 14px;margin-top:6px;border:1px solid #FFE380;font-size:9.5pt;color:#172B4D}
+/* Signature */
+.signatures{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:36px}
+.sig-line{border-top:1.5px solid #172B4D;padding-top:8px;font-size:9pt;color:#6B778C;text-align:center}
+/* Footer */
+.footer-bar{margin-top:24px;padding-top:12px;border-top:1px solid #DFE1E6;font-size:8.5pt;color:#6B778C;display:flex;justify-content:space-between;align-items:center}
+@media print{
+  .no-print,.packaging-form{display:none!important}
+  .boxes-result{display:block!important}
+  body{background:#fff}
+  .page{padding:12mm 14mm}
+}
+</style>
+</head>
+<body>
+<div class="no-print">
+  <a href="{{ url_for('ventas') }}" class="btn-back">← Volver</a>
+  <button onclick="window.print()" class="btn-print">🖨 Imprimir / Guardar PDF</button>
+</div>
+<div class="page">
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-area">
+      <div class="brand-block">
+        {% if empresa and empresa.nombre %}<span class="brand-name">{{ empresa.nombre }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="doc-title">
+      <h1>REMISIÓN</h1>
+      <div class="doc-number">{{ venta.numero or '—' }}</div>
+      <div class="doc-number" style="margin-top:2px">{{ venta.entregado_en.strftime('%d/%m/%Y') if venta.entregado_en else '' }}</div>
+    </div>
+  </div>
+
+  <!-- Info grid -->
+  <div class="info-grid">
+    <div class="info-box">
+      <h4>Entregado a</h4>
+      <p><strong>{{ venta.cliente.empresa or venta.cliente.nombre if venta.cliente else '—' }}</strong><br>
+      {% if venta.cliente and venta.cliente.dir_entrega %}{{ venta.cliente.dir_entrega }}<br>{% endif %}
+      {% if venta.cliente and venta.cliente.nit %}NIT: {{ venta.cliente.nit }}{% endif %}</p>
+    </div>
+    <div class="info-box">
+      <h4>Entregado por</h4>
+      <p><strong>{{ empresa.nombre if empresa else '—' }}</strong><br>
+      {% if empresa and empresa.nit %}NIT: {{ empresa.nit }}<br>{% endif %}
+      {% if empresa and empresa.telefono %}{{ empresa.telefono }}{% endif %}</p>
+    </div>
+    <div class="info-box">
+      <h4>Pedido</h4>
+      <p>{{ venta.titulo }}</p>
+    </div>
+    <div class="info-box">
+      <h4>Fecha entrega</h4>
+      <p>{{ venta.entregado_en.strftime('%d de %B de %Y') if venta.entregado_en else '—' }}</p>
+    </div>
+  </div>
+
+  <!-- Items table -->
+  <table class="items-table">
+    <thead><tr>
+      <th>#</th><th>Descripción</th>
+      <th class="r">Cant.</th><th class="r">Precio unit.</th><th class="r">Subtotal</th>
+    </tr></thead>
+    <tbody>{% for it in items_data %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td>{{ it.nombre }}</td>
+      <td class="r">{{ it.cantidad }}</td>
+      <td class="r">$ {{ '{:,.0f}'.format(it.precio_unit).replace(',','.') }}</td>
+      <td class="r">$ {{ '{:,.0f}'.format(it.subtotal).replace(',','.') }}</td>
+    </tr>{% endfor %}</tbody>
+  </table>
+  <div class="totals">
+    <table style="width:100%;border-collapse:collapse">
+      <tr><td>Subtotal:</td><td class="r">$ {{ '{:,.0f}'.format(venta.subtotal).replace(',','.') }}</td></tr>
+      <tr><td>IVA 19%:</td><td class="r">$ {{ '{:,.0f}'.format(venta.iva).replace(',','.') }}</td></tr>
+      <tr class="grand"><td style="padding:7px 10px">Total:</td><td class="r" style="padding:7px 10px">$ {{ '{:,.0f}'.format(venta.total).replace(',','.') }}</td></tr>
+    </table>
+  </div>
+
+  <!-- Packaging calculator (no-print) -->
+  <div class="packaging-form no-print">
+    <h3>📦 Cálculo de embalaje</h3>
+    <form method="GET" action="{{ url_for('venta_remision', id=venta.id) }}" style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
+      <div>
+        <label>Unidades por caja / paquete</label>
+        <input type="number" name="upp" min="1" step="1" value="{{ upp or '' }}" placeholder="Ej: 12" required>
+      </div>
+      <button type="submit">Calcular</button>
+    </form>
+    <div style="margin-top:8px;font-size:9pt;color:#6B778C">
+      Total de unidades en este pedido: <strong>{{ total_unidades }}</strong>
+    </div>
+  </div>
+
+  {% if cajas_info %}
+  <!-- Boxes result (visible always when calculated) -->
+  <div class="boxes-result" style="margin-top:14px">
+    <h3>Resultado de embalaje — {{ cajas_info.upp }} unid./caja</h3>
+    <div style="display:flex;gap:28px;flex-wrap:wrap;margin-top:8px">
+      <div>
+        <div class="box-label">Total unidades</div>
+        <div class="box-value" style="color:#172B4D">{{ cajas_info.total_unidades }}</div>
+      </div>
+      <div>
+        <div class="box-label">Cajas completas</div>
+        <div class="box-value">{{ cajas_info.cajas_completas }}</div>
+      </div>
+      {% if cajas_info.cajas_parciales > 0 %}
+      <div>
+        <div class="box-label">Caja parcial</div>
+        <div class="box-value" style="color:#FF8B00">{{ cajas_info.cajas_parciales }}</div>
+      </div>
+      {% endif %}
+    </div>
+    {% if cajas_info.cajas_parciales > 0 %}
+    <div class="box-partial">
+      <strong>⚠️ Caja incompleta:</strong> {{ cajas_info.sobrante }} unidad{{ 'es' if cajas_info.sobrante != 1 else '' }} en la última caja
+      ({{ cajas_info.cajas_completas + cajas_info.cajas_parciales }} cajas en total).
+    </div>
+    {% else %}
+    <div style="margin-top:8px;font-size:9.5pt;color:#006644;font-weight:600">✓ Todas las cajas están completas.</div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Signature lines -->
+  <div class="signatures">
+    <div class="sig-line">
+      <div style="margin-bottom:40px"></div>
+      Entregado por<br>
+      <strong>{{ empresa.nombre if empresa else '' }}</strong>
+    </div>
+    <div class="sig-line">
+      <div style="margin-bottom:40px"></div>
+      Recibido por<br>
+      <strong>{{ venta.cliente.empresa or venta.cliente.nombre if venta.cliente else '___________________' }}</strong>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer-bar">
+    <span>Remisión generada por Evore CRM</span>
+    <span>{{ venta.entregado_en.strftime('%d/%m/%Y %H:%M') if venta.entregado_en else '' }}</span>
+  </div>
+</div>
+</body></html>

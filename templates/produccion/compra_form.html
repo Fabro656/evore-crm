@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('compras') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
+{% block content %}<div class="fc" style="max-width:940px"><form method="POST" id="frmC">
+<div class="row g-3">
+  <!-- Nombre auto-titulo -->
+  <div class="col-12"><label class="form-label fw-semibold">Nombre del ítem <span class="text-muted fw-normal" style="font-size:.8rem">(se llena automáticamente)</span></label>
+    <input type="text" name="nombre_item" id="nombreItem" class="form-control" value="{{ obj.nombre_item if obj else '' }}" required placeholder="Se genera automáticamente..."></div>
+
+  <!-- Tipo de compra -->
+  <div class="col-md-4"><label class="form-label">Tipo de compra *</label>
+    <select name="tipo_compra" id="tipoCompra" class="form-select" onchange="onTipoChange()">
+      <option value="materia_prima" {% if obj and obj.tipo_compra=='materia_prima' %}selected{% endif %}>🧪 Materia prima para producción</option>
+      <option value="producto_terminado" {% if obj and obj.tipo_compra=='producto_terminado' %}selected{% endif %}>📦 Producto terminado</option>
+      <option value="insumo" {% if (not obj) or (obj and obj.tipo_compra=='insumo') %}selected{% endif %}>🔧 Insumo / suministro</option>
+      <option value="otro" {% if obj and obj.tipo_compra=='otro' %}selected{% endif %}>📋 Otro</option>
+    </select></div>
+
+  <!-- Vincular materia prima (solo si tipo = materia_prima) -->
+  <div class="col-md-8" id="divMateria" style="display:none">
+    <label class="form-label">Materia prima vinculada <small class="text-muted">(actualiza stock al guardar)</small></label>
+    <select name="materia_id" id="materiaId" class="form-select" onchange="onMateriaChange()">
+      <option value="">— Sin vincular —</option>
+      {% for m in materias %}<option value="{{ m.id }}" data-unidad="{{ m.unidad }}" data-prodid="{{ m.producto_id or '' }}" {% if obj and obj.materia_id==m.id %}selected{% endif %}>{{ m.nombre }} ({{ m.unidad }}){% if m.producto %} → {{ m.producto.nombre }}{% endif %}</option>{% endfor %}
+    </select></div>
+
+  <!-- Vincular producto inventario -->
+  <div class="col-md-8" id="divProducto" style="">
+    <label class="form-label" id="lblProducto">Vincular a producto en inventario <small class="text-muted" id="lblProductoHint">(actualiza costo)</small></label>
+    <select name="producto_id" id="productoId" class="form-select">
+      <option value="">— No vincular —</option>
+      {% for p in productos %}<option value="{{ p.id }}" {% if obj and obj.producto_id==p.id %}selected{% endif %}>{{ p.nombre }}{% if p.sku %} ({{ p.sku }}){% endif %}</option>{% endfor %}
+    </select></div>
+
+  <div class="col-md-6"><label class="form-label">Proveedor</label>
+    <select name="proveedor_id" id="proveedorSel" class="form-select" onchange="autoNombreFromSel()">
+      <option value="">— Sin proveedor —</option>
+      {% for pv in proveedores_list %}<option value="{{ pv.id }}" {% if obj and obj.proveedor_id==pv.id %}selected{% endif %}>{{ pv.empresa or pv.nombre }}</option>{% endfor %}
+    </select>
+    <input type="hidden" name="proveedor" id="proveedor" value="{{ obj.proveedor if obj else '' }}"></div>
+  <div class="col-md-3"><label class="form-label">Fecha *</label>
+    <input type="date" name="fecha" id="fechaC" class="form-control" value="{{ obj.fecha.strftime('%Y-%m-%d') if obj else today }}" required oninput="autoNombre()"></div>
+  <div class="col-md-3"><label class="form-label"># Factura</label>
+    <input type="text" name="nro_factura" class="form-control" value="{{ obj.nro_factura if obj else '' }}"></div>
+
+  <!-- Cantidad + Unidad -->
+  <div class="col-md-4"><label class="form-label">Cantidad</label>
+    <input type="number" name="cantidad" id="cant" class="form-control" step="0.001" min="0.001" value="{{ obj.cantidad if obj else '1' }}" oninput="calc()"></div>
+  <div class="col-md-4"><label class="form-label">Unidad de medida</label>
+    <select name="unidad" id="unidadSel" class="form-select">
+      {% for u in ['unidades','kg','g','litros','ml','libras','galones','metros','cm','piezas','cajas','bolsas'] %}
+      <option value="{{ u }}" {% if obj and obj.unidad==u %}selected{% elif not obj and u=='unidades' %}selected{% endif %}>{{ u }}</option>
+      {% endfor %}
+    </select></div>
+
+  <!-- Caducidad -->
+  <div class="col-md-4">
+    <label class="form-label">¿Tiene caducidad?</label>
+    <div class="form-check mt-2">
+      <input class="form-check-input" type="checkbox" name="tiene_caducidad" id="chkCad" value="1"
+        {% if obj and obj.tiene_caducidad %}checked{% endif %} onchange="toggleCad()">
+      <label class="form-check-label" for="chkCad">Sí, tiene fecha de caducidad</label>
+    </div>
+  </div>
+  <div class="col-md-4" id="divCad" style="display:{{ 'block' if obj and obj.tiene_caducidad else 'none' }}">
+    <label class="form-label">Fecha de caducidad</label>
+    <input type="date" name="fecha_caducidad" class="form-control" value="{{ obj.fecha_caducidad.strftime('%Y-%m-%d') if obj and obj.fecha_caducidad else '' }}"></div>
+
+  <!-- Costos -->
+  <div class="col-md-4"><label class="form-label">Costo del producto COP</label>
+    <div class="input-group"><span class="input-group-text">$</span>
+      <input type="number" name="costo_producto" id="cP" class="form-control" step="1" min="0" value="{{ obj.costo_producto|int if obj else '0' }}" oninput="calc()"></div></div>
+  <div class="col-md-4"><label class="form-label">Impuestos COP</label>
+    <div class="input-group"><span class="input-group-text">$</span>
+      <input type="number" name="impuestos" id="imp" class="form-control" step="1" min="0" value="{{ obj.impuestos|int if obj else '0' }}" oninput="calc()"></div></div>
+  <div class="col-md-4"><label class="form-label">Transporte COP</label>
+    <div class="input-group"><span class="input-group-text">$</span>
+      <input type="number" name="transporte" id="tsp" class="form-control" step="1" min="0" value="{{ obj.transporte|int if obj else '0' }}" oninput="calc()"></div></div>
+  <div class="col-md-6"><label class="form-label fw-bold">Costo total COP</label>
+    <input type="text" id="totVis" class="form-control fw-bold" readonly style="background:#f0f2ff;font-size:1.05rem">
+    <input type="hidden" name="costo_total" id="totHid"></div>
+  <div class="col-md-6"><label class="form-label fw-bold">Precio unitario COP</label>
+    <input type="text" id="pUVis" class="form-control fw-bold" readonly style="background:#f0f2ff;font-size:1.05rem">
+    <input type="hidden" name="precio_unitario" id="pUHid"></div>
+
+  <div class="col-12"><label class="form-label">Notas</label>
+    <textarea name="notas" class="form-control" rows="2">{{ obj.notas if obj else '' }}</textarea></div>
+</div>
+<div class="d-flex gap-2 mt-4">
+  <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Guardar Compra' }}</button>
+  <a href="{{ url_for('compras') }}" class="btn btn-outline-secondary">Cancelar</a>
+</div></form></div>
+{% block scripts %}<script>
+var _tipoLabels = {materia_prima:'Materia prima',producto_terminado:'Producto terminado',insumo:'Insumo',otro:'Otro'};
+function fCOP(n){return '$ '+Math.round(n).toLocaleString('es-CO');}
+function calc(){
+  var cp=parseFloat(document.getElementById('cP').value)||0;
+  var imp=parseFloat(document.getElementById('imp').value)||0;
+  var tsp=parseFloat(document.getElementById('tsp').value)||0;
+  var cant=parseFloat(document.getElementById('cant').value)||1;
+  var tot=cp+imp+tsp; var pu=cant>0?tot/cant:0;
+  document.getElementById('totVis').value=fCOP(tot); document.getElementById('totHid').value=Math.round(tot);
+  document.getElementById('pUVis').value=fCOP(pu); document.getElementById('pUHid').value=Math.round(pu);
+}
+function onTipoChange(){
+  var t=document.getElementById('tipoCompra').value;
+  var isMP=(t==='materia_prima');
+  document.getElementById('divMateria').style.display=isMP?'':'none';
+  // Producto siempre visible; ajustar etiqueta según contexto
+  document.getElementById('divProducto').style.display='';
+  document.getElementById('lblProductoHint').textContent=isMP?'(auto-detectado desde materia prima)':'(actualiza costo)';
+  autoNombre();
+}
+function onMateriaChange(){
+  var sel=document.getElementById('materiaId');
+  var opt=sel.options[sel.selectedIndex];
+  // Sync unidad
+  var unidad=opt.getAttribute('data-unidad');
+  if(unidad){
+    var uSel=document.getElementById('unidadSel');
+    for(var i=0;i<uSel.options.length;i++){if(uSel.options[i].value===unidad){uSel.selectedIndex=i;break;}}
+  }
+  // Auto-seleccionar el producto vinculado a la materia prima
+  var prodId=opt.getAttribute('data-prodid');
+  var pSel=document.getElementById('productoId');
+  if(pSel){
+    if(prodId){
+      for(var j=0;j<pSel.options.length;j++){if(pSel.options[j].value===prodId){pSel.selectedIndex=j;break;}}
+    } else {
+      pSel.selectedIndex=0; // Sin vincular
+    }
+  }
+  autoNombre();
+}
+function autoNombre(){
+  var tipo=document.getElementById('tipoCompra');
+  var tipoLbl=_tipoLabels[tipo.value]||tipo.value;
+  var partes=[tipoLbl];
+  if(tipo.value==='materia_prima'){
+    var mSel=document.getElementById('materiaId');
+    if(mSel.selectedIndex>0) partes.push(mSel.options[mSel.selectedIndex].text.split(' (')[0]);
+  }
+  var sel=document.getElementById('proveedorSel');
+  var prov=sel.options[sel.selectedIndex]?sel.options[sel.selectedIndex].text.trim():'';
+  if(prov) partes.push(prov);
+  var fecha=document.getElementById('fechaC').value;
+  if(fecha){var d=new Date(fecha+'T00:00:00');partes.push(d.toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit',year:'numeric'}));}
+  var nom=document.getElementById('nombreItem');
+  if(!nom._editado) nom.value=partes.join(', ');
+}
+function autoNombreFromSel(){
+  var sel=document.getElementById('proveedorSel');
+  var txt=sel.options[sel.selectedIndex]?sel.options[sel.selectedIndex].text.trim():'';
+  document.getElementById('proveedor').value=txt;
+  autoNombre();
+}
+document.getElementById('nombreItem').addEventListener('input',function(){this._editado=true;});
+function toggleCad(){
+  document.getElementById('divCad').style.display=document.getElementById('chkCad').checked?'block':'none';
+}
+// Init
+onTipoChange(); calc();
+</script>{% endblock %}{% endblock %}

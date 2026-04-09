@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block title %}Mi Actividad{% endblock %}
+{% block page_title %}Mi Actividad Mensual{% endblock %}
+{% block content %}
+<div class="row g-3 mb-3">
+  {% if usuarios_lista %}
+  <div class="col-12">
+    <div class="tc">
+      <div class="ch"><span><i class="bi bi-person-fill me-2"></i>Ver actividad de usuario</span></div>
+      <div style="padding:.75rem 1.25rem">
+        <div class="d-flex gap-2 flex-wrap">
+        {% for u in usuarios_lista %}
+          <a href="{{ url_for('mi_actividad', user_id=u.id) }}"
+             class="btn btn-sm {% if uid==u.id %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+            {{ u.nombre }}
+          </a>
+        {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-12">
+    <div class="tc">
+      <div class="ch">
+        <span><i class="bi bi-person-circle me-2"></i>Resumen de {{ target_user.nombre }}</span>
+        <span class="b b-negociacion">{{ target_user.rol }}</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="table">
+          <thead><tr>
+            <th>Mes</th>
+            <th class="text-end">Tareas completadas</th>
+            <th class="text-end">Acciones</th>
+            <th class="text-end">Clientes creados</th>
+            <th class="text-end">Tiempo en sistema</th>
+          </tr></thead>
+          <tbody>
+          {% for m in meses %}
+          <tr>
+            <td><strong>{{ m.mes }}</strong></td>
+            <td class="text-end">
+              <span class="b b-activo">{{ m.tareas }}</span>
+            </td>
+            <td class="text-end">{{ m.acciones }}</td>
+            <td class="text-end">{{ m.clientes }}</td>
+            <td class="text-end">
+              {% if m.tiempo_min >= 60 %}
+                {{ (m.tiempo_min // 60)|int }}h {{ (m.tiempo_min % 60)|int }}m
+              {% else %}
+                {{ m.tiempo_min }}m
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Bar chart visual -->
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="sc">
+      <div class="sl mb-3">Tareas completadas por mes</div>
+      {% for m in meses %}
+      <div class="mb-2">
+        <div class="d-flex justify-content-between mb-1" style="font-size:.78rem">
+          <span>{{ m.mes }}</span><span class="fw-bold">{{ m.tareas }}</span>
+        </div>
+        {% set max_t = meses|map(attribute='tareas')|max or 1 %}
+        <div class="stock-bar-wrap"><div class="stock-bar" style="width:{{ [(m.tareas/max_t*100)|int, 100]|min }}%"></div></div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="sc">
+      <div class="sl mb-3">Tiempo en sistema (minutos por mes)</div>
+      {% for m in meses %}
+      <div class="mb-2">
+        <div class="d-flex justify-content-between mb-1" style="font-size:.78rem">
+          <span>{{ m.mes }}</span>
+          <span class="fw-bold">
+            {% if m.tiempo_min >= 60 %}{{ (m.tiempo_min//60)|int }}h {{ (m.tiempo_min%60)|int }}m{% else %}{{ m.tiempo_min }}m{% endif %}
+          </span>
+        </div>
+        {% set max_t = meses|map(attribute='tiempo_min')|max or 1 %}
+        <div class="stock-bar-wrap"><div class="stock-bar" style="width:{{ [(m.tiempo_min/max_t*100)|int, 100]|min }}%;background:#5243AA"></div></div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

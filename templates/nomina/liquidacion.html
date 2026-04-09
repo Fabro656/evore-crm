@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Liquidación - {{ empleado.nombre }}{% endblock %}
+{% block page_title %}Liquidación de contrato{% endblock %}
+{% block content %}
+<div class="fc" style="max-width:800px">
+  <div style="border:1px solid #ddd;padding:2rem;border-radius:8px;background:#fff">
+    <div style="text-align:center;margin-bottom:2rem">
+      <h3 style="margin:0;font-weight:700">LIQUIDACIÓN DE CONTRATO</h3>
+      <p style="margin:0.5rem 0 0;color:#666;font-size:.9rem">{{ empleado.nombre }} {{ empleado.apellido }}</p>
+    </div>
+    <table style="width:100%;font-size:.95rem;margin-bottom:2rem">
+      <tr style="border-bottom:1px solid #ddd">
+        <td style="padding:8px">Empleado:</td>
+        <td style="padding:8px"><strong>{{ empleado.nombre }} {{ empleado.apellido }}</strong></td>
+      </tr>
+      <tr style="border-bottom:1px solid #ddd">
+        <td style="padding:8px">Cédula:</td>
+        <td style="padding:8px">{{ empleado.cedula or '—' }}</td>
+      </tr>
+      <tr style="border-bottom:1px solid #ddd">
+        <td style="padding:8px">Fecha de ingreso:</td>
+        <td style="padding:8px">{{ liq.fecha_ingreso.strftime('%d de %B de %Y') if liq.fecha_ingreso else '—' }}</td>
+      </tr>
+      <tr style="border-bottom:2px solid #0052CC">
+        <td style="padding:8px">Fecha de retiro:</td>
+        <td style="padding:8px"><strong>{{ liq.fecha_retiro.strftime('%d de %B de %Y') }}</strong></td>
+      </tr>
+      <tr><td style="padding:8px">Tiempo trabajado:</td>
+        <td style="padding:8px"><strong>{{ liq.dias_trabajados }} días ({{ liq.anios }} años)</strong></td>
+      </tr>
+    </table>
+    <table style="width:100%;font-size:.95rem;margin-bottom:2rem;border:1px solid #ddd">
+      <thead style="background:#f5f5f5">
+        <tr><th style="padding:8px;border-bottom:1px solid #ddd;text-align:left">Concepto</th>
+          <th style="padding:8px;border-bottom:1px solid #ddd;text-align:right">Valor</th></tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #eee"><td style="padding:8px">Cesantías</td>
+          <td style="padding:8px;text-align:right">{{ (liq.cesantias|cop) }}</td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="padding:8px">Intereses sobre cesantías (12% anual)</td>
+          <td style="padding:8px;text-align:right">{{ (liq.int_cesantias|cop) }}</td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="padding:8px">Prima de servicios</td>
+          <td style="padding:8px;text-align:right">{{ (liq.prima|cop) }}</td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="padding:8px">Vacaciones pendientes</td>
+          <td style="padding:8px;text-align:right">{{ (liq.vacaciones|cop) }}</td></tr>
+        {% if liq.indemnizacion > 0 %}
+        <tr style="border-bottom:2px solid var(--red);background:#ffe6e6"><td style="padding:8px"><strong>Indemnización</strong></td>
+          <td style="padding:8px;text-align:right"><strong style="color:var(--red)">{{ (liq.indemnizacion|cop) }}</strong></td></tr>
+        {% endif %}
+        <tr style="background:#f0f7ff;border-top:2px solid #0052CC"><td style="padding:12px"><strong>TOTAL A PAGAR</strong></td>
+          <td style="padding:12px;text-align:right"><strong style="font-size:1.2rem;color:#0052CC">{{ (liq.total|cop) }}</strong></td></tr>
+      </tbody>
+    </table>
+    <div style="border-top:1px solid #ddd;padding-top:2rem;margin-top:2rem">
+      <p style="font-size:.85rem;color:#666">Empresa: ____________________________  &nbsp;&nbsp; Empleado: ____________________________</p>
+      <p style="font-size:.85rem;color:#666">Firma                                                                      Firma</p>
+      <p style="font-size:.85rem;color:#666">Fecha: ____________________________  &nbsp;&nbsp; Fecha: ____________________________</p>
+    </div>
+    <div style="margin-top:2rem;display:flex;gap:1rem">
+      <button onclick="window.print()" class="btn btn-primary"><i class="bi bi-printer me-1"></i>Imprimir</button>
+      <a href="{{ url_for('nomina_index') }}" class="btn btn-outline-secondary">Volver</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

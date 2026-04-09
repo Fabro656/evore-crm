@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('ventas') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
+{% block content %}<div class="fc" style="max-width:960px"><form method="POST">
+
+<div class="form-section">
+  <div class="form-section-title"><i class="bi bi-tag me-2"></i>Información del negocio</div>
+  <div class="row g-3 mb-2">
+    <div class="col-md-8">
+      <label class="form-label">Título <span class="req">*</span></label>
+      <input type="text" name="titulo" class="form-control" value="{{ obj.titulo if obj else '' }}" required placeholder="Ej: Uniformes Colegio ABC — Pedido junio 2025">
+      <div class="form-text">Nombre interno del negocio. Ayuda a identificarlo rápidamente en la lista.</div>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Cliente</label>
+      <select name="cliente_id" class="form-select"><option value="">— Sin cliente —</option>
+        {% for c in clientes_list %}<option value="{{ c.id }}" {% if obj and obj.cliente_id==c.id %}selected{% endif %}>{{ c.empresa or c.nombre }}</option>{% endfor %}
+      </select>
+      <div class="form-text">Puedes dejarlo en blanco y asignarlo después.</div>
+    </div>
+  </div>
+</div>
+
+<div class="form-section">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="form-section-title mb-0"><i class="bi bi-box-seam me-2"></i>Productos</div>
+    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addProd()"><i class="bi bi-plus-lg me-1"></i>Agregar producto</button>
+  </div>
+  <div class="input-hint mb-2"><i class="bi bi-info-circle me-1"></i>Agrega los productos o servicios del pedido. El precio es <strong>sin IVA</strong>; el sistema calcula el 19% automáticamente.</div>
+  <div id="prodsContainer"></div>
+  <div class="totales-box mt-3 mb-2"><div class="row g-2 justify-content-end"><div class="col-md-4">
+    <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">Subtotal:</span><strong id="lblSub">$ 0</strong></div>
+    <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">IVA 19%:</span><strong id="lblIva">$ 0</strong></div>
+    <div class="d-flex justify-content-between py-1"><span class="fw-bold">Total:</span><strong id="lblTot" style="color:#5e72e4;font-size:1.1rem">$ 0</strong></div>
+  </div></div></div>
+</div>
+
+<div class="form-section">
+  <div class="form-section-title"><i class="bi bi-cash-coin me-2"></i>Condiciones de pago y entrega</div>
+  <div class="row g-3 mb-2">
+    <div class="col-md-3">
+      <label class="form-label">Estado</label>
+      <select name="estado" class="form-select">
+        {% for est,lbl in [('prospecto','Prospecto'),('negociacion','Negociación'),('anticipo_pagado','Anticipo Pagado'),('completado','Completado'),('perdido','Perdido')] %}
+        <option value="{{ est }}" {% if obj and obj.estado==est %}selected{% elif not obj and est=='prospecto' %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
+      </select>
+      <div class="form-text">Refleja en qué etapa va el negocio.</div>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">% Anticipo</label>
+      <div class="input-group"><input type="number" name="porcentaje_anticipo" id="pctA" class="form-control" min="0" max="100" step="1"
+        value="{{ obj.porcentaje_anticipo|int if obj else '0' }}" oninput="calcA()"><span class="input-group-text">%</span></div>
+      <div class="form-text">Porcentaje del total que el cliente paga por adelantado.</div>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Monto anticipo COP</label>
+      <input type="text" id="montoAVis" class="form-control" readonly style="background:#f8f9fe" placeholder="Se calcula solo">
+      <input type="hidden" name="monto_anticipo" id="montoAHid">
+      <div class="form-text">Se calcula automáticamente.</div>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Saldo a pagar</label>
+      <input type="text" id="saldoVis" class="form-control" readonly style="background:#f8f9fe" placeholder="Se calcula solo">
+      <input type="hidden" name="saldo" id="saldoHid">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Fecha pago anticipo</label>
+      <input type="date" name="fecha_anticipo" id="fAnticipo" class="form-control"
+        value="{{ obj.fecha_anticipo.strftime('%Y-%m-%d') if obj and obj.fecha_anticipo else '' }}" onchange="calcEnt()">
+      <div class="form-text">¿Cuándo pagará el cliente el anticipo?</div>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Días de producción</label>
+      <select name="dias_entrega" id="diasEnt" class="form-select" onchange="calcEnt()">
+        <option value="30" {% if not obj or obj.dias_entrega==30 %}selected{% endif %}>30 días</option>
+        <option value="45" {% if obj and obj.dias_entrega==45 %}selected{% endif %}>45 días</option>
+      </select>
+      <div class="form-text">Tiempo estimado para fabricar o preparar el pedido.</div>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Entrega estimada</label>
+      <input type="text" id="entVis" class="form-control" readonly style="background:#f8f9fe" placeholder="Se calcula sola">
+      <input type="hidden" name="fecha_entrega_est" id="entHid" value="{{ obj.fecha_entrega_est.strftime('%Y-%m-%d') if obj and obj.fecha_entrega_est else '' }}">
+      <div class="form-text">Fecha anticipo + días producción.</div>
+    </div>
+    <div class="col-12">
+      <label class="form-label">Notas internas</label>
+      <textarea name="notas" class="form-control" rows="2" placeholder="Instrucciones especiales, acuerdos con el cliente, etc.">{{ obj.notas if obj else '' }}</textarea>
+    </div>
+  </div>
+</div>
+
+<input type="hidden" name="subtotal_calc" id="subHid">
+<input type="hidden" name="iva_calc" id="ivaHid">
+<input type="hidden" name="total_calc" id="totHid">
+<div class="d-flex gap-2 mt-2">
+  <button type="submit" class="btn btn-primary btn-action"><i class="bi bi-check-lg me-1"></i>{{ 'Guardar cambios' if obj else 'Crear Venta' }}</button>
+  <a href="{{ url_for('ventas') }}" class="btn btn-outline-secondary">Cancelar</a>
+</div></form></div>{% endblock %}
+{% block scripts %}<script>
+const PRODS={{ productos_json|tojson }};const ITEMS={{ items_json|tojson }};let totG=0;
+function fCOP(n){return '$ '+Math.round(n).toLocaleString('es-CO');}
+function stockInfo(p,cant){
+  if(!p||p.stock===undefined) return '';
+  var en_stock=Math.min(p.stock,cant);
+  var producir=Math.max(0,cant-p.stock);
+  var cls=p.stock>=cant?'text-success':'text-warning';
+  return '<div class="mt-1" style="font-size:.76rem"><span class="'+cls+'"><i class="bi bi-box-seam me-1"></i>Stock: '+p.stock+'</span>'
+    +(producir>0?'<span class="ms-2 text-warning"><i class="bi bi-gear me-1"></i>A producir: '+producir+'</span>':'<span class="ms-2 text-success"> ✓ Hay stock suficiente</span>')
+    +'</div>';
+}
+function addProd(pid='',cant=1,precio=0){
+  const opts=PRODS.map(p=>`<option value="${p.id}" data-p="${p.precio}" data-stock="${p.stock}" ${p.id==pid?'selected':''}>${p.nombre}${p.sku?' ('+p.sku+')':''}</option>`).join('');
+  const idx=Date.now();
+  const selProd=PRODS.find(p=>p.id==pid)||{};
+  document.getElementById('prodsContainer').insertAdjacentHTML('beforeend',`<div class="prod-row mb-2" id="pr${idx}">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-5"><label class="form-label mb-1" style="font-size:.8rem">Producto</label>
+        <select name="prod_id[]" class="form-select form-select-sm" onchange="onPC(this,${idx})">${opts}</select>
+        <div id="si${idx}">${stockInfo(selProd,cant)}</div></div>
+      <div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Cantidad</label>
+        <input type="number" name="prod_cant[]" class="form-control form-control-sm" min="0.01" step="0.01" value="${cant}" oninput="onCantChange(this,${idx})"></div>
+      <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Precio unit. COP sin IVA</label>
+        <input type="number" name="prod_precio[]" id="pp${idx}" class="form-control form-control-sm" min="0" step="1" value="${precio}" oninput="calcRow(${idx})"></div>
+      <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Subtotal</label>
+        <input type="text" id="ps${idx}" class="form-control form-control-sm" readonly style="background:#f8f9fe"></div>
+      <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem"> </label>
+        <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="document.getElementById('pr${idx}').remove();calcTot()"><i class="bi bi-trash"></i></button></div>
+    </div></div>`);
+  calcRow(idx);
+}
+function onPC(sel,idx){
+  const o=sel.options[sel.selectedIndex];
+  document.getElementById('pp'+idx).value=Math.round(o.dataset.p||0);
+  const stock=parseInt(o.dataset.stock||0);
+  const pr=document.getElementById('pr'+idx);
+  const cant=parseFloat(pr.querySelector('[name="prod_cant[]"]').value)||1;
+  const p={stock:stock};
+  document.getElementById('si'+idx).innerHTML=stockInfo(p,cant);
+  calcRow(idx);
+}
+function onCantChange(el,idx){
+  const pr=document.getElementById('pr'+idx);
+  const sel=pr.querySelector('select');
+  const o=sel.options[sel.selectedIndex];
+  const stock=parseInt(o.dataset.stock||0);
+  const cant=parseFloat(el.value)||0;
+  document.getElementById('si'+idx).innerHTML=stockInfo({stock:stock},cant);
+  calcRow(idx);
+}
+function calcRow(idx){
+  const pr=document.getElementById('pr'+idx);if(!pr)return;
+  const c=parseFloat(pr.querySelector('[name="prod_cant[]"]').value)||0;
+  const p=parseFloat(document.getElementById('pp'+idx).value)||0;
+  document.getElementById('ps'+idx).value=fCOP(c*p);calcTot();
+}
+function calcTot(){
+  let sub=0;
+  document.querySelectorAll('[name="prod_cant[]"]').forEach((el,i)=>{
+    sub+=(parseFloat(el.value)||0)*(parseFloat(document.querySelectorAll('[name="prod_precio[]"]')[i].value)||0);
+  });
+  const iva=sub*.19,tot=sub+iva;totG=tot;
+  document.getElementById('lblSub').textContent=fCOP(sub);
+  document.getElementById('lblIva').textContent=fCOP(iva);
+  document.getElementById('lblTot').textContent=fCOP(tot);
+  document.getElementById('subHid').value=Math.round(sub);
+  document.getElementById('ivaHid').value=Math.round(iva);
+  document.getElementById('totHid').value=Math.round(tot);calcA();
+}
+function calcA(){
+  const pct=parseFloat(document.getElementById('pctA').value)||0;
+  const ant=totG*pct/100,sal=totG-ant;
+  document.getElementById('montoAVis').value=fCOP(ant);document.getElementById('montoAHid').value=Math.round(ant);
+  document.getElementById('saldoVis').value=fCOP(sal);document.getElementById('saldoHid').value=Math.round(sal);
+}
+function calcEnt(){
+  const fa=document.getElementById('fAnticipo').value;const d=parseInt(document.getElementById('diasEnt').value)||30;
+  if(fa){const dt=new Date(fa);dt.setDate(dt.getDate()+d);const iso=dt.toISOString().split('T')[0];
+    const p=iso.split('-');document.getElementById('entVis').value=p[2]+'/'+p[1]+'/'+p[0];document.getElementById('entHid').value=iso;}
+}
+if(ITEMS.length>0){ITEMS.forEach(it=>addProd(it.pid,it.cant,it.precio));}else{addProd();}
+calcEnt();
+const feh=document.getElementById('entHid').value;if(feh){const p=feh.split('-');document.getElementById('entVis').value=p[2]+'/'+p[1]+'/'+p[0];}
+// Auto-título: cliente + estado + fecha anticipo
+setupAutoTitulo('[name="titulo"]',['[name="cliente_id"]','[name="estado"]','[name="fecha_anticipo"]']);
+</script>{% endblock %}

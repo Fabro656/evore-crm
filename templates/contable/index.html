@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% block title %}Contabilidad{% endblock %}{% block page_title %}Módulo Contable{% endblock %}
+{% block topbar_actions %}
+<div class="d-flex gap-2 flex-wrap">
+  {% for m in meses_nav %}<a href="{{ url_for('contable_index', mes=m.val) }}" class="btn btn-sm {{ 'btn-primary' if mes_str==m.val else 'btn-outline-secondary' }}">{{ m.lbl }}</a>{% endfor %}
+  <a href="{{ url_for('impuestos') }}" class="btn btn-sm btn-outline-warning ms-2"><i class="bi bi-percent me-1"></i>Reglas</a>
+</div>
+{% endblock %}
+{% block content %}
+{# ── Fila 1: indicadores principales ─────────────────── #}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="fc text-center py-3">
+    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Ingresos del mes</div>
+    <div class="fw-bold mt-1" style="font-size:1.35rem;color:#2dce89">$ {{ '{:,.0f}'.format(total_ingresos).replace(',','.') }}</div>
+    <small class="text-muted">{{ ventas_mes|length }} venta(s)</small>
+  </div></div>
+  <div class="col-6 col-md-3"><div class="fc text-center py-3">
+    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Egresos del mes</div>
+    <div class="fw-bold mt-1" style="font-size:1.35rem;color:#f5365c">$ {{ '{:,.0f}'.format(total_egresos).replace(',','.') }}</div>
+    <small class="text-muted">Gastos + compras</small>
+  </div></div>
+  <div class="col-6 col-md-3"><div class="fc text-center py-3">
+    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Utilidad bruta</div>
+    <div class="fw-bold mt-1" style="font-size:1.35rem;color:{{ '#2dce89' if utilidad >= 0 else '#f5365c' }}">$ {{ '{:,.0f}'.format(utilidad).replace(',','.') }}</div>
+    <small class="text-muted">Ingresos − Egresos</small>
+  </div></div>
+  <div class="col-6 col-md-3"><div class="fc text-center py-3">
+    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Impuestos estimados</div>
+    <div class="fw-bold mt-1" style="font-size:1.35rem;color:#e83e8c">$ {{ '{:,.0f}'.format(total_impuestos).replace(',','.') }}</div>
+    <small class="text-muted">{{ detalle_impuestos|length }} regla(s) activa(s)</small>
+  </div></div>
+</div>
+{# ── Fila 2: utilidad neta + otros ─────────────────────── #}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="fc text-center py-3" style="border:2px solid {{ '#2dce89' if utilidad_neta >= 0 else '#f5365c' }}">
+    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Utilidad neta</div>
+    <div class="fw-bold mt-1" style="font-size:1.45rem;color:{{ '#2dce89' if utilidad_neta >= 0 else '#f5365c' }}">$ {{ '{:,.0f}'.format(utilidad_neta).replace(',','.') }}</div>
+    <small class="text-muted">Utilidad − Impuestos</small>
+  </div></div>
+  <div class="col-6 col-md-3"><div class="fc text-center py-3">
+    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Cuentas por cobrar</div>
+    <div class="fw-bold mt-1" style="font-size:1.2rem;color:#fb6340">$ {{ '{:,.0f}'.format(total_cxc).replace(',','.') }}</div>
+    <small class="text-muted">{{ cxc|length }} venta(s) pendientes</small>
+  </div></div>
+  <div class="col-6 col-md-3"><div class="fc text-center py-3">
+    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Inventario valorizado</div>
+    <div class="fw-bold mt-1" style="font-size:1.2rem;color:#5e72e4">$ {{ '{:,.0f}'.format(inventario_valor).replace(',','.') }}</div>
+  </div></div>
+  <div class="col-6 col-md-3"><div class="fc text-center py-3">
+    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Anticipo cobrado</div>
+    <div class="fw-bold mt-1" style="font-size:1.2rem;color:#11cdef">$ {{ '{:,.0f}'.format(total_anticipo).replace(',','.') }}</div>
+  </div></div>
+</div>
+{# ── Desglose de impuestos ──────────────────────────────── #}
+{% if detalle_impuestos %}
+<div class="tc mb-3">
+  <div class="ch d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-percent me-2 text-danger"></i>Desglose de impuestos estimados — {{ anio }}/{{ '%02d'|format(mes) }}</span>
+    <a href="{{ url_for('impuestos') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-gear me-1"></i>Configurar reglas</a>
+  </div>
+  <div class="table-responsive">
+  <table class="table table-sm mb-0">
+    <thead><tr><th>Regla</th><th>Aplica a</th><th class="text-end">Base</th><th class="text-center">%</th><th class="text-end">Impuesto estimado</th></tr></thead>
+    <tbody>
+    {% for d in detalle_impuestos %}<tr>
+      <td class="fw-semibold">{{ d.nombre }}</td>
+      <td><small class="badge bg-light text-dark border">{{ d.base_label }}</small></td>
+      <td class="text-end"><small>$ {{ '{:,.0f}'.format(d.base_monto).replace(',','.') }}</small></td>
+      <td class="text-center"><small>{{ d.porcentaje }}%</small></td>
+      <td class="text-end text-danger fw-semibold">$ {{ '{:,.0f}'.format(d.monto).replace(',','.') }}</td>
+    </tr>{% endfor %}
+    </tbody>
+    <tfoot><tr class="table-light fw-bold">
+      <td colspan="4" class="text-end">Total impuestos</td>
+      <td class="text-end text-danger">$ {{ '{:,.0f}'.format(total_impuestos).replace(',','.') }}</td>
+    </tr></tfoot>
+  </table></div>
+</div>
+{% else %}
+<div class="alert alert-warning mb-3" style="border-radius:10px;border:none">
+  <i class="bi bi-exclamation-triangle me-2"></i>No hay reglas tributarias activas.
+  <a href="{{ url_for('impuestos') }}" class="alert-link">Configurar reglas tributarias</a> para calcular impuestos automáticamente.
+</div>
+{% endif %}
+{# ── Tablas de detalle ─────────────────────────────────── #}
+<div class="row g-3">
+  <div class="col-md-6"><div class="tc">
+    <div class="ch"><i class="bi bi-graph-up me-2 text-success"></i>Ventas del mes</div>
+    {% if ventas_mes %}<table class="table table-sm">
+      <thead><tr><th>N°</th><th>Título</th><th>Estado</th><th class="text-end">Total</th></tr></thead>
+      <tbody>{% for v in ventas_mes %}<tr>
+        <td><small>{{ v.numero or '—' }}</small></td>
+        <td><small class="fw-semibold">{{ v.titulo[:30] }}</small></td>
+        <td><small><span class="b b-{{ v.estado }}" style="font-size:.7rem">{{ v.estado.replace('_',' ').title() }}</span></small></td>
+        <td class="text-end"><small>$ {{ '{:,.0f}'.format(v.total).replace(',','.') }}</small></td>
+      </tr>{% endfor %}</tbody>
+    </table>
+    {% else %}<div class="text-center text-muted py-3"><i class="bi bi-graph-up"></i> Sin ventas este mes</div>{% endif %}
+  </div></div>
+  <div class="col-md-6"><div class="tc">
+    <div class="ch"><i class="bi bi-arrow-down-circle me-2 text-danger"></i>Cuentas por cobrar</div>
+    {% if cxc %}<table class="table table-sm">
+      <thead><tr><th>N°</th><th>Cliente</th><th class="text-end">Saldo</th></tr></thead>
+      <tbody>{% for v in cxc|sort(attribute='saldo', reverse=True)|list %}{% if loop.index <= 8 %}<tr>
+        <td><small>{{ v.numero or '—' }}</small></td>
+        <td><small>{{ v.cliente.empresa or v.cliente.nombre if v.cliente else '—' }}</small></td>
+        <td class="text-end text-danger fw-semibold"><small>$ {{ '{:,.0f}'.format(v.saldo).replace(',','.') }}</small></td>
+      </tr>{% endif %}{% endfor %}</tbody>
+    </table>
+    {% else %}<div class="text-center text-muted py-3 text-success"><i class="bi bi-check-circle me-1"></i>Sin cuentas por cobrar</div>{% endif %}
+  </div></div>
+</div>
+<div class="mt-3 d-flex gap-2 flex-wrap">
+  <a href="{{ url_for('contable_ingresos') }}" class="btn btn-outline-success btn-sm"><i class="bi bi-graph-up me-1"></i>Ver todos los ingresos</a>
+  <a href="{{ url_for('contable_egresos') }}" class="btn btn-outline-danger btn-sm"><i class="bi bi-graph-down me-1"></i>Ver todos los egresos</a>
+  <a href="{{ url_for('contable_libro_diario') }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-journal-text me-1"></i>Libro diario</a>
+  <a href="{{ url_for('contable_exportar', tipo='ventas') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i>Exportar ventas CSV</a>
+  <a href="{{ url_for('contable_exportar', tipo='gastos') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i>Exportar gastos CSV</a>
+  <a href="{{ url_for('contable_exportar', tipo='compras') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i>Exportar compras CSV</a>
+</div>
+{% endblock %}

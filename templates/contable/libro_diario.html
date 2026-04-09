@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Libro Diario{% endblock %}{% block page_title %}Libro Diario{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('contable_exportar', tipo='asientos') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i>CSV</a>
+<a href="{{ url_for('contable_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Contable</a>
+{% endblock %}
+{% block content %}
+<div class="row g-4">
+<div class="col-md-4">
+  <div class="fc">
+    <h6 class="text-muted text-uppercase mb-3" style="font-size:.72rem;letter-spacing:1px">Nuevo asiento manual</h6>
+    <form method="POST">
+      <div class="mb-2"><label class="form-label mb-1" style="font-size:.82rem">Fecha *</label>
+        <input type="date" name="fecha" class="form-control form-control-sm" value="{{ today }}" required></div>
+      <div class="mb-2"><label class="form-label mb-1" style="font-size:.82rem">Descripción *</label>
+        <input type="text" name="descripcion" class="form-control form-control-sm" placeholder="Descripción del asiento" required></div>
+      <div class="row g-2 mb-2">
+        <div class="col-6"><label class="form-label mb-1" style="font-size:.82rem">Debe $</label>
+          <input type="number" name="debe" class="form-control form-control-sm" step="1" min="0" value="0"></div>
+        <div class="col-6"><label class="form-label mb-1" style="font-size:.82rem">Haber $</label>
+          <input type="number" name="haber" class="form-control form-control-sm" step="1" min="0" value="0"></div>
+      </div>
+      <div class="mb-2"><label class="form-label mb-1" style="font-size:.82rem">Cuenta Debe</label>
+        <input type="text" name="cuenta_debe" class="form-control form-control-sm" placeholder="Ej: Caja, Bancos..."></div>
+      <div class="mb-2"><label class="form-label mb-1" style="font-size:.82rem">Cuenta Haber</label>
+        <input type="text" name="cuenta_haber" class="form-control form-control-sm" placeholder="Ej: Ventas, IVA..."></div>
+      <div class="mb-3"><label class="form-label mb-1" style="font-size:.82rem">Referencia</label>
+        <input type="text" name="referencia" class="form-control form-control-sm" placeholder="Factura, N° venta..."></div>
+      <button type="submit" class="btn btn-primary w-100"><i class="bi bi-check-lg me-1"></i>Registrar asiento</button>
+    </form>
+  </div>
+</div>
+<div class="col-md-8">
+  <div class="tc">
+    <div class="ch"><i class="bi bi-journal-text me-2"></i>{{ asientos|length }} asiento(s)</div>
+    {% if asientos %}<table class="table table-sm">
+      <thead><tr><th>N°</th><th>Fecha</th><th>Descripción</th><th>Cta. Debe</th><th>Cta. Haber</th><th class="text-end">Debe</th><th class="text-end">Haber</th></tr></thead>
+      <tbody>{% for a in asientos %}<tr>
+        <td><small class="fw-semibold text-muted">{{ a.numero or '—' }}</small></td>
+        <td><small>{{ a.fecha.strftime('%d/%m/%Y') }}</small></td>
+        <td><small>{{ a.descripcion[:40] }}</small></td>
+        <td><small class="text-muted">{{ a.cuenta_debe or '—' }}</small></td>
+        <td><small class="text-muted">{{ a.cuenta_haber or '—' }}</small></td>
+        <td class="text-end"><small class="text-success">{% if a.debe > 0 %}$ {{ '{:,.0f}'.format(a.debe).replace(',','.') }}{% else %}—{% endif %}</small></td>
+        <td class="text-end"><small class="text-danger">{% if a.haber > 0 %}$ {{ '{:,.0f}'.format(a.haber).replace(',','.') }}{% else %}—{% endif %}</small></td>
+      </tr>{% endfor %}</tbody>
+    </table>
+    {% else %}<div class="text-center text-muted py-4">Sin asientos registrados.</div>{% endif %}
+  </div>
+</div>
+</div>{% endblock %}

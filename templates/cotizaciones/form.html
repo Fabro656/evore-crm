@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('cotizaciones') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
+{% block content %}<div class="fc" style="max-width:900px"><form method="POST"><div class="row g-3">
+  <div class="col-md-8"><label class="form-label">Título de la cotización *</label>
+    <input type="text" name="titulo" class="form-control" placeholder="Ej: Diseño y producción de catálogo Q2 2026" value="{{ obj.titulo if obj else '' }}" required></div>
+  <div class="col-md-4"><label class="form-label">Cliente</label>
+    <select name="cliente_id" class="form-select">
+      <option value="">— Sin cliente —</option>
+      {% for c in clientes_list %}<option value="{{ c.id }}" {% if obj and obj.cliente_id==c.id %}selected{% endif %}>{{ c.empresa or c.nombre }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-3"><label class="form-label">Fecha de emisión</label>
+    <input type="date" name="fecha_emision" class="form-control" value="{{ obj.fecha_emision.strftime('%Y-%m-%d') if obj else today }}"></div>
+  <div class="col-md-3"><label class="form-label">Válida hasta</label>
+    <input type="date" name="fecha_validez" class="form-control" value="{{ obj.fecha_validez.strftime('%Y-%m-%d') if obj and obj.fecha_validez else '' }}"></div>
+  <div class="col-md-3"><label class="form-label">Días de entrega estimados</label>
+    <input type="number" name="dias_entrega" class="form-control" min="1" value="{{ obj.dias_entrega if obj else '30' }}"></div>
+  <div class="col-md-3"><label class="form-label">% Anticipo</label>
+    <div class="input-group"><input type="number" name="porcentaje_anticipo" id="pctAnticipo" class="form-control" min="0" max="100" step="1" value="{{ obj.porcentaje_anticipo|int if obj else '50' }}"><span class="input-group-text">%</span></div></div>
+  <div class="col-12"><label class="form-label fw-semibold">Ítems / Servicios</label>
+    <div id="itemsWrap">
+      {% if obj and obj.items %}
+        {% for it in obj.items %}
+        <div class="row g-2 mb-2 item-row">
+          <div class="col-md-5"><input type="text" name="item_nombre[]" class="form-control form-control-sm" placeholder="Nombre del ítem" value="{{ it.nombre_prod }}" required></div>
+          <div class="col-md-2"><input type="number" name="item_cantidad[]" class="form-control form-control-sm item-cant" placeholder="Cant." step="0.01" min="0" value="{{ it.cantidad }}" oninput="calcRow(this)"></div>
+          <div class="col-md-3"><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="Precio unit." step="1" min="0" value="{{ it.precio_unit|int }}" oninput="calcRow(this)"></div></div>
+          <div class="col-md-1 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:#5e72e4">$ {{ '{:,.0f}'.format(it.subtotal).replace(',','.') }}</span></div>
+          <div class="col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.item-row').remove();calcTotal()"><i class="bi bi-trash"></i></button></div>
+        </div>{% endfor %}
+      {% else %}
+        <div class="row g-2 mb-2 item-row">
+          <div class="col-md-5"><input type="text" name="item_nombre[]" class="form-control form-control-sm" placeholder="Nombre del ítem o servicio" required></div>
+          <div class="col-md-2"><input type="number" name="item_cantidad[]" class="form-control form-control-sm item-cant" placeholder="1" step="0.01" min="0" value="1" oninput="calcRow(this)"></div>
+          <div class="col-md-3"><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0" step="1" min="0" value="0" oninput="calcRow(this)"></div></div>
+          <div class="col-md-1 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:#5e72e4">$ 0</span></div>
+          <div class="col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.item-row').remove();calcTotal()"><i class="bi bi-trash"></i></button></div>
+        </div>
+      {% endif %}
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addRow()"><i class="bi bi-plus-lg me-1"></i>Agregar ítem</button>
+  </div>
+  <div class="col-12"><hr class="my-2"></div>
+  <div class="col-md-6 offset-md-6">
+    <div class="d-flex justify-content-between mb-1"><span class="text-muted">Subtotal:</span><span id="lblSub" class="fw-semibold">$ 0</span></div>
+    <div class="d-flex justify-content-between mb-1 align-items-center">
+      <span class="text-muted">IVA:</span>
+      <div class="d-flex align-items-center gap-2">
+        <input type="number" name="iva_pct" id="ivaPct" class="form-control form-control-sm" style="width:70px" step="0.01" min="0" max="100" value="{{ ((obj.iva / obj.subtotal * 100)|round(2)) if obj and obj.subtotal and obj.subtotal > 0 else iva_default }}" oninput="calcTotal()">
+        <span class="text-muted">%</span>
+        <span id="lblIva" class="fw-semibold">$ 0</span>
+      </div>
+    </div>
+    <div class="d-flex justify-content-between mb-1"><span class="fw-bold">Total:</span><span id="lblTotal" class="fw-bold" style="color:#5e72e4;font-size:1.1rem">$ 0</span></div>
+    <div class="d-flex justify-content-between text-muted"><span>Anticipo (<span id="lblPct">50</span>%):</span><span id="lblAnticipo">$ 0</span></div>
+    <div class="d-flex justify-content-between text-muted"><span>Saldo:</span><span id="lblSaldo">$ 0</span></div>
+  </div>
+  <div class="col-12"><label class="form-label">Condiciones de pago</label>
+    <textarea name="condiciones_pago" class="form-control" rows="2" placeholder="Ej: 50% anticipo, 50% contra entrega">{{ obj.condiciones_pago if obj else '' }}</textarea></div>
+  <div class="col-12"><label class="form-label">Notas adicionales</label>
+    <textarea name="notas" class="form-control" rows="2" placeholder="Observaciones, alcance, exclusiones...">{{ obj.notas if obj else '' }}</textarea></div>
+</div>
+<div class="d-flex gap-2 mt-4">
+  <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear Cotización' }}</button>
+  <a href="{{ url_for('cotizaciones') }}" class="btn btn-outline-secondary">Cancelar</a>
+</div></form></div>
+{% block scripts %}<script>
+var IVA_DEFAULT = {{ iva_default|tojson }};
+function fmt(n){return'$ '+Math.round(n).toLocaleString('es-CO');}
+function calcRow(el){
+  var row=el.closest('.item-row');
+  var c=parseFloat(row.querySelector('.item-cant').value)||0;
+  var p=parseFloat(row.querySelector('.item-precio').value)||0;
+  row.querySelector('.item-sub').textContent=fmt(c*p);
+  calcTotal();
+}
+function calcTotal(){
+  var sub=0;
+  document.querySelectorAll('.item-row').forEach(function(r){
+    var c=parseFloat(r.querySelector('.item-cant').value)||0;
+    var p=parseFloat(r.querySelector('.item-precio').value)||0;
+    sub+=c*p;
+  });
+  var ivaPct=parseFloat(document.getElementById('ivaPct').value)||0;
+  var iva=sub*ivaPct/100;
+  var total=sub+iva;
+  var pct=parseFloat(document.getElementById('pctAnticipo').value)||50;
+  var anticipo=total*pct/100;
+  document.getElementById('lblSub').textContent=fmt(sub);
+  document.getElementById('lblIva').textContent=fmt(iva);
+  document.getElementById('lblTotal').textContent=fmt(total);
+  document.getElementById('lblPct').textContent=Math.round(pct);
+  document.getElementById('lblAnticipo').textContent=fmt(anticipo);
+  document.getElementById('lblSaldo').textContent=fmt(total-anticipo);
+}
+function addRow(){
+  var wrap=document.getElementById('itemsWrap');
+  var div=document.createElement('div');
+  div.className='row g-2 mb-2 item-row';
+  div.innerHTML='<div class="col-md-5"><input type="text" name="item_nombre[]" class="form-control form-control-sm" placeholder="Nombre del ítem o servicio" required></div>'
+    +'<div class="col-md-2"><input type="number" name="item_cantidad[]" class="form-control form-control-sm item-cant" placeholder="1" step="0.01" min="0" value="1" oninput="calcRow(this)"></div>'
+    +'<div class="col-md-3"><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0" step="1" min="0" value="0" oninput="calcRow(this)"></div></div>'
+    +'<div class="col-md-1 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:#5e72e4">$ 0</span></div>'
+    +'<div class="col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest(\'.item-row\').remove();calcTotal()"><i class="bi bi-trash"></i></button></div>';
+  wrap.appendChild(div);
+}
+document.getElementById('pctAnticipo').addEventListener('input',calcTotal);
+calcTotal();
+// Auto-título desde cliente + fecha emisión
+setupAutoTitulo('[name="titulo"]',['[name="cliente_id"]','[name="fecha_emision"]']);
+</script>{% endblock %}{% endblock %}

@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}Revisar Pre-cotización{% endblock %}
+{% block page_title %}Pre-cotización {{ pc.numero }}{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-md-8">
+    <div class="tc mb-3">
+      <div class="ch">
+        <span>Solicitud de {{ pc.cliente.empresa or pc.cliente.nombre }}</span>
+        <span class="b b-{{ pc.estado }}">{{ pc.estado.replace('_',' ').title() }}</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table">
+          <thead><tr><th>Producto</th><th class="text-end">Cant.</th><th class="text-end">Precio ref.</th><th class="text-end">Subtotal</th></tr></thead>
+          <tbody>
+          {% for it in pc.items %}
+          <tr>
+            <td>{{ it.nombre_prod }}</td>
+            <td class="text-end">{{ it.cantidad }}</td>
+            <td class="text-end">$ {{ '{:,.0f}'.format(it.precio_unit).replace(',','.') }}</td>
+            <td class="text-end">$ {{ '{:,.0f}'.format(it.subtotal).replace(',','.') }}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div style="padding:.75rem 1.25rem;text-align:right;border-top:1px solid #DFE1E6">
+        <strong>Total estimado: $ {{ '{:,.0f}'.format(pc.total).replace(',','.') }}</strong>
+        <div style="font-size:.78rem;color:#6B778C">Incluye IVA 19%</div>
+      </div>
+    </div>
+    {% if pc.notas_cliente %}
+    <div class="sc mb-3"><div class="sl mb-2">Notas del cliente</div><p style="font-size:.88rem;margin:0">{{ pc.notas_cliente }}</p></div>
+    {% endif %}
+  </div>
+  <div class="col-md-4">
+    {% if pc.estado in ['pendiente','en_revision'] %}
+    <div class="fc">
+      <h6 class="fw-bold mb-3">Gestionar solicitud</h6>
+      <form method="POST">
+        <div class="mb-3">
+          <label class="form-label">Nota para el cliente</label>
+          <textarea name="notas_manager" class="form-control" rows="3" placeholder="Indica cambios, precios ajustados, condiciones...">{{ pc.notas_manager or '' }}</textarea>
+        </div>
+        {% for it in pc.items %}
+        <div class="mb-2">
+          <label class="form-label" style="font-size:.8rem">Precio ajustado — {{ it.nombre_prod }}</label>
+          <div class="input-group">
+            <span class="input-group-text" style="font-size:.82rem">$</span>
+            <input type="number" name="precio_{{ it.id }}" class="form-control" value="{{ it.precio_unit }}" min="0" step="100">
+          </div>
+        </div>
+        {% endfor %}
+        <div class="d-grid gap-2 mt-3">
+          <button type="submit" name="accion" value="aprobar" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>Aprobar</button>
+          <button type="submit" name="accion" value="corregir" class="btn btn-warning"><i class="bi bi-pencil me-1"></i>Ajustar precios</button>
+          <button type="submit" name="accion" value="rechazar" class="btn btn-outline-danger"><i class="bi bi-x-circle me-1"></i>Rechazar</button>
+        </div>
+      </form>
+    </div>
+    {% elif pc.estado == 'aceptada_cliente' %}
+    <div class="sc">
+      <div style="text-align:center;padding:1rem">
+        <i class="bi bi-check-circle-fill" style="color:#00875A;font-size:2rem;display:block;margin-bottom:.75rem"></i>
+        <h6 class="fw-bold">Cliente aceptó</h6>
+        <p style="font-size:.85rem;color:#42526E">Puedes ahora convertir esto en una cotización o venta formal.</p>
+        <a href="{{ url_for('cotizacion_nueva') }}" class="btn btn-primary btn-sm">Crear Cotización formal</a>
+      </div>
+    </div>
+    {% else %}
+    <div class="sc"><div class="empty-state"><i class="bi bi-check2-circle"></i><p>{{ pc.estado.replace('_',' ').title() }}</p></div></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

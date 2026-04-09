@@ -1,0 +1,215 @@
+{% extends 'portal_base.html' %}
+{% block title %}Mi Portal{% endblock %}
+{% block content %}
+<div style="margin-bottom:1.5rem">
+  <h5 style="font-weight:700;margin-bottom:.5rem">Portal — {{ cliente.empresa or cliente.nombre }}</h5>
+  <a href="{{ url_for('portal_pre_cotizacion_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-file-earmark-plus me-1"></i>Nueva Solicitud de Compra</a>
+</div>
+<div class="row g-4">
+  <!-- Left: Client Card -->
+  <div class="col-lg-3">
+    <div class="tc mb-3">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
+             style="width:50px;height:50px;background:#2563EB;font-size:1.3rem;flex-shrink:0">{{ (cliente.empresa or cliente.nombre)[0].upper() }}</div>
+        <div>
+          <h6 class="mb-0">{{ cliente.empresa or cliente.nombre }}</h6>
+          <span class="b b-{{ cliente.estado_relacion }}">{{ cliente.estado_relacion.replace('_',' ').title() }}</span>
+        </div>
+      </div>
+      <hr>
+      <dl style="font-size:.85rem">
+        {% if cliente.nit %}<dt class="text-muted mb-1">NIT</dt><dd class="mb-2">{{ cliente.nit }}</dd>{% endif %}
+        <dt class="text-muted mb-1">Sales Manager</dt>
+        <dd class="mb-2">
+          {% if sales_manager_user %}
+          <strong>{{ sales_manager_user.nombre }}</strong><br>
+          {% if sales_manager_user.email %}<small class="text-muted">{{ sales_manager_user.email }}</small>{% endif %}
+          {% else %}
+          <span class="text-muted">Administrador (no asignado)</span>
+          {% endif %}
+        </dd>
+        {% if cliente.anticipo_pct %}<dt class="text-muted mb-1">Anticipo</dt><dd class="mb-2"><strong>{{ cliente.anticipo_pct|int }}%</strong></dd>{% endif %}
+        {% if cliente.minimo_pedido %}<dt class="text-muted mb-1">Mínimo Pedido</dt><dd class="mb-2"><strong>$ {{ '{:,.0f}'.format(cliente.minimo_pedido).replace(',','.') }}</strong></dd>{% endif %}
+      </dl>
+      {% if cliente.contactos %}
+      <hr>
+      <h6 class="text-muted text-uppercase mb-2" style="font-size:.7rem">Contactos</h6>
+      {% for c in cliente.contactos|slice(3) %}
+      <div style="font-size:.8rem;margin-bottom:1rem">
+        <div class="fw-bold">{{ c.nombre }}</div>
+        {% if c.cargo %}<div class="text-muted">{{ c.cargo }}</div>{% endif %}
+        {% if c.email %}<div><a href="mailto:{{ c.email }}" style="color:var(--ac)">{{ c.email }}</a></div>{% endif %}
+        {% if c.telefono %}<div><a href="tel:{{ c.telefono }}" style="color:var(--ac)">{{ c.telefono }}</a></div>{% endif %}
+      </div>
+      {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Right: Tabbed Content -->
+  <div class="col-lg-9">
+    <ul class="nav nav-tabs mb-3" role="tablist">
+      <li class="nav-item"><a class="nav-link active" href="#tab-resumen" data-bs-toggle="tab"><i class="bi bi-speedometer2 me-2"></i>Resumen</a></li>
+      <li class="nav-item"><a class="nav-link" href="#tab-compras" data-bs-toggle="tab"><i class="bi bi-bag-fill me-2"></i>Mis Compras</a></li>
+      <li class="nav-item"><a class="nav-link" href="#tab-cotizaciones" data-bs-toggle="tab"><i class="bi bi-file-text me-2"></i>Cotizaciones</a></li>
+      <li class="nav-item"><a class="nav-link" href="#tab-mensajes" data-bs-toggle="tab"><i class="bi bi-chat-left-text me-2"></i>Mensajes</a></li>
+    </ul>
+
+    <div class="tab-content">
+      <!-- TAB 1: Resumen -->
+      <div class="tab-pane fade show active" id="tab-resumen">
+        {% set pcs_activas = pre_cots|selectattr('estado','in',['pendiente','en_revision','aprobada'])|list %}
+        {% if pcs_activas %}
+        <div class="tc mb-3">
+          <div class="ch"><i class="bi bi-hourglass-split me-2"></i>Solicitudes en proceso</div>
+          <div class="table-responsive">
+            <table class="table">
+              <thead><tr><th>#</th><th>Fecha</th><th>Total</th><th>Estado</th><th></th></tr></thead>
+              <tbody>
+              {% for pc in pcs_activas %}
+              <tr>
+                <td><strong>{{ pc.numero }}</strong></td>
+                <td>{{ pc.creado_en.strftime('%d/%m/%Y') }}</td>
+                <td>$ {{ '{:,.0f}'.format(pc.total).replace(',','.') }}</td>
+                <td><span class="b b-{{ pc.estado|replace('_','-') }}">{{ pc.estado.replace('_',' ').title() }}</span></td>
+                <td>
+                  {% if pc.estado == 'aprobada' %}
+                  <form method="POST" action="{{ url_for('portal_precot_aceptar', id=pc.id) }}" style="display:inline">
+                    <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('¿Aceptar esta cotización?')"><i class="bi bi-check-circle me-1"></i>Aceptar</button>
+                  </form>
+                  {% elif pc.estado == 'en_revision' %}
+                  <span style="font-size:.8rem;color:var(--text2)">{{ pc.notas_manager or 'Revisando...' }}</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endif %}
+        <div class="tc">
+          <div class="ch"><i class="bi bi-lightning-fill me-2"></i>Inicio rápido</div>
+          <div class="row g-2 p-3">
+            <div class="col-md-6">
+              <a href="{{ url_for('portal_pre_cotizacion_nueva') }}" class="btn btn-primary w-100"><i class="bi bi-file-earmark-plus me-2"></i>Nueva Solicitud de Compra</a>
+            </div>
+            <div class="col-md-6">
+              <a href="{{ url_for('portal_ticket_nuevo') }}" class="btn btn-outline-secondary w-100"><i class="bi bi-chat-left-text me-2"></i>Enviar Ticket</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: Mis Compras -->
+      <div class="tab-pane fade" id="tab-compras">
+        {% if ventas %}
+        <div class="tc">
+          <div class="ch"><i class="bi bi-bag-fill me-2"></i>Mis Compras ({{ ventas|length }})</div>
+          <div class="table-responsive">
+            <table class="table">
+              <thead><tr><th>#</th><th>Descripción</th><th>Fecha</th><th>Total</th><th>Estado</th><th>Descargar</th></tr></thead>
+              <tbody>
+              {% for v in ventas %}
+              <tr>
+                <td><strong>{{ v.numero or ('PED-'+v.id|string) }}</strong></td>
+                <td>{{ v.titulo or 'Pedido sin nombre' }}</td>
+                <td>{{ v.creado_en.strftime('%d/%m/%Y') }}</td>
+                <td><strong>$ {{ '{:,.0f}'.format(v.total or 0).replace(',','.') }}</strong></td>
+                <td><span class="b b-{{ v.estado }}">{{ v.estado.replace('_',' ').title() }}</span></td>
+                <td>
+                  {% if v.estado in ['completado','anticipo_pagado'] %}
+                  <a href="{{ url_for('venta_remision', id=v.id) }}" class="btn btn-xs btn-outline-primary" target="_blank"><i class="bi bi-download me-1"></i>Remisión</a>
+                  {% else %}
+                  <span style="font-size:.8rem;color:var(--text2)">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% else %}
+        <div class="tc">
+          <div class="empty-state" style="padding:3rem 2rem">
+            <i class="bi bi-bag" style="font-size:2.5rem;opacity:.4"></i>
+            <p class="mt-2 text-muted">Sin compras aún</p>
+            <a href="{{ url_for('portal_pre_cotizacion_nueva') }}" class="btn btn-primary btn-sm mt-2"><i class="bi bi-plus me-1"></i>Crear primera compra</a>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- TAB 3: Cotizaciones -->
+      <div class="tab-pane fade" id="tab-cotizaciones">
+        {% if cotizaciones %}
+        <div class="tc">
+          <div class="ch"><i class="bi bi-file-text me-2"></i>Cotizaciones ({{ cotizaciones|length }})</div>
+          <div class="table-responsive">
+            <table class="table">
+              <thead><tr><th>#</th><th>Fecha</th><th>Total</th><th>Estado</th><th></th></tr></thead>
+              <tbody>
+              {% for c in cotizaciones %}
+              <tr>
+                <td><strong>{{ c.numero }}</strong></td>
+                <td>{{ c.creado_en.strftime('%d/%m/%Y') }}</td>
+                <td>$ {{ '{:,.0f}'.format(c.total or 0).replace(',','.') }}</td>
+                <td><span class="b b-{{ c.estado }}">{{ c.estado.title() }}</span></td>
+                <td><a href="{{ url_for('cotizacion_pdf', id=c.id) }}" class="btn btn-xs btn-outline-secondary" target="_blank"><i class="bi bi-download me-1"></i>PDF</a></td>
+              </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% else %}
+        <div class="tc">
+          <div class="empty-state" style="padding:3rem 2rem">
+            <i class="bi bi-file-text" style="font-size:2.5rem;opacity:.4"></i>
+            <p class="mt-2 text-muted">Sin cotizaciones aún</p>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- TAB 4: Mensajes -->
+      <div class="tab-pane fade" id="tab-mensajes">
+        <div class="tc">
+          <div class="ch"><i class="bi bi-chat-left-text me-2"></i>Mensajes con Sales Manager</div>
+
+          {% if mensajes %}
+          <div style="max-height:400px;overflow-y:auto;padding:1rem;background:var(--surface2);border-radius:8px;margin-bottom:1rem">
+            {% for msg in mensajes %}
+            <div class="mb-3 p-2" style="background:var(--surface);border-radius:6px;border-left:3px solid var(--ac)">
+              <div class="d-flex justify-content-between align-items-start mb-1">
+                <strong style="font-size:.85rem">
+                  {% if msg.creado_por == current_user.id %}
+                  Tú
+                  {% else %}
+                  {{ msg.creado_por_user.nombre if msg.creado_por_user else 'Usuario' }}
+                  {% endif %}
+                </strong>
+                <small class="text-muted">{{ msg.creado_en.strftime('%d/%m %H:%M') }}</small>
+              </div>
+              <p style="font-size:.88rem;margin:0;color:var(--text)">{{ msg.descripcion }}</p>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="alert alert-info mb-3"><i class="bi bi-info-circle me-2"></i>Sin mensajes aún</div>
+          {% endif %}
+
+          <form method="POST" action="{{ url_for('portal_mensaje_nuevo') }}">
+            <div class="input-group">
+              <textarea name="mensaje" class="form-control" placeholder="Escribe tu mensaje aquí..." required style="max-height:120px"></textarea>
+              <button type="submit" class="btn btn-primary"><i class="bi bi-send me-1"></i>Enviar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
