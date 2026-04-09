@@ -71,16 +71,38 @@ def security_headers(response):
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     return response
 
+# =============================================================
+# COLOMBIAN LABOR CONSTANTS — Nómina
+# =============================================================
+SMLMV_2025 = 1_423_500  # Salario Mínimo Legal Mensual Vigente 2025
+AUXILIO_TRANSPORTE_2025 = 200_000  # Auxilio de transporte 2025
+# Tasas empleado
+TASA_SALUD_EMP     = 0.04     # 4%
+TASA_PENSION_EMP   = 0.04     # 4%
+# Tasas empleador
+TASA_SALUD_EMPR    = 0.085    # 8.5%
+TASA_PENSION_EMPR  = 0.12     # 12%
+TASA_CAJA_COMP     = 0.04     # 4%
+TASA_SENA          = 0.02     # 2%
+TASA_ICBF          = 0.03     # 3%
+# ARL por nivel de riesgo
+TASA_ARL = {1: 0.00522, 2: 0.01044, 3: 0.02436, 4: 0.04350, 5: 0.06960}
+# Prestaciones
+TASA_CESANTIAS     = 1/12     # ~8.33%
+TASA_INT_CESANTIAS = 0.12     # sobre cesantías
+TASA_PRIMA         = 1/12     # ~8.33% (15 días por semestre = 1 mes por año)
+TASA_VACACIONES    = 0.0417   # 15 días hábiles por año
+
 _MODULOS_TODOS = ['clientes','ventas','cotizaciones','tareas','calendario',
                   'notas','inventario','produccion','gastos','reportes','proveedores',
-                  'ordenes_compra','legal','finanzas','cotizaciones_proveedor','comercial','config']
+                  'ordenes_compra','legal','finanzas','cotizaciones_proveedor','comercial','config','nomina']
 _MODULOS_ROL = {
     'admin':      _MODULOS_TODOS,
-    'vendedor':   ['clientes','ventas','cotizaciones','tareas','calendario','notas'],
+    'vendedor':   ['clientes','ventas','cotizaciones','tareas','calendario','notas','nomina'],
     'produccion': ['inventario','produccion','gastos','notas','calendario','tareas'],
-    'contador':   ['gastos','reportes','produccion','notas'],
+    'contador':   ['gastos','reportes','produccion','notas','nomina'],
     'usuario':    ['tareas','notas','calendario'],
-    'sales_manager': ['clientes','ventas','cotizaciones','tareas','calendario','notas','ordenes_compra'],
+    'sales_manager': ['clientes','ventas','cotizaciones','tareas','calendario','notas','ordenes_compra','nomina'],
     'cliente':       ['portal_cliente'],
     'proveedor':     ['portal_proveedor'],
 }
@@ -148,6 +170,140 @@ def moneda(value):
 def moneda0(value):
     try: return '${:,.0f}'.format(float(value or 0))
     except: return '$0'
+
+# =============================================================
+# NÓMINA HELPER FUNCTIONS
+# =============================================================
+
+def _calcular_nomina(empleado):
+    """Returns a dict with all payroll calculations for an employee."""
+    salario = empleado.salario_base
+    aux_transporte = AUXILIO_TRANSPORTE_2025 if (empleado.auxilio_transporte and salario <= 2 * SMLMV_2025) else 0
+
+    # Deducciones empleado
+    deduccion_salud     = round(salario * TASA_SALUD_EMP)
+    deduccion_pension   = round(salario * TASA_PENSION_EMP)
+    # Fondo solidaridad: 1% si salario > 4 SMLMV, 1.2% si > 16 SMLMV
+    fondo_solidaridad = 0
+    if salario > 16 * SMLMV_2025:
+        fondo_solidaridad = round(salario * 0.012)
+    elif salario > 4 * SMLMV_2025:
+        fondo_solidaridad = round(salario * 0.01)
+
+    total_deducciones = deduccion_salud + deduccion_pension + fondo_solidaridad
+    salario_neto = salario + aux_transporte - total_deducciones
+
+    # Aportes empleador (no afectan neto del empleado)
+    aporte_salud_empr    = round(salario * TASA_SALUD_EMPR)
+    aporte_pension_empr  = round(salario * TASA_PENSION_EMPR)
+    tasa_arl             = TASA_ARL.get(empleado.nivel_riesgo_arl, TASA_ARL[1])
+    aporte_arl           = round(salario * tasa_arl)
+    aporte_caja          = round(salario * TASA_CAJA_COMP)
+    aporte_sena          = round(salario * TASA_SENA)
+    aporte_icbf          = round(salario * TASA_ICBF)
+    total_costo_empr     = salario + aux_transporte + aporte_salud_empr + aporte_pension_empr + aporte_arl + aporte_caja + aporte_sena + aporte_icbf
+
+    # Prestaciones sociales (provisionadas mensualmente)
+    provision_cesantias      = round((salario + aux_transporte) * TASA_CESANTIAS)
+    provision_int_cesantias  = round(provision_cesantias * TASA_INT_CESANTIAS / 12)
+    provision_prima          = round((salario + aux_transporte) * TASA_PRIMA)
+    provision_vacaciones     = round(salario * TASA_VACACIONES)
+    total_prestaciones       = provision_cesantias + provision_int_cesantias + provision_prima + provision_vacaciones
+
+    return {
+        'salario': salario,
+        'aux_transporte': aux_transporte,
+        'deduccion_salud': deduccion_salud,
+        'deduccion_pension': deduccion_pension,
+        'fondo_solidaridad': fondo_solidaridad,
+        'total_deducciones': total_deducciones,
+        'salario_neto': salario_neto,
+        'aporte_salud_empr': aporte_salud_empr,
+        'aporte_pension_empr': aporte_pension_empr,
+        'aporte_arl': aporte_arl,
+        'aporte_caja': aporte_caja,
+        'aporte_sena': aporte_sena,
+        'aporte_icbf': aporte_icbf,
+        'total_costo_empr': total_costo_empr,
+        'provision_cesantias': provision_cesantias,
+        'provision_int_cesantias': provision_int_cesantias,
+        'provision_prima': provision_prima,
+        'provision_vacaciones': provision_vacaciones,
+        'total_prestaciones': total_prestaciones,
+        'costo_total_empresa': total_costo_empr + total_prestaciones,
+    }
+
+def _calcular_liquidacion(empleado, motivo):
+    """
+    Calculate employee liquidation.
+    motivo: 'renuncia' | 'despido_justa' | 'despido_sin_justa' | 'mutuo_acuerdo'
+    """
+    from datetime import date as date_t
+    hoy = date_t.today()
+    fecha_retiro = empleado.fecha_retiro or hoy
+    fecha_ingreso = empleado.fecha_ingreso
+    if not fecha_ingreso:
+        return None
+
+    # Días trabajados
+    dias_trabajados = (fecha_retiro - fecha_ingreso).days
+    anios = dias_trabajados / 365.25
+    meses = dias_trabajados / 30.417
+
+    salario = empleado.salario_base
+    aux_transporte = AUXILIO_TRANSPORTE_2025 if (empleado.auxilio_transporte and salario <= 2 * SMLMV_2025) else 0
+    salario_con_aux = salario + aux_transporte
+
+    # Cesantías: 1 mes de salario con aux por año trabajado (proporcional)
+    cesantias = round(salario_con_aux * dias_trabajados / 365.25)
+
+    # Intereses sobre cesantías: 12% anual proporcional
+    int_cesantias = round(cesantias * 0.12 * dias_trabajados / 365.25)
+
+    # Prima de servicios: 15 días de salario con aux por semestre (proporcional al último semestre)
+    # Calcular días del semestre en curso
+    ultimo_1_julio = date_t(hoy.year, 7, 1) if hoy.month >= 7 else date_t(hoy.year - 1, 7, 1)
+    ultimo_1_enero = date_t(hoy.year, 1, 1)
+    inicio_semestre = max(ultimo_1_julio, ultimo_1_enero, fecha_ingreso)
+    dias_semestre = max((fecha_retiro - inicio_semestre).days, 0)
+    prima = round(salario_con_aux * dias_semestre / 360)
+
+    # Vacaciones: 15 días por año (proporcional)
+    vacaciones = round(salario * dias_trabajados / 730)  # 15/365 = 1/730 * salario * dias
+
+    # Indemnización por despido sin justa causa (Art. 64 CST)
+    indemnizacion = 0
+    if motivo == 'despido_sin_justa':
+        if empleado.tipo_contrato == 'indefinido':
+            if anios < 1:
+                indemnizacion = round(salario * 30 / 30)  # 30 días primer año
+            elif salario <= 10 * SMLMV_2025:
+                indemnizacion = round(salario * 30 / 30 + salario * 20 / 30 * (anios - 1))
+            else:
+                indemnizacion = round(salario * 20 / 30 * anios)
+        elif empleado.tipo_contrato == 'fijo':
+            # Suma de salarios al vencimiento del contrato
+            dias_restantes = max(0, (empleado.fecha_fin_contrato - fecha_retiro).days) if hasattr(empleado, 'fecha_fin_contrato') else 90
+            indemnizacion = round(salario * min(dias_restantes, 180) / 30)
+
+    total = cesantias + int_cesantias + prima + vacaciones + indemnizacion
+
+    return {
+        'empleado': empleado,
+        'motivo': motivo,
+        'fecha_ingreso': fecha_ingreso,
+        'fecha_retiro': fecha_retiro,
+        'dias_trabajados': dias_trabajados,
+        'anios': round(anios, 2),
+        'salario': salario,
+        'aux_transporte': aux_transporte,
+        'cesantias': cesantias,
+        'int_cesantias': int_cesantias,
+        'prima': prima,
+        'vacaciones': vacaciones,
+        'indemnizacion': indemnizacion,
+        'total': total,
+    }
 
 # =============================================================
 # MODELOS
@@ -665,6 +821,28 @@ class Notificacion(db.Model):
     creado_en  = db.Column(db.DateTime, default=datetime.utcnow)
     usuario    = db.relationship('User', foreign_keys=[usuario_id])
 
+class Empleado(db.Model):
+    __tablename__ = 'empleados'
+    id                  = db.Column(db.Integer, primary_key=True)
+    nombre              = db.Column(db.String(100), nullable=False)
+    apellido            = db.Column(db.String(100), nullable=False)
+    cedula              = db.Column(db.String(30))
+    email               = db.Column(db.String(120))
+    telefono            = db.Column(db.String(30))
+    cargo               = db.Column(db.String(100))
+    departamento        = db.Column(db.String(100))
+    tipo_contrato       = db.Column(db.String(40), default='indefinido')  # indefinido, fijo, obra_labor, prestacion_servicios
+    salario_base        = db.Column(db.Float, default=0)
+    auxilio_transporte  = db.Column(db.Boolean, default=True)  # aplica si salario <= 2 SMLMV
+    nivel_riesgo_arl    = db.Column(db.Integer, default=1)  # 1-5
+    estado              = db.Column(db.String(20), default='activo')  # activo, inactivo, retirado
+    fecha_ingreso       = db.Column(db.Date)
+    fecha_retiro        = db.Column(db.Date, nullable=True)
+    motivo_retiro       = db.Column(db.String(30), nullable=True)  # renuncia, despido_justa, despido_sin_justa, mutuo_acuerdo
+    notas               = db.Column(db.Text)
+    creado_por          = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en           = db.Column(db.DateTime, default=datetime.utcnow)
+
 class UserSesion(db.Model):
     __tablename__ = 'user_sesiones'
     id         = db.Column(db.Integer, primary_key=True)
@@ -970,6 +1148,46 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 /* Ensure images/logos scale on mobile */
 img,svg{max-width:100%;height:auto}
 .logo-area svg{max-height:40px!important}
+
+/* ══════════════════════════════════════════════════
+   DARK THEME
+   ══════════════════════════════════════════════════ */
+html[data-theme="dark"]{
+  --sb:#0D1117;--ac:#4C9AFF;--ac2:#6BAEFD;--bg:#161B22;
+  --green:#2DA44E;--red:#F85149;--orange:#F0883E;
+  --card-shadow:0 1px 3px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.06);
+}
+html[data-theme="dark"] body{background:#161B22;color:#E6EDF3}
+html[data-theme="dark"] .topbar{background:#21262D;border-color:#30363D}
+html[data-theme="dark"] .tc,html[data-theme="dark"] .fc,html[data-theme="dark"] .sc{background:#21262D;border-color:#30363D;color:#E6EDF3}
+html[data-theme="dark"] .table th{background:#161B22;color:#8B949E;border-color:#30363D}
+html[data-theme="dark"] .table td{border-color:#21262D;color:#E6EDF3}
+html[data-theme="dark"] .table tbody tr:hover{background:#30363D}
+html[data-theme="dark"] .form-control,html[data-theme="dark"] .form-select{background:#0D1117;border-color:#30363D;color:#E6EDF3}
+html[data-theme="dark"] .form-control:focus,html[data-theme="dark"] .form-select:focus{border-color:var(--ac)}
+html[data-theme="dark"] .ch{background:#21262D;border-color:#30363D;color:#E6EDF3}
+html[data-theme="dark"] .form-section{background:#0D1117;border-color:#30363D}
+html[data-theme="dark"] .dropdown-menu{background:#21262D;border-color:#30363D}
+html[data-theme="dark"] .dropdown-item{color:#E6EDF3}
+html[data-theme="dark"] .dropdown-item:hover{background:#30363D}
+html[data-theme="dark"] .modal-content{background:#21262D;color:#E6EDF3}
+html[data-theme="dark"] .modal-header{border-color:#30363D}
+html[data-theme="dark"] .modal-footer{background:#21262D;border-color:#30363D}
+html[data-theme="dark"] .pg-title{color:#E6EDF3}
+html[data-theme="dark"] .notif-dd{background:#21262D;border-color:#30363D}
+html[data-theme="dark"] .notif-item:hover{background:#30363D}
+html[data-theme="dark"] .notif-item.unread{background:#1C2D3F}
+html[data-theme="dark"] .onboard-step{color:#fff}
+html[data-theme="dark"] .alert-light{background:#30363D;border-color:#30363D;color:#E6EDF3}
+html[data-theme="dark"] input::placeholder,html[data-theme="dark"] textarea::placeholder{color:#6E7681}
+html[data-theme="dark"] .text-muted{color:#8B949E!important}
+html[data-theme="dark"] .b{opacity:.9}
+html[data-theme="dark"] .fc{color:#E6EDF3}
+html[data-theme="dark"] .sv{color:#E6EDF3}
+html[data-theme="dark"] .qa-btn{background:#21262D;border-color:#30363D;color:#8B949E}
+html[data-theme="dark"] .qa-btn:hover{background:#1C2D3F;border-color:var(--ac);color:var(--ac)}
+html[data-theme="dark"] .prod-row,html[data-theme="dark"] .totales-box{background:#0D1117;border-color:#30363D}
+html[data-theme="dark"] .form-check-input{background-color:#0D1117;border-color:#30363D}
 </style>{% endraw %}"""
 
 _CDN = """<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -979,9 +1197,10 @@ _BSJ = '<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootst
 T = {}
 
 T['base.html'] = """<!DOCTYPE html>
-<html lang="es"><head>
+<html lang="es" id="htmlRoot"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{% block title %}Evore CRM{% endblock %}</title>
+<script>document.documentElement.setAttribute('data-theme',localStorage.getItem('evore_theme')||'light');</script>
 """ + _CDN + _CSS + """
 </head><body>
 <nav id="sb">
@@ -1043,6 +1262,10 @@ T['base.html'] = """<!DOCTYPE html>
     {% if 'gastos' in m %}<a href="{{ url_for('gastos') }}" class="nav-link {% if 'gasto' in request.endpoint %}active{% endif %}"><i class="bi bi-receipt"></i><span>Gastos</span></a>{% endif %}
     <a href="{{ url_for('impuestos') }}" class="nav-link {% if 'impuesto' in request.endpoint %}active{% endif %}"><i class="bi bi-percent"></i><span>Reglas tributarias</span></a>
     {% if 'reportes' in m %}<a href="{{ url_for('reportes') }}" class="nav-link {% if 'reporte' in request.endpoint %}active{% endif %}"><i class="bi bi-bar-chart-fill"></i><span>Reportes</span></a>{% endif %}
+    {% if 'nomina' in m %}
+    <div class="sb-sec">Recursos Humanos</div>
+    <a href="{{ url_for('nomina_index') }}" class="nav-link {% if 'nomina' in request.endpoint or 'empleado' in request.endpoint %}active{% endif %}"><i class="bi bi-people-fill"></i><span>Nómina</span></a>
+    {% endif %}
     <div class="sb-sec">Herramientas</div>
     <a href="{{ url_for('buscador') }}" class="nav-link {% if request.endpoint=='buscador' %}active{% endif %}"><i class="bi bi-search"></i><span>Buscador</span></a>
     {% if current_user.rol == 'proveedor' %}
@@ -1094,6 +1317,11 @@ T['base.html'] = """<!DOCTYPE html>
     <div class="topbar-right d-flex align-items-center gap-2 ms-auto flex-nowrap">
       {% block topbar_actions %}{% endblock %}
       <span class="text-muted d-none d-md-inline" style="font-size:.8rem;white-space:nowrap"><i class="bi bi-calendar3 me-1"></i>{{ now.strftime('%d %b %Y') }}</span>
+      <button id="themeToggle" class="btn btn-sm d-none d-md-inline-flex align-items-center"
+              style="background:none;border:1px solid #DFE1E6;color:#42526E;padding:4px 8px;font-size:.9rem"
+              onclick="toggleTheme()" title="Cambiar tema">
+        <i class="bi bi-moon-fill" id="themeIcon"></i>
+      </button>
       <button class="btn btn-sm d-none d-md-inline-flex" style="background:none;border:1px solid #DFE1E6;color:#42526E;padding:4px 10px;font-size:.78rem" onclick="new bootstrap.Modal(document.getElementById('modalOnboarding')).show();goStep(0);" title="Ver tutorial">
         <i class="bi bi-question-circle me-1"></i>Ayuda
       </button>
@@ -1558,6 +1786,27 @@ document.addEventListener('DOMContentLoaded',function(){
 </div>
 
 {% block scripts %}{% endblock %}
+<script>
+// Theme toggle
+(function(){
+  var t = localStorage.getItem('evore_theme') || 'light';
+  document.documentElement.setAttribute('data-theme', t);
+  function updateIcon(){
+    var ic = document.getElementById('themeIcon');
+    if(ic) ic.className = localStorage.getItem('evore_theme')==='dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+    var btn = document.getElementById('themeToggle');
+    if(btn) btn.style.color = localStorage.getItem('evore_theme')==='dark' ? '#F0883E' : '#42526E';
+  }
+  window.toggleTheme = function(){
+    var cur = document.documentElement.getAttribute('data-theme');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('evore_theme', next);
+    updateIcon();
+  };
+  document.addEventListener('DOMContentLoaded', updateIcon);
+})();
+</script>
 </body></html>"""
 
 T['login.html'] = """<!DOCTYPE html>
@@ -7062,6 +7311,375 @@ T['portal/proveedor_ticket.html'] = """{% extends 'base.html' %}
   </form>
 </div>{% endblock %}"""
 
+# =============================================================
+# NÓMINA TEMPLATES
+# =============================================================
+
+T['nomina/index.html'] = """{% extends 'base.html' %}
+{% block title %}Nómina{% endblock %}
+{% block page_title %}Nómina{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('empleado_nuevo') }}" class="btn btn-sm btn-primary"><i class="bi bi-plus-circle me-1"></i>Nuevo empleado</a>{% endblock %}
+{% block content %}
+<div class="fc">
+  <div class="row mb-3 g-2">
+    <div class="col-md-3">
+      <div class="tc" style="text-align:center">
+        <div style="font-size:2rem;color:var(--ac);font-weight:700">{{ activos }}</div>
+        <div style="font-size:.85rem;color:#8B949E">Empleados activos</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="tc" style="text-align:center">
+        <div style="font-size:1.6rem;color:var(--green);font-weight:700">{{ (masa_salarial|cop) }}</div>
+        <div style="font-size:.85rem;color:#8B949E">Masa salarial</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="tc" style="text-align:center">
+        <div style="font-size:1.6rem;color:var(--orange);font-weight:700">{{ (costo_empresa|cop) }}</div>
+        <div style="font-size:.85rem;color:#8B949E">Costo empresa</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="tc" style="text-align:center">
+        <div style="font-size:2rem;color:var(--red);font-weight:700">{{ retirados }}</div>
+        <div style="font-size:.85rem;color:#8B949E">Retirados</div>
+      </div>
+    </div>
+  </div>
+  <div class="ch" style="margin:1.5rem 0">
+    <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
+      <select id="estadoFilter" class="form-select" style="max-width:150px" onchange="window.location='?estado='+this.value">
+        <option value="activo" {% if estado_filter=='activo' %}selected{% endif %}>Activos</option>
+        <option value="inactivo" {% if estado_filter=='inactivo' %}selected{% endif %}>Inactivos</option>
+        <option value="retirado" {% if estado_filter=='retirado' %}selected{% endif %}>Retirados</option>
+        <option value="todos" {% if estado_filter=='todos' %}selected{% endif %}>Todos</option>
+      </select>
+      {% if departamentos %}
+      <select id="deptoFilter" class="form-select" style="max-width:200px" onchange="window.location='?estado={{ estado_filter }}&departamento='+this.value">
+        <option value="">Todos los departamentos</option>
+        {% for d in departamentos %}<option value="{{ d }}" {% if departamento_filter==d %}selected{% endif %}>{{ d }}</option>{% endfor %}
+      </select>
+      {% endif %}
+    </div>
+  </div>
+  <div class="tc" style="overflow-x:auto">
+    <table class="table table-sm table-hover" style="margin:0">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Cédula</th>
+          <th>Cargo</th>
+          <th>Tipo contrato</th>
+          <th>Salario bruto</th>
+          <th>Salario neto</th>
+          <th>Fecha ingreso</th>
+          <th>Estado</th>
+          <th style="width:80px">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in empleados %}
+        <tr>
+          <td><strong>{{ e.nombre }} {{ e.apellido }}</strong></td>
+          <td>{{ e.cedula or '—' }}</td>
+          <td>{{ e.cargo or '—' }}</td>
+          <td><span class="b" style="background:{% if e.tipo_contrato=='indefinido' %}#0052CC{% elif e.tipo_contrato=='fijo' %}#00875A{% elif e.tipo_contrato=='obra_labor' %}#FF8B00{% else %}#6D42C8{% endif %}">{{ e.tipo_contrato }}</span></td>
+          <td>{{ e.salario_base|cop }}</td>
+          <td>{% set n=e %}{# set e to dict using helper #}{{ (e.salario_base|cop) }}</td>
+          <td>{{ e.fecha_ingreso.strftime('%d/%m/%Y') if e.fecha_ingreso else '—' }}</td>
+          <td><span class="b" style="background:{% if e.estado=='activo' %}#00875A{% elif e.estado=='inactivo' %}#FF8B00{% else %}#6D42C8{% endif %}">{{ e.estado }}</span></td>
+          <td><a href="{{ url_for('empleado_ver', id=e.id) }}" class="btn btn-xs btn-outline-secondary" style="padding:3px 8px;font-size:.75rem"><i class="bi bi-eye me-1"></i>Ver</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}"""
+
+T['nomina/form.html'] = """{% extends 'base.html' %}
+{% block title %}{% if empleado %}Editar empleado{% else %}Nuevo empleado{% endif %}{% endblock %}
+{% block page_title %}{% if empleado %}Editar empleado: {{ empleado.nombre }}{% else %}Nuevo empleado{% endif %}{% endblock %}
+{% block content %}
+<div class="fc">
+  <form method="POST" style="max-width:1200px">
+    <div class="row g-3">
+      <div class="col-md-7">
+        <div class="form-section">
+          <h5 style="margin-bottom:1rem"><i class="bi bi-person me-2"></i>Datos personales</h5>
+          <div class="row g-2">
+            <div class="col-6"><label class="form-label">Nombre <span class="req">*</span></label>
+              <input type="text" name="nombre" class="form-control" value="{{ empleado.nombre if empleado else '' }}" required></div>
+            <div class="col-6"><label class="form-label">Apellido <span class="req">*</span></label>
+              <input type="text" name="apellido" class="form-control" value="{{ empleado.apellido if empleado else '' }}" required></div>
+            <div class="col-6"><label class="form-label">Cédula</label>
+              <input type="text" name="cedula" class="form-control" value="{{ empleado.cedula if empleado else '' }}" placeholder="1234567890"></div>
+            <div class="col-6"><label class="form-label">Email</label>
+              <input type="email" name="email" class="form-control" value="{{ empleado.email if empleado else '' }}"></div>
+            <div class="col-6"><label class="form-label">Teléfono</label>
+              <input type="tel" name="telefono" class="form-control" value="{{ empleado.telefono if empleado else '' }}"></div>
+          </div>
+        </div>
+        <div class="form-section">
+          <h5 style="margin-bottom:1rem"><i class="bi bi-briefcase me-2"></i>Información laboral</h5>
+          <div class="row g-2">
+            <div class="col-6"><label class="form-label">Cargo <span class="req">*</span></label>
+              <input type="text" name="cargo" class="form-control" value="{{ empleado.cargo if empleado else '' }}" required></div>
+            <div class="col-6"><label class="form-label">Departamento</label>
+              <input type="text" name="departamento" class="form-control" value="{{ empleado.departamento if empleado else '' }}"></div>
+            <div class="col-6"><label class="form-label">Tipo de contrato</label>
+              <select name="tipo_contrato" class="form-select">
+                <option value="indefinido" {% if empleado and empleado.tipo_contrato=='indefinido' %}selected{% endif %}>Indefinido</option>
+                <option value="fijo" {% if empleado and empleado.tipo_contrato=='fijo' %}selected{% endif %}>Fijo</option>
+                <option value="obra_labor" {% if empleado and empleado.tipo_contrato=='obra_labor' %}selected{% endif %}>Obra o labor</option>
+                <option value="prestacion_servicios" {% if empleado and empleado.tipo_contrato=='prestacion_servicios' %}selected{% endif %}>Prestación de servicios</option>
+              </select></div>
+            <div class="col-6"><label class="form-label">Fecha de ingreso</label>
+              <input type="date" name="fecha_ingreso" class="form-control" value="{{ empleado.fecha_ingreso.strftime('%Y-%m-%d') if empleado and empleado.fecha_ingreso else '' }}"></div>
+            <div class="col-6"><label class="form-label">Nivel de riesgo ARL</label>
+              <select name="nivel_riesgo_arl" class="form-select">
+                <option value="1" {% if empleado and empleado.nivel_riesgo_arl==1 %}selected{% endif %}>1 — Mínimo</option>
+                <option value="2" {% if empleado and empleado.nivel_riesgo_arl==2 %}selected{% endif %}>2 — Bajo</option>
+                <option value="3" {% if empleado and empleado.nivel_riesgo_arl==3 %}selected{% endif %}>3 — Medio</option>
+                <option value="4" {% if empleado and empleado.nivel_riesgo_arl==4 %}selected{% endif %}>4 — Alto</option>
+                <option value="5" {% if empleado and empleado.nivel_riesgo_arl==5 %}selected{% endif %}>5 — Muy alto</option>
+              </select></div>
+          </div>
+        </div>
+        <div class="form-section">
+          <h5 style="margin-bottom:1rem"><i class="bi bi-cash-coin me-2"></i>Salario</h5>
+          <div class="mb-3"><label class="form-label">Salario base <span class="req">*</span></label>
+            <input type="number" id="salarioInput" name="salario_base" class="form-control" value="{{ empleado.salario_base if empleado else '' }}" required min="0" step="100" onchange="updateCalc()" oninput="updateCalc()"></div>
+          <div class="form-check"><input type="checkbox" id="auxTransporte" name="auxilio_transporte" class="form-check-input" {% if empleado is none or empleado.auxilio_transporte %}checked{% endif %} onchange="updateCalc()">
+            <label class="form-check-label" for="auxTransporte">Aplica auxilio de transporte (para salarios ≤ 2 SMLMV)</label></div>
+          <div class="form-text" style="font-size:.8rem">SMLMV 2025: $1,423,500 | Auxilio: $200,000</div>
+        </div>
+        {% if empleado %}<div class="form-section">
+          <label class="form-label">Notas</label>
+          <textarea name="notas" class="form-control" rows="3">{{ empleado.notas or '' }}</textarea>
+        </div>{% endif %}
+        <div style="margin-top:2rem;display:flex;gap:1rem">
+          <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle me-1"></i>{% if empleado %}Actualizar{% else %}Crear empleado{% endif %}</button>
+          <a href="{{ url_for('nomina_index') }}" class="btn btn-outline-secondary">Cancelar</a>
+        </div>
+      </div>
+      <div class="col-md-5">
+        <div class="tc" style="position:sticky;top:100px">
+          <div style="font-weight:700;margin-bottom:1rem"><i class="bi bi-calculator me-2"></i>Calculadora de nómina</div>
+          <table style="font-size:.85rem;width:100%">
+            <tr><td style="padding:4px">Salario bruto:</td><td style="text-align:right"><strong id="calcSalario">$ 0</strong></td></tr>
+            <tr style="color:#666"><td style="padding:4px">— Salud (4%):</td><td style="text-align:right" id="calcSalud">$ 0</td></tr>
+            <tr style="color:#666"><td style="padding:4px">— Pensión (4%):</td><td style="text-align:right" id="calcPension">$ 0</td></tr>
+            <tr style="border-top:1px solid #ddd;border-bottom:2px solid var(--ac);padding:4px"><td style="padding:4px"><strong>= Salario neto:</strong></td><td style="text-align:right"><strong id="calcNeto" style="color:var(--green)">$ 0</strong></td></tr>
+            <tr style="color:#999;font-size:.8rem;padding:8px 0"><td colspan="2" style="padding:4px">Provisiones del empleador:</td></tr>
+            <tr style="color:#666;font-size:.8rem"><td style="padding:4px">+ Salud empr (8.5%):</td><td style="text-align:right" id="calcSaludEmpr">$ 0</td></tr>
+            <tr style="color:#666;font-size:.8rem"><td style="padding:4px">+ Pensión empr (12%):</td><td style="text-align:right" id="calcPensionEmpr">$ 0</td></tr>
+            <tr style="color:#666;font-size:.8rem"><td style="padding:4px">+ ARL:</td><td style="text-align:right" id="calcARL">$ 0</td></tr>
+            <tr style="color:#666;font-size:.8rem"><td style="padding:4px">+ Caja comp (4%):</td><td style="text-align:right" id="calcCaja">$ 0</td></tr>
+            <tr style="color:#666;font-size:.8rem"><td style="padding:4px">+ SENA (2%):</td><td style="text-align:right" id="calcSena">$ 0</td></tr>
+            <tr style="color:#666;font-size:.8rem"><td style="padding:4px">+ ICBF (3%):</td><td style="text-align:right" id="calcIcbf">$ 0</td></tr>
+            <tr style="color:#666;font-size:.8rem"><td style="padding:4px">+ Cesantías (~8.33%):</td><td style="text-align:right" id="calcCesantias">$ 0</td></tr>
+            <tr style="color:#666;font-size:.8rem"><td style="padding:4px">+ Prima (~8.33%):</td><td style="text-align:right" id="calcPrima">$ 0</td></tr>
+            <tr style="color:#666;font-size:.8rem"><td style="padding:4px">+ Vacaciones (4.17%):</td><td style="text-align:right" id="calcVacaciones">$ 0</td></tr>
+            <tr style="border-top:2px solid var(--ac);padding:6px 0"><td style="padding:6px"><strong style="color:var(--ac)">COSTO TOTAL EMPRESA:</strong></td><td style="text-align:right"><strong id="calcCostoTotal" style="color:var(--ac);font-size:1.1rem">$ 0</strong></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+<script>
+const SMLMV = 1423500; const AUX = 200000; const TASA_ARL = {1:0.00522, 2:0.01044, 3:0.02436, 4:0.04350, 5:0.06960};
+function formatCop(v) { return '$ ' + Math.round(v).toLocaleString('es-CO'); }
+function updateCalc() {
+  const sal = parseFloat(document.getElementById('salarioInput').value) || 0;
+  const auxChecked = document.getElementById('auxTransporte').checked;
+  const nRiesgo = parseInt(document.getElementById('nivel_riesgo_arl')?.value || 1);
+  const aux = (auxChecked && sal <= 2*SMLMV) ? AUX : 0;
+  const salud = Math.round(sal * 0.04);
+  const pension = Math.round(sal * 0.04);
+  const neto = sal + aux - salud - pension;
+  const saludEmpr = Math.round(sal * 0.085);
+  const pensionEmpr = Math.round(sal * 0.12);
+  const arl = Math.round(sal * (TASA_ARL[nRiesgo] || TASA_ARL[1]));
+  const caja = Math.round(sal * 0.04);
+  const sena = Math.round(sal * 0.02);
+  const icbf = Math.round(sal * 0.03);
+  const cesantias = Math.round(sal * (1/12));
+  const prima = Math.round(sal * (1/12));
+  const vac = Math.round(sal * 0.0417);
+  const costoTotal = sal + aux + saludEmpr + pensionEmpr + arl + caja + sena + icbf + cesantias + prima + vac;
+  document.getElementById('calcSalario').textContent = formatCop(sal);
+  document.getElementById('calcSalud').textContent = formatCop(salud);
+  document.getElementById('calcPension').textContent = formatCop(pension);
+  document.getElementById('calcNeto').textContent = formatCop(neto);
+  document.getElementById('calcSaludEmpr').textContent = formatCop(saludEmpr);
+  document.getElementById('calcPensionEmpr').textContent = formatCop(pensionEmpr);
+  document.getElementById('calcARL').textContent = formatCop(arl);
+  document.getElementById('calcCaja').textContent = formatCop(caja);
+  document.getElementById('calcSena').textContent = formatCop(sena);
+  document.getElementById('calcIcbf').textContent = formatCop(icbf);
+  document.getElementById('calcCesantias').textContent = formatCop(cesantias);
+  document.getElementById('calcPrima').textContent = formatCop(prima);
+  document.getElementById('calcVacaciones').textContent = formatCop(vac);
+  document.getElementById('calcCostoTotal').textContent = formatCop(costoTotal);
+}
+document.addEventListener('DOMContentLoaded', updateCalc);
+document.getElementById('nivel_riesgo_arl')?.addEventListener('change', updateCalc);
+</script>
+{% endblock %}"""
+
+T['nomina/ver.html'] = """{% extends 'base.html' %}
+{% block title %}{{ empleado.nombre }} {{ empleado.apellido }}{% endblock %}
+{% block page_title %}{{ empleado.nombre }} {{ empleado.apellido }}{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('empleado_editar', id=empleado.id) }}" class="btn btn-sm btn-primary"><i class="bi bi-pencil me-1"></i>Editar</a>{% endblock %}
+{% block content %}
+<div class="fc">
+  <div class="row g-3 mb-3">
+    <div class="col-md-8">
+      <div class="tc">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+          <div><label style="color:#666;font-size:.85rem">Cédula</label><div style="font-weight:600">{{ empleado.cedula or '—' }}</div></div>
+          <div><label style="color:#666;font-size:.85rem">Email</label><div style="font-weight:600">{{ empleado.email or '—' }}</div></div>
+          <div><label style="color:#666;font-size:.85rem">Cargo</label><div style="font-weight:600">{{ empleado.cargo or '—' }}</div></div>
+          <div><label style="color:#666;font-size:.85rem">Departamento</label><div style="font-weight:600">{{ empleado.departamento or '—' }}</div></div>
+          <div><label style="color:#666;font-size:.85rem">Tipo contrato</label><div><span class="b" style="background:{% if empleado.tipo_contrato=='indefinido' %}#0052CC{% elif empleado.tipo_contrato=='fijo' %}#00875A{% elif empleado.tipo_contrato=='obra_labor' %}#FF8B00{% else %}#6D42C8{% endif %}">{{ empleado.tipo_contrato }}</span></div></div>
+          <div><label style="color:#666;font-size:.85rem">Estado</label><div><span class="b" style="background:{% if empleado.estado=='activo' %}#00875A{% elif empleado.estado=='inactivo' %}#FF8B00{% else %}#6D42C8{% endif %}">{{ empleado.estado }}</span></div></div>
+          <div><label style="color:#666;font-size:.85rem">Fecha ingreso</label><div style="font-weight:600">{{ empleado.fecha_ingreso.strftime('%d/%m/%Y') if empleado.fecha_ingreso else '—' }}</div></div>
+          <div><label style="color:#666;font-size:.85rem">Nivel ARL</label><div style="font-weight:600">{{ empleado.nivel_riesgo_arl }}</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="tc">
+        <div style="text-align:center">
+          <div style="font-size:2rem;color:var(--ac);font-weight:700">{{ (empleado.salario_base|cop) }}</div>
+          <div style="font-size:.9rem;color:#666">Salario base</div>
+        </div>
+        <hr style="margin:1rem 0">
+        <div style="text-align:center">
+          <div style="font-size:1.4rem;color:var(--green);font-weight:700">{{ (calc.salario_neto|cop) }}</div>
+          <div style="font-size:.9rem;color:#666">Salario neto</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="tc">
+        <h6 style="margin-bottom:1rem"><i class="bi bi-person me-2"></i>Lo que recibe el empleado</h6>
+        <table style="font-size:.9rem;width:100%">
+          <tr><td style="padding:6px">Salario bruto:</td><td style="text-align:right"><strong>{{ (calc.salario|cop) }}</strong></td></tr>
+          <tr><td style="padding:6px">+ Auxilio transporte:</td><td style="text-align:right">{{ (calc.aux_transporte|cop) }}</td></tr>
+          <tr style="border-top:1px solid #ddd"><td style="padding:6px">— Salud (4%):</td><td style="text-align:right" style="color:#999">{{ (calc.deduccion_salud|cop) }}</td></tr>
+          <tr><td style="padding:6px">— Pensión (4%):</td><td style="text-align:right" style="color:#999">{{ (calc.deduccion_pension|cop) }}</td></tr>
+          {% if calc.fondo_solidaridad > 0 %}<tr><td style="padding:6px">— Fondo solidaridad:</td><td style="text-align:right" style="color:#999">{{ (calc.fondo_solidaridad|cop) }}</td></tr>{% endif %}
+          <tr style="border-top:2px solid var(--ac);background:#f5f8ff"><td style="padding:8px"><strong>= NETO:</strong></td><td style="text-align:right"><strong style="color:var(--green);font-size:1.1rem">{{ (calc.salario_neto|cop) }}</strong></td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="tc">
+        <h6 style="margin-bottom:1rem"><i class="bi bi-briefcase me-2"></i>Lo que paga la empresa</h6>
+        <table style="font-size:.9rem;width:100%">
+          <tr><td style="padding:6px">Salario + auxilio:</td><td style="text-align:right"><strong>{{ ((calc.salario + calc.aux_transporte)|cop) }}</strong></td></tr>
+          <tr style="border-top:1px solid #ddd"><td style="padding:6px">+ Salud (8.5%):</td><td style="text-align:right">{{ (calc.aporte_salud_empr|cop) }}</td></tr>
+          <tr><td style="padding:6px">+ Pensión (12%):</td><td style="text-align:right">{{ (calc.aporte_pension_empr|cop) }}</td></tr>
+          <tr><td style="padding:6px">+ ARL:</td><td style="text-align:right">{{ (calc.aporte_arl|cop) }}</td></tr>
+          <tr><td style="padding:6px">+ Caja compensación:</td><td style="text-align:right">{{ (calc.aporte_caja|cop) }}</td></tr>
+          <tr><td style="padding:6px">+ SENA:</td><td style="text-align:right">{{ (calc.aporte_sena|cop) }}</td></tr>
+          <tr><td style="padding:6px">+ ICBF:</td><td style="text-align:right">{{ (calc.aporte_icbf|cop) }}</td></tr>
+          <tr style="border-top:2px solid var(--ac);background:#f5f8ff"><td style="padding:8px"><strong>COSTO TOTAL:</strong></td><td style="text-align:right"><strong style="color:var(--ac);font-size:1.1rem">{{ (calc.costo_total_empresa|cop) }}</strong></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% if empleado.estado == 'activo' %}
+  <div style="margin-top:2rem;display:flex;gap:1rem;flex-wrap:wrap">
+    <form method="GET" action="{{ url_for('empleado_liquidacion', id=empleado.id) }}" style="display:inline">
+      <input type="hidden" name="motivo" value="renuncia">
+      <button type="submit" class="btn btn-outline-warning" onclick="return confirm('¿Liquidar por renuncia?')"><i class="bi bi-file-text me-1"></i>Liquidar - Renuncia</button>
+    </form>
+    <form method="GET" action="{{ url_for('empleado_liquidacion', id=empleado.id) }}" style="display:inline">
+      <input type="hidden" name="motivo" value="despido_justa">
+      <button type="submit" class="btn btn-outline-warning" onclick="return confirm('¿Liquidar por despido con justa causa?')"><i class="bi bi-file-text me-1"></i>Liquidar - Despido (justa)</button>
+    </form>
+    <form method="GET" action="{{ url_for('empleado_liquidacion', id=empleado.id) }}" style="display:inline">
+      <input type="hidden" name="motivo" value="despido_sin_justa">
+      <button type="submit" class="btn btn-outline-danger" onclick="return confirm('¿Liquidar por despido sin justa causa?')"><i class="bi bi-file-text me-1"></i>Liquidar - Despido (sin justa)</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}"""
+
+T['nomina/liquidacion.html'] = """{% extends 'base.html' %}
+{% block title %}Liquidación - {{ empleado.nombre }}{% endblock %}
+{% block page_title %}Liquidación de contrato{% endblock %}
+{% block content %}
+<div class="fc" style="max-width:800px">
+  <div style="border:1px solid #ddd;padding:2rem;border-radius:8px;background:#fff">
+    <div style="text-align:center;margin-bottom:2rem">
+      <h3 style="margin:0;font-weight:700">LIQUIDACIÓN DE CONTRATO</h3>
+      <p style="margin:0.5rem 0 0;color:#666;font-size:.9rem">{{ empleado.nombre }} {{ empleado.apellido }}</p>
+    </div>
+    <table style="width:100%;font-size:.95rem;margin-bottom:2rem">
+      <tr style="border-bottom:1px solid #ddd">
+        <td style="padding:8px">Empleado:</td>
+        <td style="padding:8px"><strong>{{ empleado.nombre }} {{ empleado.apellido }}</strong></td>
+      </tr>
+      <tr style="border-bottom:1px solid #ddd">
+        <td style="padding:8px">Cédula:</td>
+        <td style="padding:8px">{{ empleado.cedula or '—' }}</td>
+      </tr>
+      <tr style="border-bottom:1px solid #ddd">
+        <td style="padding:8px">Fecha de ingreso:</td>
+        <td style="padding:8px">{{ liq.fecha_ingreso.strftime('%d de %B de %Y') if liq.fecha_ingreso else '—' }}</td>
+      </tr>
+      <tr style="border-bottom:2px solid #0052CC">
+        <td style="padding:8px">Fecha de retiro:</td>
+        <td style="padding:8px"><strong>{{ liq.fecha_retiro.strftime('%d de %B de %Y') }}</strong></td>
+      </tr>
+      <tr><td style="padding:8px">Tiempo trabajado:</td>
+        <td style="padding:8px"><strong>{{ liq.dias_trabajados }} días ({{ liq.anios }} años)</strong></td>
+      </tr>
+    </table>
+    <table style="width:100%;font-size:.95rem;margin-bottom:2rem;border:1px solid #ddd">
+      <thead style="background:#f5f5f5">
+        <tr><th style="padding:8px;border-bottom:1px solid #ddd;text-align:left">Concepto</th>
+          <th style="padding:8px;border-bottom:1px solid #ddd;text-align:right">Valor</th></tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #eee"><td style="padding:8px">Cesantías</td>
+          <td style="padding:8px;text-align:right">{{ (liq.cesantias|cop) }}</td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="padding:8px">Intereses sobre cesantías (12% anual)</td>
+          <td style="padding:8px;text-align:right">{{ (liq.int_cesantias|cop) }}</td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="padding:8px">Prima de servicios</td>
+          <td style="padding:8px;text-align:right">{{ (liq.prima|cop) }}</td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="padding:8px">Vacaciones pendientes</td>
+          <td style="padding:8px;text-align:right">{{ (liq.vacaciones|cop) }}</td></tr>
+        {% if liq.indemnizacion > 0 %}
+        <tr style="border-bottom:2px solid var(--red);background:#ffe6e6"><td style="padding:8px"><strong>Indemnización</strong></td>
+          <td style="padding:8px;text-align:right"><strong style="color:var(--red)">{{ (liq.indemnizacion|cop) }}</strong></td></tr>
+        {% endif %}
+        <tr style="background:#f0f7ff;border-top:2px solid #0052CC"><td style="padding:12px"><strong>TOTAL A PAGAR</strong></td>
+          <td style="padding:12px;text-align:right"><strong style="font-size:1.2rem;color:#0052CC">{{ (liq.total|cop) }}</strong></td></tr>
+      </tbody>
+    </table>
+    <div style="border-top:1px solid #ddd;padding-top:2rem;margin-top:2rem">
+      <p style="font-size:.85rem;color:#666">Empresa: ____________________________  &nbsp;&nbsp; Empleado: ____________________________</p>
+      <p style="font-size:.85rem;color:#666">Firma                                                                      Firma</p>
+      <p style="font-size:.85rem;color:#666">Fecha: ____________________________  &nbsp;&nbsp; Fecha: ____________________________</p>
+    </div>
+    <div style="margin-top:2rem;display:flex;gap:1rem">
+      <button onclick="window.print()" class="btn btn-primary"><i class="bi bi-printer me-1"></i>Imprimir</button>
+      <a href="{{ url_for('nomina_index') }}" class="btn btn-outline-secondary">Volver</a>
+    </div>
+  </div>
+</div>
+{% endblock %}"""
+
 app.jinja_loader = DictLoader(T)
 
 # =============================================================
@@ -8824,12 +9442,13 @@ def admin_usuario_toggle(id):
 @login_required
 def admin_impersonar(id):
     """Admin can temporarily view the app as another user."""
+    from flask import session as flask_session
+    from flask_login import login_user
     if current_user.rol != 'admin':
         flash('Sin permisos.','danger'); return redirect(url_for('dashboard'))
     target = User.query.get_or_404(id)
     # Save real admin id in session
     flask_session['admin_real_id'] = current_user.id
-    from flask_login import login_user
     login_user(target, remember=False)
     flash(f'Viendo la app como: {target.nombre} ({target.rol}). Usa "Volver a admin" para regresar.','warning')
     # Redirect to appropriate portal
@@ -8843,6 +9462,8 @@ def admin_impersonar(id):
 @login_required
 def admin_volver():
     """Return to real admin account after impersonation."""
+    from flask import session as flask_session
+    from flask_login import login_user
     admin_id = flask_session.pop('admin_real_id', None)
     if not admin_id:
         flash('No hay sesión de administrador guardada.','warning')
@@ -8851,10 +9472,127 @@ def admin_volver():
     if not admin_user or admin_user.rol != 'admin':
         flash('Administrador no encontrado.','danger')
         return redirect(url_for('dashboard'))
-    from flask_login import login_user
     login_user(admin_user, remember=False)
     flash(f'Bienvenido de vuelta, {admin_user.nombre}.','success')
     return redirect(url_for('admin_usuarios'))
+
+# =============================================================
+# NÓMINA — MÓDULO COLOMBIANO
+# =============================================================
+
+@app.route('/nomina')
+@login_required
+@requiere_modulo('nomina')
+def nomina_index():
+    estado_filter = request.args.get('estado', 'activo')
+    departamento_filter = request.args.get('departamento', '')
+    query = Empleado.query
+    if estado_filter and estado_filter != 'todos':
+        query = query.filter_by(estado=estado_filter)
+    if departamento_filter:
+        query = query.filter_by(departamento=departamento_filter)
+    empleados = query.all()
+    departamentos = db.session.query(Empleado.departamento).distinct().filter(Empleado.departamento != None).all()
+    departamentos = [d[0] for d in departamentos if d[0]]
+    # Stats
+    activos = Empleado.query.filter_by(estado='activo').count()
+    masa_salarial = sum(e.salario_base for e in Empleado.query.filter_by(estado='activo').all())
+    costo_empresa = sum(_calcular_nomina(e)['costo_total_empresa'] for e in Empleado.query.filter_by(estado='activo').all())
+    retirados = Empleado.query.filter_by(estado='retirado').count()
+    return render_template('nomina/index.html', empleados=empleados, departamentos=departamentos,
+                          estado_filter=estado_filter, departamento_filter=departamento_filter,
+                          activos=activos, masa_salarial=masa_salarial, costo_empresa=costo_empresa, retirados=retirados)
+
+@app.route('/nomina/nuevo', methods=['GET','POST'])
+@login_required
+@requiere_modulo('nomina')
+def empleado_nuevo():
+    if request.method == 'POST':
+        try:
+            e = Empleado(
+                nombre=request.form.get('nombre',''),
+                apellido=request.form.get('apellido',''),
+                cedula=request.form.get('cedula',''),
+                email=request.form.get('email',''),
+                telefono=request.form.get('telefono',''),
+                cargo=request.form.get('cargo',''),
+                departamento=request.form.get('departamento',''),
+                tipo_contrato=request.form.get('tipo_contrato','indefinido'),
+                salario_base=float(request.form.get('salario_base',0)),
+                auxilio_transporte=request.form.get('auxilio_transporte')=='on',
+                nivel_riesgo_arl=int(request.form.get('nivel_riesgo_arl',1)),
+                estado='activo',
+                fecha_ingreso=datetime.strptime(request.form.get('fecha_ingreso',''), '%Y-%m-%d').date() if request.form.get('fecha_ingreso') else None,
+                notas=request.form.get('notas',''),
+                creado_por=current_user.id
+            )
+            db.session.add(e)
+            db.session.commit()
+            flash(f'Empleado {e.nombre} creado exitosamente.','success')
+            return redirect(url_for('empleado_ver', id=e.id))
+        except Exception as ex:
+            flash(f'Error al crear empleado: {str(ex)}','danger')
+    return render_template('nomina/form.html', empleado=None)
+
+@app.route('/nomina/<int:id>')
+@login_required
+@requiere_modulo('nomina')
+def empleado_ver(id):
+    empleado = Empleado.query.get_or_404(id)
+    calc = _calcular_nomina(empleado)
+    return render_template('nomina/ver.html', empleado=empleado, calc=calc)
+
+@app.route('/nomina/<int:id>/editar', methods=['GET','POST'])
+@login_required
+@requiere_modulo('nomina')
+def empleado_editar(id):
+    empleado = Empleado.query.get_or_404(id)
+    if request.method == 'POST':
+        try:
+            empleado.nombre=request.form.get('nombre','')
+            empleado.apellido=request.form.get('apellido','')
+            empleado.cedula=request.form.get('cedula','')
+            empleado.email=request.form.get('email','')
+            empleado.telefono=request.form.get('telefono','')
+            empleado.cargo=request.form.get('cargo','')
+            empleado.departamento=request.form.get('departamento','')
+            empleado.tipo_contrato=request.form.get('tipo_contrato','indefinido')
+            empleado.salario_base=float(request.form.get('salario_base',0))
+            empleado.auxilio_transporte=request.form.get('auxilio_transporte')=='on'
+            empleado.nivel_riesgo_arl=int(request.form.get('nivel_riesgo_arl',1))
+            empleado.notas=request.form.get('notas','')
+            if request.form.get('fecha_ingreso'):
+                empleado.fecha_ingreso=datetime.strptime(request.form.get('fecha_ingreso',''), '%Y-%m-%d').date()
+            db.session.commit()
+            flash('Empleado actualizado.','success')
+            return redirect(url_for('empleado_ver', id=empleado.id))
+        except Exception as ex:
+            flash(f'Error al actualizar: {str(ex)}','danger')
+    return render_template('nomina/form.html', empleado=empleado)
+
+@app.route('/nomina/<int:id>/liquidacion')
+@login_required
+@requiere_modulo('nomina')
+def empleado_liquidacion(id):
+    empleado = Empleado.query.get_or_404(id)
+    motivo = request.args.get('motivo', 'renuncia')
+    liq = _calcular_liquidacion(empleado, motivo)
+    if not liq:
+        flash('No se puede calcular liquidación sin fecha de ingreso.','danger')
+        return redirect(url_for('empleado_ver', id=id))
+    return render_template('nomina/liquidacion.html', empleado=empleado, liq=liq)
+
+@app.route('/nomina/<int:id>/retirar', methods=['POST'])
+@login_required
+@requiere_modulo('nomina')
+def empleado_retirar(id):
+    empleado = Empleado.query.get_or_404(id)
+    empleado.estado = 'retirado'
+    empleado.fecha_retiro = date_type.today()
+    empleado.motivo_retiro = request.form.get('motivo', 'renuncia')
+    db.session.commit()
+    flash(f'Empleado {empleado.nombre} marcado como retirado.','success')
+    return redirect(url_for('nomina_index'))
 
 # =============================================================
 # PERFIL DE USUARIO
@@ -10831,6 +11569,8 @@ def _migrate(conn):
         ("ALTER TABLE cotizaciones ADD COLUMN IF NOT EXISTS fecha_entrega_est DATE"),
         # v19 — Proveedor contacto
         ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS contacto_nombre VARCHAR(100)"),
+        # v20 — Nómina colombiana
+        ("CREATE TABLE IF NOT EXISTS empleados (id SERIAL PRIMARY KEY, nombre VARCHAR(100) NOT NULL, apellido VARCHAR(100) NOT NULL, cedula VARCHAR(30), email VARCHAR(120), telefono VARCHAR(30), cargo VARCHAR(100), departamento VARCHAR(100), tipo_contrato VARCHAR(40) DEFAULT 'indefinido', salario_base FLOAT DEFAULT 0, auxilio_transporte BOOLEAN DEFAULT TRUE, nivel_riesgo_arl INTEGER DEFAULT 1, estado VARCHAR(20) DEFAULT 'activo', fecha_ingreso DATE, fecha_retiro DATE, motivo_retiro VARCHAR(30), notas TEXT, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
     ]
     for sql in migrations:
         try:
