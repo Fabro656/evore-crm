@@ -974,38 +974,38 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .btn-action:hover{background:var(--ac);opacity:.9;color:#fff}
 
 /* ── Badges ──────────────────────────────────────── */
-.b{padding:2px 8px;border-radius:3px;font-size:.72rem;font-weight:700;display:inline-block;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px}
-.b-activo,.b-completado,.b-completada,.b-baja,.b-vip,.b-vigente,.b-aprobada{background:#E3FCEF;color:#006644}
-.b-inactivo,.b-perdido,.b-alta,.b-vencida{background:#FFEBE6;color:#BF2600}
-.b-prospecto,.b-pendiente,.b-media,.b-anticipo_pagado,.b-en_revision,.b-enviada{background:#FFFAE6;color:#172B4D}
-.b-negociacion,.b-en_progreso,.b-cliente_activo,.b-confirmacion_orden{background:#DEEBFF;color:#0747A6}
-.b-borrador{background:#F4F5F7;color:#42526E}
-.b-unico{background:#E6FCFF;color:#006C84}
-.b-mensual{background:#E6FCFF;color:#006C84}
-.b-cita{background:#FFF0F6;color:#97145E}
-.b-reunion{background:#EAE6FF;color:#403294}
-.b-recordatorio{background:#FFFAE6;color:#172B4D}
-.b-en_transito,.b-recibida{background:#E3FCEF;color:#006644}
+.b{padding:2px 8px;border-radius:3px;font-size:.72rem;font-weight:600;display:inline-block;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px}
+.b-activo,.b-completado,.b-completada,.b-baja,.b-vip,.b-vigente,.b-aprobada{background:#ECFDF5;color:#065F46;border:1px solid #D1FAE5}
+.b-inactivo,.b-perdido,.b-alta,.b-vencida{background:#FEF2F2;color:#7F1D1D;border:1px solid #FECACA}
+.b-prospecto,.b-pendiente,.b-media,.b-anticipo_pagado,.b-en_revision,.b-enviada{background:#FFFBEB;color:#78350F;border:1px solid #FDE68A}
+.b-negociacion,.b-en_progreso,.b-cliente_activo,.b-confirmacion_orden{background:#EFF6FF;color:#1E3A5F;border:1px solid #BFDBFE}
+.b-borrador{background:#F8FAFC;color:#475569;border:1px solid #E2E8F0}
+.b-unico{background:#F0FDFA;color:#134E4A;border:1px solid #CCFBF1}
+.b-mensual{background:#F0FDFA;color:#134E4A;border:1px solid #CCFBF1}
+.b-cita{background:#FDF4FF;color:#581C87;border:1px solid #E9D5FF}
+.b-reunion{background:#F5F3FF;color:#3730A3;border:1px solid #DDD6FE}
+.b-recordatorio{background:#FFFBEB;color:#78350F;border:1px solid #FDE68A}
+.b-en_transito,.b-recibida{background:#ECFDF5;color:#065F46;border:1px solid #D1FAE5}
 
 /* ── Status select (inline state changer) ─────────── */
 .status-select{-webkit-appearance:none;appearance:none;border:none;padding:2px 20px 2px 8px;border-radius:3px;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='currentColor' opacity='.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 5px center;transition:filter .12s}
 .status-select:hover{filter:brightness(.92)}
 .status-select:focus{outline:2px solid var(--ac);outline-offset:1px}
-.status-select.b-activo,.status-select.b-completado,.status-select.b-completada,.status-select.b-vip,.status-select.b-vigente,.status-select.b-aprobada{background-color:#E3FCEF;color:#006644}
-.status-select.b-inactivo,.status-select.b-perdido{background-color:#FFEBE6;color:#BF2600}
-.status-select.b-prospecto,.status-select.b-pendiente,.status-select.b-anticipo_pagado{background-color:#FFFAE6;color:#172B4D}
-.status-select.b-negociacion,.status-select.b-en_progreso,.status-select.b-cliente_activo{background-color:#DEEBFF;color:#0747A6}
-.status-select.b-borrador{background-color:#F4F5F7;color:#42526E}
+.status-select.b-activo,.status-select.b-completado,.status-select.b-completada,.status-select.b-vip,.status-select.b-vigente,.status-select.b-aprobada{background-color:#ECFDF5;color:#065F46}
+.status-select.b-inactivo,.status-select.b-perdido{background-color:#FEF2F2;color:#7F1D1D}
+.status-select.b-prospecto,.status-select.b-pendiente,.status-select.b-anticipo_pagado{background-color:#FFFBEB;color:#78350F}
+.status-select.b-negociacion,.status-select.b-en_progreso,.status-select.b-cliente_activo{background-color:#EFF6FF;color:#1E3A5F}
+.status-select.b-borrador{background-color:#F8FAFC;color:#475569}
 
 /* ── Calendar / Events ───────────────────────────── */
-.ev-tarea{background:#FFFAE6;color:#FF8B00;border-left:3px solid #FF8B00}
-.ev-evento{background:#DEEBFF;color:#0052CC;border-left:3px solid #0052CC}
-.ev-nota{background:#EAE6FF;color:#5243AA;border-left:3px solid #5243AA}
-.ev-caducidad{background:#FFEBE6;color:#DE350B;border-left:3px solid #DE350B}
-.ev-venta{background:#E3FCEF;color:#00875A;border-left:3px solid #00875A}
-.cal-day{border:1px solid #DFE1E6;min-height:110px;vertical-align:top;padding:.3rem;cursor:pointer;transition:background .12s}
-.cal-day:hover{background:#F8F9FA}
-.cal-day.today{background:#DEEBFF}
+.ev-tarea{background:#FFFBEB;color:#78350F;border-left:2px solid #D97706}
+.ev-evento{background:#EFF6FF;color:#1E3A5F;border-left:2px solid #3B82F6}
+.ev-nota{background:#F5F3FF;color:#3730A3;border-left:2px solid #7C3AED}
+.ev-caducidad{background:#FEF2F2;color:#7F1D1D;border-left:2px solid #DC2626}
+.ev-venta{background:#ECFDF5;color:#065F46;border-left:2px solid #10B981}
+.cal-day{border:1px solid #E2E8F0;min-height:110px;vertical-align:top;padding:.3rem;cursor:pointer;transition:background .12s}
+.cal-day:hover{background:#F8FAFC}
+.cal-day.today{background:#EFF6FF}
 .cal-day.other-month{background:#FAFBFC;opacity:.65}
 .cal-ev{font-size:.69rem;padding:2px 5px;border-radius:2px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 
@@ -1224,18 +1224,18 @@ html[data-theme="dark"] .qa-btn{background:var(--surface);border-color:var(--bor
 html[data-theme="dark"] .qa-btn:hover{background:var(--surface2);border-color:var(--ac);color:var(--ac)}
 html[data-theme="dark"] .prod-row,html[data-theme="dark"] .totales-box{background:var(--surface2);border-color:var(--border)}
 html[data-theme="dark"] .form-check-input{background-color:var(--input-bg);border-color:var(--border)}
-html[data-theme="dark"] .b-pendiente{background:rgba(255,139,0,.15);color:#FCD34D;border:1px solid rgba(255,139,0,.3)}
-html[data-theme="dark"] .b-aprobada,html[data-theme="dark"] .b-activo,html[data-theme="dark"] .b-cliente_activo{background:rgba(0,135,90,.15);color:#4ADE80;border:1px solid rgba(0,135,90,.3)}
-html[data-theme="dark"] .b-rechazada,html[data-theme="dark"] .b-cancelado{background:rgba(222,53,11,.15);color:#F87171;border:1px solid rgba(222,53,11,.3)}
-html[data-theme="dark"] .b-en_revision,html[data-theme="dark"] .b-en-revision,html[data-theme="dark"] .b-borrador,html[data-theme="dark"] .b-negociacion,html[data-theme="dark"] .b-info{background:rgba(0,82,204,.2);color:#60A5FA;border:1px solid rgba(0,82,204,.3)}
-html[data-theme="dark"] .b-alta{background:rgba(255,86,48,.15);color:#FB923C;border:1px solid rgba(255,86,48,.3)}
-html[data-theme="dark"] .b-media{background:rgba(255,153,31,.15);color:#FCD34D;border:1px solid rgba(255,153,31,.3)}
-html[data-theme="dark"] .b-baja{background:rgba(0,135,90,.15);color:#4ADE80;border:1px solid rgba(0,135,90,.3)}
-html[data-theme="dark"] .b-prospecto{background:rgba(82,67,170,.15);color:#A78BFA;border:1px solid rgba(82,67,170,.3)}
-html[data-theme="dark"] .b-vip{background:rgba(255,153,31,.15);color:#FCD34D;border:1px solid rgba(255,153,31,.3)}
-html[data-theme="dark"] .b-inactivo{background:rgba(107,119,140,.15);color:#94A3B8;border:1px solid rgba(107,119,140,.3)}
-html[data-theme="dark"] .b-completado,html[data-theme="dark"] .b-anticipo_pagado{background:rgba(0,135,90,.15);color:#4ADE80;border:1px solid rgba(0,135,90,.3)}
-html[data-theme="dark"] .b-aceptada_cliente{background:rgba(0,135,90,.15);color:#4ADE80;border:1px solid rgba(0,135,90,.3)}
+html[data-theme="dark"] .b-pendiente{background:rgba(217,119,6,.1);color:#FDE68A;border:1px solid rgba(217,119,6,.2)}
+html[data-theme="dark"] .b-aprobada,html[data-theme="dark"] .b-activo,html[data-theme="dark"] .b-cliente_activo{background:rgba(16,185,129,.1);color:#A7F3D0;border:1px solid rgba(16,185,129,.2)}
+html[data-theme="dark"] .b-rechazada,html[data-theme="dark"] .b-cancelado{background:rgba(220,38,38,.1);color:#FECACA;border:1px solid rgba(220,38,38,.2)}
+html[data-theme="dark"] .b-en_revision,html[data-theme="dark"] .b-en-revision,html[data-theme="dark"] .b-borrador,html[data-theme="dark"] .b-negociacion,html[data-theme="dark"] .b-info{background:rgba(59,130,246,.1);color:#BFDBFE;border:1px solid rgba(59,130,246,.2)}
+html[data-theme="dark"] .b-alta{background:rgba(220,38,38,.1);color:#FECACA;border:1px solid rgba(220,38,38,.2)}
+html[data-theme="dark"] .b-media{background:rgba(217,119,6,.1);color:#FDE68A;border:1px solid rgba(217,119,6,.2)}
+html[data-theme="dark"] .b-baja{background:rgba(16,185,129,.1);color:#A7F3D0;border:1px solid rgba(16,185,129,.2)}
+html[data-theme="dark"] .b-prospecto{background:rgba(124,58,237,.1);color:#DDD6FE;border:1px solid rgba(124,58,237,.2)}
+html[data-theme="dark"] .b-vip{background:rgba(100,116,139,.12);color:#CBD5E1;border:1px solid rgba(100,116,139,.2)}
+html[data-theme="dark"] .b-inactivo{background:rgba(100,116,139,.1);color:#94A3B8;border:1px solid rgba(100,116,139,.2)}
+html[data-theme="dark"] .b-completado,html[data-theme="dark"] .b-anticipo_pagado{background:rgba(16,185,129,.1);color:#A7F3D0;border:1px solid rgba(16,185,129,.2)}
+html[data-theme="dark"] .b-aceptada_cliente{background:rgba(16,185,129,.1);color:#A7F3D0;border:1px solid rgba(16,185,129,.2)}
 /* ══════════════════════════════════════════════════
    HORIZON DEMO THEME — Dark Neon (Salesforce ref)
    Palette: near-black bg, neon green #AAFF00 accent
@@ -4656,8 +4656,9 @@ T['calendario.html'] = """{% extends 'base.html' %}
           {% set ev_cls = {'tarea':'ev-tarea','venta':'ev-venta','evento':'ev-evento','nota':'ev-nota','caducidad':'ev-caducidad'}.get(ev.t, 'ev-evento') %}
           <div class="cal-ev {{ ev_cls }}"
                data-titulo="{{ ev.n|e }}"
-               data-desc="{{ ev.d|e }}"
+               data-desc="{{ (ev.d or '')|e }}"
                data-tipo="{{ ev.t }}"
+               data-url="{{ (ev.url or '')|e }}"
                onclick="verEvento(event,this)"
                style="font-size:.68rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%;cursor:pointer">{{ ev.n|truncate(24,true,'…') }}</div>
         {% endfor %}
@@ -4702,13 +4703,18 @@ T['calendario.html'] = """{% extends 'base.html' %}
     </div></form>
   </div></div>
 </div>
-<!-- Modal ver tarea -->
+<!-- Modal ver evento/tarea -->
 <div class="modal fade" id="modalVerTarea" tabindex="-1">
   <div class="modal-dialog"><div class="modal-content">
     <div class="modal-header"><h5 class="modal-title" id="modalTareaTitle"></h5>
       <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
     <div class="modal-body">
-      <p id="modalTareaDesc" class="text-muted"></p>
+      <p id="modalTareaDesc" class="text-muted mb-0" style="font-size:.88rem;line-height:1.6"></p>
+    </div>
+    <div class="modal-footer" id="modalTareaFooter" style="display:none">
+      <a id="modalTareaLink" href="#" class="btn btn-primary btn-sm" data-bs-dismiss="modal">
+        <i class="bi bi-arrow-right-circle me-1"></i>Ver detalle
+      </a>
     </div>
   </div></div>
 </div>
@@ -4718,11 +4724,17 @@ function verEvento(e,el){
   e.stopPropagation();
   var tipo = el.dataset.tipo || 'evento';
   var iconMap = {tarea:'bi-check2-square',evento:'bi-calendar-event',venta:'bi-bag-fill',nota:'bi-sticky',caducidad:'bi-exclamation-triangle'};
-  var colorMap = {tarea:'#FF8B00',evento:'#0052CC',venta:'#00875A',nota:'#5243AA',caducidad:'#DE350B'};
+  var colorMap = {tarea:'#4B5563',evento:'#374151',venta:'#374151',nota:'#4B5563',caducidad:'#6B7280'};
   var ic = iconMap[tipo]||'bi-calendar-event';
-  var col = colorMap[tipo]||'#172B4D';
-  document.getElementById('modalTareaTitle').innerHTML = '<i class="bi '+ic+' me-2" style="color:'+col+'"></i>'+( el.dataset.titulo||'Sin título');
-  document.getElementById('modalTareaDesc').textContent = el.dataset.desc||'Sin descripción adicional';
+  var col = colorMap[tipo]||'#374151';
+  document.getElementById('modalTareaTitle').innerHTML = '<i class="bi '+ic+' me-2" style="color:'+col+'"></i>'+(el.dataset.titulo||'Sin título');
+  var desc = el.dataset.desc||'';
+  document.getElementById('modalTareaDesc').textContent = desc || 'Sin información adicional';
+  var url = el.dataset.url||'';
+  var footer = document.getElementById('modalTareaFooter');
+  var link = document.getElementById('modalTareaLink');
+  if(url){ footer.style.display=''; link.href=url; }
+  else { footer.style.display='none'; }
   new bootstrap.Modal(document.getElementById('modalVerTarea')).show();
 }
 function verTarea(e,el){ verEvento(e,el); }
@@ -4737,7 +4749,7 @@ T['ventas/remision.html'] = """<!DOCTYPE html>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:11.5pt;color:#172B4D;background:#fff}
 .page{max-width:800px;margin:0 auto;padding:24px 32px}
-.no-print{position:fixed;top:14px;right:14px;display:flex;gap:8px;z-index:999}
+.no-print{display:flex;gap:8px;padding:10px 16px;background:#fff;border-bottom:1px solid #DFE1E6;box-shadow:0 1px 3px rgba(0,0,0,.07);position:sticky;top:0;z-index:10}
 .btn-print{background:#0052CC;color:#fff;border:none;padding:8px 18px;border-radius:3px;cursor:pointer;font-size:13px;font-weight:600}
 .btn-back{background:#DFE1E6;color:#172B4D;border:none;padding:8px 14px;border-radius:3px;cursor:pointer;font-size:13px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
 /* Header */
@@ -4796,10 +4808,7 @@ table.items-table tr:nth-child(even) td{background:#F4F5F7}
   <!-- Header -->
   <div class="header">
     <div class="logo-area">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 341.94 261.01" height="44" style="display:block">
-        <path fill="#172B4D" d="M239.09,111.71C234.61,109,225,105.23,225,105.23s-1.42-.5-1.34-.9c.21-1.2,2.76-1.54,9.63-10.7,7.11-9.49,8.6-13.94,9.94-17.84,1.14-3.3,2.38-11,1.72-11.79s-9.12-1.35-16.48.3c-7.06,1.58-11.1,3.47-11.5,3-.64-.71.95-6.23,1.11-11.33.17-5.28.32-6.75-.41-11.49-.61-4-1.47-7.57-2.65-7.91s-5,.82-7,1.69A81.41,81.41,0,0,0,198.41,44c-2.91,2-6.52,5.48-7.55,5.69s-2.79-6-6.9-13.15a86,86,0,0,0-5.69-9.09c-1.74-2.45-4.91-7-7.28-7h0c-2.38,0-5.54,4.59-7.28,7A84.29,84.29,0,0,0,158,36.52c-4.12,7.13-5.76,13.38-6.9,13.15s-4.73-3.8-7.64-5.8a79.94,79.94,0,0,0-9.56-5.58c-2-.87-5.81-2-7-1.69s-2,3.94-2.65,7.91c-.73,4.74-.58,6.21-.41,11.49.16,5.1,1.74,10.62,1.11,11.33-.4.44-4.44-1.45-11.5-3C106.08,62.65,97.72,63.08,97,64s.57,8.49,1.71,11.79c1.35,3.9,2.83,8.35,10,17.84,6.87,9.16,9.41,9.5,9.63,10.7.07.4-1.35.9-1.35.9s-9.57,3.72-14.06,6.48C99.17,114,95,117.34,95,119.08c0,2.11,3.54,4.62,8.14,7.67s15.36,7.83,26.75,6.75c12.82-1.22,20.68-7.21,21.76-6.74.49.21.11,5.24,5.16,10.44,4.43,4.56,10.58,10,14.15,10s9.72-5.42,14.15-10c5-5.2,4.67-10.23,5.16-10.44,1.07-.47,8.93,5.52,21.76,6.74,11.39,1.08,22.07-3.65,26.74-6.75s8.17-5.56,8.15-7.67C246.93,117.34,242.76,114,239.09,111.71Z"/>
-      </svg>
-      {% if empresa and empresa.nombre %}<span style="font-size:11pt;font-weight:700;color:#172B4D">{{ empresa.nombre }}</span>{% endif %}
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 341.94 261.01" height="52" style="display:block"><defs><style>.cls-1{fill:#1d1d1b;stroke:#1d1d1b;}</style></defs><g id="EVORE"><path class="cls-1" d="M28.41,217.71V184.78C28.41,171.75,27,169,27,169H72.31V173s-4.09-2.22-23.45-2.22H32.41V195.7h30.9v4.07s-2.64-2.32-15.36-2.32H32.41v34.22H51.58c19.36,0,23.45-2.22,23.45-2.22v4.07H27S28.41,230.75,28.41,217.71Z"/><path class="cls-1" d="M79.67,169h7s-.28,2.78,4.72,15.81l17.91,46.33,18.45-46.33c5.18-13,3.82-15.81,3.82-15.81h5.81s-2.45,2.68-7.45,15.17L110.3,233.52H106l-19-49C82.12,171.65,79.67,169,79.67,169Z"/><path class="cls-1" d="M138.61,201.15c0-18.49,14.45-33.38,32.36-33.38s32.36,14.89,32.36,33.38S188.87,234.54,171,234.54,138.61,219.65,138.61,201.15Zm60.81,0c0-17.47-12.73-31.62-28.45-31.62s-28.45,14.15-28.45,31.62,12.72,31.63,28.45,31.63S199.42,218.63,199.42,201.15Z"/><path class="cls-1" d="M210.64,217.71V184.78c0-13-1.36-15.81-1.36-15.81h28.63c11,0,19.9,9.34,19.9,20.81s-8.72,20.62-19.54,20.81l7.27,7.39c12.55,12.86,16.64,15.54,16.64,15.54h-8.36s-1.28-2.68-13.55-15.17l-7.54-7.76H214.64v7.12c0,13,1.36,15.81,1.36,15.81h-6.72S210.64,230.75,210.64,217.71Zm43.27-27.93c0-10.36-7.18-19-16-19H214.64v37.92h23.27C246.73,208.74,253.91,200.14,253.91,189.78Z"/><path class="cls-1" d="M268.26,217.71V184.78c0-13-1.36-15.81-1.36-15.81h45.27V173s-4.09-2.22-23.45-2.22H272.26V195.7h30.91v4.07s-2.64-2.32-15.36-2.32H272.26v34.22h19.18c19.36,0,23.45-2.22,23.45-2.22v4.07h-48S268.26,230.75,268.26,217.71Z"/><path d="M239.09,111.71C234.61,109,225,105.23,225,105.23s-1.42-.5-1.34-.9c.21-1.2,2.76-1.54,9.63-10.7,7.11-9.49,8.6-13.94,9.94-17.84,1.14-3.3,2.38-11,1.72-11.79s-9.12-1.35-16.48.3c-7.06,1.58-11.1,3.47-11.5,3-.64-.71.95-6.23,1.11-11.33.17-5.28.32-6.75-.41-11.49-.61-4-1.47-7.57-2.65-7.91s-5,.82-7,1.69A81.41,81.41,0,0,0,198.41,44c-2.91,2-6.52,5.48-7.55,5.69s-2.79-6-6.9-13.15a86,86,0,0,0-5.69-9.09c-1.74-2.45-4.91-7-7.28-7h0c-2.38,0-5.54,4.59-7.28,7A84.29,84.29,0,0,0,158,36.52c-4.12,7.13-5.76,13.38-6.9,13.15s-4.73-3.8-7.64-5.8a79.94,79.94,0,0,0-9.56-5.58c-2-.87-5.81-2-7-1.69s-2,3.94-2.65,7.91c-.73,4.74-.58,6.21-.41,11.49.16,5.1,1.74,10.62,1.11,11.33-.4.44-4.44-1.45-11.5-3C106.08,62.65,97.72,63.08,97,64s.57,8.49,1.71,11.79c1.35,3.9,2.83,8.35,10,17.84,6.87,9.16,9.41,9.5,9.63,10.7.07.4-1.35.9-1.35.9s-9.57,3.72-14.06,6.48C99.17,114,95,117.34,95,119.08c0,2.11,3.54,4.62,8.14,7.67s15.36,7.83,26.75,6.75c12.82-1.22,20.68-7.21,21.76-6.74.49.21.11,5.24,5.16,10.44,4.43,4.56,10.58,10,14.15,10s9.72-5.42,14.15-10c5-5.2,4.67-10.23,5.16-10.44,1.07-.47,8.93,5.52,21.76,6.74,11.39,1.08,22.07-3.65,26.74-6.75s8.17-5.56,8.15-7.67C246.93,117.34,242.76,114,239.09,111.71Z"/></g></svg>
     </div>
     <div class="doc-title">
       <h1>REMISIÓN</h1>
@@ -5287,11 +5296,8 @@ tr:nth-child(even) td{background:#f8f9fe}
 </style></head>
 <body><div class="page">
 <div class="header">
-  <div class="logo-wrap" style="display:flex;align-items:center;gap:10px">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 341.94 261.01" height="48" style="display:block">
-      <path fill="#172B4D" d="M239.09,111.71C234.61,109,225,105.23,225,105.23s-1.42-.5-1.34-.9c.21-1.2,2.76-1.54,9.63-10.7,7.11-9.49,8.6-13.94,9.94-17.84,1.14-3.3,2.38-11,1.72-11.79s-9.12-1.35-16.48.3c-7.06,1.58-11.1,3.47-11.5,3-.64-.71.95-6.23,1.11-11.33.17-5.28.32-6.75-.41-11.49-.61-4-1.47-7.57-2.65-7.91s-5,.82-7,1.69A81.41,81.41,0,0,0,198.41,44c-2.91,2-6.52,5.48-7.55,5.69s-2.79-6-6.9-13.15a86,86,0,0,0-5.69-9.09c-1.74-2.45-4.91-7-7.28-7h0c-2.38,0-5.54,4.59-7.28,7A84.29,84.29,0,0,0,158,36.52c-4.12,7.13-5.76,13.38-6.9,13.15s-4.73-3.8-7.64-5.8a79.94,79.94,0,0,0-9.56-5.58c-2-.87-5.81-2-7-1.69s-2,3.94-2.65,7.91c-.73,4.74-.58,6.21-.41,11.49.16,5.1,1.74,10.62,1.11,11.33-.4.44-4.44-1.45-11.5-3C106.08,62.65,97.72,63.08,97,64s.57,8.49,1.71,11.79c1.35,3.9,2.83,8.35,10,17.84,6.87,9.16,9.41,9.5,9.63,10.7.07.4-1.35.9-1.35.9s-9.57,3.72-14.06,6.48C99.17,114,95,117.34,95,119.08c0,2.11,3.54,4.62,8.14,7.67s15.36,7.83,26.75,6.75c12.82-1.22,20.68-7.21,21.76-6.74.49.21.11,5.24,5.16,10.44,4.43,4.56,10.58,10,14.15,10s9.72-5.42,14.15-10c5-5.2,4.67-10.23,5.16-10.44,1.07-.47,8.93,5.52,21.76,6.74,11.39,1.08,22.07-3.65,26.74-6.75s8.17-5.56,8.15-7.67C246.93,117.34,242.76,114,239.09,111.71Z"/>
-    </svg>
-    {% if empresa and empresa.nombre %}<span style="font-size:13pt;font-weight:700;color:#172B4D;letter-spacing:-0.5px">{{ empresa.nombre }}</span>{% endif %}
+  <div class="logo-wrap">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 341.94 261.01" height="56" style="display:block"><defs><style>.cls-1{fill:#1d1d1b;stroke:#1d1d1b;}</style></defs><g id="EVORE"><path class="cls-1" d="M28.41,217.71V184.78C28.41,171.75,27,169,27,169H72.31V173s-4.09-2.22-23.45-2.22H32.41V195.7h30.9v4.07s-2.64-2.32-15.36-2.32H32.41v34.22H51.58c19.36,0,23.45-2.22,23.45-2.22v4.07H27S28.41,230.75,28.41,217.71Z"/><path class="cls-1" d="M79.67,169h7s-.28,2.78,4.72,15.81l17.91,46.33,18.45-46.33c5.18-13,3.82-15.81,3.82-15.81h5.81s-2.45,2.68-7.45,15.17L110.3,233.52H106l-19-49C82.12,171.65,79.67,169,79.67,169Z"/><path class="cls-1" d="M138.61,201.15c0-18.49,14.45-33.38,32.36-33.38s32.36,14.89,32.36,33.38S188.87,234.54,171,234.54,138.61,219.65,138.61,201.15Zm60.81,0c0-17.47-12.73-31.62-28.45-31.62s-28.45,14.15-28.45,31.62,12.72,31.63,28.45,31.63S199.42,218.63,199.42,201.15Z"/><path class="cls-1" d="M210.64,217.71V184.78c0-13-1.36-15.81-1.36-15.81h28.63c11,0,19.9,9.34,19.9,20.81s-8.72,20.62-19.54,20.81l7.27,7.39c12.55,12.86,16.64,15.54,16.64,15.54h-8.36s-1.28-2.68-13.55-15.17l-7.54-7.76H214.64v7.12c0,13,1.36,15.81,1.36,15.81h-6.72S210.64,230.75,210.64,217.71Zm43.27-27.93c0-10.36-7.18-19-16-19H214.64v37.92h23.27C246.73,208.74,253.91,200.14,253.91,189.78Z"/><path class="cls-1" d="M268.26,217.71V184.78c0-13-1.36-15.81-1.36-15.81h45.27V173s-4.09-2.22-23.45-2.22H272.26V195.7h30.91v4.07s-2.64-2.32-15.36-2.32H272.26v34.22h19.18c19.36,0,23.45-2.22,23.45-2.22v4.07h-48S268.26,230.75,268.26,217.71Z"/><path d="M239.09,111.71C234.61,109,225,105.23,225,105.23s-1.42-.5-1.34-.9c.21-1.2,2.76-1.54,9.63-10.7,7.11-9.49,8.6-13.94,9.94-17.84,1.14-3.3,2.38-11,1.72-11.79s-9.12-1.35-16.48.3c-7.06,1.58-11.1,3.47-11.5,3-.64-.71.95-6.23,1.11-11.33.17-5.28.32-6.75-.41-11.49-.61-4-1.47-7.57-2.65-7.91s-5,.82-7,1.69A81.41,81.41,0,0,0,198.41,44c-2.91,2-6.52,5.48-7.55,5.69s-2.79-6-6.9-13.15a86,86,0,0,0-5.69-9.09c-1.74-2.45-4.91-7-7.28-7h0c-2.38,0-5.54,4.59-7.28,7A84.29,84.29,0,0,0,158,36.52c-4.12,7.13-5.76,13.38-6.9,13.15s-4.73-3.8-7.64-5.8a79.94,79.94,0,0,0-9.56-5.58c-2-.87-5.81-2-7-1.69s-2,3.94-2.65,7.91c-.73,4.74-.58,6.21-.41,11.49.16,5.1,1.74,10.62,1.11,11.33-.4.44-4.44-1.45-11.5-3C106.08,62.65,97.72,63.08,97,64s.57,8.49,1.71,11.79c1.35,3.9,2.83,8.35,10,17.84,6.87,9.16,9.41,9.5,9.63,10.7.07.4-1.35.9-1.35.9s-9.57,3.72-14.06,6.48C99.17,114,95,117.34,95,119.08c0,2.11,3.54,4.62,8.14,7.67s15.36,7.83,26.75,6.75c12.82-1.22,20.68-7.21,21.76-6.74.49.21.11,5.24,5.16,10.44,4.43,4.56,10.58,10,14.15,10s9.72-5.42,14.15-10c5-5.2,4.67-10.23,5.16-10.44,1.07-.47,8.93,5.52,21.76,6.74,11.39,1.08,22.07-3.65,26.74-6.75s8.17-5.56,8.15-7.67C246.93,117.34,242.76,114,239.09,111.71Z"/></g></svg>
   </div>
   <div class="doc-title">
     <h1>COTIZACIÓN</h1>
@@ -7268,10 +7274,10 @@ html[data-theme="dark"] .table tbody tr:hover>*{background-color:var(--surface2)
 .table tbody tr:hover{background:var(--surface2)}
 .table-responsive{overflow-x:auto}
 .b{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:.72rem;font-weight:600;letter-spacing:.2px;white-space:nowrap}
-.b-pendiente{background:#FFFAE6;color:#FF8B00}
-.b-aprobada,.b-completado,.b-activo,.b-cliente_activo{background:#E3FCEF;color:#00875A}
-.b-rechazada,.b-cancelado{background:#FFEBE6;color:#DE350B}
-.b-en_revision,.b-en-revision,.b-borrador,.b-negociacion{background:#DEEBFF;color:#0052CC}
+.b-pendiente{background:#FFFBEB;color:#78350F;border:1px solid #FDE68A}
+.b-aprobada,.b-completado,.b-activo,.b-cliente_activo{background:#ECFDF5;color:#065F46;border:1px solid #D1FAE5}
+.b-rechazada,.b-cancelado{background:#FEF2F2;color:#7F1D1D;border:1px solid #FECACA}
+.b-en_revision,.b-en-revision,.b-borrador,.b-negociacion{background:#EFF6FF;color:#1E3A5F;border:1px solid #BFDBFE}
 .b-aceptada_cliente{background:#E3FCEF;color:#00875A}
 .b-prospecto{background:#EAE6FF;color:#5243AA}
 .b-vip{background:#FFF0B3;color:#FF991F}
@@ -9518,15 +9524,18 @@ def tarea_eliminar(id):
         flash('Solo puedes eliminar tareas que tú creaste.', 'danger')
         return redirect(url_for('tareas'))
     try:
-        TareaAsignado.query.filter_by(tarea_id=obj.id).delete()
-        TareaComentario.query.filter_by(tarea_id=obj.id).delete()
+        # Clear self-referencing FK: other tareas that point to this one as "pareja"
+        Tarea.query.filter_by(tarea_pareja_id=obj.id).update({'tarea_pareja_id': None})
         db.session.flush()
-    except Exception:
+        # cascade='all, delete-orphan' on asignados/comentarios handles those automatically
+        db.session.delete(obj)
+        db.session.commit()
+        _log('eliminar', 'tarea', id, 'Tarea eliminada')
+        db.session.commit()
+        flash('Tarea eliminada.', 'info')
+    except Exception as e:
         db.session.rollback()
-    db.session.delete(obj)
-    db.session.commit()
-    _log('eliminar','tarea',id,'Tarea eliminada'); db.session.commit()
-    flash('Tarea eliminada.', 'info')
+        flash('No se pudo eliminar la tarea. Intenta de nuevo.', 'danger')
     return redirect(url_for('tareas'))
 
 # =============================================================
@@ -10611,31 +10620,65 @@ def calendario():
     try:
         for t in Tarea.query.filter(Tarea.fecha_vencimiento != None).all():
             k = t.fecha_vencimiento.strftime('%Y-%m-%d')
-            eventos.setdefault(k, []).append({'t':'tarea','n':t.titulo,'s':t.estado})
+            ref_url = url_for('tarea_ver', id=t.id)
+            desc_parts = []
+            if t.tarea_tipo in ('comprar_materias', 'verificar_abono') and t.cotizacion_id:
+                try:
+                    cot = Cotizacion.query.get(t.cotizacion_id)
+                    if cot:
+                        desc_parts.append('Cotización: ' + (cot.numero or ('#' + str(cot.id))))
+                        ref_url = url_for('cotizacion_ver', id=cot.id)
+                except Exception: pass
+            elif t.tarea_tipo == 'comprar_materias':
+                desc_parts.append('Compra de materias primas')
+            elif t.tarea_tipo == 'verificar_abono':
+                desc_parts.append('Verificación de abono')
+            if t.descripcion and not desc_parts:
+                desc_parts.append(t.descripcion[:80])
+            estado_label = {'pendiente':'Pendiente','en_progreso':'En progreso','completada':'Completada'}.get(t.estado, t.estado)
+            desc_parts.append('Estado: ' + estado_label)
+            if t.prioridad:
+                desc_parts.append('Prioridad: ' + t.prioridad.title())
+            eventos.setdefault(k, []).append({'t':'tarea','n':t.titulo,'s':t.estado,
+                'd':' · '.join(desc_parts),'url':ref_url,'tid':t.id})
     except Exception: db.session.rollback()
     # 2. Ventas con fecha entrega estimada
     try:
         for v in Venta.query.filter(Venta.fecha_entrega_est != None).all():
             k = v.fecha_entrega_est.strftime('%Y-%m-%d')
-            eventos.setdefault(k, []).append({'t':'venta','n':v.titulo,'s':v.estado})
+            cliente_nom = ''
+            try:
+                if v.cliente: cliente_nom = v.cliente.empresa or v.cliente.nombre or ''
+            except Exception: pass
+            desc = ('Cliente: ' + cliente_nom + ' · ' if cliente_nom else '') + 'Estado: ' + v.estado
+            if v.numero: desc = 'Venta ' + v.numero + ' · ' + desc
+            eventos.setdefault(k, []).append({'t':'venta','n':v.titulo,'s':v.estado,
+                'd':desc,'url':url_for('venta_ver', id=v.id),'tid':v.id})
     except Exception: db.session.rollback()
     # 3. Eventos manuales
     try:
         for e in Evento.query.all():
             k = e.fecha.strftime('%Y-%m-%d')
-            eventos.setdefault(k, []).append({'t':'evento','n':e.titulo,'s':e.tipo})
+            desc = (e.descripcion[:80] if e.descripcion else '') or (e.tipo or 'Evento')
+            eventos.setdefault(k, []).append({'t':'evento','n':e.titulo,'s':e.tipo,'d':desc,'url':'','tid':e.id})
     except Exception: db.session.rollback()
     # 4. Notas con fecha de revisión (columna nueva en v11)
     try:
         for n in Nota.query.filter(Nota.fecha_revision != None).all():
             k = n.fecha_revision.strftime('%Y-%m-%d')
-            eventos.setdefault(k, []).append({'t':'nota','n':n.titulo or '(nota sin título)','s':'revision'})
+            desc = (n.contenido[:80] if n.contenido else '') or 'Revisión programada'
+            eventos.setdefault(k, []).append({'t':'nota','n':n.titulo or '(nota sin título)','s':'revision',
+                'd':desc,'url':url_for('notas'),'tid':n.id})
     except Exception: db.session.rollback()
     # 5. Productos con fecha de caducidad (columna nueva en v11)
     try:
         for p in Producto.query.filter(Producto.fecha_caducidad != None, Producto.activo == True).all():
             k = p.fecha_caducidad.strftime('%Y-%m-%d')
-            eventos.setdefault(k, []).append({'t':'caducidad','n':p.nombre,'s':'caducidad'})
+            desc_p = []
+            if p.sku: desc_p.append('SKU: ' + p.sku)
+            if p.stock_disponible is not None: desc_p.append('Stock: ' + str(int(p.stock_disponible)))
+            eventos.setdefault(k, []).append({'t':'caducidad','n':p.nombre,'s':'caducidad',
+                'd':' · '.join(desc_p) or 'Próximo a caducar','url':url_for('inventario'),'tid':p.id})
     except Exception: db.session.rollback()
     import calendar as cal_mod
     from datetime import date as _date
