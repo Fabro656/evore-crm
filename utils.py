@@ -8,17 +8,14 @@ import json, io, re, logging
 
 # Models imported lazily inside functions to avoid circular imports
 
-@app.template_filter('cop')
 def cop(value):
     try: return '$ {:,.0f}'.format(float(value or 0)).replace(',','.')
     except: return '$ 0'
 
-@app.template_filter('moneda')
 def moneda(value):
     try: return '${:,.2f}'.format(float(value or 0))
     except: return '$0.00'
 
-@app.template_filter('moneda0')
 def moneda0(value):
     try: return '${:,.0f}'.format(float(value or 0))
     except: return '$0'
@@ -36,7 +33,6 @@ def requiere_modulo(modulo):
         return wrapped
     return decorator
 
-@app.context_processor
 def inject_globals():
     modulos = _modulos_user(current_user) if current_user.is_authenticated else []
     notif_count = 0
@@ -66,9 +62,9 @@ def inject_globals():
 def _send_email(to, subject, body):
     if not _mail_ok or not _mail: return
     try:
-        with app.app_context():
-            msg = MailMessage(subject, recipients=[to], body=body)
-            _mail.send(msg)
+        from extensions import mail as _mail_ext
+        msg = MailMessage(subject, recipients=[to], body=body)
+        _mail_ext.send(msg)
     except Exception as e:
         print(f'Email error: {e}')
 
@@ -726,3 +722,10 @@ def _modulos_user(user):
         if custom: return custom
     except: pass
     return _MODULOS_ROL.get(user.rol, ['tareas','notas'])
+
+def register_app_hooks(app):
+    """Register template filters and context processors on the Flask app."""
+    app.template_filter('cop')(cop)
+    app.template_filter('moneda')(moneda)
+    app.template_filter('moneda0')(moneda0)
+    app.context_processor(inject_globals)

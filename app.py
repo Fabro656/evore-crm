@@ -44,6 +44,10 @@ def create_app():
     from routes import register_all
     register_all(app)
 
+    # ── Register template filters + context processors
+    from utils import register_app_hooks
+    register_app_hooks(app)
+
     # ── App-level hooks
     @app.before_request
     def _force_https():
