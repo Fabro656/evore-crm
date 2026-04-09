@@ -893,26 +893,30 @@ _CSS = """{% raw %}<style>
    EVORE CRM v17 — Atlassian-inspired Design System
    ══════════════════════════════════════════════════ */
 :root{
-  --sb:#253858;--ac:#0052CC;--ac2:#0065FF;--bg:#F4F5F7;
+  --sb:#1A1D23;--sb-text:#A8B2C1;--sb-active:#4C9AFF;--ac:#2563EB;--bg:#F8FAFC;
+  --surface:#FFFFFF;--surface2:#F1F5F9;--border:#E2E8F0;--text:#0F172A;--text2:#64748B;
+  --topbar-bg:#FFFFFF;--topbar-border:#E2E8F0;--input-bg:#FFFFFF;
+  --shadow:0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.05);
+  --shadow-md:0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.05);
   --green:#00875A;--red:#DE350B;--orange:#FF8B00;--yellow:#FF991F;
-  --card-shadow:0 1px 3px rgba(9,30,66,.13),0 0 0 1px rgba(9,30,66,.08);
-  --radius:6px;--radius-sm:3px;
+  --card-shadow:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.05);
+  --radius:10px;--radius-sm:3px;
 }
 *{box-sizing:border-box}
-body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;font-size:14px;line-height:1.57;color:#172B4D}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;font-size:14px;line-height:1.57;color:var(--text);transition:background-color .2s ease,color .2s ease}
 
 /* ── Sidebar ───────────────────────────────────── */
 #sb{position:fixed;top:0;left:0;height:100vh;width:256px;background:var(--sb);display:flex;flex-direction:column;z-index:1050;transition:transform .25s cubic-bezier(.4,0,.2,1)}
 .sb-brand{padding:1rem 1rem .85rem;color:#fff;font-weight:700;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:.5rem}
-.sb-sec{font-size:.62rem;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:rgba(255,255,255,.35);padding:.85rem 1.1rem .2rem;margin-top:.1rem}
+.sb-sec{font-size:.62rem;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--sb-text);opacity:.7;padding:.85rem 1.1rem .2rem;margin-top:.1rem}
 .sb-nav{overflow-y:auto;flex:1;padding-bottom:.5rem;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.08) transparent}
-.sb-nav .nav-link{color:rgba(255,255,255,.72);padding:.48rem 1rem;border-radius:4px;margin:.06rem .5rem;display:flex;align-items:center;gap:.65rem;font-size:.84rem;font-weight:500;transition:background .15s,color .15s;white-space:nowrap;overflow:hidden}
+.sb-nav .nav-link{color:var(--sb-text);padding:.48rem 1rem;border-radius:4px;margin:.06rem .5rem;display:flex;align-items:center;gap:.65rem;font-size:.84rem;font-weight:500;transition:background .15s,color .15s;white-space:nowrap;overflow:hidden}
 .sb-nav .nav-link:hover{background:rgba(255,255,255,.1);color:#fff}
-.sb-nav .nav-link.active{background:var(--ac);color:#fff;font-weight:600}
+.sb-nav .nav-link.active{background:rgba(var(--ac-rgb, 37,99,235),.12);color:var(--sb-active);font-weight:600}
 .sb-nav .nav-link i{font-size:1rem;width:18px;flex-shrink:0;opacity:.9}
 .sb-foot{padding:.75rem 1rem;border-top:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-size:.8rem;margin-top:auto}
 .u-name{color:#fff;font-weight:600;font-size:.84rem}
-.u-rol{font-size:.62rem;padding:2px 7px;border-radius:3px;background:rgba(0,82,204,.4);color:#4C9AFF}
+.u-rol{font-size:.62rem;padding:2px 7px;border-radius:3px;background:rgba(var(--ac-rgb, 37,99,235),.4);color:var(--sb-active)}
 
 /* ── Overlay mobile ──────────────────────────────── */
 #sb-overlay{display:none;position:fixed;inset:0;background:rgba(9,30,66,.54);z-index:1040}
@@ -920,52 +924,54 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 
 /* ── Topbar ──────────────────────────────────────── */
 #main{margin-left:256px;min-height:100vh}
-.topbar{background:#fff;padding:.6rem 1.25rem;border-bottom:1px solid #DFE1E6;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 0 rgba(9,30,66,.13);gap:.75rem}
-.pg-title{font-size:1rem;font-weight:600;color:#172B4D;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#sb-tog{display:none;background:none;border:none;color:#172B4D;font-size:1.25rem;padding:.3rem .4rem;border-radius:3px;cursor:pointer;flex-shrink:0;line-height:1}
-#sb-tog:hover{background:#F4F5F7}
+.topbar{background:var(--topbar-bg);padding:.6rem 1.25rem;border-bottom:1px solid var(--topbar-border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow);gap:.75rem;transition:background-color .2s ease,border-color .2s ease}
+.pg-title{font-size:1rem;font-weight:600;color:var(--text);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#sb-tog{display:none;background:none;border:none;color:var(--text);font-size:1.25rem;padding:.3rem .4rem;border-radius:3px;cursor:pointer;flex-shrink:0;line-height:1}
+#sb-tog:hover{background:var(--surface2)}
 
 /* ── Content ─────────────────────────────────────── */
 .content{padding:1.25rem}
 
 /* ── Stat Cards ──────────────────────────────────── */
-.sc{background:#fff;border-radius:var(--radius);padding:1.1rem 1.25rem;box-shadow:var(--card-shadow);transition:box-shadow .15s;height:100%;border:1px solid #DFE1E6}
-.sc:hover{box-shadow:0 3px 10px rgba(9,30,66,.15),0 0 0 1px rgba(9,30,66,.1)}
+.sc{background:var(--surface);border-radius:var(--radius);padding:1.1rem 1.25rem;box-shadow:var(--shadow);transition:box-shadow .15s,background-color .2s ease,border-color .2s ease;height:100%;border:1px solid var(--border)}
+.sc:hover{box-shadow:var(--shadow-md)}
 .sc-accent{border-top:3px solid var(--ac)}
 .si{width:42px;height:42px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0}
-.sv{font-size:1.55rem;font-weight:700;color:#172B4D;line-height:1.1}
-.sl{color:#6B778C;font-size:.77rem;margin-top:.15rem;font-weight:500}
+.sv{font-size:1.55rem;font-weight:700;color:var(--text);line-height:1.1}
+.sl{color:var(--text2);font-size:.77rem;margin-top:.15rem;font-weight:500}
 .sc-highlight{border:2px solid var(--ac)}
 
 /* ── Table Cards ─────────────────────────────────── */
-.tc{background:#fff;border-radius:var(--radius);border:1px solid #DFE1E6;overflow:hidden}
-.ch{background:#fff;border-bottom:1px solid #DFE1E6;padding:.75rem 1.25rem;font-weight:600;color:#172B4D;font-size:.88rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem}
+.tc{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;transition:background-color .2s ease,border-color .2s ease}
+.ch{background:var(--surface);border-bottom:1px solid var(--border);padding:.75rem 1.25rem;font-weight:600;color:var(--text);font-size:.88rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem}
 .table{margin:0}
-.table th{font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#6B778C;border-bottom:2px solid #DFE1E6;padding:.55rem 1rem;white-space:nowrap;background:#F4F5F7}
-.table td{padding:.55rem 1rem;vertical-align:middle;border-bottom:1px solid #F4F5F7;color:#172B4D;font-size:.85rem}
+.table th{font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);border-bottom:2px solid var(--border);padding:.55rem 1rem;white-space:nowrap;background:var(--surface2)}
+.table td{padding:.55rem 1rem;vertical-align:middle;border-bottom:1px solid var(--border);color:var(--text);font-size:.85rem}
 .table tbody tr:last-child td{border-bottom:none}
-.table tbody tr:hover{background:#F8F9FA}
+.table tbody tr:hover{background:var(--surface2)}
 
 /* ── Form Card ───────────────────────────────────── */
-.fc{background:#fff;border-radius:var(--radius);padding:1.5rem 1.75rem;border:1px solid #DFE1E6;max-width:860px}
-.form-label{font-weight:600;font-size:.82rem;color:#172B4D;margin-bottom:.3rem}
+.fc{background:var(--surface);border-radius:var(--radius);padding:1.5rem 1.75rem;border:1px solid var(--border);max-width:860px;transition:background-color .2s ease,border-color .2s ease}
+.form-label{font-weight:600;font-size:.82rem;color:var(--text);margin-bottom:.3rem}
 .form-label .req{color:var(--red);margin-left:2px}
-.form-text{font-size:.76rem;color:#6B778C;margin-top:.2rem}
-.form-control,.form-select{border:2px solid #DFE1E6;border-radius:var(--radius-sm);padding:.48rem .75rem;font-size:.88rem;transition:border-color .12s,box-shadow .12s;background:#fff;color:#172B4D}
-.form-control:focus,.form-select:focus{border-color:var(--ac);box-shadow:0 0 0 2px rgba(0,82,204,.2);outline:none}
+.form-text{font-size:.76rem;color:var(--text2);margin-top:.2rem}
+.form-control,.form-select{border:2px solid var(--border);border-radius:var(--radius-sm);padding:.48rem .75rem;font-size:.88rem;transition:border-color .12s,box-shadow .12s,background-color .2s ease,color .2s ease;background:var(--input-bg);color:var(--text)}
+.form-control:focus,.form-select:focus{border-color:var(--ac);box-shadow:0 0 0 2px rgba(37,99,235,.2);outline:none}
 .form-control.is-invalid{border-color:var(--red)}
-.form-section{background:#FAFBFC;border-radius:var(--radius);padding:1rem 1.2rem;margin-bottom:1rem;border:1px solid #DFE1E6;border-left:3px solid var(--ac)}
+.form-section{background:var(--surface2);border-radius:var(--radius);padding:1rem 1.2rem;margin-bottom:1rem;border:1px solid var(--border);border-left:3px solid var(--ac);transition:background-color .2s ease,border-color .2s ease}
 .form-section-title{font-weight:700;font-size:.75rem;text-transform:uppercase;letter-spacing:1px;color:var(--ac);margin-bottom:.65rem}
-.input-hint{display:flex;align-items:flex-start;gap:.4rem;padding:.45rem .75rem;background:#DEEBFF;border-radius:var(--radius-sm);font-size:.77rem;color:#0747A6;margin-top:.4rem}
-.input-hint i{color:#0052CC;flex-shrink:0;margin-top:1px}
+.input-hint{display:flex;align-items:flex-start;gap:.4rem;padding:.45rem .75rem;background:rgba(37,99,235,.1);border-radius:var(--radius-sm);font-size:.77rem;color:var(--ac);margin-top:.4rem}
+.input-hint i{color:var(--ac);flex-shrink:0;margin-top:1px}
 
 /* ── Buttons ─────────────────────────────────────── */
-.btn{border-radius:var(--radius-sm);font-weight:600;font-size:.84rem;transition:background .12s,box-shadow .12s;min-height:36px}
+.btn{border-radius:var(--radius-sm);font-weight:600;font-size:.84rem;transition:background .12s,box-shadow .12s,background-color .2s ease;min-height:36px}
 .btn-primary{background:var(--ac);border-color:var(--ac);color:#fff}
-.btn-primary:hover{background:#0065FF;border-color:#0065FF;box-shadow:0 2px 8px rgba(0,82,204,.3)}
+.btn-primary:hover{background:var(--ac);opacity:.9;border-color:var(--ac);box-shadow:0 2px 8px rgba(37,99,235,.3)}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text);transition:all .2s ease}
+.btn-ghost:hover{background:var(--surface2);border-color:var(--border)}
 .btn-lg{min-height:44px;font-size:.9rem;padding:.65rem 1.4rem}
-.btn-action{background:var(--ac);border:none;color:#fff;border-radius:var(--radius-sm);padding:.5rem 1rem;font-weight:600;font-size:.82rem;display:flex;align-items:center;gap:.5rem;cursor:pointer;transition:background .12s;white-space:nowrap}
-.btn-action:hover{background:#0065FF;color:#fff}
+.btn-action{background:var(--ac);border:none;color:#fff;border-radius:var(--radius-sm);padding:.5rem 1rem;font-weight:600;font-size:.82rem;display:flex;align-items:center;gap:.5rem;cursor:pointer;transition:background .12s,background-color .2s ease;white-space:nowrap}
+.btn-action:hover{background:var(--ac);opacity:.9;color:#fff}
 
 /* ── Badges ──────────────────────────────────────── */
 .b{padding:2px 8px;border-radius:3px;font-size:.72rem;font-weight:700;display:inline-block;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px}
@@ -1004,25 +1010,25 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .cal-ev{font-size:.69rem;padding:2px 5px;border-radius:2px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 
 /* ── Misc components ─────────────────────────────── */
-.alert{border-radius:var(--radius);border:none}
-.prod-row{background:#FAFBFC;border-radius:var(--radius);padding:.75rem;margin-bottom:.5rem;border:1px solid #DFE1E6}
-.totales-box{background:#FAFBFC;border-radius:var(--radius);padding:1rem 1.4rem;border:1px solid #DFE1E6}
-.chat-bubble{background:#F4F5F7;border-radius:4px 12px 12px 4px;padding:.6rem .9rem;margin-bottom:.5rem;max-width:80%}
-.chat-bubble.mine{background:#0052CC;color:#fff;border-radius:12px 4px 4px 12px;margin-left:auto}
+.alert{border-radius:var(--radius);border:none;transition:background-color .2s ease,border-color .2s ease}
+.prod-row{background:var(--surface2);border-radius:var(--radius);padding:.75rem;margin-bottom:.5rem;border:1px solid var(--border);transition:background-color .2s ease,border-color .2s ease}
+.totales-box{background:var(--surface2);border-radius:var(--radius);padding:1rem 1.4rem;border:1px solid var(--border);transition:background-color .2s ease,border-color .2s ease}
+.chat-bubble{background:var(--surface2);border-radius:4px 12px 12px 4px;padding:.6rem .9rem;margin-bottom:.5rem;max-width:80%;color:var(--text)}
+.chat-bubble.mine{background:var(--ac);color:#fff;border-radius:12px 4px 4px 12px;margin-left:auto}
 .chat-bubble.mine .chat-meta{color:rgba(255,255,255,.65)}
-.chat-meta{font-size:.7rem;color:#6B778C;margin-top:.2rem}
-.mp-row{background:#FAFBFC;border-radius:var(--radius);padding:.6rem .9rem;margin-bottom:.4rem;border-left:3px solid #0052CC}
-.lote-row{background:#FAFBFC;border-radius:var(--radius);padding:.6rem .9rem;margin-bottom:.4rem;border-left:3px solid #00875A}
+.chat-meta{font-size:.7rem;color:var(--text2);margin-top:.2rem}
+.mp-row{background:var(--surface2);border-radius:var(--radius);padding:.6rem .9rem;margin-bottom:.4rem;border-left:3px solid var(--ac);color:var(--text)}
+.lote-row{background:var(--surface2);border-radius:var(--radius);padding:.6rem .9rem;margin-bottom:.4rem;border-left:3px solid #00875A;color:var(--text)}
 .lote-venc{border-left-color:#DE350B!important}
 .lote-warn{border-left-color:#FF8B00!important}
-.stock-bar-wrap{background:#DFE1E6;border-radius:3px;height:6px;overflow:hidden;flex:1}
+.stock-bar-wrap{background:var(--border);border-radius:3px;height:6px;overflow:hidden;flex:1}
 .stock-bar{height:100%;border-radius:3px;background:#00875A}
 .stock-bar.warn{background:#FF8B00}.stock-bar.bad{background:#DE350B}
 
 /* ── Quick actions bar ───────────────────────────── */
 .qa-bar{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.2rem}
-.qa-btn{background:#fff;border:2px solid #DFE1E6;border-radius:var(--radius-sm);padding:.4rem .85rem;font-size:.8rem;font-weight:600;color:#42526E;display:flex;align-items:center;gap:.4rem;cursor:pointer;text-decoration:none;transition:border-color .12s,color .12s;white-space:nowrap}
-.qa-btn:hover{border-color:var(--ac);color:var(--ac);background:#DEEBFF}
+.qa-btn{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius-sm);padding:.4rem .85rem;font-size:.8rem;font-weight:600;color:var(--text2);display:flex;align-items:center;gap:.4rem;cursor:pointer;text-decoration:none;transition:border-color .12s,color .12s,background-color .2s ease;white-space:nowrap}
+.qa-btn:hover{border-color:var(--ac);color:var(--ac);background:rgba(37,99,235,.08)}
 .qa-btn i{font-size:.9rem}
 
 /* ── Onboarding / Empty states ───────────────────── */
@@ -1150,44 +1156,49 @@ img,svg{max-width:100%;height:auto}
 .logo-area svg{max-height:40px!important}
 
 /* ══════════════════════════════════════════════════
-   DARK THEME
+   DARK THEME — Modern & Elegant
    ══════════════════════════════════════════════════ */
 html[data-theme="dark"]{
-  --sb:#0D1117;--ac:#4C9AFF;--ac2:#6BAEFD;--bg:#161B22;
+  --sb:#0A0E1A;--sb-text:#8892A4;--sb-active:#60A5FA;--ac:#3B82F6;--bg:#0D1117;
+  --surface:#161B22;--surface2:#1C2333;--border:#30363D;--text:#E6EDF3;--text2:#8B949E;
+  --topbar-bg:#161B22;--topbar-border:#30363D;--input-bg:#1C2333;
+  --shadow:0 1px 3px rgba(0,0,0,.3), 0 1px 2px rgba(0,0,0,.2);
+  --shadow-md:0 4px 6px rgba(0,0,0,.3), 0 2px 4px rgba(0,0,0,.2);
   --green:#2DA44E;--red:#F85149;--orange:#F0883E;
-  --card-shadow:0 1px 3px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.06);
+  --card-shadow:0 1px 3px rgba(0,0,0,.3),0 1px 2px rgba(0,0,0,.2);
 }
-html[data-theme="dark"] body{background:#161B22;color:#E6EDF3}
-html[data-theme="dark"] .topbar{background:#21262D;border-color:#30363D}
-html[data-theme="dark"] .tc,html[data-theme="dark"] .fc,html[data-theme="dark"] .sc{background:#21262D;border-color:#30363D;color:#E6EDF3}
-html[data-theme="dark"] .table th{background:#161B22;color:#8B949E;border-color:#30363D}
-html[data-theme="dark"] .table td{border-color:#21262D;color:#E6EDF3}
-html[data-theme="dark"] .table tbody tr:hover{background:#30363D}
-html[data-theme="dark"] .form-control,html[data-theme="dark"] .form-select{background:#0D1117;border-color:#30363D;color:#E6EDF3}
+html[data-theme="dark"] body{background:var(--bg);color:var(--text);transition:background-color .2s ease,color .2s ease}
+html[data-theme="dark"] .topbar{background:var(--topbar-bg);border-color:var(--topbar-border)}
+html[data-theme="dark"] .tc,html[data-theme="dark"] .fc,html[data-theme="dark"] .sc{background:var(--surface);border-color:var(--border);color:var(--text)}
+html[data-theme="dark"] .table{background:var(--surface);color:var(--text)}
+html[data-theme="dark"] .table th{background:var(--surface2);color:var(--text2);border-color:var(--border)}
+html[data-theme="dark"] .table td{border-color:var(--border);color:var(--text)}
+html[data-theme="dark"] .table tbody tr:hover{background:var(--surface2)}
+html[data-theme="dark"] .form-control,html[data-theme="dark"] .form-select{background:var(--input-bg);border-color:var(--border);color:var(--text)}
 html[data-theme="dark"] .form-control:focus,html[data-theme="dark"] .form-select:focus{border-color:var(--ac)}
-html[data-theme="dark"] .ch{background:#21262D;border-color:#30363D;color:#E6EDF3}
-html[data-theme="dark"] .form-section{background:#0D1117;border-color:#30363D}
-html[data-theme="dark"] .dropdown-menu{background:#21262D;border-color:#30363D}
-html[data-theme="dark"] .dropdown-item{color:#E6EDF3}
-html[data-theme="dark"] .dropdown-item:hover{background:#30363D}
-html[data-theme="dark"] .modal-content{background:#21262D;color:#E6EDF3}
-html[data-theme="dark"] .modal-header{border-color:#30363D}
-html[data-theme="dark"] .modal-footer{background:#21262D;border-color:#30363D}
-html[data-theme="dark"] .pg-title{color:#E6EDF3}
-html[data-theme="dark"] .notif-dd{background:#21262D;border-color:#30363D}
-html[data-theme="dark"] .notif-item:hover{background:#30363D}
+html[data-theme="dark"] .ch{background:var(--surface);border-color:var(--border);color:var(--text)}
+html[data-theme="dark"] .form-section{background:var(--surface2);border-color:var(--border)}
+html[data-theme="dark"] .dropdown-menu{background:var(--surface);border-color:var(--border)}
+html[data-theme="dark"] .dropdown-item{color:var(--text)}
+html[data-theme="dark"] .dropdown-item:hover{background:var(--surface2)}
+html[data-theme="dark"] .modal-content{background:var(--surface);color:var(--text)}
+html[data-theme="dark"] .modal-header{border-color:var(--border)}
+html[data-theme="dark"] .modal-footer{background:var(--surface);border-color:var(--border)}
+html[data-theme="dark"] .pg-title{color:var(--text)}
+html[data-theme="dark"] .notif-dd{background:var(--surface);border-color:var(--border)}
+html[data-theme="dark"] .notif-item:hover{background:var(--surface2)}
 html[data-theme="dark"] .notif-item.unread{background:#1C2D3F}
 html[data-theme="dark"] .onboard-step{color:#fff}
-html[data-theme="dark"] .alert-light{background:#30363D;border-color:#30363D;color:#E6EDF3}
-html[data-theme="dark"] input::placeholder,html[data-theme="dark"] textarea::placeholder{color:#6E7681}
-html[data-theme="dark"] .text-muted{color:#8B949E!important}
+html[data-theme="dark"] .alert-light{background:var(--surface2);border-color:var(--border);color:var(--text)}
+html[data-theme="dark"] input::placeholder,html[data-theme="dark"] textarea::placeholder{color:var(--text2)}
+html[data-theme="dark"] .text-muted{color:var(--text2)!important}
 html[data-theme="dark"] .b{opacity:.9}
-html[data-theme="dark"] .fc{color:#E6EDF3}
-html[data-theme="dark"] .sv{color:#E6EDF3}
-html[data-theme="dark"] .qa-btn{background:#21262D;border-color:#30363D;color:#8B949E}
-html[data-theme="dark"] .qa-btn:hover{background:#1C2D3F;border-color:var(--ac);color:var(--ac)}
-html[data-theme="dark"] .prod-row,html[data-theme="dark"] .totales-box{background:#0D1117;border-color:#30363D}
-html[data-theme="dark"] .form-check-input{background-color:#0D1117;border-color:#30363D}
+html[data-theme="dark"] .fc{color:var(--text)}
+html[data-theme="dark"] .sv{color:var(--text)}
+html[data-theme="dark"] .qa-btn{background:var(--surface);border-color:var(--border);color:var(--text2)}
+html[data-theme="dark"] .qa-btn:hover{background:var(--surface2);border-color:var(--ac);color:var(--ac)}
+html[data-theme="dark"] .prod-row,html[data-theme="dark"] .totales-box{background:var(--surface2);border-color:var(--border)}
+html[data-theme="dark"] .form-check-input{background-color:var(--input-bg);border-color:var(--border)}
 </style>{% endraw %}"""
 
 _CDN = """<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -1317,10 +1328,10 @@ T['base.html'] = """<!DOCTYPE html>
     <div class="topbar-right d-flex align-items-center gap-2 ms-auto flex-nowrap">
       {% block topbar_actions %}{% endblock %}
       <span class="text-muted d-none d-md-inline" style="font-size:.8rem;white-space:nowrap"><i class="bi bi-calendar3 me-1"></i>{{ now.strftime('%d %b %Y') }}</span>
-      <button id="themeToggle" class="btn btn-sm d-none d-md-inline-flex align-items-center"
-              style="background:none;border:1px solid #DFE1E6;color:#42526E;padding:4px 8px;font-size:.9rem"
+      <button class="btn btn-sm btn-ghost d-none d-md-inline-flex align-items-center"
+              style="padding:.3rem .5rem;border-radius:8px;border:1px solid var(--border)"
               onclick="toggleTheme()" title="Cambiar tema">
-        <i class="bi bi-moon-fill" id="themeIcon"></i>
+        <i class="bi bi-sun-fill" id="themeIcon" style="font-size:.9rem"></i>
       </button>
       <button class="btn btn-sm d-none d-md-inline-flex" style="background:none;border:1px solid #DFE1E6;color:#42526E;padding:4px 10px;font-size:.78rem" onclick="new bootstrap.Modal(document.getElementById('modalOnboarding')).show();goStep(0);" title="Ver tutorial">
         <i class="bi bi-question-circle me-1"></i>Ayuda
@@ -1792,10 +1803,9 @@ document.addEventListener('DOMContentLoaded',function(){
   var t = localStorage.getItem('evore_theme') || 'light';
   document.documentElement.setAttribute('data-theme', t);
   function updateIcon(){
-    var ic = document.getElementById('themeIcon');
-    if(ic) ic.className = localStorage.getItem('evore_theme')==='dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
-    var btn = document.getElementById('themeToggle');
-    if(btn) btn.style.color = localStorage.getItem('evore_theme')==='dark' ? '#F0883E' : '#42526E';
+    var t = document.documentElement.getAttribute('data-theme');
+    var el = document.getElementById('themeIcon');
+    if(el) el.className = t==='dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
   }
   window.toggleTheme = function(){
     var cur = document.documentElement.getAttribute('data-theme');
@@ -2230,6 +2240,32 @@ T['clientes/form.html'] = """{% extends 'base.html' %}
     <div class="col-12">
       <label class="form-label">Información legal adicional</label>
       <textarea name="info_legal" class="form-control" rows="3" placeholder="RUT, representante legal, etc.">{{ obj.info_legal or '' }}</textarea>
+    </div>
+  </div>
+</div>
+
+<div class="form-section">
+  <div class="form-section-title"><i class="bi bi-briefcase me-2"></i>Asignación y Condiciones Comerciales</div>
+  <div class="row g-3">
+    <div class="col-md-6">
+      <label class="form-label">Gerente de Ventas</label>
+      <select name="sales_manager_id" class="form-select">
+        <option value="">— Sin asignar (se asignará a un admin) —</option>
+        {% for sm in sales_managers %}
+        <option value="{{ sm.id }}" {% if obj and obj.sales_manager_id==sm.id %}selected{% endif %}>{{ sm.nombre }}</option>
+        {% endfor %}
+      </select>
+      <div class="form-text">Asigna a un gerente de ventas o administrador para coordinar pedidos.</div>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Anticipo (%)</label>
+      <input type="number" name="anticipo_pct" class="form-control" value="{{ obj.anticipo_pct if obj else '' }}" placeholder="0" min="0" max="100" step="1">
+      <div class="form-text">Porcentaje de anticipo requerido.</div>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Mínimo de Pedido</label>
+      <input type="number" name="minimo_pedido" class="form-control" value="{{ obj.minimo_pedido if obj else '' }}" placeholder="0" min="0" step="0.01">
+      <div class="form-text">Monto mínimo en COP.</div>
     </div>
   </div>
 </div>
@@ -6918,114 +6954,215 @@ T['portal/index.html'] = """{% extends 'base.html' %}
 {% block title %}Mi Portal{% endblock %}
 {% block page_title %}Portal — {{ cliente.empresa or cliente.nombre }}{% endblock %}
 {% block topbar_actions %}
-<a href="{{ url_for('portal_pre_cotizacion_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-file-earmark-plus me-1"></i>Nueva Solicitud</a>
-<a href="{{ url_for('portal_ticket_nuevo') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chat-left-text me-1"></i>Enviar Ticket</a>
+<a href="{{ url_for('portal_pre_cotizacion_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-file-earmark-plus me-1"></i>Nueva Solicitud de Compra</a>
 {% endblock %}
 {% block content %}
-<!-- Company info banner -->
-<div class="onboard-banner mb-3">
-  <div class="d-flex align-items-center gap-3 flex-wrap">
-    <div>
-      <h4 class="mb-1 fw-bold">{{ cliente.empresa or cliente.nombre }}</h4>
-      {% if cliente.nit %}<div style="opacity:.7;font-size:.85rem">NIT: {{ cliente.nit }}</div>{% endif %}
-      {% if cliente.sales_manager %}
-      <div style="opacity:.8;font-size:.83rem;margin-top:.4rem"><i class="bi bi-person-check me-1"></i>Sales Manager: <strong>{{ cliente.sales_manager.nombre }}</strong></div>
+<div class="row g-4">
+  <!-- Left: Client Card -->
+  <div class="col-lg-3">
+    <div class="tc mb-3">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
+             style="width:50px;height:50px;background:#2563EB;font-size:1.3rem;flex-shrink:0">{{ (cliente.empresa or cliente.nombre)[0].upper() }}</div>
+        <div>
+          <h6 class="mb-0">{{ cliente.empresa or cliente.nombre }}</h6>
+          <span class="b b-{{ cliente.estado_relacion }}">{{ cliente.estado_relacion.replace('_',' ').title() }}</span>
+        </div>
+      </div>
+      <hr>
+      <dl style="font-size:.85rem">
+        {% if cliente.nit %}<dt class="text-muted mb-1">NIT</dt><dd class="mb-2">{{ cliente.nit }}</dd>{% endif %}
+        <dt class="text-muted mb-1">Sales Manager</dt>
+        <dd class="mb-2">
+          {% if sales_manager_user %}
+          <strong>{{ sales_manager_user.nombre }}</strong><br>
+          {% if sales_manager_user.email %}<small class="text-muted">{{ sales_manager_user.email }}</small>{% endif %}
+          {% else %}
+          <span class="text-muted">Administrador (no asignado)</span>
+          {% endif %}
+        </dd>
+        {% if cliente.anticipo_pct %}<dt class="text-muted mb-1">Anticipo</dt><dd class="mb-2"><strong>{{ cliente.anticipo_pct|int }}%</strong></dd>{% endif %}
+        {% if cliente.minimo_pedido %}<dt class="text-muted mb-1">Mínimo Pedido</dt><dd class="mb-2"><strong>$ {{ '{:,.0f}'.format(cliente.minimo_pedido).replace(',','.') }}</strong></dd>{% endif %}
+      </dl>
+      {% if cliente.contactos %}
+      <hr>
+      <h6 class="text-muted text-uppercase mb-2" style="font-size:.7rem">Contactos</h6>
+      {% for c in cliente.contactos|slice(3) %}
+      <div style="font-size:.8rem;margin-bottom:1rem">
+        <div class="fw-bold">{{ c.nombre }}</div>
+        {% if c.cargo %}<div class="text-muted">{{ c.cargo }}</div>{% endif %}
+        {% if c.email %}<div><a href="mailto:{{ c.email }}" style="color:var(--ac)">{{ c.email }}</a></div>{% endif %}
+        {% if c.telefono %}<div><a href="tel:{{ c.telefono }}" style="color:var(--ac)">{{ c.telefono }}</a></div>{% endif %}
+      </div>
+      {% endfor %}
       {% endif %}
     </div>
-    <div class="ms-auto text-end" style="opacity:.8;font-size:.83rem">
-      {% if cliente.anticipo_pct %}<div>Anticipo requerido: <strong>{{ cliente.anticipo_pct|int }}%</strong></div>{% endif %}
-      {% if cliente.minimo_pedido and cliente.minimo_pedido > 1 %}<div>Mínimo por pedido: <strong>{{ cliente.minimo_pedido }} uds.</strong></div>{% endif %}
+  </div>
+
+  <!-- Right: Tabbed Content -->
+  <div class="col-lg-9">
+    <ul class="nav nav-tabs mb-3" role="tablist">
+      <li class="nav-item"><a class="nav-link active" href="#tab-resumen" data-bs-toggle="tab"><i class="bi bi-speedometer2 me-2"></i>Resumen</a></li>
+      <li class="nav-item"><a class="nav-link" href="#tab-compras" data-bs-toggle="tab"><i class="bi bi-bag-fill me-2"></i>Mis Compras</a></li>
+      <li class="nav-item"><a class="nav-link" href="#tab-cotizaciones" data-bs-toggle="tab"><i class="bi bi-file-text me-2"></i>Cotizaciones</a></li>
+      <li class="nav-item"><a class="nav-link" href="#tab-mensajes" data-bs-toggle="tab"><i class="bi bi-chat-left-text me-2"></i>Mensajes</a></li>
+    </ul>
+
+    <div class="tab-content">
+      <!-- TAB 1: Resumen -->
+      <div class="tab-pane fade show active" id="tab-resumen">
+        {% set pcs_activas = pre_cots|selectattr('estado','in',['pendiente','en_revision','aprobada'])|list %}
+        {% if pcs_activas %}
+        <div class="tc mb-3">
+          <div class="ch"><i class="bi bi-hourglass-split me-2"></i>Solicitudes en proceso</div>
+          <div class="table-responsive">
+            <table class="table">
+              <thead><tr><th>#</th><th>Fecha</th><th>Total</th><th>Estado</th><th></th></tr></thead>
+              <tbody>
+              {% for pc in pcs_activas %}
+              <tr>
+                <td><strong>{{ pc.numero }}</strong></td>
+                <td>{{ pc.creado_en.strftime('%d/%m/%Y') }}</td>
+                <td>$ {{ '{:,.0f}'.format(pc.total).replace(',','.') }}</td>
+                <td><span class="b b-{{ pc.estado|replace('_','-') }}">{{ pc.estado.replace('_',' ').title() }}</span></td>
+                <td>
+                  {% if pc.estado == 'aprobada' %}
+                  <form method="POST" action="{{ url_for('portal_precot_aceptar', id=pc.id) }}" style="display:inline">
+                    <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('¿Aceptar esta cotización?')"><i class="bi bi-check-circle me-1"></i>Aceptar</button>
+                  </form>
+                  {% elif pc.estado == 'en_revision' %}
+                  <span style="font-size:.8rem;color:var(--text2)">{{ pc.notas_manager or 'Revisando...' }}</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endif %}
+        <div class="tc">
+          <div class="ch"><i class="bi bi-lightning-fill me-2"></i>Inicio rápido</div>
+          <div class="row g-2 p-3">
+            <div class="col-md-6">
+              <a href="{{ url_for('portal_pre_cotizacion_nueva') }}" class="btn btn-primary w-100"><i class="bi bi-file-earmark-plus me-2"></i>Nueva Solicitud de Compra</a>
+            </div>
+            <div class="col-md-6">
+              <a href="{{ url_for('portal_ticket_nuevo') }}" class="btn btn-outline-secondary w-100"><i class="bi bi-chat-left-text me-2"></i>Enviar Ticket</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: Mis Compras -->
+      <div class="tab-pane fade" id="tab-compras">
+        {% if ventas %}
+        <div class="tc">
+          <div class="ch"><i class="bi bi-bag-fill me-2"></i>Mis Compras ({{ ventas|length }})</div>
+          <div class="table-responsive">
+            <table class="table">
+              <thead><tr><th>#</th><th>Descripción</th><th>Fecha</th><th>Total</th><th>Estado</th><th>Descargar</th></tr></thead>
+              <tbody>
+              {% for v in ventas %}
+              <tr>
+                <td><strong>{{ v.numero or ('PED-'+v.id|string) }}</strong></td>
+                <td>{{ v.titulo or 'Pedido sin nombre' }}</td>
+                <td>{{ v.creado_en.strftime('%d/%m/%Y') }}</td>
+                <td><strong>$ {{ '{:,.0f}'.format(v.total or 0).replace(',','.') }}</strong></td>
+                <td><span class="b b-{{ v.estado }}">{{ v.estado.replace('_',' ').title() }}</span></td>
+                <td>
+                  {% if v.estado in ['completado','anticipo_pagado'] %}
+                  <a href="{{ url_for('venta_remision', id=v.id) }}" class="btn btn-xs btn-outline-primary" target="_blank"><i class="bi bi-download me-1"></i>Remisión</a>
+                  {% else %}
+                  <span style="font-size:.8rem;color:var(--text2)">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% else %}
+        <div class="tc">
+          <div class="empty-state" style="padding:3rem 2rem">
+            <i class="bi bi-bag" style="font-size:2.5rem;opacity:.4"></i>
+            <p class="mt-2 text-muted">Sin compras aún</p>
+            <a href="{{ url_for('portal_pre_cotizacion_nueva') }}" class="btn btn-primary btn-sm mt-2"><i class="bi bi-plus me-1"></i>Crear primera compra</a>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- TAB 3: Cotizaciones -->
+      <div class="tab-pane fade" id="tab-cotizaciones">
+        {% if cotizaciones %}
+        <div class="tc">
+          <div class="ch"><i class="bi bi-file-text me-2"></i>Cotizaciones ({{ cotizaciones|length }})</div>
+          <div class="table-responsive">
+            <table class="table">
+              <thead><tr><th>#</th><th>Fecha</th><th>Total</th><th>Estado</th><th></th></tr></thead>
+              <tbody>
+              {% for c in cotizaciones %}
+              <tr>
+                <td><strong>{{ c.numero }}</strong></td>
+                <td>{{ c.creado_en.strftime('%d/%m/%Y') }}</td>
+                <td>$ {{ '{:,.0f}'.format(c.total or 0).replace(',','.') }}</td>
+                <td><span class="b b-{{ c.estado }}">{{ c.estado.title() }}</span></td>
+                <td><a href="{{ url_for('cotizacion_pdf', id=c.id) }}" class="btn btn-xs btn-outline-secondary" target="_blank"><i class="bi bi-download me-1"></i>PDF</a></td>
+              </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% else %}
+        <div class="tc">
+          <div class="empty-state" style="padding:3rem 2rem">
+            <i class="bi bi-file-text" style="font-size:2.5rem;opacity:.4"></i>
+            <p class="mt-2 text-muted">Sin cotizaciones aún</p>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- TAB 4: Mensajes -->
+      <div class="tab-pane fade" id="tab-mensajes">
+        <div class="tc">
+          <div class="ch"><i class="bi bi-chat-left-text me-2"></i>Mensajes con Sales Manager</div>
+
+          {% if mensajes %}
+          <div style="max-height:400px;overflow-y:auto;padding:1rem;background:var(--surface2);border-radius:8px;margin-bottom:1rem">
+            {% for msg in mensajes %}
+            <div class="mb-3 p-2" style="background:var(--surface);border-radius:6px;border-left:3px solid var(--ac)">
+              <div class="d-flex justify-content-between align-items-start mb-1">
+                <strong style="font-size:.85rem">
+                  {% if msg.creado_por == current_user.id %}
+                  Tú
+                  {% else %}
+                  {{ msg.creado_por_user.nombre if msg.creado_por_user else 'Usuario' }}
+                  {% endif %}
+                </strong>
+                <small class="text-muted">{{ msg.creado_en.strftime('%d/%m %H:%M') }}</small>
+              </div>
+              <p style="font-size:.88rem;margin:0;color:var(--text)">{{ msg.descripcion }}</p>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="alert alert-info mb-3"><i class="bi bi-info-circle me-2"></i>Sin mensajes aún</div>
+          {% endif %}
+
+          <form method="POST" action="{{ url_for('portal_mensaje_nuevo') }}">
+            <div class="input-group">
+              <textarea name="mensaje" class="form-control" placeholder="Escribe tu mensaje aquí..." required style="max-height:120px"></textarea>
+              <button type="submit" class="btn btn-primary"><i class="bi bi-send me-1"></i>Enviar</button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   </div>
-</div>
-
-<!-- Pre-cotizaciones pendientes/en revisión -->
-{% set pcs_activas = pre_cots|selectattr('estado','in',['pendiente','en_revision','aprobada'])|list %}
-{% if pcs_activas %}
-<div class="tc mb-3">
-  <div class="ch"><i class="bi bi-hourglass-split me-2"></i>Solicitudes en proceso</div>
-  <div class="table-responsive">
-    <table class="table">
-      <thead><tr><th>#</th><th>Fecha</th><th>Total</th><th>Estado</th><th></th></tr></thead>
-      <tbody>
-      {% for pc in pcs_activas %}
-      <tr>
-        <td><strong>{{ pc.numero }}</strong></td>
-        <td>{{ pc.creado_en.strftime('%d/%m/%Y') }}</td>
-        <td>$ {{ '{:,.0f}'.format(pc.total).replace(',','.') }}</td>
-        <td><span class="b b-{{ pc.estado|replace('_','-') }}">{{ pc.estado.replace('_',' ').title() }}</span></td>
-        <td>
-          {% if pc.estado == 'aprobada' %}
-          <form method="POST" action="{{ url_for('portal_precot_aceptar', id=pc.id) }}" style="display:inline">
-            <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('¿Aceptar esta cotización?')"><i class="bi bi-check-circle me-1"></i>Aceptar</button>
-          </form>
-          {% elif pc.estado == 'en_revision' %}
-          <span style="font-size:.8rem;color:#6B778C">{{ pc.notas_manager or 'Revisando ajustes...' }}</span>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-{% endif %}
-
-<!-- Pedidos / Ventas -->
-<div class="tc mb-3">
-  <div class="ch"><i class="bi bi-bag-fill me-2"></i>Mis Pedidos
-    <span class="b b-borrador">{{ ventas|length }}</span>
-  </div>
-  {% if ventas %}
-  <div class="table-responsive">
-    <table class="table">
-      <thead><tr><th>#</th><th>Título</th><th>Fecha</th><th>Total</th><th>Estado</th><th>Docs</th></tr></thead>
-      <tbody>
-      {% for v in ventas %}
-      <tr>
-        <td><strong>{{ v.numero or ('PED-'+v.id|string) }}</strong></td>
-        <td>{{ v.titulo }}</td>
-        <td>{{ v.creado_en.strftime('%d/%m/%Y') }}</td>
-        <td>$ {{ '{:,.0f}'.format(v.total or 0).replace(',','.') }}</td>
-        <td><span class="b b-{{ v.estado }}">{{ v.estado.replace('_',' ').title() }}</span></td>
-        <td>
-          {% if v.estado in ['completado','anticipo_pagado'] %}
-          <a href="{{ url_for('venta_remision', id=v.id) }}" class="btn btn-xs btn-outline-primary" style="font-size:.72rem;padding:2px 7px" target="_blank"><i class="bi bi-file-earmark me-1"></i>Remisión</a>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-  <div class="empty-state"><i class="bi bi-bag"></i><p>Sin pedidos aún</p></div>
-  {% endif %}
-</div>
-
-<!-- Cotizaciones -->
-<div class="tc mb-3">
-  <div class="ch"><i class="bi bi-file-text me-2"></i>Cotizaciones</div>
-  {% if cotizaciones %}
-  <div class="table-responsive">
-    <table class="table">
-      <thead><tr><th>#</th><th>Fecha</th><th>Total</th><th>Estado</th><th></th></tr></thead>
-      <tbody>
-      {% for c in cotizaciones %}
-      <tr>
-        <td><strong>{{ c.numero }}</strong></td>
-        <td>{{ c.creado_en.strftime('%d/%m/%Y') }}</td>
-        <td>$ {{ '{:,.0f}'.format(c.total or 0).replace(',','.') }}</td>
-        <td><span class="b b-{{ c.estado }}">{{ c.estado.title() }}</span></td>
-        <td><a href="{{ url_for('cotizacion_pdf', id=c.id) }}" class="btn btn-xs btn-outline-secondary" style="font-size:.72rem;padding:2px 7px" target="_blank"><i class="bi bi-download me-1"></i>PDF</a></td>
-      </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-  <div class="empty-state"><i class="bi bi-file-text"></i><p>Sin cotizaciones aún</p></div>
-  {% endif %}
 </div>
 {% endblock %}"""
 
@@ -7804,6 +7941,21 @@ def _save_contactos(cliente_obj):
 @login_required
 def cliente_nuevo():
     if request.method == 'POST':
+        sales_manager_id = request.form.get('sales_manager_id','').strip()
+        try:
+            sales_manager_id = int(sales_manager_id) if sales_manager_id else None
+        except (ValueError, TypeError):
+            sales_manager_id = None
+        anticipo_pct = request.form.get('anticipo_pct','').strip()
+        try:
+            anticipo_pct = float(anticipo_pct) if anticipo_pct else None
+        except (ValueError, TypeError):
+            anticipo_pct = None
+        minimo_pedido = request.form.get('minimo_pedido','').strip()
+        try:
+            minimo_pedido = float(minimo_pedido) if minimo_pedido else None
+        except (ValueError, TypeError):
+            minimo_pedido = None
         c = Cliente(nombre=request.form.get('empresa','') or request.form.get('nombre',''),
             empresa=request.form.get('empresa',''), nit=request.form.get('nit',''),
             estado_relacion=request.form.get('estado_relacion','prospecto'),
@@ -7814,12 +7966,16 @@ def cliente_nuevo():
             banco_cuenta=request.form.get('banco_cuenta','').strip() or None,
             banco_tipo=request.form.get('banco_tipo','').strip() or None,
             banco_titular=request.form.get('banco_titular','').strip() or None,
-            info_legal=request.form.get('info_legal','').strip() or None)
+            info_legal=request.form.get('info_legal','').strip() or None,
+            sales_manager_id=sales_manager_id,
+            anticipo_pct=anticipo_pct,
+            minimo_pedido=minimo_pedido)
         db.session.add(c); db.session.flush()
         _save_contactos(c); db.session.commit()
         _log('crear','cliente',c.id,f'Cliente creado: {c.empresa or c.nombre}'); db.session.commit()
         flash('Cliente creado.','success'); return redirect(url_for('clientes'))
-    return render_template('clientes/form.html', obj=None, titulo='Nuevo Cliente')
+    sales_managers = User.query.filter(User.rol.in_(['sales_manager','admin']), User.activo==True).order_by(User.nombre).all()
+    return render_template('clientes/form.html', obj=None, titulo='Nuevo Cliente', sales_managers=sales_managers)
 
 @app.route('/clientes/<int:id>')
 @login_required
@@ -7842,10 +7998,26 @@ def cliente_editar(id):
         obj.banco_tipo=request.form.get('banco_tipo','').strip() or None
         obj.banco_titular=request.form.get('banco_titular','').strip() or None
         obj.info_legal=request.form.get('info_legal','').strip() or None
+        sales_manager_id = request.form.get('sales_manager_id','').strip()
+        try:
+            obj.sales_manager_id = int(sales_manager_id) if sales_manager_id else None
+        except (ValueError, TypeError):
+            obj.sales_manager_id = None
+        anticipo_pct = request.form.get('anticipo_pct','').strip()
+        try:
+            obj.anticipo_pct = float(anticipo_pct) if anticipo_pct else None
+        except (ValueError, TypeError):
+            obj.anticipo_pct = None
+        minimo_pedido = request.form.get('minimo_pedido','').strip()
+        try:
+            obj.minimo_pedido = float(minimo_pedido) if minimo_pedido else None
+        except (ValueError, TypeError):
+            obj.minimo_pedido = None
         db.session.flush(); _save_contactos(obj); db.session.commit()
         _log('editar','cliente',obj.id,f'Cliente editado: {obj.empresa or obj.nombre}'); db.session.commit()
         flash('Cliente actualizado.','success'); return redirect(url_for('cliente_ver', id=obj.id))
-    return render_template('clientes/form.html', obj=obj, titulo='Editar Cliente')
+    sales_managers = User.query.filter(User.rol.in_(['sales_manager','admin']), User.activo==True).order_by(User.nombre).all()
+    return render_template('clientes/form.html', obj=obj, titulo='Editar Cliente', sales_managers=sales_managers)
 
 @app.route('/clientes/<int:id>/eliminar', methods=['POST'])
 @login_required
@@ -7872,8 +8044,46 @@ def portal_cliente():
     ventas = Venta.query.filter_by(cliente_id=cliente.id).order_by(Venta.creado_en.desc()).limit(20).all()
     cotizaciones = Cotizacion.query.filter_by(cliente_id=cliente.id).order_by(Cotizacion.creado_en.desc()).limit(20).all()
     pre_cots = PreCotizacion.query.filter_by(cliente_id=cliente.id).order_by(PreCotizacion.creado_en.desc()).limit(10).all()
+    mensajes = Tarea.query.filter(Tarea.titulo.like('[Mensaje]%'),
+                                  db.or_(Tarea.creado_por==current_user.id,
+                                         Tarea.asignado_a==cliente.sales_manager_id)).order_by(Tarea.creado_en.desc()).limit(50).all()
+    sales_manager_user = User.query.get(cliente.sales_manager_id) if cliente.sales_manager_id else User.query.filter_by(rol='admin', activo=True).first()
     return render_template('portal/index.html', cliente=cliente, ventas=ventas,
-                           cotizaciones=cotizaciones, pre_cots=pre_cots)
+                           cotizaciones=cotizaciones, pre_cots=pre_cots, mensajes=mensajes,
+                           sales_manager_user=sales_manager_user)
+
+@app.route('/portal/mensaje/nuevo', methods=['POST'])
+@login_required
+def portal_mensaje_nuevo():
+    if current_user.rol != 'cliente':
+        return redirect(url_for('dashboard'))
+    cliente = Cliente.query.get(current_user.cliente_id) if current_user.cliente_id else None
+    if not cliente:
+        flash('Sin empresa vinculada.', 'danger')
+        return redirect(url_for('portal_cliente'))
+    texto = request.form.get('mensaje', '').strip()
+    if not texto:
+        flash('El mensaje no puede estar vacío.', 'warning')
+        return redirect(url_for('portal_cliente'))
+    recipient_id = cliente.sales_manager_id
+    if not recipient_id:
+        admin = User.query.filter_by(rol='admin', activo=True).first()
+        recipient_id = admin.id if admin else None
+    t = Tarea(
+        titulo=f'[Mensaje] {cliente.empresa or cliente.nombre}: {texto[:60]}',
+        descripcion=texto,
+        estado='pendiente', prioridad='media',
+        asignado_a=recipient_id, creado_por=current_user.id)
+    db.session.add(t)
+    if recipient_id:
+        db.session.flush()
+        db.session.add(TareaAsignado(tarea_id=t.id, user_id=recipient_id))
+        _crear_notificacion(recipient_id, 'info',
+            f'Mensaje de {cliente.empresa or cliente.nombre}',
+            texto[:120], url_for('portal_cliente'))
+    db.session.commit()
+    flash('Mensaje enviado.', 'success')
+    return redirect(url_for('portal_cliente'))
 
 @app.route('/portal/pre-cotizacion/nueva', methods=['GET','POST'])
 @login_required
@@ -8872,10 +9082,10 @@ def tarea_completar(id):
 @app.route('/tareas/<int:id>/eliminar', methods=['POST'])
 @login_required
 def tarea_eliminar(id):
-    if current_user.rol != 'admin':
-        flash('Solo administradores pueden eliminar tareas.', 'danger')
-        return redirect(url_for('tareas'))
     obj = Tarea.query.get_or_404(id)
+    if current_user.rol != 'admin' and obj.creado_por != current_user.id:
+        flash('Solo puedes eliminar tareas que tú creaste.', 'danger')
+        return redirect(url_for('tareas'))
     try:
         TareaAsignado.query.filter_by(tarea_id=obj.id).delete()
         TareaComentario.query.filter_by(tarea_id=obj.id).delete()
