@@ -1,4 +1,3 @@
-{% extends 'base.html' %}
 {% block title %}{{ empleado.nombre }} {{ empleado.apellido }}{% endblock %}
 {% block page_title %}{{ empleado.nombre }} {{ empleado.apellido }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('empleado_editar', id=empleado.id) }}" class="btn btn-sm btn-primary"><i class="bi bi-pencil me-1"></i>Editar</a>{% endblock %}

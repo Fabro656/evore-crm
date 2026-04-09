@@ -1,4 +1,3 @@
-{% extends 'base.html' %}
 {% block title %}Nómina{% endblock %}
 {% block page_title %}Nómina{% endblock %}
 {% block topbar_actions %}<form method="POST" action="{{ url_for('nomina_cerrar_mes') }}" style="display:inline" onsubmit="return confirm('¿Cerrar nómina del mes actual? Esto creará un registro de gasto en el módulo de Gastos.')"><button type="submit" class="btn btn-sm btn-outline-success"><i class="bi bi-calendar-check me-1"></i>Cerrar Nómina del Mes</button></form> <a href="{{ url_for('empleado_nuevo') }}" class="btn btn-sm btn-primary"><i class="bi bi-plus-circle me-1"></i>Nuevo empleado</a>{% endblock %}
