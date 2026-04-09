@@ -630,36 +630,86 @@ def load_user(uid): return User.query.get(int(uid))
 # =============================================================
 
 _CSS = """{% raw %}<style>
-:root{--sb:#1a1f36;--ac:#5e72e4;--bg:#f4f6fb}
-body{background:var(--bg);font-family:'Segoe UI',sans-serif}
-#sb{position:fixed;top:0;left:0;height:100vh;width:252px;background:var(--sb);display:flex;flex-direction:column;z-index:1000}
-.sb-brand{padding:1.3rem 1.2rem .85rem;color:#fff;font-size:1.3rem;font-weight:700;border-bottom:1px solid rgba(255,255,255,.08);letter-spacing:1px}
-.sb-brand span{color:var(--ac)}
-.sb-sec{font-size:.67rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.3);padding:.65rem 1.2rem .2rem}
-.sb-nav .nav-link{color:#a8b0d3;padding:.48rem 1.2rem;border-radius:8px;margin:.05rem .65rem;display:flex;align-items:center;gap:.65rem;font-size:.87rem;transition:all .2s}
-.sb-nav .nav-link:hover{background:rgba(255,255,255,.07);color:#fff}
-.sb-nav .nav-link.active{background:var(--ac);color:#fff}
-.sb-nav .nav-link i{font-size:1rem;width:19px}
-.sb-foot{padding:.85rem 1.2rem;border-top:1px solid rgba(255,255,255,.08);color:#a8b0d3;font-size:.82rem;margin-top:auto}
-.u-name{color:#fff;font-weight:600}
-.u-rol{font-size:.67rem;padding:2px 8px;border-radius:20px;background:rgba(94,114,228,.3);color:var(--ac)}
+/* ══════════════════════════════════════════════════
+   EVORE CRM v16 — CSS Mobile-First
+   ══════════════════════════════════════════════════ */
+:root{
+  --sb:#1a1f36;--ac:#5e72e4;--ac2:#825ee4;--bg:#f4f6fb;
+  --green:#2dce89;--red:#f5365c;--orange:#fb6340;--yellow:#ffc107;
+  --card-shadow:0 2px 12px rgba(0,0,0,.07);
+  --radius:14px;--radius-sm:8px;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;font-size:15px;line-height:1.55;color:#1a1f36}
+
+/* ── Sidebar ───────────────────────────────────── */
+#sb{position:fixed;top:0;left:0;height:100vh;width:252px;background:var(--sb);display:flex;flex-direction:column;z-index:1050;transition:transform .28s cubic-bezier(.4,0,.2,1)}
+.sb-brand{padding:1.1rem 1.1rem .8rem;color:#fff;font-weight:700;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:.5rem}
+.sb-sec{font-size:.65rem;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:rgba(255,255,255,.28);padding:.7rem 1.2rem .15rem;margin-top:.15rem}
+.sb-nav{overflow-y:auto;flex:1;padding-bottom:.5rem;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent}
+.sb-nav .nav-link{color:#a8b0d3;padding:.52rem 1.1rem;border-radius:9px;margin:.05rem .6rem;display:flex;align-items:center;gap:.7rem;font-size:.88rem;transition:all .18s;white-space:nowrap;overflow:hidden}
+.sb-nav .nav-link:hover{background:rgba(255,255,255,.08);color:#fff}
+.sb-nav .nav-link.active{background:var(--ac);color:#fff;box-shadow:0 3px 12px rgba(94,114,228,.35)}
+.sb-nav .nav-link i{font-size:1.05rem;width:20px;flex-shrink:0}
+.sb-foot{padding:.8rem 1.1rem;border-top:1px solid rgba(255,255,255,.08);color:#a8b0d3;font-size:.82rem;margin-top:auto}
+.u-name{color:#fff;font-weight:600;font-size:.88rem}
+.u-rol{font-size:.63rem;padding:2px 8px;border-radius:20px;background:rgba(94,114,228,.3);color:var(--ac)}
+
+/* ── Overlay mobile ──────────────────────────────── */
+#sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:1040;backdrop-filter:blur(2px)}
+#sb-overlay.open{display:block}
+
+/* ── Topbar ──────────────────────────────────────── */
 #main{margin-left:252px;min-height:100vh}
-.topbar{background:#fff;padding:.68rem 1.4rem;border-bottom:1px solid #e8ecf0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,.05)}
-.pg-title{font-size:1.1rem;font-weight:600;color:#1a1f36;margin:0}
-.content{padding:1.4rem}
-.sc{background:#fff;border-radius:12px;padding:1.2rem 1.4rem;box-shadow:0 2px 8px rgba(0,0,0,.06);transition:transform .2s}
-.sc:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.1)}
-.si{width:46px;height:46px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.3rem}
-.sv{font-size:1.7rem;font-weight:700;color:#1a1f36}
-.sl{color:#8898aa;font-size:.82rem}
-.tc{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);overflow:hidden}
-.ch{background:#fff;border-bottom:1px solid #f0f0f0;padding:.85rem 1.4rem;font-weight:600;color:#1a1f36}
+.topbar{background:#fff;padding:.65rem 1.3rem;border-bottom:1px solid #e8ecf0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 6px rgba(0,0,0,.06);gap:.75rem}
+.pg-title{font-size:1.05rem;font-weight:700;color:#1a1f36;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#sb-tog{display:none;background:none;border:none;color:#1a1f36;font-size:1.35rem;padding:.25rem .4rem;border-radius:8px;cursor:pointer;flex-shrink:0;line-height:1}
+#sb-tog:hover{background:#f0f2ff}
+
+/* ── Content ─────────────────────────────────────── */
+.content{padding:1.3rem}
+
+/* ── Stat Cards ──────────────────────────────────── */
+.sc{background:#fff;border-radius:var(--radius);padding:1.1rem 1.3rem;box-shadow:var(--card-shadow);transition:transform .2s,box-shadow .2s;height:100%}
+.sc:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.1)}
+.sc-accent{border-top:3px solid var(--ac)}
+.si{width:46px;height:46px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0}
+.sv{font-size:1.65rem;font-weight:700;color:#1a1f36;line-height:1.1}
+.sl{color:#8898aa;font-size:.8rem;margin-top:.15rem;font-weight:500}
+.sc-highlight{border:2px solid var(--ac)}
+
+/* ── Table Cards ─────────────────────────────────── */
+.tc{background:#fff;border-radius:var(--radius);box-shadow:var(--card-shadow);overflow:hidden}
+.ch{background:#fff;border-bottom:1px solid #f0f0f0;padding:.8rem 1.3rem;font-weight:600;color:#1a1f36;font-size:.93rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem}
 .table{margin:0}
-.table th{font-size:.71rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#8898aa;border-bottom:1px solid #f0f0f0;padding:.65rem 1rem}
-.table td{padding:.65rem 1rem;vertical-align:middle;border-bottom:1px solid #f8f9fa;color:#525f7f}
+.table th{font-size:.69rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#8898aa;border-bottom:1px solid #f0f0f0;padding:.6rem 1rem;white-space:nowrap}
+.table td{padding:.6rem 1rem;vertical-align:middle;border-bottom:1px solid #f8f9fa;color:#525f7f;font-size:.88rem}
 .table tbody tr:last-child td{border-bottom:none}
 .table tbody tr:hover{background:#f8f9fe}
-.b{padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600}
+
+/* ── Form Card ───────────────────────────────────── */
+.fc{background:#fff;border-radius:var(--radius);padding:1.6rem 1.8rem;box-shadow:var(--card-shadow);max-width:860px}
+.form-label{font-weight:600;font-size:.85rem;color:#525f7f;margin-bottom:.3rem}
+.form-label .req{color:var(--red);margin-left:2px}
+.form-text{font-size:.78rem;color:#8898aa;margin-top:.2rem}
+.form-control,.form-select{border:1.5px solid #e2e8f0;border-radius:9px;padding:.52rem .8rem;font-size:.9rem;transition:border-color .18s,box-shadow .18s;background:#fff}
+.form-control:focus,.form-select:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(94,114,228,.13);outline:none}
+.form-control.is-invalid{border-color:var(--red)}
+.form-section{background:#f8f9fe;border-radius:10px;padding:1rem 1.2rem;margin-bottom:1rem;border-left:3px solid var(--ac)}
+.form-section-title{font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.8px;color:var(--ac);margin-bottom:.65rem}
+.input-hint{display:flex;align-items:center;gap:.4rem;padding:.4rem .7rem;background:#f0f4ff;border-radius:7px;font-size:.78rem;color:#525f7f;margin-top:.4rem}
+.input-hint i{color:var(--ac);flex-shrink:0}
+
+/* ── Buttons ─────────────────────────────────────── */
+.btn{border-radius:9px;font-weight:600;font-size:.86rem;transition:all .18s;min-height:38px}
+.btn-primary{background:var(--ac);border-color:var(--ac)}
+.btn-primary:hover{background:#4a5bd4;border-color:#4a5bd4;transform:translateY(-1px);box-shadow:0 4px 12px rgba(94,114,228,.3)}
+.btn-lg{min-height:46px;font-size:.93rem;padding:.7rem 1.5rem}
+.btn-action{background:linear-gradient(135deg,var(--ac),var(--ac2));border:none;color:#fff;border-radius:10px;padding:.5rem 1rem;font-weight:600;font-size:.84rem;display:flex;align-items:center;gap:.5rem;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-action:hover{transform:translateY(-2px);box-shadow:0 4px 15px rgba(94,114,228,.35);color:#fff}
+
+/* ── Badges ──────────────────────────────────────── */
+.b{padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600;display:inline-block;white-space:nowrap}
 .b-activo,.b-ganado,.b-completada,.b-baja,.b-vip,.b-vigente,.b-aprobada{background:#d4edda;color:#155724}
 .b-inactivo,.b-perdido,.b-alta,.b-vencida{background:#f8d7da;color:#721c24}
 .b-prospecto,.b-pendiente,.b-media,.b-anticipo_pagado,.b-en_revision,.b-enviada{background:#fff3cd;color:#856404}
@@ -670,6 +720,9 @@ body{background:var(--bg);font-family:'Segoe UI',sans-serif}
 .b-cita{background:#fce4ec;color:#880e4f}
 .b-reunion{background:#e8eaf6;color:#283593}
 .b-recordatorio{background:#fff8e1;color:#f57f17}
+.b-en_transito,.b-recibida{background:#d1ecf1;color:#0c5460}
+
+/* ── Calendar / Events ───────────────────────────── */
 .ev-tarea{background:#fff4e5;color:#fb6340;border-left:3px solid #fb6340}
 .ev-evento{background:#e8eeff;color:#5e72e4;border-left:3px solid #5e72e4}
 .ev-nota{background:#f3e8ff;color:#8965e0;border-left:3px solid #8965e0}
@@ -680,12 +733,8 @@ body{background:var(--bg);font-family:'Segoe UI',sans-serif}
 .cal-day.today{background:#eef0ff}
 .cal-day.other-month{background:#fafbff;opacity:.6}
 .cal-ev{font-size:.7rem;padding:2px 5px;border-radius:4px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
-.fc{background:#fff;border-radius:12px;padding:1.8rem;box-shadow:0 2px 8px rgba(0,0,0,.06);max-width:820px}
-.form-label{font-weight:600;font-size:.875rem;color:#525f7f}
-.form-control,.form-select{border:1.5px solid #e9ecef;border-radius:8px;padding:.5rem .75rem;font-size:.9rem;transition:border-color .2s}
-.form-control:focus,.form-select:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(94,114,228,.15)}
-.btn-primary{background:var(--ac);border-color:var(--ac)}
-.btn-primary:hover{background:#4a5bd4;border-color:#4a5bd4}
+
+/* ── Misc components ─────────────────────────────── */
 .alert{border-radius:10px;border:none}
 .prod-row{background:#f8f9fe;border-radius:8px;padding:.75rem;margin-bottom:.5rem;border:1px solid #e8ecf0}
 .totales-box{background:#f8f9fe;border-radius:10px;padding:1rem 1.4rem;border:1px solid #e8ecf0}
@@ -693,8 +742,33 @@ body{background:var(--bg);font-family:'Segoe UI',sans-serif}
 .chat-bubble.mine{background:#5e72e4;color:#fff;border-radius:12px 12px 2px 12px;margin-left:auto}
 .chat-bubble.mine .chat-meta{color:rgba(255,255,255,.7)}
 .chat-meta{font-size:.72rem;color:#8898aa;margin-top:.25rem}
-@media(max-width:768px){#sb{width:54px}#sb .nav-link span,.sb-brand .bt,.sb-sec,.ui{display:none}#main{margin-left:54px}}
-/* Notificaciones */
+.mp-row{background:#f8f9fe;border-radius:8px;padding:.6rem .9rem;margin-bottom:.4rem;border-left:3px solid #5e72e4}
+.lote-row{background:#f8f9fe;border-radius:8px;padding:.6rem .9rem;margin-bottom:.4rem;border-left:3px solid #2dce89}
+.lote-venc{border-left-color:#f5365c!important}
+.lote-warn{border-left-color:#fb6340!important}
+.stock-bar-wrap{background:#e8ecf5;border-radius:4px;height:7px;overflow:hidden;flex:1}
+.stock-bar{height:100%;border-radius:4px;background:#2dce89}
+.stock-bar.warn{background:#fb6340}.stock-bar.bad{background:#f5365c}
+
+/* ── Quick actions bar ───────────────────────────── */
+.qa-bar{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1.2rem}
+.qa-btn{background:#fff;border:1.5px solid #e8ecf0;border-radius:10px;padding:.45rem .9rem;font-size:.82rem;font-weight:600;color:#525f7f;display:flex;align-items:center;gap:.4rem;cursor:pointer;text-decoration:none;transition:all .18s;white-space:nowrap}
+.qa-btn:hover{border-color:var(--ac);color:var(--ac);background:#f0f4ff;transform:translateY(-1px)}
+.qa-btn i{font-size:.95rem}
+
+/* ── Onboarding / Empty states ───────────────────── */
+.onboard-banner{background:linear-gradient(135deg,#1a1f36 0%,#2d3561 60%,#3a4a8a 100%);border-radius:var(--radius);padding:1.5rem 1.8rem;color:#fff;margin-bottom:1.2rem;position:relative;overflow:hidden}
+.onboard-banner::before{content:'';position:absolute;top:-30px;right:-30px;width:140px;height:140px;background:rgba(255,255,255,.04);border-radius:50%}
+.onboard-banner::after{content:'';position:absolute;bottom:-20px;right:60px;width:80px;height:80px;background:rgba(94,114,228,.15);border-radius:50%}
+.onboard-steps{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.8rem}
+.onboard-step{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:.35rem .75rem;font-size:.78rem;display:flex;align-items:center;gap:.35rem;cursor:pointer;text-decoration:none;color:#fff;transition:all .18s}
+.onboard-step:hover{background:rgba(255,255,255,.18);color:#fff}
+.onboard-step.done{background:rgba(45,206,137,.18);border-color:rgba(45,206,137,.3)}
+.empty-state{text-align:center;padding:3rem 1.5rem;color:#8898aa}
+.empty-state i{font-size:3rem;margin-bottom:.75rem;display:block;opacity:.45}
+.empty-state p{margin-bottom:1rem;font-size:.93rem}
+
+/* ── Notifications ───────────────────────────────── */
 .notif-btn{position:relative;background:none;border:none;color:rgba(255,255,255,.7);font-size:1.1rem;padding:.3rem .45rem;border-radius:8px;cursor:pointer;transition:all .2s}
 .notif-btn:hover{color:#fff;background:rgba(255,255,255,.1)}
 .notif-badge{position:absolute;top:0;right:0;background:#f5365c;color:#fff;font-size:.6rem;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px;line-height:1}
@@ -706,24 +780,60 @@ body{background:var(--bg);font-family:'Segoe UI',sans-serif}
 .notif-item .ni-title{font-size:.82rem;font-weight:600;color:#1a1f36}
 .notif-item .ni-msg{font-size:.75rem;color:#525f7f;margin-top:2px}
 .notif-item .ni-time{font-size:.68rem;color:#adb5bd}
-/* Diagnóstico */
-#diagBtn{position:fixed;bottom:28px;right:28px;z-index:2000;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#5e72e4,#825ee4);border:none;color:#fff;font-size:1.3rem;box-shadow:0 4px 20px rgba(94,114,228,.4);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .25s}
-#diagBtn:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(94,114,228,.55)}
-#diagPanel{position:fixed;bottom:90px;right:28px;width:360px;background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.18);z-index:1999;overflow:hidden;display:none}
+
+/* ── Float search button ─────────────────────────── */
+#diagBtn{position:fixed;bottom:24px;right:24px;z-index:2000;width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#5e72e4,#825ee4);border:none;color:#fff;font-size:1.2rem;box-shadow:0 4px 20px rgba(94,114,228,.4);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .25s}
+#diagBtn:hover{transform:scale(1.1)}
+#diagPanel{position:fixed;bottom:85px;right:24px;width:340px;background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.18);z-index:1999;overflow:hidden;display:none}
 #diagPanel .dp-head{padding:.9rem 1.2rem;background:linear-gradient(135deg,#1a1f36,#2d3561);color:#fff;font-weight:700;font-size:.9rem;display:flex;justify-content:space-between}
 #diagPanel .dp-body{max-height:420px;overflow-y:auto;padding:.75rem 1rem}
 .diag-item{padding:.5rem .75rem;border-radius:8px;margin-bottom:.4rem;font-size:.82rem;display:flex;gap:.6rem;align-items:flex-start}
 .diag-rojo{background:#fde8e8;color:#f5365c}
 .diag-amarillo{background:#fff4e5;color:#fb6340}
 .diag-verde{background:#e3f9ee;color:#2dce89}
-/* Materias primas / lotes */
-.mp-row{background:#f8f9fe;border-radius:8px;padding:.6rem .9rem;margin-bottom:.4rem;border-left:3px solid #5e72e4}
-.lote-row{background:#f8f9fe;border-radius:8px;padding:.6rem .9rem;margin-bottom:.4rem;border-left:3px solid #2dce89}
-.lote-venc{border-left-color:#f5365c!important}
-.lote-warn{border-left-color:#fb6340!important}
-.stock-bar-wrap{background:#e8ecf5;border-radius:4px;height:7px;overflow:hidden;flex:1}
-.stock-bar{height:100%;border-radius:4px;background:#2dce89}
-.stock-bar.warn{background:#fb6340}.stock-bar.bad{background:#f5365c}
+
+/* ══════════════════════════════════════════════════
+   RESPONSIVE — Mobile first (max 768px)
+   ══════════════════════════════════════════════════ */
+@media(max-width:768px){
+  /* Sidebar: hidden off-screen, opens as overlay drawer */
+  #sb{transform:translateX(-252px);box-shadow:none}
+  #sb.sb-open{transform:translateX(0);box-shadow:6px 0 40px rgba(0,0,0,.3)}
+  #sb .nav-link span,.sb-brand .bt,.ui{display:block}
+  #sb .sb-sec{display:block}
+  #sb-tog{display:flex}
+  #main{margin-left:0}
+  .content{padding:.85rem .75rem}
+  .topbar{padding:.6rem .85rem}
+  .pg-title{font-size:.95rem}
+  /* Tables: horizontal scroll with touch */
+  .table-responsive{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:0}
+  .tc .table-responsive{margin:0}
+  /* Cards: full width */
+  .fc{padding:1.1rem;border-radius:10px}
+  /* Form sections stack */
+  .row.g-3>[class*='col-md']{margin-bottom:.2rem}
+  /* Bigger touch targets */
+  .btn{min-height:42px}
+  .nav-link{min-height:42px}
+  .form-control,.form-select{min-height:42px;font-size:16px}/* Prevent iOS zoom */
+  /* Quick actions: 2-column grid */
+  .qa-bar{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+  .qa-btn{justify-content:center}
+  /* Stat cards: 2-column */
+  .dash-stats .col-6{width:50%}
+  /* Hide less important columns in tables */
+  .hide-mobile{display:none}
+  /* Onboarding banner */
+  .onboard-banner{padding:1.1rem 1.2rem}
+}
+@media(max-width:480px){
+  .sv{font-size:1.4rem}
+  .qa-bar{grid-template-columns:1fr}
+}
+@media(min-width:769px){
+  #sb-overlay{display:none!important}
+}
 </style>{% endraw %}"""
 
 _CDN = """<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -812,12 +922,16 @@ T['base.html'] = """<!DOCTYPE html>
     <a href="{{ url_for('logout') }}" class="nav-link mt-1 text-danger"><i class="bi bi-box-arrow-right"></i><span>Salir</span></a>
   </div>
 </nav>
+<!-- Mobile overlay -->
+<div id="sb-overlay" onclick="closeSB()"></div>
 <div id="main">
   <div class="topbar">
+    <!-- Hamburger for mobile -->
+    <button id="sb-tog" onclick="openSB()" aria-label="Menú"><i class="bi bi-list"></i></button>
     <h1 class="pg-title">{% block page_title %}{% endblock %}</h1>
-    <div class="d-flex align-items-center gap-3">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
       {% block topbar_actions %}{% endblock %}
-      <span class="text-muted" style="font-size:.82rem"><i class="bi bi-calendar3"></i> {{ now.strftime('%d %b %Y') }}</span>
+      <span class="text-muted d-none d-md-inline" style="font-size:.8rem;white-space:nowrap"><i class="bi bi-calendar3 me-1"></i>{{ now.strftime('%d %b %Y') }}</span>
     </div>
   </div>
   <div class="content">
@@ -841,11 +955,27 @@ T['base.html'] = """<!DOCTYPE html>
     <a href="{{ url_for('notificaciones') }}" style="font-size:.78rem;color:#5e72e4;text-decoration:none">Ver todas</a>
   </div>
 </div>
-<!-- Botón diagnóstico flotante -->
-<!-- Botón buscador flotante -->
+<!-- Buscador flotante -->
 <button id="diagBtn" onclick="window.location='/buscador'" title="Buscador global"><i class="bi bi-search"></i></button>
 """ + _BSJ + """
 <script>
+// ── Sidebar mobile drawer ─────────────────────────
+function openSB(){
+  document.getElementById('sb').classList.add('sb-open');
+  document.getElementById('sb-overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeSB(){
+  document.getElementById('sb').classList.remove('sb-open');
+  document.getElementById('sb-overlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+// Close on ESC
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeSB();});
+// Close sidebar when a nav link is clicked on mobile
+document.querySelectorAll('#sb .nav-link').forEach(function(el){
+  el.addEventListener('click',function(){if(window.innerWidth<=768)closeSB();});
+});
 // Notificaciones
 function toggleNotif(e){
   e.stopPropagation();
@@ -951,129 +1081,251 @@ T['dashboard.html'] = """{% extends 'base.html' %}
 {% block title %}Dashboard{% endblock %}{% block page_title %}Dashboard{% endblock %}
 {% block topbar_actions %}
 <button id="btnM" class="btn btn-sm btn-outline-secondary" onclick="toggleMoneda()">
-  <i class="bi bi-currency-exchange me-1"></i><span id="lblM">Ver en USD</span></button>
-<small class="text-muted" id="tasaInfo"></small>
+  <i class="bi bi-currency-exchange me-1"></i><span id="lblM">USD</span></button>
+<small class="text-muted d-none d-md-inline" id="tasaInfo" style="font-size:.75rem"></small>
 {% endblock %}
 {% block content %}
-<div class="row g-3 mb-3">
-  <div class="col-6 col-lg-3"><div class="sc"><div class="d-flex justify-content-between align-items-start">
-    <div><div class="sv">{{ total_clientes }}</div><div class="sl">Clientes activos</div></div>
-    <div class="si" style="background:#e8eeff"><i class="bi bi-people-fill" style="color:#5e72e4"></i></div>
-  </div></div></div>
-  <div class="col-6 col-lg-3"><div class="sc"><div class="d-flex justify-content-between align-items-start">
-    <div><div class="sv">{{ ventas_ganadas }}</div><div class="sl">Ventas ganadas</div></div>
-    <div class="si" style="background:#e3f9ee"><i class="bi bi-graph-up-arrow" style="color:#2dce89"></i></div>
-  </div></div></div>
-  <div class="col-6 col-lg-3"><div class="sc"><div class="d-flex justify-content-between align-items-start">
-    <div><div class="sv">{{ tareas_pendientes }}</div><div class="sl">Tareas pendientes</div></div>
-    <div class="si" style="background:#fff4e5"><i class="bi bi-check2-square" style="color:#fb6340"></i></div>
-  </div></div></div>
-  <div class="col-6 col-lg-3"><div class="sc"><div class="d-flex justify-content-between align-items-start">
-    <div><div class="sv valor-cop" data-cop="{{ ingresos_totales }}">$ {{ '{:,.0f}'.format(ingresos_totales).replace(',','.') }}</div>
-      <div class="sl">Ingresos COP</div></div>
-    <div class="si" style="background:#fce8ff"><i class="bi bi-currency-dollar" style="color:#c300ff"></i></div>
-  </div></div></div>
-</div>
-<div class="row g-3 mb-3">
-  <div class="col-6 col-lg-3"><div class="sc"><div class="d-flex justify-content-between align-items-start">
-    <div><div class="sv valor-cop" data-cop="{{ gastos_totales }}">$ {{ '{:,.0f}'.format(gastos_totales).replace(',','.') }}</div>
-      <div class="sl">Gastos operativos</div></div>
-    <div class="si" style="background:#ffeaea"><i class="bi bi-receipt" style="color:#e74c3c"></i></div>
-  </div></div></div>
-  <div class="col-6 col-lg-3"><div class="sc"><div class="d-flex justify-content-between align-items-start">
-    <div><div class="sv valor-cop" data-cop="{{ balance }}">$ {{ '{:,.0f}'.format(balance).replace(',','.') }}</div>
-      <div class="sl">Utilidad bruta</div></div>
-    <div class="si" style="background:#e8fff3"><i class="bi bi-bar-chart-fill" style="color:#27ae60"></i></div>
-  </div></div></div>
-  <div class="col-6 col-lg-3"><div class="sc"><div class="d-flex justify-content-between align-items-start">
-    <div><div class="sv valor-cop" data-cop="{{ impuestos_estimados }}">$ {{ '{:,.0f}'.format(impuestos_estimados).replace(',','.') }}</div>
-      <div class="sl">Impuestos estimados</div></div>
-    <div class="si" style="background:#fce4ec"><i class="bi bi-percent" style="color:#e83e8c"></i></div>
-  </div></div></div>
-  <div class="col-6 col-lg-3"><div class="sc" style="border:2px solid {{ '#2dce89' if saldo_neto >= 0 else '#f5365c' }}"><div class="d-flex justify-content-between align-items-start">
-    <div><div class="sv valor-cop" data-cop="{{ saldo_neto }}" style="color:{{ '#2dce89' if saldo_neto >= 0 else '#f5365c' }}">$ {{ '{:,.0f}'.format(saldo_neto).replace(',','.') }}</div>
-      <div class="sl">Saldo neto real</div></div>
-    <div class="si" style="background:{{ '#e8fff3' if saldo_neto >= 0 else '#ffeaea' }}"><i class="bi bi-cash-stack" style="color:{{ '#2dce89' if saldo_neto >= 0 else '#f5365c' }}"></i></div>
-  </div></div></div>
-</div>
-<div class="row g-3 mb-4">
-  <div class="col-6 col-lg-3"><div class="sc"><div class="d-flex justify-content-between align-items-start">
-    <div><div class="sv valor-cop" data-cop="{{ saldo_pendiente }}">$ {{ '{:,.0f}'.format(saldo_pendiente).replace(',','.') }}</div>
-      <div class="sl">Saldo por cobrar</div></div>
-    <div class="si" style="background:#fff8e1"><i class="bi bi-hourglass-split" style="color:#f39c12"></i></div>
-  </div></div></div>
-  <div class="col-6 col-lg-3"><div class="sc"><div class="d-flex justify-content-between align-items-start">
-    <div><div class="sv">{{ productos_bajo_stock }}</div><div class="sl">Stock bajo</div></div>
-    <div class="si" style="background:#ffeaea"><i class="bi bi-exclamation-triangle" style="color:#e74c3c"></i></div>
-  </div></div></div>
-  <div class="col-6 col-lg-3"></div>
-  <div class="col-6 col-lg-3"><div class="sc" style="cursor:pointer" onclick="window.location='{{ url_for('contable_index') }}'">
-    <div class="d-flex align-items-center gap-2">
-      <i class="bi bi-calculator" style="font-size:1.3rem;color:#5e72e4"></i>
-      <div><div style="font-size:.8rem;font-weight:600;color:#1a1f36">Ver contabilidad detallada</div>
-        <div style="font-size:.72rem;color:#8898aa">Desglose de impuestos + utilidad neta</div></div>
+
+{# ── Banner bienvenida / onboarding ────────────────── #}
+{% if total_clientes == 0 %}
+<div class="onboard-banner mb-3">
+  <div style="position:relative;z-index:1">
+    <div style="font-size:.72rem;letter-spacing:2px;text-transform:uppercase;opacity:.6;margin-bottom:.3rem">Bienvenido/a al CRM</div>
+    <div style="font-size:1.25rem;font-weight:700;margin-bottom:.3rem">Hola, {{ current_user.nombre }}! 👋</div>
+    <div style="font-size:.87rem;opacity:.75;max-width:520px">Para empezar, sigue estos pasos rápidos. Cada sección del sistema tiene un propósito claro.</div>
+    <div class="onboard-steps mt-2">
+      <a href="{{ url_for('cliente_nuevo') }}" class="onboard-step"><i class="bi bi-person-plus"></i> 1. Agregar primer cliente</a>
+      <a href="{{ url_for('venta_nueva') }}" class="onboard-step"><i class="bi bi-plus-circle"></i> 2. Crear una venta</a>
+      <a href="{{ url_for('tarea_nueva') }}" class="onboard-step"><i class="bi bi-check2-square"></i> 3. Crear una tarea</a>
+      <a href="{{ url_for('impuestos') }}" class="onboard-step"><i class="bi bi-percent"></i> 4. Configurar impuestos</a>
+      <a href="{{ url_for('admin_config') }}" class="onboard-step"><i class="bi bi-gear"></i> 5. Configurar empresa</a>
     </div>
-  </div></div>
+  </div>
 </div>
-<div class="row g-4">
-  <div class="col-lg-6"><div class="tc">
-    <div class="ch d-flex justify-content-between align-items-center">
-      <span><i class="bi bi-check2-square me-2 text-warning"></i>Tareas pendientes</span>
-      <a href="{{ url_for('tarea_nueva') }}" class="btn btn-sm btn-primary"><i class="bi bi-plus"></i></a></div>
-    {% if tareas_recientes %}<table class="table"><tbody>
-    {% for t in tareas_recientes %}<tr>
-      <td><a href="{{ url_for('tarea_ver', id=t.id) }}" class="fw-semibold text-decoration-none" style="color:#1a1f36">{{ t.titulo }}</a>
-        <div><small class="text-muted">{{ t.asignado_user.nombre if t.asignado_user else '' }}</small></div></td>
-      <td><span class="b b-{{ t.prioridad }}">{{ t.prioridad.title() }}</span></td>
-    </tr>{% endfor %}</tbody></table>
-    {% else %}<div class="text-center text-muted py-4"><i class="bi bi-check2-all" style="font-size:2rem"></i>
-      <p class="mt-2 mb-0">Sin pendientes</p></div>{% endif %}
-  </div></div>
-  <div class="col-lg-6"><div class="tc">
-    <div class="ch d-flex justify-content-between align-items-center">
-      <span><i class="bi bi-graph-up me-2 text-success"></i>Ventas recientes</span>
-      <a href="{{ url_for('venta_nueva') }}" class="btn btn-sm btn-primary"><i class="bi bi-plus"></i></a></div>
-    {% if ventas_recientes %}<table class="table"><tbody>
-    {% for v in ventas_recientes %}<tr>
-      <td><div class="fw-semibold" style="color:#1a1f36">{{ v.titulo }}</div>
-        <small class="text-muted">{{ v.cliente.empresa or v.cliente.nombre if v.cliente else '—' }}</small></td>
-      <td class="fw-semibold valor-cop" data-cop="{{ v.total }}">$ {{ '{:,.0f}'.format(v.total).replace(',','.') }}</td>
-      <td><span class="b b-{{ v.estado }}">{{ v.estado.replace('_',' ').title() }}</span></td>
-    </tr>{% endfor %}</tbody></table>
-    {% else %}<div class="text-center text-muted py-4"><i class="bi bi-graph-up" style="font-size:2rem"></i>
-      <p class="mt-2 mb-0">Sin ventas</p></div>{% endif %}
-  </div></div>
+{% else %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem;flex-wrap:wrap;gap:.5rem">
+  <div>
+    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Resumen acumulado</div>
+    <div style="font-size:1.05rem;font-weight:700;color:#1a1f36">Hola, {{ current_user.nombre }}</div>
+  </div>
+  <small class="text-muted" id="tasaInfo2"></small>
 </div>
+{% endif %}
+
+{# ── Acciones rápidas ──────────────────────────────── #}
+<div class="qa-bar">
+  <a href="{{ url_for('cliente_nuevo') }}" class="qa-btn"><i class="bi bi-person-plus"></i> Nuevo cliente</a>
+  <a href="{{ url_for('venta_nueva') }}" class="qa-btn"><i class="bi bi-plus-circle"></i> Nueva venta</a>
+  <a href="{{ url_for('tarea_nueva') }}" class="qa-btn"><i class="bi bi-check2-square"></i> Nueva tarea</a>
+  <a href="{{ url_for('cotizacion_nueva') }}" class="qa-btn"><i class="bi bi-file-earmark-text"></i> Cotización</a>
+  <a href="{{ url_for('contable_index') }}" class="qa-btn"><i class="bi bi-calculator"></i> Contabilidad</a>
+</div>
+
+{# ── Fila 1: métricas operativas ───────────────────── #}
+<div class="row g-3 mb-3 dash-stats">
+  <div class="col-6 col-lg-3">
+    <div class="sc sc-accent" style="border-top-color:#5e72e4">
+      <div class="d-flex justify-content-between align-items-start">
+        <div><div class="sv">{{ total_clientes }}</div><div class="sl">Clientes activos</div></div>
+        <div class="si" style="background:#e8eeff"><i class="bi bi-people-fill" style="color:#5e72e4"></i></div>
+      </div>
+      <div class="mt-2"><a href="{{ url_for('clientes') }}" style="font-size:.75rem;color:#5e72e4;text-decoration:none">Ver clientes →</a></div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="sc sc-accent" style="border-top-color:#2dce89">
+      <div class="d-flex justify-content-between align-items-start">
+        <div><div class="sv">{{ ventas_ganadas }}</div><div class="sl">Ventas ganadas</div></div>
+        <div class="si" style="background:#e3f9ee"><i class="bi bi-graph-up-arrow" style="color:#2dce89"></i></div>
+      </div>
+      <div class="mt-2"><a href="{{ url_for('ventas') }}" style="font-size:.75rem;color:#2dce89;text-decoration:none">Ver ventas →</a></div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="sc sc-accent" style="border-top-color:#fb6340">
+      <div class="d-flex justify-content-between align-items-start">
+        <div><div class="sv">{{ tareas_pendientes }}</div><div class="sl">Tareas pendientes</div></div>
+        <div class="si" style="background:#fff4e5"><i class="bi bi-check2-square" style="color:#fb6340"></i></div>
+      </div>
+      <div class="mt-2"><a href="{{ url_for('tareas') }}" style="font-size:.75rem;color:#fb6340;text-decoration:none">Ver tareas →</a></div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="sc sc-accent" style="border-top-color:#f39c12">
+      <div class="d-flex justify-content-between align-items-start">
+        <div><div class="sv valor-cop" data-cop="{{ saldo_pendiente }}">$ {{ '{:,.0f}'.format(saldo_pendiente).replace(',','.') }}</div>
+          <div class="sl">Por cobrar</div></div>
+        <div class="si" style="background:#fff8e1"><i class="bi bi-hourglass-split" style="color:#f39c12"></i></div>
+      </div>
+      <div class="mt-2"><a href="{{ url_for('ventas') }}" style="font-size:.75rem;color:#f39c12;text-decoration:none">Ver pendientes →</a></div>
+    </div>
+  </div>
+</div>
+
+{# ── Fila 2: métricas financieras ─────────────────── #}
+<div class="row g-3 mb-4 dash-stats">
+  <div class="col-6 col-lg-3">
+    <div class="sc">
+      <div class="d-flex justify-content-between align-items-start">
+        <div><div class="sv valor-cop" data-cop="{{ ingresos_totales }}" style="color:#2dce89">$ {{ '{:,.0f}'.format(ingresos_totales).replace(',','.') }}</div>
+          <div class="sl">Ingresos totales</div></div>
+        <div class="si" style="background:#e3f9ee"><i class="bi bi-currency-dollar" style="color:#2dce89"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="sc">
+      <div class="d-flex justify-content-between align-items-start">
+        <div><div class="sv valor-cop" data-cop="{{ gastos_totales }}" style="color:#f5365c">$ {{ '{:,.0f}'.format(gastos_totales).replace(',','.') }}</div>
+          <div class="sl">Gastos + compras</div></div>
+        <div class="si" style="background:#ffeaea"><i class="bi bi-receipt" style="color:#f5365c"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="sc">
+      <div class="d-flex justify-content-between align-items-start">
+        <div><div class="sv valor-cop" data-cop="{{ impuestos_estimados }}" style="color:#e83e8c">$ {{ '{:,.0f}'.format(impuestos_estimados).replace(',','.') }}</div>
+          <div class="sl">Impuestos estimados</div></div>
+        <div class="si" style="background:#fce4ec"><i class="bi bi-percent" style="color:#e83e8c"></i></div>
+      </div>
+      {% if impuestos_estimados == 0 %}
+      <div class="mt-1"><a href="{{ url_for('impuestos') }}" style="font-size:.73rem;color:#e83e8c">Configurar reglas →</a></div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="sc" style="border:2px solid {{ '#2dce89' if saldo_neto >= 0 else '#f5365c' }}">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="sv valor-cop" data-cop="{{ saldo_neto }}" style="color:{{ '#2dce89' if saldo_neto >= 0 else '#f5365c' }}">$ {{ '{:,.0f}'.format(saldo_neto).replace(',','.') }}</div>
+          <div class="sl" style="font-weight:700">Saldo neto real</div>
+          <div style="font-size:.7rem;color:#8898aa;margin-top:2px">Ingresos − gastos − impuestos</div>
+        </div>
+        <div class="si" style="background:{{ '#e8fff3' if saldo_neto >= 0 else '#ffeaea' }}">
+          <i class="bi bi-cash-stack" style="color:{{ '#2dce89' if saldo_neto >= 0 else '#f5365c' }}"></i>
+        </div>
+      </div>
+      <div class="mt-2"><a href="{{ url_for('contable_index') }}" style="font-size:.73rem;color:#5e72e4;text-decoration:none">Ver desglose →</a></div>
+    </div>
+  </div>
+</div>
+
+{# ── Alerta stock bajo ─────────────────────────────── #}
+{% if productos_bajo_stock > 0 %}
+<div class="alert alert-warning d-flex align-items-center gap-2 mb-3 py-2" style="font-size:.87rem">
+  <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+  <span><strong>{{ productos_bajo_stock }} producto(s)</strong> con stock bajo o agotado.</span>
+  <a href="{{ url_for('inventario') }}" class="btn btn-sm btn-warning ms-auto">Ver inventario</a>
+</div>
+{% endif %}
+
+{# ── Tareas + Ventas ───────────────────────────────── #}
+<div class="row g-3 mb-3">
+  <div class="col-lg-6">
+    <div class="tc">
+      <div class="ch">
+        <span><i class="bi bi-check2-square me-2 text-warning"></i>Tareas pendientes</span>
+        <a href="{{ url_for('tarea_nueva') }}" class="btn btn-sm btn-primary"><i class="bi bi-plus me-1"></i>Nueva</a>
+      </div>
+      {% if tareas_recientes %}
+      <div class="table-responsive">
+      <table class="table">
+        <tbody>{% for t in tareas_recientes %}<tr>
+          <td>
+            <a href="{{ url_for('tarea_ver', id=t.id) }}" class="fw-semibold text-decoration-none" style="color:#1a1f36;font-size:.88rem">{{ t.titulo }}</a>
+            {% if t.asignado_user %}<div><small class="text-muted"><i class="bi bi-person me-1"></i>{{ t.asignado_user.nombre }}</small></div>{% endif %}
+          </td>
+          <td style="white-space:nowrap"><span class="b b-{{ t.prioridad }}">{{ t.prioridad.title() }}</span></td>
+          {% if t.fecha_vencimiento %}<td class="hide-mobile"><small class="text-muted">{{ t.fecha_vencimiento.strftime('%d/%m') }}</small></td>{% endif %}
+        </tr>{% endfor %}</tbody>
+      </table>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <i class="bi bi-check2-all"></i>
+        <p>Sin tareas pendientes</p>
+        <a href="{{ url_for('tarea_nueva') }}" class="btn btn-sm btn-primary">Crear primera tarea</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="tc">
+      <div class="ch">
+        <span><i class="bi bi-graph-up me-2 text-success"></i>Ventas recientes</span>
+        <a href="{{ url_for('venta_nueva') }}" class="btn btn-sm btn-primary"><i class="bi bi-plus me-1"></i>Nueva</a>
+      </div>
+      {% if ventas_recientes %}
+      <div class="table-responsive">
+      <table class="table">
+        <tbody>{% for v in ventas_recientes %}<tr>
+          <td>
+            <div class="fw-semibold" style="color:#1a1f36;font-size:.88rem">{{ v.titulo }}</div>
+            <small class="text-muted">{{ v.cliente.empresa or v.cliente.nombre if v.cliente else '—' }}</small>
+          </td>
+          <td class="hide-mobile fw-semibold valor-cop" data-cop="{{ v.total }}" style="white-space:nowrap">$ {{ '{:,.0f}'.format(v.total).replace(',','.') }}</td>
+          <td style="white-space:nowrap"><span class="b b-{{ v.estado }}">{{ v.estado.replace('_',' ').title() }}</span></td>
+        </tr>{% endfor %}</tbody>
+      </table>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <i class="bi bi-graph-up"></i>
+        <p>Sin ventas registradas</p>
+        <a href="{{ url_for('venta_nueva') }}" class="btn btn-sm btn-primary">Crear primera venta</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{# ── Actividad reciente ────────────────────────────── #}
 {% if actividades_recientes %}
-<div class="tc mt-4"><div class="ch d-flex justify-content-between align-items-center">
-  <span><i class="bi bi-clock-history me-2 text-secondary"></i>Actividad reciente</span>
-  {% if current_user.rol=='admin' %}<a href="{{ url_for('actividad') }}" class="btn btn-sm btn-outline-secondary">Ver todo</a>{% endif %}
+<div class="tc">
+  <div class="ch">
+    <span><i class="bi bi-clock-history me-2 text-secondary"></i>Actividad reciente</span>
+    {% if current_user.rol=='admin' %}<a href="{{ url_for('actividad') }}" class="btn btn-sm btn-outline-secondary btn-sm">Ver todo</a>{% endif %}
+  </div>
+  <div class="table-responsive">
+  <table class="table">
+    <tbody>{% for a in actividades_recientes %}<tr>
+      <td style="width:90px"><small class="text-muted">{{ a.creado_en.strftime('%d/%m %H:%M') }}</small></td>
+      <td style="width:75px"><span class="badge {% if a.tipo=='crear' %}bg-success{% elif a.tipo=='editar' %}bg-primary{% elif a.tipo=='eliminar' %}bg-danger{% elif a.tipo=='completar' %}bg-info{% else %}bg-secondary{% endif %}" style="font-size:.68rem">{{ a.tipo.title() }}</span></td>
+      <td style="font-size:.86rem">{{ a.descripcion }}</td>
+      <td class="hide-mobile" style="width:90px"><small class="text-muted">{{ a.usuario.nombre if a.usuario else '' }}</small></td>
+    </tr>{% endfor %}</tbody>
+  </table>
+  </div>
 </div>
-<table class="table"><tbody>{% for a in actividades_recientes %}<tr>
-  <td style="width:130px"><small class="text-muted">{{ a.creado_en.strftime('%d/%m %H:%M') }}</small></td>
-  <td style="width:80px"><span class="badge {% if a.tipo=='crear' %}bg-success{% elif a.tipo=='editar' %}bg-primary{% elif a.tipo=='eliminar' %}bg-danger{% elif a.tipo=='completar' %}bg-info{% else %}bg-secondary{% endif %}">{{ a.tipo.title() }}</span></td>
-  <td style="font-size:.88rem">{{ a.descripcion }}</td>
-  <td style="width:100px"><small class="text-muted">{{ a.usuario.nombre if a.usuario else '' }}</small></td>
-</tr>{% endfor %}</tbody></table>
-</div>{% endif %}
+{% endif %}
+
 {% endblock %}
 {% block scripts %}<script>
+(function(){
 let tasaCOP=null,enUSD=false;
 async function cargarTasa(){
-  try{const r=await fetch('https://open.er-api.com/v6/latest/USD');
-    const d=await r.json();tasaCOP=d.rates.COP;
-    document.getElementById('tasaInfo').textContent='1 USD = $'+tasaCOP.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,'.')+ ' COP';
+  try{
+    const r=await fetch('https://open.er-api.com/v6/latest/USD');
+    const d=await r.json();
+    tasaCOP=d.rates.COP;
+    var t='1 USD = $'+tasaCOP.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,'.')+' COP';
+    var e1=document.getElementById('tasaInfo'); if(e1)e1.textContent=t;
+    var e2=document.getElementById('tasaInfo2'); if(e2)e2.textContent=t;
   }catch(e){}
 }
 function toggleMoneda(){
-  if(!tasaCOP)return;enUSD=!enUSD;
-  document.getElementById('lblM').textContent=enUSD?'Ver en COP':'Ver en USD';
-  document.querySelectorAll('.valor-cop').forEach(el=>{
-    const c=parseFloat(el.dataset.cop)||0;
+  if(!tasaCOP)return;
+  enUSD=!enUSD;
+  document.getElementById('lblM').textContent=enUSD?'COP':'USD';
+  document.querySelectorAll('.valor-cop').forEach(function(el){
+    var c=parseFloat(el.dataset.cop)||0;
     el.textContent=enUSD?'USD '+(c/tasaCOP).toLocaleString('en-US',{maximumFractionDigits:0}):'$ '+c.toLocaleString('es-CO',{maximumFractionDigits:0});
   });
 }
+window.toggleMoneda=toggleMoneda;
 cargarTasa();
+})();
 </script>{% endblock %}"""
 
 T['clientes/index.html'] = """{% extends 'base.html' %}
@@ -1118,54 +1370,87 @@ T['clientes/form.html'] = """{% extends 'base.html' %}
 {% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('clientes') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
 {% block content %}<div class="fc" style="max-width:900px"><form method="POST">
-<h6 class="text-muted mb-3 text-uppercase" style="letter-spacing:1px;font-size:.75rem">Información de la empresa</h6>
-<div class="row g-3 mb-4">
-  <div class="col-md-6"><label class="form-label">Empresa *</label>
-    <input type="text" name="empresa" class="form-control" value="{{ obj.empresa if obj else '' }}" required></div>
-  <div class="col-md-3"><label class="form-label">NIT</label>
-    <input type="text" name="nit" class="form-control" placeholder="900.123.456-7" value="{{ obj.nit if obj else '' }}"></div>
-  <div class="col-md-3"><label class="form-label">Estado relación</label>
-    <select name="estado_relacion" class="form-select">
-      {% for er,lbl in [('prospecto','Prospecto'),('negociacion','Negociación'),('cliente_activo','Cliente Activo'),('vip','VIP'),('inactivo','Inactivo'),('perdido','Perdido')] %}
-      <option value="{{ er }}" {% if obj and obj.estado_relacion==er %}selected{% elif not obj and er=='prospecto' %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
-    </select></div>
-  <div class="col-md-6"><label class="form-label">Dirección Cámara de Comercio</label>
-    <input type="text" name="dir_comercial" class="form-control" value="{{ obj.dir_comercial if obj else '' }}"></div>
-  <div class="col-md-6"><label class="form-label">Dirección de entrega</label>
-    <input type="text" name="dir_entrega" class="form-control" value="{{ obj.dir_entrega if obj else '' }}"></div>
-  <div class="col-12"><label class="form-label">Notas</label>
-    <textarea name="notas" class="form-control" rows="2">{{ obj.notas if obj else '' }}</textarea></div>
-</div><hr class="my-3">
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h6 class="text-muted mb-0 text-uppercase" style="letter-spacing:1px;font-size:.75rem">Contactos</h6>
-  <button type="button" class="btn btn-sm btn-outline-primary" onclick="addContacto()"><i class="bi bi-plus-lg me-1"></i>Agregar</button>
+
+<div class="form-section">
+  <div class="form-section-title"><i class="bi bi-building me-2"></i>Información de la empresa</div>
+  <div class="row g-3 mb-2">
+    <div class="col-md-6">
+      <label class="form-label">Empresa <span class="req">*</span></label>
+      <input type="text" name="empresa" class="form-control" value="{{ obj.empresa if obj else '' }}" required placeholder="Ej: Textiles del Norte S.A.S.">
+      <div class="form-text">Razón social o nombre comercial del cliente.</div>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">NIT</label>
+      <input type="text" name="nit" class="form-control" placeholder="900.123.456-7" value="{{ obj.nit if obj else '' }}">
+      <div class="form-text">Déjalo vacío si aún no lo tienes.</div>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Estado relación</label>
+      <select name="estado_relacion" class="form-select">
+        {% for er,lbl in [('prospecto','Prospecto'),('negociacion','Negociación'),('cliente_activo','Cliente Activo'),('vip','VIP'),('inactivo','Inactivo'),('perdido','Perdido')] %}
+        <option value="{{ er }}" {% if obj and obj.estado_relacion==er %}selected{% elif not obj and er=='prospecto' %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
+      </select>
+      <div class="form-text">¿En qué etapa está esta relación?</div>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Dirección Cámara de Comercio</label>
+      <input type="text" name="dir_comercial" class="form-control" value="{{ obj.dir_comercial if obj else '' }}" placeholder="Cra. 15 #93-75, Bogotá">
+      <div class="form-text">Dirección registrada legalmente.</div>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Dirección de entrega</label>
+      <input type="text" name="dir_entrega" class="form-control" value="{{ obj.dir_entrega if obj else '' }}" placeholder="Bodega o punto de recepción de pedidos">
+      <div class="form-text">Donde se despacharán los pedidos (puede ser diferente).</div>
+    </div>
+    <div class="col-12">
+      <label class="form-label">Notas internas</label>
+      <textarea name="notas" class="form-control" rows="2" placeholder="Observaciones sobre este cliente, condiciones especiales, etc.">{{ obj.notas if obj else '' }}</textarea>
+      <div class="form-text"><i class="bi bi-eye-slash me-1"></i>Solo visible para tu equipo — el cliente no las ve.</div>
+    </div>
+  </div>
 </div>
-<div id="contactosContainer">
-  {% if obj and obj.contactos %}{% for c in obj.contactos %}
-  <div class="prod-row mb-2"><div class="row g-2 align-items-end">
-    <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Nombre *</label>
-      <input type="text" name="c_nombre[]" class="form-control form-control-sm" value="{{ c.nombre }}" required></div>
-    <div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Cargo</label>
-      <input type="text" name="c_cargo[]" class="form-control form-control-sm" value="{{ c.cargo or '' }}"></div>
-    <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Email</label>
-      <input type="email" name="c_email[]" class="form-control form-control-sm" value="{{ c.email or '' }}"></div>
-    <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Teléfono</label>
-      <input type="text" name="c_telefono[]" class="form-control form-control-sm" value="{{ c.telefono or '' }}"></div>
-    <div class="col-md-1"><button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="this.closest('.prod-row').remove()"><i class="bi bi-trash"></i></button></div>
-  </div></div>{% endfor %}{% endif %}
+
+<div class="form-section">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="form-section-title mb-0"><i class="bi bi-people me-2"></i>Contactos</div>
+    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addContacto()"><i class="bi bi-plus-lg me-1"></i>Agregar contacto</button>
+  </div>
+  <div class="input-hint mb-3"><i class="bi bi-info-circle me-1"></i>Agrega las personas de contacto dentro de la empresa (gerente, compras, bodega, etc.).</div>
+  <div id="contactosContainer">
+    {% if obj and obj.contactos %}{% for c in obj.contactos %}
+    <div class="prod-row mb-2 p-2" style="background:#f8f9fe;border-radius:8px"><div class="row g-2 align-items-end">
+      <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Nombre <span class="req">*</span></label>
+        <input type="text" name="c_nombre[]" class="form-control form-control-sm" value="{{ c.nombre }}" required placeholder="Nombre completo"></div>
+      <div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Cargo</label>
+        <input type="text" name="c_cargo[]" class="form-control form-control-sm" value="{{ c.cargo or '' }}" placeholder="Ej: Gerente"></div>
+      <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Email</label>
+        <input type="email" name="c_email[]" class="form-control form-control-sm" value="{{ c.email or '' }}" placeholder="correo@empresa.com"></div>
+      <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Teléfono / WhatsApp</label>
+        <input type="text" name="c_telefono[]" class="form-control form-control-sm" value="{{ c.telefono or '' }}" placeholder="+57 300 000 0000"></div>
+      <div class="col-md-1"><button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="this.closest('.prod-row').remove()" title="Eliminar contacto"><i class="bi bi-trash"></i></button></div>
+    </div></div>{% endfor %}{% endif %}
+  </div>
+  {% if not (obj and obj.contactos) %}
+  <div id="contactoEmpty" class="text-muted text-center py-3" style="font-size:.88rem;border:2px dashed #dee2e6;border-radius:8px">
+    <i class="bi bi-person-plus" style="font-size:1.3rem;display:block;margin-bottom:4px"></i>
+    Ningún contacto agregado aún · haz clic en <strong>Agregar contacto</strong>
+  </div>{% endif %}
 </div>
-<div class="d-flex gap-2 mt-4">
-  <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear Cliente' }}</button>
+
+<div class="d-flex gap-2 mt-2">
+  <button type="submit" class="btn btn-primary btn-action"><i class="bi bi-check-lg me-1"></i>{{ 'Guardar cambios' if obj else 'Crear Cliente' }}</button>
   <a href="{{ url_for('clientes') }}" class="btn btn-outline-secondary">Cancelar</a>
 </div></form></div>{% endblock %}
 {% block scripts %}<script>
 function addContacto(){
-  document.getElementById('contactosContainer').insertAdjacentHTML('beforeend',`<div class="prod-row mb-2"><div class="row g-2 align-items-end">
-    <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Nombre *</label><input type="text" name="c_nombre[]" class="form-control form-control-sm" required></div>
-    <div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Cargo</label><input type="text" name="c_cargo[]" class="form-control form-control-sm"></div>
-    <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Email</label><input type="email" name="c_email[]" class="form-control form-control-sm"></div>
-    <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Teléfono</label><input type="text" name="c_telefono[]" class="form-control form-control-sm"></div>
-    <div class="col-md-1"><button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="this.closest('.prod-row').remove()"><i class="bi bi-trash"></i></button></div>
+  var empty=document.getElementById('contactoEmpty');
+  if(empty) empty.style.display='none';
+  document.getElementById('contactosContainer').insertAdjacentHTML('beforeend',`<div class="prod-row mb-2 p-2" style="background:#f8f9fe;border-radius:8px"><div class="row g-2 align-items-end">
+    <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Nombre <span class="req">*</span></label><input type="text" name="c_nombre[]" class="form-control form-control-sm" required placeholder="Nombre completo"></div>
+    <div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Cargo</label><input type="text" name="c_cargo[]" class="form-control form-control-sm" placeholder="Ej: Gerente"></div>
+    <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Email</label><input type="email" name="c_email[]" class="form-control form-control-sm" placeholder="correo@empresa.com"></div>
+    <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Teléfono / WhatsApp</label><input type="text" name="c_telefono[]" class="form-control form-control-sm" placeholder="+57 300 000 0000"></div>
+    <div class="col-md-1"><button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="this.closest('.prod-row').remove()" title="Eliminar"><i class="bi bi-trash"></i></button></div>
   </div></div>`);
 }
 </script>{% endblock %}"""
@@ -1295,80 +1580,116 @@ T['ordenes_compra/form.html'] = """{% extends 'base.html' %}
 {% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('ordenes_compra') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
 {% block content %}<div class="fc" style="max-width:1040px"><form method="POST">
-<h6 class="text-muted text-uppercase mb-3" style="font-size:.75rem;letter-spacing:1px">Información general</h6>
-<div class="row g-3 mb-3">
-  <div class="col-md-4"><label class="form-label">Proveedor</label>
-    <select name="proveedor_id" class="form-select" id="selectProv">
-      <option value="">— Sin proveedor —</option>
-      {% for pv in proveedores_list %}<option value="{{ pv.id }}" {% if obj and obj.proveedor_id==pv.id %}selected{% endif %}>{{ pv.empresa or pv.nombre }}</option>{% endfor %}
-    </select></div>
-  <div class="col-md-4"><label class="form-label">Cotización de referencia <small class="text-muted">(calcula fecha entrega)</small></label>
-    <select name="cotizacion_id" class="form-select" id="selectCot" onchange="onCotChange()">
-      <option value="">— Sin cotización —</option>
-      {% for c in cotizaciones_list %}<option value="{{ c.id }}"
-        data-plazo="{{ c.plazo_entrega_dias or 0 }}"
-        data-prov="{{ c.proveedor_id or '' }}"
-        data-nombre="{{ c.nombre_producto }}"
-        data-precio="{{ c.precio_unitario }}"
-        data-unidad="{{ c.unidad }}"
-        data-cond="{{ c.condicion_pago_tipo }}"
-        {% if obj and obj.cotizacion_id==c.id %}selected{% endif %}>
-        {{ c.numero or '' }} — {{ c.nombre_producto }} ({{ c.proveedor.empresa if c.proveedor else '—' }})
-      </option>{% endfor %}
-    </select></div>
-  <div class="col-md-2"><label class="form-label">Estado</label>
-    <select name="estado" class="form-select">
-      {% for est,lbl in [('borrador','Borrador'),('enviada','Enviada'),('recibida','Recibida'),('cancelada','Cancelada')] %}
-      <option value="{{ est }}" {% if obj and obj.estado==est %}selected{% elif not obj and est=='borrador' %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
-    </select></div>
-</div>
-<div class="row g-3 mb-3">
-  <div class="col-md-3"><label class="form-label">Fecha emisión</label>
-    <input type="date" name="fecha_emision" id="fechaEmision" class="form-control" value="{{ obj.fecha_emision.strftime('%Y-%m-%d') if obj and obj.fecha_emision else today }}" oninput="calcFechaEntrega()"></div>
-  <div class="col-md-3"><label class="form-label">Fecha entrega esperada <small class="text-muted" id="plazoHint"></small></label>
-    <input type="date" name="fecha_esperada" id="fechaEsperada" class="form-control" value="{{ obj.fecha_esperada.strftime('%Y-%m-%d') if obj and obj.fecha_esperada else '' }}"></div>
-  <div class="col-md-3"><label class="form-label">Fecha estimada pago</label>
-    <input type="date" name="fecha_estimada_pago" class="form-control" value="{{ obj.fecha_estimada_pago.strftime('%Y-%m-%d') if obj and obj.fecha_estimada_pago else '' }}"></div>
-</div>
-<!-- Info de condición de pago desde cotización -->
-<div id="condPagoInfo" class="alert alert-info py-2 mb-3" style="display:none;font-size:.85rem">
-  <i class="bi bi-credit-card me-2"></i><span id="condPagoText"></span>
-</div>
-<hr class="my-3">
-<h6 class="text-muted text-uppercase mb-3" style="font-size:.75rem;letter-spacing:1px">Transportista y logística</h6>
-<div class="row g-3 mb-3">
-  <div class="col-md-4"><label class="form-label">Transportista</label>
-    <select name="transportista_id" class="form-select" id="selectTrans">
-      <option value="">— Sin transportista —</option>
-      {% for t in transportistas_list %}<option value="{{ t.id }}" {% if obj and obj.transportista_id==t.id %}selected{% endif %}>{{ t.empresa or t.nombre }}</option>{% endfor %}
-    </select></div>
-  <div class="col-md-3"><label class="form-label">Fecha estimada recogida</label>
-    <input type="date" name="fecha_estimada_recogida" id="fechaRecogida" class="form-control" value="{{ obj.fecha_estimada_recogida.strftime('%Y-%m-%d') if obj and obj.fecha_estimada_recogida else '' }}"></div>
-  <div class="col-md-5"><div class="alert alert-warning py-2 mb-0 mt-4" style="font-size:.82rem" id="transAlert" {% if not (obj and obj.transportista_id) %}style="display:none"{% endif %}>
-    <i class="bi bi-exclamation-triangle me-1"></i>Al guardar se creará automáticamente una <strong>tarea</strong> para contactar al transportista 2 días antes de la recogida.</div></div>
-</div>
-<hr class="my-3">
-<div class="d-flex justify-content-between align-items-center mb-2">
-  <h6 class="text-muted mb-0 text-uppercase" style="letter-spacing:1px;font-size:.75rem">Ítems de la orden</h6>
-  <div class="d-flex gap-2">
-    <button type="button" class="btn btn-sm btn-outline-success" onclick="importarDesdeCot()" id="btnImportCot" {% if not cotizaciones_list %}disabled{% endif %} title="Importar ítem desde cotización seleccionada">
-      <i class="bi bi-cloud-download me-1"></i>Importar de cotización</button>
-    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addItem()"><i class="bi bi-plus-lg me-1"></i>Agregar ítem manual</button>
+
+<div class="form-section">
+  <div class="form-section-title"><i class="bi bi-file-earmark-text me-2"></i>Información general</div>
+  <div class="input-hint mb-3"><i class="bi bi-lightbulb me-1"></i><strong>Tip:</strong> Si ya tienes una cotización del proveedor, selecciónala primero — los datos del ítem y la fecha de entrega se completarán automáticamente.</div>
+  <div class="row g-3 mb-2">
+    <div class="col-md-4">
+      <label class="form-label">Proveedor</label>
+      <select name="proveedor_id" class="form-select" id="selectProv">
+        <option value="">— Sin proveedor —</option>
+        {% for pv in proveedores_list %}<option value="{{ pv.id }}" {% if obj and obj.proveedor_id==pv.id %}selected{% endif %}>{{ pv.empresa or pv.nombre }}</option>{% endfor %}
+      </select>
+      <div class="form-text">¿A quién le estás comprando?</div>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Cotización de referencia</label>
+      <select name="cotizacion_id" class="form-select" id="selectCot" onchange="onCotChange()">
+        <option value="">— Sin cotización —</option>
+        {% for c in cotizaciones_list %}<option value="{{ c.id }}"
+          data-plazo="{{ c.plazo_entrega_dias or 0 }}"
+          data-prov="{{ c.proveedor_id or '' }}"
+          data-nombre="{{ c.nombre_producto }}"
+          data-precio="{{ c.precio_unitario }}"
+          data-unidad="{{ c.unidad }}"
+          data-cond="{{ c.condicion_pago_tipo }}"
+          {% if obj and obj.cotizacion_id==c.id %}selected{% endif %}>
+          {{ c.numero or '' }} — {{ c.nombre_producto }} ({{ c.proveedor.empresa if c.proveedor else '—' }})
+        </option>{% endfor %}
+      </select>
+      <div class="form-text">Al seleccionar, se auto-completan ítems y fechas.</div>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Estado</label>
+      <select name="estado" class="form-select">
+        {% for est,lbl in [('borrador','Borrador'),('enviada','Enviada'),('recibida','Recibida'),('cancelada','Cancelada')] %}
+        <option value="{{ est }}" {% if obj and obj.estado==est %}selected{% elif not obj and est=='borrador' %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
+      </select>
+      <div class="form-text">Empieza en Borrador y avanza.</div>
+    </div>
+  </div>
+  <div class="row g-3 mb-2">
+    <div class="col-md-3">
+      <label class="form-label">Fecha emisión</label>
+      <input type="date" name="fecha_emision" id="fechaEmision" class="form-control" value="{{ obj.fecha_emision.strftime('%Y-%m-%d') if obj and obj.fecha_emision else today }}" oninput="calcFechaEntrega()">
+      <div class="form-text">Fecha en que se emite la OC.</div>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Fecha entrega esperada <small class="text-muted" id="plazoHint"></small></label>
+      <input type="date" name="fecha_esperada" id="fechaEsperada" class="form-control" value="{{ obj.fecha_esperada.strftime('%Y-%m-%d') if obj and obj.fecha_esperada else '' }}">
+      <div class="form-text">Se calcula desde la cotización o edítala manualmente.</div>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Fecha estimada pago</label>
+      <input type="date" name="fecha_estimada_pago" class="form-control" value="{{ obj.fecha_estimada_pago.strftime('%Y-%m-%d') if obj and obj.fecha_estimada_pago else '' }}">
+      <div class="form-text">¿Cuándo planeas pagar al proveedor?</div>
+    </div>
+  </div>
+  <div id="condPagoInfo" class="alert alert-info py-2 mb-2" style="display:none;font-size:.85rem">
+    <i class="bi bi-credit-card me-2"></i><span id="condPagoText"></span>
   </div>
 </div>
-<div id="itemsContainer"></div>
-<div class="mt-3 mb-4"><div class="row g-2 justify-content-end"><div class="col-md-4">
-  <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">Subtotal:</span><strong id="lblSub">$ 0</strong></div>
-  <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">IVA 19%:</span><strong id="lblIva">$ 0</strong></div>
-  <div class="d-flex justify-content-between py-1"><span class="fw-bold">Total:</span><strong id="lblTot" style="color:#5e72e4;font-size:1.1rem">$ 0</strong></div>
-</div></div></div>
+
+<div class="form-section">
+  <div class="form-section-title"><i class="bi bi-truck me-2"></i>Transportista y logística</div>
+  <div class="row g-3 mb-2">
+    <div class="col-md-4">
+      <label class="form-label">Transportista</label>
+      <select name="transportista_id" class="form-select" id="selectTrans">
+        <option value="">— Sin transportista —</option>
+        {% for t in transportistas_list %}<option value="{{ t.id }}" {% if obj and obj.transportista_id==t.id %}selected{% endif %}>{{ t.empresa or t.nombre }}</option>{% endfor %}
+      </select>
+      <div class="form-text">Opcional — complétalo si ya lo tienes definido.</div>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Fecha estimada recogida</label>
+      <input type="date" name="fecha_estimada_recogida" id="fechaRecogida" class="form-control" value="{{ obj.fecha_estimada_recogida.strftime('%Y-%m-%d') if obj and obj.fecha_estimada_recogida else '' }}">
+      <div class="form-text">¿Cuándo pasará a recoger la mercancía?</div>
+    </div>
+    <div class="col-md-5 d-flex align-items-center">
+      <div class="alert alert-warning py-2 mb-0" style="font-size:.82rem" id="transAlert" {% if not (obj and obj.transportista_id) %}style="display:none"{% endif %}>
+        <i class="bi bi-bell me-1"></i>Al guardar se creará una <strong>tarea automática</strong> para contactar al transportista 2 días antes de la recogida.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="form-section">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="form-section-title mb-0"><i class="bi bi-list-ul me-2"></i>Ítems de la orden</div>
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-sm btn-outline-success" onclick="importarDesdeCot()" id="btnImportCot" {% if not cotizaciones_list %}disabled{% endif %} title="Importar ítem desde cotización seleccionada">
+        <i class="bi bi-cloud-download me-1"></i>Importar de cotización</button>
+      <button type="button" class="btn btn-sm btn-outline-primary" onclick="addItem()"><i class="bi bi-plus-lg me-1"></i>Agregar ítem manual</button>
+    </div>
+  </div>
+  <div class="input-hint mb-3"><i class="bi bi-info-circle me-1"></i>Cada ítem es un producto o material que estás comprando. El precio es <strong>sin IVA</strong>.</div>
+  <div id="itemsContainer"></div>
+  <div class="mt-3 mb-2"><div class="row g-2 justify-content-end"><div class="col-md-4">
+    <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">Subtotal:</span><strong id="lblSub">$ 0</strong></div>
+    <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">IVA 19%:</span><strong id="lblIva">$ 0</strong></div>
+    <div class="d-flex justify-content-between py-1"><span class="fw-bold">Total:</span><strong id="lblTot" style="color:#5e72e4;font-size:1.1rem">$ 0</strong></div>
+  </div></div></div>
+</div>
+
 <input type="hidden" name="subtotal_calc" id="subtotalCalc">
 <input type="hidden" name="iva_calc" id="ivaCalc">
 <input type="hidden" name="total_calc" id="totalCalc">
-<div class="mb-3"><label class="form-label">Notas</label>
-  <textarea name="notas" class="form-control" rows="2">{{ obj.notas if obj else '' }}</textarea></div>
-<div class="d-flex gap-2 mt-4">
-  <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear Orden' }}</button>
+<div class="mb-3"><label class="form-label">Notas internas</label>
+  <textarea name="notas" class="form-control" rows="2" placeholder="Instrucciones especiales, condiciones acordadas con el proveedor, etc.">{{ obj.notas if obj else '' }}</textarea></div>
+<div class="d-flex gap-2 mt-2">
+  <button type="submit" class="btn btn-primary btn-action"><i class="bi bi-check-lg me-1"></i>{{ 'Guardar cambios' if obj else 'Crear Orden' }}</button>
   <a href="{{ url_for('ordenes_compra') }}" class="btn btn-outline-secondary">Cancelar</a>
 </div></form></div>
 {% block scripts %}<script>
@@ -1626,59 +1947,99 @@ T['ventas/form.html'] = """{% extends 'base.html' %}
 {% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('ventas') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
 {% block content %}<div class="fc" style="max-width:960px"><form method="POST">
-<div class="row g-3 mb-3">
-  <div class="col-md-8"><label class="form-label">Título *</label>
-    <input type="text" name="titulo" class="form-control" value="{{ obj.titulo if obj else '' }}" required></div>
-  <div class="col-md-4"><label class="form-label">Cliente</label>
-    <select name="cliente_id" class="form-select"><option value="">Sin cliente</option>
-      {% for c in clientes_list %}<option value="{{ c.id }}" {% if obj and obj.cliente_id==c.id %}selected{% endif %}>{{ c.empresa or c.nombre }}</option>{% endfor %}
-    </select></div>
-</div><hr class="my-3">
-<div class="d-flex justify-content-between align-items-center mb-2">
-  <h6 class="text-muted mb-0 text-uppercase" style="letter-spacing:1px;font-size:.75rem">Productos</h6>
-  <button type="button" class="btn btn-sm btn-outline-primary" onclick="addProd()"><i class="bi bi-plus-lg me-1"></i>Agregar</button>
+
+<div class="form-section">
+  <div class="form-section-title"><i class="bi bi-tag me-2"></i>Información del negocio</div>
+  <div class="row g-3 mb-2">
+    <div class="col-md-8">
+      <label class="form-label">Título <span class="req">*</span></label>
+      <input type="text" name="titulo" class="form-control" value="{{ obj.titulo if obj else '' }}" required placeholder="Ej: Uniformes Colegio ABC — Pedido junio 2025">
+      <div class="form-text">Nombre interno del negocio. Ayuda a identificarlo rápidamente en la lista.</div>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Cliente</label>
+      <select name="cliente_id" class="form-select"><option value="">— Sin cliente —</option>
+        {% for c in clientes_list %}<option value="{{ c.id }}" {% if obj and obj.cliente_id==c.id %}selected{% endif %}>{{ c.empresa or c.nombre }}</option>{% endfor %}
+      </select>
+      <div class="form-text">Puedes dejarlo en blanco y asignarlo después.</div>
+    </div>
+  </div>
 </div>
-<div id="prodsContainer"></div>
-<div class="totales-box mt-3 mb-4"><div class="row g-2 justify-content-end"><div class="col-md-4">
-  <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">Subtotal:</span><strong id="lblSub">$ 0</strong></div>
-  <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">IVA 19%:</span><strong id="lblIva">$ 0</strong></div>
-  <div class="d-flex justify-content-between py-1"><span class="fw-bold">Total:</span><strong id="lblTot" style="color:#5e72e4;font-size:1.1rem">$ 0</strong></div>
-</div></div></div>
-<hr class="my-3">
-<div class="row g-3 mb-3">
-  <div class="col-md-3"><label class="form-label">Estado</label>
-    <select name="estado" class="form-select">
-      {% for est,lbl in [('prospecto','Prospecto'),('negociacion','Negociación'),('anticipo_pagado','Anticipo Pagado'),('ganado','Ganado'),('perdido','Perdido')] %}
-      <option value="{{ est }}" {% if obj and obj.estado==est %}selected{% elif not obj and est=='prospecto' %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
-    </select></div>
-  <div class="col-md-3"><label class="form-label">% Anticipo</label>
-    <div class="input-group"><input type="number" name="porcentaje_anticipo" id="pctA" class="form-control" min="0" max="100" step="1"
-      value="{{ obj.porcentaje_anticipo|int if obj else '0' }}" oninput="calcA()"><span class="input-group-text">%</span></div></div>
-  <div class="col-md-3"><label class="form-label">Monto anticipo COP</label>
-    <input type="text" id="montoAVis" class="form-control" readonly style="background:#f8f9fe">
-    <input type="hidden" name="monto_anticipo" id="montoAHid"></div>
-  <div class="col-md-3"><label class="form-label">Saldo a pagar</label>
-    <input type="text" id="saldoVis" class="form-control" readonly style="background:#f8f9fe">
-    <input type="hidden" name="saldo" id="saldoHid"></div>
-  <div class="col-md-4"><label class="form-label">Fecha pago anticipo</label>
-    <input type="date" name="fecha_anticipo" id="fAnticipo" class="form-control"
-      value="{{ obj.fecha_anticipo.strftime('%Y-%m-%d') if obj and obj.fecha_anticipo else '' }}" onchange="calcEnt()"></div>
-  <div class="col-md-4"><label class="form-label">Días de producción</label>
-    <select name="dias_entrega" id="diasEnt" class="form-select" onchange="calcEnt()">
-      <option value="30" {% if not obj or obj.dias_entrega==30 %}selected{% endif %}>30 días</option>
-      <option value="45" {% if obj and obj.dias_entrega==45 %}selected{% endif %}>45 días</option>
-    </select></div>
-  <div class="col-md-4"><label class="form-label">Entrega estimada</label>
-    <input type="text" id="entVis" class="form-control" readonly style="background:#f8f9fe">
-    <input type="hidden" name="fecha_entrega_est" id="entHid" value="{{ obj.fecha_entrega_est.strftime('%Y-%m-%d') if obj and obj.fecha_entrega_est else '' }}"></div>
-  <div class="col-12"><label class="form-label">Notas</label>
-    <textarea name="notas" class="form-control" rows="2">{{ obj.notas if obj else '' }}</textarea></div>
+
+<div class="form-section">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="form-section-title mb-0"><i class="bi bi-box-seam me-2"></i>Productos</div>
+    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addProd()"><i class="bi bi-plus-lg me-1"></i>Agregar producto</button>
+  </div>
+  <div class="input-hint mb-2"><i class="bi bi-info-circle me-1"></i>Agrega los productos o servicios del pedido. El precio es <strong>sin IVA</strong>; el sistema calcula el 19% automáticamente.</div>
+  <div id="prodsContainer"></div>
+  <div class="totales-box mt-3 mb-2"><div class="row g-2 justify-content-end"><div class="col-md-4">
+    <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">Subtotal:</span><strong id="lblSub">$ 0</strong></div>
+    <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">IVA 19%:</span><strong id="lblIva">$ 0</strong></div>
+    <div class="d-flex justify-content-between py-1"><span class="fw-bold">Total:</span><strong id="lblTot" style="color:#5e72e4;font-size:1.1rem">$ 0</strong></div>
+  </div></div></div>
 </div>
+
+<div class="form-section">
+  <div class="form-section-title"><i class="bi bi-cash-coin me-2"></i>Condiciones de pago y entrega</div>
+  <div class="row g-3 mb-2">
+    <div class="col-md-3">
+      <label class="form-label">Estado</label>
+      <select name="estado" class="form-select">
+        {% for est,lbl in [('prospecto','Prospecto'),('negociacion','Negociación'),('anticipo_pagado','Anticipo Pagado'),('ganado','Ganado'),('perdido','Perdido')] %}
+        <option value="{{ est }}" {% if obj and obj.estado==est %}selected{% elif not obj and est=='prospecto' %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
+      </select>
+      <div class="form-text">Refleja en qué etapa va el negocio.</div>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">% Anticipo</label>
+      <div class="input-group"><input type="number" name="porcentaje_anticipo" id="pctA" class="form-control" min="0" max="100" step="1"
+        value="{{ obj.porcentaje_anticipo|int if obj else '0' }}" oninput="calcA()"><span class="input-group-text">%</span></div>
+      <div class="form-text">Porcentaje del total que el cliente paga por adelantado.</div>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Monto anticipo COP</label>
+      <input type="text" id="montoAVis" class="form-control" readonly style="background:#f8f9fe" placeholder="Se calcula solo">
+      <input type="hidden" name="monto_anticipo" id="montoAHid">
+      <div class="form-text">Se calcula automáticamente.</div>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Saldo a pagar</label>
+      <input type="text" id="saldoVis" class="form-control" readonly style="background:#f8f9fe" placeholder="Se calcula solo">
+      <input type="hidden" name="saldo" id="saldoHid">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Fecha pago anticipo</label>
+      <input type="date" name="fecha_anticipo" id="fAnticipo" class="form-control"
+        value="{{ obj.fecha_anticipo.strftime('%Y-%m-%d') if obj and obj.fecha_anticipo else '' }}" onchange="calcEnt()">
+      <div class="form-text">¿Cuándo pagará el cliente el anticipo?</div>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Días de producción</label>
+      <select name="dias_entrega" id="diasEnt" class="form-select" onchange="calcEnt()">
+        <option value="30" {% if not obj or obj.dias_entrega==30 %}selected{% endif %}>30 días</option>
+        <option value="45" {% if obj and obj.dias_entrega==45 %}selected{% endif %}>45 días</option>
+      </select>
+      <div class="form-text">Tiempo estimado para fabricar o preparar el pedido.</div>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Entrega estimada</label>
+      <input type="text" id="entVis" class="form-control" readonly style="background:#f8f9fe" placeholder="Se calcula sola">
+      <input type="hidden" name="fecha_entrega_est" id="entHid" value="{{ obj.fecha_entrega_est.strftime('%Y-%m-%d') if obj and obj.fecha_entrega_est else '' }}">
+      <div class="form-text">Fecha anticipo + días producción.</div>
+    </div>
+    <div class="col-12">
+      <label class="form-label">Notas internas</label>
+      <textarea name="notas" class="form-control" rows="2" placeholder="Instrucciones especiales, acuerdos con el cliente, etc.">{{ obj.notas if obj else '' }}</textarea>
+    </div>
+  </div>
+</div>
+
 <input type="hidden" name="subtotal_calc" id="subHid">
 <input type="hidden" name="iva_calc" id="ivaHid">
 <input type="hidden" name="total_calc" id="totHid">
-<div class="d-flex gap-2 mt-4">
-  <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear Venta' }}</button>
+<div class="d-flex gap-2 mt-2">
+  <button type="submit" class="btn btn-primary btn-action"><i class="bi bi-check-lg me-1"></i>{{ 'Guardar cambios' if obj else 'Crear Venta' }}</button>
   <a href="{{ url_for('ventas') }}" class="btn btn-outline-secondary">Cancelar</a>
 </div></form></div>{% endblock %}
 {% block scripts %}<script>
