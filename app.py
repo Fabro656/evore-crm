@@ -65,7 +65,8 @@ def security_headers(response):
     return response
 
 _MODULOS_TODOS = ['clientes','ventas','cotizaciones','tareas','calendario',
-                  'notas','inventario','produccion','gastos','reportes']
+                  'notas','inventario','produccion','gastos','reportes','proveedores',
+                  'ordenes_compra','legal','finanzas','cotizaciones_proveedor','comercial','config']
 _MODULOS_ROL = {
     'admin':      _MODULOS_TODOS,
     'vendedor':   ['clientes','ventas','cotizaciones','tareas','calendario','notas'],
@@ -161,6 +162,11 @@ class Cliente(db.Model):
     estado          = db.Column(db.String(20), default='activo')
     creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
     actualizado_en  = db.Column(db.DateTime, default=datetime.utcnow)
+    banco_nombre    = db.Column(db.String(120))
+    banco_cuenta    = db.Column(db.String(80))
+    banco_tipo      = db.Column(db.String(40))
+    banco_titular   = db.Column(db.String(120))
+    info_legal      = db.Column(db.Text)
     contactos       = db.relationship('ContactoCliente', backref='cliente_rel', lazy=True, cascade='all, delete-orphan')
     ventas          = db.relationship('Venta', backref='cliente', lazy=True)
 
@@ -843,6 +849,14 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 @media(min-width:769px){
   #sb-overlay{display:none!important}
 }
+/* Copy field styles */
+.copy-field{padding:6px 0;border-bottom:1px solid #f0f0f0}
+.copy-field:last-child{border-bottom:none}
+.copy-label{font-size:.75rem;color:#6B778C;display:block;margin-bottom:2px}
+.copy-value{cursor:pointer;font-weight:500;color:#172B4D;padding:4px 8px;border-radius:4px;display:inline-flex;align-items:center;gap:4px;transition:background .15s}
+.copy-value:hover{background:#F4F5F7}
+.copy-value .bi-clipboard{color:#6B778C;font-size:.8rem}
+.copy-value .bi-check2{color:#00875A;font-size:.8rem}
 </style>{% endraw %}"""
 
 _CDN = """<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -858,7 +872,7 @@ T['base.html'] = """<!DOCTYPE html>
 """ + _CDN + _CSS + """
 </head><body>
 <nav id="sb">
-  <div class="sb-brand" style="padding:.85rem 1rem .7rem"><a href="/" style="text-decoration:none;color:inherit"><div style="overflow:hidden;line-height:0"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 474.45 119.52" width="188" height="47" style="filter:brightness(0) invert(1);opacity:.88;display:block"><path d="M163.87,76.22V43.3c0-13-1.37-15.81-1.37-15.81h45.27v4.07s-4.09-2.22-23.45-2.22H167.87V54.21h30.9v4.07S196.13,56,183.41,56H167.87V90.18H187C206.4,90.18,210.5,88,210.5,88V92h-48S163.87,89.26,163.87,76.22Z"/><path d="M215.13,27.49h7s-.28,2.77,4.72,15.81l17.91,46.33L263.21,43.3c5.18-13,3.82-15.81,3.82-15.81h5.82s-2.46,2.68-7.46,15.16L245.76,92h-4.27l-19-49C217.58,30.17,215.13,27.49,215.13,27.49Z"/><path d="M274.07,59.67c0-18.5,14.45-33.39,32.36-33.39s32.36,14.89,32.36,33.39-14.46,33.38-32.36,33.38S274.07,78.16,274.07,59.67Zm60.81,0c0-17.48-12.73-31.63-28.45-31.63S278,42.19,278,59.67s12.72,31.62,28.45,31.62S334.88,77.15,334.88,59.67Z"/><path d="M346.1,76.22V43.3c0-13-1.36-15.81-1.36-15.81h28.63c11,0,19.91,9.34,19.91,20.8s-8.73,20.63-19.55,20.81L381,76.5C393.55,89.35,397.64,92,397.64,92h-8.36S388,89.35,375.73,76.87l-7.54-7.77H350.1v7.12c0,13,1.36,15.81,1.36,15.81h-6.72S346.1,89.26,346.1,76.22Zm43.27-27.93c0-10.35-7.18-18.95-16-18.95H350.1V67.25h23.27C382.19,67.25,389.37,58.65,389.37,48.29Z"/><path d="M403.73,76.22V43.3c0-13-1.37-15.81-1.37-15.81h45.27v4.07s-4.09-2.22-23.45-2.22H407.72V54.21h30.91v4.07S436,56,423.27,56H407.72V90.18H426.9c19.36,0,23.45-2.21,23.45-2.21V92h-48S403.73,89.26,403.73,76.22Z"/><path d="M132.51,80.73a88.84,88.84,0,0,0-10.58-4.88s-1.06-.37-1-.67c.16-.91,2.08-1.17,7.25-8.06,5.35-7.14,6.47-10.49,7.48-13.42.86-2.49,1.79-8.27,1.29-8.87s-6.86-1-12.4.22c-5.31,1.2-8.35,2.62-8.65,2.28-.48-.53.71-4.69.83-8.52a36.63,36.63,0,0,0-.3-8.65c-.47-3-1.11-5.7-2-5.95s-3.76.62-5.26,1.27a62.18,62.18,0,0,0-7.26,4.28c-2.19,1.52-4.91,4.13-5.68,4.29s-2.1-4.53-5.19-9.9a64.94,64.94,0,0,0-4.29-6.84C85.44,15.47,83.05,12,81.26,12h0c-1.79,0-4.17,3.45-5.48,5.29a63.75,63.75,0,0,0-4.28,6.84c-3.1,5.37-4.34,10.07-5.19,9.9s-3.56-2.86-5.75-4.37a60.26,60.26,0,0,0-7.2-4.2c-1.5-.65-4.37-1.53-5.26-1.27s-1.53,3-2,5.95a36.08,36.08,0,0,0-.31,8.65c.12,3.83,1.32,8,.84,8.52-.3.34-3.35-1.08-8.66-2.28-5.53-1.24-11.82-.92-12.4-.22s.44,6.38,1.29,8.87c1,2.93,2.13,6.28,7.49,13.42,5.17,6.89,7.08,7.15,7.24,8.06.06.3-1,.67-1,.67A88.84,88.84,0,0,0,30,80.73c-2.76,1.7-5.9,4.24-5.9,5.54,0,1.59,2.67,3.48,6.14,5.78s11.55,5.88,20.12,5.07c9.65-.91,15.56-5.42,16.37-5.07.37.16.08,3.94,3.88,7.86,3.34,3.43,8,7.5,10.65,7.5s7.31-4.07,10.65-7.5c3.8-3.92,3.51-7.7,3.88-7.86.81-.35,6.73,4.16,16.37,5.07,8.58.81,16.61-2.75,20.13-5.07s6.14-4.19,6.13-5.78C138.41,85,135.27,82.43,132.51,80.73ZM120.37,48.38c6.29-2.14,13.77-2.27,14.29-1.59s-.51,11.81-13.15,24.48c-8.57,8.59-16.05,9.66-22.83,10.46a49.69,49.69,0,0,1-12.32-.54,26.06,26.06,0,0,0,8.55-9c3.31-5.9,4.74-10.88,10.5-15.29S114.07,50.51,120.37,48.38ZM104.31,30.92c5.53-3.75,8.42-4.45,8.92-4.12s1.29,3.49,1.25,9.2a88,88,0,0,1-1.28,12.24s-1.74.95-6.5,4.28a38.24,38.24,0,0,0-7.13,6.11,56.1,56.1,0,0,0-.32-12A73.79,73.79,0,0,0,97,37.13S98.78,34.67,104.31,30.92Zm-33-1.39c3-6,8.24-14.66,9.91-14.66s7,8.68,9.91,14.66a59.24,59.24,0,0,1,6.13,25,32.38,32.38,0,0,1-7.47,20c-3.88,4.88-8.13,6.14-8.57,6.14s-4.69-1.26-8.57-6.14a32.38,32.38,0,0,1-7.47-20A59.24,59.24,0,0,1,71.35,29.53ZM49.29,26.8c.5-.33,3.4.37,8.92,4.12s7.36,6.21,7.36,6.21a72.86,72.86,0,0,0-2.3,9.53,56.1,56.1,0,0,0-.32,12,38.24,38.24,0,0,0-7.13-6.11c-4.76-3.33-6.5-4.28-6.5-4.28A88,88,0,0,1,48,36C48,30.29,48.77,27.14,49.29,26.8ZM41,71.27C28.37,58.6,27.35,47.47,27.86,46.79s8-.55,14.3,1.59,9.19,4.14,15,8.54,7.2,9.39,10.5,15.29a26.06,26.06,0,0,0,8.55,9,49.69,49.69,0,0,1-12.32.54C57.06,80.93,49.58,79.86,41,71.27ZM62.77,91.11a31.75,31.75,0,0,1-17.52,3.76c-4.91-.33-8.86-2.14-12.74-4.16s-5.77-3.82-5.77-4.54,3.57-3.23,6.92-4.81a85.68,85.68,0,0,1,9-3.93c.81-.28,1-.05,2.33.69a30.76,30.76,0,0,0,9.68,4.43,107,107,0,0,0,14,2S66.75,89.14,62.77,91.11Zm25.1,9.17c-4.37,4.22-6,4.41-6.61,4.41s-2.24-.19-6.61-4.41-6.23-8.18-4.86-12.1a5.72,5.72,0,0,1,1.6-2.69c2.73-2.62,9.86-2.33,9.86-2.33h0s7.12-.29,9.85,2.33a5.72,5.72,0,0,1,1.6,2.69C94.1,92.1,92.23,96.06,87.87,100.28ZM130,90.71c-3.88,2-7.83,3.83-12.74,4.16a31.75,31.75,0,0,1-17.52-3.76c-4-2-6-6.58-6-6.58a107,107,0,0,0,14-2,30.63,30.63,0,0,0,9.68-4.43c1.39-.74,1.52-1,2.34-.69a86.72,86.72,0,0,1,9,3.93c3.36,1.58,6.92,4.1,6.92,4.81S134,88.63,130,90.71Z"/></svg><span class="bt" style="font-size:.65rem;letter-spacing:1px;opacity:.55;white-space:nowrap"> CRM</span></div></a></div>
+  <div class="sb-brand" style="padding:.85rem 1rem .7rem"><a href="/" style="text-decoration:none;color:inherit"><div style="overflow:hidden;line-height:0"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 474.45 119.52" width="188" height="47" style="filter:brightness(0) invert(1);opacity:.88;display:block"><path d="M163.87,76.22V43.3c0-13-1.37-15.81-1.37-15.81h45.27v4.07s-4.09-2.22-23.45-2.22H167.87V54.21h30.9v4.07S196.13,56,183.41,56H167.87V90.18H187C206.4,90.18,210.5,88,210.5,88V92h-48S163.87,89.26,163.87,76.22Z"/><path d="M215.13,27.49h7s-.28,2.77,4.72,15.81l17.91,46.33L263.21,43.3c5.18-13,3.82-15.81,3.82-15.81h5.82s-2.46,2.68-7.46,15.16L245.76,92h-4.27l-19-49C217.58,30.17,215.13,27.49,215.13,27.49Z"/><path d="M274.07,59.67c0-18.5,14.45-33.39,32.36-33.39s32.36,14.89,32.36,33.39-14.46,33.38-32.36,33.38S274.07,78.16,274.07,59.67Zm60.81,0c0-17.48-12.73-31.63-28.45-31.63S278,42.19,278,59.67s12.72,31.62,28.45,31.62S334.88,77.15,334.88,59.67Z"/><path d="M346.1,76.22V43.3c0-13-1.36-15.81-1.36-15.81h28.63c11,0,19.91,9.34,19.91,20.8s-8.73,20.63-19.55,20.81L381,76.5C393.55,89.35,397.64,92,397.64,92h-8.36S388,89.35,375.73,76.87l-7.54-7.77H350.1v7.12c0,13,1.36,15.81,1.36,15.81h-6.72S346.1,89.26,346.1,76.22Zm43.27-27.93c0-10.35-7.18-18.95-16-18.95H350.1V67.25h23.27C382.19,67.25,389.37,58.65,389.37,48.29Z"/><path d="M403.73,76.22V43.3c0-13-1.37-15.81-1.37-15.81h45.27v4.07s-4.09-2.22-23.45-2.22H407.72V54.21h30.91v4.07S436,56,423.27,56H407.72V90.18H426.9c19.36,0,23.45-2.21,23.45-2.21V92h-48S403.73,89.26,403.73,76.22Z"/><path d="M132.51,80.73a88.84,88.84,0,0,0-10.58-4.88s-1.06-.37-1-.67c.16-.91,2.08-1.17,7.25-8.06,5.35-7.14,6.47-10.49,7.48-13.42.86-2.49,1.79-8.27,1.29-8.87s-6.86-1-12.4.22c-5.31,1.2-8.35,2.62-8.65,2.28-.48-.53.71-4.69.83-8.52a36.63,36.63,0,0,0-.3-8.65c-.47-3-1.11-5.7-2-5.95s-3.76.62-5.26,1.27a62.18,62.18,0,0,0-7.26,4.28c-2.19,1.52-4.91,4.13-5.68,4.29s-2.1-4.53-5.19-9.9a64.94,64.94,0,0,0-4.29-6.84C85.44,15.47,83.05,12,81.26,12h0c-1.79,0-4.17,3.45-5.48,5.29a63.75,63.75,0,0,0-4.28,6.84c-3.1,5.37-4.34,10.07-5.19,9.9s-3.56-2.86-5.75-4.37a60.26,60.26,0,0,0-7.2-4.2c-1.5-.65-4.37-1.53-5.26-1.27s-1.53,3-2,5.95a36.08,36.08,0,0,0-.31,8.65c.12,3.83,1.32,8,.84,8.52-.3.34-3.35-1.08-8.66-2.28-5.53-1.24-11.82-.92-12.4-.22s.44,6.38,1.29,8.87c1,2.93,2.13,6.28,7.49,13.42,5.17,6.89,7.08,7.15,7.24,8.06.06.3-1,.67-1,.67A88.84,88.84,0,0,0,30,80.73c-2.76,1.7-5.9,4.24-5.9,5.54,0,1.59,2.67,3.48,6.14,5.78s11.55,5.88,20.12,5.07c9.65-.91,15.56-5.42,16.37-5.07.37.16.08,3.94,3.88,7.86,3.34,3.43,8,7.5,10.65,7.5s7.31-4.07,10.65-7.5c3.8-3.92,3.51-7.7,3.88-7.86.81-.35,6.73,4.16,16.37,5.07,8.58.81,16.61-2.75,20.13-5.07s6.14-4.19,6.13-5.78C138.41,85,135.27,82.43,132.51,80.73ZM120.37,48.38c6.29-2.14,13.77-2.27,14.29-1.59s-.51,11.81-13.15,24.48c-8.57,8.59-16.05,9.66-22.83,10.46a49.69,49.69,0,0,1-12.32-.54,26.06,26.06,0,0,0,8.55-9c3.31-5.9,4.74-10.88,10.5-15.29S114.07,50.51,120.37,48.38ZM104.31,30.92c5.53-3.75,8.42-4.45,8.92-4.12s1.29,3.49,1.25,9.2a88,88,0,0,1-1.28,12.24s-1.74.95-6.5,4.28a38.24,38.24,0,0,0-7.13,6.11,56.1,56.1,0,0,0-.32-12A73.79,73.79,0,0,0,97,37.13S98.78,34.67,104.31,30.92Zm-33-1.39c3-6,8.24-14.66,9.91-14.66s7,8.68,9.91,14.66a59.24,59.24,0,0,1,6.13,25,32.38,32.38,0,0,1-7.47,20c-3.88,4.88-8.13,6.14-8.57,6.14s-4.69-1.26-8.57-6.14a32.38,32.38,0,0,1-7.47-20A59.24,59.24,0,0,1,71.35,29.53ZM49.29,26.8c.5-.33,3.4.37,8.92,4.12s7.36,6.21,7.36,6.21a72.86,72.86,0,0,0-2.3,9.53,56.1,56.1,0,0,0-.32,12,38.24,38.24,0,0,0-7.13-6.11c-4.76-3.33-6.5-4.28-6.5-4.28A88,88,0,0,1,48,36C48,30.29,48.77,27.14,49.29,26.8ZM41,71.27C28.37,58.6,27.35,47.47,27.86,46.79s8-.55,14.3,1.59,9.19,4.14,15,8.54,7.2,9.39,10.5,15.29a26.06,26.06,0,0,0,8.55,9,49.69,49.69,0,0,1-12.32.54C57.06,80.93,49.58,79.86,41,71.27ZM62.77,91.11a31.75,31.75,0,0,1-17.52,3.76c-4.91-.33-8.86-2.14-12.74-4.16s-5.77-3.82-5.77-4.54,3.57-3.23,6.92-4.81a85.68,85.68,0,0,1,9-3.93c.81-.28,1-.05,2.33.69a30.76,30.76,0,0,0,9.68,4.43,107,107,0,0,0,14,2S66.75,89.14,62.77,91.11Zm25.1,9.17c-4.37,4.22-6,4.41-6.61,4.41s-2.24-.19-6.61-4.41-6.23-8.18-4.86-12.1a5.72,5.72,0,0,1,1.6-2.69c2.73-2.62,9.86-2.33,9.86-2.33h0s7.12-.29,9.85,2.33a5.72,5.72,0,0,1,1.6,2.69C94.1,92.1,92.23,96.06,87.87,100.28ZM130,90.71c-3.88,2-7.83,3.83-12.74,4.16a31.75,31.75,0,0,1-17.52-3.76c-4-2-6-6.58-6-6.58a107,107,0,0,0,14-2,30.63,30.63,0,0,0,9.68-4.43c1.39-.74,1.52-1,2.34-.69a86.72,86.72,0,0,1,9,3.93c3.36,1.58,6.92,4.1,6.92,4.81S134,88.63,130,90.71Z"/></svg><span class="bt" style="font-size:.65rem;letter-spacing:1px;opacity:.9;white-space:nowrap"> CRM</span></div></a></div>
   <div class="sb-nav py-2" style="overflow-y:auto;flex:1">
     <div class="sb-sec">Principal</div>
     <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint=='dashboard' %}active{% endif %}">
@@ -869,7 +883,6 @@ T['base.html'] = """<!DOCTYPE html>
     {% if 'clientes' in m %}<a href="{{ url_for('clientes') }}" class="nav-link {% if 'cliente' in request.endpoint %}active{% endif %}"><i class="bi bi-people-fill"></i><span>Clientes</span></a>{% endif %}
     {% if 'ventas' in m %}<a href="{{ url_for('ventas') }}" class="nav-link {% if 'venta' in request.endpoint %}active{% endif %}"><i class="bi bi-graph-up-arrow"></i><span>Ventas</span></a>{% endif %}
     {% if 'cotizaciones' in m %}<a href="{{ url_for('cotizaciones') }}" class="nav-link {% if request.endpoint in ['cotizaciones','cotizacion_nueva','cotizacion_ver','cotizacion_editar'] %}active{% endif %}"><i class="bi bi-file-earmark-text-fill"></i><span>Cotizaciones</span></a>{% endif %}
-    {% if 'cotizaciones' in m %}<a href="{{ url_for('granel') }}" class="nav-link {% if 'granel' in request.endpoint %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-building"></i><span>Cot. Granel</span></a>{% endif %}
     {% if 'tareas' in m %}<a href="{{ url_for('tareas') }}" class="nav-link {% if 'tarea' in request.endpoint %}active{% endif %}"><i class="bi bi-check2-square"></i><span>Tareas</span></a>{% endif %}
     {% if 'calendario' in m %}<a href="{{ url_for('calendario') }}" class="nav-link {% if request.endpoint=='calendario' or 'evento' in request.endpoint %}active{% endif %}"><i class="bi bi-calendar3"></i><span>Calendario</span></a>{% endif %}
     {% if 'notas' in m %}<a href="{{ url_for('notas') }}" class="nav-link {% if 'nota' in request.endpoint %}active{% endif %}"><i class="bi bi-sticky-fill"></i><span>Notas</span></a>{% endif %}
@@ -994,12 +1007,24 @@ function toggleNotif(e){
   fetch('/notificaciones/recientes').then(r=>r.json()).then(data=>{
     var html='';
     if(data.length===0){html='<div class="p-3 text-center text-muted" style="font-size:.8rem">Sin notificaciones</div>';}
-    else{data.forEach(n=>{html+='<div class="notif-item'+(n.leida?'':' unread')+'" onclick="window.location=\\''+n.url+'\\'">'
+    else{data.forEach(n=>{html+='<div class="notif-item'+(n.leida?'':' unread')+'" onclick="marcarLeida(event,this,'+n.id+')">'
       +'<div class="ni-title">'+n.titulo+'</div>'
       +'<div class="ni-msg">'+n.mensaje+'</div>'
-      +'<div class="ni-time">'+n.tiempo+'</div></div>';});}
+      +'<div class="ni-time">'+n.tiempo+'</div>'
+      +'<a href="'+n.url+'" style="display:none" id="notif-link-'+n.id+'"></a></div>';});}
     document.getElementById('notifList').innerHTML=html;
   }).catch(()=>{});
+}
+function marcarLeida(e,el,id){
+  e.stopPropagation();
+  fetch('/notificaciones/'+id+'/leida',{method:'POST',headers:{'Content-Type':'application/json'}})
+    .then(()=>{
+      el.parentElement.removeChild(el);
+      var badge=document.getElementById('notif-badge');
+      if(badge){var c=parseInt(badge.textContent||0)-1;if(c<=0){if(badge.parentElement)badge.parentElement.removeChild(badge);}else badge.textContent=c;}
+      var dest=document.getElementById('notif-link-'+id);
+      if(dest&&dest.href&&dest.href!=='#'){setTimeout(function(){window.location=dest.href;},100);}
+    });
 }
 document.addEventListener('click',function(e){
   var dd=document.getElementById('notifDd');
@@ -1047,6 +1072,21 @@ function setupAutoTitulo(tituloSel, sourceIds){
   });
   build();
 }
+function copiarTexto(el,txt){
+  navigator.clipboard.writeText(txt).then(function(){
+    var ic=el.querySelector('.bi');
+    if(ic){ic.className='bi bi-check2';}
+    setTimeout(function(){if(ic)ic.className='bi bi-clipboard ms-1';},1500);
+  });
+}
+</script>
+<script>
+(function(){
+  var _t=null,_LIMIT=5*60*1000;
+  function _reset(){clearTimeout(_t);_t=setTimeout(function(){window.location='/logout';},_LIMIT);}
+  ['mousemove','keypress','click','scroll','touchstart'].forEach(function(e){document.addEventListener(e,_reset,{passive:true});});
+  _reset();
+})();
 </script>
 {% block scripts %}{% endblock %}
 </body></html>"""
@@ -1446,6 +1486,36 @@ T['clientes/form.html'] = """{% extends 'base.html' %}
   </div>{% endif %}
 </div>
 
+<div class="form-section">
+  <div class="form-section-title"><i class="bi bi-bank me-2"></i>Información bancaria y legal</div>
+  <div class="row g-3">
+    <div class="col-md-6">
+      <label class="form-label">Banco</label>
+      <input type="text" name="banco_nombre" class="form-control" value="{{ obj.banco_nombre or '' }}" placeholder="Ej: Bancolombia">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Tipo de cuenta</label>
+      <select name="banco_tipo" class="form-select">
+        <option value="">— seleccionar —</option>
+        <option value="Ahorros" {% if obj and obj.banco_tipo=='Ahorros' %}selected{% endif %}>Ahorros</option>
+        <option value="Corriente" {% if obj and obj.banco_tipo=='Corriente' %}selected{% endif %}>Corriente</option>
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Número de cuenta</label>
+      <input type="text" name="banco_cuenta" class="form-control" value="{{ obj.banco_cuenta or '' }}" placeholder="Número de cuenta">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Titular de la cuenta</label>
+      <input type="text" name="banco_titular" class="form-control" value="{{ obj.banco_titular or '' }}" placeholder="Nombre del titular">
+    </div>
+    <div class="col-12">
+      <label class="form-label">Información legal adicional</label>
+      <textarea name="info_legal" class="form-control" rows="3" placeholder="RUT, representante legal, etc.">{{ obj.info_legal or '' }}</textarea>
+    </div>
+  </div>
+</div>
+
 <div class="d-flex gap-2 mt-2">
   <button type="submit" class="btn btn-primary btn-action"><i class="bi bi-check-lg me-1"></i>{{ 'Guardar cambios' if obj else 'Crear Cliente' }}</button>
   <a href="{{ url_for('clientes') }}" class="btn btn-outline-secondary">Cancelar</a>
@@ -1535,7 +1605,52 @@ T['clientes/ver.html'] = """{% extends 'base.html' %}
     {% else %}<div class="text-center text-muted py-4"><i class="bi bi-graph-up" style="font-size:2rem"></i>
       <p class="mt-2 mb-0">Sin ventas</p></div>{% endif %}
   </div></div>
-</div>{% endblock %}"""
+</div>
+{% if obj.banco_nombre or obj.banco_cuenta or obj.banco_titular or obj.info_legal %}
+<div class="card mt-4">
+  <div class="card-header fw-semibold"><i class="bi bi-bank me-2"></i>Información bancaria y legal</div>
+  <div class="card-body">
+    <div class="row g-2">
+      {% if obj.banco_nombre %}
+      <div class="col-md-6">
+        <div class="copy-field">
+          <span class="copy-label">Banco</span>
+          <span class="copy-value" onclick="copiarTexto(this,'{{ obj.banco_nombre }}')">{{ obj.banco_nombre }} <i class="bi bi-clipboard ms-1"></i></span>
+        </div>
+      </div>{% endif %}
+      {% if obj.banco_tipo %}
+      <div class="col-md-6">
+        <div class="copy-field">
+          <span class="copy-label">Tipo</span>
+          <span class="copy-value" onclick="copiarTexto(this,'{{ obj.banco_tipo }}')">{{ obj.banco_tipo }} <i class="bi bi-clipboard ms-1"></i></span>
+        </div>
+      </div>{% endif %}
+      {% if obj.banco_cuenta %}
+      <div class="col-md-6">
+        <div class="copy-field">
+          <span class="copy-label">Número de cuenta</span>
+          <span class="copy-value" onclick="copiarTexto(this,'{{ obj.banco_cuenta }}')">{{ obj.banco_cuenta }} <i class="bi bi-clipboard ms-1"></i></span>
+        </div>
+      </div>{% endif %}
+      {% if obj.banco_titular %}
+      <div class="col-md-6">
+        <div class="copy-field">
+          <span class="copy-label">Titular</span>
+          <span class="copy-value" onclick="copiarTexto(this,'{{ obj.banco_titular }}')">{{ obj.banco_titular }} <i class="bi bi-clipboard ms-1"></i></span>
+        </div>
+      </div>{% endif %}
+      {% if obj.info_legal %}
+      <div class="col-12">
+        <div class="copy-field">
+          <span class="copy-label">Info. legal</span>
+          <span class="copy-value" onclick="copiarTexto(this,{{ obj.info_legal|tojson }})">{{ obj.info_legal }} <i class="bi bi-clipboard ms-1"></i></span>
+        </div>
+      </div>{% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}"""
 
 T['ordenes_compra/index.html'] = """{% extends 'base.html' %}
 {% block title %}Órdenes de Compra{% endblock %}{% block page_title %}Órdenes de Compra{% endblock %}
@@ -1806,6 +1921,140 @@ ITEMS_EDIT.forEach(function(it){addItem(it);});
 if(ITEMS_EDIT.length===0) addItem();
 onCotChange();
 </script>{% endblock %}{% endblock %}"""
+
+T['ordenes_compra/pdf.html'] = """<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Orden de Compra — {{ oc.numero or oc.id }}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:11.5pt;color:#172B4D;background:#fff}
+.page{max-width:800px;margin:0 auto;padding:24px 32px}
+.no-print{position:fixed;top:14px;right:14px;display:flex;gap:8px;z-index:999}
+.btn-print{background:#0052CC;color:#fff;border:none;padding:8px 18px;border-radius:3px;cursor:pointer;font-size:13px;font-weight:600}
+.btn-back{background:#DFE1E6;color:#172B4D;border:none;padding:8px 14px;border-radius:3px;cursor:pointer;font-size:13px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+/* Header */
+.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #172B4D;padding-bottom:14px;margin-bottom:20px}
+.logo-area{display:flex;align-items:center;gap:10px}
+.doc-title{text-align:right}
+.doc-title h1{font-size:22pt;font-weight:800;color:#172B4D;letter-spacing:-1px}
+.doc-number{font-size:9.5pt;color:#6B778C;margin-top:4px}
+/* Info boxes */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+.info-box{background:#F4F5F7;border-radius:3px;padding:10px 14px}
+.info-box h4{font-size:7.5pt;text-transform:uppercase;letter-spacing:.8px;color:#6B778C;margin-bottom:6px;font-weight:700}
+.info-box p{font-size:10pt;color:#172B4D;line-height:1.5}
+/* Table */
+table.items-table{width:100%;border-collapse:collapse;margin:12px 0}
+table.items-table th{background:#172B4D;color:#fff;font-size:8.5pt;padding:7px 10px;text-align:left;font-weight:600;letter-spacing:.4px;text-transform:uppercase}
+table.items-table th.r,table.items-table td.r{text-align:right}
+table.items-table td{padding:7px 10px;font-size:10pt;border-bottom:1px solid #DFE1E6}
+table.items-table tr:nth-child(even) td{background:#F4F5F7}
+/* Totals */
+.totals{margin-left:auto;width:260px;margin-top:10px}
+.totals table td{font-size:10pt;padding:5px 10px;border-bottom:1px solid #DFE1E6}
+.totals .grand{background:#172B4D;color:#fff;font-weight:700;font-size:11.5pt}
+/* Signature */
+.signatures{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:36px}
+.sig-line{border-top:1.5px solid #172B4D;padding-top:8px;font-size:9pt;color:#6B778C;text-align:center}
+/* Footer */
+.footer-bar{margin-top:24px;padding-top:12px;border-top:1px solid #DFE1E6;font-size:8.5pt;color:#6B778C;display:flex;justify-content:space-between;align-items:center}
+@media print{
+  .no-print{display:none!important}
+  body{background:#fff}
+  .page{padding:12mm 14mm}
+}
+</style>
+</head>
+<body>
+<div class="no-print">
+  <a href="{{ url_for('ordenes_compra') }}" class="btn-back">← Volver</a>
+  <button onclick="window.print()" class="btn-print">🖨 Imprimir / Guardar PDF</button>
+</div>
+<div class="page">
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-area">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 341.94 261.01" height="44" style="display:block">
+        <path fill="#172B4D" d="M239.09,111.71C234.61,109,225,105.23,225,105.23s-1.42-.5-1.34-.9c.21-1.2,2.76-1.54,9.63-10.7,7.11-9.49,8.6-13.94,9.94-17.84,1.14-3.3,2.38-11,1.72-11.79s-9.12-1.35-16.48.3c-7.06,1.58-11.1,3.47-11.5,3-.64-.71.95-6.23,1.11-11.33.17-5.28.32-6.75-.41-11.49-.61-4-1.47-7.57-2.65-7.91s-5,.82-7,1.69A81.41,81.41,0,0,0,198.41,44c-2.91,2-6.52,5.48-7.55,5.69s-2.79-6-6.9-13.15a86,86,0,0,0-5.69-9.09c-1.74-2.45-4.91-7-7.28-7h0c-2.38,0-5.54,4.59-7.28,7A84.29,84.29,0,0,0,158,36.52c-4.12,7.13-5.76,13.38-6.9,13.15s-4.73-3.8-7.64-5.8a79.94,79.94,0,0,0-9.56-5.58c-2-.87-5.81-2-7-1.69s-2,3.94-2.65,7.91c-.73,4.74-.58,6.21-.41,11.49.16,5.1,1.74,10.62,1.11,11.33-.4.44-4.44-1.45-11.5-3C106.08,62.65,97.72,63.08,97,64s.57,8.49,1.71,11.79c1.35,3.9,2.83,8.35,10,17.84,6.87,9.16,9.41,9.5,9.63,10.7.07.4-1.35.9-1.35.9s-9.57,3.72-14.06,6.48C99.17,114,95,117.34,95,119.08c0,2.11,3.54,4.62,8.14,7.67s15.36,7.83,26.75,6.75c12.82-1.22,20.68-7.21,21.76-6.74.49.21.11,5.24,5.16,10.44,4.43,4.56,10.58,10,14.15,10s9.72-5.42,14.15-10c5-5.2,4.67-10.23,5.16-10.44,1.07-.47,8.93,5.52,21.76,6.74,11.39,1.08,22.07-3.65,26.74-6.75s8.17-5.56,8.15-7.67C246.93,117.34,242.76,114,239.09,111.71Z"/>
+      </svg>
+      {% if empresa and empresa.nombre %}<span style="font-size:11pt;font-weight:700;color:#172B4D">{{ empresa.nombre }}</span>{% endif %}
+    </div>
+    <div class="doc-title">
+      <h1>ORDEN DE COMPRA</h1>
+      <div class="doc-number">{{ oc.numero or 'OC-' + (oc.id|string) }}</div>
+      <div class="doc-number" style="margin-top:2px">{{ oc.creado_en.strftime('%d/%m/%Y') if oc.creado_en else '' }}</div>
+    </div>
+  </div>
+
+  <!-- Info grid -->
+  <div class="info-grid">
+    <div class="info-box">
+      <h4>Proveedor</h4>
+      <p><strong>{{ oc.proveedor.empresa or oc.proveedor.nombre if oc.proveedor else '—' }}</strong><br>
+      {% if oc.proveedor and oc.proveedor.nit %}NIT: {{ oc.proveedor.nit }}<br>{% endif %}
+      {% if oc.proveedor and oc.proveedor.telefono %}{{ oc.proveedor.telefono }}{% endif %}</p>
+    </div>
+    <div class="info-box">
+      <h4>Comprante</h4>
+      <p><strong>{{ empresa.nombre if empresa else '—' }}</strong><br>
+      {% if empresa and empresa.nit %}NIT: {{ empresa.nit }}<br>{% endif %}
+      {% if empresa and empresa.telefono %}{{ empresa.telefono }}{% endif %}</p>
+    </div>
+    <div class="info-box">
+      <h4>Condiciones de pago</h4>
+      <p>{{ oc.condiciones_pago or '—' }}</p>
+    </div>
+    <div class="info-box">
+      <h4>Observaciones</h4>
+      <p>{{ oc.observaciones or '—' }}</p>
+    </div>
+  </div>
+
+  <!-- Items table -->
+  <table class="items-table">
+    <thead><tr>
+      <th style="width:5%">#</th>
+      <th>Descripción</th>
+      <th style="width:15%" class="r">Cantidad</th>
+      <th style="width:15%" class="r">Precio Unit</th>
+      <th style="width:15%" class="r">Subtotal</th>
+    </tr></thead>
+    <tbody>
+      {% for item in oc.items %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ item.nombre_item }}<br><span style="font-size:9pt;color:#6B778C">{{ item.descripcion }}</span></td>
+        <td class="r">{{ "%.2f"|format(item.cantidad) }} {{ item.unidad }}</td>
+        <td class="r">$ {{ "{:,.0f}".format(item.precio_unit) }}</td>
+        <td class="r">$ {{ "{:,.0f}".format(item.subtotal) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Totals -->
+  <div class="totals">
+    <table>
+      <tr><td>Subtotal:</td><td class="r" style="font-weight:600">$ {{ "{:,.0f}".format(oc.subtotal or 0) }}</td></tr>
+      <tr><td>IVA (19%):</td><td class="r" style="font-weight:600">$ {{ "{:,.0f}".format((oc.subtotal or 0) * 0.19) }}</td></tr>
+      <tr class="grand"><td>Total:</td><td class="r">$ {{ "{:,.0f}".format((oc.subtotal or 0) * 1.19) }}</td></tr>
+    </table>
+  </div>
+
+  <!-- Signatures -->
+  <div class="signatures">
+    <div class="sig-line">Autorizado por</div>
+    <div class="sig-line">Recibido por</div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer-bar">
+    <span>Orden de Compra</span>
+    <span>{{ now.strftime('%d/%m/%Y %H:%M') if now else '' }}</span>
+  </div>
+</div>
+</body></html>"""
 
 T['proveedores/index.html'] = """{% extends 'base.html' %}
 {% block title %}Proveedores{% endblock %}{% block page_title %}Proveedores y Transportistas{% endblock %}
@@ -2997,7 +3246,7 @@ T['admin/usuario_form.html'] = """{% extends 'base.html' %}
   <div class="col-12" id="divModulos">
     <label class="form-label fw-semibold">Módulos permitidos <small class="text-muted fw-normal">(personalizar acceso)</small></label>
     <div class="row g-2 mt-1">
-      {% set modulos_map = [('clientes','Clientes','people-fill'),('ventas','Ventas','graph-up-arrow'),('cotizaciones','Cotizaciones','file-earmark-text-fill'),('tareas','Tareas','check2-square'),('calendario','Calendario','calendar3'),('notas','Notas','sticky-fill'),('inventario','Inventario','box-seam-fill'),('produccion','Producción','gear-fill'),('gastos','Gastos','receipt'),('reportes','Reportes','bar-chart-fill')] %}
+      {% set modulos_map = [('clientes','Clientes','people-fill'),('ventas','Ventas','graph-up-arrow'),('cotizaciones','Cotizaciones','file-earmark-text-fill'),('tareas','Tareas','check2-square'),('calendario','Calendario','calendar3'),('notas','Notas','sticky-fill'),('inventario','Inventario','box-seam-fill'),('produccion','Producción','gear-fill'),('gastos','Gastos','receipt'),('reportes','Reportes','bar-chart-fill'),('proveedores','Proveedores','truck'),('ordenes_compra','Órdenes de Compra','cart-check'),('legal','Legal','shield-check'),('finanzas','Finanzas','calculator'),('cotizaciones_proveedor','Cot. Proveedor','file-earmark-check'),('comercial','Comercial','briefcase-fill'),('config','Configuración','gear')] %}
       {% for key,label,icon in modulos_map %}
       <div class="col-md-3 col-6">
         <div class="form-check p-2 border rounded" style="background:#f8f9fe">
@@ -3020,10 +3269,10 @@ T['admin/usuario_form.html'] = """{% extends 'base.html' %}
 {% block scripts %}<script>
 var ROL_MODULOS = {
   usuario:    ['tareas','notas','calendario'],
-  vendedor:   ['clientes','ventas','cotizaciones','tareas','calendario','notas'],
+  vendedor:   ['clientes','ventas','cotizaciones','tareas','calendario','notas','proveedores','cotizaciones_proveedor'],
   produccion: ['inventario','produccion','gastos','notas','calendario','tareas'],
-  contador:   ['gastos','reportes','produccion','notas'],
-  admin:      ['clientes','ventas','cotizaciones','tareas','calendario','notas','inventario','produccion','gastos','reportes']
+  contador:   ['gastos','reportes','produccion','notas','finanzas'],
+  admin:      ['clientes','ventas','cotizaciones','tareas','calendario','notas','inventario','produccion','gastos','reportes','proveedores','ordenes_compra','legal','finanzas','cotizaciones_proveedor','comercial','config']
 };
 function applyRol(){
   var rol=document.getElementById('rolSel').value;
@@ -3280,7 +3529,11 @@ T['calendario.html'] = """{% extends 'base.html' %}
         {% endif %}
         {% for ev in evs[:3] %}
           {% set ev_cls = {'tarea':'ev-tarea','venta':'ev-venta','evento':'ev-evento','nota':'ev-nota','caducidad':'ev-caducidad'}.get(ev.t, 'ev-evento') %}
-          <div class="cal-ev {{ ev_cls }}" title="{{ ev.n|e }}" style="font-size:.68rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%">{{ ev.n|truncate(24,true,'…') }}</div>
+          {% if ev.t == 'tarea' %}
+            <div class="cal-ev {{ ev_cls }}" data-titulo="{{ ev.n|e }}" data-desc="{{ ev.d|e }}" onclick="verTarea(event,this)" style="font-size:.68rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%;cursor:pointer">{{ ev.n|truncate(24,true,'…') }}</div>
+          {% else %}
+            <div class="cal-ev {{ ev_cls }}" title="{{ ev.n|e }}" style="font-size:.68rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%">{{ ev.n|truncate(24,true,'…') }}</div>
+          {% endif %}
         {% endfor %}
         {% if evs|length > 3 %}
           <div style="font-size:.65rem;color:#8898aa">+{{ evs|length - 3 }} más</div>
@@ -3323,7 +3576,26 @@ T['calendario.html'] = """{% extends 'base.html' %}
     </div></form>
   </div></div>
 </div>
-{% endblock %}"""
+<!-- Modal ver tarea -->
+<div class="modal fade" id="modalVerTarea" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title" id="modalTareaTitle"></h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <p id="modalTareaDesc" class="text-muted"></p>
+    </div>
+  </div></div>
+</div>
+{% block scripts %}
+<script>
+function verTarea(e,el){
+  e.stopPropagation();
+  document.getElementById('modalTareaTitle').textContent = el.dataset.titulo||'Sin título';
+  document.getElementById('modalTareaDesc').textContent = el.dataset.desc||'Sin descripción';
+  new bootstrap.Modal(document.getElementById('modalVerTarea')).show();
+}
+</script>
+{% endblock %}{% endblock %}"""
 
 T['ventas/remision.html'] = """<!DOCTYPE html>
 <html lang="es"><head>
@@ -3392,12 +3664,8 @@ table.items-table tr:nth-child(even) td{background:#F4F5F7}
   <!-- Header -->
   <div class="header">
     <div class="logo-area">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 474.45 119.52" height="40" style="display:block">
-        <path fill="#172B4D" d="M163.87,76.22V43.3c0-13-1.37-15.81-1.37-15.81h45.27v4.07s-4.09-2.22-23.45-2.22H167.87V54.21h30.9v4.07S196.13,56,183.41,56H167.87V90.18H187C206.4,90.18,210.5,88,210.5,88V92h-48S163.87,89.26,163.87,76.22Z"/>
-        <path fill="#172B4D" d="M215.13,27.49h7s-.28,2.77,4.72,15.81l17.91,46.33L263.21,43.3c5.18-13,3.82-15.81,3.82-15.81h5.82s-2.46,2.68-7.46,15.16L245.76,92h-4.27l-19-49C217.58,30.17,215.13,27.49,215.13,27.49Z"/>
-        <path fill="#172B4D" d="M274.07,59.67c0-18.5,14.45-33.39,32.36-33.39s32.36,14.89,32.36,33.39-14.46,33.38-32.36,33.38S274.07,78.16,274.07,59.67Zm60.81,0c0-17.48-12.73-31.63-28.45-31.63S278,42.19,278,59.67s12.72,31.62,28.45,31.62S334.88,77.15,334.88,59.67Z"/>
-        <path fill="#172B4D" d="M346.1,76.22V43.3c0-13-1.36-15.81-1.36-15.81h28.63c11,0,19.91,9.34,19.91,20.8s-8.73,20.63-19.55,20.81L381,76.5C393.55,89.35,397.64,92,397.64,92h-8.36S388,89.35,375.73,76.87l-7.54-7.77H350.1v7.12c0,13,1.36,15.81,1.36,15.81h-6.72S346.1,89.26,346.1,76.22Zm43.27-27.93c0-10.35-7.18-18.95-16-18.95H350.1V67.25h23.27C382.19,67.25,389.37,58.65,389.37,48.29Z"/>
-        <path fill="#172B4D" d="M403.73,76.22V43.3c0-13-1.37-15.81-1.37-15.81h45.27v4.07s-4.09-2.22-23.45-2.22H407.72V54.21h30.91v4.07S436,56,423.27,56H407.72V90.18H426.9c19.36,0,23.45-2.21,23.45-2.21V92h-48S403.73,89.26,403.73,76.22Z"/>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 341.94 261.01" height="44" style="display:block">
+        <path fill="#172B4D" d="M239.09,111.71C234.61,109,225,105.23,225,105.23s-1.42-.5-1.34-.9c.21-1.2,2.76-1.54,9.63-10.7,7.11-9.49,8.6-13.94,9.94-17.84,1.14-3.3,2.38-11,1.72-11.79s-9.12-1.35-16.48.3c-7.06,1.58-11.1,3.47-11.5,3-.64-.71.95-6.23,1.11-11.33.17-5.28.32-6.75-.41-11.49-.61-4-1.47-7.57-2.65-7.91s-5,.82-7,1.69A81.41,81.41,0,0,0,198.41,44c-2.91,2-6.52,5.48-7.55,5.69s-2.79-6-6.9-13.15a86,86,0,0,0-5.69-9.09c-1.74-2.45-4.91-7-7.28-7h0c-2.38,0-5.54,4.59-7.28,7A84.29,84.29,0,0,0,158,36.52c-4.12,7.13-5.76,13.38-6.9,13.15s-4.73-3.8-7.64-5.8a79.94,79.94,0,0,0-9.56-5.58c-2-.87-5.81-2-7-1.69s-2,3.94-2.65,7.91c-.73,4.74-.58,6.21-.41,11.49.16,5.1,1.74,10.62,1.11,11.33-.4.44-4.44-1.45-11.5-3C106.08,62.65,97.72,63.08,97,64s.57,8.49,1.71,11.79c1.35,3.9,2.83,8.35,10,17.84,6.87,9.16,9.41,9.5,9.63,10.7.07.4-1.35.9-1.35.9s-9.57,3.72-14.06,6.48C99.17,114,95,117.34,95,119.08c0,2.11,3.54,4.62,8.14,7.67s15.36,7.83,26.75,6.75c12.82-1.22,20.68-7.21,21.76-6.74.49.21.11,5.24,5.16,10.44,4.43,4.56,10.58,10,14.15,10s9.72-5.42,14.15-10c5-5.2,4.67-10.23,5.16-10.44,1.07-.47,8.93,5.52,21.76,6.74,11.39,1.08,22.07-3.65,26.74-6.75s8.17-5.56,8.15-7.67C246.93,117.34,242.76,114,239.09,111.71Z"/>
       </svg>
       {% if empresa and empresa.nombre %}<span style="font-size:11pt;font-weight:700;color:#172B4D">{{ empresa.nombre }}</span>{% endif %}
     </div>
@@ -5830,7 +6098,12 @@ def cliente_nuevo():
             estado_relacion=request.form.get('estado_relacion','prospecto'),
             dir_comercial=request.form.get('dir_comercial',''),
             dir_entrega=request.form.get('dir_entrega',''),
-            notas=request.form.get('notas',''), estado='activo')
+            notas=request.form.get('notas',''), estado='activo',
+            banco_nombre=request.form.get('banco_nombre','').strip() or None,
+            banco_cuenta=request.form.get('banco_cuenta','').strip() or None,
+            banco_tipo=request.form.get('banco_tipo','').strip() or None,
+            banco_titular=request.form.get('banco_titular','').strip() or None,
+            info_legal=request.form.get('info_legal','').strip() or None)
         db.session.add(c); db.session.flush()
         _save_contactos(c); db.session.commit()
         _log('crear','cliente',c.id,f'Cliente creado: {c.empresa or c.nombre}'); db.session.commit()
@@ -5853,6 +6126,11 @@ def cliente_editar(id):
         obj.dir_comercial=request.form.get('dir_comercial','')
         obj.dir_entrega=request.form.get('dir_entrega','')
         obj.notas=request.form.get('notas',''); obj.actualizado_en=datetime.utcnow()
+        obj.banco_nombre=request.form.get('banco_nombre','').strip() or None
+        obj.banco_cuenta=request.form.get('banco_cuenta','').strip() or None
+        obj.banco_tipo=request.form.get('banco_tipo','').strip() or None
+        obj.banco_titular=request.form.get('banco_titular','').strip() or None
+        obj.info_legal=request.form.get('info_legal','').strip() or None
         db.session.flush(); _save_contactos(obj); db.session.commit()
         _log('editar','cliente',obj.id,f'Cliente editado: {obj.empresa or obj.nombre}'); db.session.commit()
         flash('Cliente actualizado.','success'); return redirect(url_for('cliente_ver', id=obj.id))
@@ -6074,6 +6352,13 @@ def ordenes_compra():
     return render_template('ordenes_compra/index.html',
                            items=q.order_by(OrdenCompra.creado_en.desc()).all(),
                            estado_f=estado_f)
+
+@app.route('/ordenes_compra/<int:id>/pdf')
+@login_required
+def oc_pdf(id):
+    oc = OrdenCompra.query.get_or_404(id)
+    empresa = ConfigEmpresa.query.first()
+    return render_template('ordenes_compra/pdf.html', oc=oc, empresa=empresa)
 
 def _oc_save_items(oc_id):
     """Guarda ítems del formulario de OC y devuelve la lista."""
@@ -6376,8 +6661,19 @@ def venta_editar(id):
 @app.route('/ventas/<int:id>/eliminar', methods=['POST'])
 @login_required
 def venta_eliminar(id):
-    obj=Venta.query.get_or_404(id); db.session.delete(obj); db.session.commit()
-    flash('Venta eliminada.','info'); return redirect(url_for('ventas'))
+    obj = Venta.query.get_or_404(id)
+    # Limpiar relaciones FK para evitar constraint errors
+    try:
+        ops = OrdenProduccion.query.filter_by(venta_id=obj.id).all()
+        for op in ops:
+            ReservaLote.query.filter_by(orden_produccion_id=op.id).delete()
+        OrdenProduccion.query.filter_by(venta_id=obj.id).delete()
+    except Exception:
+        pass
+    db.session.delete(obj)
+    db.session.commit()
+    flash('Venta eliminada.', 'info')
+    return redirect(url_for('ventas'))
 
 @app.route('/ventas/<int:id>/estado', methods=['POST'])
 @login_required
@@ -7994,6 +8290,15 @@ def notificaciones_marcar_todas():
     db.session.commit()
     flash('Todas las notificaciones marcadas como leídas.', 'success')
     return redirect(url_for('notificaciones'))
+
+@app.route('/notificaciones/<int:id>/leida', methods=['POST'])
+@login_required
+def notificacion_leida(id):
+    n = Notificacion.query.get_or_404(id)
+    if n.usuario_id == current_user.id:
+        n.leida = True
+        db.session.commit()
+    return ('', 204)
 
 def _crear_notificacion(usuario_id, tipo, titulo, mensaje, url=None):
     try:
