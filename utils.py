@@ -6,7 +6,24 @@ from datetime import datetime, timedelta, date as date_type
 from functools import wraps
 import json, io, re, logging
 
-__all__ = ['_MODULOS_TODOS', '_MODULOS_ROL', 'cop', 'moneda', 'moneda0', 'requiere_modulo', 'inject_globals', '_send_email', '_log', '_crear_notificacion', '_calcular_nomina', '_calcular_liquidacion', '_calcular_impuestos', '_descontar_materias', '_descontar_stock_venta', '_save_contactos', '_oc_save_items', '_prods_json', '_save_items', '_save_asignados', '_inv_form_ctx', '_save_compra', '_make_xlsx', '_procesar_orden_produccion', '_procesar_venta_produccion', '_modulos_user', 'register_app_hooks']
+__all__ = [
+    # Module/role constants
+    '_MODULOS_TODOS', '_MODULOS_ROL',
+    # Payroll constants
+    'SMLMV_2025', 'AUXILIO_TRANSPORTE_2025',
+    'TASA_SALUD_EMP', 'TASA_PENSION_EMP', 'TASA_SALUD_EMPR', 'TASA_PENSION_EMPR',
+    'TASA_CAJA_COMP', 'TASA_SENA', 'TASA_ICBF', 'TASA_ARL',
+    'TASA_CESANTIAS', 'TASA_INT_CESANTIAS', 'TASA_PRIMA', 'TASA_VACACIONES',
+    # Helpers
+    'cop', 'moneda', 'moneda0', 'requiere_modulo', 'inject_globals',
+    '_send_email', '_log', '_crear_notificacion',
+    '_calcular_nomina', '_calcular_liquidacion', '_calcular_impuestos',
+    '_descontar_materias', '_descontar_stock_venta', '_save_contactos',
+    '_oc_save_items', '_prods_json', '_save_items', '_save_asignados',
+    '_inv_form_ctx', '_save_compra', '_make_xlsx',
+    '_procesar_orden_produccion', '_procesar_venta_produccion',
+    '_modulos_user', 'register_app_hooks',
+]
 
 # ── Module constants (originally in app.py global scope)
 _MODULOS_TODOS = ['clientes','ventas','cotizaciones','tareas','calendario',
@@ -24,7 +41,31 @@ _MODULOS_ROL = {
     'proveedor':     ['portal_proveedor'],
 }
 
+# ── Colombian labor / payroll constants (originally in app.py global scope)
+SMLMV_2025              = 1_423_500   # Salario Mínimo Legal Mensual Vigente 2025
+AUXILIO_TRANSPORTE_2025 = 200_000     # Auxilio de transporte 2025
+TASA_SALUD_EMP          = 0.04        # 4%
+TASA_PENSION_EMP        = 0.04        # 4%
+TASA_SALUD_EMPR         = 0.085       # 8.5%
+TASA_PENSION_EMPR       = 0.12        # 12%
+TASA_CAJA_COMP          = 0.04        # 4%
+TASA_SENA               = 0.02        # 2%
+TASA_ICBF               = 0.03        # 3%
+TASA_ARL = {1: 0.00522, 2: 0.01044, 3: 0.02436, 4: 0.04350, 5: 0.06960}
+TASA_CESANTIAS          = 1/12        # ~8.33%
+TASA_INT_CESANTIAS      = 0.12        # sobre cesantías
+TASA_PRIMA              = 1/12        # ~8.33%
+TASA_VACACIONES         = 0.0417      # 15 días hábiles por año
 
+# ── Mail setup (graceful degradation if Flask-Mail not installed/configured)
+try:
+    from flask_mail import Message as MailMessage
+    _mail_ok = True   # confirmed against MAIL_SERVER config when first called
+    _mail = None      # actual Mail instance lives in extensions.py
+except ImportError:
+    MailMessage = None
+    _mail = None
+    _mail_ok = False
 
 # Models imported lazily inside functions to avoid circular imports
 
@@ -80,9 +121,11 @@ def inject_globals():
             'empresa_cliente_nombre': empresa_cliente_nombre, 'empresa_proveedor_nombre': empresa_proveedor_nombre}
 
 def _send_email(to, subject, body):
-    if not _mail_ok or not _mail: return
+    if not _mail_ok or not MailMessage: return
     try:
-        from extensions import mail as _mail_ext
+        from extensions import mail as _mail_ext, MAIL_AVAILABLE
+        if not MAIL_AVAILABLE or not _mail_ext: return
+        if not current_app.config.get('MAIL_SERVER'): return
         msg = MailMessage(subject, recipients=[to], body=body)
         _mail_ext.send(msg)
     except Exception as e:
