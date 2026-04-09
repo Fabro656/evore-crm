@@ -5,6 +5,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date as date_type
 import json, secrets, os, logging
 
+__all__ = ['User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'AsientoContable', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'Notificacion', 'Empleado', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'load_user', '_migrate', 'init_db']
+
+
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id                  = db.Column(db.Integer, primary_key=True)
