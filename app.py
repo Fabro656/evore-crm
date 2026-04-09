@@ -768,12 +768,13 @@ T['base.html'] = """<!DOCTYPE html>
     <div class="sb-sec">Operaciones</div>
     {% if 'inventario' in m %}<a href="{{ url_for('inventario') }}" class="nav-link {% if 'inventario' in request.endpoint or 'producto' in request.endpoint or 'lote' in request.endpoint %}active{% endif %}"><i class="bi bi-box-seam-fill"></i><span>Inventario</span></a>{% endif %}
     {% if 'inventario' in m %}<a href="{{ url_for('inventario_ingresos') }}" class="nav-link {% if request.endpoint=='inventario_ingresos' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-plus-square"></i><span>Multi-Ingreso</span></a>{% endif %}
-    {% if 'produccion' in m %}<a href="{{ url_for('produccion_index') }}" class="nav-link {% if 'produccion' in request.endpoint or 'compra' in request.endpoint or 'impuesto' in request.endpoint or 'materia' in request.endpoint or 'receta' in request.endpoint or 'reserva' in request.endpoint %}active{% endif %}"><i class="bi bi-gear-fill"></i><span>Producción</span></a>{% endif %}
+    {% if 'produccion' in m %}<a href="{{ url_for('produccion_index') }}" class="nav-link {% if 'produccion' in request.endpoint or 'compra' in request.endpoint or 'materia' in request.endpoint or 'receta' in request.endpoint or 'reserva' in request.endpoint %}active{% endif %}"><i class="bi bi-gear-fill"></i><span>Producción</span></a>{% endif %}
     {% if 'produccion' in m %}<a href="{{ url_for('ordenes_produccion') }}" class="nav-link {% if request.endpoint=='ordenes_produccion' or request.endpoint=='orden_completar' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-list-check"></i><span>Órdenes</span></a>{% endif %}
     {% if 'produccion' in m %}<a href="{{ url_for('gantt') }}" class="nav-link {% if request.endpoint=='gantt' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-bar-chart-steps"></i><span>Gantt</span></a>{% endif %}
     {% endif %}
-    <div class="sb-sec">Legal &amp; Finanzas</div>
-    <a href="{{ url_for('legal_index') }}" class="nav-link {% if 'legal' in request.endpoint %}active{% endif %}"><i class="bi bi-shield-check"></i><span>Legal</span></a>
+    <div class="sb-sec">Legal</div>
+    <a href="{{ url_for('legal_index') }}" class="nav-link {% if 'legal' in request.endpoint %}active{% endif %}"><i class="bi bi-shield-check"></i><span>Documentos legales</span></a>
+    <div class="sb-sec">Finanzas</div>
     <a href="{{ url_for('contable_index') }}" class="nav-link {% if 'contable' in request.endpoint %}active{% endif %}"><i class="bi bi-calculator"></i><span>Contabilidad</span></a>
     {% if 'contable' in request.endpoint %}
     <a href="{{ url_for('contable_ingresos') }}" class="nav-link {% if request.endpoint=='contable_ingresos' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-graph-up"></i><span>Ingresos</span></a>
@@ -781,6 +782,7 @@ T['base.html'] = """<!DOCTYPE html>
     <a href="{{ url_for('contable_libro_diario') }}" class="nav-link {% if request.endpoint=='contable_libro_diario' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-journal-text"></i><span>Libro diario</span></a>
     {% endif %}
     {% if 'gastos' in m %}<a href="{{ url_for('gastos') }}" class="nav-link {% if 'gasto' in request.endpoint %}active{% endif %}"><i class="bi bi-receipt"></i><span>Gastos</span></a>{% endif %}
+    <a href="{{ url_for('impuestos') }}" class="nav-link {% if 'impuesto' in request.endpoint %}active{% endif %}"><i class="bi bi-percent"></i><span>Reglas tributarias</span></a>
     {% if 'reportes' in m %}<a href="{{ url_for('reportes') }}" class="nav-link {% if 'reporte' in request.endpoint %}active{% endif %}"><i class="bi bi-bar-chart-fill"></i><span>Reportes</span></a>{% endif %}
     <div class="sb-sec">Herramientas</div>
     <a href="{{ url_for('buscador') }}" class="nav-link {% if request.endpoint=='buscador' %}active{% endif %}"><i class="bi bi-search"></i><span>Buscador</span></a>
@@ -972,7 +974,7 @@ T['dashboard.html'] = """{% extends 'base.html' %}
     <div class="si" style="background:#fce8ff"><i class="bi bi-currency-dollar" style="color:#c300ff"></i></div>
   </div></div></div>
 </div>
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-3">
   <div class="col-6 col-lg-3"><div class="sc"><div class="d-flex justify-content-between align-items-start">
     <div><div class="sv valor-cop" data-cop="{{ gastos_totales }}">$ {{ '{:,.0f}'.format(gastos_totales).replace(',','.') }}</div>
       <div class="sl">Gastos operativos</div></div>
@@ -980,9 +982,21 @@ T['dashboard.html'] = """{% extends 'base.html' %}
   </div></div></div>
   <div class="col-6 col-lg-3"><div class="sc"><div class="d-flex justify-content-between align-items-start">
     <div><div class="sv valor-cop" data-cop="{{ balance }}">$ {{ '{:,.0f}'.format(balance).replace(',','.') }}</div>
-      <div class="sl">Balance neto</div></div>
+      <div class="sl">Utilidad bruta</div></div>
     <div class="si" style="background:#e8fff3"><i class="bi bi-bar-chart-fill" style="color:#27ae60"></i></div>
   </div></div></div>
+  <div class="col-6 col-lg-3"><div class="sc"><div class="d-flex justify-content-between align-items-start">
+    <div><div class="sv valor-cop" data-cop="{{ impuestos_estimados }}">$ {{ '{:,.0f}'.format(impuestos_estimados).replace(',','.') }}</div>
+      <div class="sl">Impuestos estimados</div></div>
+    <div class="si" style="background:#fce4ec"><i class="bi bi-percent" style="color:#e83e8c"></i></div>
+  </div></div></div>
+  <div class="col-6 col-lg-3"><div class="sc" style="border:2px solid {{ '#2dce89' if saldo_neto >= 0 else '#f5365c' }}"><div class="d-flex justify-content-between align-items-start">
+    <div><div class="sv valor-cop" data-cop="{{ saldo_neto }}" style="color:{{ '#2dce89' if saldo_neto >= 0 else '#f5365c' }}">$ {{ '{:,.0f}'.format(saldo_neto).replace(',','.') }}</div>
+      <div class="sl">Saldo neto real</div></div>
+    <div class="si" style="background:{{ '#e8fff3' if saldo_neto >= 0 else '#ffeaea' }}"><i class="bi bi-cash-stack" style="color:{{ '#2dce89' if saldo_neto >= 0 else '#f5365c' }}"></i></div>
+  </div></div></div>
+</div>
+<div class="row g-3 mb-4">
   <div class="col-6 col-lg-3"><div class="sc"><div class="d-flex justify-content-between align-items-start">
     <div><div class="sv valor-cop" data-cop="{{ saldo_pendiente }}">$ {{ '{:,.0f}'.format(saldo_pendiente).replace(',','.') }}</div>
       <div class="sl">Saldo por cobrar</div></div>
@@ -992,6 +1006,14 @@ T['dashboard.html'] = """{% extends 'base.html' %}
     <div><div class="sv">{{ productos_bajo_stock }}</div><div class="sl">Stock bajo</div></div>
     <div class="si" style="background:#ffeaea"><i class="bi bi-exclamation-triangle" style="color:#e74c3c"></i></div>
   </div></div></div>
+  <div class="col-6 col-lg-3"></div>
+  <div class="col-6 col-lg-3"><div class="sc" style="cursor:pointer" onclick="window.location='{{ url_for('contable_index') }}'">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-calculator" style="font-size:1.3rem;color:#5e72e4"></i>
+      <div><div style="font-size:.8rem;font-weight:600;color:#1a1f36">Ver contabilidad detallada</div>
+        <div style="font-size:.72rem;color:#8898aa">Desglose de impuestos + utilidad neta</div></div>
+    </div>
+  </div></div>
 </div>
 <div class="row g-4">
   <div class="col-lg-6"><div class="tc">
@@ -1272,7 +1294,7 @@ T['ordenes_compra/index.html'] = """{% extends 'base.html' %}
 T['ordenes_compra/form.html'] = """{% extends 'base.html' %}
 {% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('ordenes_compra') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
-{% block content %}<div class="fc" style="max-width:1040px"><form method="POST" id="ocForm">
+{% block content %}<div class="fc" style="max-width:1040px"><form method="POST">
 <h6 class="text-muted text-uppercase mb-3" style="font-size:.75rem;letter-spacing:1px">Información general</h6>
 <div class="row g-3 mb-3">
   <div class="col-md-4"><label class="form-label">Proveedor</label>
@@ -1280,8 +1302,8 @@ T['ordenes_compra/form.html'] = """{% extends 'base.html' %}
       <option value="">— Sin proveedor —</option>
       {% for pv in proveedores_list %}<option value="{{ pv.id }}" {% if obj and obj.proveedor_id==pv.id %}selected{% endif %}>{{ pv.empresa or pv.nombre }}</option>{% endfor %}
     </select></div>
-  <div class="col-md-4"><label class="form-label">Cotización de referencia <small class="text-muted">(auto-calcula entrega)</small></label>
-    <select name="cotizacion_id" class="form-select" id="selectCot">
+  <div class="col-md-4"><label class="form-label">Cotización de referencia <small class="text-muted">(calcula fecha entrega)</small></label>
+    <select name="cotizacion_id" class="form-select" id="selectCot" onchange="onCotChange()">
       <option value="">— Sin cotización —</option>
       {% for c in cotizaciones_list %}<option value="{{ c.id }}"
         data-plazo="{{ c.plazo_entrega_dias or 0 }}"
@@ -1289,7 +1311,7 @@ T['ordenes_compra/form.html'] = """{% extends 'base.html' %}
         data-nombre="{{ c.nombre_producto }}"
         data-precio="{{ c.precio_unitario }}"
         data-unidad="{{ c.unidad }}"
-        data-cond="{{ c.condicion_pago_tipo or 'contado' }}"
+        data-cond="{{ c.condicion_pago_tipo }}"
         {% if obj and obj.cotizacion_id==c.id %}selected{% endif %}>
         {{ c.numero or '' }} — {{ c.nombre_producto }} ({{ c.proveedor.empresa if c.proveedor else '—' }})
       </option>{% endfor %}
@@ -1302,12 +1324,13 @@ T['ordenes_compra/form.html'] = """{% extends 'base.html' %}
 </div>
 <div class="row g-3 mb-3">
   <div class="col-md-3"><label class="form-label">Fecha emisión</label>
-    <input type="date" name="fecha_emision" id="fechaEmision" class="form-control" value="{{ obj.fecha_emision.strftime('%Y-%m-%d') if obj and obj.fecha_emision else now.strftime('%Y-%m-%d') }}"></div>
-  <div class="col-md-3"><label class="form-label">Entrega esperada <small class="text-muted" id="plazoHint" style="font-size:.75rem"></small></label>
+    <input type="date" name="fecha_emision" id="fechaEmision" class="form-control" value="{{ obj.fecha_emision.strftime('%Y-%m-%d') if obj and obj.fecha_emision else today }}" oninput="calcFechaEntrega()"></div>
+  <div class="col-md-3"><label class="form-label">Fecha entrega esperada <small class="text-muted" id="plazoHint"></small></label>
     <input type="date" name="fecha_esperada" id="fechaEsperada" class="form-control" value="{{ obj.fecha_esperada.strftime('%Y-%m-%d') if obj and obj.fecha_esperada else '' }}"></div>
   <div class="col-md-3"><label class="form-label">Fecha estimada pago</label>
     <input type="date" name="fecha_estimada_pago" class="form-control" value="{{ obj.fecha_estimada_pago.strftime('%Y-%m-%d') if obj and obj.fecha_estimada_pago else '' }}"></div>
 </div>
+<!-- Info de condición de pago desde cotización -->
 <div id="condPagoInfo" class="alert alert-info py-2 mb-3" style="display:none;font-size:.85rem">
   <i class="bi bi-credit-card me-2"></i><span id="condPagoText"></span>
 </div>
@@ -1320,32 +1343,28 @@ T['ordenes_compra/form.html'] = """{% extends 'base.html' %}
       {% for t in transportistas_list %}<option value="{{ t.id }}" {% if obj and obj.transportista_id==t.id %}selected{% endif %}>{{ t.empresa or t.nombre }}</option>{% endfor %}
     </select></div>
   <div class="col-md-3"><label class="form-label">Fecha estimada recogida</label>
-    <input type="date" name="fecha_estimada_recogida" class="form-control" value="{{ obj.fecha_estimada_recogida.strftime('%Y-%m-%d') if obj and obj.fecha_estimada_recogida else '' }}"></div>
-  <div class="col-md-5 d-flex align-items-end">
-    <div id="transAlert" class="alert alert-warning py-2 mb-0 w-100" style="font-size:.82rem;display:{{ 'block' if obj and obj.transportista_id else 'none' }}">
-      <i class="bi bi-exclamation-triangle me-1"></i>Se creará una <strong>tarea automática</strong> para contactar al transportista 2 días antes de la recogida.
-    </div>
-  </div>
+    <input type="date" name="fecha_estimada_recogida" id="fechaRecogida" class="form-control" value="{{ obj.fecha_estimada_recogida.strftime('%Y-%m-%d') if obj and obj.fecha_estimada_recogida else '' }}"></div>
+  <div class="col-md-5"><div class="alert alert-warning py-2 mb-0 mt-4" style="font-size:.82rem" id="transAlert" {% if not (obj and obj.transportista_id) %}style="display:none"{% endif %}>
+    <i class="bi bi-exclamation-triangle me-1"></i>Al guardar se creará automáticamente una <strong>tarea</strong> para contactar al transportista 2 días antes de la recogida.</div></div>
 </div>
 <hr class="my-3">
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex justify-content-between align-items-center mb-2">
   <h6 class="text-muted mb-0 text-uppercase" style="letter-spacing:1px;font-size:.75rem">Ítems de la orden</h6>
   <div class="d-flex gap-2">
-    <button type="button" class="btn btn-sm btn-outline-success" id="btnImportCot" title="Importar ítem desde cotización seleccionada">
+    <button type="button" class="btn btn-sm btn-outline-success" onclick="importarDesdeCot()" id="btnImportCot" {% if not cotizaciones_list %}disabled{% endif %} title="Importar ítem desde cotización seleccionada">
       <i class="bi bi-cloud-download me-1"></i>Importar de cotización</button>
-    <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddItem">
-      <i class="bi bi-plus-lg me-1"></i>Agregar ítem</button>
+    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addItem()"><i class="bi bi-plus-lg me-1"></i>Agregar ítem manual</button>
   </div>
 </div>
-<div id="itemsContainer" style="min-height:60px"></div>
+<div id="itemsContainer"></div>
 <div class="mt-3 mb-4"><div class="row g-2 justify-content-end"><div class="col-md-4">
   <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">Subtotal:</span><strong id="lblSub">$ 0</strong></div>
   <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">IVA 19%:</span><strong id="lblIva">$ 0</strong></div>
   <div class="d-flex justify-content-between py-1"><span class="fw-bold">Total:</span><strong id="lblTot" style="color:#5e72e4;font-size:1.1rem">$ 0</strong></div>
 </div></div></div>
-<input type="hidden" name="subtotal_calc" id="subtotalCalc" value="0">
-<input type="hidden" name="iva_calc" id="ivaCalc" value="0">
-<input type="hidden" name="total_calc" id="totalCalc" value="0">
+<input type="hidden" name="subtotal_calc" id="subtotalCalc">
+<input type="hidden" name="iva_calc" id="ivaCalc">
+<input type="hidden" name="total_calc" id="totalCalc">
 <div class="mb-3"><label class="form-label">Notas</label>
   <textarea name="notas" class="form-control" rows="2">{{ obj.notas if obj else '' }}</textarea></div>
 <div class="d-flex gap-2 mt-4">
@@ -1353,210 +1372,109 @@ T['ordenes_compra/form.html'] = """{% extends 'base.html' %}
   <a href="{{ url_for('ordenes_compra') }}" class="btn btn-outline-secondary">Cancelar</a>
 </div></form></div>
 {% block scripts %}<script>
-(function(){
 var ITEMS_EDIT = {{ items_json|tojson }};
 var UNIDADES = ['unidades','kg','g','litros','ml','libras','galones','metros','cm','piezas','cajas','bolsas'];
-
-function fmt(n){
-  try{ return '$ ' + Math.round(n).toLocaleString('es-CO'); } catch(e){ return '$ '+Math.round(n); }
-}
+function fmt(n){return'$ '+Math.round(n).toLocaleString('es-CO');}
 
 function recalc(){
-  var sub = 0;
-  document.querySelectorAll('.oc-item-row').forEach(function(row){
-    var cEl = row.querySelector('[name="item_cant[]"]');
-    var pEl = row.querySelector('[name="item_precio[]"]');
-    var sEl = row.querySelector('[data-role="sub"]');
-    if(!cEl || !pEl || !sEl) return;
-    var c = parseFloat(cEl.value) || 0;
-    var p = parseFloat(pEl.value) || 0;
-    var st = c * p;
-    sub += st;
-    sEl.textContent = fmt(st);
+  var sub=0;
+  document.querySelectorAll('.oc-row').forEach(function(row){
+    var c=parseFloat(row.querySelector('[data-f="cant"]').value)||0;
+    var p=parseFloat(row.querySelector('[data-f="precio"]').value)||0;
+    var st=c*p; sub+=st;
+    row.querySelector('[data-f="sub"]').textContent=fmt(st);
   });
-  var iva = sub * 0.19;
-  var tot = sub + iva;
-  document.getElementById('lblSub').textContent = fmt(sub);
-  document.getElementById('lblIva').textContent = fmt(iva);
-  document.getElementById('lblTot').textContent = fmt(tot);
-  document.getElementById('subtotalCalc').value = sub.toFixed(2);
-  document.getElementById('ivaCalc').value = iva.toFixed(2);
-  document.getElementById('totalCalc').value = tot.toFixed(2);
-}
-
-function buildUnidadSelect(selected){
-  var sel = document.createElement('select');
-  sel.name = 'item_unidad[]';
-  sel.className = 'form-select form-select-sm';
-  UNIDADES.forEach(function(u){
-    var opt = document.createElement('option');
-    opt.value = u; opt.textContent = u;
-    if(u === selected) opt.selected = true;
-    sel.appendChild(opt);
-  });
-  return sel;
+  var iva=sub*0.19; var tot=sub+iva;
+  document.getElementById('lblSub').textContent=fmt(sub);
+  document.getElementById('lblIva').textContent=fmt(iva);
+  document.getElementById('lblTot').textContent=fmt(tot);
+  document.getElementById('subtotalCalc').value=sub.toFixed(2);
+  document.getElementById('ivaCalc').value=iva.toFixed(2);
+  document.getElementById('totalCalc').value=tot.toFixed(2);
 }
 
 function addItem(d){
-  d = d || {};
-  var container = document.getElementById('itemsContainer');
-
-  var row = document.createElement('div');
-  row.className = 'oc-item-row';
-  row.style.cssText = 'background:#f8f9fe;border-radius:8px;padding:.6rem .8rem;margin-bottom:.5rem;border:1px solid #e8ecf0';
-
-  // Hidden cotizacion id
-  var hidCot = document.createElement('input');
-  hidCot.type = 'hidden'; hidCot.name = 'item_cot_id[]';
-  hidCot.value = d.cot_id || '';
-  row.appendChild(hidCot);
-
-  var inner = document.createElement('div');
-  inner.className = 'row g-2 align-items-end';
-
-  // Nombre
-  var c1 = document.createElement('div'); c1.className = 'col-md-3';
-  c1.innerHTML = '<label class="form-label mb-1" style="font-size:.79rem;font-weight:600">Producto / Ítem *</label>';
-  var inp1 = document.createElement('input');
-  inp1.type='text'; inp1.name='item_nombre[]'; inp1.className='form-control form-control-sm';
-  inp1.value = d.nombre || ''; inp1.required = true; inp1.placeholder = 'Nombre del ítem';
-  c1.appendChild(inp1); inner.appendChild(c1);
-
-  // Descripcion
-  var c2 = document.createElement('div'); c2.className = 'col-md-2';
-  c2.innerHTML = '<label class="form-label mb-1" style="font-size:.79rem;font-weight:600">Descripción</label>';
-  var inp2 = document.createElement('input');
-  inp2.type='text'; inp2.name='item_desc[]'; inp2.className='form-control form-control-sm';
-  inp2.value = d.desc || ''; inp2.placeholder = 'Opcional';
-  c2.appendChild(inp2); inner.appendChild(c2);
-
-  // Cantidad
-  var c3 = document.createElement('div'); c3.className = 'col-6 col-md-2';
-  c3.innerHTML = '<label class="form-label mb-1" style="font-size:.79rem;font-weight:600">Cantidad</label>';
-  var inp3 = document.createElement('input');
-  inp3.type='number'; inp3.name='item_cant[]'; inp3.className='form-control form-control-sm';
-  inp3.step='0.01'; inp3.min='0.01'; inp3.value = d.cant || 1;
-  inp3.addEventListener('input', recalc);
-  c3.appendChild(inp3); inner.appendChild(c3);
-
-  // Unidad
-  var c4 = document.createElement('div'); c4.className = 'col-6 col-md-2';
-  c4.innerHTML = '<label class="form-label mb-1" style="font-size:.79rem;font-weight:600">Unidad</label>';
-  c4.appendChild(buildUnidadSelect(d.unidad || 'unidades')); inner.appendChild(c4);
-
-  // Precio
-  var c5 = document.createElement('div'); c5.className = 'col-md-2';
-  c5.innerHTML = '<label class="form-label mb-1" style="font-size:.79rem;font-weight:600">Precio unit. $</label>';
-  var inp5 = document.createElement('input');
-  inp5.type='number'; inp5.name='item_precio[]'; inp5.className='form-control form-control-sm';
-  inp5.step='1'; inp5.min='0'; inp5.value = d.precio || 0;
-  inp5.addEventListener('input', recalc);
-  c5.appendChild(inp5); inner.appendChild(c5);
-
-  // Subtotal display
-  var c6 = document.createElement('div'); c6.className = 'col-md-1';
-  c6.innerHTML = '<label class="form-label mb-1" style="font-size:.79rem;font-weight:600">Subtotal</label>';
-  var span6 = document.createElement('div');
-  span6.setAttribute('data-role','sub');
-  span6.className = 'form-control-plaintext form-control-sm fw-semibold';
-  span6.style.fontSize = '.82rem'; span6.textContent = '$ 0';
-  c6.appendChild(span6); inner.appendChild(c6);
-
-  // Delete button
-  var cDel = document.createElement('div'); cDel.className = 'col-auto d-flex align-items-end';
-  var btnDel = document.createElement('button');
-  btnDel.type='button'; btnDel.className='btn btn-sm btn-outline-danger';
-  btnDel.innerHTML='<i class="bi bi-trash"></i>';
-  btnDel.addEventListener('click', function(){ row.remove(); recalc(); });
-  cDel.appendChild(btnDel); inner.appendChild(cDel);
-
-  // Vinculado badge
-  if(d.cot_id){
-    var badge = document.createElement('div'); badge.className='col-12';
-    badge.innerHTML='<small class="text-success"><i class="bi bi-link-45deg me-1"></i>Vinculado a cotización</small>';
-    inner.appendChild(badge);
-  }
-
-  row.appendChild(inner);
-  container.appendChild(row);
+  d=d||{};
+  var unOpts=UNIDADES.map(function(u){return'<option value="'+u+'"'+(d.unidad===u?' selected':'')+'>'+u+'</option>';}).join('');
+  var html='<div class="oc-row row g-2 mb-2 align-items-end" style="background:#f8f9fe;border-radius:8px;padding:.5rem">'
+    +'<input type="hidden" name="item_cot_id[]" value="'+(d.cot_id||'')+'"/>'
+    +'<div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Ítem *</label>'
+    +'<input type="text" name="item_nombre[]" class="form-control form-control-sm" value="'+(d.nombre||'')+'" required></div>'
+    +'<div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Descripción</label>'
+    +'<input type="text" name="item_desc[]" class="form-control form-control-sm" value="'+(d.desc||'')+'"></div>'
+    +'<div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Cant.</label>'
+    +'<input type="number" name="item_cant[]" data-f="cant" class="form-control form-control-sm" step="0.001" min="0.001" value="'+(d.cant||1)+'" oninput="recalc()"></div>'
+    +'<div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Unidad</label>'
+    +'<select name="item_unidad[]" class="form-select form-select-sm">'+unOpts+'</select></div>'
+    +'<div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Precio unit. $</label>'
+    +'<input type="number" name="item_precio[]" data-f="precio" class="form-control form-control-sm" step="1" min="0" value="'+(d.precio||0)+'" oninput="recalc()"></div>'
+    +'<div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Subtotal</label>'
+    +'<span class="form-control-plaintext form-control-sm fw-semibold" data-f="sub" style="font-size:.82rem">$ 0</span></div>'
+    +'<div class="col-auto d-flex align-items-end"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest(\'.oc-row\').remove();recalc()"><i class="bi bi-trash"></i></button></div>'
+    +(d.cot_id ? '<div class="col-12"><small class="text-success"><i class="bi bi-link-45deg me-1"></i>Vinculado a cotización</small></div>' : '')
+    +'</div>';
+  document.getElementById('itemsContainer').insertAdjacentHTML('beforeend',html);
   recalc();
 }
 
 function onCotChange(){
-  var sel = document.getElementById('selectCot');
-  var opt = sel ? sel.options[sel.selectedIndex] : null;
-  var info = document.getElementById('condPagoInfo');
-  if(!opt || !opt.value){ if(info) info.style.display='none'; return; }
-  var plazo = parseInt(opt.dataset.plazo) || 0;
-  var prov  = opt.dataset.prov || '';
-  var cond  = opt.dataset.cond || '';
-  if(prov){
-    var sp = document.getElementById('selectProv');
-    if(sp && !sp.value) sp.value = prov;
+  var sel=document.getElementById('selectCot');
+  var opt=sel.options[sel.selectedIndex];
+  if(!opt||!opt.value){ document.getElementById('condPagoInfo').style.display='none'; return; }
+  var plazo=parseInt(opt.dataset.plazo)||0;
+  var prov=opt.dataset.prov;
+  var cond=opt.dataset.cond;
+  // Auto-fill proveedor if empty
+  if(prov && !document.getElementById('selectProv').value){
+    document.getElementById('selectProv').value=prov;
   }
+  // Recalculate delivery date
   calcFechaEntrega();
-  var condTexts = {contado:'Pago de contado al recibir',credito:'Pago a crédito',anticipo_saldo:'Anticipo + saldo contra entrega',consignacion:'Pago por consignación'};
-  var ct = document.getElementById('condPagoText');
-  if(ct) ct.textContent = 'Condición de pago: ' + (condTexts[cond] || cond);
-  if(info) info.style.display = '';
+  // Show payment condition info
+  var condTexts={'contado':'Pago de contado al recibir','credito':'Pago a crédito','anticipo_saldo':'Anticipo + saldo contra entrega','consignacion':'Pago por consignación'};
+  document.getElementById('condPagoText').textContent='Condición de pago: '+(condTexts[cond]||cond);
+  document.getElementById('condPagoInfo').style.display='';
 }
 
 function calcFechaEntrega(){
-  var sel = document.getElementById('selectCot');
-  var opt = sel ? sel.options[sel.selectedIndex] : null;
-  var plazo = (opt && opt.dataset) ? parseInt(opt.dataset.plazo) || 0 : 0;
+  var sel=document.getElementById('selectCot');
+  var opt=sel&&sel.options[sel.selectedIndex];
+  var plazo=opt&&opt.dataset?parseInt(opt.dataset.plazo)||0:0;
   if(!plazo) return;
-  var feEl = document.getElementById('fechaEmision');
-  if(!feEl || !feEl.value) return;
-  var fe = new Date(feEl.value + 'T12:00:00');
-  fe.setDate(fe.getDate() + plazo);
-  var yy = fe.getFullYear();
-  var mm = String(fe.getMonth()+1).padStart(2,'0');
-  var dd = String(fe.getDate()).padStart(2,'0');
-  var fesp = document.getElementById('fechaEsperada');
-  if(fesp) fesp.value = yy + '-' + mm + '-' + dd;
-  var ph = document.getElementById('plazoHint');
-  if(ph) ph.textContent = '(auto: ' + plazo + 'd)';
+  var feVal=document.getElementById('fechaEmision').value;
+  if(!feVal) return;
+  var fe=new Date(feVal+'T12:00:00');
+  fe.setDate(fe.getDate()+plazo);
+  var yy=fe.getFullYear();
+  var mm=String(fe.getMonth()+1).padStart(2,'0');
+  var dd=String(fe.getDate()).padStart(2,'0');
+  document.getElementById('fechaEsperada').value=yy+'-'+mm+'-'+dd;
+  document.getElementById('plazoHint').textContent='(auto: '+plazo+'d desde emisión)';
 }
 
-// Wire up events
-var selCot = document.getElementById('selectCot');
-if(selCot) selCot.addEventListener('change', onCotChange);
-
-var selTrans = document.getElementById('selectTrans');
-var transAlert = document.getElementById('transAlert');
-if(selTrans && transAlert){
-  selTrans.addEventListener('change', function(){
-    transAlert.style.display = this.value ? 'block' : 'none';
-  });
-}
-
-var feEl = document.getElementById('fechaEmision');
-if(feEl) feEl.addEventListener('input', calcFechaEntrega);
-
-var btnAdd = document.getElementById('btnAddItem');
-if(btnAdd) btnAdd.addEventListener('click', function(){ addItem(); });
-
-var btnImp = document.getElementById('btnImportCot');
-if(btnImp) btnImp.addEventListener('click', function(){
-  var sel = document.getElementById('selectCot');
-  var opt = sel ? sel.options[sel.selectedIndex] : null;
-  if(!opt || !opt.value){ alert('Selecciona primero una cotización de referencia.'); return; }
+function importarDesdeCot(){
+  var sel=document.getElementById('selectCot');
+  var opt=sel.options[sel.selectedIndex];
+  if(!opt||!opt.value){alert('Selecciona una cotización primero.');return;}
   addItem({
-    nombre: opt.dataset.nombre || '',
+    nombre: opt.dataset.nombre||'',
     desc: '',
     cant: 1,
-    unidad: opt.dataset.unidad || 'unidades',
-    precio: parseFloat(opt.dataset.precio) || 0,
+    unidad: opt.dataset.unidad||'unidades',
+    precio: parseFloat(opt.dataset.precio)||0,
     cot_id: opt.value
   });
+}
+
+// Transportista alert
+document.getElementById('selectTrans').addEventListener('change',function(){
+  document.getElementById('transAlert').style.display=this.value?'':'none';
 });
 
-// Init: load existing items (edit mode) or blank row
-ITEMS_EDIT.forEach(function(it){ addItem(it); });
-if(ITEMS_EDIT.length === 0) addItem();
+// Init
+ITEMS_EDIT.forEach(function(it){addItem(it);});
+if(ITEMS_EDIT.length===0) addItem();
 onCotChange();
-})();
 </script>{% endblock %}{% endblock %}"""
 
 T['proveedores/index.html'] = """{% extends 'base.html' %}
@@ -2083,11 +2001,11 @@ T['produccion/index.html'] = """{% extends 'base.html' %}
     <div class="sl">Compras este mes</div></div></div>
   <div class="col-md-3"><div class="sc"><div class="sv">{{ cotizaciones_vigentes }}</div>
     <div class="sl">Cotizaciones granel vigentes</div></div></div>
-  <div class="col-md-3"><div class="sc"><div class="sv">{{ reglas_activas }}</div>
-    <div class="sl">Reglas tributarias activas</div></div></div>
+  <div class="col-md-3"><div class="sc"><div class="sv">{{ ordenes_activas }}</div>
+    <div class="sl">Órdenes de compra activas</div></div></div>
 </div>
 <div class="row g-4">
-  <div class="col-md-4"><div class="tc">
+  <div class="col-md-6"><div class="tc">
     <div class="ch d-flex justify-content-between align-items-center">
       <span><i class="bi bi-cart3 me-2 text-primary"></i>Compras recientes</span>
       <a href="{{ url_for('compras') }}" class="btn btn-sm btn-outline-primary">Ver todas</a></div>
@@ -2100,7 +2018,7 @@ T['produccion/index.html'] = """{% extends 'base.html' %}
     {% else %}<div class="text-center text-muted py-3"><p class="mb-2">Sin compras</p>
       <a href="{{ url_for('compra_nueva') }}" class="btn btn-sm btn-primary">Registrar</a></div>{% endif %}
   </div></div>
-  <div class="col-md-4"><div class="tc">
+  <div class="col-md-6"><div class="tc">
     <div class="ch d-flex justify-content-between align-items-center">
       <span><i class="bi bi-building me-2 text-success"></i>Cotizaciones Granel</span>
       <a href="{{ url_for('granel') }}" class="btn btn-sm btn-outline-success">Ver todas</a></div>
@@ -2112,19 +2030,6 @@ T['produccion/index.html'] = """{% extends 'base.html' %}
     </tr>{% endfor %}</tbody></table>
     {% else %}<div class="text-center text-muted py-3"><p class="mb-2">Sin cotizaciones</p>
       <a href="{{ url_for('granel_nuevo') }}" class="btn btn-sm btn-success">Agregar</a></div>{% endif %}
-  </div></div>
-  <div class="col-md-4"><div class="tc">
-    <div class="ch d-flex justify-content-between align-items-center">
-      <span><i class="bi bi-percent me-2 text-warning"></i>Reglas tributarias</span>
-      <a href="{{ url_for('impuestos') }}" class="btn btn-sm btn-outline-warning">Ver todas</a></div>
-    {% if reglas %}<table class="table"><tbody>
-    {% for r in reglas %}<tr>
-      <td><div class="fw-semibold" style="font-size:.88rem;color:#1a1f36">{{ r.nombre }}</div>
-        <small class="text-muted">{{ r.aplica_a or '' }}</small></td>
-      <td class="fw-semibold">{{ r.porcentaje }}%</td>
-    </tr>{% endfor %}</tbody></table>
-    {% else %}<div class="text-center text-muted py-3"><p class="mb-2">Sin reglas</p>
-      <a href="{{ url_for('impuesto_nuevo') }}" class="btn btn-sm btn-warning">Agregar</a></div>{% endif %}
   </div></div>
 </div>
 <div class="row g-3 mt-2">
@@ -2454,15 +2359,15 @@ T['produccion/granel_form.html'] = """{% extends 'base.html' %}
 setupAutoTitulo('[name="nombre_producto"]',['[name="proveedor"]','[name="estado"]','[name="fecha_cotizacion"]']);
 </script>{% endblock %}{% endblock %}"""
 
-T['produccion/impuestos.html'] = """{% extends 'base.html' %}
+T['finanzas/impuestos.html'] = """{% extends 'base.html' %}
 {% block title %}Impuestos{% endblock %}{% block page_title %}Reglas Tributarias{% endblock %}
 {% block topbar_actions %}
 <a href="{{ url_for('impuesto_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva regla</a>
-<a href="{{ url_for('produccion_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Producción</a>
+<a href="{{ url_for('contable_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Finanzas</a>
 {% endblock %}
 {% block content %}
 <div class="alert alert-info" style="border-radius:10px;border:none">
-  <i class="bi bi-info-circle me-2"></i>Esta sección es para que el contador configure las reglas tributarias que aplican a las compras y operaciones de la empresa.
+  <i class="bi bi-info-circle me-2"></i>Configure aquí las reglas tributarias de la empresa. Estas reglas son usadas por el dashboard de contabilidad para calcular impuestos automáticamente sobre ingresos y utilidades.
 </div>
 <div class="tc"><div class="ch"><i class="bi bi-percent me-2"></i>{{ items|length }} regla(s)</div>
 {% if items %}<div class="table-responsive"><table class="table">
@@ -2491,7 +2396,7 @@ T['produccion/impuestos.html'] = """{% extends 'base.html' %}
   <p class="mt-3">Sin reglas configuradas.</p><a href="{{ url_for('impuesto_nuevo') }}" class="btn btn-primary">Agregar primera</a></div>
 {% endif %}</div>{% endblock %}"""
 
-T['produccion/impuesto_form.html'] = """{% extends 'base.html' %}
+T['finanzas/impuesto_form.html'] = """{% extends 'base.html' %}
 {% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('impuestos') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
 {% block content %}<div class="fc"><form method="POST"><div class="row g-3">
@@ -4150,47 +4055,88 @@ T['legal/form.html'] = """{% extends 'base.html' %}
 T['contable/index.html'] = """{% extends 'base.html' %}
 {% block title %}Contabilidad{% endblock %}{% block page_title %}Módulo Contable{% endblock %}
 {% block topbar_actions %}
-<div class="d-flex gap-2">
+<div class="d-flex gap-2 flex-wrap">
   {% for m in meses_nav %}<a href="{{ url_for('contable_index', mes=m.val) }}" class="btn btn-sm {{ 'btn-primary' if mes_str==m.val else 'btn-outline-secondary' }}">{{ m.lbl }}</a>{% endfor %}
+  <a href="{{ url_for('impuestos') }}" class="btn btn-sm btn-outline-warning ms-2"><i class="bi bi-percent me-1"></i>Reglas</a>
 </div>
 {% endblock %}
 {% block content %}
-<div class="row g-3 mb-4">
-  <div class="col-md-3"><div class="fc text-center py-3">
-    <div style="font-size:.75rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Ingresos del mes</div>
-    <div class="fw-bold mt-1" style="font-size:1.4rem;color:#2dce89">$ {{ '{:,.0f}'.format(total_ingresos).replace(',','.') }}</div>
+{# ── Fila 1: indicadores principales ─────────────────── #}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="fc text-center py-3">
+    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Ingresos del mes</div>
+    <div class="fw-bold mt-1" style="font-size:1.35rem;color:#2dce89">$ {{ '{:,.0f}'.format(total_ingresos).replace(',','.') }}</div>
     <small class="text-muted">{{ ventas_mes|length }} venta(s)</small>
   </div></div>
-  <div class="col-md-3"><div class="fc text-center py-3">
-    <div style="font-size:.75rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Egresos del mes</div>
-    <div class="fw-bold mt-1" style="font-size:1.4rem;color:#f5365c">$ {{ '{:,.0f}'.format(total_egresos).replace(',','.') }}</div>
+  <div class="col-6 col-md-3"><div class="fc text-center py-3">
+    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Egresos del mes</div>
+    <div class="fw-bold mt-1" style="font-size:1.35rem;color:#f5365c">$ {{ '{:,.0f}'.format(total_egresos).replace(',','.') }}</div>
     <small class="text-muted">Gastos + compras</small>
   </div></div>
-  <div class="col-md-3"><div class="fc text-center py-3">
-    <div style="font-size:.75rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Utilidad bruta</div>
-    <div class="fw-bold mt-1" style="font-size:1.4rem;color:{{ '#2dce89' if utilidad >= 0 else '#f5365c' }}">$ {{ '{:,.0f}'.format(utilidad).replace(',','.') }}</div>
-    <small class="text-muted">Ingresos - Egresos</small>
+  <div class="col-6 col-md-3"><div class="fc text-center py-3">
+    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Utilidad bruta</div>
+    <div class="fw-bold mt-1" style="font-size:1.35rem;color:{{ '#2dce89' if utilidad >= 0 else '#f5365c' }}">$ {{ '{:,.0f}'.format(utilidad).replace(',','.') }}</div>
+    <small class="text-muted">Ingresos − Egresos</small>
   </div></div>
-  <div class="col-md-3"><div class="fc text-center py-3">
-    <div style="font-size:.75rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Cuentas por cobrar</div>
-    <div class="fw-bold mt-1" style="font-size:1.4rem;color:#fb6340">$ {{ '{:,.0f}'.format(total_cxc).replace(',','.') }}</div>
+  <div class="col-6 col-md-3"><div class="fc text-center py-3">
+    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Impuestos estimados</div>
+    <div class="fw-bold mt-1" style="font-size:1.35rem;color:#e83e8c">$ {{ '{:,.0f}'.format(total_impuestos).replace(',','.') }}</div>
+    <small class="text-muted">{{ detalle_impuestos|length }} regla(s) activa(s)</small>
+  </div></div>
+</div>
+{# ── Fila 2: utilidad neta + otros ─────────────────────── #}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="fc text-center py-3" style="border:2px solid {{ '#2dce89' if utilidad_neta >= 0 else '#f5365c' }}">
+    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Utilidad neta</div>
+    <div class="fw-bold mt-1" style="font-size:1.45rem;color:{{ '#2dce89' if utilidad_neta >= 0 else '#f5365c' }}">$ {{ '{:,.0f}'.format(utilidad_neta).replace(',','.') }}</div>
+    <small class="text-muted">Utilidad − Impuestos</small>
+  </div></div>
+  <div class="col-6 col-md-3"><div class="fc text-center py-3">
+    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Cuentas por cobrar</div>
+    <div class="fw-bold mt-1" style="font-size:1.2rem;color:#fb6340">$ {{ '{:,.0f}'.format(total_cxc).replace(',','.') }}</div>
     <small class="text-muted">{{ cxc|length }} venta(s) pendientes</small>
   </div></div>
-</div>
-<div class="row g-3 mb-4">
-  <div class="col-md-4"><div class="fc text-center py-3">
-    <div style="font-size:.75rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Inventario valorizado</div>
+  <div class="col-6 col-md-3"><div class="fc text-center py-3">
+    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Inventario valorizado</div>
     <div class="fw-bold mt-1" style="font-size:1.2rem;color:#5e72e4">$ {{ '{:,.0f}'.format(inventario_valor).replace(',','.') }}</div>
   </div></div>
-  <div class="col-md-4"><div class="fc text-center py-3">
-    <div style="font-size:.75rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Total anticipo cobrado</div>
+  <div class="col-6 col-md-3"><div class="fc text-center py-3">
+    <div style="font-size:.72rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Anticipo cobrado</div>
     <div class="fw-bold mt-1" style="font-size:1.2rem;color:#11cdef">$ {{ '{:,.0f}'.format(total_anticipo).replace(',','.') }}</div>
   </div></div>
-  <div class="col-md-4"><div class="fc text-center py-3">
-    <div style="font-size:.75rem;color:#8898aa;text-transform:uppercase;letter-spacing:1px">Gastos operativos</div>
-    <div class="fw-bold mt-1" style="font-size:1.2rem;color:#f5365c">$ {{ '{:,.0f}'.format(total_gastos).replace(',','.') }}</div>
-  </div></div>
 </div>
+{# ── Desglose de impuestos ──────────────────────────────── #}
+{% if detalle_impuestos %}
+<div class="tc mb-3">
+  <div class="ch d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-percent me-2 text-danger"></i>Desglose de impuestos estimados — {{ anio }}/{{ '%02d'|format(mes) }}</span>
+    <a href="{{ url_for('impuestos') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-gear me-1"></i>Configurar reglas</a>
+  </div>
+  <div class="table-responsive">
+  <table class="table table-sm mb-0">
+    <thead><tr><th>Regla</th><th>Aplica a</th><th class="text-end">Base</th><th class="text-center">%</th><th class="text-end">Impuesto estimado</th></tr></thead>
+    <tbody>
+    {% for d in detalle_impuestos %}<tr>
+      <td class="fw-semibold">{{ d.nombre }}</td>
+      <td><small class="badge bg-light text-dark border">{{ d.base_label }}</small></td>
+      <td class="text-end"><small>$ {{ '{:,.0f}'.format(d.base_monto).replace(',','.') }}</small></td>
+      <td class="text-center"><small>{{ d.porcentaje }}%</small></td>
+      <td class="text-end text-danger fw-semibold">$ {{ '{:,.0f}'.format(d.monto).replace(',','.') }}</td>
+    </tr>{% endfor %}
+    </tbody>
+    <tfoot><tr class="table-light fw-bold">
+      <td colspan="4" class="text-end">Total impuestos</td>
+      <td class="text-end text-danger">$ {{ '{:,.0f}'.format(total_impuestos).replace(',','.') }}</td>
+    </tr></tfoot>
+  </table></div>
+</div>
+{% else %}
+<div class="alert alert-warning mb-3" style="border-radius:10px;border:none">
+  <i class="bi bi-exclamation-triangle me-2"></i>No hay reglas tributarias activas.
+  <a href="{{ url_for('impuestos') }}" class="alert-link">Configurar reglas tributarias</a> para calcular impuestos automáticamente.
+</div>
+{% endif %}
+{# ── Tablas de detalle ─────────────────────────────────── #}
 <div class="row g-3">
   <div class="col-md-6"><div class="tc">
     <div class="ch"><i class="bi bi-graph-up me-2 text-success"></i>Ventas del mes</div>
@@ -5215,14 +5161,23 @@ def dashboard():
     ingresos = db.session.query(db.func.sum(Venta.total)).filter(Venta.estado.in_(['ganado','anticipo_pagado'])).scalar() or 0
     gastos_tot = db.session.query(db.func.sum(GastoOperativo.monto)).scalar() or 0
     gastos_mes = db.session.query(db.func.sum(GastoOperativo.monto)).filter(GastoOperativo.fecha >= mes_inicio).scalar() or 0
+    compras_tot = db.session.query(db.func.sum(CompraMateria.costo_total)).scalar() or 0
     saldo_pend = db.session.query(db.func.sum(Venta.saldo)).filter(Venta.estado.in_(['anticipo_pagado','negociacion'])).scalar() or 0
+    # Impuestos estimados globales (acumulado total, no solo mes)
+    total_egresos_global = gastos_tot + compras_tot
+    utilidad_global = ingresos - total_egresos_global
+    impuestos_estimados, detalle_imp_dash = _calcular_impuestos(ingresos, utilidad_global)
+    saldo_neto = ingresos - total_egresos_global - impuestos_estimados
     return render_template('dashboard.html',
         total_clientes       = Cliente.query.filter_by(estado='activo').count(),
         ventas_ganadas       = Venta.query.filter_by(estado='ganado').count(),
         tareas_pendientes    = Tarea.query.filter(Tarea.estado != 'completada').count(),
         ingresos_totales     = ingresos,
         gastos_totales       = gastos_tot,
-        balance              = ingresos - gastos_tot,
+        compras_totales      = compras_tot,
+        balance              = ingresos - total_egresos_global,
+        impuestos_estimados  = impuestos_estimados,
+        saldo_neto           = saldo_neto,
         saldo_pendiente      = saldo_pend,
         productos_bajo_stock = Producto.query.filter(Producto.activo==True, Producto.stock<=Producto.stock_minimo).count(),
         tareas_recientes     = Tarea.query.filter(Tarea.estado!='completada').order_by(Tarea.creado_en.desc()).limit(5).all(),
@@ -6128,15 +6083,13 @@ def produccion_index():
     total_compras  = db.session.query(db.func.sum(CompraMateria.costo_total)).scalar() or 0
     compras_mes    = db.session.query(db.func.sum(CompraMateria.costo_total)).filter(CompraMateria.fecha >= mes_ini).scalar() or 0
     cotizaciones_vigentes = CotizacionGranel.query.filter_by(estado='vigente').count()
-    reglas_activas = ReglaTributaria.query.filter_by(activo=True).count()
+    ordenes_activas = OrdenCompra.query.filter(OrdenCompra.estado.in_(['borrador','enviada','en_transito'])).count()
     compras_recientes = CompraMateria.query.order_by(CompraMateria.fecha.desc()).limit(5).all()
     granel_recientes  = CotizacionGranel.query.order_by(CotizacionGranel.creado_en.desc()).limit(5).all()
-    reglas = ReglaTributaria.query.filter_by(activo=True).order_by(ReglaTributaria.nombre).limit(5).all()
     return render_template('produccion/index.html',
         total_compras=total_compras, compras_mes=compras_mes,
-        cotizaciones_vigentes=cotizaciones_vigentes, reglas_activas=reglas_activas,
-        compras_recientes=compras_recientes, granel_recientes=granel_recientes,
-        reglas=reglas)
+        cotizaciones_vigentes=cotizaciones_vigentes, ordenes_activas=ordenes_activas,
+        compras_recientes=compras_recientes, granel_recientes=granel_recientes)
 
 # --- Compras de Materia Prima ---
 
@@ -6323,15 +6276,53 @@ def granel_eliminar(id):
     obj=CotizacionGranel.query.get_or_404(id); db.session.delete(obj); db.session.commit()
     flash('Cotización eliminada.','info'); return redirect(url_for('granel'))
 
+# --- Helper: cálculo de impuestos estimados basado en reglas activas ---
+def _calcular_impuestos(ingresos, utilidad):
+    """Retorna (total_impuestos, lista_detalle) según reglas tributarias activas.
+    Cada item del detalle: {nombre, aplica_a, porcentaje, base_label, base_monto, monto}
+    No incluye reglas de proveedor (se aplican por compra individual)."""
+    reglas = ReglaTributaria.query.filter_by(activo=True).all()
+    total = 0.0
+    detalle = []
+    for r in reglas:
+        if r.aplica_a in ('proveedor_producto', 'proveedor_granel'):
+            continue  # estas aplican por compra, no de forma global
+        base_label = ''
+        base_monto = 0.0
+        monto = 0.0
+        if r.aplica_a == 'ventas':
+            base_monto = ingresos
+            base_label = 'Ingresos brutos'
+        elif r.aplica_a == 'ingresos':
+            base_monto = ingresos
+            base_label = 'Ingresos brutos'
+        elif r.aplica_a == 'profit':
+            if utilidad > 0:
+                base_monto = utilidad
+                base_label = 'Utilidad'
+            else:
+                continue
+        monto = base_monto * (r.porcentaje / 100.0)
+        total += monto
+        detalle.append({
+            'nombre': r.nombre,
+            'aplica_a': r.aplica_a,
+            'porcentaje': r.porcentaje,
+            'base_label': base_label,
+            'base_monto': base_monto,
+            'monto': monto,
+        })
+    return total, detalle
+
 # --- Reglas Tributarias ---
 
-@app.route('/produccion/impuestos')
+@app.route('/finanzas/impuestos')
 @login_required
 def impuestos():
-    return render_template('produccion/impuestos.html',
+    return render_template('finanzas/impuestos.html',
                            items=ReglaTributaria.query.order_by(ReglaTributaria.nombre).all())
 
-@app.route('/produccion/impuestos/nuevo', methods=['GET','POST'])
+@app.route('/finanzas/impuestos/nuevo', methods=['GET','POST'])
 @login_required
 def impuesto_nuevo():
     if request.method == 'POST':
@@ -6344,9 +6335,9 @@ def impuesto_nuevo():
             activo=True))
         db.session.commit(); flash('Regla tributaria creada.','success')
         return redirect(url_for('impuestos'))
-    return render_template('produccion/impuesto_form.html', obj=None, titulo='Nueva Regla Tributaria')
+    return render_template('finanzas/impuesto_form.html', obj=None, titulo='Nueva Regla Tributaria')
 
-@app.route('/produccion/impuestos/<int:id>/editar', methods=['GET','POST'])
+@app.route('/finanzas/impuestos/<int:id>/editar', methods=['GET','POST'])
 @login_required
 def impuesto_editar(id):
     obj=ReglaTributaria.query.get_or_404(id)
@@ -6359,9 +6350,9 @@ def impuesto_editar(id):
         obj.activo = request.form.get('activo') == '1'
         db.session.commit(); flash('Regla actualizada.','success')
         return redirect(url_for('impuestos'))
-    return render_template('produccion/impuesto_form.html', obj=obj, titulo='Editar Regla Tributaria')
+    return render_template('finanzas/impuesto_form.html', obj=obj, titulo='Editar Regla Tributaria')
 
-@app.route('/produccion/impuestos/<int:id>/eliminar', methods=['POST'])
+@app.route('/finanzas/impuestos/<int:id>/eliminar', methods=['POST'])
 @login_required
 def impuesto_eliminar(id):
     obj=ReglaTributaria.query.get_or_404(id); db.session.delete(obj); db.session.commit()
@@ -8026,6 +8017,9 @@ def contable_index():
     total_compras = sum(c.costo_total for c in compras_mes)
     total_egresos = total_gastos + total_compras
     utilidad = total_ingresos - total_egresos
+    # Impuestos estimados según reglas tributarias activas
+    total_impuestos, detalle_impuestos = _calcular_impuestos(total_ingresos, utilidad)
+    utilidad_neta = utilidad - total_impuestos
     # Cuentas por cobrar (ventas con saldo > 0)
     cxc = Venta.query.filter(Venta.saldo > 0, Venta.estado.in_(['anticipo_pagado','ganado'])).all()
     total_cxc = sum(v.saldo for v in cxc)
@@ -8039,6 +8033,8 @@ def contable_index():
         total_ingresos=total_ingresos, total_anticipo=total_anticipo,
         total_egresos=total_egresos, total_gastos=total_gastos,
         total_compras=total_compras, utilidad=utilidad,
+        total_impuestos=total_impuestos, detalle_impuestos=detalle_impuestos,
+        utilidad_neta=utilidad_neta,
         total_cxc=total_cxc, inventario_valor=inventario_valor,
         ventas_mes=ventas_mes, gastos_mes=gastos_mes, compras_mes=compras_mes,
         cxc=cxc, mes_str=mes_str, meses_nav=meses_nav,
