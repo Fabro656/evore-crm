@@ -1206,6 +1206,118 @@ html[data-theme="dark"] .qa-btn{background:var(--surface);border-color:var(--bor
 html[data-theme="dark"] .qa-btn:hover{background:var(--surface2);border-color:var(--ac);color:var(--ac)}
 html[data-theme="dark"] .prod-row,html[data-theme="dark"] .totales-box{background:var(--surface2);border-color:var(--border)}
 html[data-theme="dark"] .form-check-input{background-color:var(--input-bg);border-color:var(--border)}
+html[data-theme="dark"] .b-pendiente{background:rgba(255,139,0,.15);color:#FCD34D;border:1px solid rgba(255,139,0,.3)}
+html[data-theme="dark"] .b-aprobada,html[data-theme="dark"] .b-activo,html[data-theme="dark"] .b-cliente_activo{background:rgba(0,135,90,.15);color:#4ADE80;border:1px solid rgba(0,135,90,.3)}
+html[data-theme="dark"] .b-rechazada,html[data-theme="dark"] .b-cancelado{background:rgba(222,53,11,.15);color:#F87171;border:1px solid rgba(222,53,11,.3)}
+html[data-theme="dark"] .b-en_revision,html[data-theme="dark"] .b-en-revision,html[data-theme="dark"] .b-borrador,html[data-theme="dark"] .b-negociacion,html[data-theme="dark"] .b-info{background:rgba(0,82,204,.2);color:#60A5FA;border:1px solid rgba(0,82,204,.3)}
+html[data-theme="dark"] .b-alta{background:rgba(255,86,48,.15);color:#FB923C;border:1px solid rgba(255,86,48,.3)}
+html[data-theme="dark"] .b-media{background:rgba(255,153,31,.15);color:#FCD34D;border:1px solid rgba(255,153,31,.3)}
+html[data-theme="dark"] .b-baja{background:rgba(0,135,90,.15);color:#4ADE80;border:1px solid rgba(0,135,90,.3)}
+html[data-theme="dark"] .b-prospecto{background:rgba(82,67,170,.15);color:#A78BFA;border:1px solid rgba(82,67,170,.3)}
+html[data-theme="dark"] .b-vip{background:rgba(255,153,31,.15);color:#FCD34D;border:1px solid rgba(255,153,31,.3)}
+html[data-theme="dark"] .b-inactivo{background:rgba(107,119,140,.15);color:#94A3B8;border:1px solid rgba(107,119,140,.3)}
+html[data-theme="dark"] .b-completado,html[data-theme="dark"] .b-anticipo_pagado{background:rgba(0,135,90,.15);color:#4ADE80;border:1px solid rgba(0,135,90,.3)}
+html[data-theme="dark"] .b-aceptada_cliente{background:rgba(0,135,90,.15);color:#4ADE80;border:1px solid rgba(0,135,90,.3)}
+/* ══════════════════════════════════════════════════
+   HORIZON DEMO THEME — Dark Neon (Salesforce ref)
+   Palette: near-black bg, neon green #AAFF00 accent
+   ══════════════════════════════════════════════════ */
+html[data-layout="horizon"],html[data-theme="dark"][data-layout="horizon"]{
+  --hz-green:#AAFF00;--hz-green-dim:rgba(170,255,0,.15);
+  --sb:#0D0E14;--sb-text:rgba(255,255,255,.55);--sb-active:#AAFF00;
+  --ac:#AAFF00;--bg:#0A0B10;--surface:#131419;--surface2:#1C1D25;
+  --border:rgba(255,255,255,.07);--text:#F0F0F5;--text2:#8888A0;
+  --topbar-bg:#0D0E14;--topbar-border:rgba(255,255,255,.07);--input-bg:#1C1D25;
+  --shadow:0 4px 24px rgba(0,0,0,.5);--shadow-md:0 8px 40px rgba(0,0,0,.6);
+  --radius:20px;--radius-sm:12px;
+}
+/* Body & page */
+html[data-layout="horizon"] body,html[data-theme="dark"][data-layout="horizon"] body{background:var(--bg);color:var(--text)}
+/* Sidebar */
+html[data-layout="horizon"] #sb,html[data-theme="dark"][data-layout="horizon"] #sb{background:#0D0E14;border-right:1px solid rgba(255,255,255,.06)}
+html[data-layout="horizon"] .sb-brand,html[data-theme="dark"][data-layout="horizon"] .sb-brand{border-color:rgba(255,255,255,.07)}
+html[data-layout="horizon"] .sb-nav .nav-link,html[data-theme="dark"][data-layout="horizon"] .sb-nav .nav-link{color:rgba(255,255,255,.5);border-radius:12px;margin:.08rem .5rem}
+html[data-layout="horizon"] .sb-nav .nav-link:hover,html[data-theme="dark"][data-layout="horizon"] .sb-nav .nav-link:hover{background:rgba(255,255,255,.07);color:#fff}
+html[data-layout="horizon"] .sb-nav .nav-link.active,html[data-theme="dark"][data-layout="horizon"] .sb-nav .nav-link.active{background:rgba(170,255,0,.12);color:#AAFF00;font-weight:700}
+html[data-layout="horizon"] .sb-nav .nav-link.active i,html[data-theme="dark"][data-layout="horizon"] .sb-nav .nav-link.active i{color:#AAFF00}
+html[data-layout="horizon"] .sb-foot,html[data-theme="dark"][data-layout="horizon"] .sb-foot{border-color:rgba(255,255,255,.07)}
+html[data-layout="horizon"] .u-name,html[data-theme="dark"][data-layout="horizon"] .u-name{color:#fff}
+html[data-layout="horizon"] .u-rol,html[data-theme="dark"][data-layout="horizon"] .u-rol{background:rgba(170,255,0,.15);color:#AAFF00;border-radius:6px}
+/* Topbar */
+html[data-layout="horizon"] .topbar,html[data-theme="dark"][data-layout="horizon"] .topbar{background:#0D0E14;border-color:rgba(255,255,255,.07);box-shadow:none}
+html[data-layout="horizon"] .pg-title,html[data-theme="dark"][data-layout="horizon"] .pg-title{color:#F0F0F5;font-size:1.05rem;font-weight:700}
+/* Cards */
+html[data-layout="horizon"] .tc,html[data-theme="dark"][data-layout="horizon"] .tc{background:#131419;border-radius:20px;border:1px solid rgba(255,255,255,.07);box-shadow:0 4px 24px rgba(0,0,0,.4)}
+html[data-layout="horizon"] .fc,html[data-theme="dark"][data-layout="horizon"] .fc{background:#131419;border-radius:20px;border:1px solid rgba(255,255,255,.07);box-shadow:0 4px 24px rgba(0,0,0,.4)}
+html[data-layout="horizon"] .sc,html[data-theme="dark"][data-layout="horizon"] .sc{background:#131419;border-radius:20px;border:1px solid rgba(255,255,255,.07);box-shadow:0 4px 24px rgba(0,0,0,.4)}
+html[data-layout="horizon"] .sc-accent,html[data-theme="dark"][data-layout="horizon"] .sc-accent{border-top:2px solid #AAFF00}
+html[data-layout="horizon"] .sc:hover,html[data-theme="dark"][data-layout="horizon"] .sc:hover{box-shadow:0 8px 40px rgba(0,0,0,.5)}
+html[data-layout="horizon"] .sv,html[data-theme="dark"][data-layout="horizon"] .sv{color:#F0F0F5}
+html[data-layout="horizon"] .sl,html[data-theme="dark"][data-layout="horizon"] .sl{color:#8888A0}
+/* Card headers */
+html[data-layout="horizon"] .ch,html[data-theme="dark"][data-layout="horizon"] .ch{background:#131419;border-color:rgba(255,255,255,.07);color:#F0F0F5}
+/* Tables */
+html[data-layout="horizon"] .table th,html[data-theme="dark"][data-layout="horizon"] .table th{background:#1C1D25;color:#8888A0;border-color:rgba(255,255,255,.07);letter-spacing:.8px}
+html[data-layout="horizon"] .table td,html[data-theme="dark"][data-layout="horizon"] .table td{color:#E0E0EB;border-color:rgba(255,255,255,.06)}
+html[data-layout="horizon"] .table>:not(caption)>*>*,html[data-theme="dark"][data-layout="horizon"] .table>:not(caption)>*>*{background-color:#131419;color:#E0E0EB;border-color:rgba(255,255,255,.06)}
+html[data-layout="horizon"] .table tbody tr:hover>*,html[data-theme="dark"][data-layout="horizon"] .table tbody tr:hover>*{background-color:#1C1D25!important}
+/* Forms */
+html[data-layout="horizon"] .form-control,html[data-layout="horizon"] .form-select,html[data-theme="dark"][data-layout="horizon"] .form-control,html[data-theme="dark"][data-layout="horizon"] .form-select{background:#1C1D25;border-color:rgba(255,255,255,.12);color:#F0F0F5;border-radius:12px}
+html[data-layout="horizon"] .form-control:focus,html[data-layout="horizon"] .form-select:focus,html[data-theme="dark"][data-layout="horizon"] .form-control:focus,html[data-theme="dark"][data-layout="horizon"] .form-select:focus{border-color:#AAFF00;box-shadow:0 0 0 3px rgba(170,255,0,.15)}
+html[data-layout="horizon"] .form-label,html[data-theme="dark"][data-layout="horizon"] .form-label{color:#C0C0D0}
+html[data-layout="horizon"] .form-section,html[data-theme="dark"][data-layout="horizon"] .form-section{background:#1C1D25;border-color:rgba(255,255,255,.07);border-left-color:#AAFF00}
+/* Buttons */
+html[data-layout="horizon"] .btn-primary,html[data-theme="dark"][data-layout="horizon"] .btn-primary{background:#AAFF00;color:#0A0B10;border:none;font-weight:700;border-radius:12px}
+html[data-layout="horizon"] .btn-primary:hover,html[data-theme="dark"][data-layout="horizon"] .btn-primary:hover{background:#BBFF33;color:#0A0B10;box-shadow:0 4px 20px rgba(170,255,0,.35)}
+html[data-layout="horizon"] .btn-outline-primary,html[data-theme="dark"][data-layout="horizon"] .btn-outline-primary{border-color:#AAFF00;color:#AAFF00;border-radius:12px}
+html[data-layout="horizon"] .btn-outline-primary:hover,html[data-theme="dark"][data-layout="horizon"] .btn-outline-primary:hover{background:#AAFF00;color:#0A0B10}
+html[data-layout="horizon"] .btn-outline-secondary,html[data-theme="dark"][data-layout="horizon"] .btn-outline-secondary{border-color:rgba(255,255,255,.15);color:#C0C0D0;border-radius:12px}
+html[data-layout="horizon"] .btn-outline-secondary:hover,html[data-theme="dark"][data-layout="horizon"] .btn-outline-secondary:hover{background:rgba(255,255,255,.07);color:#fff}
+html[data-layout="horizon"] .btn-success,html[data-theme="dark"][data-layout="horizon"] .btn-success{background:#AAFF00;color:#0A0B10;border:none;font-weight:700;border-radius:12px}
+html[data-layout="horizon"] .btn-success:hover,html[data-theme="dark"][data-layout="horizon"] .btn-success:hover{background:#BBFF33;color:#0A0B10}
+/* Badges */
+html[data-layout="horizon"] .b,html[data-theme="dark"][data-layout="horizon"] .b{border-radius:20px;font-size:.7rem}
+html[data-layout="horizon"] .b-pendiente,html[data-theme="dark"][data-layout="horizon"] .b-pendiente{background:rgba(255,200,0,.15);color:#FFD700;border:1px solid rgba(255,200,0,.3)}
+html[data-layout="horizon"] .b-aprobada,.b-activo,.b-cliente_activo,html[data-theme="dark"][data-layout="horizon"] .b-aprobada,html[data-theme="dark"][data-layout="horizon"] .b-activo,html[data-theme="dark"][data-layout="horizon"] .b-cliente_activo{background:rgba(170,255,0,.12);color:#AAFF00;border:1px solid rgba(170,255,0,.3)}
+html[data-layout="horizon"] .b-rechazada,html[data-layout="horizon"] .b-cancelado,html[data-theme="dark"][data-layout="horizon"] .b-rechazada,html[data-theme="dark"][data-layout="horizon"] .b-cancelado{background:rgba(255,80,80,.12);color:#FF6060;border:1px solid rgba(255,80,80,.3)}
+html[data-layout="horizon"] .b-borrador,html[data-layout="horizon"] .b-negociacion,html[data-theme="dark"][data-layout="horizon"] .b-borrador,html[data-theme="dark"][data-layout="horizon"] .b-negociacion{background:rgba(255,255,255,.08);color:#C0C0D0;border:1px solid rgba(255,255,255,.12)}
+/* Quick actions */
+html[data-layout="horizon"] .qa-btn,html[data-theme="dark"][data-layout="horizon"] .qa-btn{background:#1C1D25;border-color:rgba(255,255,255,.1);color:#C0C0D0;border-radius:12px}
+html[data-layout="horizon"] .qa-btn:hover,html[data-theme="dark"][data-layout="horizon"] .qa-btn:hover{background:#252630;border-color:#AAFF00;color:#AAFF00}
+/* Dropdowns */
+html[data-layout="horizon"] .dropdown-menu,html[data-theme="dark"][data-layout="horizon"] .dropdown-menu{background:#1C1D25;border-color:rgba(255,255,255,.1);border-radius:16px;box-shadow:0 12px 48px rgba(0,0,0,.6)}
+html[data-layout="horizon"] .dropdown-item,html[data-theme="dark"][data-layout="horizon"] .dropdown-item{color:#C0C0D0;border-radius:8px;margin:.1rem .4rem;width:calc(100% - .8rem)}
+html[data-layout="horizon"] .dropdown-item:hover,html[data-theme="dark"][data-layout="horizon"] .dropdown-item:hover{background:rgba(255,255,255,.07);color:#fff}
+html[data-layout="horizon"] .dropdown-divider,html[data-theme="dark"][data-layout="horizon"] .dropdown-divider{border-color:rgba(255,255,255,.07)}
+/* Modals */
+html[data-layout="horizon"] .modal-content,html[data-theme="dark"][data-layout="horizon"] .modal-content{background:#131419;border:1px solid rgba(255,255,255,.1);border-radius:20px;box-shadow:0 20px 80px rgba(0,0,0,.7)}
+html[data-layout="horizon"] .modal-header,html[data-theme="dark"][data-layout="horizon"] .modal-header{border-color:rgba(255,255,255,.07)}
+html[data-layout="horizon"] .modal-footer,html[data-theme="dark"][data-layout="horizon"] .modal-footer{background:#131419;border-color:rgba(255,255,255,.07)}
+/* Search overlay */
+html[data-layout="horizon"] #searchOverlay .modal-inner,html[data-theme="dark"][data-layout="horizon"] #searchOverlay .modal-inner{background:#131419;border-color:rgba(255,255,255,.1)}
+/* Notif */
+html[data-layout="horizon"] .notif-dd,html[data-theme="dark"][data-layout="horizon"] .notif-dd{background:#1C1D25;border-color:rgba(255,255,255,.1)}
+html[data-layout="horizon"] .notif-item:hover,html[data-theme="dark"][data-layout="horizon"] .notif-item:hover{background:rgba(255,255,255,.05)}
+html[data-layout="horizon"] .notif-item.unread,html[data-theme="dark"][data-layout="horizon"] .notif-item.unread{background:rgba(170,255,0,.08)}
+/* Float search btn */
+html[data-layout="horizon"] #diagBtn,html[data-theme="dark"][data-layout="horizon"] #diagBtn{background:#AAFF00;color:#0A0B10}
+html[data-layout="horizon"] #diagBtn:hover,html[data-theme="dark"][data-layout="horizon"] #diagBtn:hover{background:#BBFF33;box-shadow:0 4px 20px rgba(170,255,0,.4)}
+/* Search input */
+html[data-layout="horizon"] #searchInput,html[data-theme="dark"][data-layout="horizon"] #searchInput{color:#F0F0F5}
+/* Onboarding banner */
+html[data-layout="horizon"] .onboard-banner,html[data-theme="dark"][data-layout="horizon"] .onboard-banner{background:linear-gradient(135deg,#1C1D25,#252630);border:1px solid rgba(170,255,0,.2)}
+html[data-layout="horizon"] .onboard-step,html[data-theme="dark"][data-layout="horizon"] .onboard-step{background:rgba(170,255,0,.12);color:#AAFF00;border-color:rgba(170,255,0,.25)}
+html[data-layout="horizon"] .onboard-step:hover,html[data-theme="dark"][data-layout="horizon"] .onboard-step:hover{background:rgba(170,255,0,.2)}
+/* Topbar demo button glow */
+html[data-layout="horizon"] #demoToggleBtn,html[data-theme="dark"][data-layout="horizon"] #demoToggleBtn{background:#AAFF00!important;color:#0A0B10!important;box-shadow:0 0 12px rgba(170,255,0,.4)}
+/* Misc text */
+html[data-layout="horizon"] .text-muted,html[data-theme="dark"][data-layout="horizon"] .text-muted{color:#8888A0!important}
+html[data-layout="horizon"] input::placeholder,html[data-layout="horizon"] textarea::placeholder,html[data-theme="dark"][data-layout="horizon"] input::placeholder,html[data-theme="dark"][data-layout="horizon"] textarea::placeholder{color:#555565}
+html[data-layout="horizon"] .prod-row,html[data-theme="dark"][data-layout="horizon"] .prod-row{background:#1C1D25;border-color:rgba(255,255,255,.07)}
+html[data-layout="horizon"] .totales-box,html[data-theme="dark"][data-layout="horizon"] .totales-box{background:#1C1D25;border-color:rgba(255,255,255,.07)}
+html[data-layout="horizon"] .form-check-input,html[data-theme="dark"][data-layout="horizon"] .form-check-input{background-color:#1C1D25;border-color:rgba(255,255,255,.2)}
+html[data-layout="horizon"] .form-check-input:checked,html[data-theme="dark"][data-layout="horizon"] .form-check-input:checked{background-color:#AAFF00;border-color:#AAFF00}
+html[data-layout="horizon"] hr,html[data-theme="dark"][data-layout="horizon"] hr{border-color:rgba(255,255,255,.07)}
 </style>{% endraw %}"""
 
 _CDN = """<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -1218,7 +1330,7 @@ T['base.html'] = """<!DOCTYPE html>
 <html lang="es" id="htmlRoot"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{% block title %}Evore CRM{% endblock %}</title>
-<script>document.documentElement.setAttribute('data-theme',localStorage.getItem('evore_theme')||'light');</script>
+<script>document.documentElement.setAttribute('data-theme',localStorage.getItem('evore_theme')||'light');var l=localStorage.getItem('evore_layout')||'default';if(l==='horizon') document.documentElement.setAttribute('data-layout','horizon');</script>
 """ + _CDN + _CSS + """
 </head><body>
 <nav id="sb">
@@ -1339,6 +1451,11 @@ T['base.html'] = """<!DOCTYPE html>
               style="padding:.3rem .5rem;border-radius:8px;border:1px solid var(--border)"
               onclick="toggleTheme()" title="Cambiar tema">
         <i class="bi bi-sun-fill" id="themeIcon" style="font-size:.9rem"></i>
+      </button>
+      <button class="btn btn-sm d-none d-md-inline-flex" id="demoToggleBtn"
+        style="background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;border:none;padding:4px 10px;font-size:.78rem;border-radius:6px"
+        onclick="toggleDemoLayout()" title="Cambiar interfaz">
+        <i class="bi bi-stars me-1"></i><span id="demoLabel">Demo</span>
       </button>
       <button class="btn btn-sm d-none d-md-inline-flex" style="background:none;border:1px solid var(--border);color:var(--text2);padding:4px 10px;font-size:.78rem" onclick="new bootstrap.Modal(document.getElementById('modalOnboarding')).show();goStep(0);" title="Ver tutorial">
         <i class="bi bi-question-circle me-1"></i>Ayuda
@@ -1484,7 +1601,7 @@ function doBuscar(q){
   }
   document.getElementById('searchResults').innerHTML='<div style="text-align:center;padding:1.5rem;color:var(--text2);font-size:.85rem"><i class="bi bi-hourglass-split"></i> Buscando...</div>';
   _srchTimer=setTimeout(function(){
-    fetch('/api/buscar?q='+encodeURIComponent(q))
+    fetch('/api/buscar?q='+encodeURIComponent(q),{headers:{'X-Requested-With':'XMLHttpRequest'}})
       .then(function(r){return r.json();})
       .then(function(data){
         var html='';
@@ -1893,6 +2010,22 @@ document.addEventListener('DOMContentLoaded',function(){
   };
   document.addEventListener('DOMContentLoaded', updateIcon);
 })();
+// -- Demo Layout Toggle --
+(function(){
+  var l=localStorage.getItem('evore_layout')||'default';
+  if(l==='horizon') document.documentElement.setAttribute('data-layout','horizon');
+  window.toggleDemoLayout=function(){
+    var cur=document.documentElement.getAttribute('data-layout')||'default';
+    var next=cur==='horizon'?'default':'horizon';
+    if(next==='horizon'){document.documentElement.setAttribute('data-layout','horizon');}
+    else{document.documentElement.removeAttribute('data-layout');}
+    localStorage.setItem('evore_layout',next);
+    var lbl=document.getElementById('demoLabel');
+    if(lbl) lbl.textContent=next==='horizon'?'Default':'Demo';
+  };
+  var lbl=document.getElementById('demoLabel');
+  if(lbl&&l==='horizon') lbl.textContent='Default';
+})();
 </script>
 </body></html>"""
 
@@ -1901,8 +2034,10 @@ T['login.html'] = """<!DOCTYPE html>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Evore CRM — Login</title>""" + _CDN + """
 <style>
-body{background:linear-gradient(135deg,#1a1f36,#2d3561);min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',sans-serif}
-.card{border-radius:20px;padding:2.3rem;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.3);border:none}
+body{background:#0a0e27;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',sans-serif;overflow:hidden;position:relative}
+#bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+.login-wrap{position:relative;z-index:1;width:100%;max-width:420px;padding:1rem}
+.card{border-radius:20px;padding:2.3rem;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);border:none;background:#fff}
 .brand{font-size:2rem;font-weight:800;color:#1a1f36}.brand span{color:#5e72e4}
 .form-control{border:1.5px solid #e9ecef;border-radius:10px;padding:.62rem 1rem}
 .form-control:focus{border-color:#5e72e4;box-shadow:0 0 0 3px rgba(94,114,228,.15)}
@@ -1911,6 +2046,8 @@ body{background:linear-gradient(135deg,#1a1f36,#2d3561);min-height:100vh;display
 .btn-lg{background:linear-gradient(135deg,#5e72e4,#4a5bd4);border:none;color:#fff;padding:.75rem;border-radius:10px;font-weight:600;transition:all .3s;width:100%}
 .btn-lg:hover{transform:translateY(-1px);box-shadow:0 4px 15px rgba(94,114,228,.4);color:#fff}
 </style></head><body>
+<canvas id="bg-canvas"></canvas>
+<div class="login-wrap">
 <div class="card bg-white">
   <div class="text-center mb-4">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 341.94 261.01" width="170" height="130" style="display:block;margin:0 auto"><path fill="#1d1d1b" stroke="#1d1d1b" stroke-width="0" d="M28.41,217.71V184.78C28.41,171.75,27,169,27,169H72.31V173s-4.09-2.22-23.45-2.22H32.41V195.7h30.9v4.07s-2.64-2.32-15.36-2.32H32.41v34.22H51.58c19.36,0,23.45-2.22,23.45-2.22v4.07H27S28.41,230.75,28.41,217.71Z"/><path fill="#1d1d1b" stroke="#1d1d1b" stroke-width="0" d="M79.67,169h7s-.28,2.78,4.72,15.81l17.91,46.33,18.45-46.33c5.18-13,3.82-15.81,3.82-15.81h5.81s-2.45,2.68-7.45,15.17L110.3,233.52H106l-19-49C82.12,171.65,79.67,169,79.67,169Z"/><path fill="#1d1d1b" stroke="#1d1d1b" stroke-width="0" d="M138.61,201.15c0-18.49,14.45-33.38,32.36-33.38s32.36,14.89,32.36,33.38S188.87,234.54,171,234.54,138.61,219.65,138.61,201.15Zm60.81,0c0-17.47-12.73-31.62-28.45-31.62s-28.45,14.15-28.45,31.62,12.72,31.63,28.45,31.63S199.42,218.63,199.42,201.15Z"/><path fill="#1d1d1b" stroke="#1d1d1b" stroke-width="0" d="M210.64,217.71V184.78c0-13-1.36-15.81-1.36-15.81h28.63c11,0,19.9,9.34,19.9,20.81s-8.72,20.62-19.54,20.81l7.27,7.39c12.55,12.86,16.64,15.54,16.64,15.54h-8.36s-1.28-2.68-13.55-15.17l-7.54-7.76H214.64v7.12c0,13,1.36,15.81,1.36,15.81h-6.72S210.64,230.75,210.64,217.71Zm43.27-27.93c0-10.36-7.18-19-16-19H214.64v37.92h23.27C246.73,208.74,253.91,200.14,253.91,189.78Z"/><path fill="#1d1d1b" stroke="#1d1d1b" stroke-width="0" d="M268.26,217.71V184.78c0-13-1.36-15.81-1.36-15.81h45.27V173s-4.09-2.22-23.45-2.22H272.26V195.7h30.91v4.07s-2.64-2.32-15.36-2.32H272.26v34.22h19.18c19.36,0,23.45-2.22,23.45-2.22v4.07h-48S268.26,230.75,268.26,217.71Z"/><path fill="#1d1d1b" d="M239.09,111.71C234.61,109,225,105.23,225,105.23s-1.42-.5-1.34-.9c.21-1.2,2.76-1.54,9.63-10.7,7.11-9.49,8.6-13.94,9.94-17.84,1.14-3.3,2.38-11,1.72-11.79s-9.12-1.35-16.48.3c-7.06,1.58-11.1,3.47-11.5,3-.64-.71.95-6.23,1.11-11.33.17-5.28.32-6.75-.41-11.49-.61-4-1.47-7.57-2.65-7.91s-5,.82-7,1.69A81.41,81.41,0,0,0,198.41,44c-2.91,2-6.52,5.48-7.55,5.69s-2.79-6-6.9-13.15a86,86,0,0,0-5.69-9.09c-1.74-2.45-4.91-7-7.28-7h0c-2.38,0-5.54,4.59-7.28,7A84.29,84.29,0,0,0,158,36.52c-4.12,7.13-5.76,13.38-6.9,13.15s-4.73-3.8-7.64-5.8a79.94,79.94,0,0,0-9.56-5.58c-2-.87-5.81-2-7-1.69s-2,3.94-2.65,7.91c-.73,4.74-.58,6.21-.41,11.49.16,5.1,1.74,10.62,1.11,11.33-.4.44-4.44-1.45-11.5-3C106.08,62.65,97.72,63.08,97,64s.57,8.49,1.71,11.79c1.35,3.9,2.83,8.35,10,17.84,6.87,9.16,9.41,9.5,9.63,10.7.07.4-1.35.9-1.35.9s-9.57,3.72-14.06,6.48C99.17,114,95,117.34,95,119.08c0,2.11,3.54,4.62,8.14,7.67s15.36,7.83,26.75,6.75c12.82-1.22,20.68-7.21,21.76-6.74.49.21.11,5.24,5.16,10.44,4.43,4.56,10.58,10,14.15,10s9.72-5.42,14.15-10c5-5.2,4.67-10.23,5.16-10.44,1.07-.47,8.93,5.52,21.76,6.74,11.39,1.08,22.07-3.65,26.74-6.75s8.17-5.56,8.15-7.67C246.93,117.34,242.76,114,239.09,111.71ZM223,68.71c8.36-2.84,18.31-3,19-2.1s-.68,15.69-17.47,32.53C213.08,110.56,203.15,112,194.13,113c-7.48.88-16.37-.72-16.37-.72a34.59,34.59,0,0,0,11.36-11.93c4.39-7.85,6.29-14.46,13.95-20.31S214.59,71.55,223,68.71ZM201.61,45.52c7.35-5,11.19-5.92,11.86-5.48s1.71,4.63,1.66,12.23a115.69,115.69,0,0,1-1.71,16.27s-2.31,1.26-8.63,5.68a50.76,50.76,0,0,0-9.48,8.13,74.94,74.94,0,0,0-.42-15.92,99,99,0,0,0-3-12.66S194.26,50.51,201.61,45.52Zm-43.8-1.86c3.92-7.94,10.94-19.47,13.17-19.47s9.25,11.53,13.17,19.47c4.74,9.58,8.13,21.9,8.14,33.28,0,9.88-4,19.13-9.93,26.62-5.15,6.47-10.79,8.16-11.38,8.16s-6.23-1.69-11.39-8.16c-6-7.49-9.94-16.74-9.92-26.62C149.68,65.56,153.07,53.24,157.81,43.66ZM128.49,40c.67-.44,4.51.49,11.86,5.48s9.77,8.25,9.77,8.25a99,99,0,0,0-3.05,12.66,74.94,74.94,0,0,0-.42,15.92,50.76,50.76,0,0,0-9.48-8.13c-6.32-4.42-8.63-5.68-8.63-5.68a115.69,115.69,0,0,1-1.71-16.27C126.78,44.67,127.8,40.5,128.49,40Zm-11,59.1C100.69,82.3,99.34,67.51,100,66.61s10.63-.74,19,2.1,12.22,5.51,19.88,11.37,9.56,12.46,14,20.31a34.59,34.59,0,0,0,11.36,11.93s-8.89,1.6-16.37.72C138.81,112,128.88,110.56,117.49,99.14Zm28.92,26.37c-5.29,2.62-12.37,5.73-23.29,5-6.53-.44-11.77-2.84-16.93-5.52-5.33-2.76-7.66-5.09-7.66-6s4.73-4.29,9.19-6.39a112.32,112.32,0,0,1,12-5.22c1.08-.37,1.26-.07,3.11.91a40.92,40.92,0,0,0,12.86,5.9c6.85,1.73,18.66,2.63,18.66,2.63S151.7,122.88,146.41,125.51Zm33.35,12.19c-5.8,5.61-8,5.86-8.78,5.86s-3-.25-8.78-5.86-8.28-10.87-6.47-16.09a7.73,7.73,0,0,1,2.13-3.58c3.63-3.47,13.1-3.09,13.1-3.09h0s9.47-.38,13.1,3.09a7.73,7.73,0,0,1,2.13,3.58C188,126.83,185.56,132.09,179.76,137.7Zm56-12.72c-5.16,2.68-10.4,5.08-16.93,5.52-10.92.74-18-2.37-23.29-5s-7.92-8.74-7.92-8.74,11.81-.9,18.66-2.63a40.92,40.92,0,0,0,12.86-5.9c1.84-1,2-1.28,3.11-.91a112.32,112.32,0,0,1,12,5.22c4.46,2.1,9.19,5.45,9.19,6.39S241.1,122.22,235.77,125Z"/></svg>
@@ -1929,7 +2066,65 @@ body{background:linear-gradient(135deg,#1a1f36,#2d3561);min-height:100vh;display
         <input type="password" name="password" class="form-control" required></div></div>
     <button type="submit" class="btn btn-lg"><i class="bi bi-box-arrow-in-right me-2"></i>Iniciar Sesión</button>
   </form>
-</div>""" + _BSJ + """</body></html>"""
+</div></div>""" + _BSJ + """
+<script>
+// Animated cosmetics-inspired background
+(function(){
+  var c=document.getElementById('bg-canvas');
+  if(!c)return;
+  var ctx=c.getContext('2d');
+  var W,H,orbs=[];
+  function resize(){W=c.width=window.innerWidth;H=c.height=window.innerHeight;}
+  resize();window.addEventListener('resize',resize);
+  // Create floating orbs with pearlescent colors (iridescent cosmetics palette)
+  var colors=['#C084FC','#818CF8','#38BDF8','#F472B6','#A78BFA','#7DD3FC','#E879F9','#FB7185'];
+  for(var i=0;i<18;i++){
+    orbs.push({
+      x:Math.random()*window.innerWidth,
+      y:Math.random()*window.innerHeight,
+      r:30+Math.random()*80,
+      dx:(Math.random()-.5)*.4,
+      dy:(Math.random()-.5)*.4,
+      color:colors[Math.floor(Math.random()*colors.length)],
+      alpha:0.04+Math.random()*0.08,
+      phase:Math.random()*Math.PI*2
+    });
+  }
+  var frame=0;
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    // Dark gradient base
+    var bg=ctx.createLinearGradient(0,0,W,H);
+    bg.addColorStop(0,'#0a0e27');bg.addColorStop(.5,'#12103a');bg.addColorStop(1,'#0d1117');
+    ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+    // Orbs
+    frame++;
+    orbs.forEach(function(o){
+      o.x+=o.dx;o.y+=o.dy;
+      if(o.x<-o.r)o.x=W+o.r;if(o.x>W+o.r)o.x=-o.r;
+      if(o.y<-o.r)o.y=H+o.r;if(o.y>H+o.r)o.y=-o.r;
+      var pulse=o.alpha*(0.7+0.3*Math.sin(frame*0.02+o.phase));
+      var g=ctx.createRadialGradient(o.x,o.y,0,o.x,o.y,o.r);
+      g.addColorStop(0,o.color.replace('#','rgba(').replace(/(..)(..)(..)$/,function(m,r,g2,b){
+        return parseInt(r,16)+','+parseInt(g2,16)+','+parseInt(b,16)+','+pulse+')';
+      }));
+      g.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=g;ctx.beginPath();ctx.arc(o.x,o.y,o.r,0,Math.PI*2);ctx.fill();
+    });
+    // Shimmer lines
+    if(frame%3===0){
+      ctx.strokeStyle='rgba(200,180,255,0.03)';ctx.lineWidth=1;
+      for(var i=0;i<3;i++){
+        var y=((frame*0.3+i*200)%(H+100))-50;
+        ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y+30);ctx.stroke();
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+</script>
+</body></html>"""
 
 T['dashboard.html'] = """{% extends 'base.html' %}
 {% block title %}Dashboard{% endblock %}{% block page_title %}Dashboard{% endblock %}
@@ -5078,14 +5273,10 @@ tr:nth-child(even) td{background:#f8f9fe}
 <body><div class="page">
 <div class="header">
   <div class="logo-wrap" style="display:flex;align-items:center;gap:10px">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 474.45 119.52" height="44" style="display:block">
-      <path fill="#172B4D" d="M163.87,76.22V43.3c0-13-1.37-15.81-1.37-15.81h45.27v4.07s-4.09-2.22-23.45-2.22H167.87V54.21h30.9v4.07S196.13,56,183.41,56H167.87V90.18H187C206.4,90.18,210.5,88,210.5,88V92h-48S163.87,89.26,163.87,76.22Z"/>
-      <path fill="#172B4D" d="M215.13,27.49h7s-.28,2.77,4.72,15.81l17.91,46.33L263.21,43.3c5.18-13,3.82-15.81,3.82-15.81h5.82s-2.46,2.68-7.46,15.16L245.76,92h-4.27l-19-49C217.58,30.17,215.13,27.49,215.13,27.49Z"/>
-      <path fill="#172B4D" d="M274.07,59.67c0-18.5,14.45-33.39,32.36-33.39s32.36,14.89,32.36,33.39-14.46,33.38-32.36,33.38S274.07,78.16,274.07,59.67Zm60.81,0c0-17.48-12.73-31.63-28.45-31.63S278,42.19,278,59.67s12.72,31.62,28.45,31.62S334.88,77.15,334.88,59.67Z"/>
-      <path fill="#172B4D" d="M346.1,76.22V43.3c0-13-1.36-15.81-1.36-15.81h28.63c11,0,19.91,9.34,19.91,20.8s-8.73,20.63-19.55,20.81L381,76.5C393.55,89.35,397.64,92,397.64,92h-8.36S388,89.35,375.73,76.87l-7.54-7.77H350.1v7.12c0,13,1.36,15.81,1.36,15.81h-6.72S346.1,89.26,346.1,76.22Zm43.27-27.93c0-10.35-7.18-18.95-16-18.95H350.1V67.25h23.27C382.19,67.25,389.37,58.65,389.37,48.29Z"/>
-      <path fill="#172B4D" d="M403.73,76.22V43.3c0-13-1.37-15.81-1.37-15.81h45.27v4.07s-4.09-2.22-23.45-2.22H407.72V54.21h30.91v4.07S436,56,423.27,56H407.72V90.18H426.9c19.36,0,23.45-2.21,23.45-2.21V92h-48S403.73,89.26,403.73,76.22Z"/>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 341.94 261.01" height="48" style="display:block">
+      <path fill="#172B4D" d="M239.09,111.71C234.61,109,225,105.23,225,105.23s-1.42-.5-1.34-.9c.21-1.2,2.76-1.54,9.63-10.7,7.11-9.49,8.6-13.94,9.94-17.84,1.14-3.3,2.38-11,1.72-11.79s-9.12-1.35-16.48.3c-7.06,1.58-11.1,3.47-11.5,3-.64-.71.95-6.23,1.11-11.33.17-5.28.32-6.75-.41-11.49-.61-4-1.47-7.57-2.65-7.91s-5,.82-7,1.69A81.41,81.41,0,0,0,198.41,44c-2.91,2-6.52,5.48-7.55,5.69s-2.79-6-6.9-13.15a86,86,0,0,0-5.69-9.09c-1.74-2.45-4.91-7-7.28-7h0c-2.38,0-5.54,4.59-7.28,7A84.29,84.29,0,0,0,158,36.52c-4.12,7.13-5.76,13.38-6.9,13.15s-4.73-3.8-7.64-5.8a79.94,79.94,0,0,0-9.56-5.58c-2-.87-5.81-2-7-1.69s-2,3.94-2.65,7.91c-.73,4.74-.58,6.21-.41,11.49.16,5.1,1.74,10.62,1.11,11.33-.4.44-4.44-1.45-11.5-3C106.08,62.65,97.72,63.08,97,64s.57,8.49,1.71,11.79c1.35,3.9,2.83,8.35,10,17.84,6.87,9.16,9.41,9.5,9.63,10.7.07.4-1.35.9-1.35.9s-9.57,3.72-14.06,6.48C99.17,114,95,117.34,95,119.08c0,2.11,3.54,4.62,8.14,7.67s15.36,7.83,26.75,6.75c12.82-1.22,20.68-7.21,21.76-6.74.49.21.11,5.24,5.16,10.44,4.43,4.56,10.58,10,14.15,10s9.72-5.42,14.15-10c5-5.2,4.67-10.23,5.16-10.44,1.07-.47,8.93,5.52,21.76,6.74,11.39,1.08,22.07-3.65,26.74-6.75s8.17-5.56,8.15-7.67C246.93,117.34,242.76,114,239.09,111.71Z"/>
     </svg>
-    {% if empresa and empresa.nombre %}<span style="font-size:11pt;font-weight:600;color:#172B4D">{{ empresa.nombre }}</span>{% endif %}
+    {% if empresa and empresa.nombre %}<span style="font-size:13pt;font-weight:700;color:#172B4D;letter-spacing:-0.5px">{{ empresa.nombre }}</span>{% endif %}
   </div>
   <div class="doc-title">
     <h1>COTIZACIÓN</h1>
@@ -6566,7 +6757,7 @@ T['inventario/ingresos.html'] = """{% extends 'base.html' %}
 <div class="fc" style="max-width:900px">
 <p class="text-muted mb-4">Ingresa múltiples unidades del mismo producto al inventario, identificando el número de lote para trazabilidad.</p>
 <form method="POST">
-<div class="row g-3 mb-4 p-3 border rounded" style="background:#f8f9fe">
+<div class="row g-3 mb-4 p-3 rounded" style="background:var(--surface2);border:1px solid var(--border)">
   <div class="col-md-6">
     <label class="form-label fw-semibold">Producto *</label>
     <select name="producto_id" class="form-select" required>
@@ -7103,6 +7294,16 @@ html[data-theme="dark"] .alert-info{background:#0A1628;color:#60A5FA;border-colo
 </style>
 </head>
 <body>
+{% if session.get('admin_real_id') %}
+<div style="background:#FF8B00;color:#fff;padding:.55rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;font-size:.84rem;font-weight:600">
+  <span><i class="bi bi-eye-fill me-2"></i>Viendo como: <strong>{{ current_user.nombre }}</strong> ({{ current_user.rol }})</span>
+  <form method="POST" action="{{ url_for('admin_volver') }}" style="margin:0">
+    <button type="submit" class="btn btn-sm" style="background:#fff;color:#FF8B00;border:none;font-weight:700;padding:4px 12px;border-radius:4px">
+      <i class="bi bi-arrow-left-circle me-1"></i>Volver a Admin
+    </button>
+  </form>
+</div>
+{% endif %}
 <div class="portal-topbar">
   <div class="portal-brand">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 341.94 261.01" height="28" style="display:block">
@@ -7665,7 +7866,7 @@ T['portal/proveedor_ticket.html'] = """{% extends 'portal_base.html' %}
 T['nomina/index.html'] = """{% extends 'base.html' %}
 {% block title %}Nómina{% endblock %}
 {% block page_title %}Nómina{% endblock %}
-{% block topbar_actions %}<a href="{{ url_for('empleado_nuevo') }}" class="btn btn-sm btn-primary"><i class="bi bi-plus-circle me-1"></i>Nuevo empleado</a>{% endblock %}
+{% block topbar_actions %}<form method="POST" action="{{ url_for('nomina_cerrar_mes') }}" style="display:inline" onsubmit="return confirm('¿Cerrar nómina del mes actual? Esto creará un registro de gasto en el módulo de Gastos.')"><button type="submit" class="btn btn-sm btn-outline-success"><i class="bi bi-calendar-check me-1"></i>Cerrar Nómina del Mes</button></form> <a href="{{ url_for('empleado_nuevo') }}" class="btn btn-sm btn-primary"><i class="bi bi-plus-circle me-1"></i>Nuevo empleado</a>{% endblock %}
 {% block content %}
 <div class="fc">
   <div class="row mb-3 g-2">
@@ -7700,6 +7901,7 @@ T['nomina/index.html'] = """{% extends 'base.html' %}
         <option value="activo" {% if estado_filter=='activo' %}selected{% endif %}>Activos</option>
         <option value="inactivo" {% if estado_filter=='inactivo' %}selected{% endif %}>Inactivos</option>
         <option value="retirado" {% if estado_filter=='retirado' %}selected{% endif %}>Retirados</option>
+        <option value="despedido" {% if estado_filter=='despedido' %}selected{% endif %}>Despedidos</option>
         <option value="todos" {% if estado_filter=='todos' %}selected{% endif %}>Todos</option>
       </select>
       {% if departamentos %}
@@ -7955,6 +8157,10 @@ T['nomina/ver.html'] = """{% extends 'base.html' %}
     <form method="GET" action="{{ url_for('empleado_liquidacion', id=empleado.id) }}" style="display:inline">
       <input type="hidden" name="motivo" value="despido_sin_justa">
       <button type="submit" class="btn btn-outline-danger" onclick="return confirm('¿Liquidar por despido sin justa causa?')"><i class="bi bi-file-text me-1"></i>Liquidar - Despido (sin justa)</button>
+    </form>
+    <form method="POST" action="{{ url_for('empleado_retirar', id=empleado.id) }}" style="display:inline">
+      <input type="hidden" name="motivo" value="despido_sin_justa">
+      <button type="submit" class="btn btn-danger" onclick="return confirm('¿Confirmar retiro del empleado? Esto marcará su estado como despedido.')"><i class="bi bi-person-x me-1"></i>Marcar como Despedido</button>
     </form>
   </div>
   {% endif %}
@@ -9923,6 +10129,59 @@ def nomina_index():
                           estado_filter=estado_filter, departamento_filter=departamento_filter,
                           activos=activos, masa_salarial=masa_salarial, costo_empresa=costo_empresa, retirados=retirados)
 
+@app.route('/nomina/cerrar-mes', methods=['POST'])
+@login_required
+@requiere_modulo('nomina')
+def nomina_cerrar_mes():
+    """Create a monthly payroll expense entry for all active employees."""
+    mes = request.form.get('mes', '')  # format: YYYY-MM
+    if not mes:
+        from datetime import date as date_obj
+        today = date_obj.today()
+        mes = today.strftime('%Y-%m')
+
+    empleados_activos = Empleado.query.filter_by(estado='activo').all()
+    if not empleados_activos:
+        flash('No hay empleados activos para cerrar nómina.', 'warning')
+        return redirect(url_for('nomina_index'))
+
+    total_costo = sum(_calcular_nomina(e)['costo_total_empresa'] for e in empleados_activos)
+    total_neto = sum(_calcular_nomina(e)['salario_neto'] for e in empleados_activos)
+    n_empleados = len(empleados_activos)
+
+    from datetime import date as date_obj
+    try:
+        year, month = int(mes.split('-')[0]), int(mes.split('-')[1])
+        fecha_gasto = date_obj(year, month, 1)
+    except:
+        fecha_gasto = date_obj.today()
+
+    # Check if already closed for this month
+    desc_check = f'Nómina mensual {mes}'
+    existing = GastoOperativo.query.filter(
+        GastoOperativo.descripcion == desc_check,
+        GastoOperativo.tipo == 'Nómina'
+    ).first()
+    if existing:
+        flash(f'La nómina de {mes} ya fue cerrada anteriormente.', 'warning')
+        return redirect(url_for('nomina_index'))
+
+    g = GastoOperativo(
+        fecha=fecha_gasto,
+        tipo='Nómina',
+        descripcion=desc_check,
+        monto=round(total_costo, 0),
+        recurrencia='unico',
+        notas=f'{n_empleados} empleados activos. Masa salarial neta: ${total_neto:,.0f}',
+        creado_por=current_user.id
+    )
+    db.session.add(g)
+    db.session.commit()
+    _log('crear', 'gasto', g.id, f'Nómina mensual {mes}: ${total_costo:,.0f}')
+    db.session.commit()
+    flash(f'Nómina de {mes} cerrada. Gasto registrado: ${total_costo:,.0f} ({n_empleados} empleados).', 'success')
+    return redirect(url_for('nomina_index'))
+
 @app.route('/nomina/nuevo', methods=['GET','POST'])
 @login_required
 @requiere_modulo('nomina')
@@ -10007,11 +10266,17 @@ def empleado_liquidacion(id):
 @requiere_modulo('nomina')
 def empleado_retirar(id):
     empleado = Empleado.query.get_or_404(id)
-    empleado.estado = 'retirado'
+    motivo = request.form.get('motivo', 'renuncia')
+    empleado.motivo_retiro = motivo
     empleado.fecha_retiro = date_type.today()
-    empleado.motivo_retiro = request.form.get('motivo', 'renuncia')
+    if motivo in ('despido_justa', 'despido_sin_justa'):
+        empleado.estado = 'despedido'
+    else:
+        empleado.estado = 'retirado'
     db.session.commit()
-    flash(f'Empleado {empleado.nombre} marcado como retirado.','success')
+    _log('editar', 'empleado', empleado.id, f'Marcado como {empleado.estado} por: {motivo}')
+    db.session.commit()
+    flash(f'Empleado {empleado.nombre} marcado como {empleado.estado}.','success')
     return redirect(url_for('nomina_index'))
 
 # =============================================================
@@ -11806,9 +12071,10 @@ def buscador():
     return render_template('buscador.html', q=q, resultados=resultados)
 
 @app.route('/api/buscar')
-@login_required
 def api_buscar():
     """JSON search API for the overlay search."""
+    if not current_user.is_authenticated:
+        return jsonify({'results':[], 'error':'not_authenticated'}), 401
     q = request.args.get('q','').strip()
     if not q or len(q) < 2:
         return jsonify({'results': []})
