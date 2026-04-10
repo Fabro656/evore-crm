@@ -15,7 +15,7 @@ class NominaService:
     @staticmethod
     def calcular_nomina(empleado):
         """Retorna dict con todos los cálculos de nómina para un empleado."""
-        salario = empleado.salario_base
+        salario = float(empleado.salario_base or 0)
         aux_transporte = AUXILIO_TRANSPORTE_2025 if (
             empleado.auxilio_transporte and salario <= 2 * SMLMV_2025
         ) else 0

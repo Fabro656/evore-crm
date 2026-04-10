@@ -26,11 +26,11 @@
     <div class="form-section-title mb-0"><i class="bi bi-box-seam me-2"></i>Productos</div>
     <button type="button" class="btn btn-sm btn-outline-primary" onclick="addProd()"><i class="bi bi-plus-lg me-1"></i>Agregar producto</button>
   </div>
-  <div class="input-hint mb-2"><i class="bi bi-info-circle me-1"></i>Agrega los productos o servicios del pedido. El precio es <strong>sin IVA</strong>; el sistema calcula el 19% automáticamente.</div>
+  <div class="input-hint mb-2"><i class="bi bi-info-circle me-1"></i>Agrega los productos o servicios del pedido. El precio es <strong>sin IVA</strong>; el sistema calcula el {{ iva_default|default(19)|int }}% automáticamente.</div>
   <div id="prodsContainer"></div>
   <div class="totales-box mt-3 mb-2"><div class="row g-2 justify-content-end"><div class="col-md-4">
     <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">Subtotal:</span><strong id="lblSub">$ 0</strong></div>
-    <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">IVA 19%:</span><strong id="lblIva">$ 0</strong></div>
+    <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">IVA {{ iva_default|default(19)|int }}%:</span><strong id="lblIva">$ 0</strong></div>
     <div class="d-flex justify-content-between py-1"><span class="fw-bold">Total:</span><strong id="lblTot" style="color:var(--ac);font-size:1.1rem">$ 0</strong></div>
   </div></div></div>
 </div>
@@ -110,6 +110,7 @@
 </div></form></div>{% endblock %}
 {% block scripts %}<script>
 const PRODS={{ productos_json|tojson }};const ITEMS={{ items_json|tojson }};let totG=0;
+const IVA_PCT={{ iva_default|default(19)|float }};
 function fCOP(n){return '$ '+Math.round(n).toLocaleString('es-CO');}
 function stockInfo(p,cant){
   if(!p||p.stock===undefined) return '';
@@ -170,7 +171,7 @@ function calcTot(){
   document.querySelectorAll('[name="prod_cant[]"]').forEach((el,i)=>{
     sub+=(parseFloat(el.value)||0)*(parseFloat(document.querySelectorAll('[name="prod_precio[]"]')[i].value)||0);
   });
-  const iva=sub*.19,tot=sub+iva;totG=tot;
+  const iva=sub*(IVA_PCT/100),tot=sub+iva;totG=tot;
   document.getElementById('lblSub').textContent=fCOP(sub);
   document.getElementById('lblIva').textContent=fCOP(iva);
   document.getElementById('lblTot').textContent=fCOP(tot);

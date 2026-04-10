@@ -1,7 +1,7 @@
 # services/inventario.py — Inventario es el núcleo del sistema
 # Toda modificación de stock DEBE pasar por esta clase.
 from extensions import db
-from models import Producto, LoteProducto, MovimientoInventario, MateriaPrima, ReservaProduccion
+from models import Producto, LoteProducto, MovimientoInventario
 from datetime import datetime
 import logging
 
@@ -21,8 +21,8 @@ class InventarioService:
                 prod = db.session.get(Producto, item.producto_id)
                 if not prod:
                     continue
-                cant = item.cantidad
-                prod.stock = max(0, (prod.stock or 0) - cant)
+                cant = int(round(item.cantidad or 0))
+                prod.stock = max(0, int(prod.stock or 0) - cant)
                 # Registrar movimiento si el modelo existe
                 try:
                     mv = MovimientoInventario(
@@ -45,7 +45,7 @@ class InventarioService:
             prod = db.session.get(Producto, producto_id)
             if not prod:
                 return False
-            prod.stock = (prod.stock or 0) + cantidad
+            prod.stock = int(prod.stock or 0) + int(round(cantidad))
             try:
                 mv = MovimientoInventario(
                     producto_id=prod.id,
@@ -163,18 +163,7 @@ class InventarioService:
                     continue
                 mp.stock_disponible = max(0.0, float(mp.stock_disponible or 0) - r.cantidad)
                 mp.stock_reservado  = float(mp.stock_reservado or 0) + r.cantidad
-                # Registrar movimiento
-                try:
-                    mv = MovimientoInventario(
-                        producto_id=None,
-                        tipo='reserva_produccion',
-                        cantidad=r.cantidad,
-                        referencia=f'Producción venta #{venta_id} — {mp.nombre}',
-                        fecha=datetime.utcnow()
-                    )
-                    db.session.add(mv)
-                except Exception:
-                    pass
+                # Movimiento omitido — MovimientoInventario es solo para productos terminados
             return True, 'Stock de materias primas descontado correctamente.'
         except Exception as ex:
             logging.warning(f'InventarioService.descontar_materias_produccion error: {ex}')
@@ -214,8 +203,8 @@ class InventarioService:
             prod = db.session.get(Producto, producto_id)
             if not prod:
                 return False
-            anterior = prod.stock or 0
-            prod.stock = max(0, cantidad_nueva)
+            anterior = int(prod.stock or 0)
+            prod.stock = max(0, int(round(cantidad_nueva)))
             diff = cantidad_nueva - anterior
             tipo = 'entrada' if diff > 0 else 'salida'
             try:

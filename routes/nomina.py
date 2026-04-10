@@ -39,8 +39,14 @@ def register(app):
         departamentos = [d[0] for d in departamentos if d[0]]
         # Stats
         activos = Empleado.query.filter_by(estado='activo').count()
-        masa_salarial = sum(e.salario_base for e in Empleado.query.filter_by(estado='activo').all())
-        costo_empresa = sum(_calcular_nomina(e)['costo_total_empresa'] for e in Empleado.query.filter_by(estado='activo').all())
+        _activos_list = Empleado.query.filter_by(estado='activo').all()
+        masa_salarial = sum(float(e.salario_base or 0) for e in _activos_list)
+        costo_empresa = 0
+        for _e in _activos_list:
+            try:
+                costo_empresa += _calcular_nomina(_e)['costo_total_empresa']
+            except Exception as _ne:
+                logging.warning(f'nomina_index: calcular_nomina({_e.id}) error: {_ne}')
         retirados = Empleado.query.filter_by(estado='retirado').count()
         return render_template('nomina/index.html', empleados=empleados, departamentos=departamentos,
                               estado_filter=estado_filter, departamento_filter=departamento_filter,
@@ -64,8 +70,15 @@ def register(app):
             flash('No hay empleados activos para cerrar nómina.', 'warning')
             return redirect(url_for('nomina_index'))
     
-        total_costo = sum(_calcular_nomina(e)['costo_total_empresa'] for e in empleados_activos)
-        total_neto = sum(_calcular_nomina(e)['salario_neto'] for e in empleados_activos)
+        total_costo = 0
+        total_neto = 0
+        for _e2 in empleados_activos:
+            try:
+                _c = _calcular_nomina(_e2)
+                total_costo += _c['costo_total_empresa']
+                total_neto  += _c['salario_neto']
+            except Exception as _ce:
+                logging.warning(f'nomina_cerrar_mes: calcular_nomina({_e2.id}) error: {_ce}')
         n_empleados = len(empleados_activos)
     
         from datetime import date as date_obj
@@ -117,7 +130,7 @@ def register(app):
                     cargo=request.form.get('cargo',''),
                     departamento=request.form.get('departamento',''),
                     tipo_contrato=request.form.get('tipo_contrato','indefinido'),
-                    salario_base=float(request.form.get('salario_base',0)),
+                    salario_base=float(request.form.get('salario_base') or 0),
                     auxilio_transporte=request.form.get('auxilio_transporte')=='on',
                     nivel_riesgo_arl=int(request.form.get('nivel_riesgo_arl',1)),
                     estado='activo',
@@ -161,7 +174,7 @@ def register(app):
                 empleado.cargo=request.form.get('cargo','')
                 empleado.departamento=request.form.get('departamento','')
                 empleado.tipo_contrato=request.form.get('tipo_contrato','indefinido')
-                empleado.salario_base=float(request.form.get('salario_base',0))
+                empleado.salario_base=float(request.form.get('salario_base') or 0)
                 empleado.auxilio_transporte=request.form.get('auxilio_transporte')=='on'
                 empleado.nivel_riesgo_arl=int(request.form.get('nivel_riesgo_arl',1))
                 empleado.notas=request.form.get('notas','')

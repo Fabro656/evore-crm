@@ -123,15 +123,15 @@ table.items-table tr:nth-child(even) td{background:#F4F5F7}
       <td>{{ loop.index }}</td>
       <td>{{ it.nombre }}</td>
       <td class="r">{{ it.cantidad }}</td>
-      <td class="r">$ {{ '{:,.0f}'.format(it.precio_unit).replace(',','.') }}</td>
-      <td class="r">$ {{ '{:,.0f}'.format(it.subtotal).replace(',','.') }}</td>
+      <td class="r">$ {{ '{:,.0f}'.format(it.precio_unit or 0).replace(',','.') }}</td>
+      <td class="r">$ {{ '{:,.0f}'.format(it.subtotal or 0).replace(',','.') }}</td>
     </tr>{% endfor %}</tbody>
   </table>
   <div class="totals">
     <table style="width:100%;border-collapse:collapse">
-      <tr><td>Subtotal:</td><td class="r">$ {{ '{:,.0f}'.format(venta.subtotal).replace(',','.') }}</td></tr>
-      <tr><td>IVA 19%:</td><td class="r">$ {{ '{:,.0f}'.format(venta.iva).replace(',','.') }}</td></tr>
-      <tr class="grand"><td style="padding:7px 10px">Total:</td><td class="r" style="padding:7px 10px">$ {{ '{:,.0f}'.format(venta.total).replace(',','.') }}</td></tr>
+      <tr><td>Subtotal:</td><td class="r">$ {{ '{:,.0f}'.format(venta.subtotal or 0).replace(',','.') }}</td></tr>
+      <tr><td>IVA 19%:</td><td class="r">$ {{ '{:,.0f}'.format(venta.iva or 0).replace(',','.') }}</td></tr>
+      <tr class="grand"><td style="padding:7px 10px">Total:</td><td class="r" style="padding:7px 10px">$ {{ '{:,.0f}'.format(venta.total or 0).replace(',','.') }}</td></tr>
     </table>
   </div>
 

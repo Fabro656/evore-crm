@@ -39,15 +39,18 @@
         <td>
           <span class="b b-{{ oc.estado or 'pendiente' }}">{{ (oc.estado or 'pendiente').replace('_',' ').title() }}</span>
         </td>
-        <td style="font-size:.82rem;color:var(--text2)">{{ oc.fecha_entrega.strftime('%d/%m/%Y') if oc.fecha_entrega else '—' }}</td>
+        <td style="font-size:.82rem;color:var(--text2)">{{ oc.fecha_esperada.strftime('%d/%m/%Y') if oc.fecha_esperada else '—' }}</td>
         <td>
-          {% if oc.estado in ['pendiente','enviada'] %}
-          <form method="POST" action="{{ url_for('portal_prov_confirmar_oc', id=oc.id) }}" style="display:inline">
-            <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('¿Confirmar recepción de esta orden?')">
-              <i class="bi bi-check-circle me-1"></i>Confirmar
-            </button>
-          </form>
-          {% endif %}
+          <div class="d-flex gap-1 flex-wrap">
+            <a href="{{ url_for('oc_pdf', id=oc.id) }}" class="btn btn-sm btn-outline-secondary" target="_blank" title="Ver PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+            {% if oc.estado in ('pendiente','enviada') %}
+            <form method="POST" action="{{ url_for('portal_prov_confirmar_oc', id=oc.id) }}" style="display:inline">
+              <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('¿Confirmar recepción de esta orden?')">
+                <i class="bi bi-check-circle me-1"></i>Confirmar
+              </button>
+            </form>
+            {% endif %}
+          </div>
         </td>
       </tr>
       {% endfor %}

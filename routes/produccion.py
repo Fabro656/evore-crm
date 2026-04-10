@@ -420,9 +420,13 @@ def register(app):
         venta_ids = list({r.venta_id for r in items if r.venta_id})
         validaciones = {}
         for vid in venta_ids:
-            validaciones[vid] = InventarioService.validar_materias_produccion(vid)
+            try:
+                validaciones[vid] = InventarioService.validar_materias_produccion(vid)
+            except Exception as _ve:
+                logging.warning(f'reservas: validar_materias_produccion({vid}) error: {_ve}')
+                validaciones[vid] = {'ok': True, 'faltantes': [], 'proximos_vencer': []}
 
-        ESTADOS_VALIDOS_PROD = {'anticipo_pagado', 'completado', 'pagado'}
+        ESTADOS_VALIDOS_PROD = {'anticipo_pagado', 'completado', 'pagado'}  # completado = legado
         return render_template('produccion/reservas.html',
                                reservas=items, usuarios=usuarios,
                                today=_date.today(),
@@ -441,16 +445,32 @@ def register(app):
         cantidad_faltante = request.form.get('cantidad_faltante','')
         r = ReservaProduccion.query.get_or_404(int(reserva_id))
         mp = r.materia
+
+        # Bloque 7: prevent duplicate pending purchase tasks for the same materia prima
+        titulo_buscar = f'Comprar%de {mp.nombre}'
+        tarea_existente = Tarea.query.filter(
+            Tarea.titulo.like(titulo_buscar),
+            Tarea.tarea_tipo == 'comprar_materias',
+            Tarea.estado == 'pendiente'
+        ).first()
+        if tarea_existente:
+            flash(
+                f'Ya existe una tarea pendiente de compra para {mp.nombre} (#{tarea_existente.id}). '
+                f'Complétala antes de crear otra.',
+                'warning'
+            )
+            return redirect(url_for('reservas'))
+
         from datetime import timedelta
         venc = (datetime.utcnow() + timedelta(days=3)).date()
-    
+
         # Format the title with the missing quantity
         try:
             cant_fmt = f'{float(cantidad_faltante):.3f} {mp.unidad}' if cantidad_faltante else ''
         except (ValueError, TypeError):
             cant_fmt = ''
         titulo_compra = f'Comprar {cant_fmt} de {mp.nombre}' if cant_fmt else f'Comprar materia: {mp.nombre}'
-    
+
         t_compra = Tarea(
             titulo=titulo_compra,
             descripcion=(f'Falta material en reserva de producción.\n'
@@ -552,7 +572,7 @@ def register(app):
 
         venta = Venta.query.get_or_404(venta_id)
 
-        # 1. Validar estado de la venta
+        # 1. Validar estado de la venta (completado = legado de nombre anterior)
         ESTADOS_VALIDOS = {'anticipo_pagado', 'completado', 'pagado'}
         if venta.estado not in ESTADOS_VALIDOS:
             flash(

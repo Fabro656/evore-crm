@@ -25,11 +25,12 @@
     <td>{% if oc.transportista %}<small><i class="bi bi-truck-front text-success me-1"></i>{{ oc.transportista.empresa or oc.transportista.nombre }}{% if oc.fecha_estimada_recogida %}<div class="text-muted" style="font-size:.72rem">Recogida: {{ oc.fecha_estimada_recogida.strftime('%d/%m/%Y') }}</div>{% endif %}</small>{% else %}<span class="text-muted">—</span>{% endif %}</td>
     <td class="fw-semibold">$ {{ '{:,.0f}'.format(oc.total).replace(',','.') }}</td>
     <td><div class="d-flex gap-1 flex-wrap">
-      <a href="{{ url_for('orden_compra_editar', id=oc.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+      <a href="{{ url_for('oc_pdf', id=oc.id) }}" class="btn btn-sm btn-outline-secondary" target="_blank" title="Ver / Imprimir PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+      <a href="{{ url_for('orden_compra_editar', id=oc.id) }}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
       {% if oc.estado == 'borrador' %}
       <form method="POST" action="{{ url_for('orden_compra_estado', id=oc.id) }}" class="d-inline">
         <input type="hidden" name="estado" value="enviada">
-        <button class="btn btn-sm btn-outline-primary" title="Marcar como enviada"><i class="bi bi-send"></i></button>
+        <button class="btn btn-sm btn-outline-primary" title="Enviar al proveedor"><i class="bi bi-send"></i></button>
       </form>
       {% elif oc.estado == 'enviada' %}
       <form method="POST" action="{{ url_for('orden_compra_estado', id=oc.id) }}" class="d-inline" onsubmit="return confirm('¿Marcar como recibida? Se agendará la entrega en el calendario.')">
@@ -37,8 +38,15 @@
         <button class="btn btn-sm btn-outline-success" title="Marcar como recibida → agenda entrega en calendario"><i class="bi bi-box-arrow-in-down me-1"></i>Recibida</button>
       </form>
       {% endif %}
-      <form method="POST" action="{{ url_for('orden_compra_eliminar', id=oc.id) }}" onsubmit="return confirm('¿Eliminar?')">
-        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+      {% if oc.estado in ('borrador','enviada') %}
+      <form method="POST" action="{{ url_for('orden_compra_estado', id=oc.id) }}" class="d-inline"
+            onsubmit="return confirm('¿Cancelar esta orden de compra?')">
+        <input type="hidden" name="estado" value="cancelada">
+        <button class="btn btn-sm btn-outline-warning" title="Cancelar OC"><i class="bi bi-x-lg"></i></button>
+      </form>
+      {% endif %}
+      <form method="POST" action="{{ url_for('orden_compra_eliminar', id=oc.id) }}" onsubmit="return confirm('¿Eliminar permanentemente?')">
+        <button class="btn btn-sm btn-outline-danger" title="Eliminar"><i class="bi bi-trash"></i></button></form>
     </div></td>
   </tr>{% endfor %}</tbody>
 </table></div>

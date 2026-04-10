@@ -29,7 +29,7 @@
 <div class="mb-3 d-flex gap-2 flex-wrap align-items-center">
   {% for est,lbl,cnt in [('','Todas',items|length)] %}
   <span class="text-muted me-1" style="font-size:.8rem">Filtrar:</span>{% endfor %}
-  {% for est,lbl in [('','Todas'),('prospecto','Prospecto'),('negociacion','Negociación'),('anticipo_pagado','Anticipo'),('completado','Completado'),('perdido','Perdido')] %}
+  {% for est,lbl in [('','Todas'),('prospecto','Prospecto'),('negociacion','Negociación'),('anticipo_pagado','Anticipo'),('pagado','Pagado'),('cancelado','Cancelado'),('completado','Completado (legado)'),('perdido','Perdido (legado)')] %}
   <a href="{{ url_for('ventas', estado=est) }}"
      class="b {% if estado_f==est %}b-negociacion{% else %}b-borrador{% endif %}"
      style="text-decoration:none;cursor:pointer;padding:4px 12px">{{ lbl }}</a>{% endfor %}
@@ -63,7 +63,7 @@
       <form method="POST" action="{{ url_for('venta_cambiar_estado', id=v.id) }}" style="display:inline" onchange="this.submit()">
         <select name="estado" class="status-select b-{{ v.estado }}" title="Cambiar estado"
                 onchange="this.className='status-select b-'+this.value">
-          {% for est,lbl in [('prospecto','Prospecto'),('negociacion','Negociación'),('anticipo_pagado','Anticipo Pagado'),('completado','Completado'),('perdido','Perdido')] %}
+          {% for est,lbl in [('prospecto','Prospecto'),('negociacion','Negociación'),('anticipo_pagado','Anticipo Pagado'),('pagado','Pagado'),('cancelado','Cancelado'),('completado','Completado (legado)'),('perdido','Perdido (legado)')] %}
           <option value="{{ est }}" {% if v.estado==est %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
         </select>
       </form>
@@ -112,15 +112,15 @@
           </button>
         </form>
         {% endif %}
-        {# Marcar entregado: ya notificado, no entregado aún #}
-        {% if v.cliente_informado_en and not v.entregado_en %}
+        {# Marcar entregado: disponible si hay anticipo o está pagado, y aún no se entregó #}
+        {% if not v.entregado_en and v.estado in ('anticipo_pagado','pagado','completado') %}
         <form method="POST" action="{{ url_for('venta_entregar', id=v.id) }}" class="d-inline"
-              onsubmit="return confirm('¿Marcar como entregado? Se descontará el stock.')">
+              onsubmit="return confirm('¿Marcar como entregado? Se actualizará el estado a Pagado y se descontará el stock.')">
           <button class="btn btn-sm btn-success" title="Marcar como entregado"><i class="bi bi-box-arrow-up"></i></button>
         </form>
         {% endif %}
-        {# Remisión: disponible cuando ya fue entregado #}
-        {% if v.entregado_en %}
+        {# Remisión: disponible cuando ya fue entregado o anticipo pagado #}
+        {% if v.entregado_en or v.estado in ('anticipo_pagado','pagado','completado') %}
         <a href="{{ url_for('venta_remision', id=v.id) }}" class="btn btn-sm btn-primary" title="Ver remisión de entrega" target="_blank">
           <i class="bi bi-receipt me-1"></i><span class="d-none d-lg-inline">Remisión</span>
         </a>

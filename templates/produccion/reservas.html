@@ -21,7 +21,11 @@
   {% set venta_obj = grupo[0].venta %}
 
   {# Obtener validación pre-calculada desde la ruta #}
-  {% set val = validaciones.get(vid, {'ok': true, 'faltantes': [], 'proximos_vencer': []}) %}
+  {% if vid in validaciones %}
+    {% set val = validaciones[vid] %}
+  {% else %}
+    {% set val = {'ok': true, 'faltantes': [], 'proximos_vencer': []} %}
+  {% endif %}
   {% set hay_faltante_real = not val.ok %}
 
   {# Detectar si hay lotes próximos a vencer #}
@@ -295,7 +299,7 @@
       </td>
       <td class="text-end fw-semibold">{{ '%.3f'|format(r.cantidad) }}</td>
       <td class="text-end">
-        {% set disp = r.materia.stock_disponible %}
+        {% set disp = (r.materia.stock_disponible or 0)|float %}
         {% if disp < r.cantidad %}
           <span class="text-danger fw-semibold">{{ '%.3f'|format(disp) }} <i class="bi bi-exclamation-circle"></i></span>
         {% else %}

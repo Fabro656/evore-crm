@@ -85,9 +85,9 @@ def register(app):
                 prod = db.session.get(Producto, item.producto_id)
                 if not prod:
                     continue
-                cant_requerida = float(item.cantidad or 0)
-                cant_en_stock  = min(float(prod.stock or 0), cant_requerida)
-                cant_producir  = max(0.0, cant_requerida - cant_en_stock)
+                cant_requerida = int(round(float(item.cantidad or 0)))
+                cant_en_stock  = min(int(prod.stock or 0), cant_requerida)
+                cant_producir  = max(0, cant_requerida - cant_en_stock)
                 if cant_producir <= 0:
                     continue
                 existente = OrdenProduccion.query.filter(
@@ -247,19 +247,31 @@ def register(app):
                                proximas_vencer=proximas_vencer, today_date=hoy)
     
 
+    # helper: get configured IVA rate (%)
+    def _iva_rate():
+        try:
+            regla = ReglaTributaria.query.filter_by(aplica_a='ventas', activo=True).first()
+            return float(regla.porcentaje) if regla else 19.0
+        except Exception:
+            return 19.0
+
     # ── venta_nueva (/ventas/nueva)
     @app.route('/ventas/nueva', methods=['GET','POST'])
     @login_required
     def venta_nueva():
         cl = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
+        iva_pct = _iva_rate()
         if request.method == 'POST':
             fa = request.form.get('fecha_anticipo')
             fe = request.form.get('fecha_entrega_est')
+            subtotal = float(request.form.get('subtotal_calc') or 0)
+            iva_monto = round(subtotal * iva_pct / 100.0, 2)
+            total = subtotal + iva_monto
             v = Venta(titulo=request.form['titulo'],
                 cliente_id=request.form.get('cliente_id') or None,
-                subtotal=float(request.form.get('subtotal_calc') or 0),
-                iva=float(request.form.get('iva_calc') or 0),
-                total=float(request.form.get('total_calc') or 0),
+                subtotal=subtotal,
+                iva=iva_monto,
+                total=total,
                 porcentaje_anticipo=float(request.form.get('porcentaje_anticipo') or 0),
                 monto_anticipo=float(request.form.get('monto_anticipo') or 0),
                 saldo=float(request.form.get('saldo') or 0),
@@ -290,7 +302,8 @@ def register(app):
                 logging.error(f'venta_nueva error: {e}')
                 flash('Error al crear la venta. Verifica los datos e intenta de nuevo.', 'danger')
         return render_template('ventas/form.html', obj=None, clientes_list=cl,
-                               titulo='Nueva Venta', productos_json=_prods_json(), items_json=[])
+                               titulo='Nueva Venta', productos_json=_prods_json(), items_json=[],
+                               iva_default=iva_pct)
     
 
     # ── venta_editar (/ventas/<int:id>/editar)
@@ -299,13 +312,17 @@ def register(app):
     def venta_editar(id):
         obj = Venta.query.get_or_404(id)
         cl  = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
+        iva_pct = _iva_rate()
         if request.method == 'POST':
             fa = request.form.get('fecha_anticipo')
             fe = request.form.get('fecha_entrega_est')
+            subtotal = float(request.form.get('subtotal_calc') or 0)
+            iva_monto = round(subtotal * iva_pct / 100.0, 2)
+            total = subtotal + iva_monto
             obj.titulo=request.form['titulo']; obj.cliente_id=request.form.get('cliente_id') or None
-            obj.subtotal=float(request.form.get('subtotal_calc') or 0)
-            obj.iva=float(request.form.get('iva_calc') or 0)
-            obj.total=float(request.form.get('total_calc') or 0)
+            obj.subtotal=subtotal
+            obj.iva=iva_monto
+            obj.total=total
             obj.porcentaje_anticipo=float(request.form.get('porcentaje_anticipo') or 0)
             obj.monto_anticipo=float(request.form.get('monto_anticipo') or 0)
             obj.saldo=float(request.form.get('saldo') or 0)
@@ -329,27 +346,32 @@ def register(app):
         items_j = [{'pid':it.producto_id or '','nombre':it.nombre_prod,
                     'cant':it.cantidad,'precio':it.precio_unit} for it in obj.items]
         return render_template('ventas/form.html', obj=obj, clientes_list=cl,
-                               titulo='Editar Venta', productos_json=_prods_json(), items_json=items_j)
+                               titulo='Editar Venta', productos_json=_prods_json(), items_json=items_j,
+                               iva_default=iva_pct)
     
 
     # ── venta_eliminar (/ventas/<int:id>/eliminar)
     @app.route('/ventas/<int:id>/eliminar', methods=['POST'])
     @login_required
     def venta_eliminar(id):
+        from services.inventario import InventarioService
         if current_user.rol != 'admin':
             flash('Solo administradores pueden eliminar ventas.', 'danger')
             return redirect(url_for('ventas'))
         obj = Venta.query.get_or_404(id)
         try:
+            # Devolver stock de materias primas antes de borrar
+            InventarioService.devolver_materias_venta(obj.id)
             ReservaProduccion.query.filter_by(venta_id=obj.id).delete()
             OrdenProduccion.query.filter_by(venta_id=obj.id).delete()
             db.session.flush()
         except Exception as e:
+            logging.warning(f'venta_eliminar: cleanup error: {e}')
             db.session.rollback()
         db.session.delete(obj)
         db.session.commit()
         _noop('eliminar','venta',id,'Venta eliminada'); db.session.commit()
-        flash('Venta eliminada.', 'info')
+        flash('Venta eliminada y stock de materias primas devuelto.', 'info')
         return redirect(url_for('ventas'))
     
 
@@ -357,12 +379,68 @@ def register(app):
     @app.route('/ventas/<int:id>/estado', methods=['POST'])
     @login_required
     def venta_cambiar_estado(id):
+        from services.inventario import InventarioService
         venta = Venta.query.get_or_404(id)
+        estado_anterior = venta.estado
         nuevo = request.form.get('estado', '')
-        estados_validos = ['prospecto','negociacion','anticipo_pagado','completado','perdido']
-        if nuevo in estados_validos:
-            venta.estado = nuevo
-            _noop('editar','venta',venta.id,f'Estado → {nuevo}'); db.session.commit()
+        estados_validos = ['prospecto','negociacion','anticipo_pagado','pagado','cancelado',
+                           'completado','perdido']  # completado/perdido kept for backward compat
+        if nuevo not in estados_validos:
+            return redirect(url_for('ventas'))
+
+        venta.estado = nuevo
+        _noop('editar','venta',venta.id,f'Estado → {nuevo}')
+
+        # ── Bloque 3: sincronizar producción cuando venta se cancela/pierde ──
+        ESTADOS_CANCEL = {'cancelado', 'perdido'}
+        ESTADOS_ACTIVOS_PROD = {'anticipo_pagado', 'pagado', 'completado'}
+        if nuevo in ESTADOS_CANCEL and estado_anterior in ESTADOS_ACTIVOS_PROD:
+            # Devolver materias primas reservadas
+            try:
+                InventarioService.devolver_materias_venta(venta.id)
+            except Exception as ex:
+                logging.warning(f'venta_cambiar_estado: devolver_materias_venta error: {ex}')
+            # Cancelar órdenes de producción activas
+            ordenes_activas = OrdenProduccion.query.filter(
+                OrdenProduccion.venta_id == venta.id,
+                OrdenProduccion.estado.in_(['pendiente_materiales', 'en_produccion'])
+            ).all()
+            for o in ordenes_activas:
+                o.estado = 'cancelado'
+            # Crear tarea automática si hay órdenes que se detuvieron (evitar duplicados)
+            if ordenes_activas:
+                productos_afectados = ', '.join(
+                    o.producto.nombre for o in ordenes_activas if o.producto
+                )
+                titulo_cancel = f'Producción detenida — {venta.titulo or venta.numero}'
+                tarea_dup = Tarea.query.filter_by(
+                    titulo=titulo_cancel, estado='pendiente'
+                ).first()
+                try:
+                    responsable = current_user.id
+                    if not tarea_dup:
+                        t = Tarea(
+                            titulo=titulo_cancel,
+                            descripcion=(
+                                f'La venta {venta.numero or "#"+str(venta.id)} fue marcada como '
+                                f'"{nuevo}". Se detuvo la producción de: {productos_afectados}.\n'
+                                f'Revisar materiales reservados y reordenar si aplica.'
+                            ),
+                            estado='pendiente', prioridad='alta',
+                            asignado_a=responsable,
+                            creado_por=responsable,
+                            fecha_vencimiento=(datetime.utcnow() + timedelta(days=1)).date()
+                        )
+                        db.session.add(t)
+                except Exception as ex:
+                    logging.warning(f'venta_cambiar_estado: tarea automatica error: {ex}')
+            flash(
+                f'Venta cancelada. {len(ordenes_activas)} orden(es) de producción detenida(s) '
+                f'y stock de materias primas devuelto.',
+                'warning'
+            )
+
+        db.session.commit()
         return redirect(url_for('ventas'))
     
 
@@ -431,9 +509,12 @@ def register(app):
         venta = Venta.query.get_or_404(id)
         try:
             venta.entregado_en = datetime.utcnow()
+            # Mark as fully paid when delivered (unless already cancelled/lost)
+            if venta.estado not in ('cancelado', 'perdido'):
+                venta.estado = 'pagado'
             _descontar_stock_venta(venta)
             db.session.commit()
-            flash('Venta marcada como entregada. Stock descontado del inventario.', 'success')
+            flash('Venta entregada y marcada como pagada. Stock descontado del inventario.', 'success')
         except Exception as e:
             db.session.rollback()
             logging.error(f'venta_entregar error: {e}')
