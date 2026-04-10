@@ -128,6 +128,16 @@ def register(app):
                         pct_peso   = round((peso_total / peso_max) * 100, 1)
                         volumen    = round(w * d * h, 1)
 
+                        # ── Filtro de proporciones para transporte/almacenaje ─────
+                        # 1) Ninguna dimensión en cm puede ser más de 4× la menor
+                        dims_cm = sorted([w, d, h])
+                        if dims_cm[2] / dims_cm[0] > 4.0:
+                            continue
+                        # 2) En unidades, ningún lado puede ser más de 6× otro
+                        dims_u = sorted([r, c, l])
+                        if dims_u[2] / max(dims_u[0], 1) > 6:
+                            continue
+
                         variantes.append({
                             'total'      : total,
                             'filas'      : r,
