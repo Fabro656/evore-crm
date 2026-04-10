@@ -71,11 +71,22 @@
     </div>
     <div class="col-md-4">
       <label class="form-label">Días de producción</label>
-      <select name="dias_entrega" id="diasEnt" class="form-select" onchange="calcEnt()">
-        <option value="30" {% if not obj or obj.dias_entrega==30 %}selected{% endif %}>30 días</option>
-        <option value="45" {% if obj and obj.dias_entrega==45 %}selected{% endif %}>45 días</option>
-      </select>
-      <div class="form-text">Tiempo estimado para fabricar o preparar el pedido.</div>
+      <div class="input-group">
+        <input type="number" name="dias_entrega" id="diasEnt" class="form-control"
+               min="1" max="365" step="1"
+               value="{{ obj.dias_entrega if obj else 30 }}"
+               oninput="calcEnt()" required>
+        <span class="input-group-text">días</span>
+      </div>
+      <div class="d-flex gap-1 mt-1">
+        <button type="button" class="btn btn-outline-secondary btn-sm" style="font-size:.73rem;padding:1px 7px"
+                onclick="document.getElementById('diasEnt').value=30;calcEnt()">30d</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" style="font-size:.73rem;padding:1px 7px"
+                onclick="document.getElementById('diasEnt').value=45;calcEnt()">45d</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" style="font-size:.73rem;padding:1px 7px"
+                onclick="document.getElementById('diasEnt').value=60;calcEnt()">60d</button>
+      </div>
+      <div class="form-text">Tiempo estimado para fabricar el pedido. Escribe los días o usa los accesos rápidos.</div>
     </div>
     <div class="col-md-4">
       <label class="form-label">Entrega estimada</label>

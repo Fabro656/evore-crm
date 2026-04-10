@@ -5,9 +5,10 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:11.5pt;color:#172B4D;background:#fff}
 .page{max-width:800px;margin:0 auto;padding:24px 32px}
-.no-print{display:flex;gap:8px;padding:10px 16px;background:#fff;border-bottom:1px solid #DFE1E6;box-shadow:0 1px 3px rgba(0,0,0,.07);position:sticky;top:0;z-index:10}
+.no-print{display:flex;gap:8px;padding:10px 16px;background:#fff;border-bottom:1px solid #DFE1E6;box-shadow:0 1px 3px rgba(0,0,0,.07);position:sticky;top:0;z-index:10;flex-wrap:wrap}
 .btn-print{background:#0052CC;color:#fff;border:none;padding:8px 18px;border-radius:3px;cursor:pointer;font-size:13px;font-weight:600}
 .btn-back{background:#DFE1E6;color:#172B4D;border:none;padding:8px 14px;border-radius:3px;cursor:pointer;font-size:13px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+.btn-secondary{background:#F4F5F7;color:#172B4D;border:1px solid #DFE1E6;padding:7px 14px;border-radius:3px;cursor:pointer;font-size:13px;font-weight:600}
 /* Header */
 .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #172B4D;padding-bottom:14px;margin-bottom:20px}
 .logo-area{display:flex;align-items:center;gap:10px}
@@ -44,6 +45,12 @@ table.items-table tr:nth-child(even) td{background:#F4F5F7}
 .box-label{font-size:9pt;color:#6B778C}
 .box-value{font-size:18pt;font-weight:800;color:#006644;line-height:1}
 .box-partial{background:#FFFAE6;border-radius:3px;padding:10px 14px;margin-top:6px;border:1px solid #FFE380;font-size:9.5pt;color:#172B4D}
+/* Packaging printed summary */
+.packaging-print{display:none;background:#F0FFF4;border:1.5px solid #ABF5D1;border-radius:3px;padding:10px 14px;margin-top:14px}
+.packaging-print h4{font-size:8pt;text-transform:uppercase;letter-spacing:.8px;color:#006644;font-weight:700;margin-bottom:8px}
+.pkg-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center}
+.pkg-cell .val{font-size:16pt;font-weight:800;color:#172B4D}
+.pkg-cell .lbl{font-size:7.5pt;color:#6B778C;text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
 /* Signature */
 .signatures{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:36px}
 .sig-line{border-top:1.5px solid #172B4D;padding-top:8px;font-size:9pt;color:#6B778C;text-align:center}
@@ -52,6 +59,7 @@ table.items-table tr:nth-child(even) td{background:#F4F5F7}
 @media print{
   .no-print,.packaging-form{display:none!important}
   .boxes-result{display:block!important}
+  .packaging-print{display:block!important}
   body{background:#fff}
   .page{padding:12mm 14mm}
 }
@@ -61,6 +69,9 @@ table.items-table tr:nth-child(even) td{background:#F4F5F7}
 <div class="no-print">
   <a href="{{ url_for('ventas') }}" class="btn-back">← Volver</a>
   <button onclick="window.print()" class="btn-print">🖨 Imprimir / Guardar PDF</button>
+  {% if cajas_info %}
+  <button onclick="editarEmbalaje()" class="btn-secondary">✏️ Editar embalaje</button>
+  {% endif %}
 </div>
 <div class="page">
   <!-- Header -->
@@ -124,8 +135,8 @@ table.items-table tr:nth-child(even) td{background:#F4F5F7}
     </table>
   </div>
 
-  <!-- Packaging calculator (no-print) -->
-  <div class="packaging-form no-print">
+  <!-- Packaging calculator (screen only) -->
+  <div class="packaging-form no-print" id="packagingForm">
     <h3>📦 Cálculo de embalaje</h3>
     <form method="GET" action="{{ url_for('venta_remision', id=venta.id) }}" style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
       <div>
@@ -134,19 +145,19 @@ table.items-table tr:nth-child(even) td{background:#F4F5F7}
       </div>
       <button type="submit">Calcular</button>
     </form>
-    <div style="margin-top:8px;font-size:9pt;color:var(--text2)">
+    <div style="margin-top:8px;font-size:9pt;color:#6B778C">
       Total de unidades en este pedido: <strong>{{ total_unidades }}</strong>
     </div>
   </div>
 
   {% if cajas_info %}
-  <!-- Boxes result (visible always when calculated) -->
-  <div class="boxes-result" style="margin-top:14px">
+  <!-- Boxes result (screen) -->
+  <div class="boxes-result no-print" style="margin-top:14px">
     <h3>Resultado de embalaje — {{ cajas_info.upp }} unid./caja</h3>
     <div style="display:flex;gap:28px;flex-wrap:wrap;margin-top:8px">
       <div>
         <div class="box-label">Total unidades</div>
-        <div class="box-value" style="color:var(--text)">{{ cajas_info.total_unidades }}</div>
+        <div class="box-value" style="color:#172B4D">{{ cajas_info.total_unidades }}</div>
       </div>
       <div>
         <div class="box-label">Cajas completas</div>
@@ -154,18 +165,49 @@ table.items-table tr:nth-child(even) td{background:#F4F5F7}
       </div>
       {% if cajas_info.cajas_parciales > 0 %}
       <div>
-        <div class="box-label">Caja parcial</div>
+        <div class="box-label">Caja parcial (+{{ cajas_info.sobrante }} uds)</div>
         <div class="box-value" style="color:#FF8B00">{{ cajas_info.cajas_parciales }}</div>
       </div>
       {% endif %}
+      <div>
+        <div class="box-label">Total cajas</div>
+        <div class="box-value" style="color:#0052CC">{{ cajas_info.cajas_completas + cajas_info.cajas_parciales }}</div>
+      </div>
     </div>
     {% if cajas_info.cajas_parciales > 0 %}
-    <div class="box-partial">
-      <strong>⚠️ Caja incompleta:</strong> {{ cajas_info.sobrante }} unidad{{ 'es' if cajas_info.sobrante != 1 else '' }} en la última caja
-      ({{ cajas_info.cajas_completas + cajas_info.cajas_parciales }} cajas en total).
+    <div class="box-partial" style="margin-top:10px">
+      <strong>⚠️ Caja incompleta:</strong> {{ cajas_info.sobrante }} unidad{{ 'es' if cajas_info.sobrante != 1 else '' }} en la última caja.
     </div>
     {% else %}
     <div style="margin-top:8px;font-size:9.5pt;color:#006644;font-weight:600">✓ Todas las cajas están completas.</div>
+    {% endif %}
+  </div>
+
+  <!-- Packaging summary: visible ONLY in print/PDF -->
+  <div class="packaging-print">
+    <h4>📦 Embalaje</h4>
+    <div class="pkg-grid">
+      <div class="pkg-cell">
+        <div class="val">{{ cajas_info.total_unidades }}</div>
+        <div class="lbl">Total uds</div>
+      </div>
+      <div class="pkg-cell">
+        <div class="val">{{ cajas_info.upp }}</div>
+        <div class="lbl">Uds / caja</div>
+      </div>
+      <div class="pkg-cell">
+        <div class="val">{{ cajas_info.cajas_completas }}</div>
+        <div class="lbl">Cajas llenas</div>
+      </div>
+      <div class="pkg-cell">
+        <div class="val" style="color:#0052CC">{{ cajas_info.cajas_completas + cajas_info.cajas_parciales }}</div>
+        <div class="lbl">Total cajas</div>
+      </div>
+    </div>
+    {% if cajas_info.cajas_parciales > 0 %}
+    <div style="margin-top:8px;font-size:8.5pt;color:#FF8B00">
+      ⚠ Última caja: {{ cajas_info.sobrante }} unidad{{ 'es' if cajas_info.sobrante != 1 else '' }} (incompleta)
+    </div>
     {% endif %}
   </div>
   {% endif %}
@@ -190,4 +232,10 @@ table.items-table tr:nth-child(even) td{background:#F4F5F7}
     <span>{{ venta.entregado_en.strftime('%d/%m/%Y %H:%M') if venta.entregado_en else '' }}</span>
   </div>
 </div>
+<script>
+function editarEmbalaje(){
+  const pf = document.getElementById('packagingForm');
+  if(pf){ pf.style.display='block'; pf.scrollIntoView({behavior:'smooth'}); }
+}
+</script>
 </body></html>

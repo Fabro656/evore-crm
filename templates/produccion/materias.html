@@ -2,42 +2,161 @@
 {% block title %}Materias Primas{% endblock %}{% block page_title %}Materias Primas{% endblock %}
 {% block topbar_actions %}
 <a href="{{ url_for('materia_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva Materia Prima</a>
+<a href="{{ url_for('compra_nueva') }}" class="btn btn-outline-success btn-sm"><i class="bi bi-cart-plus me-1"></i>Registrar compra</a>
 {% endblock %}
 {% block content %}
 <div class="fc">
+
+{# ── Alertas de stock bajo ── #}
+{% set bajo_stock = materias|selectattr('stock_disponible')|list %}
+{% set alertas = materias|selectattr('stock_minimo')|list %}
+
+<div class="table-responsive">
 <table class="table table-hover align-middle">
   <thead><tr>
-    <th>Nombre</th><th>Categoría</th><th>Unidad</th>
-    <th class="text-end">Stock Disponible</th><th class="text-end">Stock Reservado</th>
-    <th class="text-end">Mínimo</th><th class="text-end">Costo Unit.</th>
-    <th>Proveedor</th><th></th>
+    <th>Nombre</th>
+    <th>Productos que la usan</th>
+    <th class="text-end">Disponible</th>
+    <th class="text-end">Reservado</th>
+    <th class="text-end">Mínimo</th>
+    <th>Próx. vencimiento</th>
+    <th>Proveedor</th>
+    <th></th>
   </tr></thead>
   <tbody>
   {% for m in materias %}
-  <tr>
+  {% set bajo = m.stock_disponible <= m.stock_minimo and m.stock_minimo > 0 %}
+  {% set lotes_activos = m.lotes_materia|selectattr('cantidad_disponible','gt',0)|list %}
+  {% set proximo_lote = lotes_activos|sort(attribute='fecha_vencimiento')|first if lotes_activos else None %}
+  <tr class="{{ 'table-warning' if bajo else '' }}">
     <td>
       <strong>{{ m.nombre }}</strong>
+      {% if bajo %}<span class="badge bg-danger ms-1">Stock bajo</span>{% endif %}
       {% if m.descripcion %}<br><small class="text-muted">{{ m.descripcion }}</small>{% endif %}
+      <br><span class="badge bg-light text-dark border" style="font-size:.7rem">{{ m.unidad }}</span>
     </td>
-    <td>{{ m.categoria or '—' }}</td>
-    <td><span class="badge bg-light text-dark border">{{ m.unidad }}</span></td>
-    <td class="text-end {% if m.stock_disponible <= m.stock_minimo %}text-danger fw-bold{% endif %}">
-      {{ '%.2f'|format(m.stock_disponible) }}</td>
-    <td class="text-end text-warning">{{ '%.2f'|format(m.stock_reservado) }}</td>
-    <td class="text-end">{{ '%.2f'|format(m.stock_minimo) }}</td>
-    <td class="text-end">${{ '%.2f'|format(m.costo_unitario) }}</td>
-    <td>{{ m.proveedor or '—' }}</td>
     <td>
-      <a href="{{ url_for('materia_editar', id=m.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
-      <form method="POST" action="{{ url_for('materia_eliminar', id=m.id) }}" class="d-inline"
-            onsubmit="return confirm('¿Eliminar materia prima?')">
-        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-      </form>
+      {# Primero buscar en M2M, sino usar el legacy producto_id #}
+      {% set prods = m.productos_rel %}
+      {% if prods %}
+        {% for p in prods %}
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle me-1" style="font-size:.72rem">{{ p.nombre }}</span>
+        {% endfor %}
+      {% elif m.producto %}
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size:.72rem">{{ m.producto.nombre }}</span>
+      {% else %}
+        <span class="text-muted" style="font-size:.8rem">Sin asignar</span>
+      {% endif %}
+    </td>
+    <td class="text-end fw-semibold {{ 'text-danger' if bajo else 'text-success' if m.stock_disponible > m.stock_minimo else '' }}">
+      {{ '%.3f'|format(m.stock_disponible) }}</td>
+    <td class="text-end text-warning fw-semibold">
+      {% if m.stock_reservado > 0 %}{{ '%.3f'|format(m.stock_reservado) }}{% else %}—{% endif %}</td>
+    <td class="text-end text-muted">{{ '%.3f'|format(m.stock_minimo) }}</td>
+    <td>
+      {% if proximo_lote and proximo_lote.fecha_vencimiento %}
+        {% set dias = (proximo_lote.fecha_vencimiento - today).days %}
+        {% if dias <= 0 %}
+          <span class="badge bg-danger"><i class="bi bi-exclamation-octagon me-1"></i>VENCIDO</span>
+        {% elif dias <= 30 %}
+          <span class="badge bg-danger"><i class="bi bi-alarm me-1"></i>{{ dias }} días</span>
+        {% elif dias <= 90 %}
+          <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>{{ dias }} días</span>
+        {% else %}
+          <span class="text-muted" style="font-size:.8rem">{{ proximo_lote.fecha_vencimiento.strftime('%d/%m/%Y') }}</span>
+        {% endif %}
+      {% elif lotes_activos %}
+        <span class="text-muted" style="font-size:.8rem">Sin fecha</span>
+      {% else %}
+        <span class="text-muted" style="font-size:.8rem">Sin lotes</span>
+      {% endif %}
+    </td>
+    <td><small>{{ m.proveedor or '—' }}</small></td>
+    <td>
+      <div class="d-flex gap-1">
+        <a href="{{ url_for('materia_editar', id=m.id) }}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
+        <button type="button" class="btn btn-sm btn-outline-info" title="Ver lotes"
+          data-bs-toggle="modal" data-bs-target="#modalLotes"
+          data-nombre="{{ m.nombre }}"
+          data-lotes='{{ lotes_activos|map(attribute="__dict__")|list|tojson(default=str) }}'
+          onclick="prepLotes(this)"><i class="bi bi-layers"></i></button>
+        <form method="POST" action="{{ url_for('materia_eliminar', id=m.id) }}" class="d-inline"
+              onsubmit="return confirm('¿Desactivar materia prima?')">
+          <button class="btn btn-sm btn-outline-danger" title="Eliminar"><i class="bi bi-trash"></i></button>
+        </form>
+      </div>
     </td>
   </tr>
   {% else %}
-  <tr><td colspan="9" class="text-center text-muted py-4">No hay materias primas registradas.</td></tr>
+  <tr><td colspan="8" class="text-center text-muted py-4">
+    <i class="bi bi-box-seam fs-2 d-block mb-2"></i>
+    No hay materias primas. <a href="{{ url_for('materia_nueva') }}">Crear la primera</a>.
+  </td></tr>
   {% endfor %}
   </tbody>
 </table>
-</div>{% endblock %}
+</div>
+</div>
+
+<!-- Modal Lotes de Materia Prima -->
+<div class="modal fade" id="modalLotes" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-layers me-2"></i>Lotes en stock — <span id="lotesNombre"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        <table class="table mb-0 align-middle">
+          <thead><tr>
+            <th>N° Lote</th><th>Factura</th><th>Proveedor</th><th>Fecha compra</th>
+            <th class="text-end">Disponible</th><th class="text-end">Reservado</th><th>Vencimiento</th>
+          </tr></thead>
+          <tbody id="lotesBody"></tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <a href="{{ url_for('compra_nueva') }}" class="btn btn-success btn-sm"><i class="bi bi-cart-plus me-1"></i>Registrar compra</a>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% block scripts %}<script>
+var TODAY = new Date();
+function prepLotes(btn){
+  document.getElementById('lotesNombre').textContent = btn.dataset.nombre;
+  var tbody = document.getElementById('lotesBody');
+  tbody.innerHTML = '';
+  try {
+    var lotes = JSON.parse(btn.dataset.lotes);
+    if(!lotes || !lotes.length){
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">Sin lotes registrados. Ingresa stock mediante Compras.</td></tr>';
+      return;
+    }
+    lotes.forEach(function(l){
+      var tr = document.createElement('tr');
+      var fv = l.fecha_vencimiento ? new Date(l.fecha_vencimiento) : null;
+      var diasFv = fv ? Math.round((fv - TODAY)/(1000*60*60*24)) : null;
+      var fvCell = '—';
+      if(fv){
+        var fvStr = fv.toLocaleDateString('es-CO');
+        if(diasFv <= 0) fvCell = '<span class="badge bg-danger">VENCIDO</span>';
+        else if(diasFv <= 30) fvCell = '<span class="badge bg-danger">'+fvStr+'</span>';
+        else if(diasFv <= 90) fvCell = '<span class="badge bg-warning text-dark">'+fvStr+'</span>';
+        else fvCell = fvStr;
+      }
+      tr.innerHTML = '<td>'+(l.numero_lote||'—')+'</td>'
+        +'<td>'+(l.nro_factura||'—')+'</td>'
+        +'<td>'+(l.proveedor||'—')+'</td>'
+        +'<td>'+(l.fecha_compra?new Date(l.fecha_compra).toLocaleDateString('es-CO'):'—')+'</td>'
+        +'<td class="text-end fw-semibold">'+(parseFloat(l.cantidad_disponible||0).toFixed(3))+'</td>'
+        +'<td class="text-end text-warning">'+(parseFloat(l.cantidad_reservada||0).toFixed(3))+'</td>'
+        +'<td>'+fvCell+'</td>';
+      tbody.appendChild(tr);
+    });
+  } catch(e){ tbody.innerHTML = '<tr><td colspan="7" class="text-muted">Error cargando lotes.</td></tr>'; }
+}
+</script>{% endblock %}
+{% endblock %}

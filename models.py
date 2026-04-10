@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date as date_type
 import json, secrets, os, logging
 
-__all__ = ['User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'AsientoContable', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'Notificacion', 'Empleado', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'load_user', '_migrate', 'init_db']
+__all__ = ['User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'AsientoContable', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'Notificacion', 'Empleado', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'load_user', '_migrate', 'init_db']
 
 
 class User(UserMixin, db.Model):
@@ -431,6 +431,13 @@ class LoteProducto(db.Model):
     creado_en           = db.Column(db.DateTime, default=datetime.utcnow)
     producto            = db.relationship('Producto', foreign_keys=[producto_id], backref='lotes')
 
+# Tabla asociativa MateriaPrima ↔ Producto (M2M)
+class MateriaPrimaProducto(db.Model):
+    __tablename__ = 'materia_prima_productos'
+    id               = db.Column(db.Integer, primary_key=True)
+    materia_prima_id = db.Column(db.Integer, db.ForeignKey('materias_primas.id'), nullable=False)
+    producto_id      = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
+
 class MateriaPrima(db.Model):
     __tablename__ = 'materias_primas'
     id               = db.Column(db.Integer, primary_key=True)
@@ -444,11 +451,56 @@ class MateriaPrima(db.Model):
     categoria        = db.Column(db.String(100))
     proveedor        = db.Column(db.String(200))
     proveedor_id     = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
-    producto_id      = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=True)
+    producto_id      = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=True)  # legacy compat (primer producto)
     activo           = db.Column(db.Boolean, default=True)
     creado_en        = db.Column(db.DateTime, default=datetime.utcnow)
     producto         = db.relationship('Producto', foreign_keys=[producto_id])
     proveedor_rel    = db.relationship('Proveedor', foreign_keys=[proveedor_id])
+    productos_rel    = db.relationship(
+        'Producto',
+        secondary='materia_prima_productos',
+        primaryjoin='MateriaPrima.id == MateriaPrimaProducto.materia_prima_id',
+        secondaryjoin='MateriaPrimaProducto.producto_id == Producto.id',
+        viewonly=True
+    )
+
+class LoteMateriaPrima(db.Model):
+    """Lote de stock de materia prima ingresado mediante compra."""
+    __tablename__ = 'lotes_materia_prima'
+    id               = db.Column(db.Integer, primary_key=True)
+    materia_prima_id = db.Column(db.Integer, db.ForeignKey('materias_primas.id'), nullable=False)
+    compra_id        = db.Column(db.Integer, db.ForeignKey('compras_materia.id'), nullable=True)
+    numero_lote      = db.Column(db.String(80))
+    nro_factura      = db.Column(db.String(100))
+    proveedor        = db.Column(db.String(200))
+    fecha_compra     = db.Column(db.Date)
+    fecha_vencimiento= db.Column(db.Date, nullable=True)
+    cantidad_inicial = db.Column(db.Float, default=0)
+    cantidad_disponible = db.Column(db.Float, default=0)
+    cantidad_reservada  = db.Column(db.Float, default=0)
+    costo_unitario   = db.Column(db.Float, default=0)
+    notas            = db.Column(db.Text)
+    creado_en        = db.Column(db.DateTime, default=datetime.utcnow)
+    materia          = db.relationship('MateriaPrima', foreign_keys=[materia_prima_id],
+                                       backref=db.backref('lotes_materia', lazy=True,
+                                                          order_by='LoteMateriaPrima.fecha_vencimiento'))
+    compra           = db.relationship('CompraMateria', foreign_keys=[compra_id])
+
+    @property
+    def proxima_caducidad(self):
+        """True si vence en los próximos 90 días."""
+        if not self.fecha_vencimiento:
+            return False
+        from datetime import date, timedelta
+        return self.fecha_vencimiento <= (date.today() + timedelta(days=90))
+
+    @property
+    def ya_vencido(self):
+        if not self.fecha_vencimiento:
+            return False
+        from datetime import date
+        return self.fecha_vencimiento < date.today()
+
 
 class RecetaProducto(db.Model):
     __tablename__ = 'recetas_producto'
@@ -478,6 +530,7 @@ class ReservaProduccion(db.Model):
     estado           = db.Column(db.String(20), default='reservado')  # reservado, usado, cancelado
     producto_id      = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=True)
     lote_id          = db.Column(db.Integer, db.ForeignKey('lotes_producto.id'), nullable=True)
+    lote_materia_prima_id = db.Column(db.Integer, db.ForeignKey('lotes_materia_prima.id'), nullable=True)
     notas            = db.Column(db.Text)
     creado_por       = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en        = db.Column(db.DateTime, default=datetime.utcnow)
@@ -485,6 +538,7 @@ class ReservaProduccion(db.Model):
     materia          = db.relationship('MateriaPrima', foreign_keys=[materia_prima_id])
     producto         = db.relationship('Producto', foreign_keys=[producto_id])
     venta            = db.relationship('Venta', foreign_keys=[venta_id])
+    lote_mp          = db.relationship('LoteMateriaPrima', foreign_keys=[lote_materia_prima_id])
 
 class OrdenProduccion(db.Model):
     __tablename__ = 'ordenes_produccion'
@@ -684,6 +738,12 @@ def _migrate(conn):
         ("ALTER TABLE cotizaciones ADD COLUMN IF NOT EXISTS monto_anticipo FLOAT DEFAULT 0"),
         ("ALTER TABLE cotizaciones ADD COLUMN IF NOT EXISTS saldo FLOAT DEFAULT 0"),
         ("ALTER TABLE cotizaciones ADD COLUMN IF NOT EXISTS fecha_entrega_est DATE"),
+        # v21 — Lotes de materia prima (stock por lote/factura con fecha vencimiento)
+        ("CREATE TABLE IF NOT EXISTS lotes_materia_prima (id SERIAL PRIMARY KEY, materia_prima_id INTEGER NOT NULL REFERENCES materias_primas(id), compra_id INTEGER REFERENCES compras_materia(id), numero_lote VARCHAR(80), nro_factura VARCHAR(100), proveedor VARCHAR(200), fecha_compra DATE, fecha_vencimiento DATE, cantidad_inicial FLOAT DEFAULT 0, cantidad_disponible FLOAT DEFAULT 0, cantidad_reservada FLOAT DEFAULT 0, costo_unitario FLOAT DEFAULT 0, notas TEXT, creado_en TIMESTAMP DEFAULT NOW())"),
+        # v21 — ReservaProduccion link a lote de materia prima
+        ("ALTER TABLE reservas_produccion ADD COLUMN IF NOT EXISTS lote_materia_prima_id INTEGER REFERENCES lotes_materia_prima(id)"),
+        # v21 — MateriaPrima ↔ Producto (M2M) — una materia puede usarse en varios productos
+        ("CREATE TABLE IF NOT EXISTS materia_prima_productos (id SERIAL PRIMARY KEY, materia_prima_id INTEGER NOT NULL REFERENCES materias_primas(id), producto_id INTEGER NOT NULL REFERENCES productos(id))"),
         # v19 — Proveedor contacto
         ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS contacto_nombre VARCHAR(100)"),
         # v20 — Nómina colombiana

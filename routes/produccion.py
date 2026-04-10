@@ -176,9 +176,21 @@ def register(app):
     @login_required
     @requiere_modulo('produccion')
     def materias():
+        from datetime import date
         items = MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).all()
-        return render_template('produccion/materias.html', materias=items)
+        return render_template('produccion/materias.html', materias=items, today=date.today())
     
+
+    def _save_materia_m2m(m, form):
+        """Guarda relación M2M MateriaPrima ↔ Productos."""
+        prod_ids = [int(x) for x in form.getlist('producto_ids[]') if x]
+        # Eliminar relaciones existentes
+        MateriaPrimaProducto.query.filter_by(materia_prima_id=m.id).delete()
+        # Primer producto = campo legacy producto_id
+        m.producto_id = prod_ids[0] if prod_ids else None
+        # Insertar nuevas relaciones M2M
+        for pid in prod_ids:
+            db.session.add(MateriaPrimaProducto(materia_prima_id=m.id, producto_id=pid))
 
     # ── materia_nueva (/produccion/materias/nueva)
     @app.route('/produccion/materias/nueva', methods=['GET','POST'])
@@ -187,23 +199,25 @@ def register(app):
     def materia_nueva():
         productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
         if request.method == 'POST':
-            pid_raw = request.form.get('producto_id','')
             m = MateriaPrima(
                 nombre=request.form['nombre'],
                 descripcion=request.form.get('descripcion','') or None,
                 unidad=request.form.get('unidad','unidades'),
-                stock_disponible=float(request.form.get('stock_disponible',0)),
+                stock_disponible=0,  # El stock solo entra por compras
                 stock_minimo=float(request.form.get('stock_minimo',0)),
                 costo_unitario=float(request.form.get('costo_unitario',0)),
                 categoria=request.form.get('categoria','') or None,
                 proveedor=request.form.get('proveedor','') or None,
                 proveedor_id=int(request.form.get('proveedor_id')) if request.form.get('proveedor_id') else None,
-                producto_id=int(pid_raw) if pid_raw else None
             )
-            db.session.add(m); db.session.commit()
-            flash('Materia prima creada.','success'); return redirect(url_for('materias'))
+            db.session.add(m); db.session.flush()
+            _save_materia_m2m(m, request.form)
+            db.session.commit()
+            flash('Materia prima creada. Registra entradas de stock mediante Compras.','success')
+            return redirect(url_for('materias'))
         return render_template('produccion/materia_form.html', obj=None, titulo='Nueva Materia Prima',
-                               productos=productos, proveedores_list=Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all())
+                               productos=productos, prod_ids_sel=[],
+                               proveedores_list=Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all())
     
 
     # ── materia_editar (/produccion/materias/<int:id>/editar)
@@ -213,22 +227,25 @@ def register(app):
     def materia_editar(id):
         obj = MateriaPrima.query.get_or_404(id)
         productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
+        # IDs actuales de productos asociados para pre-seleccionar checkboxes
+        prod_ids_sel = [mp.producto_id for mp in MateriaPrimaProducto.query.filter_by(materia_prima_id=obj.id).all()]
+        if not prod_ids_sel and obj.producto_id:
+            prod_ids_sel = [obj.producto_id]
         if request.method == 'POST':
-            pid_raw = request.form.get('producto_id','')
             obj.nombre=request.form['nombre']
             obj.descripcion=request.form.get('descripcion','') or None
             obj.unidad=request.form.get('unidad','unidades')
-            obj.stock_disponible=float(request.form.get('stock_disponible',0))
             obj.stock_minimo=float(request.form.get('stock_minimo',0))
             obj.costo_unitario=float(request.form.get('costo_unitario',0))
             obj.categoria=request.form.get('categoria','') or None
             obj.proveedor=request.form.get('proveedor','') or None
             obj.proveedor_id=int(request.form.get('proveedor_id')) if request.form.get('proveedor_id') else None
-            obj.producto_id=int(pid_raw) if pid_raw else None
+            _save_materia_m2m(obj, request.form)
             db.session.commit()
             flash('Materia prima actualizada.','success'); return redirect(url_for('materias'))
         return render_template('produccion/materia_form.html', obj=obj, titulo='Editar Materia Prima',
-                               productos=productos, proveedores_list=Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all())
+                               productos=productos, prod_ids_sel=prod_ids_sel,
+                               proveedores_list=Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all())
     
 
     # ── materia_eliminar (/produccion/materias/<int:id>/eliminar)
@@ -249,6 +266,31 @@ def register(app):
         return render_template('produccion/recetas.html', recetas=items)
     
 
+    def _registrar_ingredientes_en_cero(ids_ingredientes, producto_id):
+        """
+        Asegura que todos los ingredientes de una receta estén registrados
+        como MateriaPrima (con stock=0 si no tienen compras aún).
+        También vincula cada ingrediente al producto si no estaba vinculado.
+        """
+        for mid in ids_ingredientes:
+            if not mid:
+                continue
+            m = db.session.get(MateriaPrima, int(mid))
+            if not m:
+                continue
+            # Vincular al producto si no hay relación M2M aún
+            if producto_id:
+                existe = MateriaPrimaProducto.query.filter_by(
+                    materia_prima_id=m.id, producto_id=producto_id
+                ).first()
+                if not existe:
+                    db.session.add(MateriaPrimaProducto(
+                        materia_prima_id=m.id, producto_id=producto_id
+                    ))
+                    # Mantener campo legacy
+                    if not m.producto_id:
+                        m.producto_id = producto_id
+
     # ── receta_nueva (/produccion/recetas/nueva)
     @app.route('/produccion/recetas/nueva', methods=['GET','POST'])
     @login_required
@@ -258,13 +300,14 @@ def register(app):
         materias = MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).all()
         materias_json = [{'id': m.id, 'nombre': m.nombre, 'unidad': m.unidad} for m in materias]
         if request.method == 'POST':
+            prod_id = int(request.form['producto_id'])
             r = RecetaProducto(
-                producto_id=int(request.form['producto_id']),
+                producto_id=prod_id,
                 unidades_produce=int(request.form.get('unidades_produce',1)),
                 descripcion=request.form.get('descripcion','') or None
             )
             db.session.add(r); db.session.flush()
-            ids = request.form.getlist('materia_id[]')
+            ids   = request.form.getlist('materia_id[]')
             cants = request.form.getlist('cantidad[]')
             for mid, cant in zip(ids, cants):
                 if mid and cant:
@@ -273,8 +316,11 @@ def register(app):
                         materia_prima_id=int(mid),
                         cantidad_por_unidad=float(cant)
                     ))
+            # Registrar ingredientes al producto y asegurarse que existen en el catálogo
+            _registrar_ingredientes_en_cero(ids, prod_id)
             db.session.commit()
-            flash('Receta creada.','success'); return redirect(url_for('recetas'))
+            flash('Receta creada. Los ingredientes quedan registrados (stock=0 hasta primera compra).','success')
+            return redirect(url_for('recetas'))
         return render_template('produccion/receta_form.html', obj=None, productos=productos,
                                materias=materias, materias_json=materias_json, titulo='Nueva Receta')
     
@@ -289,13 +335,13 @@ def register(app):
         materias = MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).all()
         materias_json = [{'id': m.id, 'nombre': m.nombre, 'unidad': m.unidad} for m in materias]
         if request.method == 'POST':
-            obj.producto_id=int(request.form['producto_id'])
+            prod_id = int(request.form['producto_id'])
+            obj.producto_id=prod_id
             obj.unidades_produce=int(request.form.get('unidades_produce',1))
             obj.descripcion=request.form.get('descripcion','') or None
-            # Rebuild items
             for item in obj.items: db.session.delete(item)
             db.session.flush()
-            ids = request.form.getlist('materia_id[]')
+            ids   = request.form.getlist('materia_id[]')
             cants = request.form.getlist('cantidad[]')
             for mid, cant in zip(ids, cants):
                 if mid and cant:
@@ -304,6 +350,7 @@ def register(app):
                         materia_prima_id=int(mid),
                         cantidad_por_unidad=float(cant)
                     ))
+            _registrar_ingredientes_en_cero(ids, prod_id)
             db.session.commit()
             flash('Receta actualizada.','success'); return redirect(url_for('recetas'))
         return render_template('produccion/receta_form.html', obj=obj, productos=productos,
@@ -324,9 +371,11 @@ def register(app):
     @login_required
     @requiere_modulo('produccion')
     def reservas():
+        from datetime import date as _date
         items = ReservaProduccion.query.order_by(ReservaProduccion.creado_en.desc()).all()
         usuarios = User.query.filter_by(activo=True).order_by(User.nombre).all()
-        return render_template('produccion/reservas.html', reservas=items, usuarios=usuarios)
+        return render_template('produccion/reservas.html', reservas=items, usuarios=usuarios,
+                               today=_date.today())
     
 
     # ── reserva_solicitar_compra (/produccion/reservas/solicitar_compra)
@@ -440,15 +489,46 @@ def register(app):
     @login_required
     @requiere_modulo('produccion')
     def reserva_iniciar_produccion(venta_id):
-        """Marca todas las órdenes de producción de una venta como en_produccion."""
+        """
+        Verifica disponibilidad de materias primas, las descuenta del stock disponible
+        (stock_disponible → stock_reservado) y cambia las órdenes a en_produccion.
+        Solo se puede iniciar si TODOS los materiales están disponibles.
+        """
+        reservas_venta = ReservaProduccion.query.filter(
+            ReservaProduccion.venta_id == venta_id,
+            ReservaProduccion.estado == 'reservado'
+        ).all()
+
+        # Verificar que todas las materias tienen stock suficiente
+        faltantes = []
+        for r in reservas_venta:
+            mp = r.materia
+            if mp.stock_disponible < r.cantidad:
+                faltan = r.cantidad - mp.stock_disponible
+                faltantes.append(f'{mp.nombre}: faltan {faltan:.2f} {mp.unidad}')
+
+        if faltantes:
+            flash(f'No se puede iniciar producción. Materiales faltantes: {"; ".join(faltantes)}', 'danger')
+            return redirect(url_for('reservas'))
+
+        # Deducir stock para cada reserva
+        for r in reservas_venta:
+            mp = r.materia
+            mp.stock_disponible -= r.cantidad
+            mp.stock_reservado  += r.cantidad
+
+        # Cambiar todas las órdenes a en_produccion
         ordenes = OrdenProduccion.query.filter(
             OrdenProduccion.venta_id == venta_id,
             OrdenProduccion.estado.in_(['pendiente_materiales','en_produccion'])
         ).all()
         for o in ordenes:
             o.estado = 'en_produccion'
+            if not o.fecha_inicio_real:
+                o.fecha_inicio_real = datetime.utcnow().date()
+
         db.session.commit()
-        flash('Producción iniciada. Las órdenes están en progreso.','success')
+        flash('¡Producción iniciada! Stock de materias primas reservado correctamente.', 'success')
         return redirect(url_for('reservas'))
     
 
@@ -471,21 +551,37 @@ def register(app):
     @login_required
     @requiere_modulo('produccion')
     def orden_completar():
-        orden_id  = int(request.form.get('orden_id'))
+        orden_id    = int(request.form.get('orden_id'))
         numero_lote = request.form.get('numero_lote','').strip()
         notas       = request.form.get('notas','')
         fv          = request.form.get('fecha_vencimiento')
-    
+
         orden = OrdenProduccion.query.get_or_404(orden_id)
         prod  = orden.producto
-    
-        # Añadir al stock
-        prod.stock += int(orden.cantidad_producir)
-    
-        # Registrar lote
+
+        # Liberar materias primas reservadas para esta venta+producto
+        # (marcar como 'usado' y descontar de stock_reservado)
+        if orden.venta_id:
+            reservas_mat = ReservaProduccion.query.filter(
+                ReservaProduccion.venta_id == orden.venta_id,
+                ReservaProduccion.producto_id == orden.producto_id,
+                ReservaProduccion.estado == 'reservado'
+            ).all()
+            for r in reservas_mat:
+                mp = r.materia
+                # Reducir stock_reservado — el material fue consumido
+                mp.stock_reservado = max(0.0, (mp.stock_reservado or 0) - r.cantidad)
+                r.estado = 'usado'
+
+        # Añadir producto terminado al stock
+        prod.stock = (prod.stock or 0) + int(orden.cantidad_producir)
+
+        # Registrar lote de producción
+        lote_num = numero_lote or f'OP-{orden.id}'
         lote = LoteProducto(
             producto_id=prod.id,
-            numero_lote=numero_lote or f'OP-{orden.id}',
+            numero_lote=lote_num,
+            fecha_produccion=datetime.utcnow().date(),
             fecha_vencimiento=datetime.strptime(fv,'%Y-%m-%d').date() if fv else None,
             unidades_producidas=orden.cantidad_producir,
             unidades_restantes=orden.cantidad_producir,
@@ -493,22 +589,22 @@ def register(app):
             creado_por=current_user.id
         )
         db.session.add(lote)
-    
-        orden.estado = 'completado'
-        orden.numero_lote = numero_lote or f'OP-{orden.id}'
+
+        orden.estado       = 'completado'
+        orden.numero_lote  = lote_num
         orden.completado_en = datetime.utcnow()
         db.session.commit()
-    
+
         # Notificar admins
         admins = User.query.filter_by(rol='admin', activo=True).all()
         for adm in admins:
             _crear_notificacion(
                 adm.id, 'info',
                 f'✅ Producción completada: {prod.nombre}',
-                f'{orden.cantidad_producir:.0f} unidades movidas al inventario. Lote: {orden.numero_lote}',
+                f'{orden.cantidad_producir:.0f} unidades al inventario. Lote: {lote_num}',
                 url_for('inventario')
             )
-        flash(f'Producción completada. {orden.cantidad_producir:.0f} unidades agregadas al inventario.','success')
+        flash(f'Producción completada. {orden.cantidad_producir:.0f} uds de {prod.nombre} añadidas al inventario. Lote: {lote_num}', 'success')
         return redirect(url_for('ordenes_produccion'))
     
 

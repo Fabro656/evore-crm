@@ -19,13 +19,27 @@
 {% for vid in ventas_vistas %}
   {% set grupo = reservas_con_venta|selectattr('venta_id','equalto',vid)|list %}
   {% set venta_obj = grupo[0].venta %}
-  {# Determinar si TODAS las materias están cubiertas #}
+
+  {# Detectar si hay reservas FALTANTE (sin lote asignado, materiales insuficientes) #}
   {% set hay_faltante = namespace(v=false) %}
-  {% for r in grupo %}{% if r.estado=='reservado' and r.materia.stock_disponible < r.cantidad %}{% set hay_faltante.v = true %}{% endif %}{% endfor %}
+  {% for r in grupo %}
+    {% if r.estado=='reservado' and (r.notas and ('FALTANTE' in r.notas or 'Sin stock' in r.notas)) %}
+      {% set hay_faltante.v = true %}
+    {% endif %}
+  {% endfor %}
+
+  {# Detectar si hay reservas con lotes próximos a vencer #}
+  {% set hay_proximos_vencer = namespace(v=false) %}
+  {% for r in grupo %}
+    {% if r.lote_mp and r.lote_mp.proxima_caducidad %}
+      {% set hay_proximos_vencer.v = true %}
+    {% endif %}
+  {% endfor %}
+
   {# Determinar si hay anticipo pagado #}
   {% set anticipo_ok = venta_obj and venta_obj.estado in ['anticipo_pagado','completado'] %}
 
-<div class="mb-4 border rounded overflow-hidden">
+<div class="mb-4 border rounded overflow-hidden" id="grupo-venta-{{ vid }}">
   <div class="d-flex align-items-center justify-content-between px-3 py-2" style="background:#f0f3ff;border-bottom:1px solid #dee2f0">
     <div>
       <span class="fw-bold" style="color:var(--text)">
@@ -40,71 +54,156 @@
       {% else %}
         <span class="badge bg-warning text-dark ms-2"><i class="bi bi-hourglass me-1"></i>Sin anticipo</span>
       {% endif %}
+      {% if hay_faltante.v %}
+        <span class="badge bg-danger ms-2"><i class="bi bi-exclamation-triangle me-1"></i>Faltan materiales</span>
+      {% endif %}
+      {% if hay_proximos_vencer.v %}
+        <span class="badge bg-warning text-dark ms-2"><i class="bi bi-alarm me-1"></i>Lotes próx. a vencer</span>
+      {% endif %}
     </div>
     <div class="d-flex gap-2">
       {% if not hay_faltante.v %}
-        {# Sin faltante: botón funcional para iniciar producción #}
-        <form method="POST" action="{{ url_for('reserva_iniciar_produccion', venta_id=vid) }}" class="d-inline">
-          <button type="submit" class="btn btn-sm btn-success"
-                  onclick="return confirm('¿Iniciar producción para esta venta? Las órdenes cambiarán a En Producción.')">
-            <i class="bi bi-play-circle me-1"></i>Iniciar producción
-          </button>
-        </form>
+      <form method="POST" action="{{ url_for('reserva_iniciar_produccion', venta_id=vid) }}"
+            class="d-inline" id="form-iniciar-{{ vid }}"
+            onsubmit="return confirmarInicio({{ vid }}, this)">
+        <button type="submit" class="btn btn-sm btn-success" id="btn-iniciar-{{ vid }}">
+          <i class="bi bi-play-circle me-1"></i>Iniciar producción
+        </button>
+      </form>
       {% endif %}
     </div>
   </div>
+
   <table class="table table-hover align-middle mb-0">
     <thead><tr>
       <th>Materia Prima</th>
+      <th>Lote / Vencimiento</th>
       <th class="text-end">Reservado</th>
-      <th class="text-end">Stock disp.</th>
-      <th>Producto</th><th>Estado</th><th>Notas</th><th>Fecha</th><th></th>
+      <th class="text-end">Disponible en lote</th>
+      <th>Producto</th>
+      <th>Estado</th>
+      <th></th>
     </tr></thead>
     <tbody>
     {% for r in grupo %}
-    <tr>
-      <td><strong>{{ r.materia.nombre }}</strong><br><small class="text-muted">{{ r.materia.unidad }}</small></td>
-      <td class="text-end fw-semibold">{{ '%.2f'|format(r.cantidad) }}</td>
-      <td class="text-end">
-        {% set disp = r.materia.stock_disponible %}
-        {% if disp < r.cantidad %}
-          <span class="text-danger fw-semibold">{{ '%.2f'|format(disp) }}
-            <i class="bi bi-exclamation-circle" title="Insuficiente"></i></span>
+    {% set es_faltante = r.notas and ('FALTANTE' in r.notas or 'Sin stock' in r.notas) %}
+    {% set lote = r.lote_mp %}
+    {% set proxima_caducidad = lote and lote.proxima_caducidad %}
+    {% set ya_vencido = lote and lote.ya_vencido %}
+    <tr class="{{ 'table-danger' if es_faltante else ('table-warning' if proxima_caducidad else '') }}"
+        {% if proxima_caducidad %}data-proxvencer="true" data-grupo="{{ vid }}"{% endif %}>
+      <td>
+        <strong>{{ r.materia.nombre }}</strong>
+        <br><small class="text-muted">{{ r.materia.unidad }}</small>
+      </td>
+      <td>
+        {% if es_faltante %}
+          <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Sin stock — compra pendiente</span>
+        {% elif lote %}
+          <div>
+            {% if lote.numero_lote %}
+              <span class="fw-semibold" style="font-size:.82rem">Lote: {{ lote.numero_lote }}</span>
+              <br>
+            {% endif %}
+            {% if lote.nro_factura %}
+              <small class="text-muted">Factura: {{ lote.nro_factura }}</small>
+              <br>
+            {% endif %}
+            {% if lote.fecha_vencimiento %}
+              {% if ya_vencido %}
+                <span class="badge bg-danger">
+                  <i class="bi bi-exclamation-octagon me-1"></i>VENCIDO {{ lote.fecha_vencimiento.strftime('%d/%m/%Y') }}
+                </span>
+              {% elif proxima_caducidad %}
+                {% set dias_vence = (lote.fecha_vencimiento - today).days if today is defined else 0 %}
+                <span class="badge bg-warning text-dark">
+                  <i class="bi bi-alarm me-1"></i>Vence {{ lote.fecha_vencimiento.strftime('%d/%m/%Y') }}
+                  {% if dias_vence >= 0 %}({{ dias_vence }} días){% endif %}
+                </span>
+              {% else %}
+                <small class="text-muted">Vence: {{ lote.fecha_vencimiento.strftime('%d/%m/%Y') }}</small>
+              {% endif %}
+            {% else %}
+              <small class="text-muted">Sin fecha de vencimiento</small>
+            {% endif %}
+          </div>
         {% else %}
-          <span class="text-success">{{ '%.2f'|format(disp) }}</span>
+          <span class="text-muted" style="font-size:.8rem">— Sin lote asignado —</span>
+        {% endif %}
+      </td>
+      <td class="text-end fw-semibold">{{ '%.3f'|format(r.cantidad) }}</td>
+      <td class="text-end">
+        {% if es_faltante %}
+          <span class="text-danger fw-semibold">0</span>
+        {% elif lote %}
+          {% if lote.cantidad_disponible >= r.cantidad %}
+            <span class="text-success fw-semibold">{{ '%.3f'|format(lote.cantidad_disponible) }}</span>
+          {% else %}
+            <span class="text-danger fw-semibold">{{ '%.3f'|format(lote.cantidad_disponible) }}
+              <i class="bi bi-exclamation-circle" title="Insuficiente en este lote"></i>
+            </span>
+          {% endif %}
+        {% else %}
+          <span class="text-muted">—</span>
         {% endif %}
       </td>
       <td>{{ r.producto.nombre if r.producto else '—' }}</td>
       <td>
-        {% if r.estado == 'reservado' %}<span class="badge bg-primary">Reservado</span>
-        {% elif r.estado == 'usado' %}<span class="badge bg-success">Usado</span>
-        {% else %}<span class="badge bg-secondary">Cancelado</span>{% endif %}
+        {% if r.estado == 'reservado' and es_faltante %}
+          <span class="badge bg-danger">Faltante</span>
+        {% elif r.estado == 'reservado' %}
+          <span class="badge bg-primary">Reservado</span>
+        {% elif r.estado == 'usado' %}
+          <span class="badge bg-success">Usado</span>
+        {% else %}
+          <span class="badge bg-secondary">Cancelado</span>
+        {% endif %}
       </td>
-      <td><small class="text-muted">{{ r.notas or '' }}</small></td>
-      <td><small>{{ r.creado_en.strftime('%d/%m/%Y') }}</small></td>
       <td>
-        {% if r.estado == 'reservado' %}
-        <div class="d-flex gap-1 flex-wrap">
-          <form method="POST" action="{{ url_for('reserva_cancelar', id=r.id) }}" class="d-inline"
-                onsubmit="return confirm('¿Cancelar esta reserva?')">
-            <button class="btn btn-sm btn-outline-warning">Cancelar</button>
-          </form>
-          {% set faltante_real = r.cantidad - r.materia.stock_disponible %}
-          {% if faltante_real > 0 %}
+        <div class="d-flex flex-column gap-1">
+          {# ⚠️ Near-expiry: confirmation checkbox #}
+          {% if proxima_caducidad and not es_faltante and r.estado == 'reservado' %}
+          <div class="p-2 rounded border border-warning" style="background:#fffbf0;min-width:180px">
+            <div class="fw-semibold text-warning mb-1" style="font-size:.78rem">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>Próximo a vencer
+            </div>
+            <div class="form-check mb-0">
+              <input class="form-check-input near-expiry-check" type="checkbox"
+                     id="useExpiry-{{ r.id }}" data-grupo="{{ vid }}"
+                     onchange="onNearExpiryChange({{ vid }})">
+              <label class="form-check-label" for="useExpiry-{{ r.id }}"
+                     style="font-size:.78rem;cursor:pointer">
+                Confirmo usar este lote igual
+              </label>
+            </div>
+          </div>
+          {% endif %}
+
+          {# ⛔ FALTANTE: botón solicitar compra #}
+          {% if es_faltante and r.estado == 'reservado' %}
           <button type="button" class="btn btn-sm btn-outline-danger"
             data-bs-toggle="modal" data-bs-target="#modalFalta"
             data-reserva="{{ r.id }}"
             data-materia="{{ r.materia.nombre }}"
             data-unidad="{{ r.materia.unidad }}"
-            data-reservado="{{ '%.2f'|format(r.cantidad) }}"
-            data-disponible="{{ '%.2f'|format(r.materia.stock_disponible) }}"
-            data-faltante="{{ '%.2f'|format(faltante_real) }}"
+            data-reservado="{{ '%.3f'|format(r.cantidad) }}"
+            data-disponible="0"
+            data-faltante="{{ '%.3f'|format(r.cantidad) }}"
             onclick="prepFalta(this)">
-            <i class="bi bi-exclamation-triangle me-1"></i>Falta {{ '%.2f'|format(faltante_real) }} {{ r.materia.unidad }}
+            <i class="bi bi-cart-plus me-1"></i>Solicitar compra
           </button>
           {% endif %}
+
+          {# Cancelar reserva #}
+          {% if r.estado == 'reservado' %}
+          <form method="POST" action="{{ url_for('reserva_cancelar', id=r.id) }}" class="d-inline"
+                onsubmit="return confirm('¿Cancelar esta reserva?')">
+            <button class="btn btn-sm btn-outline-warning btn-sm">
+              <i class="bi bi-x me-1"></i>Cancelar
+            </button>
+          </form>
+          {% endif %}
         </div>
-        {% endif %}
       </td>
     </tr>
     {% endfor %}
@@ -121,20 +220,40 @@
   </div>
   <table class="table table-hover align-middle mb-0">
     <thead><tr>
-      <th>Materia Prima</th><th class="text-end">Reservado</th><th class="text-end">Stock disp.</th>
+      <th>Materia Prima</th>
+      <th>Lote / Vencimiento</th>
+      <th class="text-end">Reservado</th>
+      <th class="text-end">Stock disp.</th>
       <th>Producto</th><th>Estado</th><th>Notas</th><th>Fecha</th><th></th>
     </tr></thead>
     <tbody>
     {% for r in reservas_sin_venta %}
+    {% set lote = r.lote_mp %}
     <tr>
       <td><strong>{{ r.materia.nombre }}</strong><br><small class="text-muted">{{ r.materia.unidad }}</small></td>
-      <td class="text-end fw-semibold">{{ '%.2f'|format(r.cantidad) }}</td>
+      <td>
+        {% if lote %}
+          {% if lote.numero_lote %}<span style="font-size:.82rem">Lote: {{ lote.numero_lote }}</span><br>{% endif %}
+          {% if lote.fecha_vencimiento %}
+            {% if lote.ya_vencido %}
+              <span class="badge bg-danger">VENCIDO {{ lote.fecha_vencimiento.strftime('%d/%m/%Y') }}</span>
+            {% elif lote.proxima_caducidad %}
+              <span class="badge bg-warning text-dark">⚠️ {{ lote.fecha_vencimiento.strftime('%d/%m/%Y') }}</span>
+            {% else %}
+              <small class="text-muted">{{ lote.fecha_vencimiento.strftime('%d/%m/%Y') }}</small>
+            {% endif %}
+          {% endif %}
+        {% else %}
+          <span class="text-muted">—</span>
+        {% endif %}
+      </td>
+      <td class="text-end fw-semibold">{{ '%.3f'|format(r.cantidad) }}</td>
       <td class="text-end">
         {% set disp = r.materia.stock_disponible %}
         {% if disp < r.cantidad %}
-          <span class="text-danger fw-semibold">{{ '%.2f'|format(disp) }} <i class="bi bi-exclamation-circle"></i></span>
+          <span class="text-danger fw-semibold">{{ '%.3f'|format(disp) }} <i class="bi bi-exclamation-circle"></i></span>
         {% else %}
-          <span class="text-success">{{ '%.2f'|format(disp) }}</span>
+          <span class="text-success">{{ '%.3f'|format(disp) }}</span>
         {% endif %}
       </td>
       <td>{{ r.producto.nombre if r.producto else '—' }}</td>
@@ -159,11 +278,11 @@
             data-reserva="{{ r.id }}"
             data-materia="{{ r.materia.nombre }}"
             data-unidad="{{ r.materia.unidad }}"
-            data-reservado="{{ '%.2f'|format(r.cantidad) }}"
-            data-disponible="{{ '%.2f'|format(r.materia.stock_disponible) }}"
-            data-faltante="{{ '%.2f'|format(faltante_real) }}"
+            data-reservado="{{ '%.3f'|format(r.cantidad) }}"
+            data-disponible="{{ '%.3f'|format(r.materia.stock_disponible) }}"
+            data-faltante="{{ '%.3f'|format(faltante_real) }}"
             onclick="prepFalta(this)">
-            <i class="bi bi-exclamation-triangle me-1"></i>Falta {{ '%.2f'|format(faltante_real) }} {{ r.materia.unidad }}
+            <i class="bi bi-exclamation-triangle me-1"></i>Falta {{ '%.3f'|format(faltante_real) }} {{ r.materia.unidad }}
           </button>
           {% endif %}
         </div>
@@ -183,7 +302,7 @@
 
 </div>
 
-<!-- Modal: Falta Material -->
+<!-- Modal: Falta Material / Solicitar Compra -->
 <div class="modal fade" id="modalFalta" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -198,15 +317,15 @@
             <div class="fw-semibold mb-1" id="faltaMateriaNombre"></div>
             <div class="row g-2 text-center mt-1">
               <div class="col-4">
-                <div style="font-size:.72rem;color:#6c757d">Reservado</div>
+                <div style="font-size:.72rem;color:#6c757d">Necesario</div>
                 <div class="fw-bold" id="faltaReservado"></div>
               </div>
               <div class="col-4">
-                <div style="font-size:.72rem;color:#6c757d">Disponible</div>
+                <div style="font-size:.72rem;color:#6c757d">En stock</div>
                 <div class="fw-bold text-warning" id="faltaDisponible"></div>
               </div>
               <div class="col-4">
-                <div style="font-size:.72rem;color:#6c757d">Faltante</div>
+                <div style="font-size:.72rem;color:#6c757d">A comprar</div>
                 <div class="fw-bold text-danger" id="faltaCantMostrar"></div>
               </div>
             </div>
@@ -215,7 +334,7 @@
             <label class="form-label fw-semibold">Cantidad a comprar *</label>
             <div class="input-group">
               <input type="number" name="cantidad_faltante" id="faltaCantInput"
-                class="form-control" step="0.01" min="0.01" required>
+                class="form-control" step="0.001" min="0.001" required>
               <span class="input-group-text" id="faltaUnidad"></span>
             </div>
           </div>
@@ -246,15 +365,48 @@
     </div>
   </div>
 </div>
+
 {% block scripts %}<script>
 function prepFalta(btn){
-  document.getElementById('faltaReservaId').value   = btn.dataset.reserva;
+  document.getElementById('faltaReservaId').value        = btn.dataset.reserva;
   document.getElementById('faltaMateriaNombre').textContent = btn.dataset.materia;
-  document.getElementById('faltaReservado').textContent    = btn.dataset.reservado + ' ' + btn.dataset.unidad;
-  document.getElementById('faltaDisponible').textContent   = btn.dataset.disponible + ' ' + btn.dataset.unidad;
-  document.getElementById('faltaCantMostrar').textContent  = btn.dataset.faltante + ' ' + btn.dataset.unidad;
-  document.getElementById('faltaCantInput').value          = btn.dataset.faltante;
-  document.getElementById('faltaUnidad').textContent       = btn.dataset.unidad;
+  document.getElementById('faltaReservado').textContent  = btn.dataset.reservado + ' ' + btn.dataset.unidad;
+  document.getElementById('faltaDisponible').textContent = btn.dataset.disponible + ' ' + btn.dataset.unidad;
+  document.getElementById('faltaCantMostrar').textContent= btn.dataset.faltante + ' ' + btn.dataset.unidad;
+  document.getElementById('faltaCantInput').value        = btn.dataset.faltante;
+  document.getElementById('faltaUnidad').textContent     = btn.dataset.unidad;
 }
+
+// Near-expiry: disable/enable "Iniciar producción" if unchecked confirmations exist
+function onNearExpiryChange(vid){
+  var checks = document.querySelectorAll('.near-expiry-check[data-grupo="'+vid+'"]');
+  var btn = document.getElementById('btn-iniciar-'+vid);
+  if(!btn) return;
+  var allChecked = true;
+  checks.forEach(function(c){ if(!c.checked) allChecked = false; });
+  btn.disabled = !allChecked;
+  btn.title = allChecked ? '' : 'Confirma el uso de todos los lotes próximos a vencer antes de iniciar';
+}
+
+function confirmarInicio(vid, form){
+  var checks = document.querySelectorAll('.near-expiry-check[data-grupo="'+vid+'"]');
+  var unchecked = [];
+  checks.forEach(function(c){ if(!c.checked) unchecked.push(c); });
+  if(unchecked.length > 0){
+    alert('Debes confirmar el uso de todos los lotes próximos a vencer antes de iniciar producción.');
+    return false;
+  }
+  return confirm('¿Iniciar producción para esta venta? Se registrará el consumo del stock reservado.');
+}
+
+// Init: disable all Iniciar buttons that have unconfirmed near-expiry lots
+document.addEventListener('DOMContentLoaded', function(){
+  var rows = document.querySelectorAll('tr[data-proxvencer="true"]');
+  var gruposConProxVencer = new Set();
+  rows.forEach(function(r){ gruposConProxVencer.add(r.dataset.grupo); });
+  gruposConProxVencer.forEach(function(vid){
+    onNearExpiryChange(vid);
+  });
+});
 </script>{% endblock %}
 {% endblock %}

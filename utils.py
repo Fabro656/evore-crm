@@ -488,11 +488,29 @@ def _save_compra(c, form):
     if pid:
         prod = db.session.get(Producto, int(pid))
         if prod: prod.costo = precio_unit
-    # Update materia prima stock if tipo=materia_prima
+    # Update materia prima stock if tipo=materia_prima — crea LoteMateriaPrima para trazabilidad FIFO
     if mid and c.tipo_compra == 'materia_prima':
         m = db.session.get(MateriaPrima, int(mid))
         if m:
             m.stock_disponible = (m.stock_disponible or 0) + cant
+            try:
+                from models import LoteMateriaPrima
+                lote_mp = LoteMateriaPrima(
+                    materia_prima_id=m.id,
+                    numero_lote=form.get('nro_lote_materia','').strip() or None,
+                    nro_factura=c.nro_factura or None,
+                    proveedor=c.proveedor or None,
+                    fecha_compra=c.fecha,
+                    fecha_vencimiento=c.fecha_caducidad,
+                    cantidad_inicial=cant,
+                    cantidad_disponible=cant,
+                    cantidad_reservada=0.0,
+                    costo_unitario=precio_unit,
+                    notas=form.get('notas','') or None,
+                )
+                db.session.add(lote_mp)
+            except Exception as _le:
+                import logging; logging.warning(f'LoteMateriaPrima create error: {_le}')
     # Auto-register as GastoOperativo
     tipo_label = {'materia_prima': 'Materia prima', 'insumo': 'Insumo',
                   'producto': 'Producto', 'servicio': 'Servicio'}.get(c.tipo_compra, c.tipo_compra.capitalize())

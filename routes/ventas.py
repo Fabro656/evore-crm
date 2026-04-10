@@ -45,19 +45,48 @@ def register(app):
         from services.inventario import InventarioService
         InventarioService.descontar_stock_venta(venta)
 
+    def _get_lotes_fifo(materia_prima_id):
+        """
+        Retorna los lotes disponibles de una materia prima, ordenados FIFO:
+        1) Primero los que tienen fecha de vencimiento (más próximo a vencer primero)
+        2) Luego los sin fecha de vencimiento
+        Excluye lotes ya vencidos.
+        """
+        from models import LoteMateriaPrima
+        from datetime import date
+        hoy = date.today()
+        lotes_con_fecha = LoteMateriaPrima.query.filter(
+            LoteMateriaPrima.materia_prima_id == materia_prima_id,
+            LoteMateriaPrima.cantidad_disponible > 0,
+            LoteMateriaPrima.fecha_vencimiento.isnot(None),
+            LoteMateriaPrima.fecha_vencimiento > hoy
+        ).order_by(LoteMateriaPrima.fecha_vencimiento.asc()).all()
+        lotes_sin_fecha = LoteMateriaPrima.query.filter(
+            LoteMateriaPrima.materia_prima_id == materia_prima_id,
+            LoteMateriaPrima.cantidad_disponible > 0,
+            LoteMateriaPrima.fecha_vencimiento.is_(None)
+        ).order_by(LoteMateriaPrima.creado_en.asc()).all()
+        return lotes_con_fecha + lotes_sin_fecha
+
     def _procesar_venta_produccion(venta):
-        """Crea órdenes de producción y reservas de materias primas si no hay stock."""
+        """
+        Crea órdenes de producción y reservas de materias primas por lote (FIFO por vencimiento).
+        - Reservas se crean SIN deducir stock todavía (la deducción ocurre al 'Iniciar producción').
+        - Estado de la orden: pendiente_materiales si falta algún insumo, en_produccion si todo está.
+        - Detecta lotes próximos a vencer (< 90 días) y los marca en las notas de la reserva.
+        """
+        from datetime import date, timedelta
+        UMBRAL_CADUCIDAD_DIAS = 90
+        hoy = date.today()
         try:
-            admins = User.query.filter_by(rol='admin', activo=True).all()
-            primer_admin_id = admins[0].id if admins else current_user.id
             for item in venta.items:
                 if not item.producto_id:
                     continue
                 prod = db.session.get(Producto, item.producto_id)
                 if not prod:
                     continue
-                cant_requerida = item.cantidad
-                cant_en_stock  = min(prod.stock or 0, cant_requerida)
+                cant_requerida = float(item.cantidad or 0)
+                cant_en_stock  = min(float(prod.stock or 0), cant_requerida)
                 cant_producir  = max(0.0, cant_requerida - cant_en_stock)
                 if cant_producir <= 0:
                     continue
@@ -68,14 +97,97 @@ def register(app):
                 ).first()
                 if existente:
                     continue
-                orden = OrdenProduccion(
+
+                receta = RecetaProducto.query.filter_by(producto_id=prod.id, activo=True).first()
+                hay_faltante = False
+
+                if receta and receta.items:
+                    unidades_por_batch = float(receta.unidades_produce or 1)
+                    factor = cant_producir / unidades_por_batch
+
+                    for ri in receta.items:
+                        mp = ri.materia
+                        cant_reservar_total = round(ri.cantidad_por_unidad * factor, 4)
+                        if cant_reservar_total <= 0:
+                            continue
+
+                        # Verificar si ya existe reserva para este insumo/venta/producto
+                        reserva_exist = ReservaProduccion.query.filter(
+                            ReservaProduccion.venta_id == venta.id,
+                            ReservaProduccion.materia_prima_id == mp.id,
+                            ReservaProduccion.producto_id == prod.id,
+                            ReservaProduccion.estado == 'reservado'
+                        ).first()
+                        if reserva_exist:
+                            continue
+
+                        # Asignar lotes FIFO
+                        lotes = _get_lotes_fifo(mp.id)
+                        total_en_lotes = sum(l.cantidad_disponible for l in lotes)
+                        if total_en_lotes < cant_reservar_total:
+                            hay_faltante = True
+
+                        # Crear una reserva por lote (o una sin lote si no hay lotes registrados)
+                        restante = cant_reservar_total
+                        if lotes:
+                            for lote in lotes:
+                                if restante <= 0:
+                                    break
+                                desde_este = min(lote.cantidad_disponible, restante)
+                                prox_venc = (lote.fecha_vencimiento and
+                                             lote.fecha_vencimiento <= hoy + timedelta(days=UMBRAL_CADUCIDAD_DIAS))
+                                nota_lote = f'Lote {lote.numero_lote or lote.id}'
+                                if lote.nro_factura:
+                                    nota_lote += f' Fac:{lote.nro_factura}'
+                                if lote.fecha_vencimiento:
+                                    nota_lote += f' Vence:{lote.fecha_vencimiento.strftime("%d/%m/%Y")}'
+                                if prox_venc:
+                                    nota_lote += ' ⚠️PRÓX.VENCER'
+                                db.session.add(ReservaProduccion(
+                                    materia_prima_id=mp.id,
+                                    cantidad=round(desde_este, 4),
+                                    estado='reservado',
+                                    producto_id=prod.id,
+                                    venta_id=venta.id,
+                                    lote_materia_prima_id=lote.id,
+                                    notas=nota_lote,
+                                    creado_por=current_user.id
+                                ))
+                                restante -= desde_este
+                            # Si quedó restante (faltante), crear una reserva sin lote
+                            if restante > 0.001:
+                                db.session.add(ReservaProduccion(
+                                    materia_prima_id=mp.id,
+                                    cantidad=round(restante, 4),
+                                    estado='reservado',
+                                    producto_id=prod.id,
+                                    venta_id=venta.id,
+                                    lote_materia_prima_id=None,
+                                    notas='⚠️ FALTANTE — requiere compra',
+                                    creado_por=current_user.id
+                                ))
+                        else:
+                            # Sin lotes registrados — reserva completa pendiente de compra
+                            hay_faltante = True
+                            db.session.add(ReservaProduccion(
+                                materia_prima_id=mp.id,
+                                cantidad=cant_reservar_total,
+                                estado='reservado',
+                                producto_id=prod.id,
+                                venta_id=venta.id,
+                                lote_materia_prima_id=None,
+                                notas='⚠️ Sin stock — requiere compra',
+                                creado_por=current_user.id
+                            ))
+
+                estado_orden = 'pendiente_materiales' if hay_faltante else 'en_produccion'
+                db.session.add(OrdenProduccion(
                     venta_id=venta.id, producto_id=prod.id,
                     cantidad_total=cant_requerida, cantidad_stock=cant_en_stock,
-                    cantidad_producir=cant_producir, estado='en_produccion',
-                    notas=f'Venta: {getattr(venta, "titulo", venta.id)} — {prod.nombre} x{cant_requerida}',
+                    cantidad_producir=cant_producir, estado=estado_orden,
+                    notas=f'Venta: {venta.titulo or venta.numero} — {prod.nombre} x{cant_requerida:.0f}',
                     creado_por=current_user.id
-                )
-                db.session.add(orden)
+                ))
         except Exception as ex:
             logging.warning(f'_procesar_venta_produccion error: {ex}')
 
@@ -84,10 +196,28 @@ def register(app):
     @app.route('/ventas')
     @login_required
     def ventas():
-        estado_f=request.args.get('estado','')
-        q=Venta.query
-        if estado_f: q=q.filter_by(estado=estado_f)
-        return render_template('ventas/index.html', items=q.order_by(Venta.creado_en.desc()).all(), estado_f=estado_f)
+        from datetime import date, timedelta
+        estado_f = request.args.get('estado','')
+        q = Venta.query
+        if estado_f:
+            q = q.filter_by(estado=estado_f)
+        items = q.order_by(Venta.creado_en.desc()).all()
+
+        # Alertas internas: materias primas próximas a vencer (< 90 días) con stock > 0
+        try:
+            from models import LoteMateriaPrima
+            hoy = date.today()
+            proximas_vencer = LoteMateriaPrima.query.filter(
+                LoteMateriaPrima.fecha_vencimiento.isnot(None),
+                LoteMateriaPrima.fecha_vencimiento <= hoy + timedelta(days=90),
+                LoteMateriaPrima.fecha_vencimiento >= hoy,
+                LoteMateriaPrima.cantidad_disponible > 0
+            ).order_by(LoteMateriaPrima.fecha_vencimiento.asc()).all()
+        except Exception:
+            proximas_vencer = []
+
+        return render_template('ventas/index.html', items=items, estado_f=estado_f,
+                               proximas_vencer=proximas_vencer, today_date=hoy)
     
 
     # ── venta_nueva (/ventas/nueva)
@@ -283,6 +413,53 @@ def register(app):
             flash('Error al entregar la venta. Por favor intenta de nuevo.', 'danger')
         return redirect(url_for('ventas'))
     
+
+    # ── api_venta_material_status (/api/ventas/<id>/material_status)
+    @app.route('/api/ventas/<int:id>/material_status')
+    @login_required
+    def api_venta_material_status(id):
+        """Devuelve estado de materiales para una venta (para mostrar en tiempo real)."""
+        venta = Venta.query.get_or_404(id)
+        result = []
+        todas_ok = True
+        for item in venta.items:
+            if not item.producto_id:
+                continue
+            prod = db.session.get(Producto, item.producto_id)
+            if not prod:
+                continue
+            cant_req = float(item.cantidad or 0)
+            cant_stock = float(prod.stock or 0)
+            cant_producir = max(0.0, cant_req - cant_stock)
+            if cant_producir <= 0:
+                result.append({'producto': prod.nombre, 'ok': True,
+                                'mensaje': f'En stock ({int(cant_stock)} uds)'})
+                continue
+            receta = RecetaProducto.query.filter_by(producto_id=prod.id, activo=True).first()
+            if not receta or not receta.items:
+                result.append({'producto': prod.nombre, 'ok': False,
+                                'mensaje': f'Necesita producir {cant_producir:.0f} uds — sin receta'})
+                todas_ok = False
+                continue
+            materiales_ok = True
+            faltantes = []
+            factor = cant_producir / float(receta.unidades_produce or 1)
+            for ri in receta.items:
+                mp = ri.materia
+                necesita = ri.cantidad_por_unidad * factor
+                if mp.stock_disponible < necesita:
+                    faltan = necesita - mp.stock_disponible
+                    faltantes.append(f'{mp.nombre}: faltan {faltan:.2f} {mp.unidad}')
+                    materiales_ok = False
+            if not materiales_ok:
+                todas_ok = False
+                result.append({'producto': prod.nombre, 'ok': False,
+                                'mensaje': f'Materiales faltantes: {"; ".join(faltantes)}'})
+            else:
+                result.append({'producto': prod.nombre, 'ok': True,
+                                'mensaje': f'Materiales disponibles (a producir: {cant_producir:.0f} uds)'})
+        return jsonify({'todas_ok': todas_ok, 'items': result})
+
 
     # ── venta_factura (/ventas/<int:id>/factura)
     @app.route('/ventas/<int:id>/factura')

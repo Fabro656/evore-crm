@@ -12,23 +12,44 @@
 <table class="table table-hover align-middle">
   <thead><tr>
     <th>Producto</th><th class="text-end">A producir</th><th class="text-end">Stock previo</th>
-    <th>Cotización</th><th>Lote</th><th>Estado</th><th>Fecha</th><th></th>
+    <th>Pedido / Venta</th><th>Lote</th><th>Estado</th><th>Fecha</th><th></th>
   </tr></thead>
   <tbody>
   {% for o in pendientes %}
   <tr>
     <td><strong>{{ o.producto.nombre }}</strong></td>
-    <td class="text-end">{{ '%.2f'|format(o.cantidad_producir) }}</td>
-    <td class="text-end text-muted">{{ '%.2f'|format(o.cantidad_stock) }}</td>
-    <td>{% if o.cotizacion %}<small>#{{ o.cotizacion.numero or o.cotizacion_id }} {{ o.cotizacion.titulo[:30] }}...</small>{% else %}—{% endif %}</td>
+    <td class="text-end">{{ '%.0f'|format(o.cantidad_producir) }}</td>
+    <td class="text-end text-muted">{{ '%.0f'|format(o.cantidad_stock) }}</td>
+    <td>
+      {% if o.venta %}
+        <a href="{{ url_for('venta_editar', id=o.venta.id) }}" class="text-decoration-none" style="color:var(--ac)">
+          <small><i class="bi bi-tag me-1"></i>{{ o.venta.numero or 'VNT-'+o.venta_id|string }}</small>
+        </a>
+        <div style="font-size:.72rem;color:var(--text2)">{{ o.venta.titulo[:35] }}</div>
+      {% elif o.cotizacion %}
+        <small>{{ o.cotizacion.numero or '#'+o.cotizacion_id|string }}</small>
+      {% else %}—{% endif %}
+    </td>
     <td>{{ o.numero_lote or '—' }}</td>
     <td>
-      {% if o.estado == 'pendiente_materiales' %}<span class="badge bg-warning">Sin materiales</span>
-      {% elif o.estado == 'en_produccion' %}<span class="badge bg-primary">En producción</span>
-      {% else %}<span class="badge bg-success">Completado</span>{% endif %}
+      {% if o.estado == 'pendiente_materiales' %}
+        <span class="badge bg-danger">
+          <i class="bi bi-exclamation-triangle me-1"></i>Sin materiales
+        </span>
+        {% if o.venta_id %}
+          <a href="{{ url_for('reservas') }}" class="btn btn-xs btn-outline-danger ms-1" style="font-size:.7rem;padding:1px 6px">
+            Ver reservas
+          </a>
+        {% endif %}
+      {% elif o.estado == 'en_produccion' %}
+        <span class="badge bg-primary"><i class="bi bi-gear-wide-connected me-1"></i>En producción</span>
+      {% else %}
+        <span class="badge bg-success">Completado</span>
+      {% endif %}
     </td>
     <td><small>{{ o.creado_en.strftime('%d/%m/%Y') }}</small></td>
     <td>
+      {% if o.estado == 'en_produccion' %}
       <button type="button" class="btn btn-sm btn-success"
         data-bs-toggle="modal" data-bs-target="#modalCompletar"
         data-orden="{{ o.id }}" data-prod="{{ o.producto.nombre }}"
@@ -36,6 +57,9 @@
         onclick="prepCompletar(this)">
         <i class="bi bi-check2-circle me-1"></i>Completar
       </button>
+      {% elif o.estado == 'pendiente_materiales' %}
+      <span class="text-muted" style="font-size:.75rem">Iniciar en Reservas</span>
+      {% endif %}
     </td>
   </tr>
   {% endfor %}

@@ -42,6 +42,12 @@
     <input type="date" name="fecha" id="fechaC" class="form-control" value="{{ obj.fecha.strftime('%Y-%m-%d') if obj else today }}" required oninput="autoNombre()"></div>
   <div class="col-md-3"><label class="form-label"># Factura</label>
     <input type="text" name="nro_factura" class="form-control" value="{{ obj.nro_factura if obj else '' }}"></div>
+  <!-- Número de lote de materia prima (solo visible si tipo=materia_prima) -->
+  <div class="col-md-3" id="divLoteMateria" style="display:none">
+    <label class="form-label">N° Lote del proveedor</label>
+    <input type="text" name="nro_lote_materia" class="form-control" placeholder="Ej: LOT-2026-001 (opcional)">
+    <div class="form-text">Lote del proveedor para trazabilidad.</div>
+  </div>
 
   <!-- Cantidad + Unidad -->
   <div class="col-md-4"><label class="form-label">Cantidad</label>
@@ -106,6 +112,7 @@ function onTipoChange(){
   var t=document.getElementById('tipoCompra').value;
   var isMP=(t==='materia_prima');
   document.getElementById('divMateria').style.display=isMP?'':'none';
+  document.getElementById('divLoteMateria').style.display=isMP?'':'none';
   // Producto siempre visible; ajustar etiqueta según contexto
   document.getElementById('divProducto').style.display='';
   document.getElementById('lblProductoHint').textContent=isMP?'(auto-detectado desde materia prima)':'(actualiza costo)';
