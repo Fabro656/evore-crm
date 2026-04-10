@@ -96,8 +96,11 @@ def register(app):
                 return jsonify({'error': f'Con ese peso máximo ({peso_max} kg) no cabe ni 1 unidad '
                                          f'({peso_unit} kg c/u)'}), 400
 
-            # Exploramos hasta este límite (cap en 800 para no generar listas gigantes)
-            tope = min(max_por_peso, 800)
+            # Exploramos hasta 2× el límite por peso para encontrar cajas de proporciones
+            # adecuadas aunque geométricamente soporten más unidades que el peso permite.
+            # Si la caja es más grande de lo que dicta el peso, la mostramos igualmente
+            # (el empaque puede transportar hasta max_por_peso aunque la caja quepa más).
+            tope = min(int(max_por_peso * 2), 1200)
 
             # ── Generar todas las factorizaciones únicas (r ≤ c ≤ l) ───────────
             # r = filas (ancho), c = columnas (largo), l = capas (alto)
@@ -124,19 +127,30 @@ def register(app):
                         w = round(r * ancho_prod + margen, 1)
                         d = round(c * largo_prod + margen, 1)
                         h = round(l * alto_prod  + margen, 1)
-                        peso_total = round(total * peso_unit, 3)
-                        pct_peso   = round((peso_total / peso_max) * 100, 1)
                         volumen    = round(w * d * h, 1)
 
                         # ── Filtro de proporciones para transporte/almacenaje ─────
-                        # En unidades, ningún lado puede ser más de 6× otro
-                        # (evita cajas 1×1×40 pero permite 2×3×11)
+                        # 1) En unidades: ningún lado puede ser más de 6× otro
                         dims_u = sorted([r, c, l])
                         if dims_u[2] / max(dims_u[0], 1) > 6:
                             continue
+                        # 2) En centímetros: ratio máx/mín de la caja ≤ 4.5
+                        #    (evita palillos; si total > max_por_peso la caja es válida
+                        #    pero sólo se cargan max_por_peso unidades)
+                        dims_cm = sorted([w, d, h])
+                        if dims_cm[2] / max(dims_cm[0], 0.01) > 4.5:
+                            continue
+
+                        # Si la configuración geométrica supera el límite de peso,
+                        # sólo cargamos max_por_peso unidades (caja "sobredimensionada").
+                        # Esto permite encontrar cajas de buenas proporciones aunque
+                        # el peso sea el factor limitante.
+                        actual_units = min(total, max_por_peso)
+                        peso_total   = round(actual_units * peso_unit, 3)
+                        pct_peso     = round((peso_total / peso_max) * 100, 1)
 
                         variantes.append({
-                            'total'      : total,
+                            'total'      : actual_units,
                             'filas'      : r,
                             'columnas'   : c,
                             'capas'      : l,
