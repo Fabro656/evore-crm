@@ -409,63 +409,7 @@ def register(app):
         return ('', 204)
     
 
-    # ── contable_index (/contable)
-    @app.route('/contable')
-    @login_required
-    def contable_index():
-        from datetime import timedelta
-        hoy = datetime.utcnow().date()
-        mes_inicio = hoy.replace(day=1)
-        mes_str = request.args.get('mes', hoy.strftime('%Y-%m'))
-        try:
-            anio, mes = int(mes_str.split('-')[0]), int(mes_str.split('-')[1])
-        except: anio, mes = hoy.year, hoy.month
-        import calendar as cal_mod
-        _, ultimo_dia = cal_mod.monthrange(anio, mes)
-        desde = datetime(anio, mes, 1).date()
-        hasta = datetime(anio, mes, ultimo_dia).date()
-        # Ingresos del mes (ventas ganadas/anticipo)
-        ventas_mes = Venta.query.filter(
-            Venta.estado.in_(['anticipo_pagado','completado']),
-            db.func.date(Venta.creado_en) >= desde,
-            db.func.date(Venta.creado_en) <= hasta
-        ).all()
-        total_ingresos = sum(v.total for v in ventas_mes)
-        total_anticipo = sum(v.monto_anticipo for v in ventas_mes)
-        # Egresos del mes
-        gastos_mes = GastoOperativo.query.filter(
-            GastoOperativo.fecha >= desde, GastoOperativo.fecha <= hasta
-        ).all()
-        compras_mes = CompraMateria.query.filter(
-            CompraMateria.fecha >= desde, CompraMateria.fecha <= hasta
-        ).all()
-        total_gastos = sum(g.monto for g in gastos_mes)
-        total_compras = sum(c.costo_total for c in compras_mes)
-        total_egresos = total_gastos + total_compras
-        utilidad = total_ingresos - total_egresos
-        # Impuestos estimados según reglas tributarias activas
-        total_impuestos, detalle_impuestos = _calcular_impuestos(total_ingresos, utilidad)
-        utilidad_neta = utilidad - total_impuestos
-        # Cuentas por cobrar (ventas con saldo > 0)
-        cxc = Venta.query.filter(Venta.saldo > 0, Venta.estado.in_(['anticipo_pagado','completado'])).all()
-        total_cxc = sum(v.saldo for v in cxc)
-        # Inventario valorizado
-        inventario_valor = sum((p.stock or 0) * (p.costo or 0) for p in Producto.query.filter_by(activo=True).all())
-        meses_nav = []
-        for i in range(5, -1, -1):
-            d = (hoy.replace(day=1) - timedelta(days=i*28)).replace(day=1)
-            meses_nav.append({'val': d.strftime('%Y-%m'), 'lbl': d.strftime('%b %Y')})
-        return render_template('contable/index.html',
-            total_ingresos=total_ingresos, total_anticipo=total_anticipo,
-            total_egresos=total_egresos, total_gastos=total_gastos,
-            total_compras=total_compras, utilidad=utilidad,
-            total_impuestos=total_impuestos, detalle_impuestos=detalle_impuestos,
-            utilidad_neta=utilidad_neta,
-            total_cxc=total_cxc, inventario_valor=inventario_valor,
-            ventas_mes=ventas_mes, gastos_mes=gastos_mes, compras_mes=compras_mes,
-            cxc=cxc, mes_str=mes_str, meses_nav=meses_nav,
-            anio=anio, mes=mes)
-    
+    # contable_index fue movido a routes/contable.py (v30)
 
     # ── contable_ingresos (/contable/ingresos)
     @app.route('/contable/ingresos')
