@@ -1,6 +1,6 @@
-# routes/inventario.py
-from flask import (render_template, redirect, url_for, flash, request,
-                   jsonify, send_file, make_response, current_app)
+# routes/inventario.py — reconstruido desde v27 con CRUD completo
+from flask import render_template, redirect, url_for, flash, request, \
+                  jsonify, send_file, make_response, current_app
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
 from extensions import db
@@ -9,8 +9,9 @@ from utils import *
 from datetime import datetime, timedelta, date as date_type
 import json, os, re, io, secrets, logging
 
-
 def register(app):
+
+    # ── inventario (/inventario)
     @app.route('/inventario')
     @login_required
     def inventario():
@@ -26,7 +27,9 @@ def register(app):
         return render_template('inventario/index.html', items=q.order_by(Producto.nombre).all(),
                                busqueda=busqueda, categoria_f=categoria_f, categorias=cats,
                                now=datetime.utcnow())
+    
 
+    # ── producto_nuevo (/inventario/nuevo)
     @app.route('/inventario/nuevo', methods=['GET','POST'])
     @login_required
     def producto_nuevo():
@@ -44,7 +47,9 @@ def register(app):
             db.session.commit()
             flash('Producto creado.','success'); return redirect(url_for('inventario'))
         return render_template('inventario/form.html', obj=None, titulo='Nuevo Producto')
+    
 
+    # ── producto_editar (/inventario/<int:id>/editar)
     @app.route('/inventario/<int:id>/editar', methods=['GET','POST'])
     @login_required
     def producto_editar(id):
@@ -62,7 +67,9 @@ def register(app):
             db.session.commit()
             flash('Producto actualizado.','success'); return redirect(url_for('inventario'))
         return render_template('inventario/form.html', obj=obj, titulo='Editar Producto')
+    
 
+    # ── producto_eliminar (/inventario/<int:id>/eliminar)
     @app.route('/inventario/<int:id>/eliminar', methods=['POST'])
     @login_required
     def producto_eliminar(id):
@@ -71,65 +78,18 @@ def register(app):
             return redirect(request.referrer or url_for('dashboard'))
         obj=Producto.query.get_or_404(id); obj.activo=False; db.session.commit()
         flash('Producto eliminado.','info'); return redirect(url_for('inventario'))
+    
 
-    @app.route('/inventario/ingresos', methods=['GET','POST'])
-    @login_required
-    @requiere_modulo('inventario')
-    def inventario_ingresos():
-        productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
-        if request.method == 'POST':
-            pid = request.form.get('producto_id')
-            numero_lote = request.form.get('numero_lote','').strip()
-            nso = request.form.get('nso','').strip() or None
-            fp  = request.form.get('fecha_produccion')
-            fv  = request.form.get('fecha_vencimiento')
-            cantidades = request.form.getlist('cantidad[]')
-            costos     = request.form.getlist('costo_unit[]')
-
-            if not pid or not numero_lote:
-                flash('Selecciona un producto e indica el número de lote.','danger')
-                return render_template('inventario/ingresos.html', productos=productos)
-
-            prod = Producto.query.get_or_404(int(pid))
-            total_unidades = 0
-            for cant_s, costo_s in zip(cantidades, costos):
-                try:
-                    cant = float(cant_s)
-                    if cant > 0:
-                        total_unidades += cant
-                        if costo_s:
-                            prod.costo = float(costo_s)   # actualiza último costo
-                except: pass
-
-            if total_unidades <= 0:
-                flash('Ingresa al menos una cantidad válida.','danger')
-                return render_template('inventario/ingresos.html', productos=productos)
-
-            prod.stock += int(total_unidades)
-            lote = LoteProducto(
-                producto_id=prod.id,
-                numero_lote=numero_lote,
-                nso=nso,
-                fecha_produccion=datetime.strptime(fp,'%Y-%m-%d').date() if fp else None,
-                fecha_vencimiento=datetime.strptime(fv,'%Y-%m-%d').date() if fv else None,
-                unidades_producidas=total_unidades,
-                unidades_restantes=total_unidades,
-                notas=f'Multi-ingreso: {total_unidades} unidades',
-                creado_por=current_user.id
-            )
-            db.session.add(lote)
-            db.session.commit()
-            flash(f'{total_unidades:.0f} unidades de "{prod.nombre}" ingresadas al lote {numero_lote}.','success')
-            return redirect(url_for('inventario'))
-        return render_template('inventario/ingresos.html', productos=productos)
-
+    # ── lotes (/inventario/lotes)
     @app.route('/inventario/lotes')
     @login_required
     @requiere_modulo('inventario')
     def lotes():
         items = LoteProducto.query.order_by(LoteProducto.creado_en.desc()).all()
         return render_template('inventario/lotes.html', lotes=items)
+    
 
+    # ── lote_nuevo (/inventario/lotes/nuevo)
     @app.route('/inventario/lotes/nuevo', methods=['GET','POST'])
     @login_required
     @requiere_modulo('inventario')
@@ -152,7 +112,9 @@ def register(app):
             db.session.add(l); db.session.commit()
             flash('Lote creado.','success'); return redirect(url_for('lotes'))
         return render_template('inventario/lote_form.html', obj=None, productos=productos, titulo='Nuevo Lote')
+    
 
+    # ── lote_editar (/inventario/lotes/<int:id>/editar)
     @app.route('/inventario/lotes/<int:id>/editar', methods=['GET','POST'])
     @login_required
     @requiere_modulo('inventario')
@@ -173,71 +135,66 @@ def register(app):
             db.session.commit()
             flash('Lote actualizado.','success'); return redirect(url_for('lotes'))
         return render_template('inventario/lote_form.html', obj=obj, productos=productos, titulo='Editar Lote')
+    
 
+    # ── lote_eliminar (/inventario/lotes/<int:id>/eliminar)
     @app.route('/inventario/lotes/<int:id>/eliminar', methods=['POST'])
     @login_required
     @requiere_modulo('inventario')
     def lote_eliminar(id):
         obj = LoteProducto.query.get_or_404(id); db.session.delete(obj); db.session.commit()
         flash('Lote eliminado.','info'); return redirect(url_for('lotes'))
+    
 
-    @app.route('/produccion/materias')
+    # ── inventario_ingresos (/inventario/ingresos)
+    @app.route('/inventario/ingresos', methods=['GET','POST'])
     @login_required
-    @requiere_modulo('produccion')
-    def materias():
-        items = MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).all()
-        return render_template('produccion/materias.html', materias=items)
-
-    @app.route('/produccion/materias/nueva', methods=['GET','POST'])
-    @login_required
-    @requiere_modulo('produccion')
-    def materia_nueva():
+    @requiere_modulo('inventario')
+    def inventario_ingresos():
         productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
         if request.method == 'POST':
-            pid_raw = request.form.get('producto_id','')
-            m = MateriaPrima(
-                nombre=request.form['nombre'],
-                descripcion=request.form.get('descripcion','') or None,
-                unidad=request.form.get('unidad','unidades'),
-                stock_disponible=float(request.form.get('stock_disponible',0)),
-                stock_minimo=float(request.form.get('stock_minimo',0)),
-                costo_unitario=float(request.form.get('costo_unitario',0)),
-                categoria=request.form.get('categoria','') or None,
-                proveedor=request.form.get('proveedor','') or None,
-                proveedor_id=int(request.form.get('proveedor_id')) if request.form.get('proveedor_id') else None,
-                producto_id=int(pid_raw) if pid_raw else None
+            pid = request.form.get('producto_id')
+            numero_lote = request.form.get('numero_lote','').strip()
+            nso = request.form.get('nso','').strip() or None
+            fp  = request.form.get('fecha_produccion')
+            fv  = request.form.get('fecha_vencimiento')
+            cantidades = request.form.getlist('cantidad[]')
+            costos     = request.form.getlist('costo_unit[]')
+    
+            if not pid or not numero_lote:
+                flash('Selecciona un producto e indica el número de lote.','danger')
+                return render_template('inventario/ingresos.html', productos=productos)
+    
+            prod = Producto.query.get_or_404(int(pid))
+            total_unidades = 0
+            for cant_s, costo_s in zip(cantidades, costos):
+                try:
+                    cant = float(cant_s)
+                    if cant > 0:
+                        total_unidades += cant
+                        if costo_s:
+                            prod.costo = float(costo_s)   # actualiza último costo
+                except: pass
+    
+            if total_unidades <= 0:
+                flash('Ingresa al menos una cantidad válida.','danger')
+                return render_template('inventario/ingresos.html', productos=productos)
+    
+            prod.stock += int(total_unidades)
+            lote = LoteProducto(
+                producto_id=prod.id,
+                numero_lote=numero_lote,
+                nso=nso,
+                fecha_produccion=datetime.strptime(fp,'%Y-%m-%d').date() if fp else None,
+                fecha_vencimiento=datetime.strptime(fv,'%Y-%m-%d').date() if fv else None,
+                unidades_producidas=total_unidades,
+                unidades_restantes=total_unidades,
+                notas=f'Multi-ingreso: {total_unidades} unidades',
+                creado_por=current_user.id
             )
-            db.session.add(m); db.session.commit()
-            flash('Materia prima creada.','success'); return redirect(url_for('materias'))
-        return render_template('produccion/materia_form.html', obj=None, titulo='Nueva Materia Prima',
-                               productos=productos, proveedores_list=Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all())
-
-    @app.route('/produccion/materias/<int:id>/editar', methods=['GET','POST'])
-    @login_required
-    @requiere_modulo('produccion')
-    def materia_editar(id):
-        obj = MateriaPrima.query.get_or_404(id)
-        productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
-        if request.method == 'POST':
-            pid_raw = request.form.get('producto_id','')
-            obj.nombre=request.form['nombre']
-            obj.descripcion=request.form.get('descripcion','') or None
-            obj.unidad=request.form.get('unidad','unidades')
-            obj.stock_disponible=float(request.form.get('stock_disponible',0))
-            obj.stock_minimo=float(request.form.get('stock_minimo',0))
-            obj.costo_unitario=float(request.form.get('costo_unitario',0))
-            obj.categoria=request.form.get('categoria','') or None
-            obj.proveedor=request.form.get('proveedor','') or None
-            obj.proveedor_id=int(request.form.get('proveedor_id')) if request.form.get('proveedor_id') else None
-            obj.producto_id=int(pid_raw) if pid_raw else None
+            db.session.add(lote)
             db.session.commit()
-            flash('Materia prima actualizada.','success'); return redirect(url_for('materias'))
-        return render_template('produccion/materia_form.html', obj=obj, titulo='Editar Materia Prima',
-                               productos=productos, proveedores_list=Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all())
-
-    @app.route('/produccion/materias/<int:id>/eliminar', methods=['POST'])
-    @login_required
-    @requiere_modulo('produccion')
-    def materia_eliminar(id):
-        obj = MateriaPrima.query.get_or_404(id); obj.activo=False; db.session.commit()
-        flash('Materia prima desactivada.','info'); return redirect(url_for('materias'))
+            flash(f'{total_unidades:.0f} unidades de "{prod.nombre}" ingresadas al lote {numero_lote}.','success')
+            return redirect(url_for('inventario'))
+        return render_template('inventario/ingresos.html', productos=productos)
+    

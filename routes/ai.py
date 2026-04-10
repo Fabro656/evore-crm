@@ -15,11 +15,11 @@ def register(app):
     @app.route('/api/ai/chat', methods=['POST'])
     @login_required
     def ai_chat():
-        """Main AI chat endpoint. Tries Anthropic first, then Ollama, then OpenAI."""
+        """Main AI chat endpoint. Tries OpenAI first, then Anthropic, then Ollama."""
         data = request.get_json(silent=True) or {}
         user_message = (data.get('message') or '').strip()
-        history      = data.get('history', [])   # [{role, content}, ...]
-        context_page = data.get('context', '')    # current page/module
+        history      = data.get('history', [])
+        context_page = data.get('context', '')
 
         if not user_message:
             return jsonify({'error': 'Mensaje vacío'}), 400
@@ -28,16 +28,15 @@ def register(app):
         empresa = ConfigEmpresa.query.first()
         empresa_nombre = empresa.nombre if empresa else 'la empresa'
 
-        # Gather live CRM context
         try:
-            n_clientes   = Cliente.query.filter_by(activo=True).count()
-            n_ventas_act = Venta.query.filter(Venta.estado.in_(
+            n_clientes    = Cliente.query.filter_by(activo=True).count()
+            n_ventas_act  = Venta.query.filter(Venta.estado.in_(
                 ['prospecto','negociacion','anticipo_pagado'])).count()
             n_tareas_pend = Tarea.query.filter(
                 Tarea.estado.notin_(['completada','cancelada'])).filter(
                 Tarea.asignados.any(TareaAsignado.usuario_id == current_user.id)
             ).count()
-            n_gastos_mes = GastoOperativo.query.filter(
+            n_gastos_mes  = GastoOperativo.query.filter(
                 db.func.date_trunc('month', GastoOperativo.fecha) ==
                 db.func.date_trunc('month', datetime.utcnow())
             ).count()
@@ -45,38 +44,55 @@ def register(app):
             n_clientes = n_ventas_act = n_tareas_pend = n_gastos_mes = '?'
 
         system_prompt = f"""Eres el asistente de IA integrado en Evore CRM, el sistema de gestión de {empresa_nombre}.
-Ayudas al usuario {current_user.nombre} (rol: {current_user.rol}) con sus tareas diarias en el CRM.
+Ayudas al usuario {current_user.nombre} (rol: {current_user.rol}) con sus tareas diarias.
 
-CONTEXTO ACTUAL DEL CRM:
+CONTEXTO ACTUAL:
 - Clientes activos: {n_clientes}
 - Ventas en curso: {n_ventas_act}
 - Mis tareas pendientes: {n_tareas_pend}
-- Gastos registrados este mes: {n_gastos_mes}
+- Gastos este mes: {n_gastos_mes}
 - Módulo actual: {context_page or 'inicio'}
 - Fecha/hora: {datetime.now().strftime('%d/%m/%Y %H:%M')}
 
-CAPACIDADES:
-1. Responder preguntas sobre el CRM y sus datos
-2. Redactar correos, mensajes y comunicaciones para clientes
-3. Resumir actividad, ventas, estados de proyectos
-4. Ayudar a crear registros (tareas, notas, eventos) — cuando el usuario lo pida,
-   responde con un JSON especial: {{"action":"create","type":"tarea|nota|evento","data":{{...}}}}
+CAPACIDADES — puedes crear registros reales en el CRM.
+Cuando el usuario pida crear algo, responde con un JSON de acción:
 
-MÓDULOS DISPONIBLES: clientes, ventas, cotizaciones, tareas, calendario, notas,
-inventario, producción, gastos, reportes, proveedores, nómina, finanzas, legal.
+Para CLIENTE:
+{{"action":"create","type":"cliente","data":{{"nombre":"...","email":"...","telefono":"...","ciudad":"..."}}}}
 
-Sé conciso, útil y profesional. Responde siempre en español.
-Si el usuario pide crear algo, confirma los datos antes de ejecutar."""
+Para VENTA:
+{{"action":"create","type":"venta","data":{{"cliente_nombre":"...","descripcion":"...","valor_total":0,"estado":"prospecto"}}}}
 
-        # ── Read provider config from env ─────────────────────────────
-        anthropic_key  = os.environ.get('ANTHROPIC_API_KEY', '')
-        openai_key     = os.environ.get('OPENAI_API_KEY', '')
-        ollama_base    = os.environ.get('OLLAMA_BASE_URL', 'http://localhost:11434')
-        ollama_model   = os.environ.get('OLLAMA_MODEL', 'llama3')
-        ollama_enabled = os.environ.get('OLLAMA_ENABLED', '').lower() in ('1', 'true', 'yes')
+Para ORDEN DE COMPRA:
+{{"action":"create","type":"orden_compra","data":{{"proveedor_nombre":"...","descripcion":"...","items":[{{"nombre":"...","cantidad":1,"precio_unit":0}}]}}}}
+
+Para TAREA:
+{{"action":"create","type":"tarea","data":{{"titulo":"...","descripcion":"...","prioridad":"media","fecha_limite":"YYYY-MM-DD"}}}}
+
+Para NOTA:
+{{"action":"create","type":"nota","data":{{"titulo":"...","contenido":"..."}}}}
+
+Para EVENTO:
+{{"action":"create","type":"evento","data":{{"titulo":"...","descripcion":"...","tipo":"evento","fecha":"YYYY-MM-DD"}}}}
+
+REGLAS:
+- Confirma datos con el usuario antes de crear si hay ambigüedad
+- Si falta el cliente para una venta, pregunta su nombre
+- Responde siempre en español, sé conciso y profesional
+- Después de crear un registro, confirma con ✅ lo que se creó
+
+MÓDULOS: clientes, ventas, cotizaciones, tareas, calendario, notas,
+inventario, producción, gastos, reportes, proveedores, nómina, finanzas, legal."""
+
+        # ── Providers ────────────────────────────────────────────────
+        openai_key    = os.environ.get('OPENAI_API_KEY', '')
+        anthropic_key = os.environ.get('ANTHROPIC_API_KEY', '')
+        ollama_base   = os.environ.get('OLLAMA_BASE_URL', 'http://localhost:11434')
+        ollama_model  = os.environ.get('OLLAMA_MODEL', 'llama3')
+        ollama_enabled = os.environ.get('OLLAMA_ENABLED', '').lower() in ('1','true','yes')
 
         messages = []
-        for h in history[-10:]:   # last 10 turns for context
+        for h in history[-10:]:
             if h.get('role') in ('user', 'assistant'):
                 messages.append({'role': h['role'], 'content': h['content']})
         messages.append({'role': 'user', 'content': user_message})
@@ -89,17 +105,16 @@ Si el usuario pide crear algo, confirma los datos antes de ejecutar."""
             try:
                 from openai import OpenAI
                 client = OpenAI(api_key=openai_key)
-                msgs_with_system = [{'role': 'system', 'content': system_prompt}] + messages
                 resp = client.chat.completions.create(
                     model='gpt-4o',
-                    messages=msgs_with_system,
+                    messages=[{'role':'system','content':system_prompt}] + messages,
                     max_tokens=1024,
                     temperature=0.7
                 )
                 response_text = resp.choices[0].message.content
                 provider_used = 'openai'
             except Exception as e:
-                logging.warning(f'OpenAI AI error: {e}')
+                logging.warning(f'OpenAI error: {e}')
 
         # ── 2. Anthropic / Claude (second) ────────────────────────────
         if response_text is None and anthropic_key:
@@ -115,18 +130,17 @@ Si el usuario pide crear algo, confirma los datos antes de ejecutar."""
                 response_text = resp.content[0].text
                 provider_used = 'claude'
             except Exception as e:
-                logging.warning(f'Anthropic AI error: {e}')
+                logging.warning(f'Anthropic error: {e}')
 
-        # ── 3. Ollama local LLM (third option) ────────────────────────
+        # ── 3. Ollama local (third) ───────────────────────────────────
         if response_text is None and ollama_enabled:
             try:
                 import urllib.request
-                ollama_messages = [{'role': 'system', 'content': system_prompt}] + messages
                 payload = json.dumps({
-                    'model':    ollama_model,
-                    'messages': ollama_messages,
-                    'stream':   False,
-                    'options':  {'num_predict': 1024}
+                    'model': ollama_model,
+                    'messages': [{'role':'system','content':system_prompt}] + messages,
+                    'stream': False,
+                    'options': {'num_predict': 1024}
                 }).encode('utf-8')
                 req = urllib.request.Request(
                     f'{ollama_base.rstrip("/")}/api/chat',
@@ -134,28 +148,28 @@ Si el usuario pide crear algo, confirma los datos antes de ejecutar."""
                     headers={'Content-Type': 'application/json'},
                     method='POST'
                 )
-                with urllib.request.urlopen(req, timeout=30) as resp_raw:
-                    ollama_resp = json.loads(resp_raw.read().decode('utf-8'))
+                with urllib.request.urlopen(req, timeout=30) as r:
+                    ollama_resp = json.loads(r.read().decode('utf-8'))
                 response_text = (
-                    ollama_resp.get('message', {}).get('content')
-                    or ollama_resp.get('response', '')
-                )
+                    ollama_resp.get('message', {}).get('content') or
+                    ollama_resp.get('response', '')
+                ) or None
                 if response_text:
                     provider_used = f'ollama:{ollama_model}'
-                else:
-                    response_text = None
             except Exception as e:
-                logging.warning(f'Ollama AI error: {e}')
+                logging.warning(f'Ollama error: {e}')
 
         if response_text is None:
             return jsonify({
-                'error': 'No hay un proveedor de IA configurado. '
+                'error': 'No hay proveedor de IA configurado. '
                          'Agrega OPENAI_API_KEY o ANTHROPIC_API_KEY en Railway.'
             }), 503
 
-        # ── Check if response contains a create action ─────────────────
-        action_data = None
-        action_match = re.search(r'\{"action"\s*:\s*"create".*?\}', response_text, re.DOTALL)
+        # ── Detect and execute action ─────────────────────────────────
+        action_match = re.search(
+            r'\{[^{}]*"action"\s*:\s*"create"[^{}]*\}',
+            response_text, re.DOTALL
+        )
         if action_match:
             try:
                 action_data = json.loads(action_match.group())
@@ -166,55 +180,145 @@ Si el usuario pide crear algo, confirma los datos antes de ejecutar."""
             except Exception as e:
                 logging.warning(f'AI action parse error: {e}')
 
-        return jsonify({
-            'reply':    response_text,
-            'provider': provider_used
-        })
+        return jsonify({'reply': response_text, 'provider': provider_used})
 
 
     @app.route('/api/ai/status')
     @login_required
     def ai_status():
-        """Check which AI providers are configured and available."""
-        has_anthropic = bool(os.environ.get('ANTHROPIC_API_KEY'))
         has_openai    = bool(os.environ.get('OPENAI_API_KEY'))
-        ollama_enabled = os.environ.get('OLLAMA_ENABLED', '').lower() in ('1', 'true', 'yes')
-        ollama_model   = os.environ.get('OLLAMA_MODEL', 'llama3')
-        ollama_base    = os.environ.get('OLLAMA_BASE_URL', 'http://localhost:11434')
+        has_anthropic = bool(os.environ.get('ANTHROPIC_API_KEY'))
+        ollama_enabled = os.environ.get('OLLAMA_ENABLED','').lower() in ('1','true','yes')
+        ollama_model   = os.environ.get('OLLAMA_MODEL','llama3')
+        ollama_base    = os.environ.get('OLLAMA_BASE_URL','http://localhost:11434')
 
-        # Check if Ollama is actually reachable
         ollama_online = False
         if ollama_enabled:
             try:
                 import urllib.request
-                req = urllib.request.Request(
-                    f'{ollama_base.rstrip("/")}/api/tags',
-                    method='GET'
-                )
-                with urllib.request.urlopen(req, timeout=3):
+                with urllib.request.urlopen(
+                    urllib.request.Request(f'{ollama_base.rstrip("/")}/api/tags'),
+                    timeout=3
+                ):
                     ollama_online = True
             except Exception:
                 pass
 
         return jsonify({
-            'anthropic':    has_anthropic,
             'openai':       has_openai,
+            'anthropic':    has_anthropic,
             'ollama':       ollama_online,
             'ollama_model': ollama_model if ollama_online else None,
-            'available':    has_anthropic or has_openai or ollama_online,
-            'primary':      'openai' if has_openai else (
-                            'claude' if has_anthropic else (
-                            f'ollama:{ollama_model}' if ollama_online else None))
+            'available':    has_openai or has_anthropic or ollama_online,
+            'primary':      ('openai' if has_openai else
+                             'claude' if has_anthropic else
+                             f'ollama:{ollama_model}' if ollama_online else None)
         })
 
 
 def _execute_ai_action(action_data):
-    """Execute a CRM action requested by the AI."""
+    """Execute a CRM action generated by the AI."""
+    from flask_login import current_user
     try:
         atype = action_data.get('type', '')
         adata = action_data.get('data', {})
 
-        if atype == 'tarea':
+        # ── Cliente ───────────────────────────────────────────────────
+        if atype == 'cliente':
+            c = Cliente(
+                nombre=adata.get('nombre', 'Cliente desde IA'),
+                email=adata.get('email', ''),
+                telefono=adata.get('telefono', ''),
+                ciudad=adata.get('ciudad', ''),
+                activo=True,
+                creado_en=datetime.utcnow()
+            )
+            db.session.add(c)
+            db.session.commit()
+            return f'Cliente creado: "{c.nombre}" (ID {c.id})'
+
+        # ── Venta ─────────────────────────────────────────────────────
+        elif atype == 'venta':
+            # Try to find client by name
+            cliente_id = None
+            cliente_nombre = adata.get('cliente_nombre', '')
+            if cliente_nombre:
+                cliente = Cliente.query.filter(
+                    Cliente.nombre.ilike(f'%{cliente_nombre}%')
+                ).first()
+                if cliente:
+                    cliente_id = cliente.id
+
+            # Generate venta number
+            n = Venta.query.count() + 1
+            numero = f'VNT-{n:04d}'
+
+            v = Venta(
+                numero=numero,
+                cliente_id=cliente_id,
+                descripcion=adata.get('descripcion', 'Venta creada desde IA'),
+                valor_total=float(adata.get('valor_total', 0)),
+                estado=adata.get('estado', 'prospecto'),
+                creado_por=current_user.id,
+                creado_en=datetime.utcnow()
+            )
+            db.session.add(v)
+            db.session.commit()
+            cliente_str = f' para {cliente_nombre}' if cliente_nombre else ''
+            return f'Venta {numero} creada{cliente_str} — estado: {v.estado}'
+
+        # ── Orden de Compra ───────────────────────────────────────────
+        elif atype == 'orden_compra':
+            # Try to find supplier
+            proveedor_id = None
+            prov_nombre = adata.get('proveedor_nombre', '')
+            if prov_nombre:
+                prov = Proveedor.query.filter(
+                    Proveedor.nombre.ilike(f'%{prov_nombre}%')
+                ).first()
+                if prov:
+                    proveedor_id = prov.id
+
+            n = OrdenCompra.query.count() + 1
+            numero = f'OC-{n:04d}'
+
+            oc = OrdenCompra(
+                numero=numero,
+                proveedor_id=proveedor_id,
+                descripcion=adata.get('descripcion', 'OC creada desde IA'),
+                estado='borrador',
+                creado_por=current_user.id,
+                creado_en=datetime.utcnow(),
+                fecha_emision=datetime.utcnow().date()
+            )
+            db.session.add(oc)
+            db.session.flush()
+
+            # Add items if provided
+            items_data = adata.get('items', [])
+            total = 0
+            for item in items_data:
+                cant   = float(item.get('cantidad', 1))
+                precio = float(item.get('precio_unit', 0))
+                sub    = cant * precio
+                total += sub
+                db.session.add(OrdenCompraItem(
+                    orden_id=oc.id,
+                    nombre_item=item.get('nombre', 'Ítem'),
+                    descripcion=item.get('descripcion', ''),
+                    cantidad=cant,
+                    unidad=item.get('unidad', 'unidades'),
+                    precio_unit=precio,
+                    subtotal=sub
+                ))
+
+            oc.total = total
+            db.session.commit()
+            prov_str = f' a {prov_nombre}' if prov_nombre else ''
+            return f'Orden de compra {numero} creada{prov_str} ({len(items_data)} ítems)'
+
+        # ── Tarea ─────────────────────────────────────────────────────
+        elif atype == 'tarea':
             t = Tarea(
                 titulo=adata.get('titulo', 'Tarea desde IA'),
                 descripcion=adata.get('descripcion', ''),
@@ -225,15 +329,18 @@ def _execute_ai_action(action_data):
             )
             if adata.get('fecha_limite'):
                 try:
-                    t.fecha_limite = datetime.strptime(adata['fecha_limite'], '%Y-%m-%d').date()
+                    t.fecha_limite = datetime.strptime(
+                        adata['fecha_limite'], '%Y-%m-%d').date()
                 except Exception:
                     pass
             db.session.add(t)
             db.session.flush()
-            db.session.add(TareaAsignado(tarea_id=t.id, usuario_id=current_user.id))
+            db.session.add(TareaAsignado(
+                tarea_id=t.id, usuario_id=current_user.id))
             db.session.commit()
             return f'Tarea creada: "{t.titulo}"'
 
+        # ── Nota ──────────────────────────────────────────────────────
         elif atype == 'nota':
             n = Nota(
                 titulo=adata.get('titulo', 'Nota desde IA'),
@@ -245,19 +352,21 @@ def _execute_ai_action(action_data):
             db.session.commit()
             return f'Nota creada: "{n.titulo}"'
 
+        # ── Evento ────────────────────────────────────────────────────
         elif atype == 'evento':
             e = Evento(
                 titulo=adata.get('titulo', 'Evento desde IA'),
                 descripcion=adata.get('descripcion', ''),
                 tipo=adata.get('tipo', 'evento'),
                 fecha=datetime.strptime(
-                    adata.get('fecha', datetime.now().strftime('%Y-%m-%d')), '%Y-%m-%d'
+                    adata.get('fecha', datetime.now().strftime('%Y-%m-%d')),
+                    '%Y-%m-%d'
                 ).date(),
                 creado_por=current_user.id
             )
             db.session.add(e)
             db.session.commit()
-            return f'Evento creado: "{e.titulo}"'
+            return f'Evento creado: "{e.titulo}" para el {e.fecha}'
 
     except Exception as ex:
         db.session.rollback()

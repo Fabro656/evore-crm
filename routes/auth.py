@@ -1,6 +1,6 @@
-# routes/auth.py
-from flask import (render_template, redirect, url_for, flash, request,
-                   jsonify, send_file, make_response, current_app)
+# routes/auth.py — reconstruido desde v27 con CRUD completo
+from flask import render_template, redirect, url_for, flash, request, \
+                  jsonify, send_file, make_response, current_app
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
 from extensions import db
@@ -9,8 +9,9 @@ from utils import *
 from datetime import datetime, timedelta, date as date_type
 import json, os, re, io, secrets, logging
 
-
 def register(app):
+
+    # ── login (/login)
     @app.route('/login', methods=['GET','POST'])
     def login():
         if current_user.is_authenticated: return redirect(url_for('dashboard'))
@@ -26,7 +27,9 @@ def register(app):
                 return redirect(request.args.get('next') or url_for('dashboard'))
             flash('Email o contraseña incorrectos.', 'danger')
         return render_template('login.html')
+    
 
+    # ── logout (/logout)
     @app.route('/logout')
     @login_required
     def logout():
@@ -39,14 +42,18 @@ def register(app):
                 ses.duracion_min = round(delta.total_seconds()/60, 1)
                 db.session.commit()
         logout_user(); flash('Sesión cerrada.', 'info'); return redirect(url_for('login'))
+    
 
+    # ── onboarding_dismiss (/onboarding/dismiss)
     @app.route('/onboarding/dismiss', methods=['POST'])
     @login_required
     def onboarding_dismiss():
         current_user.onboarding_dismissed = True
         db.session.commit()
         return ('', 204)
+    
 
+    # ── onboarding_reset (/onboarding/reset)
     @app.route('/onboarding/reset', methods=['POST'])
     @login_required
     def onboarding_reset():
@@ -54,7 +61,9 @@ def register(app):
         db.session.commit()
         flash('Tutorial restablecido.', 'info')
         return redirect(request.referrer or url_for('dashboard'))
+    
 
+    # ── perfil (/perfil)
     @app.route('/perfil', methods=['GET','POST'])
     @login_required
     def perfil():
@@ -84,3 +93,4 @@ def register(app):
                     db.session.commit()
                     flash('Contraseña cambiada exitosamente.','success')
         return render_template('perfil.html')
+    

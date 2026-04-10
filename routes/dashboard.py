@@ -1,6 +1,6 @@
-# routes/dashboard.py
-from flask import (render_template, redirect, url_for, flash, request,
-                   jsonify, send_file, make_response, current_app)
+# routes/dashboard.py — reconstruido desde v27 con CRUD completo
+from flask import render_template, redirect, url_for, flash, request, \
+                  jsonify, send_file, make_response, current_app
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
 from extensions import db
@@ -9,8 +9,9 @@ from utils import *
 from datetime import datetime, timedelta, date as date_type
 import json, os, re, io, secrets, logging
 
-
 def register(app):
+
+    # ── dashboard (/)
     @app.route('/')
     @login_required
     def dashboard():
@@ -43,16 +44,9 @@ def register(app):
             ventas_recientes     = Venta.query.order_by(Venta.creado_en.desc()).limit(6).all(),
             actividades_recientes= Actividad.query.order_by(Actividad.creado_en.desc()).limit(8).all(),
         )
+    
 
-    @app.route('/actividad')
-    @login_required
-    def actividad():
-        if current_user.rol != 'admin':
-            items = Actividad.query.filter_by(user_id=current_user.id).order_by(Actividad.creado_en.desc()).limit(150).all()
-        else:
-            items = Actividad.query.order_by(Actividad.creado_en.desc()).limit(300).all()
-        return render_template('actividad.html', items=items)
-
+    # ── mi_actividad (/mi-actividad)
     @app.route('/mi-actividad')
     @login_required
     def mi_actividad():
@@ -64,7 +58,7 @@ def register(app):
             uid = current_user.id
         target_user = db.session.get(User, uid) if uid != current_user.id else current_user
         usuarios_lista = User.query.filter_by(activo=True).all() if current_user.rol == 'admin' else []
-
+    
         # Last 6 months of activity
         meses = []
         for i in range(5, -1, -1):
@@ -101,47 +95,122 @@ def register(app):
             })
         return render_template('mi_actividad.html', meses=meses, target_user=target_user,
                                usuarios_lista=usuarios_lista, uid=uid)
+    
 
-    @app.route('/buscador')
+    # ── reportes (/reportes)
+    @app.route('/reportes')
     @login_required
-    def buscador():
-        q = request.args.get('q','').strip()
-        resultados = {}
-        if q:
-            like = f'%{q}%'
-            try:
-                resultados['clientes'] = Cliente.query.filter(
-                    db.or_(Cliente.nombre.ilike(like), Cliente.empresa.ilike(like), Cliente.nit.ilike(like))
-                ).limit(20).all()
-            except: resultados['clientes'] = []
-            try:
-                resultados['proveedores'] = Proveedor.query.filter(
-                    db.or_(Proveedor.nombre.ilike(like), Proveedor.empresa.ilike(like), Proveedor.nit.ilike(like))
-                ).limit(20).all()
-            except: resultados['proveedores'] = []
-            try:
-                resultados['productos'] = Producto.query.filter(
-                    db.or_(Producto.nombre.ilike(like), Producto.sku.ilike(like), Producto.nso.ilike(like))
-                ).filter_by(activo=True).limit(20).all()
-            except: resultados['productos'] = []
-            try:
-                resultados['ventas'] = Venta.query.filter(
-                    db.or_(Venta.titulo.ilike(like), Venta.numero.ilike(like))
-                ).limit(20).all()
-            except: resultados['ventas'] = []
-            try:
-                resultados['ordenes_prod'] = OrdenProduccion.query.join(Producto).filter(
-                    db.or_(Producto.nombre.ilike(like),
-                           db.cast(OrdenProduccion.id, db.String).ilike(like))
-                ).limit(20).all()
-            except: resultados['ordenes_prod'] = []
-            try:
-                resultados['ordenes_compra'] = OrdenCompra.query.filter(
-                    OrdenCompra.numero.ilike(like)
-                ).limit(20).all()
-            except: resultados['ordenes_compra'] = []
-        return render_template('buscador.html', q=q, resultados=resultados)
+    def reportes():
+        from datetime import date
+        from calendar import month_abbr
+        # Estadísticas generales
+        ingresos_totales = db.session.query(db.func.sum(Venta.total)).filter(Venta.estado.in_(['completado','anticipo_pagado'])).scalar() or 0
+        gastos_totales   = db.session.query(db.func.sum(GastoOperativo.monto)).scalar() or 0
+        balance          = ingresos_totales - gastos_totales
+        total_clientes   = Cliente.query.filter_by(estado='activo').count()
+        # Ventas por mes (últimos 6 meses)
+        hoy = date.today()
+        meses_labels, ventas_por_mes = [], []
+        for i in range(5, -1, -1):
+            mes = (hoy.month - i - 1) % 12 + 1
+            anio = hoy.year - ((hoy.month - i - 1) // 12 + (1 if (hoy.month - i - 1) < 0 else 0))
+            total_mes = db.session.query(db.func.sum(Venta.total)).filter(
+                db.extract('month', Venta.creado_en) == mes,
+                db.extract('year', Venta.creado_en) == anio).scalar() or 0
+            meses_labels.append(f'{month_abbr[mes]} {str(anio)[2:]}')
+            ventas_por_mes.append(round(total_mes))
+        # Gastos por tipo
+        gastos_por_tipo = db.session.query(GastoOperativo.tipo, db.func.sum(GastoOperativo.monto))\
+            .group_by(GastoOperativo.tipo).order_by(db.func.sum(GastoOperativo.monto).desc()).all()
+        gastos_tipos_labels = [g[0] for g in gastos_por_tipo]
+        gastos_tipos_values = [round(g[1]) for g in gastos_por_tipo]
+        # Top 5 clientes por ventas totales
+        from sqlalchemy import func as sqlfunc
+        top_q = db.session.query(
+            Cliente.id, Cliente.nombre, Cliente.empresa,
+            sqlfunc.sum(Venta.total).label('total_ventas')
+        ).join(Venta, Venta.cliente_id == Cliente.id)\
+         .group_by(Cliente.id, Cliente.nombre, Cliente.empresa)\
+         .order_by(sqlfunc.sum(Venta.total).desc()).limit(5).all()
+        class _C:
+            def __init__(self, r): self.id=r[0]; self.nombre=r[1]; self.empresa=r[2]; self.total_ventas=r[3]
+        top_clientes = [_C(r) for r in top_q]
+        # Stock bajo
+        bajo_stock = Producto.query.filter(Producto.activo==True, Producto.stock<=Producto.stock_minimo).all()
+        return render_template('reportes.html',
+            total_clientes=total_clientes, ingresos_totales=ingresos_totales,
+            gastos_totales=gastos_totales, balance=balance,
+            meses_labels=meses_labels, ventas_por_mes=ventas_por_mes,
+            gastos_tipos_labels=gastos_tipos_labels, gastos_tipos_values=gastos_tipos_values,
+            top_clientes=top_clientes, bajo_stock=bajo_stock)
+    
 
+    # ── exportar_ventas (/reportes/exportar/ventas.xlsx)
+    @app.route('/reportes/exportar/ventas.xlsx')
+    @login_required
+    def exportar_ventas():
+        from flask import send_file
+        ventas = Venta.query.order_by(Venta.creado_en.desc()).all()
+        headers = ['Título','Cliente','Subtotal COP','IVA COP','Total COP','% Anticipo','Anticipo COP','Saldo COP','Estado','Fecha anticipo','Días entrega','Creada']
+        rows = []
+        for v in ventas:
+            rows.append([
+                v.titulo,
+                v.cliente.empresa or v.cliente.nombre if v.cliente else '',
+                round(v.subtotal), round(v.iva), round(v.total),
+                v.porcentaje_anticipo, round(v.monto_anticipo), round(v.saldo),
+                v.estado,
+                v.fecha_anticipo.strftime('%d/%m/%Y') if v.fecha_anticipo else '',
+                v.dias_entrega,
+                v.creado_en.strftime('%d/%m/%Y')
+            ])
+        buf = _make_xlsx('Ventas', headers, rows)
+        return send_file(buf, download_name='evore_ventas.xlsx',
+                         as_attachment=True, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    
+
+    # ── exportar_gastos (/reportes/exportar/gastos.xlsx)
+    @app.route('/reportes/exportar/gastos.xlsx')
+    @login_required
+    def exportar_gastos():
+        from flask import send_file
+        items = GastoOperativo.query.order_by(GastoOperativo.fecha.desc()).all()
+        headers = ['Fecha','Tipo','Descripción','Monto COP','Notas']
+        rows = [[g.fecha.strftime('%d/%m/%Y'), g.tipo, g.descripcion or '', round(g.monto), g.notas or ''] for g in items]
+        buf = _make_xlsx('Gastos Operativos', headers, rows)
+        return send_file(buf, download_name='evore_gastos.xlsx',
+                         as_attachment=True, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    
+
+    # ── exportar_inventario (/reportes/exportar/inventario.xlsx)
+    @app.route('/reportes/exportar/inventario.xlsx')
+    @login_required
+    def exportar_inventario():
+        from flask import send_file
+        items = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
+        headers = ['Nombre','SKU','NSO (INVIMA)','Precio COP','Costo COP','Stock','Stock Mínimo','Categoría']
+        rows = [[p.nombre, p.sku or '', p.nso or '', round(p.precio), round(p.costo),
+                 p.stock, p.stock_minimo, p.categoria or ''] for p in items]
+        buf = _make_xlsx('Inventario', headers, rows)
+        return send_file(buf, download_name='evore_inventario.xlsx',
+                         as_attachment=True, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    
+
+    # ── exportar_clientes (/reportes/exportar/clientes.xlsx)
+    @app.route('/reportes/exportar/clientes.xlsx')
+    @login_required
+    def exportar_clientes():
+        from flask import send_file
+        items = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
+        headers = ['Empresa','NIT','Relación','Dirección comercial','Dirección entrega','Estado','Creado']
+        rows = [[c.empresa or '', c.nit or '', c.estado_relacion or '', c.dir_comercial or '',
+                 c.dir_entrega or '', c.estado, c.creado_en.strftime('%d/%m/%Y')] for c in items]
+        buf = _make_xlsx('Clientes', headers, rows)
+        return send_file(buf, download_name='evore_clientes.xlsx',
+                         as_attachment=True, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    
+
+    # ── calendario (/calendario)
     @app.route('/calendario')
     @login_required
     def calendario():
@@ -234,45 +303,9 @@ def register(app):
                                next_mes=next_mes, next_anio=next_anio,
                                today_str=today_str,
                                mes_nombre=mes_nombres[mes])
+    
 
-    @app.route('/notificaciones')
-    @login_required
-    def notificaciones():
-        items = Notificacion.query.filter_by(usuario_id=current_user.id)\
-                    .order_by(Notificacion.creado_en.desc()).limit(100).all()
-        # marcar todas como leídas al abrir
-        Notificacion.query.filter_by(usuario_id=current_user.id, leida=False).update({'leida': True})
-        db.session.commit()
-        return render_template('notificaciones.html', items=items)
-
-    @app.route('/notificaciones/<int:id>/leida', methods=['POST'])
-    @login_required
-    def notificacion_leida(id):
-        n = Notificacion.query.get_or_404(id)
-        if n.usuario_id == current_user.id:
-            n.leida = True
-            db.session.commit()
-        return ('', 204)
-
-    @app.route('/notificaciones/recientes')
-    @login_required
-    def notificaciones_recientes():
-        items = Notificacion.query.filter_by(usuario_id=current_user.id, leida=False)\
-                    .order_by(Notificacion.creado_en.desc()).limit(10).all()
-        return jsonify([{
-            'id': n.id, 'tipo': n.tipo, 'titulo': n.titulo,
-            'mensaje': n.mensaje, 'url': n.url or '',
-            'creado_en': n.creado_en.strftime('%d/%m %H:%M')
-        } for n in items])
-
-    @app.route('/notificaciones/marcar_todas', methods=['POST'])
-    @login_required
-    def notificaciones_marcar_todas():
-        Notificacion.query.filter_by(usuario_id=current_user.id, leida=False).update({'leida': True})
-        db.session.commit()
-        flash('Todas las notificaciones marcadas como leídas.', 'success')
-        return redirect(url_for('notificaciones'))
-
+    # ── evento_nuevo (/eventos/nuevo)
     @app.route('/eventos/nuevo', methods=['GET','POST'])
     @login_required
     def evento_nuevo():
@@ -290,7 +323,9 @@ def register(app):
             flash('Evento creado.','success')
             return redirect(url_for('calendario'))
         return redirect(url_for('calendario'))
+    
 
+    # ── evento_editar (/eventos/<int:id>/editar)
     @app.route('/eventos/<int:id>/editar', methods=['POST'])
     @login_required
     def evento_editar(id):
@@ -304,7 +339,9 @@ def register(app):
         obj.descripcion = request.form.get('descripcion','')
         db.session.commit(); flash('Evento actualizado.','success')
         return redirect(url_for('calendario'))
+    
 
+    # ── evento_eliminar (/eventos/<int:id>/eliminar)
     @app.route('/eventos/<int:id>/eliminar', methods=['POST'])
     @login_required
     def evento_eliminar(id):
@@ -312,3 +349,432 @@ def register(app):
         db.session.delete(obj); db.session.commit()
         flash('Evento eliminado.','info')
         return redirect(url_for('calendario'))
+    
+
+    # ── actividad (/actividad)
+    @app.route('/actividad')
+    @login_required
+    def actividad():
+        if current_user.rol != 'admin':
+            items = Actividad.query.filter_by(user_id=current_user.id).order_by(Actividad.creado_en.desc()).limit(150).all()
+        else:
+            items = Actividad.query.order_by(Actividad.creado_en.desc()).limit(300).all()
+        return render_template('actividad.html', items=items)
+    
+
+    # ── notificaciones (/notificaciones)
+    @app.route('/notificaciones')
+    @login_required
+    def notificaciones():
+        items = Notificacion.query.filter_by(usuario_id=current_user.id)\
+                    .order_by(Notificacion.creado_en.desc()).limit(100).all()
+        # marcar todas como leídas al abrir
+        Notificacion.query.filter_by(usuario_id=current_user.id, leida=False).update({'leida': True})
+        db.session.commit()
+        return render_template('notificaciones.html', items=items)
+    
+
+    # ── notificaciones_recientes (/notificaciones/recientes)
+    @app.route('/notificaciones/recientes')
+    @login_required
+    def notificaciones_recientes():
+        items = Notificacion.query.filter_by(usuario_id=current_user.id, leida=False)\
+                    .order_by(Notificacion.creado_en.desc()).limit(10).all()
+        return jsonify([{
+            'id': n.id, 'tipo': n.tipo, 'titulo': n.titulo,
+            'mensaje': n.mensaje, 'url': n.url or '',
+            'creado_en': n.creado_en.strftime('%d/%m %H:%M')
+        } for n in items])
+    
+
+    # ── notificaciones_marcar_todas (/notificaciones/marcar_todas)
+    @app.route('/notificaciones/marcar_todas', methods=['POST'])
+    @login_required
+    def notificaciones_marcar_todas():
+        Notificacion.query.filter_by(usuario_id=current_user.id, leida=False).update({'leida': True})
+        db.session.commit()
+        flash('Todas las notificaciones marcadas como leídas.', 'success')
+        return redirect(url_for('notificaciones'))
+    
+
+    # ── notificacion_leida (/notificaciones/<int:id>/leida)
+    @app.route('/notificaciones/<int:id>/leida', methods=['POST'])
+    @login_required
+    def notificacion_leida(id):
+        n = Notificacion.query.get_or_404(id)
+        if n.usuario_id == current_user.id:
+            n.leida = True
+            db.session.commit()
+        return ('', 204)
+    
+
+    # ── contable_index (/contable)
+    @app.route('/contable')
+    @login_required
+    def contable_index():
+        from datetime import timedelta
+        hoy = datetime.utcnow().date()
+        mes_inicio = hoy.replace(day=1)
+        mes_str = request.args.get('mes', hoy.strftime('%Y-%m'))
+        try:
+            anio, mes = int(mes_str.split('-')[0]), int(mes_str.split('-')[1])
+        except: anio, mes = hoy.year, hoy.month
+        import calendar as cal_mod
+        _, ultimo_dia = cal_mod.monthrange(anio, mes)
+        desde = datetime(anio, mes, 1).date()
+        hasta = datetime(anio, mes, ultimo_dia).date()
+        # Ingresos del mes (ventas ganadas/anticipo)
+        ventas_mes = Venta.query.filter(
+            Venta.estado.in_(['anticipo_pagado','completado']),
+            db.func.date(Venta.creado_en) >= desde,
+            db.func.date(Venta.creado_en) <= hasta
+        ).all()
+        total_ingresos = sum(v.total for v in ventas_mes)
+        total_anticipo = sum(v.monto_anticipo for v in ventas_mes)
+        # Egresos del mes
+        gastos_mes = GastoOperativo.query.filter(
+            GastoOperativo.fecha >= desde, GastoOperativo.fecha <= hasta
+        ).all()
+        compras_mes = CompraMateria.query.filter(
+            CompraMateria.fecha >= desde, CompraMateria.fecha <= hasta
+        ).all()
+        total_gastos = sum(g.monto for g in gastos_mes)
+        total_compras = sum(c.costo_total for c in compras_mes)
+        total_egresos = total_gastos + total_compras
+        utilidad = total_ingresos - total_egresos
+        # Impuestos estimados según reglas tributarias activas
+        total_impuestos, detalle_impuestos = _calcular_impuestos(total_ingresos, utilidad)
+        utilidad_neta = utilidad - total_impuestos
+        # Cuentas por cobrar (ventas con saldo > 0)
+        cxc = Venta.query.filter(Venta.saldo > 0, Venta.estado.in_(['anticipo_pagado','completado'])).all()
+        total_cxc = sum(v.saldo for v in cxc)
+        # Inventario valorizado
+        inventario_valor = sum((p.stock or 0) * (p.costo or 0) for p in Producto.query.filter_by(activo=True).all())
+        meses_nav = []
+        for i in range(5, -1, -1):
+            d = (hoy.replace(day=1) - timedelta(days=i*28)).replace(day=1)
+            meses_nav.append({'val': d.strftime('%Y-%m'), 'lbl': d.strftime('%b %Y')})
+        return render_template('contable/index.html',
+            total_ingresos=total_ingresos, total_anticipo=total_anticipo,
+            total_egresos=total_egresos, total_gastos=total_gastos,
+            total_compras=total_compras, utilidad=utilidad,
+            total_impuestos=total_impuestos, detalle_impuestos=detalle_impuestos,
+            utilidad_neta=utilidad_neta,
+            total_cxc=total_cxc, inventario_valor=inventario_valor,
+            ventas_mes=ventas_mes, gastos_mes=gastos_mes, compras_mes=compras_mes,
+            cxc=cxc, mes_str=mes_str, meses_nav=meses_nav,
+            anio=anio, mes=mes)
+    
+
+    # ── contable_ingresos (/contable/ingresos)
+    @app.route('/contable/ingresos')
+    @login_required
+    def contable_ingresos():
+        desde_s = request.args.get('desde','')
+        hasta_s = request.args.get('hasta','')
+        q = Venta.query.filter(Venta.estado.in_(['anticipo_pagado','completado','prospecto','negociacion','perdido']))
+        if desde_s:
+            try: q = q.filter(db.func.date(Venta.creado_en) >= datetime.strptime(desde_s,'%Y-%m-%d').date())
+            except: pass
+        if hasta_s:
+            try: q = q.filter(db.func.date(Venta.creado_en) <= datetime.strptime(hasta_s,'%Y-%m-%d').date())
+            except: pass
+        items = q.order_by(Venta.creado_en.desc()).all()
+        return render_template('contable/ingresos.html', items=items, desde_s=desde_s, hasta_s=hasta_s)
+    
+
+    # ── contable_egresos (/contable/egresos)
+    @app.route('/contable/egresos')
+    @login_required
+    def contable_egresos():
+        desde_s = request.args.get('desde','')
+        hasta_s = request.args.get('hasta','')
+        gastos = GastoOperativo.query
+        compras = CompraMateria.query
+        if desde_s:
+            try:
+                d = datetime.strptime(desde_s,'%Y-%m-%d').date()
+                gastos = gastos.filter(GastoOperativo.fecha >= d)
+                compras = compras.filter(CompraMateria.fecha >= d)
+            except: pass
+        if hasta_s:
+            try:
+                h = datetime.strptime(hasta_s,'%Y-%m-%d').date()
+                gastos = gastos.filter(GastoOperativo.fecha <= h)
+                compras = compras.filter(CompraMateria.fecha <= h)
+            except: pass
+        return render_template('contable/egresos.html',
+            gastos=gastos.order_by(GastoOperativo.fecha.desc()).all(),
+            compras=compras.order_by(CompraMateria.fecha.desc()).all(),
+            desde_s=desde_s, hasta_s=hasta_s)
+    
+
+    # ── contable_libro_diario (/contable/libro-diario)
+    @app.route('/contable/libro-diario', methods=['GET','POST'])
+    @login_required
+    def contable_libro_diario():
+        if request.method == 'POST':
+            fd = request.form.get('fecha')
+            a = AsientoContable(
+                fecha=datetime.strptime(fd,'%Y-%m-%d').date() if fd else datetime.utcnow().date(),
+                descripcion=request.form['descripcion'],
+                tipo=request.form.get('tipo','manual'),
+                referencia=request.form.get('referencia',''),
+                debe=float(request.form.get('debe') or 0),
+                haber=float(request.form.get('haber') or 0),
+                cuenta_debe=request.form.get('cuenta_debe',''),
+                cuenta_haber=request.form.get('cuenta_haber',''),
+                notas=request.form.get('notas',''),
+                creado_por=current_user.id
+            )
+            db.session.add(a); db.session.flush()
+            hoy = datetime.utcnow().date()
+            ultimo = AsientoContable.query.filter(
+                AsientoContable.numero.like(f'AC-{hoy.year}-%')
+            ).order_by(AsientoContable.id.desc()).first()
+            if ultimo and ultimo.numero:
+                try: seq = int(ultimo.numero.split('-')[-1]) + 1
+                except: seq = 1
+            else: seq = 1
+            a.numero = f'AC-{hoy.year}-{seq:03d}'
+            db.session.commit()
+            flash(f'Asiento {a.numero} registrado.','success')
+            return redirect(url_for('contable_libro_diario'))
+        asientos = AsientoContable.query.order_by(AsientoContable.fecha.desc(), AsientoContable.id.desc()).limit(100).all()
+        return render_template('contable/libro_diario.html', asientos=asientos)
+    
+
+    # ── contable_exportar (/contable/exportar)
+    @app.route('/contable/exportar')
+    @login_required
+    def contable_exportar():
+        tipo = request.args.get('tipo','ventas')
+        desde_s = request.args.get('desde','')
+        hasta_s = request.args.get('hasta','')
+        import csv, io
+        si = io.StringIO()
+        writer = csv.writer(si)
+        if tipo == 'ventas':
+            writer.writerow(['Numero','Titulo','Cliente','Fecha','Estado','Subtotal','IVA','Total','Anticipo','Saldo'])
+            q = Venta.query
+            if desde_s:
+                try: q = q.filter(db.func.date(Venta.creado_en) >= datetime.strptime(desde_s,'%Y-%m-%d').date())
+                except: pass
+            if hasta_s:
+                try: q = q.filter(db.func.date(Venta.creado_en) <= datetime.strptime(hasta_s,'%Y-%m-%d').date())
+                except: pass
+            for v in q.order_by(Venta.creado_en).all():
+                writer.writerow([v.numero or '', v.titulo,
+                    v.cliente.empresa or v.cliente.nombre if v.cliente else '',
+                    v.creado_en.strftime('%Y-%m-%d'), v.estado,
+                    v.subtotal, v.iva, v.total, v.monto_anticipo, v.saldo])
+        elif tipo == 'gastos':
+            writer.writerow(['Fecha','Tipo','Descripcion','Monto','Recurrencia'])
+            q = GastoOperativo.query
+            if desde_s:
+                try: q = q.filter(GastoOperativo.fecha >= datetime.strptime(desde_s,'%Y-%m-%d').date())
+                except: pass
+            if hasta_s:
+                try: q = q.filter(GastoOperativo.fecha <= datetime.strptime(hasta_s,'%Y-%m-%d').date())
+                except: pass
+            for g in q.order_by(GastoOperativo.fecha).all():
+                writer.writerow([g.fecha.strftime('%Y-%m-%d'), g.tipo, g.descripcion or '', g.monto, g.recurrencia])
+        elif tipo == 'compras':
+            writer.writerow(['Fecha','Item','Proveedor','Cantidad','Unidad','Costo Total','Factura'])
+            q = CompraMateria.query
+            if desde_s:
+                try: q = q.filter(CompraMateria.fecha >= datetime.strptime(desde_s,'%Y-%m-%d').date())
+                except: pass
+            if hasta_s:
+                try: q = q.filter(CompraMateria.fecha <= datetime.strptime(hasta_s,'%Y-%m-%d').date())
+                except: pass
+            for c in q.order_by(CompraMateria.fecha).all():
+                writer.writerow([c.fecha.strftime('%Y-%m-%d'), c.nombre_item, c.proveedor or '',
+                    c.cantidad, c.unidad, c.costo_total, c.nro_factura or ''])
+        elif tipo == 'asientos':
+            writer.writerow(['Numero','Fecha','Descripcion','Tipo','Referencia','Debe','Haber','Cuenta Debe','Cuenta Haber'])
+            for a in AsientoContable.query.order_by(AsientoContable.fecha).all():
+                writer.writerow([a.numero or '', a.fecha.strftime('%Y-%m-%d'), a.descripcion,
+                    a.tipo, a.referencia or '', a.debe, a.haber, a.cuenta_debe or '', a.cuenta_haber or ''])
+        output = si.getvalue()
+        from flask import Response
+        return Response(output, mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment;filename=contable_{tipo}_{desde_s or "todo"}.csv'})
+    
+
+    # ── buscador (/buscador)
+    @app.route('/buscador')
+    @login_required
+    def buscador():
+        q = request.args.get('q','').strip()
+        resultados = {}
+        if q:
+            like = f'%{q}%'
+            try:
+                resultados['clientes'] = Cliente.query.filter(
+                    db.or_(Cliente.nombre.ilike(like), Cliente.empresa.ilike(like), Cliente.nit.ilike(like))
+                ).limit(20).all()
+            except: resultados['clientes'] = []
+            try:
+                resultados['proveedores'] = Proveedor.query.filter(
+                    db.or_(Proveedor.nombre.ilike(like), Proveedor.empresa.ilike(like), Proveedor.nit.ilike(like))
+                ).limit(20).all()
+            except: resultados['proveedores'] = []
+            try:
+                resultados['productos'] = Producto.query.filter(
+                    db.or_(Producto.nombre.ilike(like), Producto.sku.ilike(like), Producto.nso.ilike(like))
+                ).filter_by(activo=True).limit(20).all()
+            except: resultados['productos'] = []
+            try:
+                resultados['ventas'] = Venta.query.filter(
+                    db.or_(Venta.titulo.ilike(like), Venta.numero.ilike(like))
+                ).limit(20).all()
+            except: resultados['ventas'] = []
+            try:
+                resultados['ordenes_prod'] = OrdenProduccion.query.join(Producto).filter(
+                    db.or_(Producto.nombre.ilike(like),
+                           db.cast(OrdenProduccion.id, db.String).ilike(like))
+                ).limit(20).all()
+            except: resultados['ordenes_prod'] = []
+            try:
+                resultados['ordenes_compra'] = OrdenCompra.query.filter(
+                    OrdenCompra.numero.ilike(like)
+                ).limit(20).all()
+            except: resultados['ordenes_compra'] = []
+        return render_template('buscador.html', q=q, resultados=resultados)
+    
+
+    # ── api_buscar (/api/buscar)
+    @app.route('/api/buscar')
+    def api_buscar():
+        """JSON search API for the overlay search."""
+        if not current_user.is_authenticated:
+            return jsonify({'results':[], 'error':'not_authenticated'}), 401
+        q = request.args.get('q','').strip()
+        if not q or len(q) < 2:
+            return jsonify({'results': []})
+        like = f'%{q}%'
+        results = []
+        try:
+            for c in Cliente.query.filter(
+                db.or_(Cliente.nombre.ilike(like), Cliente.empresa.ilike(like), Cliente.nit.ilike(like))
+            ).limit(6).all():
+                results.append({'type':'Cliente','icon':'people-fill','color':'#0052CC',
+                    'label': c.empresa or c.nombre, 'sub': c.nit or '',
+                    'url': '/clientes/'+str(c.id)})
+        except: pass
+        try:
+            for p in Proveedor.query.filter(
+                db.or_(Proveedor.nombre.ilike(like), Proveedor.empresa.ilike(like), Proveedor.nit.ilike(like))
+            ).limit(4).all():
+                results.append({'type':'Proveedor','icon':'truck','color':'#00875A',
+                    'label': p.empresa or p.nombre, 'sub': p.nit or '',
+                    'url': '/proveedores/'+str(p.id)})
+        except: pass
+        try:
+            for pr in Producto.query.filter(
+                db.or_(Producto.nombre.ilike(like), Producto.sku.ilike(like))
+            ).filter_by(activo=True).limit(4).all():
+                results.append({'type':'Producto','icon':'box-seam-fill','color':'#FF8B00',
+                    'label': pr.nombre, 'sub': pr.sku or '',
+                    'url': '/inventario'})
+        except: pass
+        try:
+            for v in Venta.query.filter(
+                db.or_(Venta.titulo.ilike(like), Venta.numero.ilike(like))
+            ).limit(4).all():
+                results.append({'type':'Venta','icon':'graph-up-arrow','color':'#36B37E',
+                    'label': v.titulo or v.numero or f'Venta #{v.id}', 'sub': v.estado or '',
+                    'url': '/ventas/'+str(v.id)})
+        except: pass
+        try:
+            for oc in OrdenCompra.query.filter(OrdenCompra.numero.ilike(like)).limit(3).all():
+                results.append({'type':'OC','icon':'cart-check','color':'#6554C0',
+                    'label': oc.numero or f'OC #{oc.id}', 'sub': oc.estado or '',
+                    'url': '/ordenes_compra/'+str(oc.id)})
+        except: pass
+        return jsonify({'results': results, 'q': q})
+    
+
+    # ── diagnostico (/diagnostico)
+    @app.route('/diagnostico')
+    @login_required
+    def diagnostico():
+        if current_user.rol != 'admin':
+            return jsonify({'error': 'Sin permisos'}), 403
+        critico = []; atencion = []; ok = []
+        try:
+            # Verificar DB
+            db.session.execute(db.text('SELECT 1'))
+            ok.append({'msg': 'Base de datos conectada', 'detalle': ''})
+        except Exception as e:
+            critico.append({'msg': 'Error de base de datos', 'detalle': str(e)})
+        try:
+            total_users = User.query.count()
+            admins = User.query.filter_by(rol='admin', activo=True).count()
+            ok.append({'msg': f'{total_users} usuarios ({admins} admins activos)', 'detalle': ''})
+        except Exception as e:
+            atencion.append({'msg': 'Error consultando usuarios', 'detalle': str(e)})
+        try:
+            total_prod = Producto.query.filter_by(activo=True).count()
+            stock_bajo = Producto.query.filter(
+                Producto.activo==True, Producto.stock_cantidad < 10
+            ).count()
+            if stock_bajo > 0:
+                atencion.append({'msg': f'{stock_bajo} productos con stock bajo (<10)', 'detalle': ''})
+            else:
+                ok.append({'msg': f'{total_prod} productos activos, stock normal', 'detalle': ''})
+        except Exception as e:
+            atencion.append({'msg': 'Error consultando inventario', 'detalle': str(e)})
+        try:
+            hoy = datetime.utcnow().date()
+            prox = hoy + timedelta(days=30)
+            venc = LoteProducto.query.filter(
+                LoteProducto.fecha_vencimiento != None,
+                LoteProducto.fecha_vencimiento <= prox
+            ).count()
+            if venc > 0:
+                atencion.append({'msg': f'{venc} lote(s) vencen en 30 días', 'detalle': ''})
+            else:
+                ok.append({'msg': 'Sin lotes próximos a vencer', 'detalle': ''})
+        except Exception as e:
+            atencion.append({'msg': 'No se pudieron revisar lotes', 'detalle': str(e)})
+        try:
+            notif_pend = Notificacion.query.filter_by(leida=False).count()
+            if notif_pend > 20:
+                atencion.append({'msg': f'{notif_pend} notificaciones sin leer en el sistema', 'detalle': ''})
+            else:
+                ok.append({'msg': f'{notif_pend} notificaciones pendientes', 'detalle': ''})
+        except Exception as e:
+            atencion.append({'msg': 'Error en notificaciones', 'detalle': str(e)})
+        try:
+            tareas_vencidas = Tarea.query.filter(
+                Tarea.fecha_vencimiento < datetime.utcnow().date(),
+                Tarea.estado.notin_(['completada','cancelada'])
+            ).count()
+            if tareas_vencidas > 0:
+                atencion.append({'msg': f'{tareas_vencidas} tarea(s) vencidas sin completar', 'detalle': ''})
+            else:
+                ok.append({'msg': 'Sin tareas vencidas', 'detalle': ''})
+        except Exception as e:
+            atencion.append({'msg': 'Error consultando tareas', 'detalle': str(e)})
+        try:
+            materias_bajo = MateriaPrima.query.filter(
+                MateriaPrima.activo==True,
+                MateriaPrima.stock_disponible < MateriaPrima.stock_minimo
+            ).count()
+            if materias_bajo > 0:
+                critico.append({'msg': f'{materias_bajo} materia(s) prima(s) bajo stock mínimo', 'detalle': ''})
+            else:
+                ok.append({'msg': 'Materias primas con stock normal', 'detalle': ''})
+        except Exception as e:
+            ok.append({'msg': 'Materias primas (módulo nuevo)', 'detalle': ''})
+        return jsonify({'critico': critico, 'atencion': atencion, 'ok': ok})
+    
+
+    # ── health_check (/health)
+    @app.route('/health')
+    def health_check():
+        """Railway healthcheck — must respond fast without DB queries."""
+        return 'OK', 200
+    

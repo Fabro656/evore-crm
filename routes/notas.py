@@ -1,6 +1,6 @@
-# routes/notas.py
-from flask import (render_template, redirect, url_for, flash, request,
-                   jsonify, send_file, make_response, current_app)
+# routes/notas.py — reconstruido desde v27 con CRUD completo
+from flask import render_template, redirect, url_for, flash, request, \
+                  jsonify, send_file, make_response, current_app
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
 from extensions import db
@@ -9,8 +9,9 @@ from utils import *
 from datetime import datetime, timedelta, date as date_type
 import json, os, re, io, secrets, logging
 
-
 def register(app):
+
+    # ── notas (/notas)
     @app.route('/notas')
     @login_required
     def notas():
@@ -22,7 +23,9 @@ def register(app):
             clientes_list=Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all(),
             productos_list=Producto.query.filter_by(activo=True).order_by(Producto.nombre).all(),
             cliente_f=cliente_f)
+    
 
+    # ── nota_nueva (/notas/nueva)
     @app.route('/notas/nueva', methods=['GET','POST'])
     @login_required
     def nota_nueva():
@@ -42,7 +45,9 @@ def register(app):
             flash('Nota guardada.','success'); return redirect(url_for('notas'))
         return render_template('notas/form.html', obj=None, titulo='Nueva Nota',
             clientes_list=cl, productos_list=pl)
+    
 
+    # ── nota_editar (/notas/<int:id>/editar)
     @app.route('/notas/<int:id>/editar', methods=['GET','POST'])
     @login_required
     def nota_editar(id):
@@ -62,7 +67,9 @@ def register(app):
             flash('Nota actualizada.','success'); return redirect(url_for('notas'))
         return render_template('notas/form.html', obj=obj, titulo='Editar Nota',
             clientes_list=cl, productos_list=pl)
+    
 
+    # ── nota_eliminar (/notas/<int:id>/eliminar)
     @app.route('/notas/<int:id>/eliminar', methods=['POST'])
     @login_required
     def nota_eliminar(id):
@@ -71,3 +78,4 @@ def register(app):
             return redirect(request.referrer or url_for('dashboard'))
         obj=Nota.query.get_or_404(id); db.session.delete(obj); db.session.commit()
         flash('Nota eliminada.','info'); return redirect(url_for('notas'))
+    

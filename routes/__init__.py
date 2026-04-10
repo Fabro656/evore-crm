@@ -3,6 +3,7 @@ from routes import auth
 from routes import dashboard
 from routes import notas
 from routes import clientes
+from routes import proveedores
 from routes import ventas
 from routes import inventario
 from routes import produccion
@@ -19,6 +20,7 @@ def register_all(app):
     dashboard.register(app)
     notas.register(app)
     clientes.register(app)
+    proveedores.register(app)
     ventas.register(app)
     inventario.register(app)
     produccion.register(app)

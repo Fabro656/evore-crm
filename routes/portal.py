@@ -1,6 +1,6 @@
-# routes/portal.py
-from flask import (render_template, redirect, url_for, flash, request,
-                   jsonify, send_file, make_response, current_app)
+# routes/portal.py — reconstruido desde v27 con CRUD completo
+from flask import render_template, redirect, url_for, flash, request, \
+                  jsonify, send_file, make_response, current_app
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
 from extensions import db
@@ -9,8 +9,9 @@ from utils import *
 from datetime import datetime, timedelta, date as date_type
 import json, os, re, io, secrets, logging
 
-
 def register(app):
+
+    # ── portal_cliente (/portal)
     @app.route('/portal')
     @login_required
     def portal_cliente():
@@ -30,7 +31,9 @@ def register(app):
         return render_template('portal/index.html', cliente=cliente, ventas=ventas,
                                cotizaciones=cotizaciones, pre_cots=pre_cots, mensajes=mensajes,
                                sales_manager_user=sales_manager_user)
+    
 
+    # ── portal_mensaje_nuevo (/portal/mensaje/nuevo)
     @app.route('/portal/mensaje/nuevo', methods=['POST'])
     @login_required
     def portal_mensaje_nuevo():
@@ -63,7 +66,9 @@ def register(app):
         db.session.commit()
         flash('Mensaje enviado.', 'success')
         return redirect(url_for('portal_cliente'))
+    
 
+    # ── portal_pre_cotizacion_nueva (/portal/pre-cotizacion/nueva)
     @app.route('/portal/pre-cotizacion/nueva', methods=['GET','POST'])
     @login_required
     def portal_pre_cotizacion_nueva():
@@ -116,7 +121,9 @@ def register(app):
             return redirect(url_for('portal_cliente'))
         empresa = ConfigEmpresa.query.first()
         return render_template('portal/pre_cotizacion_form.html', cliente=cliente, empresa=empresa)
+    
 
+    # ── portal_ticket_nuevo (/portal/ticket/nuevo)
     @app.route('/portal/ticket/nuevo', methods=['GET','POST'])
     @login_required
     def portal_ticket_nuevo():
@@ -144,7 +151,9 @@ def register(app):
             flash('Ticket enviado a tu sales manager.','success')
             return redirect(url_for('portal_cliente'))
         return render_template('portal/ticket_form.html', cliente=cliente)
+    
 
+    # ── portal_manager_revisar (/portal/manager/pre-cotizacion/<int:id>)
     @app.route('/portal/manager/pre-cotizacion/<int:id>', methods=['GET','POST'])
     @login_required
     def portal_manager_revisar(id):
@@ -181,7 +190,9 @@ def register(app):
             flash(f'Pre-cotización {accion}da.','success')
             return redirect(url_for('portal_manager_revisar', id=id))
         return render_template('portal/manager_revisar.html', pc=pc)
+    
 
+    # ── portal_precot_aceptar (/portal/pre-cotizacion/<int:id>/aceptar)
     @app.route('/portal/pre-cotizacion/<int:id>/aceptar', methods=['POST'])
     @login_required
     def portal_precot_aceptar(id):
@@ -200,7 +211,9 @@ def register(app):
                 url_for('portal_manager_revisar', id=pc.id)); db.session.commit()
         flash('Aceptaste la pre-cotización. Tu sales manager continuará el proceso.','success')
         return redirect(url_for('portal_cliente'))
+    
 
+    # ── portal_proveedor (/portal-proveedor)
     @app.route('/portal-proveedor')
     @login_required
     def portal_proveedor():
@@ -214,7 +227,9 @@ def register(app):
         cotizaciones = CotizacionProveedor.query.filter_by(proveedor_id=prov.id).order_by(CotizacionProveedor.creado_en.desc()).limit(20).all()
         return render_template('portal/proveedor_index.html', prov=prov,
                                ordenes=ordenes, cotizaciones=cotizaciones)
+    
 
+    # ── portal_prov_confirmar_oc (/portal-proveedor/confirmar-oc/<int:id>)
     @app.route('/portal-proveedor/confirmar-oc/<int:id>', methods=['POST'])
     @login_required
     def portal_prov_confirmar_oc(id):
@@ -240,7 +255,9 @@ def register(app):
         db.session.commit()
         flash('Orden de compra confirmada exitosamente.','success')
         return redirect(url_for('portal_proveedor'))
+    
 
+    # ── portal_prov_ticket (/portal-proveedor/ticket/nuevo)
     @app.route('/portal-proveedor/ticket/nuevo', methods=['GET','POST'])
     @login_required
     def portal_prov_ticket():
@@ -269,3 +286,4 @@ def register(app):
             flash('Mensaje enviado al equipo.','success')
             return redirect(url_for('portal_proveedor'))
         return render_template('portal/proveedor_ticket.html', prov=prov)
+    

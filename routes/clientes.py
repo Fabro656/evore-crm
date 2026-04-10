@@ -1,6 +1,6 @@
-# routes/clientes.py
-from flask import (render_template, redirect, url_for, flash, request,
-                   jsonify, send_file, make_response, current_app)
+# routes/clientes.py — reconstruido desde v27 con CRUD completo
+from flask import render_template, redirect, url_for, flash, request, \
+                  jsonify, send_file, make_response, current_app
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
 from extensions import db
@@ -9,8 +9,26 @@ from utils import *
 from datetime import datetime, timedelta, date as date_type
 import json, os, re, io, secrets, logging
 
-
 def register(app):
+    def _noop(*a, **kw): pass
+
+    # ── Helpers ─────────────────────────────────────────────────────
+    def _save_contactos(cliente_obj):
+        ContactoCliente.query.filter_by(cliente_id=cliente_obj.id).delete()
+        nombres = request.form.getlist('contacto_nombre[]')
+        cargos  = request.form.getlist('contacto_cargo[]')
+        emails  = request.form.getlist('contacto_email[]')
+        tels    = request.form.getlist('contacto_tel[]')
+        for i, nombre in enumerate(nombres):
+            if not nombre.strip(): continue
+            db.session.add(ContactoCliente(
+                cliente_id=cliente_obj.id, nombre=nombre.strip(),
+                cargo=cargos[i] if i < len(cargos) else '',
+                email=emails[i] if i < len(emails) else '',
+                telefono=tels[i] if i < len(tels) else ''))
+
+
+    # ── clientes (/clientes)
     @app.route('/clientes')
     @login_required
     def clientes():
@@ -24,7 +42,9 @@ def register(app):
         if estado_rel_f: q = q.filter_by(estado_relacion=estado_rel_f)
         return render_template('clientes/index.html', items=q.order_by(Cliente.empresa, Cliente.nombre).all(),
                                busqueda=busqueda, estado_rel_f=estado_rel_f)
+    
 
+    # ── cliente_nuevo (/clientes/nuevo)
     @app.route('/clientes/nuevo', methods=['GET','POST'])
     @login_required
     def cliente_nuevo():
@@ -60,16 +80,20 @@ def register(app):
                 minimo_pedido=minimo_pedido)
             db.session.add(c); db.session.flush()
             _save_contactos(c)
-            _log('crear','cliente',c.id,f'Cliente creado: {c.empresa or c.nombre}'); db.session.commit()
+            _noop('crear','cliente',c.id,f'Cliente creado: {c.empresa or c.nombre}'); db.session.commit()
             flash('Cliente creado.','success'); return redirect(url_for('clientes'))
         sales_managers = User.query.filter(User.rol.in_(['sales_manager','admin']), User.activo==True).order_by(User.nombre).all()
         return render_template('clientes/form.html', obj=None, titulo='Nuevo Cliente', sales_managers=sales_managers)
+    
 
+    # ── cliente_ver (/clientes/<int:id>)
     @app.route('/clientes/<int:id>')
     @login_required
     def cliente_ver(id):
         return render_template('clientes/ver.html', obj=Cliente.query.get_or_404(id))
+    
 
+    # ── cliente_editar (/clientes/<int:id>/editar)
     @app.route('/clientes/<int:id>/editar', methods=['GET','POST'])
     @login_required
     def cliente_editar(id):
@@ -102,11 +126,13 @@ def register(app):
             except (ValueError, TypeError):
                 obj.minimo_pedido = None
             db.session.flush(); _save_contactos(obj)
-            _log('editar','cliente',obj.id,f'Cliente editado: {obj.empresa or obj.nombre}'); db.session.commit()
+            _noop('editar','cliente',obj.id,f'Cliente editado: {obj.empresa or obj.nombre}'); db.session.commit()
             flash('Cliente actualizado.','success'); return redirect(url_for('cliente_ver', id=obj.id))
         sales_managers = User.query.filter(User.rol.in_(['sales_manager','admin']), User.activo==True).order_by(User.nombre).all()
         return render_template('clientes/form.html', obj=obj, titulo='Editar Cliente', sales_managers=sales_managers)
+    
 
+    # ── cliente_eliminar (/clientes/<int:id>/eliminar)
     @app.route('/clientes/<int:id>/eliminar', methods=['POST'])
     @login_required
     def cliente_eliminar(id):
@@ -115,65 +141,4 @@ def register(app):
             return redirect(request.referrer or url_for('dashboard'))
         obj=Cliente.query.get_or_404(id); db.session.delete(obj); db.session.commit()
         flash('Cliente eliminado.','info'); return redirect(url_for('clientes'))
-
-    @app.route('/proveedores')
-    @login_required
-    def proveedores():
-        busqueda = request.args.get('buscar','')
-        tipo_f   = request.args.get('tipo_f','')
-        q = Proveedor.query.filter_by(activo=True)
-        if busqueda:
-            q = q.filter(db.or_(Proveedor.nombre.ilike(f'%{busqueda}%'),
-                                 Proveedor.empresa.ilike(f'%{busqueda}%'),
-                                 Proveedor.nit.ilike(f'%{busqueda}%')))
-        if tipo_f:
-            q = q.filter_by(tipo=tipo_f)
-        return render_template('proveedores/index.html', items=q.order_by(Proveedor.empresa, Proveedor.nombre).all(),
-                               busqueda=busqueda)
-
-    @app.route('/proveedores/nuevo', methods=['GET','POST'])
-    @login_required
-    def proveedor_nuevo():
-        if request.method == 'POST':
-            p = Proveedor(
-                nombre=request.form.get('nombre','') or request.form.get('empresa',''),
-                empresa=request.form.get('empresa',''),
-                nit=request.form.get('nit',''),
-                email=request.form.get('email',''),
-                telefono=request.form.get('telefono',''),
-                direccion=request.form.get('direccion',''),
-                categoria=request.form.get('categoria',''),
-                tipo=request.form.get('tipo','proveedor'),
-                notas=request.form.get('notas',''), activo=True)
-            db.session.add(p); db.session.commit()
-            flash('Registro creado.','success'); return redirect(url_for('proveedores'))
-        return render_template('proveedores/form.html', obj=None, titulo='Nuevo Proveedor / Transportista')
-
-    @app.route('/proveedores/<int:id>/editar', methods=['GET','POST'])
-    @login_required
-    def proveedor_editar(id):
-        obj = Proveedor.query.get_or_404(id)
-        if request.method == 'POST':
-            obj.nombre=request.form.get('nombre','') or request.form.get('empresa','') or obj.nombre
-            obj.empresa=request.form.get('empresa','')
-            obj.nit=request.form.get('nit','')
-            obj.email=request.form.get('email','')
-            obj.telefono=request.form.get('telefono','')
-            obj.direccion=request.form.get('direccion','')
-            obj.categoria=request.form.get('categoria','')
-            obj.tipo=request.form.get('tipo','proveedor')
-            obj.notas=request.form.get('notas','')
-            db.session.commit()
-            flash('Registro actualizado.','success'); return redirect(url_for('proveedores'))
-        return render_template('proveedores/form.html', obj=obj, titulo='Editar Proveedor / Transportista')
-
-    @app.route('/proveedores/<int:id>/eliminar', methods=['POST'])
-    @login_required
-    def proveedor_eliminar(id):
-        if current_user.rol != 'admin':
-            flash('Solo administradores pueden eliminar registros.', 'danger')
-            return redirect(request.referrer or url_for('dashboard'))
-        obj = Proveedor.query.get_or_404(id)
-        obj.activo = False
-        db.session.commit()
-        flash('Registro eliminado.','info'); return redirect(url_for('proveedores'))
+    

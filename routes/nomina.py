@@ -1,6 +1,6 @@
-# routes/nomina.py
-from flask import (render_template, redirect, url_for, flash, request,
-                   jsonify, send_file, make_response, current_app)
+# routes/nomina.py — reconstruido desde v27 con CRUD completo
+from flask import render_template, redirect, url_for, flash, request, \
+                  jsonify, send_file, make_response, current_app
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
 from extensions import db
@@ -9,8 +9,20 @@ from utils import *
 from datetime import datetime, timedelta, date as date_type
 import json, os, re, io, secrets, logging
 
-
 def register(app):
+    def _noop(*a, **kw): pass
+
+    # ── Helpers ─────────────────────────────────────────────────────
+    def _calcular_nomina(empleado):
+        from services.nomina import NominaService
+        return NominaService.calcular_nomina(empleado)
+
+    def _calcular_liquidacion(empleado, motivo):
+        from services.nomina import NominaService
+        return NominaService.calcular_liquidacion(empleado, motivo)
+
+
+    # ── nomina_index (/nomina)
     @app.route('/nomina')
     @login_required
     @requiere_modulo('nomina')
@@ -33,7 +45,63 @@ def register(app):
         return render_template('nomina/index.html', empleados=empleados, departamentos=departamentos,
                               estado_filter=estado_filter, departamento_filter=departamento_filter,
                               activos=activos, masa_salarial=masa_salarial, costo_empresa=costo_empresa, retirados=retirados)
+    
 
+    # ── nomina_cerrar_mes (/nomina/cerrar-mes)
+    @app.route('/nomina/cerrar-mes', methods=['POST'])
+    @login_required
+    @requiere_modulo('nomina')
+    def nomina_cerrar_mes():
+        """Create a monthly payroll expense entry for all active employees."""
+        mes = request.form.get('mes', '')  # format: YYYY-MM
+        if not mes:
+            from datetime import date as date_obj
+            today = date_obj.today()
+            mes = today.strftime('%Y-%m')
+    
+        empleados_activos = Empleado.query.filter_by(estado='activo').all()
+        if not empleados_activos:
+            flash('No hay empleados activos para cerrar nómina.', 'warning')
+            return redirect(url_for('nomina_index'))
+    
+        total_costo = sum(_calcular_nomina(e)['costo_total_empresa'] for e in empleados_activos)
+        total_neto = sum(_calcular_nomina(e)['salario_neto'] for e in empleados_activos)
+        n_empleados = len(empleados_activos)
+    
+        from datetime import date as date_obj
+        try:
+            year, month = int(mes.split('-')[0]), int(mes.split('-')[1])
+            fecha_gasto = date_obj(year, month, 1)
+        except:
+            fecha_gasto = date_obj.today()
+    
+        # Check if already closed for this month
+        desc_check = f'Nómina mensual {mes}'
+        existing = GastoOperativo.query.filter(
+            GastoOperativo.descripcion == desc_check,
+            GastoOperativo.tipo == 'Nómina'
+        ).first()
+        if existing:
+            flash(f'La nómina de {mes} ya fue cerrada anteriormente.', 'warning')
+            return redirect(url_for('nomina_index'))
+    
+        g = GastoOperativo(
+            fecha=fecha_gasto,
+            tipo='Nómina',
+            descripcion=desc_check,
+            monto=round(total_costo, 0),
+            recurrencia='unico',
+            notas=f'{n_empleados} empleados activos. Masa salarial neta: ${total_neto:,.0f}',
+            creado_por=current_user.id
+        )
+        db.session.add(g)
+        _noop('crear', 'gasto', g.id, f'Nómina mensual {mes}: ${total_costo:,.0f}')
+        db.session.commit()
+        flash(f'Nómina de {mes} cerrada. Gasto registrado: ${total_costo:,.0f} ({n_empleados} empleados).', 'success')
+        return redirect(url_for('nomina_index'))
+    
+
+    # ── empleado_nuevo (/nomina/nuevo)
     @app.route('/nomina/nuevo', methods=['GET','POST'])
     @login_required
     @requiere_modulo('nomina')
@@ -65,7 +133,9 @@ def register(app):
                 db.session.rollback()
                 flash(f'Error al crear empleado: {str(ex)}','danger')
         return render_template('nomina/form.html', empleado=None)
+    
 
+    # ── empleado_ver (/nomina/<int:id>)
     @app.route('/nomina/<int:id>')
     @login_required
     @requiere_modulo('nomina')
@@ -73,7 +143,9 @@ def register(app):
         empleado = Empleado.query.get_or_404(id)
         calc = _calcular_nomina(empleado)
         return render_template('nomina/ver.html', empleado=empleado, calc=calc)
+    
 
+    # ── empleado_editar (/nomina/<int:id>/editar)
     @app.route('/nomina/<int:id>/editar', methods=['GET','POST'])
     @login_required
     @requiere_modulo('nomina')
@@ -102,7 +174,9 @@ def register(app):
                 db.session.rollback()
                 flash(f'Error al actualizar: {str(ex)}','danger')
         return render_template('nomina/form.html', empleado=empleado)
+    
 
+    # ── empleado_liquidacion (/nomina/<int:id>/liquidacion)
     @app.route('/nomina/<int:id>/liquidacion')
     @login_required
     @requiere_modulo('nomina')
@@ -114,7 +188,9 @@ def register(app):
             flash('No se puede calcular liquidación sin fecha de ingreso.','danger')
             return redirect(url_for('empleado_ver', id=id))
         return render_template('nomina/liquidacion.html', empleado=empleado, liq=liq)
+    
 
+    # ── empleado_retirar (/nomina/<int:id>/retirar)
     @app.route('/nomina/<int:id>/retirar', methods=['POST'])
     @login_required
     @requiere_modulo('nomina')
@@ -127,59 +203,8 @@ def register(app):
             empleado.estado = 'despedido'
         else:
             empleado.estado = 'retirado'
-        _log('editar', 'empleado', empleado.id, f'Marcado como {empleado.estado} por: {motivo}')
+        _noop('editar', 'empleado', empleado.id, f'Marcado como {empleado.estado} por: {motivo}')
         db.session.commit()
         flash(f'Empleado {empleado.nombre} marcado como {empleado.estado}.','success')
         return redirect(url_for('nomina_index'))
-
-    @app.route('/nomina/cerrar-mes', methods=['POST'])
-    @login_required
-    @requiere_modulo('nomina')
-    def nomina_cerrar_mes():
-        """Create a monthly payroll expense entry for all active employees."""
-        mes = request.form.get('mes', '')  # format: YYYY-MM
-        if not mes:
-            from datetime import date as date_obj
-            today = date_obj.today()
-            mes = today.strftime('%Y-%m')
-
-        empleados_activos = Empleado.query.filter_by(estado='activo').all()
-        if not empleados_activos:
-            flash('No hay empleados activos para cerrar nómina.', 'warning')
-            return redirect(url_for('nomina_index'))
-
-        total_costo = sum(_calcular_nomina(e)['costo_total_empresa'] for e in empleados_activos)
-        total_neto = sum(_calcular_nomina(e)['salario_neto'] for e in empleados_activos)
-        n_empleados = len(empleados_activos)
-
-        from datetime import date as date_obj
-        try:
-            year, month = int(mes.split('-')[0]), int(mes.split('-')[1])
-            fecha_gasto = date_obj(year, month, 1)
-        except:
-            fecha_gasto = date_obj.today()
-
-        # Check if already closed for this month
-        desc_check = f'Nómina mensual {mes}'
-        existing = GastoOperativo.query.filter(
-            GastoOperativo.descripcion == desc_check,
-            GastoOperativo.tipo == 'Nómina'
-        ).first()
-        if existing:
-            flash(f'La nómina de {mes} ya fue cerrada anteriormente.', 'warning')
-            return redirect(url_for('nomina_index'))
-
-        g = GastoOperativo(
-            fecha=fecha_gasto,
-            tipo='Nómina',
-            descripcion=desc_check,
-            monto=round(total_costo, 0),
-            recurrencia='unico',
-            notas=f'{n_empleados} empleados activos. Masa salarial neta: ${total_neto:,.0f}',
-            creado_por=current_user.id
-        )
-        db.session.add(g)
-        _log('crear', 'gasto', g.id, f'Nómina mensual {mes}: ${total_costo:,.0f}')
-        db.session.commit()
-        flash(f'Nómina de {mes} cerrada. Gasto registrado: ${total_costo:,.0f} ({n_empleados} empleados).', 'success')
-        return redirect(url_for('nomina_index'))
+    
