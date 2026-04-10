@@ -54,4 +54,103 @@
     </td>
   </tr>{% endfor %}</tbody></table>
   </div>
-</div>{% endblock %}
+</div>
+
+{# ── ZONA DE PELIGRO ─────────────────────────────────────────────────────── #}
+<div class="tc mt-4" style="border:2px solid #DE350B;border-radius:10px;overflow:hidden">
+  <div class="ch" style="background:#fff5f5;color:#DE350B;border-bottom:1px solid #ffc8c8">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>Zona de peligro
+  </div>
+  <div style="padding:1.2rem 1.4rem">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+      <div>
+        <div class="fw-semibold" style="color:#DE350B;font-size:.95rem">Reset total del sistema</div>
+        <div class="text-muted" style="font-size:.83rem;margin-top:.2rem">
+          Elimina permanentemente <strong>todos los datos operativos</strong>: clientes, proveedores, ventas, compras, inventario,
+          cotizaciones, producción, nómina, contabilidad, tareas y usuarios secundarios.<br>
+          <strong>Solo se conserva esta cuenta administradora y la configuración de la empresa.</strong>
+          Esta acción es <u>irreversible</u>.
+        </div>
+      </div>
+      <button type="button" class="btn btn-danger btn-sm flex-shrink-0"
+              data-bs-toggle="modal" data-bs-target="#modalResetTotal"
+              style="white-space:nowrap">
+        <i class="bi bi-trash3-fill me-1"></i>Resetear todos los datos
+      </button>
+    </div>
+  </div>
+</div>
+
+{# ── MODAL DE CONFIRMACIÓN ────────────────────────────────────────────────── #}
+<div class="modal fade" id="modalResetTotal" tabindex="-1" aria-labelledby="labelResetTotal" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border:2px solid #DE350B">
+      <div class="modal-header" style="background:#DE350B;color:#fff">
+        <h5 class="modal-title" id="labelResetTotal">
+          <i class="bi bi-exclamation-octagon-fill me-2"></i>Confirmar reset total
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-danger mb-3" style="font-size:.88rem">
+          <strong>⚠ Advertencia irreversible.</strong> Al confirmar, se borrarán <u>permanentemente</u>:
+          <ul class="mb-1 mt-1">
+            <li>Todos los clientes, proveedores y contactos</li>
+            <li>Todas las ventas, cotizaciones y remisiones</li>
+            <li>Todo el inventario: productos, materias primas y lotes</li>
+            <li>Todas las órdenes de compra y producción</li>
+            <li>Toda la nómina y empleados</li>
+            <li>Todos los asientos contables y gastos</li>
+            <li>Todas las tareas, eventos y notas</li>
+            <li>Todos los usuarios (excepto esta cuenta admin)</li>
+          </ul>
+          <strong>Esta acción NO se puede deshacer.</strong>
+        </div>
+        <form method="POST" action="{{ url_for('admin_reset_total') }}" id="formResetTotal">
+          <label class="form-label fw-semibold" style="font-size:.88rem">
+            Para confirmar, ingresa tu contraseña de administrador:
+          </label>
+          <input type="password" name="password_confirm" id="resetPasswordInput"
+                 class="form-control" placeholder="Contraseña del administrador" required
+                 autocomplete="current-password">
+          <div id="resetPasswordError" class="text-danger mt-1" style="font-size:.8rem;display:none">
+            Debes ingresar tu contraseña para continuar.
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer" style="background:#fff5f5">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-lg me-1"></i>Cancelar
+        </button>
+        <button type="button" class="btn btn-danger" id="btnConfirmarReset">
+          <i class="bi bi-trash3-fill me-1"></i>Sí, borrar todo
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('btnConfirmarReset').addEventListener('click', function() {
+  var pwd = document.getElementById('resetPasswordInput').value.trim();
+  if (!pwd) {
+    document.getElementById('resetPasswordError').style.display = 'block';
+    document.getElementById('resetPasswordInput').focus();
+    return;
+  }
+  document.getElementById('resetPasswordError').style.display = 'none';
+  // Deshabilitar botón para evitar doble submit
+  this.disabled = true;
+  this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Procesando…';
+  document.getElementById('formResetTotal').submit();
+});
+// Limpiar contraseña cuando se cierra el modal
+document.getElementById('modalResetTotal').addEventListener('hidden.bs.modal', function() {
+  document.getElementById('resetPasswordInput').value = '';
+  document.getElementById('resetPasswordError').style.display = 'none';
+  var btn = document.getElementById('btnConfirmarReset');
+  btn.disabled = false;
+  btn.innerHTML = '<i class="bi bi-trash3-fill me-1"></i>Sí, borrar todo';
+});
+</script>
+{% endblock %}

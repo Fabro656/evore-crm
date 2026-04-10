@@ -1,4 +1,4 @@
-# routes/ai.py — AI Chat assistant endpoint
+# routes/ai.py — AI Chat assistant endpoint with enhanced context and query/update actions
 from flask import render_template, redirect, url_for, flash, request, \
                   jsonify, send_file, make_response, current_app
 from flask import session as flask_session
@@ -24,7 +24,7 @@ def register(app):
         if not user_message:
             return jsonify({'error': 'Mensaje vacío'}), 400
 
-        # ── Build system prompt ───────────────────────────────────────
+        # ── Build enriched system prompt ──────────────────────────────────────
         empresa = ConfigEmpresa.query.first()
         empresa_nombre = empresa.nombre if empresa else 'la empresa'
 
@@ -43,6 +43,48 @@ def register(app):
         except Exception:
             n_clientes = n_ventas_act = n_tareas_pend = n_gastos_mes = '?'
 
+        # BLOQUE 8: Contexto ampliado con datos reales
+        # ────────────────────────────────────────────
+        try:
+            # Ventas recientes (últimas 10)
+            ventas_recientes = Venta.query.order_by(Venta.creado_en.desc()).limit(10).all()
+            ventas_str = '\n'.join([
+                f'  - Venta {v.numero or v.id}: {v.titulo[:50]}, estado={v.estado}, total=${v.total:,.0f}'
+                for v in ventas_recientes
+            ]) or 'Ninguna'
+
+            # Stock bajo mínimo
+            stock_bajo = Producto.query.filter(
+                Producto.activo==True,
+                Producto.stock <= Producto.stock_minimo
+            ).all()
+            stock_str = ', '.join([f'{p.nombre}(stock:{p.stock})' for p in stock_bajo[:5]]) or 'ninguno'
+
+            # Tareas urgentes del usuario
+            tareas_urgentes = Tarea.query.filter(
+                Tarea.prioridad == 'alta',
+                Tarea.estado == 'pendiente',
+                Tarea.asignados.any(TareaAsignado.usuario_id == current_user.id)
+            ).limit(5).all()
+            tareas_str = '\n'.join([f'  - #{t.id}: {t.titulo}' for t in tareas_urgentes]) or 'Ninguna'
+
+            # Órdenes de compra pendientes
+            ocs_pendientes = OrdenCompra.query.filter(
+                OrdenCompra.estado.in_(['borrador','enviada'])
+            ).count()
+
+            # Cotizaciones vigentes
+            cots_vigentes = Cotizacion.query.filter(
+                Cotizacion.estado.in_(['borrador','enviada'])
+            ).count()
+        except Exception as e:
+            logging.warning(f'AI context building error: {e}')
+            ventas_str = 'Error al cargar'
+            stock_str = '?'
+            tareas_str = '?'
+            ocs_pendientes = 0
+            cots_vigentes = 0
+
         system_prompt = f"""Eres el asistente de IA integrado en Evore CRM, el sistema de gestión de {empresa_nombre}.
 Ayudas al usuario {current_user.nombre} (rol: {current_user.rol}) EXCLUSIVAMENTE con tareas relacionadas con el CRM.
 
@@ -51,8 +93,19 @@ CONTEXTO ACTUAL:
 - Ventas en curso: {n_ventas_act}
 - Mis tareas pendientes: {n_tareas_pend}
 - Gastos este mes: {n_gastos_mes}
+- OC pendientes: {ocs_pendientes}
+- Cotizaciones vigentes: {cots_vigentes}
 - Módulo actual: {context_page or 'inicio'}
 - Fecha/hora: {datetime.now().strftime('%d/%m/%Y %H:%M')}
+
+DATOS RECIENTES:
+Ventas activas (últimas 10):
+{ventas_str}
+
+Stock bajo mínimo: {stock_str}
+
+Mis tareas urgentes:
+{tareas_str}
 
 SCOPE PERMITIDO — solo respondes sobre:
 - Clientes, contactos, prospectos
@@ -64,26 +117,26 @@ SCOPE PERMITIDO — solo respondes sobre:
 - Notas y registros internos del CRM
 - Uso y navegación del sistema Evore CRM
 
-CAPACIDADES — puedes crear registros reales en el CRM.
-Cuando el usuario pida crear algo, responde con un JSON de acción:
+CAPACIDADES — puedes crear, consultar y actualizar registros reales en el CRM.
 
-Para CLIENTE:
+Para CREAR registros:
 {{"action":"create","type":"cliente","data":{{"nombre":"...","email":"...","telefono":"...","ciudad":"..."}}}}
-
-Para VENTA:
 {{"action":"create","type":"venta","data":{{"cliente_nombre":"...","descripcion":"...","valor_total":0,"estado":"prospecto"}}}}
-
-Para ORDEN DE COMPRA:
 {{"action":"create","type":"orden_compra","data":{{"proveedor_nombre":"...","descripcion":"...","items":[{{"nombre":"...","cantidad":1,"precio_unit":0}}]}}}}
-
-Para TAREA:
 {{"action":"create","type":"tarea","data":{{"titulo":"...","descripcion":"...","prioridad":"media","fecha_limite":"YYYY-MM-DD"}}}}
-
-Para NOTA:
 {{"action":"create","type":"nota","data":{{"titulo":"...","contenido":"..."}}}}
-
-Para EVENTO:
 {{"action":"create","type":"evento","data":{{"titulo":"...","descripcion":"...","tipo":"evento","fecha":"YYYY-MM-DD"}}}}
+
+Para CONSULTAR datos reales:
+{{"action":"query","type":"ventas","filter":"activas"}}
+{{"action":"query","type":"stock_bajo"}}
+{{"action":"query","type":"tareas_pendientes"}}
+{{"action":"query","type":"cotizaciones","filter":"vencidas"}}
+{{"action":"query","type":"clientes","filter":"activos"}}
+
+Para ACTUALIZAR estado:
+{{"action":"update","type":"tarea","id":123,"data":{{"estado":"completada"}}}}
+{{"action":"update","type":"venta","id":456,"data":{{"estado":"anticipo_pagado"}}}}
 
 REGLAS ESTRICTAS:
 - Si el usuario pregunta algo ajeno al CRM (chistes, recetas de cocina, noticias, código genérico, etc.), responde EXACTAMENTE: "Solo puedo ayudarte con consultas relacionadas con el CRM de {empresa_nombre}. ¿En qué te ayudo?"
@@ -91,6 +144,7 @@ REGLAS ESTRICTAS:
 - Si falta el cliente para una venta, pregunta su nombre
 - Responde siempre en español, sé conciso y profesional
 - Después de crear un registro, confirma con ✅ lo que se creó
+- Después de consultar datos, resume los hallazgos relevantes
 - No des consejos de negocio generales ni redactes contenido externo al sistema"""
 
         # ── Providers ────────────────────────────────────────────────
@@ -101,7 +155,7 @@ REGLAS ESTRICTAS:
         ollama_enabled = os.environ.get('OLLAMA_ENABLED', '').lower() in ('1','true','yes')
 
         messages = []
-        for h in history[-10:]:
+        for h in history[-20:]:  # BLOQUE 8: aumentar contexto a 20 mensajes
             if h.get('role') in ('user', 'assistant'):
                 messages.append({'role': h['role'], 'content': h['content']})
         messages.append({'role': 'user', 'content': user_message})
@@ -175,8 +229,9 @@ REGLAS ESTRICTAS:
             }), 503
 
         # ── Detect and execute action ─────────────────────────────────
+        # BLOQUE 8: Detectar acciones create, query, y update
         action_match = re.search(
-            r'\{[^{}]*"action"\s*:\s*"create"[^{}]*\}',
+            r'\{[^{}]*"action"\s*:\s*("create"|"query"|"update")[^{}]*\}',
             response_text, re.DOTALL
         )
         if action_match:
@@ -185,7 +240,7 @@ REGLAS ESTRICTAS:
                 result = _execute_ai_action(action_data)
                 response_text = response_text[:action_match.start()].strip()
                 if result:
-                    response_text += f'\n\n✅ {result}'
+                    response_text += f'\n\n{result}'
             except Exception as e:
                 logging.warning(f'AI action parse error: {e}')
 
@@ -225,157 +280,322 @@ REGLAS ESTRICTAS:
         })
 
 
+    # ══════════════════════════════════════════════════════════════════════════
+    # BLOQUE 8 — Ruta de datos para que el frontend solicite datos contextuales
+    # ══════════════════════════════════════════════════════════════════════════
+
+    @app.route('/api/ai/data/<entity>')
+    @login_required
+    def ai_data(entity):
+        """Endpoint para que el frontend solicite datos contextuales enriquecidos."""
+        try:
+            if entity == 'ventas':
+                ventas = Venta.query.filter(
+                    Venta.estado.notin_(['cancelado','perdido'])
+                ).order_by(Venta.creado_en.desc()).limit(20).all()
+                return jsonify([{
+                    'id': v.id,
+                    'numero': v.numero,
+                    'titulo': v.titulo,
+                    'estado': v.estado,
+                    'total': v.total
+                } for v in ventas])
+
+            elif entity == 'tareas':
+                tareas = Tarea.query.filter(
+                    Tarea.estado=='pendiente'
+                ).limit(30).all()
+                return jsonify([{
+                    'id': t.id,
+                    'titulo': t.titulo,
+                    'prioridad': t.prioridad,
+                    'estado': t.estado
+                } for t in tareas])
+
+            elif entity == 'inventario':
+                prods = Producto.query.filter_by(activo=True).all()
+                return jsonify([{
+                    'id': p.id,
+                    'nombre': p.nombre,
+                    'stock': p.stock,
+                    'stock_minimo': p.stock_minimo,
+                    'bajo_minimo': p.stock <= p.stock_minimo
+                } for p in prods])
+
+            elif entity == 'cotizaciones':
+                cots = Cotizacion.query.filter(
+                    Cotizacion.estado.in_(['borrador','enviada','vencida'])
+                ).order_by(Cotizacion.creado_en.desc()).limit(15).all()
+                return jsonify([{
+                    'id': c.id,
+                    'numero': c.numero,
+                    'titulo': c.titulo,
+                    'estado': c.estado,
+                    'total': c.total
+                } for c in cots])
+
+            elif entity == 'clientes':
+                clientes = Cliente.query.filter_by(activo=True).order_by(Cliente.nombre).limit(50).all()
+                return jsonify([{
+                    'id': c.id,
+                    'nombre': c.nombre,
+                    'email': c.email
+                } for c in clientes])
+
+            else:
+                return jsonify({'error': 'Entidad no reconocida'}), 400
+
+        except Exception as e:
+            logging.warning(f'ai_data error: {e}')
+            return jsonify({'error': str(e)}), 500
+
+
 def _execute_ai_action(action_data):
-    """Execute a CRM action generated by the AI."""
+    """Execute a CRM action generated by the AI (create, query, update)."""
     from flask_login import current_user
     try:
+        aaction = action_data.get('action', '')
         atype = action_data.get('type', '')
         adata = action_data.get('data', {})
 
-        # ── Cliente ───────────────────────────────────────────────────
-        if atype == 'cliente':
-            c = Cliente(
-                nombre=adata.get('nombre', 'Cliente desde IA'),
-                email=adata.get('email', ''),
-                telefono=adata.get('telefono', ''),
-                ciudad=adata.get('ciudad', ''),
-                activo=True,
-                creado_en=datetime.utcnow()
-            )
-            db.session.add(c)
-            db.session.commit()
-            return f'Cliente creado: "{c.nombre}" (ID {c.id})'
+        # ══════════════════════════════════════════════════════════════════════════
+        # BLOQUE 8 — Acciones de CONSULTA (query)
+        # ══════════════════════════════════════════════════════════════════════════
 
-        # ── Venta ─────────────────────────────────────────────────────
-        elif atype == 'venta':
-            # Try to find client by name
-            cliente_id = None
-            cliente_nombre = adata.get('cliente_nombre', '')
-            if cliente_nombre:
-                cliente = Cliente.query.filter(
-                    Cliente.nombre.ilike(f'%{cliente_nombre}%')
-                ).first()
-                if cliente:
-                    cliente_id = cliente.id
+        if aaction == 'query':
+            qtype = action_data.get('type', '')
+            qfilter = action_data.get('filter', '')
 
-            # Generate venta number
-            n = Venta.query.count() + 1
-            numero = f'VNT-{n:04d}'
+            if qtype == 'ventas':
+                ventas = Venta.query.filter(
+                    Venta.estado.notin_(['cancelado','perdido','completado'])
+                ).order_by(Venta.creado_en.desc()).limit(20).all()
+                result = f'Ventas activas ({len(ventas)}):\n'
+                for v in ventas:
+                    result += f'  • {v.numero or v.id}: {v.titulo[:40]}, {v.estado}, ${v.total:,.0f}\n'
+                return result
 
-            v = Venta(
-                numero=numero,
-                cliente_id=cliente_id,
-                descripcion=adata.get('descripcion', 'Venta creada desde IA'),
-                valor_total=float(adata.get('valor_total', 0)),
-                estado=adata.get('estado', 'prospecto'),
-                creado_por=current_user.id,
-                creado_en=datetime.utcnow()
-            )
-            db.session.add(v)
-            db.session.commit()
-            cliente_str = f' para {cliente_nombre}' if cliente_nombre else ''
-            return f'Venta {numero} creada{cliente_str} — estado: {v.estado}'
+            elif qtype == 'stock_bajo':
+                prods = Producto.query.filter(
+                    Producto.activo==True,
+                    Producto.stock <= Producto.stock_minimo
+                ).all()
+                if not prods:
+                    return 'No hay productos con stock bajo en este momento.'
+                result = f'Productos con stock bajo ({len(prods)}):\n'
+                for p in prods:
+                    result += f'  • {p.nombre}: stock={p.stock}, mínimo={p.stock_minimo}\n'
+                return result
 
-        # ── Orden de Compra ───────────────────────────────────────────
-        elif atype == 'orden_compra':
-            # Try to find supplier
-            proveedor_id = None
-            prov_nombre = adata.get('proveedor_nombre', '')
-            if prov_nombre:
-                prov = Proveedor.query.filter(
-                    Proveedor.nombre.ilike(f'%{prov_nombre}%')
-                ).first()
-                if prov:
-                    proveedor_id = prov.id
+            elif qtype == 'tareas_pendientes':
+                tareas = Tarea.query.filter(
+                    Tarea.estado == 'pendiente',
+                    Tarea.asignados.any(TareaAsignado.usuario_id == current_user.id)
+                ).order_by(Tarea.prioridad.desc()).limit(15).all()
+                result = f'Tareas pendientes ({len(tareas)}):\n'
+                for t in tareas:
+                    result += f'  • #{t.id} [{t.prioridad}]: {t.titulo}\n'
+                return result
 
-            n = OrdenCompra.query.count() + 1
-            numero = f'OC-{n:04d}'
+            elif qtype == 'cotizaciones':
+                cots = Cotizacion.query.filter(
+                    Cotizacion.estado.in_(['borrador','enviada','vencida'])
+                ).order_by(Cotizacion.creado_en.desc()).limit(15).all()
+                result = f'Cotizaciones ({len(cots)}):\n'
+                for c in cots:
+                    estado_str = '⚠️ VENCIDA' if c.estado == 'vencida' else c.estado
+                    result += f'  • {c.numero or c.id}: {c.titulo[:40]}, {estado_str}, ${c.total:,.0f}\n'
+                return result
 
-            oc = OrdenCompra(
-                numero=numero,
-                proveedor_id=proveedor_id,
-                descripcion=adata.get('descripcion', 'OC creada desde IA'),
-                estado='borrador',
-                creado_por=current_user.id,
-                creado_en=datetime.utcnow(),
-                fecha_emision=datetime.utcnow().date()
-            )
-            db.session.add(oc)
-            db.session.flush()
+            elif qtype == 'clientes':
+                clientes = Cliente.query.filter_by(activo=True).order_by(Cliente.nombre).all()
+                result = f'Clientes activos ({len(clientes)}):\n'
+                for cli in clientes[:20]:
+                    result += f'  • {cli.nombre} — {cli.email or "sin email"}\n'
+                return result
 
-            # Add items if provided
-            items_data = adata.get('items', [])
-            total = 0
-            for item in items_data:
-                cant   = float(item.get('cantidad', 1))
-                precio = float(item.get('precio_unit', 0))
-                sub    = cant * precio
-                total += sub
-                db.session.add(OrdenCompraItem(
-                    orden_id=oc.id,
-                    nombre_item=item.get('nombre', 'Ítem'),
-                    descripcion=item.get('descripcion', ''),
-                    cantidad=cant,
-                    unidad=item.get('unidad', 'unidades'),
-                    precio_unit=precio,
-                    subtotal=sub
-                ))
+            return 'Consulta no reconocida.'
 
-            oc.total = total
-            db.session.commit()
-            prov_str = f' a {prov_nombre}' if prov_nombre else ''
-            return f'Orden de compra {numero} creada{prov_str} ({len(items_data)} ítems)'
+        # ══════════════════════════════════════════════════════════════════════════
+        # Acciones de ACTUALIZACIÓN (update)
+        # ══════════════════════════════════════════════════════════════════════════
 
-        # ── Tarea ─────────────────────────────────────────────────────
-        elif atype == 'tarea':
-            t = Tarea(
-                titulo=adata.get('titulo', 'Tarea desde IA'),
-                descripcion=adata.get('descripcion', ''),
-                prioridad=adata.get('prioridad', 'media'),
-                estado='pendiente',
-                creado_por=current_user.id,
-                creado_en=datetime.utcnow()
-            )
-            if adata.get('fecha_limite'):
-                try:
-                    t.fecha_limite = datetime.strptime(
-                        adata['fecha_limite'], '%Y-%m-%d').date()
-                except Exception:
-                    pass
-            db.session.add(t)
-            db.session.flush()
-            db.session.add(TareaAsignado(
-                tarea_id=t.id, usuario_id=current_user.id))
-            db.session.commit()
-            return f'Tarea creada: "{t.titulo}"'
+        elif aaction == 'update':
+            utype = action_data.get('type', '')
+            uid = action_data.get('id')
+            udata = action_data.get('data', {})
 
-        # ── Nota ──────────────────────────────────────────────────────
-        elif atype == 'nota':
-            n = Nota(
-                titulo=adata.get('titulo', 'Nota desde IA'),
-                contenido=adata.get('contenido', ''),
-                autor_id=current_user.id,
-                creado_en=datetime.utcnow()
-            )
-            db.session.add(n)
-            db.session.commit()
-            return f'Nota creada: "{n.titulo}"'
+            if utype == 'tarea' and uid:
+                t = Tarea.query.get(uid)
+                if t:
+                    if 'estado' in udata and udata['estado'] in ('pendiente','en_progreso','completada','cancelada'):
+                        t.estado = udata['estado']
+                        db.session.commit()
+                        return f'✅ Tarea #{uid} actualizada a estado: {udata["estado"]}'
+                return f'Tarea #{uid} no encontrada.'
 
-        # ── Evento ────────────────────────────────────────────────────
-        elif atype == 'evento':
-            e = Evento(
-                titulo=adata.get('titulo', 'Evento desde IA'),
-                descripcion=adata.get('descripcion', ''),
-                tipo=adata.get('tipo', 'evento'),
-                fecha=datetime.strptime(
-                    adata.get('fecha', datetime.now().strftime('%Y-%m-%d')),
-                    '%Y-%m-%d'
-                ).date(),
-                creado_por=current_user.id
-            )
-            db.session.add(e)
-            db.session.commit()
-            return f'Evento creado: "{e.titulo}" para el {e.fecha}'
+            elif utype == 'venta' and uid:
+                v = Venta.query.get(uid)
+                if v:
+                    estados_permitidos = ['prospecto','negociacion','anticipo_pagado','pagado','cancelado']
+                    if 'estado' in udata and udata['estado'] in estados_permitidos:
+                        v.estado = udata['estado']
+                        db.session.commit()
+                        return f'✅ Venta {v.numero or uid} actualizada a estado: {udata["estado"]}'
+                return f'Venta #{uid} no encontrada.'
+
+            return 'Actualización no reconocida.'
+
+        # ══════════════════════════════════════════════════════════════════════════
+        # Acciones de CREACIÓN (create) — código original
+        # ══════════════════════════════════════════════════════════════════════════
+
+        elif aaction == 'create':
+
+            # ── Cliente ───────────────────────────────────────────────────
+            if atype == 'cliente':
+                c = Cliente(
+                    nombre=adata.get('nombre', 'Cliente desde IA'),
+                    email=adata.get('email', ''),
+                    telefono=adata.get('telefono', ''),
+                    ciudad=adata.get('ciudad', ''),
+                    activo=True,
+                    creado_en=datetime.utcnow()
+                )
+                db.session.add(c)
+                db.session.commit()
+                return f'✅ Cliente creado: "{c.nombre}" (ID {c.id})'
+
+            # ── Venta ─────────────────────────────────────────────────────
+            elif atype == 'venta':
+                # Try to find client by name
+                cliente_id = None
+                cliente_nombre = adata.get('cliente_nombre', '')
+                if cliente_nombre:
+                    cliente = Cliente.query.filter(
+                        Cliente.nombre.ilike(f'%{cliente_nombre}%')
+                    ).first()
+                    if cliente:
+                        cliente_id = cliente.id
+
+                # Generate venta number
+                n = Venta.query.count() + 1
+                numero = f'VNT-{n:04d}'
+
+                v = Venta(
+                    numero=numero,
+                    cliente_id=cliente_id,
+                    descripcion=adata.get('descripcion', 'Venta creada desde IA'),
+                    valor_total=float(adata.get('valor_total', 0)),
+                    estado=adata.get('estado', 'prospecto'),
+                    creado_por=current_user.id,
+                    creado_en=datetime.utcnow()
+                )
+                db.session.add(v)
+                db.session.commit()
+                cliente_str = f' para {cliente_nombre}' if cliente_nombre else ''
+                return f'✅ Venta {numero} creada{cliente_str} — estado: {v.estado}'
+
+            # ── Orden de Compra ───────────────────────────────────────────
+            elif atype == 'orden_compra':
+                # Try to find supplier
+                proveedor_id = None
+                prov_nombre = adata.get('proveedor_nombre', '')
+                if prov_nombre:
+                    prov = Proveedor.query.filter(
+                        Proveedor.nombre.ilike(f'%{prov_nombre}%')
+                    ).first()
+                    if prov:
+                        proveedor_id = prov.id
+
+                n = OrdenCompra.query.count() + 1
+                numero = f'OC-{n:04d}'
+
+                oc = OrdenCompra(
+                    numero=numero,
+                    proveedor_id=proveedor_id,
+                    descripcion=adata.get('descripcion', 'OC creada desde IA'),
+                    estado='borrador',
+                    creado_por=current_user.id,
+                    creado_en=datetime.utcnow(),
+                    fecha_emision=datetime.utcnow().date()
+                )
+                db.session.add(oc)
+                db.session.flush()
+
+                # Add items if provided
+                items_data = adata.get('items', [])
+                total = 0
+                for item in items_data:
+                    cant   = float(item.get('cantidad', 1))
+                    precio = float(item.get('precio_unit', 0))
+                    sub    = cant * precio
+                    total += sub
+                    db.session.add(OrdenCompraItem(
+                        orden_id=oc.id,
+                        nombre_item=item.get('nombre', 'Ítem'),
+                        descripcion=item.get('descripcion', ''),
+                        cantidad=cant,
+                        unidad=item.get('unidad', 'unidades'),
+                        precio_unit=precio,
+                        subtotal=sub
+                    ))
+
+                oc.total = total
+                db.session.commit()
+                prov_str = f' a {prov_nombre}' if prov_nombre else ''
+                return f'✅ Orden de compra {numero} creada{prov_str} ({len(items_data)} ítems)'
+
+            # ── Tarea ─────────────────────────────────────────────────────
+            elif atype == 'tarea':
+                t = Tarea(
+                    titulo=adata.get('titulo', 'Tarea desde IA'),
+                    descripcion=adata.get('descripcion', ''),
+                    prioridad=adata.get('prioridad', 'media'),
+                    estado='pendiente',
+                    creado_por=current_user.id,
+                    creado_en=datetime.utcnow()
+                )
+                if adata.get('fecha_limite'):
+                    try:
+                        t.fecha_limite = datetime.strptime(
+                            adata['fecha_limite'], '%Y-%m-%d').date()
+                    except Exception:
+                        pass
+                db.session.add(t)
+                db.session.flush()
+                db.session.add(TareaAsignado(
+                    tarea_id=t.id, usuario_id=current_user.id))
+                db.session.commit()
+                return f'✅ Tarea creada: "{t.titulo}"'
+
+            # ── Nota ──────────────────────────────────────────────────────
+            elif atype == 'nota':
+                n = Nota(
+                    titulo=adata.get('titulo', 'Nota desde IA'),
+                    contenido=adata.get('contenido', ''),
+                    autor_id=current_user.id,
+                    creado_en=datetime.utcnow()
+                )
+                db.session.add(n)
+                db.session.commit()
+                return f'✅ Nota creada: "{n.titulo}"'
+
+            # ── Evento ────────────────────────────────────────────────────
+            elif atype == 'evento':
+                e = Evento(
+                    titulo=adata.get('titulo', 'Evento desde IA'),
+                    descripcion=adata.get('descripcion', ''),
+                    tipo=adata.get('tipo', 'evento'),
+                    fecha=datetime.strptime(
+                        adata.get('fecha', datetime.now().strftime('%Y-%m-%d')),
+                        '%Y-%m-%d'
+                    ).date(),
+                    creado_por=current_user.id
+                )
+                db.session.add(e)
+                db.session.commit()
+                return f'✅ Evento creado: "{e.titulo}" para el {e.fecha}'
 
     except Exception as ex:
         db.session.rollback()

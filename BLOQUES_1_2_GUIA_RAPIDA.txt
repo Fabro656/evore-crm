@@ -1,0 +1,291 @@
+================================================================================
+GUÍA RÁPIDA: BLOQUES 1 y 2 - EVORE v30
+================================================================================
+
+ARCHIVOS PRINCIPALES
+====================
+
+BLOQUE 1 - EMPAQUES
+  Rutas:        routes/empaques.py (191 líneas)
+  Listado:      templates/empaques/index.html (299 líneas)
+  Formulario:   templates/empaques/form.html (160 líneas)
+
+BLOQUE 2 - SERVICIOS
+  Rutas:        routes/servicios.py (183 líneas)
+  Listado:      templates/servicios/index.html (170 líneas)
+  Formulario:   templates/servicios/form.html (215 líneas)
+
+ACTUALIZADO
+  routes/__init__.py - Agregar imports y registros
+
+
+RUTAS IMPLEMENTADAS
+===================
+
+EMPAQUES:
+  GET    /empaques                  Lista + Calculadora
+  GET    /empaques/nuevo            Formulario nuevo
+  POST   /empaques/nuevo            Guardar nuevo
+  POST   /empaques/calcular         API calculadora (JSON)
+  POST   /empaques/<id>/aprobar     Aprobar + crear MateriaPrima
+  POST   /empaques/<id>/eliminar    Eliminar empaque
+
+SERVICIOS:
+  GET    /servicios                 Lista con estadísticas
+  GET    /servicios/nuevo           Formulario nuevo
+  POST   /servicios/nuevo           Guardar nuevo
+  GET    /servicios/<id>/editar     Formulario editar
+  POST   /servicios/<id>/editar     Guardar cambios
+  POST   /servicios/<id>/toggle     Activar/Desactivar
+  POST   /servicios/<id>/eliminar   Eliminar servicio
+  GET    /api/servicios/json        JSON de servicios activos
+
+
+DECORADORES REQUERIDOS
+======================
+
+Empaques:
+  @login_required
+  @requiere_modulo('produccion')
+
+Servicios:
+  @login_required
+  @requiere_modulo('ventas')
+
+
+MODELOS UTILIZADOS
+==================
+
+EmpaqueSecundario:
+  - producto_id: FK a Producto
+  - alto, ancho, largo: cm (float)
+  - peso_unitario: kg (float)
+  - peso_max_caja: kg (float)
+  - unidades_por_caja: int
+  - materia_prima_id: FK a MateriaPrima (null al inicio)
+  - aprobado: boolean (false al inicio)
+  - notas: text
+  - creado_por: FK User
+  - creado_en: datetime
+
+Servicio:
+  - nombre: string (200, not null, unique)
+  - descripcion: text
+  - costo_interno: float
+  - precio_venta: float
+  - unidad: string (servicio|hora|día|proyecto|consultoría)
+  - categoria: string (100)
+  - activo: boolean (true al inicio)
+  - creado_por: FK User
+  - creado_en: datetime
+  - @property margen: (precio-costo)/precio*100
+
+
+VALIDACIONES
+============
+
+EMPAQUES:
+  ✓ producto_id requerido
+  ✓ alto, ancho, largo > 0
+  ✓ peso_unitario > 0
+  ✓ peso_max_caja > 0
+  ✓ unidades_por_caja >= 1
+  ✓ unidades × peso_unitario <= peso_max_caja (alerta)
+
+SERVICIOS:
+  ✓ nombre requerido (max 200)
+  ✓ nombre único (no duplicados)
+  ✓ costo_interno >= 0
+  ✓ precio_venta >= 0
+  ✓ unidad es select (no libre)
+  ✓ categoria max 100
+
+
+LÓGICA ESPECIAL
+===============
+
+CALCULADORA EMPAQUES:
+  Input: alto_prod, ancho_prod, largo_prod, peso_unitario, peso_max_caja
+
+  1. max_unidades = floor(peso_max_caja / peso_unitario)
+  2. opciones = [6, 12, 24, 48] filtradas si <= max_unidades
+  3. Para cada opción:
+     - alto_caja = alto_prod + 2
+     - ancho_caja = ancho_prod + 2
+     - largo_caja = (largo_prod × unidades) + 2
+     - peso_total = unidades × peso_unitario
+  4. Retorna max 3 opciones (JSON)
+
+AL APROBAR EMPAQUE:
+  1. Crea MateriaPrima:
+     - nombre: 'Caja {producto.nombre} x{unidades}'
+     - categoria: 'empaques'
+     - unidad: 'unidades'
+     - stock_disponible: 0
+     - activo: true
+  2. Asigna: empaque.materia_prima_id = mp.id
+  3. Marca: empaque.aprobado = True
+  4. Commit y flash success
+
+MARGEN SERVICIOS:
+  margen = (precio_venta - costo_interno) / precio_venta * 100
+
+  Badges por margen:
+  - < 20%:  warning (bajo)
+  - 20-40%: info (moderado)
+  - > 40%:  success (saludable)
+
+PREVISUALIZACIÓN EN TIEMPO REAL:
+  JavaScript: actualizarMargen()
+  - Actualiza on input/change en precio y costo
+  - Muestra valores formateados y margen %
+  - Badge dinámico
+
+
+RESTRICCIONES DE SEGURIDAD
+===========================
+
+EMPAQUES:
+  - Crear/aprobar: usuarios con módulo 'produccion'
+  - Eliminar no-aprobado: cualquier usuario
+  - Eliminar aprobado: solo admin
+
+SERVICIOS:
+  - Crear/editar/listar/API: usuarios con módulo 'ventas'
+  - Eliminar: solo admin
+
+
+MENSAJES FLASH (ESPAÑOL)
+========================
+
+ÉXITO:
+  - 'Empaque para "{producto}" creado como borrador.'
+  - 'Empaque aprobado. Materia prima "{mp.nombre}" creada automáticamente.'
+  - 'Empaque de "{producto}" eliminado.'
+  - 'Servicio "{nombre}" creado exitosamente.'
+  - 'Servicio "{nombre}" actualizado exitosamente.'
+  - 'Servicio "{nombre}" activado/desactivado.'
+  - 'Servicio "{nombre}" eliminado.'
+
+ADVERTENCIA:
+  - 'Debe seleccionar un producto.'
+  - 'El nombre del servicio es obligatorio.'
+  - 'Ya existe un servicio llamado "{nombre}".'
+  - 'Error al procesar valores: {error}'
+
+PELIGRO:
+  - 'Solo administradores pueden eliminar empaques aprobados.'
+  - 'Solo administradores pueden eliminar servicios.'
+  - 'No tienes acceso a este módulo.'
+
+
+INTEGRACIÓN CON OTROS MÓDULOS
+==============================
+
+EN VENTAS:
+  - Cargar servicios activos: GET /api/servicios/json
+  - Agregar campo es_servicio en VentaProducto
+  - Si es_servicio=True, usar servicio_id en lugar de producto_id
+
+EN COTIZACIONES:
+  - Cargar servicios activos: GET /api/servicios/json
+  - Agregar campo tipo_item ('producto'|'servicio') en CotizacionItem
+  - Si tipo_item='servicio', usar servicio_id
+
+EN RESERVAS (PRODUCCIÓN):
+  - Si producto tiene EmpaqueSecundario aprobado:
+    cajas = ceil(cantidad / empaque.unidades_por_caja)
+  - Mostrar: "Se requieren X cajas"
+  - Usar empaque.materia_prima_id para reservar cajas
+
+
+PRUEBAS SUGERIDAS
+=================
+
+BLOQUE 1:
+  1. Crear empaque con valores válidos
+  2. Usar calculadora con diferentes pesos
+  3. Aprobar empaque y verificar MateriaPrima creada
+  4. Editar empaque no aprobado
+  5. Eliminar empaque no aprobado (debe funcionar)
+  6. Intentar eliminar empaque aprobado como no-admin (debe fallar)
+
+BLOQUE 2:
+  1. Crear servicio con precio > costo (margen visible)
+  2. Verificar margen en previsualización en tiempo real
+  3. Intentar crear otro con mismo nombre (debe fallar)
+  4. Editar servicio (cambiar precios)
+  5. Desactivar servicio (toggle)
+  6. Llamar /api/servicios/json y verificar JSON
+  7. Eliminar como admin (debe funcionar)
+  8. Intentar eliminar como no-admin (debe fallar)
+
+
+NOTAS DE DESARROLLO
+===================
+
+Ambos módulos:
+  - Usan patrón def register(app): con @app.route
+  - Todos los imports desde models y utils
+  - Flash messages en español
+  - Bootstrap 5 + Font Awesome 6 para UI
+  - Jinja2 templates con extends base.html
+  - JavaScript vanilla (sin dependencias externas)
+  - Try/catch en operaciones DB críticas
+  - Responsive design mobile-first
+
+Diferencias:
+  - Empaques: calculadora especial con API JSON POST
+  - Servicios: previsualización en tiempo real con JavaScript
+  - Empaques: recurso "aprobable", servicios: "activable"
+
+
+URLS DE REFERENCIA RÁPIDA
+=========================
+
+Listar:
+  /empaques
+  /servicios
+
+Crear:
+  GET  /empaques/nuevo
+  POST /empaques/nuevo
+  GET  /servicios/nuevo
+  POST /servicios/nuevo
+
+Editar:
+  GET  /servicios/<id>/editar
+  POST /servicios/<id>/editar
+
+Acciones:
+  POST /empaques/<id>/aprobar
+  POST /empaques/<id>/eliminar
+  POST /servicios/<id>/toggle
+  POST /servicios/<id>/eliminar
+
+API:
+  POST /empaques/calcular (JSON input/output)
+  GET  /api/servicios/json (JSON output)
+
+
+CHECKLIST DE IMPLEMENTACIÓN
+============================
+
+[✓] routes/empaques.py creado
+[✓] routes/servicios.py creado
+[✓] templates/empaques/index.html creado
+[✓] templates/empaques/form.html creado
+[✓] templates/servicios/index.html creado
+[✓] templates/servicios/form.html creado
+[✓] routes/__init__.py actualizado
+[✓] Sintaxis Python verificada
+[✓] Sintaxis Jinja2 verificada
+[✓] Decoradores aplicados
+[✓] Validaciones implementadas
+[✓] Manejo de errores implementado
+[✓] Mensajes en español
+[✓] Bootstrap 5 y FA6 integrados
+
+================================================================================
+FIN GUÍA RÁPIDA
+================================================================================

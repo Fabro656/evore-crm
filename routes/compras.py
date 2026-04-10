@@ -50,7 +50,7 @@ def register(app):
         }
         return render_template('proveedores/cotizaciones.html',
                                items=items, estado_f=estado_f, tipo_f=tipo_f, totales=totales)
-    
+
 
     # ── cotizacion_proveedor_json (/cotizaciones-proveedor/<int:id>/json)
     @app.route('/cotizaciones-proveedor/<int:id>/json')
@@ -73,7 +73,7 @@ def register(app):
             'anticipo_porcentaje': cp.anticipo_porcentaje or 0,
             'proveedor_id': cp.proveedor_id,
         })
-    
+
 
     # ── cotizacion_proveedor_nueva (/cotizaciones-proveedor/nueva)
     @app.route('/cotizaciones-proveedor/nueva', methods=['GET','POST'])
@@ -123,7 +123,7 @@ def register(app):
         return render_template('proveedores/cotizacion_form.html', obj=None,
                                proveedores_list=provs, titulo='Nueva Cotización Proveedor',
                                tipo_default=tipo_default)
-    
+
 
     # ── cotizacion_proveedor_editar (/cotizaciones-proveedor/<int:id>/editar)
     @app.route('/cotizaciones-proveedor/<int:id>/editar', methods=['GET','POST'])
@@ -160,7 +160,7 @@ def register(app):
         return render_template('proveedores/cotizacion_form.html', obj=obj,
                                proveedores_list=provs, titulo='Editar Cotización Proveedor',
                                tipo_default=obj.tipo_cotizacion)
-    
+
 
     # ── cotizacion_proveedor_eliminar (/cotizaciones-proveedor/<int:id>/eliminar)
     @app.route('/cotizaciones-proveedor/<int:id>/eliminar', methods=['POST'])
@@ -171,7 +171,7 @@ def register(app):
         db.session.delete(obj); db.session.commit()
         flash('Cotización eliminada.','info')
         return redirect(url_for('cotizaciones_proveedor', tipo=tipo))
-    
+
 
     # ── ordenes_compra (/ordenes-compra)
     @app.route('/ordenes-compra')
@@ -183,7 +183,7 @@ def register(app):
         return render_template('ordenes_compra/index.html',
                                items=q.order_by(OrdenCompra.creado_en.desc()).all(),
                                estado_f=estado_f)
-    
+
 
     # ── oc_pdf (/ordenes_compra/<int:id>/pdf)
     @app.route('/ordenes_compra/<int:id>/pdf')
@@ -192,7 +192,7 @@ def register(app):
         oc = OrdenCompra.query.get_or_404(id)
         empresa = ConfigEmpresa.query.first()
         return render_template('ordenes_compra/pdf.html', oc=oc, empresa=empresa)
-    
+
 
     # ── orden_compra_nueva (/ordenes-compra/nueva)
     @app.route('/ordenes-compra/nueva', methods=['GET','POST'])
@@ -206,6 +206,7 @@ def register(app):
             fes = request.form.get('fecha_esperada')
             fep = request.form.get('fecha_estimada_pago')
             fer = request.form.get('fecha_estimada_recogida')
+            frc = request.form.get('fecha_anticipo_real')
             cot_id = int(request.form.get('cotizacion_id')) if request.form.get('cotizacion_id') else None
             tra_id = int(request.form.get('transportista_id')) if request.form.get('transportista_id') else None
             fecha_emision = datetime.strptime(fe,'%Y-%m-%d').date() if fe else datetime.utcnow().date()
@@ -226,6 +227,7 @@ def register(app):
                 fecha_esperada=fecha_esp,
                 fecha_estimada_pago=datetime.strptime(fep,'%Y-%m-%d').date() if fep else None,
                 fecha_estimada_recogida=datetime.strptime(fer,'%Y-%m-%d').date() if fer else None,
+                fecha_anticipo_real=datetime.strptime(frc,'%Y-%m-%d').date() if frc else None,
                 subtotal=float(request.form.get('subtotal_calc') or 0),
                 iva=float(request.form.get('iva_calc') or 0),
                 total=float(request.form.get('total_calc') or 0),
@@ -258,7 +260,7 @@ def register(app):
                                proveedores_list=provs, transportistas_list=transportistas,
                                cotizaciones_list=cotizaciones_disponibles,
                                titulo='Nueva Orden de Compra', items_json=[])
-    
+
 
     # ── orden_compra_editar (/ordenes-compra/<int:id>/editar)
     @app.route('/ordenes-compra/<int:id>/editar', methods=['GET','POST'])
@@ -273,6 +275,7 @@ def register(app):
             fes = request.form.get('fecha_esperada')
             fep = request.form.get('fecha_estimada_pago')
             fer = request.form.get('fecha_estimada_recogida')
+            frc = request.form.get('fecha_anticipo_real')
             cot_id = int(request.form.get('cotizacion_id')) if request.form.get('cotizacion_id') else None
             tra_id = int(request.form.get('transportista_id')) if request.form.get('transportista_id') else None
             fecha_emision = datetime.strptime(fe,'%Y-%m-%d').date() if fe else obj.fecha_emision
@@ -291,6 +294,7 @@ def register(app):
             obj.fecha_esperada      = fecha_esp
             obj.fecha_estimada_pago = datetime.strptime(fep,'%Y-%m-%d').date() if fep else None
             obj.fecha_estimada_recogida = datetime.strptime(fer,'%Y-%m-%d').date() if fer else None
+            obj.fecha_anticipo_real = datetime.strptime(frc,'%Y-%m-%d').date() if frc else None
             obj.subtotal = float(request.form.get('subtotal_calc') or 0)
             obj.iva      = float(request.form.get('iva_calc') or 0)
             obj.total    = float(request.form.get('total_calc') or 0)
@@ -306,7 +310,7 @@ def register(app):
                                proveedores_list=provs, transportistas_list=transportistas,
                                cotizaciones_list=cotizaciones_disponibles,
                                titulo='Editar Orden de Compra', items_json=items_json)
-    
+
 
     # ── orden_compra_estado (/ordenes-compra/<int:id>/estado)
     @app.route('/ordenes-compra/<int:id>/estado', methods=['POST'])
@@ -371,7 +375,26 @@ def register(app):
         db.session.commit()
         flash(f'Estado actualizado a "{obj.estado}".','success')
         return redirect(url_for('ordenes_compra'))
-    
+
+
+    # ── BLOQUE 4: oc_anticipo_recibido (/ordenes-compra/<int:id>/anticipo-recibido)
+    @app.route('/ordenes-compra/<int:id>/anticipo-recibido', methods=['POST'])
+    @login_required
+    def oc_anticipo_recibido(id):
+        """Registra la recepción del anticipo y recalcula fecha de entrega."""
+        oc = OrdenCompra.query.get_or_404(id)
+        fecha_real = request.form.get('fecha_anticipo_real')
+        if fecha_real:
+            oc.fecha_anticipo_real = datetime.strptime(fecha_real, '%Y-%m-%d').date()
+            # Recalcular fecha esperada desde anticipo real
+            if oc.fecha_anticipo_real and oc.cotizacion_id:
+                cotprov = CotizacionProveedor.query.get(oc.cotizacion_id)
+                if cotprov and cotprov.plazo_entrega_dias:
+                    oc.fecha_esperada = oc.fecha_anticipo_real + timedelta(days=cotprov.plazo_entrega_dias)
+        db.session.commit()
+        flash('Anticipo registrado. Fecha de entrega actualizada.', 'success')
+        return redirect(url_for('ordenes_compra'))
+
 
     # ── orden_compra_eliminar (/ordenes-compra/<int:id>/eliminar)
     @app.route('/ordenes-compra/<int:id>/eliminar', methods=['POST'])
@@ -384,4 +407,3 @@ def register(app):
         db.session.delete(obj); db.session.commit()
         flash('Orden de compra eliminada.','info')
         return redirect(url_for('ordenes_compra'))
-    

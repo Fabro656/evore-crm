@@ -287,4 +287,35 @@ def register(app):
             flash('Mensaje enviado al equipo.','success')
             return redirect(url_for('portal_proveedor'))
         return render_template('portal/proveedor_ticket.html', prov=prov)
-    
+
+
+    # ── BLOQUE 4: portal_prov_anticipo_oc (/portal-proveedor/oc/<int:id>/anticipo)
+    @app.route('/portal-proveedor/oc/<int:id>/anticipo', methods=['POST'])
+    @login_required
+    def portal_prov_anticipo_oc(id):
+        """Portal del proveedor: registra que el anticipo fue recibido."""
+        if current_user.rol != 'proveedor':
+            return redirect(url_for('dashboard'))
+        oc = OrdenCompra.query.get_or_404(id)
+        prov = db.session.get(Proveedor, current_user.proveedor_id)
+        if not prov or oc.proveedor_id != prov.id:
+            flash('Sin permisos.', 'danger')
+            return redirect(url_for('portal_proveedor'))
+
+        fecha_real = request.form.get('fecha_anticipo_real')
+        if fecha_real:
+            try:
+                oc.fecha_anticipo_real = datetime.strptime(fecha_real, '%Y-%m-%d').date()
+                oc.estado_proveedor = 'anticipo_recibido'
+                # Recalcular fecha esperada si existe cotización
+                if oc.cotizacion_id:
+                    cotprov = CotizacionProveedor.query.get(oc.cotizacion_id)
+                    if cotprov and cotprov.plazo_entrega_dias:
+                        oc.fecha_esperada = oc.fecha_anticipo_real + timedelta(days=cotprov.plazo_entrega_dias)
+                db.session.commit()
+                flash('Anticipo registrado. Fecha de entrega actualizada.', 'success')
+            except Exception as e:
+                logging.warning(f'portal_prov_anticipo_oc error: {e}')
+                flash('Error al registrar el anticipo.', 'danger')
+        return redirect(url_for('portal_proveedor'))
+

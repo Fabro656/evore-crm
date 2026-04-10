@@ -18,7 +18,7 @@
   </div>
 </div>
 
-<!-- Órdenes de Compra -->
+<!-- Órdenes de Compra (BLOQUE 4 - MEJORADO) -->
 <div class="tc mb-3">
   <div class="ch"><i class="bi bi-cart-fill me-2"></i>Órdenes de Compra
     <span class="b b-borrador">{{ ordenes|length }}</span>
@@ -27,7 +27,7 @@
   <div class="table-responsive">
     <table class="table">
       <thead><tr>
-        <th>#</th><th>Fecha</th><th>Items</th><th>Total</th><th>Estado</th><th>Entrega</th><th></th>
+        <th>#</th><th>Fecha</th><th>Items</th><th>Total</th><th>Estado</th><th>Entrega</th><th>Acciones</th>
       </tr></thead>
       <tbody>
       {% for oc in ordenes %}
@@ -46,9 +46,36 @@
             {% if oc.estado in ('pendiente','enviada') %}
             <form method="POST" action="{{ url_for('portal_prov_confirmar_oc', id=oc.id) }}" style="display:inline">
               <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('¿Confirmar recepción de esta orden?')">
-                <i class="bi bi-check-circle me-1"></i>Confirmar
+                <i class="bi bi-check-circle me-1"></i>Aceptar
               </button>
             </form>
+            {% endif %}
+            {% if oc.estado == 'aceptada_proveedor' or oc.estado_proveedor == 'aceptada_proveedor' %}
+            <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#modalAnticipoOC{{ oc.id }}" title="Registrar anticipo recibido">
+              <i class="bi bi-cash-coin me-1"></i>Anticipo
+            </button>
+            <!-- Modal para registrar anticipo (BLOQUE 4) -->
+            <div class="modal fade" id="modalAnticipoOC{{ oc.id }}" tabindex="-1">
+              <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title">Registrar anticipo recibido</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <form method="POST" action="{{ url_for('portal_prov_anticipo_oc', id=oc.id) }}">
+                    <div class="modal-body">
+                      <label class="form-label">Fecha de recepción del anticipo</label>
+                      <input type="date" name="fecha_anticipo_real" class="form-control" value="{{ oc.fecha_anticipo_real.strftime('%Y-%m-%d') if oc.fecha_anticipo_real else '' }}" required>
+                      <small class="form-text text-muted mt-2">Esta fecha se utilizará para recalcular la fecha de entrega esperada.</small>
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                      <button type="submit" class="btn btn-primary">Registrar anticipo</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
             {% endif %}
           </div>
         </td>

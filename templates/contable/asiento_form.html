@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block page_title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  {# ── Formulario ──────────────────────────────────────────── #}
+  <div class="col-md-6">
+    <div class="fc">
+      <form method="POST">
+
+        <div class="mb-3">
+          <label class="form-label mb-2">Fecha *</label>
+          <input type="date" name="fecha" class="form-control"
+            value="{{ obj.fecha.isoformat() if obj and obj.fecha else hoy }}" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label mb-2">Descripción *</label>
+          <textarea name="descripcion" class="form-control" rows="3" required>{{ obj.descripcion if obj else '' }}</textarea>
+          <small class="text-muted">Ej: Ingreso por venta, Pago a proveedor, etc.</small>
+        </div>
+
+        <div class="row g-2 mb-3">
+          <div class="col-md-6">
+            <label class="form-label mb-2">Tipo *</label>
+            <select name="tipo" id="tipo" class="form-select" required onchange="actualizarSubtipo()">
+              <option value="">— Seleccionar —</option>
+              {% for val, lbl in tipos_asiento %}
+              <option value="{{ val }}" {% if obj and obj.tipo == val %}selected{% endif %}>
+                {{ lbl }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label mb-2">Subtipo</label>
+            <input type="text" name="subtipo" class="form-control"
+              value="{{ obj.subtipo if obj else '' }}" placeholder="Ej: ingreso_venta">
+          </div>
+        </div>
+
+        {# Banner para inversiones de socios #}
+        <div id="banner-inversion" class="alert alert-warning d-none mb-3" style="border-radius:6px;border:none">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          <strong>Nota:</strong> Este asiento <strong>NO</strong> se contabiliza como ingreso operacional.
+        </div>
+
+        <div class="row g-2 mb-3">
+          <div class="col-md-6">
+            <label class="form-label mb-2">Debe $</label>
+            <input type="number" name="debe" class="form-control" step="1" min="0"
+              value="{{ obj.debe if obj else 0 }}" placeholder="0">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label mb-2">Haber $</label>
+            <input type="number" name="haber" class="form-control" step="1" min="0"
+              value="{{ obj.haber if obj else 0 }}" placeholder="0">
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label mb-2">Cuenta Debe</label>
+          <input type="text" name="cuenta_debe" class="form-control"
+            value="{{ obj.cuenta_debe if obj else '' }}" placeholder="Ej: Caja, Bancos, Cuentas por cobrar...">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label mb-2">Cuenta Haber</label>
+          <input type="text" name="cuenta_haber" class="form-control"
+            value="{{ obj.cuenta_haber if obj else '' }}" placeholder="Ej: Ventas, IVA, Ingresos...">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label mb-2">Referencia</label>
+          <input type="text" name="referencia" class="form-control"
+            value="{{ obj.referencia if obj else '' }}" placeholder="Factura, N° venta, comprobante...">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label mb-2">Notas</label>
+          <textarea name="notas" class="form-control" rows="3">{{ obj.notas if obj else '' }}</textarea>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear' }} Asiento
+          </button>
+          <a href="{{ url_for('contable_asientos') }}" class="btn btn-outline-secondary">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {# ── Preview: Libro contable ─────────────────────────────── #}
+  <div class="col-md-6">
+    <div class="fc">
+      <h6 class="text-muted text-uppercase mb-3" style="font-size:.82rem;letter-spacing:1px">
+        <i class="bi bi-eye me-1"></i>Vista previa del asiento
+      </h6>
+
+      <div style="background:#f8f9fe;border-radius:6px;padding:1rem;margin-bottom:1rem">
+        <div style="text-align:center;margin-bottom:1rem">
+          <strong style="font-size:1.1rem">LIBRO CONTABLE</strong>
+        </div>
+
+        <table style="width:100%;border-collapse:collapse;font-size:.9rem">
+          <thead>
+            <tr style="background:#e8ecf5">
+              <th style="padding:8px;text-align:center;border:1px solid #d8dce5">DEBE</th>
+              <th style="padding:8px;text-align:center;border:1px solid #d8dce5">HABER</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding:12px;border:1px solid #d8dce5;text-align:center">
+                <div style="font-size:1.3rem;font-weight:bold;color:#2dce89" id="preview-debe">0</div>
+                <small style="color:#6B778C" id="preview-cuenta-debe">Cuenta Debe</small>
+              </td>
+              <td style="padding:12px;border:1px solid #d8dce5;text-align:center">
+                <div style="font-size:1.3rem;font-weight:bold;color:#f5365c" id="preview-haber">0</div>
+                <small style="color:#6B778C" id="preview-cuenta-haber">Cuenta Haber</small>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="margin-top:1rem;padding:1rem;background:#fff;border-radius:4px;border-left:3px solid var(--ac)">
+          <div style="font-size:.85rem;color:#6B778C;margin-bottom:0.5rem">
+            <strong>Descripción:</strong>
+          </div>
+          <div id="preview-descripcion" style="font-size:.9rem;color:#1a1f36">
+            {{ obj.descripcion if obj else '(Sin descripción)' }}
+          </div>
+        </div>
+
+        <div style="margin-top:0.5rem;font-size:.8rem;color:#6B778C">
+          <strong>Referencia:</strong> <span id="preview-referencia">—</span>
+        </div>
+      </div>
+
+      <div class="alert alert-info mb-0" style="border-radius:6px;border:none">
+        <i class="bi bi-info-circle me-2"></i>
+        <strong>Ecuación contable:</strong> DEBE = HABER (se valida en presencia)
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function actualizarSubtipo() {
+  const tipo = document.getElementById('tipo').value;
+  const banner = document.getElementById('banner-inversion');
+  if (tipo === 'inversion_socio') {
+    banner.classList.remove('d-none');
+  } else {
+    banner.classList.add('d-none');
+  }
+}
+
+// Actualizar preview en tiempo real
+document.addEventListener('DOMContentLoaded', function() {
+  const debeInput = document.querySelector('input[name="debe"]');
+  const haberInput = document.querySelector('input[name="haber"]');
+  const cuentaDebeInput = document.querySelector('input[name="cuenta_debe"]');
+  const cuentaHaberInput = document.querySelector('input[name="cuenta_haber"]');
+  const descripcionInput = document.querySelector('textarea[name="descripcion"]');
+  const referenciaInput = document.querySelector('input[name="referencia"]');
+
+  function actualizarPreview() {
+    document.getElementById('preview-debe').textContent = (parseFloat(debeInput.value) || 0).toLocaleString();
+    document.getElementById('preview-haber').textContent = (parseFloat(haberInput.value) || 0).toLocaleString();
+    document.getElementById('preview-cuenta-debe').textContent = cuentaDebeInput.value || 'Cuenta Debe';
+    document.getElementById('preview-cuenta-haber').textContent = cuentaHaberInput.value || 'Cuenta Haber';
+    document.getElementById('preview-descripcion').textContent = descripcionInput.value || '(Sin descripción)';
+    document.getElementById('preview-referencia').textContent = referenciaInput.value || '—';
+  }
+
+  debeInput.addEventListener('input', actualizarPreview);
+  haberInput.addEventListener('input', actualizarPreview);
+  cuentaDebeInput.addEventListener('input', actualizarPreview);
+  cuentaHaberInput.addEventListener('input', actualizarPreview);
+  descripcionInput.addEventListener('input', actualizarPreview);
+  referenciaInput.addEventListener('input', actualizarPreview);
+
+  actualizarPreview();
+  actualizarSubtipo();
+});
+</script>
+
+{% block extra_css %}
+<style>
+  .fc { background: #fff; border-radius: 8px; border: 1px solid #e8ecf5; padding: 1.5rem; }
+  .form-label { color: #1a1f36; font-weight: 600; }
+  .form-control, .form-select { border-color: #e8ecf5; }
+  .form-control:focus, .form-select:focus { border-color: var(--ac); }
+</style>
+{% endblock %}
+
+{% endblock %}

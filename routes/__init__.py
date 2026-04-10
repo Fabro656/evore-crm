@@ -14,6 +14,9 @@ from routes import admin
 from routes import portal
 from routes import api
 from routes import ai
+from routes import contable
+from routes import empaques
+from routes import servicios
 
 def register_all(app):
     auth.register(app)
@@ -31,3 +34,6 @@ def register_all(app):
     portal.register(app)
     api.register(app)
     ai.register(app)
+    contable.register(app)
+    empaques.register(app)
+    servicios.register(app)

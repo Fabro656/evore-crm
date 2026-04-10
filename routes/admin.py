@@ -277,6 +277,7 @@ def register(app):
     @app.route('/admin/empresa', methods=['GET','POST'])
     @login_required
     def admin_config():
+        from werkzeug.utils import secure_filename
         if current_user.rol != 'admin':
             flash('Sin permisos.','danger'); return redirect(url_for('dashboard'))
         obj = ConfigEmpresa.query.first()
@@ -290,6 +291,22 @@ def register(app):
             obj.email    = request.form.get('email','')
             obj.sitio_web= request.form.get('sitio_web','')
             obj.direccion= request.form.get('direccion','')
+
+            # ── BLOQUE 6: Manejar upload de firma digital ──
+            firma_file = request.files.get('firma_imagen')
+            if firma_file and firma_file.filename:
+                ext = firma_file.filename.rsplit('.', 1)[-1].lower()
+                if ext in ('png', 'jpg', 'jpeg', 'gif'):
+                    firma_dir = os.path.join(current_app.root_path, 'static', 'firmas')
+                    os.makedirs(firma_dir, exist_ok=True)
+                    fname = secure_filename(f'firma_empresa.{ext}')
+                    firma_path = os.path.join(firma_dir, fname)
+                    firma_file.save(firma_path)
+                    obj.firma_path = f'static/firmas/{fname}'
+                    flash('Firma digital actualizada.', 'success')
+                else:
+                    flash('Formato de imagen no válido (PNG, JPG, JPEG, GIF).', 'warning')
+
             db.session.commit(); flash('Configuración guardada.','success')
         return render_template('admin/config.html', obj=obj)
     
@@ -416,4 +433,82 @@ def register(app):
         obj.activo = False; db.session.commit()
         flash('Documento eliminado.','info')
         return redirect(url_for('legal_index'))
-    
+
+
+    # ── admin_reset_total (/admin/reset-total) ─────────────────────────────────
+    @app.route('/admin/reset-total', methods=['POST'])
+    @login_required
+    def admin_reset_total():
+        """Borra TODOS los datos operativos. Solo accesible para admin.
+        Requiere confirmación con contraseña del administrador."""
+        from werkzeug.security import check_password_hash
+        if current_user.rol != 'admin':
+            flash('Acceso denegado.', 'danger')
+            return redirect(url_for('admin_usuarios'))
+
+        password_confirm = request.form.get('password_confirm', '')
+        if not check_password_hash(current_user.password_hash, password_confirm):
+            flash('Contraseña incorrecta. El reset no fue ejecutado.', 'danger')
+            return redirect(url_for('admin_usuarios'))
+
+        try:
+            # ── Borrar en orden respetando FKs (dependientes primero) ──────────
+            # Nivel 5 — registros de asociación y comentarios
+            db.session.execute(db.text('DELETE FROM tarea_asignados'))
+            db.session.execute(db.text('DELETE FROM tarea_comentarios'))
+            # Nivel 4 — items de documentos
+            db.session.execute(db.text('DELETE FROM reservas_produccion'))
+            db.session.execute(db.text('DELETE FROM cotizacion_items'))
+            db.session.execute(db.text('DELETE FROM pre_cotizacion_items'))
+            db.session.execute(db.text('DELETE FROM ordenes_compra_items'))
+            db.session.execute(db.text('DELETE FROM venta_productos'))
+            db.session.execute(db.text('DELETE FROM materia_prima_productos'))
+            db.session.execute(db.text('DELETE FROM receta_items'))
+            # Nivel 3 — entidades con FKs a otras entidades
+            db.session.execute(db.text('DELETE FROM ordenes_produccion'))
+            db.session.execute(db.text('DELETE FROM lotes_materia_prima'))
+            db.session.execute(db.text('DELETE FROM lotes_producto'))
+            db.session.execute(db.text('DELETE FROM compras_materia'))
+            db.session.execute(db.text('DELETE FROM cotizaciones_proveedores'))
+            db.session.execute(db.text('DELETE FROM cotizaciones_granel'))
+            db.session.execute(db.text('DELETE FROM empaques_secundarios'))
+            db.session.execute(db.text('DELETE FROM asientos_contables'))
+            db.session.execute(db.text('DELETE FROM tareas'))
+            db.session.execute(db.text('DELETE FROM eventos'))
+            db.session.execute(db.text('DELETE FROM notas'))
+            db.session.execute(db.text('DELETE FROM notificaciones'))
+            db.session.execute(db.text('DELETE FROM actividad'))
+            # Nivel 2 — documentos principales
+            db.session.execute(db.text('DELETE FROM ventas'))
+            db.session.execute(db.text('DELETE FROM cotizaciones'))
+            db.session.execute(db.text('DELETE FROM pre_cotizaciones'))
+            db.session.execute(db.text('DELETE FROM ordenes_compra'))
+            db.session.execute(db.text('DELETE FROM gastos_operativos'))
+            db.session.execute(db.text('DELETE FROM documentos_legales'))
+            db.session.execute(db.text('DELETE FROM empleados'))
+            db.session.execute(db.text('DELETE FROM recetas_producto'))
+            db.session.execute(db.text('DELETE FROM servicios'))
+            # Nivel 1 — catálogos base
+            db.session.execute(db.text('DELETE FROM materias_primas'))
+            db.session.execute(db.text('DELETE FROM productos'))
+            db.session.execute(db.text('DELETE FROM contactos_cliente'))
+            db.session.execute(db.text('DELETE FROM clientes'))
+            db.session.execute(db.text('DELETE FROM proveedores'))
+            # Sesiones de usuario (excepto la actual)
+            db.session.execute(db.text(
+                f"DELETE FROM user_sesiones WHERE user_id != {current_user.id}"))
+            # Usuarios: eliminar todos EXCEPTO el admin actual
+            db.session.execute(db.text(
+                f"DELETE FROM users WHERE id != {current_user.id}"))
+            db.session.commit()
+            logging.warning(f'RESET TOTAL ejecutado por admin user_id={current_user.id} '
+                            f'({current_user.email}) desde IP {request.remote_addr}')
+            flash('✓ Reset total ejecutado. Todos los datos han sido eliminados. '
+                  'La cuenta administradora se conservó.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            logging.error(f'admin_reset_total ERROR: {e}')
+            flash(f'Error durante el reset: {e}', 'danger')
+
+        return redirect(url_for('admin_usuarios'))
+

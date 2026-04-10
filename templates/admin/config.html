@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 {% block title %}Configuración Empresa{% endblock %}{% block page_title %}Datos de la Empresa{% endblock %}
 {% block content %}<div class="fc" style="max-width:700px">
-<p class="text-muted mb-4" style="font-size:.9rem">Esta información aparece en las facturas y cotizaciones generadas por el sistema.</p>
-<form method="POST"><div class="row g-3">
+<p class="text-muted mb-4" style="font-size:.9rem">Esta información aparece en las facturas, cotizaciones y documentos generados por el sistema.</p>
+<form method="POST" enctype="multipart/form-data"><div class="row g-3">
   <div class="col-md-8"><label class="form-label">Nombre de la empresa *</label>
     <input type="text" name="nombre" class="form-control" value="{{ obj.nombre or '' }}" required></div>
   <div class="col-md-4"><label class="form-label">NIT</label>
@@ -17,10 +17,25 @@
     <input type="text" name="sitio_web" class="form-control" placeholder="evore.us" value="{{ obj.sitio_web or '' }}"></div>
   <div class="col-12"><label class="form-label">Dirección</label>
     <input type="text" name="direccion" class="form-control" value="{{ obj.direccion or '' }}"></div>
+  <div class="col-12">
+    <hr style="margin:1rem 0">
+    <h6 class="text-muted mb-3" style="font-size:.85rem;text-transform:uppercase;letter-spacing:1px">
+      <i class="bi bi-pen me-1"></i>Firma Digital
+    </h6>
+    <label class="form-label">Imagen de firma (PNG, JPG, JPEG, GIF)</label>
+    <input type="file" name="firma_imagen" class="form-control" accept="image/png,image/jpeg,image/gif">
+    <small class="text-muted d-block mt-2">Tamaño recomendado: 200x80px. Esta imagen aparecerá en los PDF de cotizaciones, órdenes de compra y remisiones.</small>
+    {% if obj.firma_path %}
+    <div style="margin-top:1rem;padding:1rem;background:#f8f9fe;border-radius:6px;border:1px solid #e8ecf5">
+      <strong style="font-size:.85rem;color:#6B778C;text-transform:uppercase;display:block;margin-bottom:0.5rem">Firma actual:</strong>
+      <img src="/{{ obj.firma_path }}" style="max-height:80px;max-width:200px;border-radius:4px">
+    </div>
+    {% endif %}
+  </div>
 </div>
 <div class="mt-4">
   <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Guardar configuración</button>
-</div></form></div>{% endblock %}"""
+</div></form></div>{% endblock %}
 
 # =============================================================
 # TEMPLATES V12 — Notificaciones

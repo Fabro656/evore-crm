@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date as date_type
 import json, secrets, os, logging
 
-__all__ = ['User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'AsientoContable', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'Notificacion', 'Empleado', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'load_user', '_migrate', 'init_db']
+__all__ = ['User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'AsientoContable', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'Notificacion', 'Empleado', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'load_user', '_migrate', 'init_db']
 
 
 class User(UserMixin, db.Model):
@@ -117,10 +117,14 @@ class VentaProducto(db.Model):
     id          = db.Column(db.Integer, primary_key=True)
     venta_id    = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=False)
     producto_id = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=True)
+    servicio_id = db.Column(db.Integer, db.ForeignKey('servicios.id'), nullable=True)  # v30
     nombre_prod = db.Column(db.String(200))
     cantidad    = db.Column(db.Float, default=1)
     precio_unit = db.Column(db.Float, default=0)
     subtotal    = db.Column(db.Float, default=0)
+    es_servicio = db.Column(db.Boolean, default=False)    # v30
+    unidad      = db.Column(db.String(30), default='unidades')  # v30
+    servicio    = db.relationship('Servicio', foreign_keys=[servicio_id])  # v30
 
 class Venta(db.Model):
     __tablename__ = 'ventas'
@@ -292,19 +296,25 @@ class DocumentoLegal(db.Model):
 
 class AsientoContable(db.Model):
     __tablename__ = 'asientos_contables'
-    id          = db.Column(db.Integer, primary_key=True)
-    numero      = db.Column(db.String(20))     # AC-YYYY-NNN
-    fecha       = db.Column(db.Date, nullable=False)
-    descripcion = db.Column(db.String(300), nullable=False)
-    tipo        = db.Column(db.String(30), default='manual')  # manual, venta, compra, gasto
-    referencia  = db.Column(db.String(100))
-    debe        = db.Column(db.Float, default=0)
-    haber       = db.Column(db.Float, default=0)
-    cuenta_debe = db.Column(db.String(100))
-    cuenta_haber= db.Column(db.String(100))
-    notas       = db.Column(db.Text)
-    creado_por  = db.Column(db.Integer, db.ForeignKey('users.id'))
-    creado_en   = db.Column(db.DateTime, default=datetime.utcnow)
+    id               = db.Column(db.Integer, primary_key=True)
+    numero           = db.Column(db.String(20))     # AC-YYYY-NNN
+    fecha            = db.Column(db.Date, nullable=False)
+    descripcion      = db.Column(db.String(300), nullable=False)
+    tipo             = db.Column(db.String(30), default='manual')
+    # tipo: manual | venta | compra | gasto | ingreso_externo | inversion_socio | gasto_caja_chica
+    subtipo          = db.Column(db.String(50), nullable=True)   # v30: descripción corta del tipo
+    referencia       = db.Column(db.String(100))
+    debe             = db.Column(db.Float, default=0)
+    haber            = db.Column(db.Float, default=0)
+    cuenta_debe      = db.Column(db.String(100))
+    cuenta_haber     = db.Column(db.String(100))
+    notas            = db.Column(db.Text)
+    venta_id         = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=True)       # v30
+    orden_compra_id  = db.Column(db.Integer, db.ForeignKey('ordenes_compra.id'), nullable=True)  # v30
+    creado_por       = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en        = db.Column(db.DateTime, default=datetime.utcnow)
+    venta            = db.relationship('Venta', foreign_keys=[venta_id])         # v30
+    orden_compra     = db.relationship('OrdenCompra', foreign_keys=[orden_compra_id])  # v30
 
 class ReglaTributaria(db.Model):
     __tablename__ = 'reglas_tributarias'
@@ -360,14 +370,15 @@ class Actividad(db.Model):
 
 class ConfigEmpresa(db.Model):
     __tablename__ = 'config_empresa'
-    id        = db.Column(db.Integer, primary_key=True)
-    nombre    = db.Column(db.String(200), default='Evore')
-    nit       = db.Column(db.String(30))
-    direccion = db.Column(db.Text)
-    telefono  = db.Column(db.String(30))
-    email     = db.Column(db.String(120))
-    ciudad    = db.Column(db.String(100))
-    sitio_web = db.Column(db.String(200))
+    id         = db.Column(db.Integer, primary_key=True)
+    nombre     = db.Column(db.String(200), default='Evore')
+    nit        = db.Column(db.String(30))
+    direccion  = db.Column(db.Text)
+    telefono   = db.Column(db.String(30))
+    email      = db.Column(db.String(120))
+    ciudad     = db.Column(db.String(100))
+    sitio_web  = db.Column(db.String(200))
+    firma_path = db.Column(db.String(300), nullable=True)   # v30: ruta imagen firma digital
 
 class Evento(db.Model):
     __tablename__ = 'eventos'
@@ -387,10 +398,17 @@ class CotizacionItem(db.Model):
     id            = db.Column(db.Integer, primary_key=True)
     cotizacion_id = db.Column(db.Integer, db.ForeignKey('cotizaciones.id'), nullable=False)
     producto_id   = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=True)
+    servicio_id   = db.Column(db.Integer, db.ForeignKey('servicios.id'), nullable=True)    # v30
     nombre_prod   = db.Column(db.String(200))
     cantidad      = db.Column(db.Float, default=1)
     precio_unit   = db.Column(db.Float, default=0)
     subtotal      = db.Column(db.Float, default=0)
+    unidad        = db.Column(db.String(30), default='unidades')   # v30
+    aplica_iva    = db.Column(db.Boolean, default=True)            # v30 — IVA por ítem
+    iva_pct       = db.Column(db.Float, default=0)                 # v30 — % IVA este ítem
+    iva_monto     = db.Column(db.Float, default=0)                 # v30 — monto IVA calculado
+    tipo_item     = db.Column(db.String(20), default='producto')   # v30 — 'producto' | 'servicio'
+    servicio      = db.relationship('Servicio', foreign_keys=[servicio_id])  # v30
 
 class Cotizacion(db.Model):
     __tablename__ = 'cotizaciones'
@@ -411,10 +429,20 @@ class Cotizacion(db.Model):
     fecha_entrega_est   = db.Column(db.Date)
     condiciones_pago    = db.Column(db.Text)
     notas               = db.Column(db.Text)
+    dias_tipo           = db.Column(db.String(20), default='calendario')  # v30: 'calendario' | 'habiles'
+    tiempo_desde        = db.Column(db.String(20), default='anticipo')    # v30: 'anticipo' | 'firma'
     creado_en           = db.Column(db.DateTime, default=datetime.utcnow)
     creado_por          = db.Column(db.Integer, db.ForeignKey('users.id'))
     items               = db.relationship('CotizacionItem', backref='cotizacion', lazy=True, cascade='all, delete-orphan')
     cliente             = db.relationship('Cliente', foreign_keys=[cliente_id])
+
+    @property
+    def esta_vencida(self):
+        """True si fecha_validez ya pasó y el estado es borrador o enviada."""
+        if not self.fecha_validez:
+            return False
+        return (self.fecha_validez < date_type.today() and
+                self.estado in ('borrador', 'enviada'))
 
 class LoteProducto(db.Model):
     __tablename__ = 'lotes_producto'
@@ -635,6 +663,57 @@ class PreCotizacion(db.Model):
     items            = db.relationship('PreCotizacionItem', backref='precot', lazy=True, cascade='all, delete-orphan')
 
 
+# ── v30: Servicio — entidad sin inventario ────────────────────────────────────
+class Servicio(db.Model):
+    """Servicio que puede incluirse en cotizaciones y ventas sin afectar inventario."""
+    __tablename__ = 'servicios'
+    id            = db.Column(db.Integer, primary_key=True)
+    nombre        = db.Column(db.String(200), nullable=False)
+    descripcion   = db.Column(db.Text)
+    costo_interno = db.Column(db.Float, default=0)   # costo para la empresa
+    precio_venta  = db.Column(db.Float, default=0)   # precio al cliente
+    unidad        = db.Column(db.String(30), default='servicio')  # servicio, hora, día, proyecto
+    categoria     = db.Column(db.String(100))
+    activo        = db.Column(db.Boolean, default=True)
+    creado_por    = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en     = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def margen(self):
+        if not self.precio_venta or self.precio_venta == 0:
+            return 0
+        return round((self.precio_venta - self.costo_interno) / self.precio_venta * 100, 1)
+
+
+# ── v30: EmpaqueSecundario — calculadora de empaques para producto ────────────
+class EmpaqueSecundario(db.Model):
+    """Configuración de empaque secundario (caja) para un producto terminado."""
+    __tablename__ = 'empaques_secundarios'
+    id               = db.Column(db.Integer, primary_key=True)
+    producto_id      = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
+    alto             = db.Column(db.Float, default=0)   # cm
+    ancho            = db.Column(db.Float, default=0)   # cm
+    largo            = db.Column(db.Float, default=0)   # cm
+    peso_unitario    = db.Column(db.Float, default=0)   # kg por unidad de producto
+    peso_max_caja    = db.Column(db.Float, default=0)   # kg máximo por caja
+    unidades_por_caja= db.Column(db.Integer, default=1) # calculado o aprobado
+    materia_prima_id = db.Column(db.Integer, db.ForeignKey('materias_primas.id'), nullable=True)
+    # FK a la materia prima "caja" que se crea automáticamente al aprobar
+    aprobado         = db.Column(db.Boolean, default=False)
+    notas            = db.Column(db.Text)
+    creado_por       = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en        = db.Column(db.DateTime, default=datetime.utcnow)
+    producto         = db.relationship('Producto', foreign_keys=[producto_id])
+    materia_prima    = db.relationship('MateriaPrima', foreign_keys=[materia_prima_id])
+
+    def cajas_para_pedido(self, cantidad_pedido):
+        """Calcula cuántas cajas se necesitan para una cantidad dada."""
+        if not self.unidades_por_caja or self.unidades_por_caja == 0:
+            return 0
+        import math
+        return math.ceil(cantidad_pedido / self.unidades_por_caja)
+
+
 @login_manager.user_loader
 def load_user(uid): return db.session.get(User, int(uid))
 
@@ -748,6 +827,32 @@ def _migrate(conn):
         ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS contacto_nombre VARCHAR(100)"),
         # v20 — Nómina colombiana
         ("CREATE TABLE IF NOT EXISTS empleados (id SERIAL PRIMARY KEY, nombre VARCHAR(100) NOT NULL, apellido VARCHAR(100) NOT NULL, cedula VARCHAR(30), email VARCHAR(120), telefono VARCHAR(30), cargo VARCHAR(100), departamento VARCHAR(100), tipo_contrato VARCHAR(40) DEFAULT 'indefinido', salario_base FLOAT DEFAULT 0, auxilio_transporte BOOLEAN DEFAULT TRUE, nivel_riesgo_arl INTEGER DEFAULT 1, estado VARCHAR(20) DEFAULT 'activo', fecha_ingreso DATE, fecha_retiro DATE, motivo_retiro VARCHAR(30), notas TEXT, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
+        # v30 — Servicios (entidad sin inventario)
+        ("CREATE TABLE IF NOT EXISTS servicios (id SERIAL PRIMARY KEY, nombre VARCHAR(200) NOT NULL, descripcion TEXT, costo_interno FLOAT DEFAULT 0, precio_venta FLOAT DEFAULT 0, unidad VARCHAR(30) DEFAULT 'servicio', categoria VARCHAR(100), activo BOOLEAN DEFAULT TRUE, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
+        # v30 — Empaques secundarios
+        ("CREATE TABLE IF NOT EXISTS empaques_secundarios (id SERIAL PRIMARY KEY, producto_id INTEGER NOT NULL REFERENCES productos(id), alto FLOAT DEFAULT 0, ancho FLOAT DEFAULT 0, largo FLOAT DEFAULT 0, peso_unitario FLOAT DEFAULT 0, peso_max_caja FLOAT DEFAULT 0, unidades_por_caja INTEGER DEFAULT 1, materia_prima_id INTEGER REFERENCES materias_primas(id), aprobado BOOLEAN DEFAULT FALSE, notas TEXT, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
+        # v30 — CotizacionItem: unidad + IVA por ítem + servicio
+        ("ALTER TABLE cotizacion_items ADD COLUMN IF NOT EXISTS unidad VARCHAR(30) DEFAULT 'unidades'"),
+        ("ALTER TABLE cotizacion_items ADD COLUMN IF NOT EXISTS aplica_iva BOOLEAN DEFAULT TRUE"),
+        ("ALTER TABLE cotizacion_items ADD COLUMN IF NOT EXISTS iva_pct FLOAT DEFAULT 0"),
+        ("ALTER TABLE cotizacion_items ADD COLUMN IF NOT EXISTS iva_monto FLOAT DEFAULT 0"),
+        ("ALTER TABLE cotizacion_items ADD COLUMN IF NOT EXISTS tipo_item VARCHAR(20) DEFAULT 'producto'"),
+        ("ALTER TABLE cotizacion_items ADD COLUMN IF NOT EXISTS servicio_id INTEGER REFERENCES servicios(id)"),
+        # v30 — Cotizacion: tipo de días + base de tiempo
+        ("ALTER TABLE cotizaciones ADD COLUMN IF NOT EXISTS dias_tipo VARCHAR(20) DEFAULT 'calendario'"),
+        ("ALTER TABLE cotizaciones ADD COLUMN IF NOT EXISTS tiempo_desde VARCHAR(20) DEFAULT 'anticipo'"),
+        # v30 — OrdenCompra: fecha real de anticipo recibido
+        ("ALTER TABLE ordenes_compra ADD COLUMN IF NOT EXISTS fecha_anticipo_real DATE"),
+        # v30 — ConfigEmpresa: firma digital
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS firma_path VARCHAR(300)"),
+        # v30 — AsientoContable: subtipo + FK ventas/OC
+        ("ALTER TABLE asientos_contables ADD COLUMN IF NOT EXISTS subtipo VARCHAR(50)"),
+        ("ALTER TABLE asientos_contables ADD COLUMN IF NOT EXISTS venta_id INTEGER REFERENCES ventas(id)"),
+        ("ALTER TABLE asientos_contables ADD COLUMN IF NOT EXISTS orden_compra_id INTEGER REFERENCES ordenes_compra(id)"),
+        # v30 — VentaProducto: servicio + unidad
+        ("ALTER TABLE venta_productos ADD COLUMN IF NOT EXISTS es_servicio BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE venta_productos ADD COLUMN IF NOT EXISTS servicio_id INTEGER REFERENCES servicios(id)"),
+        ("ALTER TABLE venta_productos ADD COLUMN IF NOT EXISTS unidad VARCHAR(30) DEFAULT 'unidades'"),
     ]
     for sql in migrations:
         try:

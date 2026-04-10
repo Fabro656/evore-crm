@@ -70,7 +70,7 @@
           <td>{{ e.cargo or '—' }}</td>
           <td><span class="b" style="background:{% if e.tipo_contrato=='indefinido' %}var(--ac){% elif e.tipo_contrato=='fijo' %}#00875A{% elif e.tipo_contrato=='obra_labor' %}#FF8B00{% else %}#6D42C8{% endif %}">{{ e.tipo_contrato }}</span></td>
           <td>{{ e.salario_base|cop }}</td>
-          <td>{% set n=e %}{# set e to dict using helper #}{{ (e.salario_base|cop) }}</td>
+          <td>{{ ((e.salario_base or 0) * 0.92)|round(0)|int|cop }}</td>
           <td>{{ e.fecha_ingreso.strftime('%d/%m/%Y') if e.fecha_ingreso else '—' }}</td>
           <td><span class="b" style="background:{% if e.estado=='activo' %}#00875A{% elif e.estado=='inactivo' %}#FF8B00{% else %}#6D42C8{% endif %}">{{ e.estado }}</span></td>
           <td><a href="{{ url_for('empleado_ver', id=e.id) }}" class="btn btn-xs btn-outline-secondary" style="padding:3px 8px;font-size:.75rem"><i class="bi bi-eye me-1"></i>Ver</a></td>

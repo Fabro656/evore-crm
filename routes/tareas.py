@@ -9,6 +9,102 @@ from utils import *
 from datetime import datetime, timedelta, date as date_type
 import json, os, re, io, secrets, logging
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BLOQUE 7 — Funciones Helper de Automatización (nivel de módulo)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _crear_tarea_unica(titulo_patron, tarea_tipo, descripcion, prioridad='media',
+                        creado_por=None, entidad_id=None, entidad_tipo=None):
+    """
+    Crea una tarea solo si no existe otra pendiente con el mismo patrón de título y tipo.
+    Retorna (tarea, creada: bool)
+
+    Args:
+        titulo_patron: Patrón de título para búsqueda (se usa LIKE)
+        tarea_tipo: Tipo de tarea (produccion_detenida, compra_urgente, etc.)
+        descripcion: Descripción de la tarea
+        prioridad: nivel de prioridad (baja, media, alta)
+        creado_por: ID del usuario que crea (default: usuario actual)
+        entidad_id: ID de la entidad relacionada (orden, venta, etc.)
+        entidad_tipo: Tipo de entidad (orden_produccion, venta, etc.)
+
+    Returns:
+        tuple: (tarea_obj, fue_creada: bool)
+    """
+    try:
+        # Buscar si existe una tarea pendiente con patrón similar
+        existente = Tarea.query.filter(
+            Tarea.titulo.like(f'%{titulo_patron}%'),
+            Tarea.tarea_tipo == tarea_tipo,
+            Tarea.estado == 'pendiente'
+        ).first()
+
+        if existente:
+            return existente, False
+
+        # Crear nueva tarea
+        t = Tarea(
+            titulo=titulo_patron,
+            descripcion=descripcion,
+            prioridad=prioridad,
+            estado='pendiente',
+            tarea_tipo=tarea_tipo,
+            creado_por=creado_por or 1,
+            creado_en=datetime.utcnow()
+        )
+        db.session.add(t)
+        db.session.flush()
+        return t, True
+    except Exception as e:
+        logging.warning(f'Error en _crear_tarea_unica: {e}')
+        return None, False
+
+
+def _crear_evento_automatico(titulo, descripcion, tipo='evento', fecha=None, creado_por=None):
+    """
+    Crea un evento en el calendario solo si no existe uno con ese título hoy.
+
+    Args:
+        titulo: Título del evento
+        descripcion: Descripción
+        tipo: Tipo de evento (evento, alerta, recordatorio)
+        fecha: Fecha del evento (default: hoy)
+        creado_por: ID del usuario creador
+
+    Returns:
+        evento_obj o None si ya existe
+    """
+    try:
+        hoy = fecha or date_type.today()
+
+        # Verificar si existe evento con ese título para hoy
+        existente = Evento.query.filter(
+            Evento.titulo == titulo,
+            Evento.fecha == hoy
+        ).first()
+
+        if existente:
+            return existente
+
+        # Crear nuevo evento
+        e = Evento(
+            titulo=titulo,
+            descripcion=descripcion,
+            tipo=tipo,
+            fecha=hoy,
+            creado_por=creado_por or 1,
+            creado_en=datetime.utcnow()
+        )
+        db.session.add(e)
+        return e
+    except Exception as e:
+        logging.warning(f'Error en _crear_evento_automatico: {e}')
+        return None
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+
 def register(app):
     def _noop(*a, **kw): pass
 

@@ -68,7 +68,10 @@ table.items-table tr:nth-child(even) td{background:#F4F5F7}
 <body>
 <div class="no-print">
   <a href="{{ url_for('ventas') }}" class="btn-back">← Volver</a>
-  <button onclick="window.print()" class="btn-print">🖨 Imprimir / Guardar PDF</button>
+  <button onclick="window.print()" class="btn-print">🖨️ Imprimir / Guardar PDF</button>
+  {% if empresa and empresa.email %}
+  <a href="mailto:?subject=Remisión {{ venta.numero }}&body=Adjunto remisión {{ venta.numero }}" class="btn-secondary" style="background:#F4F5F7;color:#172B4D;border:1px solid #DFE1E6;padding:7px 14px;border-radius:3px;text-decoration:none;font-weight:600">📧 Enviar por correo</a>
+  {% endif %}
   {% if cajas_info %}
   <button onclick="editarEmbalaje()" class="btn-secondary">✏️ Editar embalaje</button>
   {% endif %}
@@ -225,6 +228,13 @@ table.items-table tr:nth-child(even) td{background:#F4F5F7}
       <strong>{{ venta.cliente.empresa or venta.cliente.nombre if venta.cliente else '___________________' }}</strong>
     </div>
   </div>
+
+  {% if empresa and empresa.firma_path %}
+  <div style="margin-top:20px;padding-top:12px;border-top:1px solid #DFE1E6;text-align:center">
+    <img src="/{{ empresa.firma_path }}" style="max-height:80px;max-width:200px">
+    <p style="margin-top:8px;font-size:9pt;color:#6B778C">Firma autorizada</p>
+  </div>
+  {% endif %}
 
   <!-- Footer -->
   <div class="footer-bar">

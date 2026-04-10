@@ -761,4 +761,73 @@ def register(app):
             pedidos_json.append(sin_venta)
     
         return render_template('produccion/gantt.html', pedidos_json=pedidos_json)
-    
+
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # BLOQUE 7 — Automatización: Detención de órdenes de producción
+    # ══════════════════════════════════════════════════════════════════════════
+
+    # ── orden_detener (/produccion/ordenes/<int:id>/detener)
+    @app.route('/produccion/ordenes/<int:id>/detener', methods=['POST'])
+    @login_required
+    @requiere_modulo('produccion')
+    def orden_detener(id):
+        """
+        Detiene una orden de producción:
+        1. Cambia estado a 'detenida'
+        2. Crea un evento automático (si no existe)
+        3. Crea una tarea única de reactivación (si no existe)
+        4. Notifica al usuario actual
+        """
+        orden = OrdenProduccion.query.get_or_404(id)
+        motivo = request.form.get('motivo', 'Sin especificar').strip()
+
+        if not motivo:
+            motivo = 'Sin especificar'
+
+        orden.estado = 'detenida'
+
+        # Crear evento automático con detalles
+        from routes.tareas import _crear_evento_automatico
+        _crear_evento_automatico(
+            titulo=f'Producción detenida — {orden.producto.nombre}',
+            descripcion=f'Motivo: {motivo}\nVenta: #{orden.venta_id}\nOrden: #{orden.id}',
+            tipo='alerta',
+            fecha=date_type.today(),
+            creado_por=current_user.id
+        )
+
+        # Crear tarea única de reactivación si no existe
+        from routes.tareas import _crear_tarea_unica
+        titulo_tarea = f'Reactivar producción {orden.producto.nombre}'
+        t, creada = _crear_tarea_unica(
+            titulo_patron=titulo_tarea,
+            tarea_tipo='produccion_detenida',
+            descripcion=(
+                f'Orden de producción detenida y requiere reactivación.\n'
+                f'Producto: {orden.producto.nombre}\n'
+                f'Cantidad: {orden.cantidad_producir:.0f} unidades\n'
+                f'Motivo: {motivo}\n'
+                f'Venta: #{orden.venta_id}'
+            ),
+            prioridad='alta',
+            creado_por=current_user.id,
+            entidad_id=orden.id,
+            entidad_tipo='orden_produccion'
+        )
+
+        if creada and t:
+            # Asignar tarea al usuario actual
+            db.session.add(TareaAsignado(tarea_id=t.id, usuario_id=current_user.id))
+            # Notificar
+            _crear_notificacion(
+                current_user.id, 'alerta',
+                f'Tarea creada: Reactivar producción {orden.producto.nombre}',
+                f'Orden #{orden.id} fue detenida. Motivo: {motivo}',
+                url_for('tareas')
+            )
+
+        db.session.commit()
+        flash(f'Orden #{orden.id} detenida. Evento y tarea de reactivación creados.', 'warning')
+        return redirect(url_for('ordenes_produccion'))
+

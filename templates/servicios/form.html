@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}{% if obj %}Editar{% else %}Nuevo{% endif %} Servicio{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="mb-0">
+                <i class="fas fa-concierge-bell"></i> {% if obj %}Editar{% else %}Crear{% endif %} Servicio
+            </h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Formulario Principal -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" class="row g-3">
+                        <div class="col-12">
+                            <label for="nombre" class="form-label">
+                                Nombre del Servicio <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="nombre" name="nombre"
+                                   maxlength="200"
+                                   value="{% if obj %}{{ obj.nombre }}{% endif %}"
+                                   placeholder="Ej: Consultoría, Instalación, Mantenimiento"
+                                   required>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="descripcion" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="descripcion" name="descripcion"
+                                     rows="4"
+                                     placeholder="Describe en qué consiste este servicio...">{% if obj %}{{ obj.descripcion }}{% endif %}</textarea>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="categoria" class="form-label">Categoría</label>
+                            <input type="text" class="form-control" id="categoria" name="categoria"
+                                   maxlength="100"
+                                   value="{% if obj %}{{ obj.categoria }}{% endif %}"
+                                   placeholder="Ej: Técnico, Administrativo, Logística">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="unidad" class="form-label">
+                                Unidad de Medida <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="unidad" name="unidad" required>
+                                <option value="servicio" {% if obj and obj.unidad == 'servicio' %}selected{% elif not obj %}selected{% endif %}>Servicio</option>
+                                <option value="hora" {% if obj and obj.unidad == 'hora' %}selected{% endif %}>Hora</option>
+                                <option value="día" {% if obj and obj.unidad == 'día' %}selected{% endif %}>Día</option>
+                                <option value="proyecto" {% if obj and obj.unidad == 'proyecto' %}selected{% endif %}>Proyecto</option>
+                                <option value="consultoría" {% if obj and obj.unidad == 'consultoría' %}selected{% endif %}>Consultoría</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="costo_interno" class="form-label">
+                                Costo Interno (COP) <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="costo_interno" name="costo_interno"
+                                       step="0.01" min="0"
+                                       value="{% if obj %}{{ "%.2f"|format(obj.costo_interno) }}{% else %}0.00{% endif %}"
+                                       placeholder="0.00"
+                                       onchange="actualizarMargen()"
+                                       required>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="precio_venta" class="form-label">
+                                Precio de Venta (COP) <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="precio_venta" name="precio_venta"
+                                       step="0.01" min="0"
+                                       value="{% if obj %}{{ "%.2f"|format(obj.precio_venta) }}{% else %}0.00{% endif %}"
+                                       placeholder="0.00"
+                                       onchange="actualizarMargen()"
+                                       required>
+                            </div>
+                        </div>
+
+                        <!-- Información Adicional -->
+                        {% if obj %}
+                            <div class="col-12">
+                                <div class="alert alert-info mb-0">
+                                    <strong><i class="fas fa-info-circle"></i> Información:</strong><br>
+                                    Creado por: {{ obj.creado_por }} el {{ obj.creado_en.strftime('%d/%m/%Y %H:%M') if obj.creado_en else 'N/A' }}
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <!-- Botones -->
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> {% if obj %}Actualizar{% else %}Crear{% endif %} Servicio
+                            </button>
+                            <a href="{{ url_for('servicios') }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel de Previsualización -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-line"></i> Previsualización de Margen
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="text-muted small">Costo Interno</label>
+                        <div id="preview_costo" class="h5 mb-0">$ 0.00</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="text-muted small">Precio de Venta</label>
+                        <div id="preview_precio" class="h5 mb-0">$ 0.00</div>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-3">
+                        <label class="text-muted small">Ganancia Bruta</label>
+                        <div id="preview_ganancia" class="h5 mb-0">$ 0.00</div>
+                    </div>
+
+                    <div>
+                        <label class="text-muted small">Margen de Ganancia</label>
+                        <div id="preview_margen" class="display-6 mb-0">
+                            <span id="margen_valor">0</span>%
+                        </div>
+                        <div id="margen_badge" class="badge bg-secondary w-100 text-center mt-2">
+                            Sin datos
+                        </div>
+                    </div>
+
+                    <div class="alert alert-light mt-4 mb-0" style="font-size: 0.85rem;">
+                        <strong>Interpretación:</strong><br>
+                        <ul class="mb-0 ps-3">
+                            <li>&lt; 20%: Margen bajo (no recomendado)</li>
+                            <li>20-40%: Margen moderado</li>
+                            <li>&gt; 40%: Margen saludable ✓</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function actualizarMargen() {
+    const costo = parseFloat(document.getElementById('costo_interno').value) || 0;
+    const precio = parseFloat(document.getElementById('precio_venta').value) || 0;
+
+    // Previsualización de valores
+    document.getElementById('preview_costo').textContent = '$ ' + costo.toLocaleString('es-CO', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    document.getElementById('preview_precio').textContent = '$ ' + precio.toLocaleString('es-CO', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+
+    // Ganancia bruta
+    const ganancia = precio - costo;
+    document.getElementById('preview_ganancia').textContent = '$ ' + ganancia.toLocaleString('es-CO', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+
+    // Margen
+    let margen = 0;
+    if (precio > 0) {
+        margen = ((precio - costo) / precio) * 100;
+    }
+
+    document.getElementById('margen_valor').textContent = margen.toFixed(1);
+
+    // Badge de estado
+    const badge = document.getElementById('margen_badge');
+    if (precio === 0) {
+        badge.textContent = 'Sin datos';
+        badge.className = 'badge bg-secondary w-100 text-center mt-2';
+    } else if (margen < 20) {
+        badge.textContent = '⚠️ Margen bajo';
+        badge.className = 'badge bg-warning text-dark w-100 text-center mt-2';
+    } else if (margen < 40) {
+        badge.textContent = '📊 Margen moderado';
+        badge.className = 'badge bg-info w-100 text-center mt-2';
+    } else {
+        badge.textContent = '✓ Margen saludable';
+        badge.className = 'badge bg-success w-100 text-center mt-2';
+    }
+}
+
+// Inicializar margen al cargar
+document.addEventListener('DOMContentLoaded', actualizarMargen);
+</script>
+
+{% endblock %}

@@ -6,20 +6,20 @@
   <div class="col-md-3"><div class="sc"><div class="sv">{{ items|length }}</div><div class="sl">Total cotizaciones</div></div></div>
   <div class="col-md-3"><div class="sc"><div class="sv">{{ items|selectattr('estado','eq','borrador')|list|length }}</div><div class="sl">Borradores</div></div></div>
   <div class="col-md-3"><div class="sc"><div class="sv">{{ items|selectattr('estado','eq','enviada')|list|length }}</div><div class="sl">Enviadas</div></div></div>
-  <div class="col-md-3"><div class="sc"><div class="sv">{{ items|selectattr('estado','eq','aprobada')|list|length }}</div><div class="sl">Aprobadas</div></div></div>
+  <div class="col-md-3"><div class="sc"><div class="sv">{{ items|selectattr('estado','eq','vencida')|list|length }}</div><div class="sl">Vencidas</div></div></div>
 </div>
 <div class="tc"><div class="ch"><i class="bi bi-file-earmark-text me-2"></i>Cotizaciones</div>
 {% if items %}<div class="table-responsive"><table class="table">
-  <thead><tr><th>Número</th><th>Título</th><th>Cliente</th><th>Total</th><th>Estado</th><th>Fecha</th><th></th></tr></thead>
-  <tbody>{% for c in items %}<tr>
+  <thead><tr><th>Número</th><th>Título</th><th>Cliente</th><th>Total</th><th>Estado</th><th>Válida hasta</th><th></th></tr></thead>
+  <tbody>{% for c in items %}<tr {% if c.estado=='vencida' %}style="background-color:rgba(255,0,0,.05)"{% endif %}>
     <td><a href="{{ url_for('cotizacion_ver', id=c.id) }}" class="fw-semibold text-decoration-none" style="color:var(--ac)">{{ c.numero or '—' }}</a></td>
     <td style="color:var(--text)">{{ c.titulo }}</td>
     <td><small class="text-muted">{{ c.cliente.empresa or c.cliente.nombre if c.cliente else '—' }}</small></td>
     <td class="fw-semibold">$ {{ '{:,.0f}'.format(c.total).replace(',','.') }}</td>
-    <td><span class="b b-{% if c.estado=='borrador' %}media{% elif c.estado=='enviada' %}info{% elif c.estado=='aprobada' %}activo{% elif c.estado=='confirmacion_orden' %}alta{% else %}inactivo{% endif %}">
-      {{ {'borrador':'Borrador','enviada':'Enviada','aprobada':'Aprobada','confirmacion_orden':'Orden confirmada'}.get(c.estado, c.estado) }}
+    <td><span class="b {% if c.estado=='borrador' %}b-media{% elif c.estado=='enviada' %}b-info{% elif c.estado=='aprobada' %}b-activo{% elif c.estado=='confirmacion_orden' %}b-alta{% elif c.estado=='vencida' %}b-peligro{% else %}b-inactivo{% endif %}">
+      {{ {'borrador':'Borrador','enviada':'Enviada','aprobada':'Aprobada','confirmacion_orden':'Orden confirmada','vencida':'VENCIDA'}.get(c.estado, c.estado) }}
     </span></td>
-    <td><small class="text-muted">{{ c.fecha_emision.strftime('%d/%m/%Y') }}</small></td>
+    <td><small class="text-muted" {% if c.estado=='vencida' %}style="color:var(--danger);font-weight:bold"{% endif %}>{{ c.fecha_validez.strftime('%d/%m/%Y') if c.fecha_validez else '—' }}</small></td>
     <td><div class="d-flex gap-1">
       <a href="{{ url_for('cotizacion_ver', id=c.id) }}" class="btn btn-sm btn-outline-primary" title="Ver"><i class="bi bi-eye"></i></a>
       <a href="{{ url_for('cotizacion_editar', id=c.id) }}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>

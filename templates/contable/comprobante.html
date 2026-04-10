@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ asiento.numero or 'Comprobante' }} — {{ empresa.nombre if empresa else 'Evore' }}</title>
+  <style>
+    {% raw %}
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11pt; color: #1a1f36; background: #fff; }
+    .page {
+      width: 210mm; min-height: 297mm; margin: 0 auto; padding: 20mm 16mm;
+      background: #fff; box-shadow: 0 0 0 1px #e8ecf5;
+    }
+    .no-print {
+      position: sticky; top: 0; z-index: 100; display: flex; gap: 8px;
+      padding: 10px 16px; background: #fff; border-bottom: 1px solid #e8ecf5;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    .btn {
+      padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;
+      font-size: 13px; font-weight: 600; text-decoration: none; display: inline-flex;
+      align-items: center; gap: 6px;
+    }
+    .btn-primary { background: #0052CC; color: #fff; }
+    .btn-primary:hover { background: #0039A6; }
+    .btn-secondary { background: #F4F5F7; color: #172B4D; border: 1px solid #DFE1E6; }
+    .btn-secondary:hover { background: #EBECF0; }
+
+    .header {
+      border-bottom: 3px solid #1a1f36; padding-bottom: 12px; margin-bottom: 18px;
+      display: flex; justify-content: space-between; align-items: flex-start;
+    }
+    .logo-area { display: flex; align-items: center; gap: 8px; }
+    .logo-area strong { font-size: 18pt; font-weight: 800; color: #1a1f36; letter-spacing: -0.5px; }
+    .doc-title { text-align: right; }
+    .doc-title h1 { font-size: 24pt; font-weight: 800; color: #1a1f36; letter-spacing: -1px; margin-bottom: 4px; }
+    .doc-number { font-size: 10pt; color: #6B778C; }
+
+    .info-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px;
+    }
+    .info-box {
+      background: #f8f9fe; border-radius: 6px; padding: 12px 14px;
+    }
+    .info-box h4 {
+      font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.8px;
+      color: #6B778C; margin-bottom: 6px; font-weight: 700;
+    }
+    .info-box p { font-size: 10pt; color: #1a1f36; line-height: 1.5; margin: 0; }
+
+    table {
+      width: 100%; border-collapse: collapse; margin: 16px 0;
+    }
+    th {
+      background: #1a1f36; color: #fff; font-size: 9pt; padding: 8px 10px;
+      text-align: left; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase;
+    }
+    td { padding: 8px 10px; font-size: 10pt; border-bottom: 1px solid #e8ecf5; }
+    tr:nth-child(even) td { background: #f8f9fe; }
+    th.r, td.r { text-align: right; }
+
+    .totals {
+      margin-left: auto; width: 280px; margin-top: 12px;
+    }
+    .totals table { margin: 0; }
+    .totals table td { font-size: 10pt; padding: 6px 10px; }
+    .totals .grand {
+      background: #1a1f36; color: #fff; font-weight: 700; font-size: 12pt;
+    }
+
+    .firma-section {
+      margin-top: 30px; padding-top: 20px; border-top: 1px solid #e8ecf5;
+      text-align: center;
+    }
+    .firma-section img {
+      max-height: 80px; max-width: 200px; margin-bottom: 10px;
+    }
+    .firma-section p {
+      font-size: 9pt; color: #6B778C; margin: 4px 0;
+    }
+
+    .footer {
+      margin-top: 24px; padding-top: 12px; border-top: 1px solid #e8ecf5;
+      font-size: 8.5pt; color: #6B778C; text-align: center;
+    }
+
+    @media print {
+      body { background: #fff; }
+      .no-print { display: none !important; }
+      .page { box-shadow: none; padding: 10mm 12mm; }
+    }
+    {% endraw %}
+  </style>
+</head>
+<body>
+<div class="no-print">
+  <button onclick="window.print()" class="btn btn-primary">
+    <span>🖨️</span> Imprimir / Guardar PDF
+  </button>
+  <a href="{{ url_for('contable_asientos') }}" class="btn btn-secondary">
+    <span>←</span> Volver
+  </a>
+</div>
+
+<div class="page">
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-area">
+      {% if empresa and empresa.nombre %}
+      <strong>{{ empresa.nombre }}</strong>
+      {% else %}
+      <strong>Evore CRM</strong>
+      {% endif %}
+    </div>
+    <div class="doc-title">
+      <h1>COMPROBANTE CONTABLE</h1>
+      <div class="doc-number">{{ asiento.numero or '—' }}</div>
+      <div class="doc-number">{{ asiento.fecha.strftime('%d/%m/%Y') if asiento.fecha else '—' }}</div>
+    </div>
+  </div>
+
+  <!-- Info boxes -->
+  <div class="info-grid">
+    <div class="info-box">
+      <h4>Tipo de asiento</h4>
+      <p><strong>{{ asiento.tipo.replace('_', ' ').title() }}</strong>
+      {% if asiento.subtipo %}<br><small style="color:#6B778C">{{ asiento.subtipo }}</small>{% endif %}</p>
+    </div>
+    <div class="info-box">
+      <h4>Referencia</h4>
+      <p>{{ asiento.referencia or '—' }}</p>
+    </div>
+    <div class="info-box">
+      <h4>Descripción</h4>
+      <p>{{ asiento.descripcion }}</p>
+    </div>
+    <div class="info-box">
+      <h4>Período</h4>
+      <p>{{ asiento.fecha.strftime('%d de %B de %Y') if asiento.fecha else '—' }}</p>
+    </div>
+  </div>
+
+  <!-- Libro contable -->
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 50%">DEBE</th>
+        <th style="width: 50%" class="r">HABER</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          {% if asiento.cuenta_debe %}<strong>{{ asiento.cuenta_debe }}</strong>{% endif %}
+          <br><span style="font-size: 9pt; color: #6B778C;">Cargo a la cuenta</span>
+        </td>
+        <td class="r">
+          {% if asiento.cuenta_haber %}<strong>{{ asiento.cuenta_haber }}</strong>{% endif %}
+          <br><span style="font-size: 9pt; color: #6B778C;">Abono a la cuenta</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Montos -->
+  <div class="totals">
+    <table>
+      <tr>
+        <td>Movimiento Debe</td>
+        <td class="r" style="font-weight: 600;">$ {{ '{:,.0f}'.format(asiento.debe or 0).replace(',', '.') }}</td>
+      </tr>
+      <tr>
+        <td>Movimiento Haber</td>
+        <td class="r" style="font-weight: 600;">$ {{ '{:,.0f}'.format(asiento.haber or 0).replace(',', '.') }}</td>
+      </tr>
+      <tr class="grand">
+        <td>BALANCE</td>
+        <td class="r">
+          {% if asiento.debe == asiento.haber %}
+            BALANCEADO ✓
+          {% else %}
+            NO BALANCEADO
+          {% endif %}
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Notas -->
+  {% if asiento.notas %}
+  <div style="margin-top: 20px; padding: 12px 14px; background: #FFFAE6; border-radius: 4px; border: 1px solid #FFE380;">
+    <strong style="font-size: 9pt; text-transform: uppercase; letter-spacing: 0.5px; color: #664D03;">Notas</strong>
+    <p style="margin: 6px 0 0 0; font-size: 10pt; color: #1a1f36; line-height: 1.5;">{{ asiento.notas }}</p>
+  </div>
+  {% endif %}
+
+  <!-- Firma digital -->
+  {% if empresa and empresa.firma_path %}
+  <div class="firma-section">
+    <img src="/{{ empresa.firma_path }}" alt="Firma">
+    <p><strong>Firma autorizada</strong></p>
+    <p>{{ empresa.nombre }}</p>
+  </div>
+  {% endif %}
+
+  <!-- Footer -->
+  <div class="footer">
+    <p style="margin: 0;">
+      Generado por sistema Evore CRM
+      {% if empresa %} · {{ empresa.nombre }}{% endif %}
+      {% if empresa and empresa.email %} · {{ empresa.email }}{% endif %}
+    </p>
+    <p style="margin: 4px 0 0 0;">{{ asiento.creado_en.strftime('%d/%m/%Y %H:%M') if asiento.creado_en else '' }}</p>
+  </div>
+</div>
+</body>
+</html>
