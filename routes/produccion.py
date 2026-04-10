@@ -340,7 +340,34 @@ def register(app):
         materias = MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).all()
         materias_json = [{'id': m.id, 'nombre': m.nombre, 'unidad': m.unidad} for m in materias]
         if request.method == 'POST':
-            prod_id = int(request.form['producto_id'])
+            prod_id_raw = request.form.get('producto_id','').strip()
+            # Soporte free-text: si se seleccionó "__nuevo__", crear el producto
+            if prod_id_raw == '__nuevo__':
+                nuevo_nombre = request.form.get('nuevo_producto_nombre','').strip()
+                if not nuevo_nombre:
+                    flash('Escribe el nombre del nuevo producto.','danger')
+                    return render_template('produccion/receta_form.html', obj=None, productos=productos,
+                                           materias=materias, materias_json=materias_json, titulo='Nueva Receta')
+                # Buscar si ya existe con ese nombre (case insensitive)
+                prod_exist = Producto.query.filter(
+                    db.func.lower(Producto.nombre) == nuevo_nombre.lower()
+                ).first()
+                if prod_exist:
+                    prod_id = prod_exist.id
+                else:
+                    nuevo_prod = Producto(nombre=nuevo_nombre, activo=True,
+                                          precio=0, stock=0,
+                                          creado_por=current_user.id)
+                    db.session.add(nuevo_prod); db.session.flush()
+                    prod_id = nuevo_prod.id
+                    flash(f'Producto "{nuevo_nombre}" creado automáticamente.','info')
+            else:
+                try:
+                    prod_id = int(prod_id_raw)
+                except (ValueError, TypeError):
+                    flash('Selecciona un producto válido.','danger')
+                    return render_template('produccion/receta_form.html', obj=None, productos=productos,
+                                           materias=materias, materias_json=materias_json, titulo='Nueva Receta')
             r = RecetaProducto(
                 producto_id=prod_id,
                 unidades_produce=int(request.form.get('unidades_produce',1)),
@@ -485,28 +512,15 @@ def register(app):
         )
         db.session.add(t_compra); db.session.flush()
     
-        t_abono = Tarea(
-            titulo=f'Verificar abono — {titulo_compra}',
-            descripcion=(f'Confirmar anticipo antes de comprar {mp.nombre}.\n'
-                         f'Cantidad requerida: {cant_fmt or "ver descripción"}\n\n{descripcion}'),
-            estado='pendiente', prioridad='alta',
-            asignado_a=usuario_id,
-            creado_por=current_user.id,
-            fecha_vencimiento=venc,
-            tarea_tipo='verificar_abono',
-            tarea_pareja_id=t_compra.id
-        )
-        db.session.add(t_abono); db.session.flush()
-        t_compra.tarea_pareja_id = t_abono.id
         db.session.commit()
-    
+
         _crear_notificacion(
             usuario_id, 'tarea_asignada',
             f'Nueva tarea asignada: {t_compra.titulo}',
-            f'Tienes 2 nuevas tareas de compra/abono para {mp.nombre}.',
+            f'Requiere comprar {cant_fmt or mp.nombre} para continuar producción.',
             url_for('tareas')
         )
-        flash(f'Tareas de compra y abono creadas y asignadas.', 'success')
+        flash(f'Tarea de compra creada y asignada.', 'success')
         return redirect(url_for('reservas'))
     
 

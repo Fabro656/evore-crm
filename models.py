@@ -147,8 +147,10 @@ class Venta(db.Model):
     numero              = db.Column(db.String(20))               # v12.3 VNT-YYYY-NNN
     cliente_informado_en= db.Column(db.DateTime, nullable=True)  # v12.2
     entregado_en        = db.Column(db.DateTime, nullable=True)   # v12.2
+    cotizacion_id       = db.Column(db.Integer, db.ForeignKey('cotizaciones.id'), nullable=True)  # v32
     items               = db.relationship('VentaProducto', backref='venta', lazy=True, cascade='all, delete-orphan')
     ordenes_produccion  = db.relationship('OrdenProduccion', foreign_keys='OrdenProduccion.venta_id', lazy=True, back_populates='venta')
+    cotizacion_origen   = db.relationship('Cotizacion', foreign_keys='Venta.cotizacion_id')
 
 class TareaAsignado(db.Model):
     __tablename__ = 'tarea_asignados'
@@ -871,6 +873,8 @@ def _migrate(conn):
         ("ALTER TABLE venta_productos ADD COLUMN IF NOT EXISTS es_servicio BOOLEAN DEFAULT FALSE"),
         ("ALTER TABLE venta_productos ADD COLUMN IF NOT EXISTS servicio_id INTEGER REFERENCES servicios(id)"),
         ("ALTER TABLE venta_productos ADD COLUMN IF NOT EXISTS unidad VARCHAR(30) DEFAULT 'unidades'"),
+        # v32 — Venta: vincular cotización origen
+        ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS cotizacion_id INTEGER REFERENCES cotizaciones(id)"),
     ]
     for sql in migrations:
         try:

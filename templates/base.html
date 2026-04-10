@@ -340,7 +340,8 @@ html[data-theme="dark"] .diag-verde{background:rgba(59,168,96,.12);color:#80D9A0
   #main{margin-left:0;width:100%}
   .content{padding:.85rem .75rem}
   .topbar{padding:.55rem .75rem;gap:.4rem;overflow:hidden}
-  .topbar-right{gap:.3rem!important;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;max-width:calc(100vw - 60px)}
+  .topbar-right{gap:.3rem!important;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;max-width:calc(100vw - 70px);flex-shrink:0}
+  .topbar-right .btn{white-space:nowrap;flex-shrink:0}
   .topbar-right::-webkit-scrollbar{display:none}
   .pg-title{font-size:.9rem;max-width:120px;flex-shrink:1}
   .table-responsive{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -372,7 +373,11 @@ html[data-theme="dark"] .diag-verde{background:rgba(59,168,96,.12);color:#80D9A0
 }
 @media(min-width:769px){#sb-overlay{display:none!important}}
 @media(max-width:576px){.fab{bottom:20px;right:20px;width:52px;height:52px;font-size:1.35rem}}
-@media(max-width:768px){#diagBtn{bottom:84px;right:20px}}
+@media(max-width:768px){
+  #diagBtn{bottom:148px;right:20px;width:40px;height:40px;font-size:.85rem}
+  #aiFab{bottom:80px!important;right:20px!important;width:46px!important;height:46px!important;font-size:1.1rem!important}
+  #aiPanel{width:calc(100vw - 24px)!important;right:12px!important;bottom:135px!important;height:480px!important}
+}
 img,svg{max-width:100%;height:auto}
 .logo-area svg{max-height:40px!important}
 </style>{% endraw %}

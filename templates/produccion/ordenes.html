@@ -43,6 +43,10 @@
         {% endif %}
       {% elif o.estado == 'en_produccion' %}
         <span class="badge bg-primary"><i class="bi bi-gear-wide-connected me-1"></i>En producción</span>
+      {% elif o.estado == 'pausada' %}
+        <span class="badge bg-warning text-dark"><i class="bi bi-pause-circle me-1"></i>Pausada</span>
+      {% elif o.estado == 'cancelado' %}
+        <span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i>Cancelada</span>
       {% else %}
         <span class="badge bg-success">Completado</span>
       {% endif %}
@@ -59,6 +63,8 @@
       </button>
       {% elif o.estado == 'pendiente_materiales' %}
       <span class="text-muted" style="font-size:.75rem">Iniciar en Reservas</span>
+      {% elif o.estado == 'pausada' %}
+      <span class="text-warning" style="font-size:.75rem"><i class="bi bi-pause-circle me-1"></i>Aguarda anticipo</span>
       {% endif %}
     </td>
   </tr>

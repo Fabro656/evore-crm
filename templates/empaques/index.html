@@ -36,36 +36,26 @@
       </td>
       <td class="text-center"><small>{{ '%.3f'|format(e.peso_unitario) }} kg</small></td>
       <td class="text-center"><small>{{ '%.1f'|format(e.peso_max_caja) }} kg</small></td>
-      <td class="text-center">
-        <span class="b b-activo">{{ e.unidades_por_caja }}</span>
-      </td>
+      <td class="text-center"><span class="b b-activo">{{ e.unidades_por_caja }}</span></td>
       <td class="text-center">
         {% if e.aprobado %}
           <span class="b b-activo"><i class="bi bi-check-lg me-1"></i>Aprobado</span>
-          {% if e.materia_prima %}
-            <div style="font-size:.73rem;color:#00875A;margin-top:2px">
-              <i class="bi bi-boxes me-1"></i>{{ e.materia_prima.nombre }}
-            </div>
-          {% endif %}
+          {% if e.materia_prima %}<div style="font-size:.73rem;color:#00875A;margin-top:2px"><i class="bi bi-boxes me-1"></i>{{ e.materia_prima.nombre }}</div>{% endif %}
         {% else %}
           <span class="b b-borrador"><i class="bi bi-pencil me-1"></i>Borrador</span>
         {% endif %}
       </td>
       <td class="text-center">
-        <div class="d-flex gap-1 justify-content-center flex-wrap">
+        <div class="d-flex gap-1 justify-content-center">
           {% if not e.aprobado %}
           <form method="POST" action="{{ url_for('empaques_aprobar', id=e.id) }}"
                 onsubmit="return confirm('¿Aprobar este empaque? Se creará una materia prima automáticamente.')">
-            <button class="btn btn-sm btn-outline-success" title="Aprobar">
-              <i class="bi bi-check-lg"></i>
-            </button>
+            <button class="btn btn-sm btn-outline-success" title="Aprobar"><i class="bi bi-check-lg"></i></button>
           </form>
           {% endif %}
           <form method="POST" action="{{ url_for('empaques_eliminar', id=e.id) }}"
                 onsubmit="return confirm('¿Eliminar este empaque?')">
-            <button class="btn btn-sm btn-outline-danger" title="Eliminar">
-              <i class="bi bi-trash"></i>
-            </button>
+            <button class="btn btn-sm btn-outline-danger" title="Eliminar"><i class="bi bi-trash"></i></button>
           </form>
         </div>
       </td>
@@ -77,15 +67,14 @@
 
 {# ── Calculadora ────────────────────────────────────────────────── #}
 <div class="tc">
-  <div class="ch"><i class="bi bi-calculator-fill me-2"></i>Calculadora de variantes de empaque</div>
+  <div class="ch"><i class="bi bi-calculator-fill me-2"></i>Calculadora de empaques — Top 10 por aprovechamiento de peso</div>
   <div style="padding:1.2rem 1.4rem">
 
-    {# inputs #}
     <div class="row g-3 mb-3">
       <div class="col-md-6">
-        <label class="form-label fw-semibold" style="font-size:.85rem">Producto</label>
+        <label class="form-label fw-semibold" style="font-size:.85rem">Producto (opcional)</label>
         <select class="form-select form-select-sm" id="calc_producto">
-          <option value="">— Seleccionar (opcional) —</option>
+          <option value="">— Seleccionar —</option>
           {% for p in productos %}
           <option value="{{ p.id }}">{{ p.nombre }}{% if p.sku %} · {{ p.sku }}{% endif %}</option>
           {% endfor %}
@@ -93,24 +82,22 @@
       </div>
       <div class="col-md-3">
         <label class="form-label fw-semibold" style="font-size:.85rem">Margen interior (cm)</label>
-        <input type="number" id="calc_margen" class="form-control form-control-sm"
-               value="2" min="0" step="0.5" placeholder="2">
-        <div class="form-text" style="font-size:.75rem">Holgura extra por lado</div>
+        <input type="number" id="calc_margen" class="form-control form-control-sm" value="2" min="0" step="0.5">
       </div>
     </div>
 
-    <div class="row g-3 mb-1">
+    <div class="row g-3 mb-3">
       <div class="col-12"><div class="fw-semibold" style="font-size:.82rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Dimensiones del producto (cm)</div></div>
       <div class="col-4">
-        <label class="form-label" style="font-size:.82rem">Ancho</label>
+        <label class="form-label" style="font-size:.82rem">Ancho (X)</label>
         <input type="number" id="calc_ancho" class="form-control form-control-sm" step="0.1" min="0" placeholder="10.0">
       </div>
       <div class="col-4">
-        <label class="form-label" style="font-size:.82rem">Largo</label>
+        <label class="form-label" style="font-size:.82rem">Largo (Z)</label>
         <input type="number" id="calc_largo" class="form-control form-control-sm" step="0.1" min="0" placeholder="15.0">
       </div>
       <div class="col-4">
-        <label class="form-label" style="font-size:.82rem">Alto</label>
+        <label class="form-label" style="font-size:.82rem">Alto (Y)</label>
         <input type="number" id="calc_alto" class="form-control form-control-sm" step="0.1" min="0" placeholder="8.0">
       </div>
     </div>
@@ -127,59 +114,191 @@
       </div>
       <div class="col-md-4 d-flex align-items-end">
         <button id="btnCalcular" class="btn btn-primary btn-sm w-100">
-          <i class="bi bi-calculator-fill me-1"></i>Calcular todas las variantes
+          <i class="bi bi-calculator-fill me-1"></i>Calcular Top 10
         </button>
       </div>
     </div>
 
-    {# resultado: badge de máximo y tabla #}
-    <div id="calcResumen" style="display:none" class="mb-2">
+    <div id="calcError" class="alert alert-danger py-2" style="display:none;font-size:.85rem"></div>
+
+    <div id="calcResumen" style="display:none" class="mb-3">
       <span class="badge bg-light text-dark border me-2">
         <i class="bi bi-arrow-up-circle me-1 text-success"></i>Máximo por peso: <strong id="resMaxPeso">—</strong> uds
       </span>
       <span class="badge bg-light text-dark border">
-        <i class="bi bi-grid-3x3 me-1 text-primary"></i><strong id="resTotalVariantes">—</strong> variantes
+        <i class="bi bi-grid-3x3 me-1 text-primary"></i>Mostrando top 10 de <strong id="resTotalVariantes">—</strong> variantes
       </span>
     </div>
 
-    <div id="calcError" class="alert alert-danger py-2" style="display:none;font-size:.85rem"></div>
-
-    <div id="calcTablaWrap" style="display:none;max-height:520px;overflow-y:auto;border-radius:8px;border:1px solid #e8ecf5">
-      <table class="table table-sm mb-0" id="calcTabla">
-        <thead style="position:sticky;top:0;z-index:1;background:#f8f9fe">
-          <tr>
-            <th style="font-size:.78rem">Uds</th>
-            <th style="font-size:.78rem">Distribución<br><span style="font-weight:400;color:#6B778C">filas×cols×capas</span></th>
-            <th style="font-size:.78rem">Ancho caja</th>
-            <th style="font-size:.78rem">Largo caja</th>
-            <th style="font-size:.78rem">Alto caja</th>
-            <th style="font-size:.78rem">Peso total</th>
-            <th style="font-size:.78rem">% peso</th>
-            <th style="font-size:.78rem"></th>
-          </tr>
-        </thead>
-        <tbody id="calcTbody"></tbody>
-      </table>
+    {# Cards Top 10 #}
+    <div id="calcCards" style="display:none">
+      <div class="row g-3" id="cardsGrid"></div>
     </div>
 
   </div>
 </div>
 
 <script>
+// ── 3D Box Renderer ───────────────────────────────────────────────
+const BOX_COLORS = [
+  '#4C9BE8','#E8754C','#4CE88A','#E8D94C',
+  '#B44CE8','#4CE8D9','#E84C84','#88E84C',
+  '#E8A44C','#4C6BE8'
+];
+
+class BoxRenderer {
+  constructor(canvas, filas, cols, capas, label) {
+    this.cv   = canvas;
+    this.ctx  = canvas.getContext('2d');
+    this.R    = filas;   // rows  (X)
+    this.C    = cols;    // cols  (Z)
+    this.L    = capas;   // layers (Y)
+    this.label = label;
+    this.angle = -0.4;
+    this.tilt  = 0.35;
+    this._raf  = null;
+    this._running = false;
+  }
+
+  // Isometric-style projection with Y-axis rotation
+  project(x, y, z) {
+    const cos = Math.cos(this.angle);
+    const sin = Math.sin(this.angle);
+    // Rotate around Y
+    const rx = x * cos - z * sin;
+    const rz = x * sin + z * cos;
+    // Simple perspective
+    const dist = 5;
+    const fov  = dist / (dist + rz * 0.15 + 2);
+    const cx   = this.cv.width  / 2;
+    const cy   = this.cv.height / 2;
+    return {
+      x: cx + rx * fov * 38,
+      y: cy - (y * Math.cos(this.tilt) - rz * Math.sin(this.tilt) * 0.3) * fov * 38
+    };
+  }
+
+  drawFace(pts, fillColor, strokeColor) {
+    const ctx = this.ctx;
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.closePath();
+    ctx.fillStyle = fillColor;
+    ctx.fill();
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  }
+
+  drawUnit(ux, uy, uz, color) {
+    const p = (x,y,z) => this.project(x,y,z);
+    // 8 corners of the unit cube
+    const x0=ux, x1=ux+1, y0=uy, y1=uy+1, z0=uz, z1=uz+1;
+    const a = p(x0,y0,z0), b = p(x1,y0,z0), c = p(x1,y0,z1), d = p(x0,y0,z1);
+    const e = p(x0,y1,z0), f = p(x1,y1,z0), g = p(x1,y1,z1), h = p(x0,y1,z1);
+    const dark  = this._shade(color, -30);
+    const mid   = this._shade(color, -12);
+    const light = this._shade(color, 10);
+    // Bottom, back faces first (painter's algorithm simplified)
+    this.drawFace([d,c,g,h], mid,   '#0004');  // front face (z+)
+    this.drawFace([b,c,g,f], dark,  '#0004');  // right face (x+)
+    this.drawFace([e,f,g,h], light, '#0004');  // top face (y+)
+  }
+
+  _shade(hex, amount) {
+    let r = parseInt(hex.slice(1,3),16);
+    let g = parseInt(hex.slice(3,5),16);
+    let b = parseInt(hex.slice(5,7),16);
+    r = Math.max(0,Math.min(255,r+amount));
+    g = Math.max(0,Math.min(255,g+amount));
+    b = Math.max(0,Math.min(255,b+amount));
+    return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+  }
+
+  drawBox() {
+    const p = (x,y,z) => this.project(x,y,z);
+    const ctx = this.ctx;
+    const R=this.R, C=this.C, L=this.L;
+    // Outer wireframe
+    const corners = [
+      p(0,0,0), p(R,0,0), p(R,0,C), p(0,0,C),
+      p(0,L,0), p(R,L,0), p(R,L,C), p(0,L,C)
+    ];
+    const edges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],
+                   [0,4],[1,5],[2,6],[3,7]];
+    ctx.strokeStyle = 'rgba(26,31,54,0.25)';
+    ctx.lineWidth = 1;
+    edges.forEach(([a,b]) => {
+      ctx.beginPath();
+      ctx.moveTo(corners[a].x, corners[a].y);
+      ctx.lineTo(corners[b].x, corners[b].y);
+      ctx.stroke();
+    });
+  }
+
+  draw() {
+    const ctx = this.ctx;
+    const w = this.cv.width, h = this.cv.height;
+    ctx.clearRect(0,0,w,h);
+
+    // Draw units back-to-front (rough z-sort)
+    const units = [];
+    for (let y=0; y<this.L; y++)
+      for (let x=0; x<this.R; x++)
+        for (let z=0; z<this.C; z++)
+          units.push([x,y,z]);
+
+    // Sort by projected depth (painter's algorithm)
+    units.sort(([ax,ay,az],[bx,by,bz]) => {
+      const da = ax*Math.sin(this.angle) + az*Math.cos(this.angle) + ay*0.3;
+      const db = bx*Math.sin(this.angle) + bz*Math.cos(this.angle) + by*0.3;
+      return da - db;
+    });
+
+    units.forEach(([x,y,z]) => {
+      const color = BOX_COLORS[y % BOX_COLORS.length];
+      this.drawUnit(x,y,z,color);
+    });
+
+    this.drawBox();
+  }
+
+  start() {
+    if (this._running) return;
+    this._running = true;
+    const step = () => {
+      if (!this._running) return;
+      this.angle += 0.012;
+      this.draw();
+      this._raf = requestAnimationFrame(step);
+    };
+    step();
+  }
+
+  stop() {
+    this._running = false;
+    if (this._raf) cancelAnimationFrame(this._raf);
+  }
+}
+
+// ── Calculadora ───────────────────────────────────────────────────
+const renderers = [];
+
 document.getElementById('btnCalcular').addEventListener('click', calcular);
 
 function calcular() {
-  const ancho     = parseFloat(document.getElementById('calc_ancho').value);
-  const largo     = parseFloat(document.getElementById('calc_largo').value);
-  const alto      = parseFloat(document.getElementById('calc_alto').value);
-  const pesoUnit  = parseFloat(document.getElementById('calc_peso_unit').value);
-  const pesoMax   = parseFloat(document.getElementById('calc_peso_max').value);
-  const margen    = parseFloat(document.getElementById('calc_margen').value) || 2;
-  const errEl     = document.getElementById('calcError');
+  const ancho    = parseFloat(document.getElementById('calc_ancho').value);
+  const largo    = parseFloat(document.getElementById('calc_largo').value);
+  const alto     = parseFloat(document.getElementById('calc_alto').value);
+  const pesoUnit = parseFloat(document.getElementById('calc_peso_unit').value);
+  const pesoMax  = parseFloat(document.getElementById('calc_peso_max').value);
+  const margen   = parseFloat(document.getElementById('calc_margen').value) || 2;
+  const errEl    = document.getElementById('calcError');
 
   errEl.style.display = 'none';
-  if ([ancho, largo, alto, pesoUnit, pesoMax].some(v => isNaN(v) || v <= 0)) {
-    errEl.textContent = 'Completa todos los campos de dimensiones y peso con valores mayores a 0.';
+  if ([ancho,largo,alto,pesoUnit,pesoMax].some(v => isNaN(v)||v<=0)) {
+    errEl.textContent = 'Completa todos los campos con valores mayores a 0.';
     errEl.style.display = '';
     return;
   }
@@ -188,23 +307,26 @@ function calcular() {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Calculando…';
 
+  // Stop previous renderers
+  renderers.forEach(r => r.stop());
+  renderers.length = 0;
+
   fetch('{{ url_for("empaques_calcular") }}', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: {'Content-Type':'application/json'},
     body: JSON.stringify({
-      ancho_prod: ancho, largo_prod: largo, alto_prod: alto,
-      peso_unitario: pesoUnit, peso_max_caja: pesoMax, margen: margen
+      ancho_prod:ancho, largo_prod:largo, alto_prod:alto,
+      peso_unitario:pesoUnit, peso_max_caja:pesoMax, margen:margen
     })
   })
   .then(r => r.json())
   .then(data => {
     btn.disabled = false;
-    btn.innerHTML = '<i class="bi bi-calculator-fill me-1"></i>Calcular todas las variantes';
-
+    btn.innerHTML = '<i class="bi bi-calculator-fill me-1"></i>Calcular Top 10';
     if (data.error) {
       errEl.textContent = data.error;
       errEl.style.display = '';
-      document.getElementById('calcTablaWrap').style.display = 'none';
+      document.getElementById('calcCards').style.display = 'none';
       return;
     }
 
@@ -212,65 +334,124 @@ function calcular() {
     document.getElementById('resTotalVariantes').textContent = data.total_variantes;
     document.getElementById('calcResumen').style.display  = '';
 
-    const tbody = document.getElementById('calcTbody');
-    tbody.innerHTML = '';
+    // Top 10 por % de peso (mayor aprovechamiento)
+    const top10 = [...data.variantes]
+      .sort((a,b) => b.pct_peso - a.pct_peso)
+      .slice(0,10);
 
     const productoId = document.getElementById('calc_producto').value;
+    const grid = document.getElementById('cardsGrid');
+    grid.innerHTML = '';
 
-    data.variantes.forEach(v => {
+    top10.forEach((v, idx) => {
       const pct = v.pct_peso;
-      const color = pct >= 85 ? '#d4edda' : pct >= 60 ? '#fff3cd' : '#f8f9fe';
-      const pctBadge = pct >= 85
-        ? `<span class="badge" style="background:#00875A;font-size:.72rem">${pct}%</span>`
-        : pct >= 60
-          ? `<span class="badge" style="background:#FF8B00;font-size:.72rem">${pct}%</span>`
-          : `<span class="badge bg-secondary" style="font-size:.72rem">${pct}%</span>`;
+      const borderColor = pct >= 90 ? '#00875A' : pct >= 75 ? '#FF8B00' : '#5E6C84';
+      const badgeClass  = pct >= 90 ? 'badge-green' : pct >= 75 ? 'badge-orange' : 'badge-gray';
 
-      const tr = document.createElement('tr');
-      tr.style.background = color;
-      tr.innerHTML = `
-        <td class="fw-bold" style="font-size:.85rem">${v.total}</td>
-        <td style="font-size:.85rem;font-family:monospace">${v.distribucion}</td>
-        <td style="font-size:.83rem">${v.ancho_caja} cm</td>
-        <td style="font-size:.83rem">${v.largo_caja} cm</td>
-        <td style="font-size:.83rem">${v.alto_caja} cm</td>
-        <td style="font-size:.83rem">${v.peso_total} kg</td>
-        <td>${pctBadge}</td>
-        <td>
-          <button class="btn btn-xs btn-outline-primary"
-                  title="Guardar esta variante como borrador"
-                  onclick="guardarVariante(
-                    ${productoId||0},${v.total},
-                    ${v.ancho_caja},${v.largo_caja},${v.alto_caja},
-                    ${pesoUnit},${pesoMax}
-                  )">
-            <i class="bi bi-floppy"></i>
+      // Orientation description
+      const oriLabel = orientationLabel(v.filas, v.columnas, v.capas, ancho, largo, alto);
+
+      const card = document.createElement('div');
+      card.className = 'col-12 col-md-6 col-lg-4';
+      card.innerHTML = `
+        <div class="emp-card" style="border-left:4px solid ${borderColor}">
+          <div class="emp-card-top">
+            <div>
+              <div class="emp-rank">#${idx+1}</div>
+              <div class="emp-total">${v.total} <span>unidades</span></div>
+              <div class="emp-dist">${v.distribucion} (fil×col×cap)</div>
+            </div>
+            <div class="emp-badge ${badgeClass}">${pct}%<br><small>peso</small></div>
+          </div>
+          <canvas id="canvas_${idx}" width="190" height="155"
+                  style="display:block;margin:0 auto 8px;border-radius:6px;background:#f8f9fe"></canvas>
+          <div class="emp-dims">
+            <span><i class="bi bi-arrows-expand"></i> ${v.ancho_caja}cm</span>
+            <span><i class="bi bi-arrows-expand" style="transform:rotate(90deg)"></i> ${v.largo_caja}cm</span>
+            <span><i class="bi bi-layers"></i> ${v.alto_caja}cm</span>
+            <span class="text-muted">${v.peso_total}kg</span>
+          </div>
+          <div class="emp-ori">${oriLabel}</div>
+          <button class="btn btn-sm btn-outline-primary w-100 mt-2"
+                  onclick="guardarVariante(${productoId||0},${v.total},${v.ancho_caja},${v.largo_caja},${v.alto_caja},${pesoUnit},${pesoMax})">
+            <i class="bi bi-floppy me-1"></i>Guardar como borrador
           </button>
-        </td>`;
-      tbody.appendChild(tr);
+        </div>
+      `;
+      grid.appendChild(card);
+
+      // Init 3D renderer after DOM is ready
+      setTimeout(() => {
+        const cv = document.getElementById(`canvas_${idx}`);
+        if (!cv) return;
+        const r = new BoxRenderer(cv, v.filas, v.columnas, v.capas,
+          `${v.filas}×${v.columnas}×${v.capas}`);
+        r.draw();
+        r.start();
+        renderers.push(r);
+
+        // Pause when not visible (IntersectionObserver)
+        if ('IntersectionObserver' in window) {
+          const obs = new IntersectionObserver(entries => {
+            entries[0].isIntersecting ? r.start() : r.stop();
+          });
+          obs.observe(cv);
+        }
+      }, 80 * idx);
     });
 
-    document.getElementById('calcTablaWrap').style.display = '';
+    document.getElementById('calcCards').style.display = '';
   })
   .catch(err => {
     btn.disabled = false;
-    btn.innerHTML = '<i class="bi bi-calculator-fill me-1"></i>Calcular todas las variantes';
+    btn.innerHTML = '<i class="bi bi-calculator-fill me-1"></i>Calcular Top 10';
     errEl.textContent = 'Error de conexión: ' + err;
     errEl.style.display = '';
   });
 }
 
+function orientationLabel(filas, cols, capas, ux, uz, uy) {
+  // filas = X, cols = Z, capas = Y
+  // Describe orientation based on which dimension stacks
+  const parts = [];
+  if (filas > 1) parts.push(`${filas} en X`);
+  if (cols  > 1) parts.push(`${cols} en Z`);
+  if (capas > 1) parts.push(`${capas} capas`);
+  if (parts.length === 0) return '1 unidad por caja';
+  return parts.join(' · ');
+}
+
 function guardarVariante(prodId, uds, ancho, largo, alto, pesoUnit, pesoMax) {
   const params = new URLSearchParams({
-    producto_id: prodId, unidades_por_caja: uds,
-    ancho: ancho, largo: largo, alto: alto,
-    peso_unitario: pesoUnit, peso_max_caja: pesoMax
+    producto_id:prodId, unidades_por_caja:uds,
+    ancho:ancho, largo:largo, alto:alto,
+    peso_unitario:pesoUnit, peso_max_caja:pesoMax
   });
   window.location.href = '{{ url_for("empaques_nuevo") }}?' + params.toString();
 }
 </script>
 
+{% block extra_css %}
 <style>
-.btn-xs{padding:.2rem .45rem;font-size:.75rem}
+.emp-card {
+  background:#fff; border-radius:10px; border:1px solid #e8ecf5;
+  padding:1rem; height:100%;
+  transition: box-shadow .2s;
+}
+.emp-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+.emp-card-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:.6rem; }
+.emp-rank { font-size:.72rem; color:#6B778C; font-weight:700; text-transform:uppercase; letter-spacing:1px; }
+.emp-total { font-size:1.6rem; font-weight:800; color:#1a1f36; line-height:1.1; }
+.emp-total span { font-size:.85rem; font-weight:400; color:#6B778C; }
+.emp-dist { font-size:.78rem; color:#6B778C; font-family:monospace; margin-top:2px; }
+.emp-badge { text-align:center; font-size:1.1rem; font-weight:800; border-radius:8px; padding:.35rem .6rem; min-width:52px; }
+.badge-green  { background:#E3FCEF; color:#00875A; }
+.badge-orange { background:#FFF0B3; color:#974F0C; }
+.badge-gray   { background:#F4F5F7; color:#5E6C84; }
+.emp-dims { display:flex; gap:.5rem; flex-wrap:wrap; font-size:.78rem; color:#1a1f36; margin-bottom:.3rem; }
+.emp-dims span { background:#f4f5f7; border-radius:4px; padding:.2rem .45rem; }
+.emp-ori { font-size:.78rem; color:#5E6C84; font-style:italic; min-height:1.2em; }
 </style>
+{% endblock %}
+
 {% endblock %}

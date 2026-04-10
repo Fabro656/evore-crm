@@ -13,11 +13,35 @@
     </div>
     <div class="col-md-4">
       <label class="form-label">Cliente</label>
-      <select name="cliente_id" class="form-select"><option value="">— Sin cliente —</option>
-        {% for c in clientes_list %}<option value="{{ c.id }}" {% if obj and obj.cliente_id==c.id %}selected{% endif %}>{{ c.empresa or c.nombre }}</option>{% endfor %}
+      <select name="cliente_id" id="clienteSel" class="form-select" onchange="cargarCotizaciones(this.value)">
+        <option value="">— Sin cliente —</option>
+        {% for c in clientes_list %}<option value="{{ c.id }}" {% if (obj and obj.cliente_id==c.id) or (pre_cliente_id and pre_cliente_id==c.id) %}selected{% endif %}>{{ c.empresa or c.nombre }}</option>{% endfor %}
       </select>
       <div class="form-text">Puedes dejarlo en blanco y asignarlo después.</div>
     </div>
+    {% if not obj %}
+    <div class="col-md-6">
+      <label class="form-label"><i class="bi bi-file-text me-1"></i>Cotización de origen</label>
+      <select name="cotizacion_id" id="cotizacionSel" class="form-select">
+        <option value="">— Sin cotización vinculada —</option>
+        {% for c in cots_disponibles|default([]) %}
+        <option value="{{ c.id }}"
+          data-cliente="{{ c.cliente_id or '' }}"
+          data-titulo="{{ c.titulo or '' }}"
+          {% if pre_cotizacion_id and pre_cotizacion_id==c.id %}selected{% endif %}>
+          {{ c.numero or c.id }} — {{ c.titulo or 'Sin título' }}
+          {% if c.cliente %} ({{ c.cliente.empresa or c.cliente.nombre }}){% endif %}
+          — {{ (c.total or 0)|int|cop }}
+        </option>
+        {% endfor %}
+      </select>
+      <div class="form-text">Al crear la venta, la cotización quedará marcada como <strong>Aprobada</strong>.</div>
+    </div>
+    <div id="cotizacionesCliente" class="col-md-6" style="display:none">
+      <label class="form-label" style="color:var(--ac)"><i class="bi bi-clock-history me-1"></i>Cotizaciones de este cliente</label>
+      <div id="cotListaCliente" style="font-size:.85rem;max-height:120px;overflow-y:auto"></div>
+    </div>
+    {% endif %}
   </div>
 </div>
 
@@ -40,8 +64,8 @@
   <div class="row g-3 mb-2">
     <div class="col-md-3">
       <label class="form-label">Estado</label>
-      <select name="estado" class="form-select">
-        {% for est,lbl in [('prospecto','Prospecto'),('negociacion','Negociación'),('anticipo_pagado','Anticipo Pagado'),('completado','Completado'),('perdido','Perdido')] %}
+      <select name="estado" id="estadoSel" class="form-select" onchange="toggleAnticipoField()">
+        {% for est,lbl in [('prospecto','Prospecto'),('negociacion','Negociación'),('anticipo_pagado','Anticipo Pagado'),('pagado','Pagado'),('cancelado','Cancelado')] %}
         <option value="{{ est }}" {% if obj and obj.estado==est %}selected{% elif not obj and est=='prospecto' %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
       </select>
       <div class="form-text">Refleja en qué etapa va el negocio.</div>
@@ -195,4 +219,53 @@ calcEnt();
 const feh=document.getElementById('entHid').value;if(feh){const p=feh.split('-');document.getElementById('entVis').value=p[2]+'/'+p[1]+'/'+p[0];}
 // Auto-título: cliente + estado + fecha anticipo
 setupAutoTitulo('[name="titulo"]',['[name="cliente_id"]','[name="estado"]','[name="fecha_anticipo"]']);
+// Desactivar % anticipo si la venta está pagada
+function toggleAnticipoField(){
+  const estado=document.getElementById('estadoSel').value;
+  const pctField=document.getElementById('pctA');
+  if(estado==='pagado'||estado==='cancelado'){
+    pctField.setAttribute('readonly','readonly');
+    pctField.value=0;
+    pctField.style.background='var(--surface2)';
+  }else{
+    pctField.removeAttribute('readonly');
+    pctField.style.background='';
+  }
+  calcA();
+}
+toggleAnticipoField();
+// Cotizaciones por cliente
+const COTS = {% if cots_disponibles is defined %}[{% for c in cots_disponibles %}{
+  "id":{{ c.id }},"cliente_id":{{ c.cliente_id or 'null' }},"titulo":{{ (c.titulo or '')|tojson }},"numero":{{ (c.numero or c.id|string)|tojson }},"total":{{ c.total or 0 }},"estado":{{ (c.estado or 'borrador')|tojson }}
+}{% if not loop.last %},{% endif %}{% endfor %}]{% else %}[]{% endif %};
+function cargarCotizaciones(clienteId){
+  const box=document.getElementById('cotizacionesCliente');
+  const lista=document.getElementById('cotListaCliente');
+  const cotSel=document.getElementById('cotizacionSel');
+  if(!box||!lista||!clienteId) return box&&(box.style.display='none');
+  const cid=parseInt(clienteId);
+  const cc=COTS.filter(c=>c.cliente_id==cid);
+  if(cc.length===0){box.style.display='none';return;}
+  box.style.display='';
+  lista.innerHTML=cc.map(c=>`<div class="d-flex justify-content-between align-items-center py-1 border-bottom">
+    <div><strong>${c.numero||c.id}</strong> ${c.titulo||''} <span class="b b-${c.estado}" style="font-size:.7rem">${c.estado}</span></div>
+    <button type="button" class="btn btn-xs btn-outline-primary" style="font-size:.7rem;padding:1px 7px" onclick="seleccionarCot(${c.id})">Usar</button>
+  </div>`).join('');
+  // Filter cotizacion selector to show only this client's quotes
+  if(cotSel){
+    Array.from(cotSel.options).forEach(opt=>{
+      if(!opt.value) return;
+      opt.hidden = opt.dataset.cliente && opt.dataset.cliente != '' && opt.dataset.cliente != clienteId.toString();
+    });
+  }
+}
+function seleccionarCot(cotId){
+  const sel=document.getElementById('cotizacionSel');
+  if(sel){sel.value=cotId;}
+}
+// Run on load if pre-selected
+document.addEventListener('DOMContentLoaded',function(){
+  const cl=document.getElementById('clienteSel');
+  if(cl&&cl.value) cargarCotizaciones(cl.value);
+});
 </script>{% endblock %}

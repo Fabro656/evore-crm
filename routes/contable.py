@@ -48,10 +48,11 @@ def register(app):
         total_ingresos = sum(float(v.total or 0) for v in ventas_mes)
         total_anticipo = sum(float(v.monto_anticipo or 0) for v in ventas_mes)
 
-        # Asientos manuales de ingreso del mes
+        # Asientos manuales de ingreso del mes (excluyendo inversiones de socio)
         try:
             asientos_ingreso = AsientoContable.query.filter(
                 AsientoContable.clasificacion == 'ingreso',
+                AsientoContable.tipo != 'inversion_socio',  # Excluir aportaciones de capital
                 AsientoContable.fecha >= mes_ini,
                 AsientoContable.fecha <= mes_fin
             ).all()

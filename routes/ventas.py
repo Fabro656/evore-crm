@@ -285,12 +285,20 @@ def register(app):
     def venta_nueva():
         cl = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
         iva_pct = _iva_rate()
+        # Cotizaciones disponibles para vincular (enviadas o aprobadas, o borrador)
+        cots_disponibles = Cotizacion.query.filter(
+            Cotizacion.estado.in_(['borrador','enviada','aprobada'])
+        ).order_by(Cotizacion.fecha_emision.desc()).all()
+        # Pre-selección de cliente via query param (desde cotizacion)
+        pre_cliente_id = request.args.get('cliente_id', type=int)
+        pre_cotizacion_id = request.args.get('cotizacion_id', type=int)
         if request.method == 'POST':
             fa = request.form.get('fecha_anticipo')
             fe = request.form.get('fecha_entrega_est')
             subtotal = float(request.form.get('subtotal_calc') or 0)
             iva_monto = round(subtotal * iva_pct / 100.0, 2)
             total = subtotal + iva_monto
+            cot_id = request.form.get('cotizacion_id') or None
             v = Venta(titulo=request.form['titulo'],
                 cliente_id=request.form.get('cliente_id') or None,
                 subtotal=subtotal,
@@ -303,8 +311,17 @@ def register(app):
                 fecha_anticipo=datetime.strptime(fa,'%Y-%m-%d').date() if fa else None,
                 dias_entrega=int(request.form.get('dias_entrega') or 30),
                 fecha_entrega_est=datetime.strptime(fe,'%Y-%m-%d').date() if fe else None,
-                notas=request.form.get('notas',''), creado_por=current_user.id)
+                notas=request.form.get('notas',''), creado_por=current_user.id,
+                cotizacion_id=int(cot_id) if cot_id else None)
             db.session.add(v); db.session.flush()
+            # Marcar cotización como aprobada si fue vinculada
+            if cot_id:
+                try:
+                    cot_obj = Cotizacion.query.get(int(cot_id))
+                    if cot_obj and cot_obj.estado not in ('aprobada','vencida'):
+                        cot_obj.estado = 'aprobada'
+                except Exception as ce:
+                    logging.warning(f'No se pudo marcar cotizacion {cot_id} como aprobada: {ce}')
             # Generar numero único VNT-YYYY-NNN
             hoy = datetime.utcnow().date()
             ultimo_vnt = Venta.query.filter(
@@ -327,7 +344,8 @@ def register(app):
                 flash('Error al crear la venta. Verifica los datos e intenta de nuevo.', 'danger')
         return render_template('ventas/form.html', obj=None, clientes_list=cl,
                                titulo='Nueva Venta', productos_json=_prods_json(), items_json=[],
-                               iva_default=iva_pct)
+                               iva_default=iva_pct, cots_disponibles=cots_disponibles,
+                               pre_cliente_id=pre_cliente_id, pre_cotizacion_id=pre_cotizacion_id)
 
 
     # ── venta_editar (/ventas/<int:id>/editar)
@@ -464,6 +482,49 @@ def register(app):
                 'warning'
             )
 
+        # ── BLOQUE 4b: Pausar producción si la venta retrocede desde anticipo_pagado ──
+        ESTADOS_ACTIVOS = {'anticipo_pagado', 'pagado', 'completado'}
+        ESTADOS_PAUSAN  = {'prospecto', 'negociacion'}
+        if estado_anterior == 'anticipo_pagado' and nuevo in ESTADOS_PAUSAN:
+            ordenes_a_pausar = OrdenProduccion.query.filter(
+                OrdenProduccion.venta_id == venta.id,
+                OrdenProduccion.estado.in_(['pendiente_materiales','en_produccion'])
+            ).all()
+            for o in ordenes_a_pausar:
+                o.estado = 'pausada'
+            if ordenes_a_pausar:
+                # Notificar al creador de la venta
+                try:
+                    creador_id = venta.creado_por or current_user.id
+                    t_pausa = Tarea(
+                        titulo=f'Producción pausada — {venta.titulo or venta.numero}',
+                        descripcion=(
+                            f'La venta {venta.numero or "#"+str(venta.id)} cambió de '
+                            f'"Anticipo Pagado" a "{nuevo}". '
+                            f'Se pausaron {len(ordenes_a_pausar)} orden(es) de producción. '
+                            f'Verificar con el cliente antes de reanudar.'
+                        ),
+                        estado='pendiente', prioridad='alta',
+                        asignado_a=creador_id,
+                        creado_por=current_user.id,
+                        fecha_vencimiento=(datetime.utcnow() + timedelta(days=1)).date()
+                    )
+                    db.session.add(t_pausa)
+                except Exception as ep:
+                    logging.warning(f'venta_cambiar_estado: tarea pausa error: {ep}')
+            flash(f'Estado actualizado. {len(ordenes_a_pausar)} orden(es) de producción pausada(s).', 'warning')
+
+        # ── BLOQUE 4c: Reanudar producción si venta vuelve a anticipo_pagado ──
+        if nuevo == 'anticipo_pagado' and estado_anterior in ESTADOS_PAUSAN:
+            ordenes_pausadas = OrdenProduccion.query.filter(
+                OrdenProduccion.venta_id == venta.id,
+                OrdenProduccion.estado == 'pausada'
+            ).all()
+            for o in ordenes_pausadas:
+                o.estado = 'en_produccion'
+            if ordenes_pausadas:
+                flash(f'{len(ordenes_pausadas)} orden(es) de producción reanudadas.', 'success')
+
         # ── BLOQUE 5: Crear asiento contable automático cuando venta se marca como "pagado" ──
         if nuevo == 'pagado' and estado_anterior != 'pagado':
             try:
@@ -564,7 +625,7 @@ def register(app):
         try:
             venta.entregado_en = datetime.utcnow()
             # Mark as fully paid when delivered (unless already cancelled/lost)
-            if venta.estado not in ('cancelado', 'perdido'):
+            if venta.estado not in ('cancelado', 'perdido', 'cancelado'):
                 venta.estado = 'pagado'
             _descontar_stock_venta(venta)
             db.session.commit()
@@ -573,7 +634,9 @@ def register(app):
             db.session.rollback()
             logging.error(f'venta_entregar error: {e}')
             flash('Error al entregar la venta. Por favor intenta de nuevo.', 'danger')
-        return redirect(url_for('ventas'))
+            return redirect(url_for('ventas'))
+        # Redirigir a la remisión para que el usuario pueda imprimirla/descargarla
+        return redirect(url_for('venta_remision', id=venta.id))
 
 
     # ── api_venta_material_status (/api/ventas/<id>/material_status)

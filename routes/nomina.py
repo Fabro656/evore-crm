@@ -121,29 +121,41 @@ def register(app):
     def empleado_nuevo():
         if request.method == 'POST':
             try:
+                fecha_ingreso = None
+                if request.form.get('fecha_ingreso'):
+                    try:
+                        fecha_ingreso = datetime.strptime(request.form.get('fecha_ingreso'), '%Y-%m-%d').date()
+                    except (ValueError, TypeError) as fe:
+                        logging.warning(f'empleado_nuevo: error parsing fecha_ingreso: {fe}')
+                        fecha_ingreso = None
+
                 e = Empleado(
-                    nombre=request.form.get('nombre',''),
-                    apellido=request.form.get('apellido',''),
-                    cedula=request.form.get('cedula',''),
-                    email=request.form.get('email',''),
-                    telefono=request.form.get('telefono',''),
-                    cargo=request.form.get('cargo',''),
-                    departamento=request.form.get('departamento',''),
+                    nombre=request.form.get('nombre','').strip(),
+                    apellido=request.form.get('apellido','').strip(),
+                    cedula=request.form.get('cedula','').strip(),
+                    email=request.form.get('email','').strip(),
+                    telefono=request.form.get('telefono','').strip(),
+                    cargo=request.form.get('cargo','').strip(),
+                    departamento=request.form.get('departamento','').strip(),
                     tipo_contrato=request.form.get('tipo_contrato','indefinido'),
                     salario_base=float(request.form.get('salario_base') or 0),
                     auxilio_transporte=request.form.get('auxilio_transporte')=='on',
                     nivel_riesgo_arl=int(request.form.get('nivel_riesgo_arl',1)),
                     estado='activo',
-                    fecha_ingreso=datetime.strptime(request.form.get('fecha_ingreso',''), '%Y-%m-%d').date() if request.form.get('fecha_ingreso') else None,
-                    notas=request.form.get('notas',''),
+                    fecha_ingreso=fecha_ingreso,
+                    notas=request.form.get('notas','').strip(),
                     creado_por=current_user.id
                 )
+                if not e.nombre or not e.apellido:
+                    flash('El nombre y apellido son obligatorios.','danger')
+                    return render_template('nomina/form.html', empleado=None)
                 db.session.add(e)
                 db.session.commit()
-                flash(f'Empleado {e.nombre} creado exitosamente.','success')
+                flash(f'Empleado {e.nombre} {e.apellido} creado exitosamente.','success')
                 return redirect(url_for('empleado_ver', id=e.id))
             except Exception as ex:
                 db.session.rollback()
+                logging.error(f'empleado_nuevo error: {str(ex)}')
                 flash(f'Error al crear empleado: {str(ex)}','danger')
         return render_template('nomina/form.html', empleado=None)
     
@@ -220,4 +232,47 @@ def register(app):
         db.session.commit()
         flash(f'Empleado {empleado.nombre} marcado como {empleado.estado}.','success')
         return redirect(url_for('nomina_index'))
+
+
+    # ── parametros_nomina_editar (/nomina/parametros)
+    @app.route('/nomina/parametros', methods=['GET','POST'])
+    @login_required
+    @requiere_modulo('nomina')
+    def parametros_nomina_editar():
+        """Permite a admin/contador editar los parámetros globales de nómina (tasas, SMLMV, auxilio transporte)."""
+        if current_user.rol not in ('admin', 'contador'):
+            flash('Solo administradores y contadores pueden editar parámetros de nómina.','danger')
+            return redirect(url_for('nomina_index'))
+
+        from utils import (
+            SMLMV_2025, AUXILIO_TRANSPORTE_2025,
+            TASA_SALUD_EMP, TASA_PENSION_EMP,
+            TASA_SALUD_EMPR, TASA_PENSION_EMPR,
+            TASA_ARL, TASA_CAJA_COMP, TASA_SENA, TASA_ICBF,
+            TASA_CESANTIAS, TASA_INT_CESANTIAS,
+            TASA_PRIMA, TASA_VACACIONES
+        )
+
+        if request.method == 'POST':
+            # Nota: Los parámetros se editan en utils.py. Este formulario es informativo
+            # y en una implementación completa, se almacenarían en la BD en una tabla de configuración.
+            flash('Los parámetros de nómina se editan directamente en utils.py.', 'info')
+            return redirect(url_for('nomina_index'))
+
+        # Mostrar parámetros actuales
+        return render_template('nomina/parametros.html',
+            smlmv=SMLMV_2025,
+            auxilio_transporte=AUXILIO_TRANSPORTE_2025,
+            tasa_salud_emp=TASA_SALUD_EMP,
+            tasa_pension_emp=TASA_PENSION_EMP,
+            tasa_salud_empr=TASA_SALUD_EMPR,
+            tasa_pension_empr=TASA_PENSION_EMPR,
+            tasa_caja=TASA_CAJA_COMP,
+            tasa_sena=TASA_SENA,
+            tasa_icbf=TASA_ICBF,
+            tasa_cesantias=TASA_CESANTIAS,
+            tasa_int_cesantias=TASA_INT_CESANTIAS,
+            tasa_prima=TASA_PRIMA,
+            tasa_vacaciones=TASA_VACACIONES
+        )
     
