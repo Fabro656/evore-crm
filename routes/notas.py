@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, date as date_type
 import json, os, re, io, secrets, logging
 
 def register(app):
+    def _noop(*a, **kw): pass
 
     # ── notas (/notas)
     @app.route('/notas')
@@ -41,7 +42,7 @@ def register(app):
                 fecha_revision=datetime.strptime(fd_rev,'%Y-%m-%d').date() if fd_rev else None,
                 creado_por=current_user.id)
             db.session.add(n)
-            _log('crear','nota',n.id,f'Nota creada: {n.titulo or "(sin título)"}'); db.session.commit()
+            db.session.commit()
             flash('Nota guardada.','success'); return redirect(url_for('notas'))
         return render_template('notas/form.html', obj=None, titulo='Nueva Nota',
             clientes_list=cl, productos_list=pl)
@@ -63,7 +64,7 @@ def register(app):
             obj.modulo=request.form.get('modulo','') or None
             obj.fecha_revision=datetime.strptime(fd_rev,'%Y-%m-%d').date() if fd_rev else None
             obj.actualizado_en=datetime.utcnow()
-            _log('editar','nota',obj.id,f'Nota editada: {obj.titulo or "(sin título)"}'); db.session.commit()
+            db.session.commit()
             flash('Nota actualizada.','success'); return redirect(url_for('notas'))
         return render_template('notas/form.html', obj=obj, titulo='Editar Nota',
             clientes_list=cl, productos_list=pl)

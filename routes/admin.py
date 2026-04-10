@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, date as date_type
 import json, os, re, io, secrets, logging
 
 def register(app):
+    def _noop(*a, **kw): pass
 
     # ── impuestos (/finanzas/impuestos)
     @app.route('/finanzas/impuestos')

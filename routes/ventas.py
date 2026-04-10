@@ -36,6 +36,40 @@ def register(app):
         from services.inventario import InventarioService
         InventarioService.descontar_stock_venta(venta)
 
+    def _procesar_venta_produccion(venta):
+        """Crea órdenes de producción y reservas de materias primas si no hay stock."""
+        try:
+            admins = User.query.filter_by(rol='admin', activo=True).all()
+            primer_admin_id = admins[0].id if admins else current_user.id
+            for item in venta.items:
+                if not item.producto_id:
+                    continue
+                prod = db.session.get(Producto, item.producto_id)
+                if not prod:
+                    continue
+                cant_requerida = item.cantidad
+                cant_en_stock  = min(prod.stock or 0, cant_requerida)
+                cant_producir  = max(0.0, cant_requerida - cant_en_stock)
+                if cant_producir <= 0:
+                    continue
+                existente = OrdenProduccion.query.filter(
+                    OrdenProduccion.venta_id == venta.id,
+                    OrdenProduccion.producto_id == prod.id,
+                    OrdenProduccion.estado != 'completado'
+                ).first()
+                if existente:
+                    continue
+                orden = OrdenProduccion(
+                    venta_id=venta.id, producto_id=prod.id,
+                    cantidad_total=cant_requerida, cantidad_stock=cant_en_stock,
+                    cantidad_producir=cant_producir, estado='en_produccion',
+                    notas=f'Venta: {getattr(venta, "titulo", venta.id)} — {prod.nombre} x{cant_requerida}',
+                    creado_por=current_user.id
+                )
+                db.session.add(orden)
+        except Exception as ex:
+            logging.warning(f'_procesar_venta_produccion error: {ex}')
+
 
     # ── ventas (/ventas)
     @app.route('/ventas')
@@ -79,10 +113,16 @@ def register(app):
                 except: seq = 1
             else: seq = 1
             v.numero = f'VNT-{hoy.year}-{seq:03d}'
-            _save_items(v); db.session.flush()
-            _procesar_venta_produccion(v)
-            _noop('crear','venta',v.id,f'Venta creada: {v.titulo} ({v.numero})'); db.session.commit()
-            flash('Venta creada.','success'); return redirect(url_for('ventas'))
+            try:
+                _save_items(v); db.session.flush()
+                _procesar_venta_produccion(v)
+                db.session.commit()
+                flash('Venta creada.', 'success')
+                return redirect(url_for('ventas'))
+            except Exception as e:
+                db.session.rollback()
+                logging.error(f'venta_nueva error: {e}')
+                flash('Error al crear la venta. Verifica los datos e intenta de nuevo.', 'danger')
         return render_template('ventas/form.html', obj=None, clientes_list=cl,
                                titulo='Nueva Venta', productos_json=_prods_json(), items_json=[])
     
@@ -215,12 +255,15 @@ def register(app):
     @login_required
     def venta_entregar(id):
         venta = Venta.query.get_or_404(id)
-        venta.entregado_en = datetime.utcnow()
-        # Descontar stock de productos entregados
-        _descontar_stock_venta(venta)
-        # Marcar órdenes de producción vinculadas como listas
-        db.session.commit()
-        flash(f'Venta marcada como entregada. Stock descontado del inventario.','success')
+        try:
+            venta.entregado_en = datetime.utcnow()
+            _descontar_stock_venta(venta)
+            db.session.commit()
+            flash('Venta marcada como entregada. Stock descontado del inventario.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            logging.error(f'venta_entregar error: {e}')
+            flash('Error al entregar la venta. Por favor intenta de nuevo.', 'danger')
         return redirect(url_for('ventas'))
     
 
