@@ -123,11 +123,12 @@ def register(app):
 
                         # Asignar lotes FIFO
                         lotes = _get_lotes_fifo(mp.id)
-                        total_en_lotes = sum(l.cantidad_disponible for l in lotes)
-                        if total_en_lotes < cant_reservar_total:
+                        stock_real = float(mp.stock_disponible or 0)
+                        # Faltante se basa en el stock real (no solo en lotes registrados)
+                        if stock_real < cant_reservar_total:
                             hay_faltante = True
 
-                        # Crear una reserva por lote (o una sin lote si no hay lotes registrados)
+                        # Crear una reserva por lote (o una sin lote si hay stock sin lote registrado)
                         restante = cant_reservar_total
                         if lotes:
                             for lote in lotes:
@@ -154,31 +155,57 @@ def register(app):
                                     creado_por=current_user.id
                                 ))
                                 restante -= desde_este
-                            # Si quedó restante (faltante), crear una reserva sin lote
+                            # Si queda restante: verificar si hay stock sin lote
                             if restante > 0.001:
+                                total_en_lotes = sum(l.cantidad_disponible for l in lotes)
+                                stock_sin_lote = stock_real - total_en_lotes
+                                if stock_sin_lote >= restante:
+                                    # Hay stock real no asociado a lotes — reservar igual
+                                    db.session.add(ReservaProduccion(
+                                        materia_prima_id=mp.id,
+                                        cantidad=round(restante, 4),
+                                        estado='reservado',
+                                        producto_id=prod.id,
+                                        venta_id=venta.id,
+                                        lote_materia_prima_id=None,
+                                        notas='Sin lote registrado — verificar stock físico',
+                                        creado_por=current_user.id
+                                    ))
+                                else:
+                                    db.session.add(ReservaProduccion(
+                                        materia_prima_id=mp.id,
+                                        cantidad=round(restante, 4),
+                                        estado='reservado',
+                                        producto_id=prod.id,
+                                        venta_id=venta.id,
+                                        lote_materia_prima_id=None,
+                                        notas='⚠️ FALTANTE — requiere compra',
+                                        creado_por=current_user.id
+                                    ))
+                        else:
+                            # Sin lotes registrados — usar stock_disponible directamente
+                            if stock_real >= cant_reservar_total:
                                 db.session.add(ReservaProduccion(
                                     materia_prima_id=mp.id,
-                                    cantidad=round(restante, 4),
+                                    cantidad=cant_reservar_total,
                                     estado='reservado',
                                     producto_id=prod.id,
                                     venta_id=venta.id,
                                     lote_materia_prima_id=None,
-                                    notas='⚠️ FALTANTE — requiere compra',
+                                    notas='Sin lote registrado — verificar stock físico',
                                     creado_por=current_user.id
                                 ))
-                        else:
-                            # Sin lotes registrados — reserva completa pendiente de compra
-                            hay_faltante = True
-                            db.session.add(ReservaProduccion(
-                                materia_prima_id=mp.id,
-                                cantidad=cant_reservar_total,
-                                estado='reservado',
-                                producto_id=prod.id,
-                                venta_id=venta.id,
-                                lote_materia_prima_id=None,
-                                notas='⚠️ Sin stock — requiere compra',
-                                creado_por=current_user.id
-                            ))
+                            else:
+                                db.session.add(ReservaProduccion(
+                                    materia_prima_id=mp.id,
+                                    cantidad=cant_reservar_total,
+                                    estado='reservado',
+                                    producto_id=prod.id,
+                                    venta_id=venta.id,
+                                    lote_materia_prima_id=None,
+                                    notas='⚠️ Sin stock — requiere compra',
+                                    creado_por=current_user.id
+                                ))
 
                 estado_orden = 'pendiente_materiales' if hay_faltante else 'en_produccion'
                 db.session.add(OrdenProduccion(

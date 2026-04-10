@@ -315,6 +315,34 @@ def register(app):
         obj = OrdenCompra.query.get_or_404(id)
         estado_anterior = obj.estado
         obj.estado = request.form.get('estado', obj.estado)
+
+        # Al pasar de borrador → enviada: crear CompraMateria por cada ítem de la orden
+        if obj.estado == 'enviada' and estado_anterior == 'borrador':
+            for item in (obj.items or []):
+                cant  = float(item.cantidad or 1)
+                precio = float(item.precio_unit or 0)
+                total  = float(item.subtotal or cant * precio)
+                c = CompraMateria(
+                    nombre_item=item.nombre_item or f'Ítem OC {obj.numero}',
+                    tipo_compra='insumo',
+                    proveedor=obj.proveedor.empresa if obj.proveedor else (obj.proveedor_id and str(obj.proveedor_id)) or '',
+                    proveedor_id=obj.proveedor_id,
+                    fecha=obj.fecha_emision or datetime.utcnow().date(),
+                    nro_factura=obj.numero,
+                    cantidad=cant,
+                    unidad=item.unidad or 'unidades',
+                    costo_producto=total,
+                    impuestos=0,
+                    transporte=0,
+                    costo_total=total,
+                    precio_unitario=precio,
+                    notas=f'Generado automáticamente desde OC {obj.numero}',
+                    creado_por=current_user.id,
+                )
+                db.session.add(c)
+            if obj.items:
+                flash(f'{len(obj.items)} ítem(s) de la OC {obj.numero} registrados en Compras automáticamente.', 'info')
+
         # Al marcar como "recibida": calcular fecha de entrega con plazo de cotización y agendar en calendario
         if obj.estado == 'recibida' and estado_anterior != 'recibida':
             hoy_recv = datetime.utcnow().date()

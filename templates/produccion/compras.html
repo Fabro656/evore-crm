@@ -11,26 +11,108 @@
 </div>
 <div class="tc"><div class="ch"><i class="bi bi-cart3 me-2"></i>{{ items|length }} compra(s)</div>
 {% if items %}<div class="table-responsive"><table class="table">
-  <thead><tr><th>Ítem</th><th>Proveedor</th><th>Fecha</th><th># Factura</th><th>Cto. Producto</th><th>Impuestos</th><th>Transporte</th><th>Total</th><th>Cant.</th><th>P. Unitario</th><th>Producto vinculado</th><th></th></tr></thead>
+  <thead><tr>
+    <th>Ítem</th><th>Tipo</th><th>Proveedor</th><th>Fecha</th><th># Factura</th>
+    <th class="text-end">Cantidad</th><th class="text-end">P. Unitario</th>
+    <th class="text-end">Total</th><th>Vinculado a</th><th></th>
+  </tr></thead>
   <tbody>{% for c in items %}<tr>
     <td class="fw-semibold" style="color:var(--text)">{{ c.nombre_item }}</td>
+    <td>
+      {% if c.tipo_compra == 'materia_prima' %}<span class="badge bg-success-subtle text-success border border-success-subtle">Materia prima</span>
+      {% elif c.tipo_compra == 'producto_terminado' %}<span class="badge bg-primary-subtle text-primary border border-primary-subtle">Producto</span>
+      {% elif c.tipo_compra == 'insumo' %}<span class="badge bg-secondary-subtle text-secondary border">Insumo</span>
+      {% else %}<span class="badge bg-light text-dark border">{{ c.tipo_compra or '—' }}</span>{% endif %}
+    </td>
     <td>{{ c.proveedor or '—' }}</td>
     <td><small>{{ c.fecha.strftime('%d/%m/%Y') }}</small></td>
     <td><small class="text-muted">{{ c.nro_factura or '—' }}</small></td>
-    <td>$ {{ '{:,.0f}'.format(c.costo_producto).replace(',','.') }}</td>
-    <td>$ {{ '{:,.0f}'.format(c.impuestos).replace(',','.') }}</td>
-    <td>$ {{ '{:,.0f}'.format(c.transporte).replace(',','.') }}</td>
-    <td class="fw-semibold">$ {{ '{:,.0f}'.format(c.costo_total).replace(',','.') }}</td>
-    <td>{{ c.cantidad }}</td>
-    <td class="fw-semibold">$ {{ '{:,.0f}'.format(c.precio_unitario).replace(',','.') }}</td>
-    <td>{% if c.producto %}<span class="badge bg-light text-dark">{{ c.producto.nombre }}</span>{% else %}—{% endif %}</td>
-    <td><div class="d-flex gap-1">
-      <a href="{{ url_for('compra_editar', id=c.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
-      <form method="POST" action="{{ url_for('compra_eliminar', id=c.id) }}" onsubmit="return confirm('¿Eliminar?')">
-        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
-    </div></td>
+    <td class="text-end">{{ c.cantidad }} <small class="text-muted">{{ c.unidad or '' }}</small></td>
+    <td class="text-end">$ {{ '{:,.0f}'.format(c.precio_unitario).replace(',','.') }}</td>
+    <td class="text-end fw-semibold">$ {{ '{:,.0f}'.format(c.costo_total).replace(',','.') }}</td>
+    <td>
+      {% if c.materia %}
+        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+          <i class="bi bi-flask me-1"></i>{{ c.materia.nombre }}
+        </span>
+      {% elif c.producto %}
+        <span class="badge bg-light text-dark border">{{ c.producto.nombre }}</span>
+      {% else %}
+        <span class="text-muted" style="font-size:.78rem">—</span>
+      {% endif %}
+    </td>
+    <td>
+      <div class="d-flex gap-1 flex-wrap">
+        <a href="{{ url_for('compra_editar', id=c.id) }}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
+        {# Botón ingresar a stock MP — disponible si no está ya vinculada a materia prima #}
+        {% if c.tipo_compra != 'materia_prima' or not c.materia_id %}
+        <button type="button" class="btn btn-sm btn-outline-success" title="Ingresar al stock de Materias Primas"
+          data-bs-toggle="modal" data-bs-target="#modalIngresarMP"
+          data-compra-id="{{ c.id }}"
+          data-compra-nombre="{{ c.nombre_item }}"
+          data-compra-cant="{{ c.cantidad }}"
+          data-compra-unidad="{{ c.unidad or 'unidades' }}"
+          onclick="prepIngresarMP(this)">
+          <i class="bi bi-box-arrow-in-down me-1"></i>→ MP
+        </button>
+        {% endif %}
+        <form method="POST" action="{{ url_for('compra_eliminar', id=c.id) }}" onsubmit="return confirm('¿Eliminar?')" class="d-inline">
+          <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+        </form>
+      </div>
+    </td>
   </tr>{% endfor %}</tbody>
 </table></div>
 {% else %}<div class="text-center text-muted py-5"><i class="bi bi-cart3" style="font-size:3rem"></i>
   <p class="mt-3">Sin compras.</p><a href="{{ url_for('compra_nueva') }}" class="btn btn-primary">Registrar primera</a></div>
-{% endif %}</div>{% endblock %}
+{% endif %}</div>
+
+<!-- Modal: Ingresar a stock de Materias Primas -->
+<div class="modal fade" id="modalIngresarMP" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" id="formIngresarMP" action="">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-box-arrow-in-down text-success me-2"></i>Ingresar a stock de Materias Primas</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-info py-2 mb-3" style="font-size:.83rem">
+            <strong id="mpNombreCompra"></strong> — se registrará como entrada de stock en la materia prima seleccionada.
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Materia prima destino *</label>
+            <select name="materia_id" class="form-select" required>
+              <option value="">— Seleccionar —</option>
+              {% for m in materias %}
+              <option value="{{ m.id }}">{{ m.nombre }} ({{ m.unidad }}) — Stock actual: {{ '%.2f'|format(m.stock_disponible) }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Cantidad a ingresar *</label>
+            <input type="number" name="cantidad_ingresar" id="mpCantIngresar"
+                   class="form-control" step="0.001" min="0.001" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">N° Lote (opcional)</label>
+            <input type="text" name="nro_lote" class="form-control" placeholder="Ej: LOT-2026-001">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success"><i class="bi bi-check-lg me-1"></i>Ingresar a stock</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% block scripts %}<script>
+function prepIngresarMP(btn){
+  document.getElementById('mpNombreCompra').textContent = btn.dataset.compraNombre;
+  document.getElementById('mpCantIngresar').value = btn.dataset.compraCant;
+  document.getElementById('formIngresarMP').action = '/produccion/compras/' + btn.dataset.compraId + '/ingresar_mp';
+}
+</script>{% endblock %}
+{% endblock %}

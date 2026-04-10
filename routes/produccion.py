@@ -44,8 +44,10 @@ def register(app):
         mes_ini = date.today().replace(day=1)
         total_general = db.session.query(db.func.sum(CompraMateria.costo_total)).scalar() or 0
         total_mes = db.session.query(db.func.sum(CompraMateria.costo_total)).filter(CompraMateria.fecha >= mes_ini).scalar() or 0
+        materias = MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).all()
         return render_template('produccion/compras.html', items=q.order_by(CompraMateria.fecha.desc()).all(),
-                               busqueda=busqueda, total_general=total_general, total_mes=total_mes)
+                               busqueda=busqueda, total_general=total_general, total_mes=total_mes,
+                               materias=materias)
     
 
     # ── compra_nueva (/produccion/compras/nueva)
@@ -88,7 +90,45 @@ def register(app):
     def compra_eliminar(id):
         obj=CompraMateria.query.get_or_404(id); db.session.delete(obj); db.session.commit()
         flash('Compra eliminada.','info'); return redirect(url_for('compras'))
-    
+
+
+    # ── compra_ingresar_mp (/produccion/compras/<int:id>/ingresar_mp)
+    @app.route('/produccion/compras/<int:id>/ingresar_mp', methods=['POST'])
+    @login_required
+    def compra_ingresar_mp(id):
+        """Ingresa una compra al stock de materias primas creando un LoteMateriaPrima."""
+        from datetime import date as _date
+        compra = CompraMateria.query.get_or_404(id)
+        materia_id = request.form.get('materia_id')
+        if not materia_id:
+            flash('Selecciona una materia prima.', 'danger')
+            return redirect(url_for('compras'))
+        m = MateriaPrima.query.get_or_404(int(materia_id))
+        cant = float(request.form.get('cantidad_ingresar') or compra.cantidad or 1)
+        # Crear lote
+        lote_mp = LoteMateriaPrima(
+            materia_prima_id=m.id,
+            compra_id=compra.id,
+            numero_lote=request.form.get('nro_lote','').strip() or None,
+            nro_factura=compra.nro_factura,
+            proveedor=compra.proveedor,
+            fecha_compra=compra.fecha,
+            fecha_vencimiento=compra.fecha_caducidad,
+            cantidad_inicial=cant,
+            cantidad_disponible=cant,
+            cantidad_reservada=0.0,
+            costo_unitario=compra.precio_unitario or 0,
+            notas=f'Ingresado desde compra #{compra.id} — {compra.nombre_item}',
+        )
+        db.session.add(lote_mp)
+        m.stock_disponible = (m.stock_disponible or 0) + cant
+        # Actualizar la compra para vincularla
+        compra.materia_id = m.id
+        compra.tipo_compra = 'materia_prima'
+        db.session.commit()
+        flash(f'✅ {cant} {m.unidad} ingresados al stock de "{m.nombre}".', 'success')
+        return redirect(url_for('compras'))
+
 
     # ── granel (/produccion/granel)
     @app.route('/produccion/granel')

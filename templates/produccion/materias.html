@@ -5,20 +5,19 @@
 <a href="{{ url_for('compra_nueva') }}" class="btn btn-outline-success btn-sm"><i class="bi bi-cart-plus me-1"></i>Registrar compra</a>
 {% endblock %}
 {% block content %}
-<div class="fc">
-
-{# ── Alertas de stock bajo ── #}
-{% set bajo_stock = materias|selectattr('stock_disponible')|list %}
-{% set alertas = materias|selectattr('stock_minimo')|list %}
+<div>
 
 <div class="table-responsive">
 <table class="table table-hover align-middle">
   <thead><tr>
     <th>Nombre</th>
+    <th>Categoría</th>
     <th>Productos que la usan</th>
     <th class="text-end">Disponible</th>
     <th class="text-end">Reservado</th>
     <th class="text-end">Mínimo</th>
+    <th class="text-end">Costo unit.</th>
+    <th class="text-center">Lotes activos</th>
     <th>Próx. vencimiento</th>
     <th>Proveedor</th>
     <th></th>
@@ -36,6 +35,7 @@
       {% if m.descripcion %}<br><small class="text-muted">{{ m.descripcion }}</small>{% endif %}
       <br><span class="badge bg-light text-dark border" style="font-size:.7rem">{{ m.unidad }}</span>
     </td>
+    <td><small class="text-muted">{{ m.categoria or '—' }}</small></td>
     <td>
       {# Primero buscar en M2M, sino usar el legacy producto_id #}
       {% set prods = m.productos_rel %}
@@ -54,6 +54,17 @@
     <td class="text-end text-warning fw-semibold">
       {% if m.stock_reservado > 0 %}{{ '%.3f'|format(m.stock_reservado) }}{% else %}—{% endif %}</td>
     <td class="text-end text-muted">{{ '%.3f'|format(m.stock_minimo) }}</td>
+    <td class="text-end text-muted">
+      {% if m.costo_unitario %}$ {{ '{:,.0f}'.format(m.costo_unitario).replace(',','.') }}{% else %}—{% endif %}
+    </td>
+    <td class="text-center">
+      {% set n_lotes = lotes_activos|length %}
+      {% if n_lotes > 0 %}
+        <span class="badge bg-info-subtle text-info border border-info-subtle">{{ n_lotes }}</span>
+      {% else %}
+        <span class="text-muted">—</span>
+      {% endif %}
+    </td>
     <td>
       {% if proximo_lote and proximo_lote.fecha_vencimiento %}
         {% set dias = (proximo_lote.fecha_vencimiento - today).days %}
@@ -89,7 +100,7 @@
     </td>
   </tr>
   {% else %}
-  <tr><td colspan="8" class="text-center text-muted py-4">
+  <tr><td colspan="11" class="text-center text-muted py-4">
     <i class="bi bi-box-seam fs-2 d-block mb-2"></i>
     No hay materias primas. <a href="{{ url_for('materia_nueva') }}">Crear la primera</a>.
   </td></tr>
