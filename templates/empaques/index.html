@@ -698,40 +698,96 @@ function renderSim() {
   ctx.beginPath(); ctx.moveTo(half,0); ctx.lineTo(half,H); ctx.stroke();
 
   // ── Stats ────────────────────────────────────────────────────────
-  const uds       = _simV.total;                          // unidades por caja
-  const volKg     = +(bw * bd * bh / 5000).toFixed(3);   // peso volumétrico caja (÷5000)
-  const chargeKg  = Math.max(bKg, volKg);                // peso cobrable por caja
-  const udsPal    = uds * pal.tot;
-  const udsTruck  = uds * st.tb;
-  const palPesoCarga = pal.tot * bKg;
-  const pctC = !st.pctKg ? '#888' : st.pctKg>=80 ? '#00875A' : st.pctKg>=50 ? '#FF8B00' : '#DE350B';
+  const uds        = _simV.total;
+  // Peso volumétrico: estándar courier/aéreo = L×W×H(cm) ÷ 5000
+  const volKg      = +(bw * bd * bh / 5000).toFixed(3);
+  // Peso cobrable = máximo entre real y volumétrico (así cobran courier y aéreo)
+  const chargeKg   = Math.max(bKg, volKg);
+  const udsPal     = uds * pal.tot;
+  const udsTruck   = uds * st.tb;
+  const palPesoCarga = pal.tot * bKg;  // kg totales sobre el pallet
+
+  // ── % capacidad de PESO ──────────────────────────────────────────
+  // Qué porcentaje del límite de peso está siendo usado
+  const pctPesoPal  = Math.min(100, palPesoCarga / PAL.maxKg * 100);
+  // pctKg del camión ya viene de calcTruck = tkg / truck.kg * 100
+
+  // ── % capacidad VOLUMÉTRICA (espacio físico) ─────────────────────
+  // Pallet: espacio usable = 120×80×115 cm (sin base de 15 cm)
+  //   Espacio ocupado = boxes * dimensiones de caja
+  const pctVolPal  = PAL.w*PAL.d*PAL.maxH > 0
+    ? Math.min(100, pal.tot * bw * bd * bh / (PAL.w * PAL.d * PAL.maxH) * 100) : 0;
+  // Camión: espacio total = largo×ancho×alto del compartimento de carga
+  //   Espacio ocupado = pallets × (120×80×altura total pallet con base)
+  const truckVol   = t.w * t.d * t.h;
+  const pctVolTrk  = truckVol > 0 && st.tp > 0
+    ? Math.min(100, st.tp * PAL.w * PAL.d * pal.fullH / truckVol * 100) : 0;
+
+  // Colores semáforo
+  const semaforo = function(p){ return p>=80?'#00875A':p>=50?'#FF8B00':'#DE350B'; };
+  const pctC   = semaforo(st.pctKg||0);
+  const pctVC  = semaforo(pctVolTrk);
+  const pctPP  = semaforo(pctPesoPal);
+  const pctVP  = semaforo(pctVolPal);
+
+  // Factor limitante del pallet (peso o volumen)
+  const palLimitante = pctPesoPal >= pctVolPal
+    ? `⚖️ Limitado por <strong>peso</strong> (${pctPesoPal.toFixed(0)}% de ${PAL.maxKg} kg)`
+    : `📐 Limitado por <strong>espacio</strong> (${pctVolPal.toFixed(0)}% de volumen)`;
+  const trkLimitante = (st.pctKg||0) >= pctVolTrk
+    ? `⚖️ Limitado por <strong>peso</strong> (${(st.pctKg||0).toFixed(0)}% de ${t.kg} kg)`
+    : `📐 Limitado por <strong>espacio</strong> (${pctVolTrk.toFixed(0)}% de volumen)`;
 
   document.getElementById('simStats').innerHTML = `
 <div class="sim-sg mb-2">
-  <div class="sim-st">📦 Caja</div>
+  <div class="sim-st">📦 Caja · ${bw}×${bd}×${bh} cm</div>
   <div class="sim-sr"><span>Unidades por caja</span><strong class="text-primary">${uds}</strong></div>
-  <div class="sim-sr"><span>Peso real</span><strong>${bKg} kg</strong></div>
-  <div class="sim-sr"><span>Peso volumétrico (÷5000)</span><strong>${volKg} kg</strong></div>
-  <div class="sim-sr"><span>Peso cobrable</span><strong>${chargeKg.toFixed(3)} kg</strong></div>
+  <div class="sim-sr"><span>Peso real de la caja</span><strong>${bKg} kg</strong></div>
+  <div class="sim-sr">
+    <span>Peso volumétrico <small class="text-muted">(L×W×H÷5000, tarifa courier)</small></span>
+    <strong>${volKg} kg</strong>
+  </div>
+  <div class="sim-sr">
+    <span>Peso cobrable <small class="text-muted">(= máx entre real y volumétrico)</small></span>
+    <strong class="${chargeKg>bKg?'text-warning':'text-success'}">${chargeKg.toFixed(3)} kg ${chargeKg>bKg?'📦 cobra vol.':''}</strong>
+  </div>
 </div>
 <div class="sim-sg mb-2">
-  <div class="sim-st">🟦 Pallet EUR 120×80 cm · ≤${PAL.maxKg} kg · ${PAL.h+PAL.maxH} cm</div>
-  <div class="sim-sr"><span>Cajas por capa</span><strong>${pal.fit.n}</strong></div>
-  <div class="sim-sr"><span>Capas</span><strong>${pal.ly}</strong></div>
+  <div class="sim-st">🟦 Pallet EUR 120×80 cm · base 15 cm · carga máx ${PAL.maxH} cm · ≤${PAL.maxKg} kg</div>
+  <div class="sim-sr"><span>Cajas por capa (en piso del pallet)</span><strong>${pal.fit.n}</strong></div>
+  <div class="sim-sr"><span>Capas de cajas</span><strong>${pal.ly}</strong></div>
   <div class="sim-sr"><span>Cajas por pallet</span><strong class="text-primary">${pal.tot}</strong></div>
-  <div class="sim-sr"><span>Unidades por pallet</span><strong class="text-success">${udsPal.toLocaleString()}</strong></div>
-  <div class="sim-sr"><span>Peso pallet cargado</span><strong>${palPesoCarga.toFixed(1)} kg</strong></div>
-  <div class="sim-sr"><span>Altura total</span><strong>${pal.fullH} cm</strong></div>
+  <div class="sim-sr"><span>Unidades de producto por pallet</span><strong class="text-success">${udsPal.toLocaleString()}</strong></div>
+  <div class="sim-sr"><span>Peso de carga en pallet</span><strong>${palPesoCarga.toFixed(1)} kg</strong></div>
+  <div class="sim-sr"><span>Altura total pallet + carga</span><strong>${pal.fullH} cm</strong></div>
+  <div class="sim-sr pct-row">
+    <span>% capacidad de <strong>peso</strong> <small class="text-muted">(${palPesoCarga.toFixed(1)} ÷ ${PAL.maxKg} kg)</small></span>
+    <strong style="color:${pctPP}">${pctPesoPal.toFixed(1)}%</strong>
+  </div>
+  <div class="sim-sr pct-row">
+    <span>% capacidad de <strong>espacio/volumen</strong> <small class="text-muted">(cajas ocupan ${(pal.tot*bw*bd*bh/1000).toFixed(1)} L de ${Math.round(PAL.w*PAL.d*PAL.maxH/1000)} L)</small></span>
+    <strong style="color:${pctVP}">${pctVolPal.toFixed(1)}%</strong>
+  </div>
+  <div class="sim-sr"><span style="font-size:.72rem;color:#888">${palLimitante}</span></div>
 </div>
 <div class="sim-sg">
   <div class="sim-st">🚛 Vehículo ${t.name} — ${t.w}×${t.d}×${t.h} cm · ≤${t.kg} kg</div>
-  <div class="sim-sr"><span>Pallets en piso</span><strong>${st.pf.n}</strong></div>
-  <div class="sim-sr"><span>Capas de pallets</span><strong>${st.ps}</strong></div>
+  <div class="sim-sr"><span>Pallets en piso del vehículo</span><strong>${st.pf.n}</strong></div>
+  <div class="sim-sr"><span>Filas de pallets (en altura)</span><strong>${st.ps}</strong></div>
   <div class="sim-sr"><span>Total pallets</span><strong class="text-primary">${st.tp}</strong></div>
   <div class="sim-sr"><span>Total cajas</span><strong class="text-primary">${st.tb}</strong></div>
   <div class="sim-sr"><span>Total unidades de producto</span><strong class="text-success" style="font-size:1.05rem">${udsTruck.toLocaleString()}</strong></div>
-  <div class="sim-sr"><span>Peso total carga</span><strong>${st.tkg.toFixed(1)} kg</strong></div>
-  ${st.pctKg!==null?`<div class="sim-sr"><span>Uso de carga</span><strong style="color:${pctC}">${st.pctKg.toFixed(1)}%</strong></div>`:''}
+  <div class="sim-sr"><span>Peso total de la carga</span><strong>${st.tkg.toFixed(1)} kg</strong></div>
+  ${st.pctKg!==null?`
+  <div class="sim-sr pct-row">
+    <span>% capacidad de <strong>peso</strong> <small class="text-muted">(${st.tkg.toFixed(1)} ÷ ${t.kg} kg)</small></span>
+    <strong style="color:${pctC}">${st.pctKg.toFixed(1)}%</strong>
+  </div>`:''}
+  <div class="sim-sr pct-row">
+    <span>% capacidad de <strong>espacio/volumen</strong> <small class="text-muted">(pallets ocupan ${(st.tp*PAL.w*PAL.d*pal.fullH/1e6).toFixed(2)} m³ de ${(truckVol/1e6).toFixed(2)} m³)</small></span>
+    <strong style="color:${pctVC}">${pctVolTrk.toFixed(1)}%</strong>
+  </div>
+  <div class="sim-sr"><span style="font-size:.72rem;color:#888">${trkLimitante}</span></div>
   ${st.tb===0?`<div class="alert alert-warning py-1 mt-2 mb-0" style="font-size:.8rem"><i class="bi bi-exclamation-triangle me-1"></i>La caja no cabe en este vehículo</div>`:''}
 </div>`;
 }
@@ -855,12 +911,18 @@ function abrirGoogleMaps() {
   window.open(url,'_blank');
 }
 
+function sincronizarCantidad() {
+  var v = document.getElementById('qtyUds').value;
+  document.getElementById('envQty').value = v || '';
+}
+
 function calcEnvio() {
   if (!_simV) return;
   var orig = document.getElementById('envOrig').value;
   var dest = document.getElementById('envDest').value;
   var res  = document.getElementById('envResult');
-  // Manual distance override
+
+  // Distancia: manual → tabla ciudad-ciudad
   var manualStr = document.getElementById('envDistManual').value.trim();
   var dist;
   if(manualStr !== '' && !isNaN(parseFloat(manualStr)) && parseFloat(manualStr) > 0){
@@ -876,50 +938,124 @@ function calcEnvio() {
     res.innerHTML = '<div class="alert alert-info py-1 mb-0" style="font-size:.8rem">Origen y destino son la misma ciudad.</div>';
     return;
   }
-  var isIntl = ciudadIsInt(orig) || ciudadIsInt(dest);
+
+  // Cantidad de unidades (opcional)
+  var qtyStr = document.getElementById('envQty').value.trim();
+  var qty    = parseInt(qtyStr, 10);
+  var hasQty = !isNaN(qty) && qty > 0;
+
+  var isIntl   = ciudadIsInt(orig) || ciudadIsInt(dest);
   var bw = _simV.ancho_caja, bd = _simV.largo_caja, bh = _simV.alto_caja, bKg = _simV.peso_total;
+  var udsPerBox = _simV.total;
+
+  // Peso cobrable por caja = max(peso real, peso volumétrico)
+  // Peso volumétrico (estándar courier/aéreo) = L×W×H cm ÷ 5000
   var volKg    = +(bw * bd * bh / 5000).toFixed(3);
   var chargeKg = Math.max(bKg, volKg);
-  var pal  = calcPal(bw, bd, bh, bKg);
-  var t    = TRUCKS[_simTruck];
-  var st   = calcTruck(t, pal);
+
+  var pal = calcPal(bw, bd, bh, bKg);
+  var t   = TRUCKS[_simTruck];
+  var st  = calcTruck(t, pal);
+
+  // Tarifa paquetería (MXN/kg cobrable)
   var rate    = paqRate(dist, isIntl);
   var paqMin  = isIntl ? PAQ_MIN_INT : PAQ_MIN;
+  // Paquetería por caja = max(mínimo_guía, kg_cobrable × tarifa)
   var paqBox  = Math.max(paqMin, chargeKg * rate);
-  var paqPal  = pal.tot > 0 ? pal.tot * chargeKg * rate : null;
-  var ftlKmR  = FTL_KM_RATE[_simTruck] || 25;
-  var ftlTotal= dist * ftlKmR;
-  var ftlBox  = st.tb > 0 ? ftlTotal / st.tb : null;
-  var ftlPal  = st.tp > 0 ? ftlTotal / st.tp : null;
+  // Paquetería por pallet = suma de guías (cada caja necesita una guía)
+  var paqPal  = pal.tot > 0 ? pal.tot * paqBox : null;
+
+  // FTL = distancia × tarifa por km del tipo de vehículo seleccionado
+  var ftlKmR   = FTL_KM_RATE[_simTruck] || 25;
+  var ftlTotal = dist * ftlKmR;       // costo del viaje completo
+  var ftlBox   = st.tb > 0 ? ftlTotal / st.tb : null;   // por caja si camión lleno
+  var ftlPal   = st.tp > 0 ? ftlTotal / st.tp : null;   // por pallet si camión lleno
+
   var fmt  = function(v){ return '$'+Math.round(v).toLocaleString('es-MX'); };
   var fmt2 = function(v){ return '$'+v.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}); };
-  var intlNote = isIntl ? '<span class="badge bg-warning text-dark ms-1" style="font-size:.7rem">Internacional — tarifa estimada, no incluye aduana</span>' : '';
+  var intlNote = isIntl ? ' <span class="badge bg-warning text-dark" style="font-size:.7rem">Internacional — no incl. aduana</span>' : '';
+
+  // ── Costos por cantidad ──────────────────────────────────────────
+  var qtyBlock = '';
+  if(hasQty){
+    // Cajas necesarias para enviar 'qty' unidades
+    var cajasNec  = Math.ceil(qty / udsPerBox);
+    // Pallets necesarios
+    var pallNec   = pal.tot > 0 ? Math.ceil(cajasNec / pal.tot) : null;
+    // Camiones necesarios (FTL): unidades por camión lleno
+    var udsPerTruck = udsPerBox * st.tb;
+    var trksNec   = udsPerTruck > 0 ? Math.ceil(qty / udsPerTruck) : null;
+    // Peso total real del envío
+    var pesoTotal = cajasNec * bKg;
+    // Peso cobrable total (cada caja se cobra por separado en paquetería)
+    var chargeTotal = cajasNec * chargeKg;
+    // Volumen total del envío
+    var volTotal  = cajasNec * bw * bd * bh / 1e6;  // m³
+
+    // Total paquetería = número de guías × costo por guía
+    var paqTotalQty = cajasNec * paqBox;
+    var paqPerUd    = paqTotalQty / qty;
+
+    // Total FTL = número de camiones × costo del viaje
+    var ftlTotalQty = trksNec ? trksNec * ftlTotal : null;
+    var ftlPerUd    = ftlTotalQty ? ftlTotalQty / qty : null;
+
+    var trksBadge = trksNec===1
+      ? `<span class="badge bg-success">1 camión ${t.name}</span>`
+      : `<span class="badge bg-warning text-dark">${trksNec} camiones ${t.name}</span>`;
+
+    qtyBlock = `
+<div class="sim-sg mt-3">
+  <div class="sim-st">📊 Total para <strong>${qty.toLocaleString()} unidades</strong> — ${cajasNec.toLocaleString()} cajas${pallNec?` · ${pallNec} pallets`:''}${trksNec?' · '+trksBadge:''}</div>
+  <div class="sim-sr"><span>Cajas necesarias <small class="text-muted">(ceil(${qty} ÷ ${udsPerBox} uds/caja))</small></span><strong>${cajasNec.toLocaleString()}</strong></div>
+  ${pallNec?`<div class="sim-sr"><span>Pallets necesarios</span><strong>${pallNec.toLocaleString()}</strong></div>`:''}
+  <div class="sim-sr"><span>Peso real total</span><strong>${pesoTotal.toFixed(1)} kg</strong></div>
+  <div class="sim-sr"><span>Peso cobrable total <small class="text-muted">(max real vs vol. × cajas)</small></span><strong>${chargeTotal.toFixed(1)} kg</strong></div>
+  <div class="sim-sr"><span>Volumen total de cajas</span><strong>${volTotal.toFixed(2)} m³</strong></div>
+  <hr class="my-2">
+  <div class="sim-sr">
+    <span>📬 <strong>Paquetería total</strong> <small class="text-muted">(${cajasNec} guías × ${fmt2(paqBox)})</small></span>
+    <strong class="text-primary" style="font-size:1.05rem">${fmt(paqTotalQty)}</strong>
+  </div>
+  <div class="sim-sr"><span>Paquetería por unidad de producto</span><strong>${fmt2(paqPerUd)}</strong></div>
+  ${ftlTotalQty!==null?`
+  <div class="sim-sr">
+    <span>🚛 <strong>FTL total</strong> <small class="text-muted">(${trksNec} viaje${trksNec>1?'s':''} × ${fmt(ftlTotal)} — ${t.name})</small></span>
+    <strong class="text-success" style="font-size:1.05rem">${fmt(ftlTotalQty)}</strong>
+  </div>
+  <div class="sim-sr"><span>FTL por unidad de producto</span><strong>${fmt2(ftlPerUd)}</strong></div>`:''}
+</div>`;
+  }
+
   res.innerHTML = `
 <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
   <span class="badge bg-secondary" style="font-size:.75rem"><i class="bi bi-signpost me-1"></i>${dist.toLocaleString()} km</span>
-  <small class="text-muted">Cobrable/caja: <strong>${chargeKg.toFixed(3)} kg</strong> · Tarifa: <strong>${fmt(rate)}/kg</strong> · FTL ${t.name}: <strong>${fmt(ftlKmR)}/km</strong>${intlNote}</small>
+  <small class="text-muted">Peso cobrable/caja: <strong>${chargeKg.toFixed(3)} kg</strong> ${chargeKg>bKg?'<span class="text-warning">(cobra vol.)</span>':''} · Tarifa: <strong>${fmt(rate)}/kg</strong> · FTL ${t.name}: <strong>${fmt(ftlKmR)}/km</strong>${intlNote}</small>
 </div>
 <div class="row g-2">
   <div class="col-sm-6">
     <div class="sim-sg h-100">
-      <div class="sim-st">📬 Paquetería — por envío</div>
-      <div class="sim-sr"><span>Por caja (1 guía)</span><strong class="text-primary">${fmt2(paqBox)}</strong></div>
-      ${paqPal!==null?`<div class="sim-sr"><span>Por pallet (${pal.tot} cajas)</span><strong>${fmt2(paqPal)}</strong></div>`:''}
+      <div class="sim-st">📬 Paquetería — por caja individual</div>
+      <div class="sim-sr">
+        <span>Por caja (1 guía) <small class="text-muted">max(${fmt2(paqMin)} mín, ${chargeKg.toFixed(3)} kg × ${fmt(rate)}/kg)</small></span>
+        <strong class="text-primary">${fmt2(paqBox)}</strong>
+      </div>
+      ${paqPal!==null?`<div class="sim-sr"><span>Por pallet (${pal.tot} cajas × 1 guía c/u)</span><strong>${fmt2(paqPal)}</strong></div>`:''}
       <div class="sim-sr" style="border-top:1px solid #dde;margin-top:.3rem;padding-top:.3rem">
-        <span style="font-size:.73rem;color:#888">Mín. guía: ${fmt(paqMin)} MXN · No incl. IVA</span>
+        <span style="font-size:.73rem;color:#888">Mín. por guía: ${fmt(paqMin)} MXN · Sin IVA · Cada caja = 1 guía</span>
       </div>
     </div>
   </div>
   <div class="col-sm-6">
     <div class="sim-sg h-100">
-      <div class="sim-st">🚛 FTL — ${t.name} completo</div>
-      <div class="sim-sr"><span>Costo total viaje</span><strong class="text-success">${fmt(ftlTotal)}</strong></div>
-      ${ftlPal!==null?`<div class="sim-sr"><span>Por pallet</span><strong>${fmt2(ftlPal)}</strong></div>`:''}
-      ${ftlBox!==null?`<div class="sim-sr"><span>Por caja</span><strong>${fmt2(ftlBox)}</strong></div>`:''}
-      ${ftlBox!==null&&_simV.total?`<div class="sim-sr"><span>Por unidad de producto</span><strong>${fmt2(ftlBox/_simV.total)}</strong></div>`:''}
+      <div class="sim-st">🚛 FTL — ${t.name} completo (${dist.toLocaleString()} km × ${fmt(ftlKmR)}/km)</div>
+      <div class="sim-sr"><span>Costo total del viaje</span><strong class="text-success">${fmt(ftlTotal)}</strong></div>
+      ${ftlPal!==null?`<div class="sim-sr"><span>Por pallet (si camión lleno)</span><strong>${fmt2(ftlPal)}</strong></div>`:''}
+      ${ftlBox!==null?`<div class="sim-sr"><span>Por caja (si camión lleno, ${st.tb} cajas)</span><strong>${fmt2(ftlBox)}</strong></div>`:''}
+      ${ftlBox!==null&&udsPerBox?`<div class="sim-sr"><span>Por unidad (si camión lleno)</span><strong>${fmt2(ftlBox/udsPerBox)}</strong></div>`:''}
     </div>
   </div>
-</div>`;
+</div>${qtyBlock}`;
 }
 
 // ── Caja óptima por vehículo ──────────────────────────────────────
@@ -973,7 +1109,7 @@ function buildRecomendaciones() {
 <thead class="table-light"><tr>
   <th>Destino</th><th>Variante óptima</th><th>Caja (cm)</th>
   <th class="text-center">Uds/caja</th><th class="text-center">Cajas</th>
-  <th class="text-center">Total uds</th><th class="text-center">% carga</th><th></th>
+  <th class="text-center">Total uds</th><th class="text-center" title="% de la capacidad de peso del vehículo utilizado">% cap. peso ⚖️</th><th></th>
 </tr></thead><tbody>`;
   recs.forEach(function(r){
     var pct=r.pctKg!=null?`<span style="color:${pctColor(r.pctKg)};font-weight:700">${r.pctKg.toFixed(0)}%</span>`:'-';
@@ -1074,7 +1210,7 @@ function calcPorCantidad() {
   <th>Vehículo</th><th>Variante de caja</th><th>Dimensiones caja</th>
   <th class="text-center">Uds/caja</th><th class="text-center">Cajas</th>
   <th class="text-center">Pallets</th><th class="text-center">Camiones</th>
-  <th class="text-center">% uso</th><th></th>
+  <th class="text-center" title="Porcentaje del límite de PESO del vehículo que se usa cuando va lleno">% cap. peso ⚖️</th><th></th>
 </tr></thead><tbody>`;
 
   show.forEach(function(r,idx){
@@ -1221,6 +1357,23 @@ function usarVarianteTruck(truckKey, vi) {
             <i class="bi bi-geo-alt-fill me-1 text-danger"></i>Calculadora de costo de envío
           </div>
 
+          {# Cantidad opcional #}
+          <div class="sim-sg mb-3">
+            <div class="sim-st">📦 Cantidad a enviar <span class="text-muted" style="font-size:.72rem;text-transform:none;font-weight:400">(opcional — activa desglose total del envío)</span></div>
+            <div class="row g-2 align-items-end mt-1">
+              <div class="col-sm-5">
+                <label style="font-size:.76rem;color:#5E6C84">Unidades de producto</label>
+                <input id="envQty" type="number" class="form-control form-control-sm" min="1" step="1" placeholder="Ej. 5 000">
+              </div>
+              <div class="col-sm-auto">
+                <label style="font-size:.76rem;color:transparent">_</label>
+                <button class="btn btn-sm btn-outline-secondary d-block" onclick="sincronizarCantidad()" title="Tomar la cantidad del análisis 'Por cantidad'">
+                  <i class="bi bi-arrow-left-square me-1"></i>Del análisis anterior
+                </button>
+              </div>
+            </div>
+          </div>
+
           {# Ciudad a ciudad #}
           <div class="sim-sg mb-3">
             <div class="sim-st">📍 Ciudad a ciudad (tabla precargada)</div>
@@ -1331,6 +1484,7 @@ function usarVarianteTruck(truckKey, vi) {
 .sim-tab-btn:hover { color:#334e68; background:#edf0f8; }
 .sim-tab-btn.active { color:#1e40af; border-bottom-color:#1e40af; background:#fff; }
 .btn-xs { font-size:.72rem; padding:.1rem .4rem; }
+.pct-row { background: rgba(0,0,0,.025); border-radius:4px; }
 </style>
 {% endblock %}
 
