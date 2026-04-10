@@ -144,7 +144,7 @@ class Venta(db.Model):
     cliente_informado_en= db.Column(db.DateTime, nullable=True)  # v12.2
     entregado_en        = db.Column(db.DateTime, nullable=True)   # v12.2
     items               = db.relationship('VentaProducto', backref='venta', lazy=True, cascade='all, delete-orphan')
-    ordenes_produccion  = db.relationship('OrdenProduccion', foreign_keys='OrdenProduccion.venta_id', lazy=True)
+    ordenes_produccion  = db.relationship('OrdenProduccion', foreign_keys='OrdenProduccion.venta_id', lazy=True, back_populates='venta')
 
 class TareaAsignado(db.Model):
     __tablename__ = 'tarea_asignados'
@@ -560,7 +560,7 @@ class OrdenProduccion(db.Model):
     fecha_fin_estimada= db.Column(db.Date, nullable=True)      # v14 Gantt
     producto          = db.relationship('Producto', foreign_keys=[producto_id])
     cotizacion        = db.relationship('Cotizacion', foreign_keys=[cotizacion_id])
-    venta             = db.relationship('Venta', foreign_keys=[venta_id])
+    venta             = db.relationship('Venta', foreign_keys=[venta_id], back_populates='ordenes_produccion')
 
 class Notificacion(db.Model):
     __tablename__ = 'notificaciones'

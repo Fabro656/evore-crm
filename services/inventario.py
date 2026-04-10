@@ -1,7 +1,8 @@
 # services/inventario.py — Inventario es el núcleo del sistema
 # Toda modificación de stock DEBE pasar por esta clase.
 from extensions import db
-from models import Producto, LoteProducto, MovimientoInventario
+from models import Producto, LoteProducto
+# MovimientoInventario se importa de forma lazy dentro de cada método (puede no existir en todos los entornos)
 from datetime import datetime
 import logging
 
@@ -25,7 +26,8 @@ class InventarioService:
                 prod.stock = max(0, int(prod.stock or 0) - cant)
                 # Registrar movimiento si el modelo existe
                 try:
-                    mv = MovimientoInventario(
+                    from models import MovimientoInventario as _MI
+                    mv = _MI(
                         producto_id=prod.id,
                         tipo='salida',
                         cantidad=cant,
@@ -47,7 +49,8 @@ class InventarioService:
                 return False
             prod.stock = int(prod.stock or 0) + int(round(cantidad))
             try:
-                mv = MovimientoInventario(
+                from models import MovimientoInventario as _MI
+                mv = _MI(
                     producto_id=prod.id,
                     tipo='entrada',
                     cantidad=cantidad,
@@ -208,7 +211,8 @@ class InventarioService:
             diff = cantidad_nueva - anterior
             tipo = 'entrada' if diff > 0 else 'salida'
             try:
-                mv = MovimientoInventario(
+                from models import MovimientoInventario as _MI
+                mv = _MI(
                     producto_id=prod.id,
                     tipo=tipo,
                     cantidad=abs(diff),
