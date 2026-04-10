@@ -129,7 +129,7 @@
           <a href="{{ url_for('contable_comprobante', id=a.id) }}" class="btn btn-xs btn-outline-secondary" title="Comprobante">
             <i class="bi bi-file-pdf"></i>
           </a>
-          {% if current_user.es_admin %}
+          {% if current_user.rol == 'admin' %}
           <form method="POST" action="{{ url_for('contable_asiento_eliminar', id=a.id) }}" style="display:inline" onsubmit="return confirm('¿Eliminar asiento?')">
             <button type="submit" class="btn btn-xs btn-outline-danger" title="Eliminar">
               <i class="bi bi-trash"></i>

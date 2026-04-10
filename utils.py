@@ -33,6 +33,7 @@ _MODULOS_TODOS = ['clientes','ventas','cotizaciones','tareas','calendario',
 
 _MODULOS_ROL = {
     'admin':      _MODULOS_TODOS,
+    'tester':     _MODULOS_TODOS,   # acceso a todo, sin crear usuarios ni reset
     'vendedor':   ['clientes','ventas','cotizaciones','tareas','calendario','notas','nomina'],
     'produccion': ['inventario','produccion','gastos','notas','calendario','tareas'],
     'contador':   ['gastos','reportes','produccion','notas','nomina'],

@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block title %}Usuarios{% endblock %}{% block page_title %}Gestión de Usuarios{% endblock %}
-{% block topbar_actions %}<a href="{{ url_for('admin_usuario_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo Usuario</a>{% endblock %}
+{% block topbar_actions %}{% if current_user.rol == 'admin' %}<a href="{{ url_for('admin_usuario_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo Usuario</a>{% endif %}{% endblock %}
 {% block content %}
 <div class="tc mb-3">
   <div class="ch"><i class="bi bi-shield-person-fill me-2"></i>{{ items|length }} usuario(s)
@@ -16,7 +16,7 @@
     <td><div class="d-flex align-items-center gap-2">
       <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
            style="width:30px;height:30px;flex-shrink:0;font-size:.8rem;
-           background:{% if u.rol=='admin' %}#DE350B{% elif u.rol=='cliente' %}#00875A{% elif u.rol=='proveedor' %}#5243AA{% elif u.rol=='sales_manager' %}#FF8B00{% else %}var(--ac){% endif %}">
+           background:{% if u.rol=='admin' %}#DE350B{% elif u.rol=='tester' %}#6554C0{% elif u.rol=='cliente' %}#00875A{% elif u.rol=='proveedor' %}#5243AA{% elif u.rol=='sales_manager' %}#FF8B00{% else %}var(--ac){% endif %}">
         {{ u.nombre[0].upper() }}</div>
       <div>
         <div class="fw-semibold" style="color:var(--text);font-size:.88rem">{{ u.nombre }}</div>
@@ -25,8 +25,8 @@
     </div></td>
     <td class="hide-mobile"><small class="text-muted">{{ u.email }}</small></td>
     <td>
-      <span class="b b-{% if u.rol=='admin' %}alta{% elif u.rol=='cliente' %}activo{% elif u.rol=='proveedor' %}reunion{% elif u.rol=='sales_manager' %}negociacion{% else %}borrador{% endif %}">
-        {{ {'admin':'Admin','cliente':'Cliente','proveedor':'Proveedor','sales_manager':'Sales Mgr','vendedor':'Vendedor','produccion':'Producción','contador':'Contador'}.get(u.rol, u.rol) }}
+      <span class="b b-{% if u.rol=='admin' %}alta{% elif u.rol=='tester' %}precot{% elif u.rol=='cliente' %}activo{% elif u.rol=='proveedor' %}reunion{% elif u.rol=='sales_manager' %}negociacion{% else %}borrador{% endif %}">
+        {{ {'admin':'Admin','tester':'Tester','cliente':'Cliente','proveedor':'Proveedor','sales_manager':'Sales Mgr','vendedor':'Vendedor','produccion':'Producción','contador':'Contador'}.get(u.rol, u.rol) }}
       </span>
     </td>
     <td class="hide-mobile">
@@ -56,7 +56,8 @@
   </div>
 </div>
 
-{# ── ZONA DE PELIGRO ─────────────────────────────────────────────────────── #}
+{# ── ZONA DE PELIGRO — solo admin real, no tester ───────────────────────── #}
+{% if current_user.rol == 'admin' %}
 <div class="tc mt-4" style="border:2px solid #DE350B;border-radius:10px;overflow:hidden">
   <div class="ch" style="background:#fff5f5;color:#DE350B;border-bottom:1px solid #ffc8c8">
     <i class="bi bi-exclamation-triangle-fill me-2"></i>Zona de peligro
@@ -153,4 +154,5 @@ document.getElementById('modalResetTotal').addEventListener('hidden.bs.modal', f
   btn.innerHTML = '<i class="bi bi-trash3-fill me-1"></i>Sí, borrar todo';
 });
 </script>
+{% endif %}{# fin bloque admin-only zona de peligro #}
 {% endblock %}

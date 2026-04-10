@@ -178,7 +178,7 @@ def register(app):
     @app.route('/admin/usuarios')
     @login_required
     def admin_usuarios():
-        if current_user.rol != 'admin':
+        if current_user.rol not in ('admin', 'tester'):
             flash('Sin permisos.','danger'); return redirect(url_for('dashboard'))
         return render_template('admin/usuarios.html',
             items=User.query.order_by(User.nombre).all(),

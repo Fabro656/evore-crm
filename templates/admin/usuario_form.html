@@ -16,6 +16,7 @@
         <option value="sales_manager" {% if obj and obj.rol=='sales_manager' %}selected{% endif %}>⭐ Sales Manager</option>
         <option value="produccion" {% if obj and obj.rol=='produccion' %}selected{% endif %}>🏭 Producción</option>
         <option value="contador" {% if obj and obj.rol=='contador' %}selected{% endif %}>📊 Contador</option>
+        <option value="tester" {% if obj and obj.rol=='tester' %}selected{% endif %}>🧪 Tester (acceso total, sin crear usuarios ni reset)</option>
         <option value="admin" {% if obj and obj.rol=='admin' %}selected{% endif %}>🔐 Administrador (acceso total)</option>
       </optgroup>
       <optgroup label="— Portales externos —">
