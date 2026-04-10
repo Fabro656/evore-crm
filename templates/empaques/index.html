@@ -999,7 +999,7 @@ function usarVariante(i) {
 }
 
 function switchSimTab(tab) {
-  ['sim','rec','env'].forEach(function(t){
+  ['sim','rec','env','qty'].forEach(function(t){
     document.getElementById('simPanel_'+t).style.display = t===tab?'':'none';
   });
   document.querySelectorAll('.sim-tab-btn').forEach(function(b){
@@ -1007,6 +1007,124 @@ function switchSimTab(tab) {
   });
   if(tab==='rec') buildRecomendaciones();
   if(tab==='sim') setTimeout(renderSim,60);
+}
+
+// ── Por cantidad ─────────────────────────────────────────────────
+// Orden de tamaño de vehículo (ascendente)
+var TRK_ORDER = {S:0, M:1, L:2, XL:3, XXL:4};
+
+function calcPorCantidad() {
+  if(!simVariants.length){
+    document.getElementById('qtyResult').innerHTML='<div class="alert alert-warning py-1 mb-0" style="font-size:.8rem">Primero calcula las variantes de empaque.</div>';
+    return;
+  }
+  var udsTarget = parseInt(document.getElementById('qtyUds').value,10);
+  if(isNaN(udsTarget)||udsTarget<1){
+    document.getElementById('qtyResult').innerHTML='<div class="alert alert-warning py-1 mb-0" style="font-size:.8rem">Ingresa una cantidad válida.</div>';
+    return;
+  }
+
+  var results=[];
+  simVariants.forEach(function(v,vi){
+    var pal=calcPalV(v);
+    Object.values(TRUCKS).forEach(function(t){
+      var st=calcTruckV(t,pal,v);
+      var udsPerTruck=v.total*st.tb;
+      if(udsPerTruck<=0) return;
+      var trucksNeeded=Math.ceil(udsTarget/udsPerTruck);
+      var boxesNeeded=Math.ceil(udsTarget/v.total);
+      var palletsNeeded=pal.tot>0?Math.ceil(boxesNeeded/pal.tot):null;
+      // Utilización del último camión
+      var udsLastTruck=udsTarget-(trucksNeeded-1)*udsPerTruck;
+      var pctLast=udsLastTruck/udsPerTruck*100;
+      // Utilización de peso del camión más lleno
+      var pctKgFull=st.pctKg;
+      results.push({v,vi,t,pal,st,trucksNeeded,udsPerTruck,boxesNeeded,palletsNeeded,pctLast,pctKgFull});
+    });
+  });
+
+  // Ordenar: 1) camiones necesarios ASC, 2) tamaño vehículo ASC, 3) utilización camión DESC
+  results.sort(function(a,b){
+    if(a.trucksNeeded!==b.trucksNeeded) return a.trucksNeeded-b.trucksNeeded;
+    if(TRK_ORDER[a.t.k]!==TRK_ORDER[b.t.k]) return TRK_ORDER[a.t.k]-TRK_ORDER[b.t.k];
+    return b.pctLast-a.pctLast;
+  });
+
+  // Mostrar top 8 resultados (priorizando 1 solo camión si existe)
+  var singleTruck=results.filter(function(r){return r.trucksNeeded===1;});
+  var multiTruck=results.filter(function(r){return r.trucksNeeded>1;});
+  var show=singleTruck.length>0
+    ? singleTruck.slice(0,6)
+    : multiTruck.slice(0,6);
+
+  var pctColor=function(p){return !p?'#888':p>=80?'#00875A':p>=50?'#FF8B00':'#DE350B';};
+  var fmt=function(v){return '$'+Math.round(v).toLocaleString('es-MX');};
+
+  var hasSingle=singleTruck.length>0;
+  var html=`
+<div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+  <span class="badge ${hasSingle?'bg-success':'bg-warning text-dark'}" style="font-size:.8rem">
+    ${hasSingle?'✓ Caben en 1 solo camión':'⚠ Se requieren múltiples camiones'}
+  </span>
+  <small class="text-muted">${udsTarget.toLocaleString()} unidades de producto · ${show.length} combinaciones</small>
+</div>
+<div class="table-responsive">
+<table class="table table-sm table-hover mb-0" style="font-size:.8rem">
+<thead class="table-light"><tr>
+  <th>Vehículo</th><th>Variante de caja</th><th>Dimensiones caja</th>
+  <th class="text-center">Uds/caja</th><th class="text-center">Cajas</th>
+  <th class="text-center">Pallets</th><th class="text-center">Camiones</th>
+  <th class="text-center">% uso</th><th></th>
+</tr></thead><tbody>`;
+
+  show.forEach(function(r,idx){
+    var highlight=idx===0?'style="background:#f0fdf4"':'';
+    var trIcon=r.trucksNeeded===1?'<span class="badge bg-success" style="font-size:.72rem">×1</span>'
+                                 :'<span class="badge bg-warning text-dark" style="font-size:.72rem">×'+r.trucksNeeded+'</span>';
+    var pctKg=r.pctKgFull!=null?`<span style="color:${pctColor(r.pctKgFull)};font-weight:700">${r.pctKgFull.toFixed(0)}%</span>`:'-';
+    var palStr=r.palletsNeeded!=null?r.palletsNeeded:'-';
+    html+=`<tr ${highlight}>
+      <td class="fw-semibold text-nowrap">${r.trucksNeeded===1?'🥇':idx===1?'🥈':idx===2?'🥉':'  '} ${r.t.name}<br>
+        <span style="font-size:.71rem;color:#888">${r.t.kg} kg · ${r.t.w}×${r.t.d}×${r.t.h}</span></td>
+      <td><span class="badge bg-light text-dark border">${r.v.distribucion}</span></td>
+      <td class="text-nowrap" style="color:#334e68">${r.v.ancho_caja}×${r.v.largo_caja}×${r.v.alto_caja} cm</td>
+      <td class="text-center text-primary fw-bold">${r.v.total}</td>
+      <td class="text-center">${r.boxesNeeded.toLocaleString()}</td>
+      <td class="text-center">${palStr}</td>
+      <td class="text-center">${trIcon}</td>
+      <td class="text-center">${pctKg}</td>
+      <td><button class="btn btn-xs btn-outline-info" onclick="usarVarianteTruck('${r.t.k}',${r.vi})" title="Simular">▶</button></td>
+    </tr>`;
+  });
+
+  html+='</tbody></table></div>';
+
+  // Resumen de la mejor opción
+  if(show.length>0){
+    var best=show[0];
+    var totalKg=(best.boxesNeeded*best.v.peso_total).toFixed(1);
+    html+=`
+<div class="mt-3 sim-sg">
+  <div class="sim-st">📦 Resumen — opción recomendada</div>
+  <div class="sim-sr"><span>Vehículo</span><strong>${best.t.name} — ${best.t.desc}</strong></div>
+  <div class="sim-sr"><span>Distribución en caja</span><strong>${best.v.distribucion} = ${best.v.total} uds/caja</strong></div>
+  <div class="sim-sr"><span>Dimensiones de la caja</span><strong>${best.v.ancho_caja} × ${best.v.largo_caja} × ${best.v.alto_caja} cm</strong></div>
+  <div class="sim-sr"><span>Cajas necesarias</span><strong>${best.boxesNeeded.toLocaleString()}</strong></div>
+  ${best.palletsNeeded!=null?`<div class="sim-sr"><span>Pallets necesarios</span><strong>${best.palletsNeeded}</strong></div>`:''}
+  <div class="sim-sr"><span>Camiones necesarios</span><strong>${best.trucksNeeded}</strong></div>
+  <div class="sim-sr"><span>Unidades por camión</span><strong>${best.udsPerTruck.toLocaleString()}</strong></div>
+  <div class="sim-sr"><span>Peso total del envío</span><strong>${totalKg} kg</strong></div>
+  <div class="sim-sr"><span>Uso del vehículo (carga)</span><strong style="color:${pctColor(best.pctKgFull)}">${best.pctKgFull!=null?best.pctKgFull.toFixed(1)+'%':'—'}</strong></div>
+</div>`;
+  }
+  document.getElementById('qtyResult').innerHTML=html;
+}
+
+function usarVarianteTruck(truckKey, vi) {
+  _simV = simVariants[vi];
+  _simTruck = truckKey;
+  switchSimTab('sim');
+  setTimeout(function(){ selectTrk(truckKey); }, 80);
 }
 </script>
 
@@ -1030,6 +1148,9 @@ function switchSimTab(tab) {
           </button>
           <button class="sim-tab-btn" data-tab="rec" onclick="switchSimTab('rec')">
             <i class="bi bi-star me-1"></i>Caja óptima
+          </button>
+          <button class="sim-tab-btn" data-tab="qty" onclick="switchSimTab('qty')">
+            <i class="bi bi-123 me-1"></i>Por cantidad
           </button>
           <button class="sim-tab-btn" data-tab="env" onclick="switchSimTab('env')">
             <i class="bi bi-geo-alt me-1"></i>Costo de envío
@@ -1065,6 +1186,33 @@ function switchSimTab(tab) {
           <div id="simRec">
             <div class="text-muted small py-2">Cargando recomendaciones…</div>
           </div>
+        </div>
+
+        {# ── Panel: Por cantidad ────────────────────────────────── #}
+        <div id="simPanel_qty" style="display:none">
+          <div class="fw-semibold mb-3" style="font-size:.8rem;color:#334e68;text-transform:uppercase;letter-spacing:.5px">
+            <i class="bi bi-123 me-1 text-primary"></i>¿Cuántas unidades quieres enviar?
+          </div>
+          <div class="sim-sg mb-3">
+            <div class="sim-st">Ingresa la cantidad total de unidades de producto</div>
+            <div class="row g-2 align-items-end mt-1">
+              <div class="col-sm-5">
+                <label style="font-size:.76rem;color:#5E6C84">Unidades de producto a enviar</label>
+                <input id="qtyUds" type="number" class="form-control form-control-sm" min="1" step="1"
+                       placeholder="Ej. 5000" oninput="document.getElementById('qtyResult').innerHTML=''">
+              </div>
+              <div class="col-sm-auto">
+                <button class="btn btn-sm btn-primary d-block" onclick="calcPorCantidad()">
+                  <i class="bi bi-search me-1"></i>Encontrar caja y vehículo óptimo
+                </button>
+              </div>
+            </div>
+            <small class="text-muted d-block mt-2" style="font-size:.71rem">
+              Busca entre todas las variantes de caja calculadas la combinación que transporta las
+              unidades indicadas en el menor número de camiones, usando el vehículo más pequeño posible.
+            </small>
+          </div>
+          <div id="qtyResult"></div>
         </div>
 
         {# ── Panel: Costo de envío ──────────────────────────────── #}
