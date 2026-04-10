@@ -459,8 +459,10 @@ function calcular() {
     const productoId = document.getElementById('calc_producto').value;
     const grid = document.getElementById('cardsGrid');
     grid.innerHTML = '';
+    simVariants.length = 0;
 
     top10.forEach((v, idx) => {
+      simVariants.push(v);
       const pct = v.pct_peso;
       const borderColor = pct >= 90 ? '#00875A' : pct >= 75 ? '#FF8B00' : '#5E6C84';
       const badgeClass  = pct >= 90 ? 'badge-green' : pct >= 75 ? 'badge-orange' : 'badge-gray';
@@ -493,10 +495,16 @@ function calcular() {
             <span class="text-muted">${kgToDisplay(v.peso_total)}${unitPesoLabel()}</span>
           </div>
           <div class="emp-ori">${oriLabel}</div>
-          <button class="btn btn-sm btn-outline-primary w-100 mt-2"
-                  onclick="guardarVariante(${productoId||0},${v.total},${v.ancho_caja},${v.largo_caja},${v.alto_caja},${pesoUnitKg},${pesoMaxKg})">
-            <i class="bi bi-floppy me-1"></i>Guardar como borrador
-          </button>
+          <div class="d-flex gap-2 mt-2">
+            <button class="btn btn-sm btn-outline-info flex-fill"
+                    onclick="abrirSim(${idx})">
+              <i class="bi bi-truck me-1"></i>Simular logística
+            </button>
+            <button class="btn btn-sm btn-outline-primary flex-fill"
+                    onclick="guardarVariante(${productoId||0},${v.total},${v.ancho_caja},${v.largo_caja},${v.alto_caja},${pesoUnitKg},${pesoMaxKg})">
+              <i class="bi bi-floppy me-1"></i>Guardar
+            </button>
+          </div>
         </div>
       `;
       grid.appendChild(card);
@@ -532,6 +540,183 @@ function orientationLabel(filas, cols, capas, ux, uz, uy) {
   return parts.join(' · ');
 }
 
+// ── Simulador de logística ────────────────────────────────────────
+const simVariants = [];
+
+const TRUCKS = {
+  S:   {k:'S',  name:'S',   w:170, d:100, h:90,  kg:300,  desc:'Sedán cargo — 170×100×90 cm, ≤300 kg'},
+  M:   {k:'M',  name:'M',   w:260, d:130, h:150, kg:700,  desc:'Van mediana — 260×130×150 cm, ≤700 kg'},
+  L:   {k:'L',  name:'L',   w:380, d:180, h:180, kg:1400, desc:'Furgón — 380×180×180 cm, ≤1.4 t'},
+  XL:  {k:'XL', name:'XL',  w:400, d:190, h:200, kg:3000, desc:'Camión — 400×190×200 cm, ≤3 t'},
+  XXL: {k:'XXL',name:'XXL', w:500, d:200, h:200, kg:4000, desc:'Camión XL — 500×200×200 cm, ≤4 t'},
+};
+const PAL = {w:120, d:80, h:15, maxH:115, maxKg:1000};
+
+let _simV = null, _simTruck = 'L', _simModal = null;
+
+function bestFit(sw, sd, ow, od) {
+  const [a1,b1] = [Math.floor(sw/ow), Math.floor(sd/od)];
+  const [a2,b2] = [Math.floor(sw/od), Math.floor(sd/ow)];
+  if (a1*b1 >= a2*b2) return {nr:a1, nc:b1, n:a1*b1, uw:ow, ud:od};
+  return {nr:a2, nc:b2, n:a2*b2, uw:od, ud:ow};
+}
+function calcPal(bw,bd,bh,bKg) {
+  const fit = bestFit(PAL.w, PAL.d, bw, bd);
+  const ly  = bh>0 ? Math.floor(PAL.maxH/bh) : 0;
+  const tot = Math.min(fit.n*ly, bKg>0 ? Math.floor(PAL.maxKg/bKg) : 9999);
+  return {fit, ly, tot, loadH:ly*bh, fullH:PAL.h+ly*bh};
+}
+function calcTruck(truck, pal) {
+  const pf  = bestFit(truck.w, truck.d, PAL.w, PAL.d);
+  const ps  = pal.fullH>0 ? Math.floor(truck.h/pal.fullH) : 0;
+  const tp  = pf.n * ps;
+  const tb  = tp  * pal.tot;
+  const tkg = tb  * (_simV ? _simV.peso_total : 0);
+  return {pf, ps, tp, tb, tkg, pctKg: truck.kg>0 ? Math.min(100, tkg/truck.kg*100) : null};
+}
+
+function abrirSim(idx) {
+  _simV = simVariants[idx];
+  if (!_simV) return;
+  if (!_simModal) _simModal = new bootstrap.Modal(document.getElementById('simModal'));
+  document.getElementById('simBoxHdr').textContent =
+    `${_simV.ancho_caja}×${_simV.largo_caja}×${_simV.alto_caja} cm · ${_simV.peso_total} kg · ${_simV.total} uds (${_simV.distribucion})`;
+  _simModal.show();
+  setTimeout(() => selectTrk('L'), 100);
+}
+function selectTrk(k) {
+  _simTruck = k;
+  document.querySelectorAll('.trk-btn').forEach(b => {
+    b.classList.toggle('btn-info', b.dataset.k === k);
+    b.classList.toggle('btn-outline-secondary', b.dataset.k !== k);
+  });
+  document.getElementById('simTrkDesc').textContent = TRUCKS[k].desc;
+  renderSim();
+}
+function renderSim() {
+  if (!_simV) return;
+  const t   = TRUCKS[_simTruck];
+  const bw  = _simV.ancho_caja, bd = _simV.largo_caja, bh = _simV.alto_caja;
+  const bKg = _simV.peso_total;
+  const pal = calcPal(bw, bd, bh, bKg);
+  const st  = calcTruck(t, pal);
+
+  // ── Canvas ───────────────────────────────────────────────────────
+  const cv = document.getElementById('simCv');
+  const W  = cv.parentElement.offsetWidth || 480;
+  cv.width  = W; cv.height = Math.round(W * 0.52);
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0,0,W,cv.height);
+  const H = cv.height, half = Math.floor(W/2);
+
+  // ── Left: top-view floor plan ─────────────────────────────────
+  (function(){
+    const pad = 28, avW = half-pad*2, avH = H-pad*2;
+    const sc  = Math.min(avW/t.w, avH/t.d);
+    const tw_ = t.w*sc, td_ = t.d*sc;
+    const ox  = pad + (avW-tw_)/2, oy = pad + (avH-td_)/2;
+
+    ctx.fillStyle = '#f0f3fb'; ctx.fillRect(0,0,half,H);
+    ctx.fillStyle = '#e2e8f5'; ctx.fillRect(ox,oy,tw_,td_);
+    ctx.strokeStyle='#334e68'; ctx.lineWidth=2; ctx.strokeRect(ox,oy,tw_,td_);
+
+    // pallet footprints
+    const pw_ = PAL.w*sc, pd_ = PAL.d*sc;
+    const uw_ = st.pf.uw*sc, ud_ = st.pf.ud*sc;
+    const drawn = Math.min(st.pf.n, 30);
+    let di = 0;
+    outer:
+    for (let r=0; r<st.pf.nr; r++) for (let c=0; c<st.pf.nc; c++) {
+      if (di++ >= drawn) break outer;
+      const px = ox + r*uw_, py = oy + c*ud_;
+      ctx.fillStyle = 'rgba(66,135,245,0.22)'; ctx.fillRect(px+1,py+1,uw_-2,ud_-2);
+      ctx.strokeStyle='#4287f5'; ctx.lineWidth=1; ctx.strokeRect(px+1,py+1,uw_-2,ud_-2);
+    }
+    if (st.ps > 1) {
+      ctx.fillStyle='rgba(66,135,245,0.55)';ctx.font='bold 10px sans-serif';ctx.textAlign='center';
+      const lx=ox+tw_/2, ly=oy+td_/2;
+      ctx.fillText(`×${st.ps} capas`, lx, ly+4);
+    }
+
+    // labels
+    ctx.fillStyle='#334e68'; ctx.font='11px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(`${t.w} cm`, ox+tw_/2, oy+td_+14);
+    ctx.save(); ctx.translate(ox-14,oy+td_/2); ctx.rotate(-Math.PI/2);
+    ctx.fillText(`${t.d} cm`, 0,4); ctx.restore();
+    ctx.fillStyle='#1e40af'; ctx.font='bold 11px sans-serif';
+    ctx.fillText('Vista superior', half/2, 14);
+  })();
+
+  // ── Right: front elevation ─────────────────────────────────────
+  (function(){
+    const pad = 28, avW = half-pad*2, avH = H-pad*2;
+    const sc  = Math.min(avW/t.w, avH/t.h);
+    const tw_ = t.w*sc, th_ = t.h*sc;
+    const ox  = half+pad+(avW-tw_)/2, oy = pad+(avH-th_)/2;
+
+    ctx.fillStyle='#f0f3fb'; ctx.fillRect(half,0,half,H);
+    ctx.fillStyle='#e2e8f5'; ctx.fillRect(ox,oy,tw_,th_);
+    ctx.strokeStyle='#334e68'; ctx.lineWidth=2; ctx.strokeRect(ox,oy,tw_,th_);
+
+    // Pallet stacks
+    if (st.ps > 0 && pal.fullH > 0) {
+      const ph_  = PAL.h*sc;
+      const lh_  = pal.loadH*sc;
+      const fh_  = pal.fullH*sc;
+      const uw_  = st.pf.uw*sc;
+      const cols = ['rgba(76,155,232,0.45)','rgba(76,232,138,0.45)','rgba(232,213,76,0.45)','rgba(200,130,232,0.45)'];
+      const drawn= Math.min(st.pf.nr, Math.floor(tw_/uw_));
+      for (let layer=0; layer<st.ps; layer++) {
+        const baseY = oy+th_ - (layer+1)*fh_;
+        for (let col=0; col<drawn; col++) {
+          const px = ox + col*uw_;
+          // pallet base
+          ctx.fillStyle='#b8860b';
+          ctx.fillRect(px+1, baseY+lh_, uw_-2, ph_);
+          // box stack
+          ctx.fillStyle = cols[layer % cols.length];
+          ctx.fillRect(px+1, baseY+1, uw_-2, lh_-1);
+          ctx.strokeStyle='rgba(0,0,0,.1)'; ctx.lineWidth=1;
+          ctx.strokeRect(px+1,baseY+1,uw_-2,fh_-2);
+        }
+      }
+    }
+
+    ctx.fillStyle='#334e68'; ctx.font='11px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(`${t.w} cm`, ox+tw_/2, oy+th_+14);
+    ctx.save(); ctx.translate(ox-14,oy+th_/2); ctx.rotate(-Math.PI/2);
+    ctx.fillText(`${t.h} cm`,0,4); ctx.restore();
+    ctx.fillStyle='#1e40af'; ctx.font='bold 11px sans-serif';
+    ctx.fillText('Vista frontal', half+half/2, 14);
+  })();
+
+  // Divider
+  ctx.strokeStyle='#ccd'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(half,0); ctx.lineTo(half,H); ctx.stroke();
+
+  // ── Stats ────────────────────────────────────────────────────────
+  const pctC = !st.pctKg ? '#888' : st.pctKg>=80 ? '#00875A' : st.pctKg>=50 ? '#FF8B00' : '#DE350B';
+  document.getElementById('simStats').innerHTML = `
+<div class="sim-sg mb-2">
+  <div class="sim-st">Pallet EUR (120×80 cm · máx ${PAL.maxKg} kg · ${PAL.h+PAL.maxH} cm alto)</div>
+  <div class="sim-sr"><span>Cajas por capa en pallet</span><strong>${pal.fit.n}</strong></div>
+  <div class="sim-sr"><span>Capas de cajas</span><strong>${pal.ly}</strong></div>
+  <div class="sim-sr"><span>Cajas por pallet</span><strong class="text-primary">${pal.tot}</strong></div>
+  <div class="sim-sr"><span>Altura cargado</span><strong>${pal.fullH} cm</strong></div>
+  <div class="sim-sr"><span>Peso por pallet</span><strong>${(pal.tot*bKg).toFixed(1)} kg</strong></div>
+</div>
+<div class="sim-sg">
+  <div class="sim-st">Vehículo ${t.name} — ${t.w}×${t.d}×${t.h} cm</div>
+  <div class="sim-sr"><span>Pallets en piso</span><strong>${st.pf.n}</strong></div>
+  <div class="sim-sr"><span>Capas de pallets</span><strong>${st.ps}</strong></div>
+  <div class="sim-sr"><span>Total pallets</span><strong>${st.tp}</strong></div>
+  <div class="sim-sr"><span>Total cajas</span><strong class="text-primary fs-5">${st.tb}</strong></div>
+  <div class="sim-sr"><span>Peso total carga</span><strong>${st.tkg.toFixed(1)} kg</strong></div>
+  ${st.pctKg!==null?`<div class="sim-sr"><span>Uso de carga</span><strong style="color:${pctC}">${st.pctKg.toFixed(1)}%</strong></div>`:''}
+  ${st.tb===0?`<div class="alert alert-warning py-1 mt-2 mb-0" style="font-size:.8rem"><i class="bi bi-exclamation-triangle me-1"></i>La caja no cabe en este vehículo</div>`:''}
+</div>`;
+}
+
 function guardarVariante(prodId, uds, ancho, largo, alto, pesoUnit, pesoMax) {
   const params = new URLSearchParams({
     producto_id:prodId, unidades_por_caja:uds,
@@ -541,6 +726,40 @@ function guardarVariante(prodId, uds, ancho, largo, alto, pesoUnit, pesoMax) {
   window.location.href = '{{ url_for("empaques_nuevo") }}?' + params.toString();
 }
 </script>
+
+{# ── Modal Simulador de Logística ──────────────────────────────── #}
+<div class="modal fade" id="simModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <div>
+          <div class="fw-semibold" style="font-size:.9rem"><i class="bi bi-truck me-2 text-info"></i>Simulador de Logística</div>
+          <small id="simBoxHdr" class="text-muted" style="font-size:.78rem"></small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+          <span style="font-size:.8rem;color:#5E6C84;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Vehículo:</span>
+          <div class="d-flex gap-1 flex-wrap">
+            {% for k in ['S','M','L','XL','XXL'] %}
+            <button class="btn btn-sm btn-outline-secondary trk-btn" data-k="{{ k }}" onclick="selectTrk('{{ k }}')">{{ k }}</button>
+            {% endfor %}
+          </div>
+          <small id="simTrkDesc" class="text-muted ms-1" style="font-size:.78rem"></small>
+        </div>
+        <div class="row g-3">
+          <div class="col-lg-7">
+            <canvas id="simCv" style="width:100%;border-radius:8px;background:#f8f9fb;display:block"></canvas>
+          </div>
+          <div class="col-lg-5">
+            <div id="simStats"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 {% block extra_css %}
 <style>
@@ -562,6 +781,11 @@ function guardarVariante(prodId, uds, ancho, largo, alto, pesoUnit, pesoMax) {
 .emp-dims { display:flex; gap:.5rem; flex-wrap:wrap; font-size:.78rem; color:#1a1f36; margin-bottom:.3rem; }
 .emp-dims span { background:#f4f5f7; border-radius:4px; padding:.2rem .45rem; }
 .emp-ori { font-size:.78rem; color:#5E6C84; font-style:italic; min-height:1.2em; }
+.sim-sg  { background:#f8f9fb; border-radius:8px; padding:.65rem .9rem; }
+.sim-st  { font-size:.72rem; font-weight:700; color:#5E6C84; text-transform:uppercase; letter-spacing:.5px; margin-bottom:.4rem; }
+.sim-sr  { display:flex; justify-content:space-between; align-items:center; font-size:.82rem; padding:.18rem 0; border-bottom:1px solid #eee; }
+.sim-sr:last-child { border-bottom:none; }
+.trk-btn { min-width:44px; }
 </style>
 {% endblock %}
 

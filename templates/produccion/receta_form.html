@@ -27,18 +27,33 @@
     <textarea name="descripcion" class="form-control" rows="2">{{ obj.descripcion if obj else '' }}</textarea></div>
 </div>
 
-<h5 class="mb-3"><i class="bi bi-list-ul me-2 text-primary"></i>Ingredientes / Materias Primas</h5>
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h5 class="mb-0"><i class="bi bi-list-ul me-2 text-primary"></i>Ingredientes / Materias Primas</h5>
+  <button type="button" class="btn btn-sm btn-outline-success" onclick="abrirNuevaMp()">
+    <i class="bi bi-plus-circle me-1"></i>Nueva materia prima
+  </button>
+</div>
 <div id="itemsContainer">
 {% if obj %}
   {% for item in obj.items %}
+  {% set m = item.materia %}
   <div class="row g-2 mb-2 item-row align-items-center">
     <div class="col-md-5">
-      <select name="materia_id[]" class="form-select form-select-sm" required>
-        <option value="">Seleccionar materia prima...</option>
-        {% for m in materias %}
-        <option value="{{ m.id }}" data-unidad="{{ m.unidad }}" {% if item.materia_prima_id==m.id %}selected{% endif %}>{{ m.nombre }} ({{ m.unidad }})</option>
-        {% endfor %}
-      </select>
+      <div class="d-flex gap-1 align-items-center">
+        <select name="materia_id[]" class="form-select form-select-sm mp-sel" required>
+          <option value="">Seleccionar materia prima...</option>
+          {% for mp in materias %}
+          <option value="{{ mp.id }}" data-unidad="{{ mp.unidad }}" data-sincot="{{ '1' if mp.id in sin_cot_ids else '0' }}"
+                  {% if item.materia_prima_id==mp.id %}selected{% endif %}>{{ mp.nombre }} ({{ mp.unidad }}){% if mp.id in sin_cot_ids %} ⚠{% endif %}</option>
+          {% endfor %}
+        </select>
+        {% if item.materia_prima_id in sin_cot_ids %}
+        <a href="{{ url_for('cotizacion_proveedor_nueva', nombre=item.materia.nombre if item.materia else '', tipo='granel') }}"
+           class="btn btn-xs btn-warning btn-sm" title="Sin cotización vigente — crear cotización" target="_blank">
+          <i class="bi bi-tag"></i>
+        </a>
+        {% endif %}
+      </div>
     </div>
     <div class="col-md-3">
       <input type="number" name="cantidad[]" step="0.001" min="0.001" class="form-control form-control-sm"
@@ -46,7 +61,7 @@
     </div>
     <div class="col-md-2">
       <span class="form-control-plaintext form-control-sm text-muted unidad-lbl">
-        {% for m in materias %}{% if m.id==item.materia_prima_id %}{{ m.unidad }}{% endif %}{% endfor %}
+        {% for mp in materias %}{% if mp.id==item.materia_prima_id %}{{ mp.unidad }}{% endif %}{% endfor %}
       </span>
     </div>
     <div class="col-md-2">
@@ -66,57 +81,192 @@
 </div>
 </form>
 </div>
+
+{# ── Modal: Nueva Materia Prima rápida ────────────────────────────── #}
+<div class="modal fade" id="mpModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title mb-0"><i class="bi bi-box me-2"></i>Nueva Materia Prima</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">
+          <label class="form-label form-label-sm">Nombre <span class="req">*</span></label>
+          <input type="text" id="mpNombre" class="form-control form-control-sm" placeholder="Ej: Harina de trigo">
+        </div>
+        <div class="mb-2">
+          <label class="form-label form-label-sm">Unidad de medida</label>
+          <select id="mpUnidad" class="form-select form-select-sm">
+            <option value="kg">kg</option>
+            <option value="g">g</option>
+            <option value="litros">litros</option>
+            <option value="ml">ml</option>
+            <option value="unidades" selected>unidades</option>
+            <option value="piezas">piezas</option>
+            <option value="metros">metros</option>
+            <option value="cm">cm</option>
+          </select>
+        </div>
+        <div id="mpError" class="alert alert-danger py-1" style="display:none;font-size:.82rem"></div>
+        <div class="form-text">Se creará con stock = 0. Ingresar compras para abastecerla.</div>
+      </div>
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-sm btn-success" id="mpGuardar" onclick="guardarNuevaMp()">
+          <i class="bi bi-check-lg me-1"></i>Crear
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% block scripts %}<script>
 var MATERIAS = {{ materias_json|tojson }};
+var _mpModal = null;
+
 function onProdChange(sel){
   var box=document.getElementById('nuevoProdBox');
   var inp=document.getElementById('nuevoProdNombre');
   if(sel.value==='__nuevo__'){
-    box.style.display='';
-    inp.required=true;
-    sel.removeAttribute('required');
+    box.style.display=''; inp.required=true; sel.removeAttribute('required');
   } else {
-    box.style.display='none';
-    inp.required=false;
-    sel.required=true;
+    box.style.display='none'; inp.required=false; sel.required=true;
   }
 }
-function addItem(){
-  var cont=document.getElementById('itemsContainer');
-  var row=document.createElement('div');
-  row.className='row g-2 mb-2 item-row align-items-center';
-  var colA=document.createElement('div'); colA.className='col-md-5';
-  var sel=document.createElement('select');
-  sel.name='materia_id[]'; sel.className='form-select form-select-sm'; sel.required=true;
-  var optDef=document.createElement('option'); optDef.value=''; optDef.textContent='Seleccionar materia prima...'; sel.appendChild(optDef);
+
+function makeMpSelect(selectedId) {
+  var sel = document.createElement('select');
+  sel.name = 'materia_id[]';
+  sel.className = 'form-select form-select-sm mp-sel';
+  sel.required = true;
+  var opt0 = document.createElement('option'); opt0.value=''; opt0.textContent='Seleccionar materia prima...'; sel.appendChild(opt0);
   MATERIAS.forEach(function(m){
-    var opt=document.createElement('option'); opt.value=m.id;
-    opt.textContent=m.nombre+' ('+m.unidad+')';
-    opt.setAttribute('data-unidad',m.unidad); sel.appendChild(opt);
+    var opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = m.nombre + ' (' + m.unidad + ')' + (m.sin_cot ? ' ⚠' : '');
+    opt.setAttribute('data-unidad', m.unidad);
+    opt.setAttribute('data-sincot', m.sin_cot ? '1' : '0');
+    if (m.id == selectedId) opt.selected = true;
+    sel.appendChild(opt);
   });
-  sel.addEventListener('change',function(){
-    var opt=this.options[this.selectedIndex];
-    var u=opt.getAttribute('data-unidad')||'';
-    this.closest('.item-row').querySelector('.unidad-lbl').textContent=u;
+  sel.addEventListener('change', function(){
+    var row = this.closest('.item-row');
+    var opt = this.options[this.selectedIndex];
+    row.querySelector('.unidad-lbl').textContent = opt.getAttribute('data-unidad') || '';
+    // Mostrar/ocultar botón cotizar
+    var sinCot = opt.getAttribute('data-sincot') === '1';
+    var cotBtn = row.querySelector('.cot-btn');
+    if (cotBtn) cotBtn.style.display = sinCot ? '' : 'none';
+    var cotNombre = opt.textContent.replace(' ⚠','').replace(/\s*\(.*\)$/,'').trim();
+    if (cotBtn) cotBtn.href = '{{ url_for("cotizacion_proveedor_nueva") }}?nombre=' + encodeURIComponent(cotNombre) + '&tipo=granel';
   });
-  colA.appendChild(sel);
+  return sel;
+}
+
+function addItem(selectedId){
+  var cont = document.getElementById('itemsContainer');
+  var row = document.createElement('div');
+  row.className = 'row g-2 mb-2 item-row align-items-center';
+
+  // col A: select + cotizar btn
+  var colA = document.createElement('div'); colA.className='col-md-5';
+  var wrap = document.createElement('div'); wrap.className='d-flex gap-1 align-items-center';
+  wrap.appendChild(makeMpSelect(selectedId));
+  var cotBtn = document.createElement('a');
+  cotBtn.className = 'btn btn-sm btn-warning cot-btn';
+  cotBtn.title = 'Sin cotización vigente — crear cotización';
+  cotBtn.target = '_blank';
+  cotBtn.style.display = 'none';
+  cotBtn.innerHTML = '<i class="bi bi-tag"></i>';
+  wrap.appendChild(cotBtn);
+  colA.appendChild(wrap);
+
   var colB=document.createElement('div'); colB.className='col-md-3';
   var inp=document.createElement('input');
   inp.type='number'; inp.name='cantidad[]'; inp.step='0.001'; inp.min='0.001';
   inp.className='form-control form-control-sm'; inp.placeholder='Cantidad por unidad'; inp.required=true;
   colB.appendChild(inp);
+
   var colC=document.createElement('div'); colC.className='col-md-2';
   var uLbl=document.createElement('span'); uLbl.className='form-control-plaintext form-control-sm text-muted unidad-lbl';
   colC.appendChild(uLbl);
+
   var colD=document.createElement('div'); colD.className='col-md-2';
-  var btn=document.createElement('button'); btn.type='button'; btn.className='btn btn-sm btn-outline-danger w-100';
+  var btn=document.createElement('button'); btn.type='button';
+  btn.className='btn btn-sm btn-outline-danger w-100';
   btn.innerHTML='<i class="bi bi-trash"></i>';
   btn.addEventListener('click',function(){this.closest('.item-row').remove();});
   colD.appendChild(btn);
+
   row.appendChild(colA); row.appendChild(colB); row.appendChild(colC); row.appendChild(colD);
   cont.appendChild(row);
 }
+
+function abrirNuevaMp(){
+  if (!_mpModal) _mpModal = new bootstrap.Modal(document.getElementById('mpModal'));
+  document.getElementById('mpNombre').value='';
+  document.getElementById('mpError').style.display='none';
+  _mpModal.show();
+  setTimeout(function(){ document.getElementById('mpNombre').focus(); }, 300);
+}
+
+function guardarNuevaMp(){
+  var nombre = document.getElementById('mpNombre').value.trim();
+  var unidad = document.getElementById('mpUnidad').value;
+  var errEl  = document.getElementById('mpError');
+  if (!nombre){ errEl.textContent='Escribe un nombre.'; errEl.style.display=''; return; }
+  errEl.style.display='none';
+  var btn = document.getElementById('mpGuardar');
+  btn.disabled=true; btn.textContent='Creando...';
+  fetch('{{ url_for("materia_nueva_rapida") }}', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({nombre:nombre, unidad:unidad})
+  }).then(r=>r.json()).then(data=>{
+    btn.disabled=false; btn.innerHTML='<i class="bi bi-check-lg me-1"></i>Crear';
+    if (data.error){ errEl.textContent=data.error; errEl.style.display=''; return; }
+    // Añadir a MATERIAS si no existe
+    if (!MATERIAS.find(m=>m.id===data.id)){
+      MATERIAS.push({id:data.id, nombre:data.nombre, unidad:data.unidad, sin_cot:true});
+      // Actualizar todos los selects existentes
+      document.querySelectorAll('.mp-sel').forEach(function(sel){
+        var opt=document.createElement('option');
+        opt.value=data.id;
+        opt.textContent=data.nombre+' ('+data.unidad+') ⚠';
+        opt.setAttribute('data-unidad',data.unidad);
+        opt.setAttribute('data-sincot','1');
+        sel.appendChild(opt);
+      });
+    }
+    _mpModal.hide();
+    // Agregar fila con la nueva MP seleccionada
+    addItem(data.id);
+    // Trigger change to update unit label
+    var lastSel = document.querySelector('.item-row:last-child .mp-sel');
+    if (lastSel){ lastSel.dispatchEvent(new Event('change')); }
+    var msg = data.existente ? '"'+data.nombre+'" ya existía y fue seleccionada.' : '"'+data.nombre+'" creada con stock=0.';
+    // Pequeño toast flash
+    var div=document.createElement('div');
+    div.className='alert alert-success alert-dismissible py-1 mt-2';
+    div.style='font-size:.82rem;position:fixed;top:70px;right:20px;z-index:9999;min-width:280px';
+    div.innerHTML='<i class="bi bi-check-circle me-1"></i>'+msg+'<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+    document.body.appendChild(div);
+    setTimeout(()=>div.remove(), 4000);
+  }).catch(e=>{
+    btn.disabled=false; btn.innerHTML='<i class="bi bi-check-lg me-1"></i>Crear';
+    errEl.textContent='Error: '+e; errEl.style.display='';
+  });
+}
+
 document.querySelectorAll('.item-row .btn-outline-danger').forEach(function(b){
   b.addEventListener('click',function(){this.closest('.item-row').remove();});
+});
+document.querySelectorAll('.item-row .mp-sel').forEach(function(sel){
+  sel.addEventListener('change', function(){
+    var row=this.closest('.item-row');
+    var opt=this.options[this.selectedIndex];
+    row.querySelector('.unidad-lbl').textContent=opt.getAttribute('data-unidad')||'';
+  });
 });
 </script>{% endblock %}{% endblock %}

@@ -96,8 +96,8 @@ def register(app):
                 return jsonify({'error': f'Con ese peso máximo ({peso_max} kg) no cabe ni 1 unidad '
                                          f'({peso_unit} kg c/u)'}), 400
 
-            # Exploramos hasta este límite (cap en 500 para no generar listas gigantes)
-            tope = min(max_por_peso, 500)
+            # Exploramos hasta este límite (cap en 800 para no generar listas gigantes)
+            tope = min(max_por_peso, 800)
 
             # ── Generar todas las factorizaciones únicas (r ≤ c ≤ l) ───────────
             # r = filas (ancho), c = columnas (largo), l = capas (alto)
@@ -129,11 +129,8 @@ def register(app):
                         volumen    = round(w * d * h, 1)
 
                         # ── Filtro de proporciones para transporte/almacenaje ─────
-                        # 1) Ninguna dimensión en cm puede ser más de 4× la menor
-                        dims_cm = sorted([w, d, h])
-                        if dims_cm[2] / dims_cm[0] > 4.0:
-                            continue
-                        # 2) En unidades, ningún lado puede ser más de 6× otro
+                        # En unidades, ningún lado puede ser más de 6× otro
+                        # (evita cajas 1×1×40 pero permite 2×3×11)
                         dims_u = sorted([r, c, l])
                         if dims_u[2] / max(dims_u[0], 1) > 6:
                             continue

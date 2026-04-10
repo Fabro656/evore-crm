@@ -81,7 +81,8 @@ def register(app):
     def cotizacion_proveedor_nueva():
         provs = Proveedor.query.filter(Proveedor.activo==True,
             Proveedor.tipo.in_(['proveedor','ambos'])).order_by(Proveedor.empresa).all()
-        tipo_default = request.args.get('tipo','general')
+        tipo_default   = request.args.get('tipo','general')
+        nombre_default = request.args.get('nombre','')   # pre-fill desde receta
         if request.method == 'POST':
             fc = request.form.get('fecha_cotizacion')
             fv = request.form.get('vigencia')
@@ -122,7 +123,7 @@ def register(app):
             return redirect(url_for('cotizaciones_proveedor', tipo=cp.tipo_cotizacion))
         return render_template('proveedores/cotizacion_form.html', obj=None,
                                proveedores_list=provs, titulo='Nueva Cotización Proveedor',
-                               tipo_default=tipo_default)
+                               tipo_default=tipo_default, nombre_default=nombre_default)
 
 
     # ── cotizacion_proveedor_editar (/cotizaciones-proveedor/<int:id>/editar)

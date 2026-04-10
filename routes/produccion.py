@@ -331,6 +331,34 @@ def register(app):
                     if not m.producto_id:
                         m.producto_id = producto_id
 
+    # ── materia_nueva_rapida (/produccion/materias/nueva-rapida) — AJAX
+    @app.route('/produccion/materias/nueva-rapida', methods=['POST'])
+    @login_required
+    @requiere_modulo('produccion')
+    def materia_nueva_rapida():
+        """Crea una MateriaPrima con stock=0 y la devuelve como JSON."""
+        nombre = (request.json or {}).get('nombre','').strip()
+        unidad = (request.json or {}).get('unidad','unidades').strip() or 'unidades'
+        if not nombre:
+            return jsonify({'error': 'Nombre requerido'}), 400
+        exist = MateriaPrima.query.filter(
+            db.func.lower(MateriaPrima.nombre) == nombre.lower(),
+            MateriaPrima.activo == True
+        ).first()
+        if exist:
+            return jsonify({'id': exist.id, 'nombre': exist.nombre,
+                            'unidad': exist.unidad, 'existente': True})
+        mp = MateriaPrima(
+            nombre=nombre, unidad=unidad,
+            stock_disponible=0, stock_reservado=0,
+            stock_minimo=0, costo_unitario=0,
+            activo=True, creado_por=current_user.id
+        )
+        db.session.add(mp); db.session.commit()
+        return jsonify({'id': mp.id, 'nombre': mp.nombre,
+                        'unidad': mp.unidad, 'existente': False})
+
+
     # ── receta_nueva (/produccion/recetas/nueva)
     @app.route('/produccion/recetas/nueva', methods=['GET','POST'])
     @login_required
@@ -338,7 +366,18 @@ def register(app):
     def receta_nueva():
         productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
         materias = MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).all()
-        materias_json = [{'id': m.id, 'nombre': m.nombre, 'unidad': m.unidad} for m in materias]
+        nombres_con_cot = {
+            cp.nombre_producto.lower()
+            for cp in CotizacionProveedor.query.filter(
+                CotizacionProveedor.estado.in_(['vigente','en_revision'])
+            ).all() if cp.nombre_producto
+        }
+        sin_cot_ids = {m.id for m in materias if m.nombre.lower() not in nombres_con_cot}
+        materias_json = [
+            {'id': m.id, 'nombre': m.nombre, 'unidad': m.unidad,
+             'sin_cot': m.id in sin_cot_ids}
+            for m in materias
+        ]
         if request.method == 'POST':
             prod_id_raw = request.form.get('producto_id','').strip()
             # Soporte free-text: si se seleccionó "__nuevo__", crear el producto
@@ -389,7 +428,8 @@ def register(app):
             flash('Receta creada. Los ingredientes quedan registrados (stock=0 hasta primera compra).','success')
             return redirect(url_for('recetas'))
         return render_template('produccion/receta_form.html', obj=None, productos=productos,
-                               materias=materias, materias_json=materias_json, titulo='Nueva Receta')
+                               materias=materias, materias_json=materias_json,
+                               sin_cot_ids=sin_cot_ids, titulo='Nueva Receta')
     
 
     # ── receta_editar (/produccion/recetas/<int:id>/editar)
@@ -400,7 +440,18 @@ def register(app):
         obj = RecetaProducto.query.get_or_404(id)
         productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
         materias = MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).all()
-        materias_json = [{'id': m.id, 'nombre': m.nombre, 'unidad': m.unidad} for m in materias]
+        nombres_con_cot = {
+            cp.nombre_producto.lower()
+            for cp in CotizacionProveedor.query.filter(
+                CotizacionProveedor.estado.in_(['vigente','en_revision'])
+            ).all() if cp.nombre_producto
+        }
+        sin_cot_ids = {m.id for m in materias if m.nombre.lower() not in nombres_con_cot}
+        materias_json = [
+            {'id': m.id, 'nombre': m.nombre, 'unidad': m.unidad,
+             'sin_cot': m.id in sin_cot_ids}
+            for m in materias
+        ]
         if request.method == 'POST':
             prod_id = int(request.form['producto_id'])
             obj.producto_id=prod_id
@@ -421,7 +472,8 @@ def register(app):
             db.session.commit()
             flash('Receta actualizada.','success'); return redirect(url_for('recetas'))
         return render_template('produccion/receta_form.html', obj=obj, productos=productos,
-                               materias=materias, materias_json=materias_json, titulo='Editar Receta')
+                               materias=materias, materias_json=materias_json,
+                               sin_cot_ids=sin_cot_ids, titulo='Editar Receta')
     
 
     # ── receta_eliminar (/produccion/recetas/<int:id>/eliminar)
