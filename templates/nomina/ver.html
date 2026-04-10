@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}{{ empleado.nombre }} {{ empleado.apellido }}{% endblock %}
 {% block page_title %}{{ empleado.nombre }} {{ empleado.apellido }}{% endblock %}
-{% block topbar_actions %}<a href="{{ url_for('empleado_editar', id=empleado.id) }}" class="btn btn-sm btn-primary"><i class="bi bi-pencil me-1"></i>Editar</a>{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('empleado_editar', id=empleado.id) }}" class="btn btn-sm btn-primary"><i class="bi bi-pencil me-1"></i>Editar</a>{% if current_user.rol in ('admin', 'contador') %}<a href="{{ url_for('parametros_nomina_editar') }}" class="btn btn-sm btn-secondary"><i class="bi bi-sliders me-1"></i>Parámetros</a>{% endif %}{% endblock %}
 {% block content %}
 <div class="fc">
   <div class="row g-3 mb-3">

@@ -302,11 +302,14 @@ def _calcular_impuestos(ingresos, utilidad):
         base_monto = 0.0
         monto = 0.0
         if r.aplica_a == 'ventas':
-            base_monto = ingresos
-            base_label = 'Ingresos brutos'
+            # IVA se calcula sobre la base SIN impuesto (total / (1 + pct/100))
+            pct = r.porcentaje / 100.0
+            base_monto = ingresos / (1.0 + pct) if pct > 0 else ingresos
+            base_label = 'Base gravable (sin IVA)'
         elif r.aplica_a == 'ingresos':
-            base_monto = ingresos
-            base_label = 'Ingresos brutos'
+            pct = r.porcentaje / 100.0
+            base_monto = ingresos / (1.0 + pct) if pct > 0 else ingresos
+            base_label = 'Base gravable (sin IVA)'
         elif r.aplica_a == 'profit':
             if utilidad > 0:
                 base_monto = utilidad
