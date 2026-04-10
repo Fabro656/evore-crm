@@ -352,7 +352,7 @@ def register(app):
             nombre=nombre, unidad=unidad,
             stock_disponible=0, stock_reservado=0,
             stock_minimo=0, costo_unitario=0,
-            activo=True, creado_por=current_user.id
+            activo=True
         )
         db.session.add(mp); db.session.commit()
         return jsonify({'id': mp.id, 'nombre': mp.nombre,
