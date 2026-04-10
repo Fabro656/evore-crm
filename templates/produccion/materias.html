@@ -27,7 +27,8 @@
   {% for m in materias %}
   {% set bajo = m.stock_disponible <= m.stock_minimo and m.stock_minimo > 0 %}
   {% set lotes_activos = m.lotes_materia|selectattr('cantidad_disponible','gt',0)|list %}
-  {% set proximo_lote = lotes_activos|sort(attribute='fecha_vencimiento')|first if lotes_activos else None %}
+  {% set lotes_con_fecha = lotes_activos|selectattr('fecha_vencimiento')|list %}
+  {% set proximo_lote = lotes_con_fecha|sort(attribute='fecha_vencimiento')|first if lotes_con_fecha else None %}
   <tr class="{{ 'table-warning' if bajo else '' }}">
     <td>
       <strong>{{ m.nombre }}</strong>
@@ -78,7 +79,7 @@
         <button type="button" class="btn btn-sm btn-outline-info" title="Ver lotes"
           data-bs-toggle="modal" data-bs-target="#modalLotes"
           data-nombre="{{ m.nombre }}"
-          data-lotes='{{ lotes_activos|map(attribute="__dict__")|list|tojson(default=str) }}'
+          data-lotes='[{% for l in lotes_activos %}{"id":{{ l.id }},"numero_lote":{{ l.numero_lote|tojson }},"nro_factura":{{ l.nro_factura|tojson }},"proveedor":{{ l.proveedor|tojson }},"fecha_compra":{% if l.fecha_compra %}"{{ l.fecha_compra.strftime("%Y-%m-%d") }}"{% else %}null{% endif %},"fecha_vencimiento":{% if l.fecha_vencimiento %}"{{ l.fecha_vencimiento.strftime("%Y-%m-%d") }}"{% else %}null{% endif %},"cantidad_disponible":{{ l.cantidad_disponible or 0 }},"cantidad_reservada":{{ l.cantidad_reservada or 0 }}}{% if not loop.last %},{% endif %}{% endfor %}]'
           onclick="prepLotes(this)"><i class="bi bi-layers"></i></button>
         <form method="POST" action="{{ url_for('materia_eliminar', id=m.id) }}" class="d-inline"
               onsubmit="return confirm('¿Desactivar materia prima?')">
