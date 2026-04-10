@@ -467,7 +467,7 @@ def register(app):
             # Nivel 5 — registros de asociación y comentarios
             _safe_delete('DELETE FROM tarea_asignados')
             _safe_delete('DELETE FROM tarea_comentarios')
-            # Nivel 4 — items de documentos
+            # Nivel 4 — ítems de documentos
             _safe_delete('DELETE FROM reservas_produccion')
             _safe_delete('DELETE FROM cotizacion_items')
             _safe_delete('DELETE FROM pre_cotizacion_items')
@@ -480,7 +480,7 @@ def register(app):
             _safe_delete('DELETE FROM lotes_materia_prima')
             _safe_delete('DELETE FROM lotes_producto')
             _safe_delete('DELETE FROM compras_materia')
-            _safe_delete('DELETE FROM cotizaciones_proveedores')
+            _safe_delete('DELETE FROM cotizaciones_proveedor')   # nombre real del modelo
             _safe_delete('DELETE FROM cotizaciones_granel')
             _safe_delete('DELETE FROM empaques_secundarios')
             _safe_delete('DELETE FROM asientos_contables')
@@ -488,7 +488,7 @@ def register(app):
             _safe_delete('DELETE FROM eventos')
             _safe_delete('DELETE FROM notas')
             _safe_delete('DELETE FROM notificaciones')
-            _safe_delete('DELETE FROM actividad')
+            _safe_delete('DELETE FROM actividades')              # nombre real del modelo
             # Nivel 2 — documentos principales
             _safe_delete('DELETE FROM ventas')
             _safe_delete('DELETE FROM cotizaciones')
@@ -499,15 +499,15 @@ def register(app):
             _safe_delete('DELETE FROM empleados')
             _safe_delete('DELETE FROM recetas_producto')
             _safe_delete('DELETE FROM servicios')
-            # Nivel 1 — catálogos base
+            # Nivel 1 — catálogos y configuración operativa
+            _safe_delete('DELETE FROM reglas_tributarias')
             _safe_delete('DELETE FROM materias_primas')
             _safe_delete('DELETE FROM productos')
             _safe_delete('DELETE FROM contactos_cliente')
             _safe_delete('DELETE FROM clientes')
             _safe_delete('DELETE FROM proveedores')
-            # Sesiones de usuario (excepto la actual)
+            # Sesiones y usuarios (mantener solo admin actual)
             _safe_delete(f'DELETE FROM user_sesiones WHERE user_id != {current_user.id}')
-            # Usuarios: eliminar todos EXCEPTO el admin actual
             _safe_delete(f'DELETE FROM users WHERE id != {current_user.id}')
             db.session.commit()
             logging.warning(f'RESET TOTAL ejecutado por admin user_id={current_user.id} '
