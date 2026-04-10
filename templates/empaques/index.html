@@ -81,13 +81,21 @@
         </select>
       </div>
       <div class="col-md-3">
-        <label class="form-label fw-semibold" style="font-size:.85rem">Margen interior (cm)</label>
+        <label class="form-label fw-semibold" style="font-size:.85rem">Margen interior (<span id="margen_unit_lbl">cm</span>)</label>
         <input type="number" id="calc_margen" class="form-control form-control-sm" value="2" min="0" step="0.5">
       </div>
     </div>
 
     <div class="row g-3 mb-3">
-      <div class="col-12"><div class="fw-semibold" style="font-size:.82rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Dimensiones del producto (cm)</div></div>
+      <div class="col-12 d-flex align-items-center gap-3 flex-wrap">
+        <div class="fw-semibold" style="font-size:.82rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Dimensiones del producto</div>
+        <select id="unit_dim" class="form-select form-select-sm" style="width:auto;min-width:110px">
+          <option value="cm">cm</option>
+          <option value="mm">mm</option>
+          <option value="m">m</option>
+          <option value="pulg">pulgadas</option>
+        </select>
+      </div>
       <div class="col-4">
         <label class="form-label" style="font-size:.82rem">Ancho (X)</label>
         <input type="number" id="calc_ancho" class="form-control form-control-sm" step="0.1" min="0" placeholder="10.0">
@@ -103,13 +111,22 @@
     </div>
 
     <div class="row g-3 mb-3">
-      <div class="col-12"><div class="fw-semibold" style="font-size:.82rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Peso</div></div>
+      <div class="col-12 d-flex align-items-center gap-3 flex-wrap">
+        <div class="fw-semibold" style="font-size:.82rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Peso</div>
+        <select id="unit_peso" class="form-select form-select-sm" style="width:auto;min-width:110px">
+          <option value="kg">kg</option>
+          <option value="g">g</option>
+          <option value="mg">mg</option>
+          <option value="lb">libras</option>
+          <option value="L">litros</option>
+        </select>
+      </div>
       <div class="col-md-4">
-        <label class="form-label" style="font-size:.82rem">Peso por unidad (kg)</label>
+        <label class="form-label" style="font-size:.82rem">Peso por unidad</label>
         <input type="number" id="calc_peso_unit" class="form-control form-control-sm" step="0.001" min="0" placeholder="0.250">
       </div>
       <div class="col-md-4">
-        <label class="form-label" style="font-size:.82rem">Peso máximo por caja (kg)</label>
+        <label class="form-label" style="font-size:.82rem">Peso máximo por caja</label>
         <input type="number" id="calc_peso_max" class="form-control form-control-sm" step="0.1" min="0" placeholder="20.0">
       </div>
       <div class="col-md-4 d-flex align-items-end">
@@ -176,10 +193,9 @@ class BoxRenderer {
       const cos = Math.cos(this.angle), sin = Math.sin(this.angle);
       const rx = x*cos - z*sin;
       const rz = x*sin + z*cos;
-      const fov = 5 / (5 + rz*0.15 + 2);
       return {
-        x: rx * fov,
-        y: -(y * Math.cos(this.tilt) - rz * Math.sin(this.tilt) * 0.3) * fov
+        x: rx,
+        y: -(y * Math.cos(this.tilt) - rz * Math.sin(this.tilt))
       };
     };
     const pts = [
@@ -203,10 +219,9 @@ class BoxRenderer {
     const cos = Math.cos(this.angle), sin = Math.sin(this.angle);
     const rx = x*cos - z*sin;
     const rz = x*sin + z*cos;
-    const fov = 5 / (5 + rz*0.15 + 2);
     return {
-      x: this._ox + rx * fov * this._scale,
-      y: this._oy - (y * Math.cos(this.tilt) - rz * Math.sin(this.tilt) * 0.3) * fov * this._scale
+      x: this._ox + rx * this._scale,
+      y: this._oy - (y * Math.cos(this.tilt) - rz * Math.sin(this.tilt)) * this._scale
     };
   }
 
@@ -335,6 +350,50 @@ class BoxRenderer {
 // ── Calculadora ───────────────────────────────────────────────────
 const renderers = [];
 
+// ── Conversión de unidades ────────────────────────────────────────
+function dimToCm(val) {
+  const u = document.getElementById('unit_dim').value;
+  if (u === 'mm')   return val / 10;
+  if (u === 'm')    return val * 100;
+  if (u === 'pulg') return val * 2.54;
+  return val;  // cm
+}
+function pesoToKg(val) {
+  const u = document.getElementById('unit_peso').value;
+  if (u === 'g')   return val / 1000;
+  if (u === 'mg')  return val / 1000000;
+  if (u === 'lb')  return val * 0.453592;
+  if (u === 'L')   return val;  // litros ≈ kg (agua)
+  return val;  // kg
+}
+function cmToDisplay(cm) {
+  const u = document.getElementById('unit_dim').value;
+  if (u === 'mm')   return +(cm * 10).toFixed(1);
+  if (u === 'm')    return +(cm / 100).toFixed(4);
+  if (u === 'pulg') return +(cm / 2.54).toFixed(2);
+  return +cm.toFixed(1);
+}
+function kgToDisplay(kg) {
+  const u = document.getElementById('unit_peso').value;
+  if (u === 'g')   return +(kg * 1000).toFixed(1);
+  if (u === 'mg')  return +(kg * 1000000).toFixed(0);
+  if (u === 'lb')  return +(kg / 0.453592).toFixed(3);
+  if (u === 'L')   return +kg.toFixed(3);
+  return +kg.toFixed(3);
+}
+function unitDimLabel() {
+  const u = document.getElementById('unit_dim').value;
+  return u === 'pulg' ? '"' : u;
+}
+function unitPesoLabel() {
+  return document.getElementById('unit_peso').value;
+}
+
+// Actualizar etiqueta del margen cuando cambia la unidad de dimensión
+document.getElementById('unit_dim').addEventListener('change', function() {
+  document.getElementById('margen_unit_lbl').textContent = unitDimLabel();
+});
+
 document.getElementById('btnCalcular').addEventListener('click', calcular);
 
 function calcular() {
@@ -353,6 +412,14 @@ function calcular() {
     return;
   }
 
+  // Convertir a cm y kg para el servidor
+  const anchoCm    = dimToCm(ancho);
+  const largoCm    = dimToCm(largo);
+  const altoCm     = dimToCm(alto);
+  const pesoUnitKg = pesoToKg(pesoUnit);
+  const pesoMaxKg  = pesoToKg(pesoMax);
+  const margenCm   = dimToCm(margen);
+
   const btn = document.getElementById('btnCalcular');
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Calculando…';
@@ -365,8 +432,8 @@ function calcular() {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify({
-      ancho_prod:ancho, largo_prod:largo, alto_prod:alto,
-      peso_unitario:pesoUnit, peso_max_caja:pesoMax, margen:margen
+      ancho_prod:anchoCm, largo_prod:largoCm, alto_prod:altoCm,
+      peso_unitario:pesoUnitKg, peso_max_caja:pesoMaxKg, margen:margenCm
     })
   })
   .then(r => r.json())
@@ -420,14 +487,14 @@ function calcular() {
             <i class="bi bi-cursor-fill me-1"></i>arrastra para rotar
           </div>
           <div class="emp-dims">
-            <span><i class="bi bi-arrows-expand"></i> ${v.ancho_caja}cm</span>
-            <span><i class="bi bi-arrows-expand" style="transform:rotate(90deg)"></i> ${v.largo_caja}cm</span>
-            <span><i class="bi bi-layers"></i> ${v.alto_caja}cm</span>
-            <span class="text-muted">${v.peso_total}kg</span>
+            <span><i class="bi bi-arrows-expand"></i> ${cmToDisplay(v.ancho_caja)}${unitDimLabel()}</span>
+            <span><i class="bi bi-arrows-expand" style="transform:rotate(90deg)"></i> ${cmToDisplay(v.largo_caja)}${unitDimLabel()}</span>
+            <span><i class="bi bi-layers"></i> ${cmToDisplay(v.alto_caja)}${unitDimLabel()}</span>
+            <span class="text-muted">${kgToDisplay(v.peso_total)}${unitPesoLabel()}</span>
           </div>
           <div class="emp-ori">${oriLabel}</div>
           <button class="btn btn-sm btn-outline-primary w-100 mt-2"
-                  onclick="guardarVariante(${productoId||0},${v.total},${v.ancho_caja},${v.largo_caja},${v.alto_caja},${pesoUnit},${pesoMax})">
+                  onclick="guardarVariante(${productoId||0},${v.total},${v.ancho_caja},${v.largo_caja},${v.alto_caja},${pesoUnitKg},${pesoMaxKg})">
             <i class="bi bi-floppy me-1"></i>Guardar como borrador
           </button>
         </div>
