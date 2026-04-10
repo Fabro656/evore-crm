@@ -412,10 +412,22 @@ def register(app):
     @requiere_modulo('produccion')
     def reservas():
         from datetime import date as _date
+        from services.inventario import InventarioService
         items = ReservaProduccion.query.order_by(ReservaProduccion.creado_en.desc()).all()
         usuarios = User.query.filter_by(activo=True).order_by(User.nombre).all()
-        return render_template('produccion/reservas.html', reservas=items, usuarios=usuarios,
-                               today=_date.today())
+
+        # Pre-calcular validación por venta para el template
+        venta_ids = list({r.venta_id for r in items if r.venta_id})
+        validaciones = {}
+        for vid in venta_ids:
+            validaciones[vid] = InventarioService.validar_materias_produccion(vid)
+
+        ESTADOS_VALIDOS_PROD = {'anticipo_pagado', 'completado', 'pagado'}
+        return render_template('produccion/reservas.html',
+                               reservas=items, usuarios=usuarios,
+                               today=_date.today(),
+                               validaciones=validaciones,
+                               ESTADOS_VALIDOS_PROD=ESTADOS_VALIDOS_PROD)
     
 
     # ── reserva_solicitar_compra (/produccion/reservas/solicitar_compra)
@@ -530,37 +542,50 @@ def register(app):
     @requiere_modulo('produccion')
     def reserva_iniciar_produccion(venta_id):
         """
-        Verifica disponibilidad de materias primas, las descuenta del stock disponible
-        (stock_disponible → stock_reservado) y cambia las órdenes a en_produccion.
-        Solo se puede iniciar si TODOS los materiales están disponibles.
+        Inicia producción para una venta:
+        1. Valida que la venta esté en estado anticipo_pagado o pagado/completado.
+        2. Valida que TODOS los materiales estén disponibles (sin FALTANTE).
+        3. Descuenta stock a través de InventarioService.
+        4. Cambia órdenes a en_produccion.
         """
-        reservas_venta = ReservaProduccion.query.filter(
-            ReservaProduccion.venta_id == venta_id,
-            ReservaProduccion.estado == 'reservado'
-        ).all()
+        from services.inventario import InventarioService
 
-        # Verificar que todas las materias tienen stock suficiente
-        faltantes = []
-        for r in reservas_venta:
-            mp = r.materia
-            if mp.stock_disponible < r.cantidad:
-                faltan = r.cantidad - mp.stock_disponible
-                faltantes.append(f'{mp.nombre}: faltan {faltan:.2f} {mp.unidad}')
+        venta = Venta.query.get_or_404(venta_id)
 
-        if faltantes:
-            flash(f'No se puede iniciar producción. Materiales faltantes: {"; ".join(faltantes)}', 'danger')
+        # 1. Validar estado de la venta
+        ESTADOS_VALIDOS = {'anticipo_pagado', 'completado', 'pagado'}
+        if venta.estado not in ESTADOS_VALIDOS:
+            flash(
+                f'No se puede iniciar producción. La venta debe tener anticipo recibido o estar pagada '
+                f'(estado actual: {venta.estado}).',
+                'danger'
+            )
             return redirect(url_for('reservas'))
 
-        # Deducir stock para cada reserva
-        for r in reservas_venta:
-            mp = r.materia
-            mp.stock_disponible -= r.cantidad
-            mp.stock_reservado  += r.cantidad
+        # 2. Validar materiales via InventarioService
+        validacion = InventarioService.validar_materias_produccion(venta_id)
+        if not validacion['ok']:
+            msgs = [
+                f'{f["nombre"]}: necesario {f["necesario"]:.3f} {f["unidad"]}, '
+                f'disponible {f["disponible"]:.3f}, falta {f["falta"]:.3f}'
+                for f in validacion['faltantes']
+            ]
+            flash(
+                f'No se puede iniciar producción — materiales faltantes: ' + ' | '.join(msgs),
+                'danger'
+            )
+            return redirect(url_for('reservas'))
 
-        # Cambiar todas las órdenes a en_produccion
+        # 3. Descontar stock via InventarioService
+        ok, msg = InventarioService.descontar_materias_produccion(venta_id)
+        if not ok:
+            flash(f'Error al descontar stock: {msg}', 'danger')
+            return redirect(url_for('reservas'))
+
+        # 4. Cambiar órdenes a en_produccion
         ordenes = OrdenProduccion.query.filter(
             OrdenProduccion.venta_id == venta_id,
-            OrdenProduccion.estado.in_(['pendiente_materiales','en_produccion'])
+            OrdenProduccion.estado.in_(['pendiente_materiales', 'en_produccion'])
         ).all()
         for o in ordenes:
             o.estado = 'en_produccion'
@@ -568,7 +593,7 @@ def register(app):
                 o.fecha_inicio_real = datetime.utcnow().date()
 
         db.session.commit()
-        flash('¡Producción iniciada! Stock de materias primas reservado correctamente.', 'success')
+        flash('¡Producción iniciada! Stock de materias primas descontado correctamente.', 'success')
         return redirect(url_for('reservas'))
     
 

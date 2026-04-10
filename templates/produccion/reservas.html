@@ -20,15 +20,11 @@
   {% set grupo = reservas_con_venta|selectattr('venta_id','equalto',vid)|list %}
   {% set venta_obj = grupo[0].venta %}
 
-  {# Detectar si hay reservas FALTANTE (sin lote asignado, materiales insuficientes) #}
-  {% set hay_faltante = namespace(v=false) %}
-  {% for r in grupo %}
-    {% if r.estado=='reservado' and (r.notas and ('FALTANTE' in r.notas or 'Sin stock' in r.notas)) %}
-      {% set hay_faltante.v = true %}
-    {% endif %}
-  {% endfor %}
+  {# Obtener validación pre-calculada desde la ruta #}
+  {% set val = validaciones.get(vid, {'ok': true, 'faltantes': [], 'proximos_vencer': []}) %}
+  {% set hay_faltante_real = not val.ok %}
 
-  {# Detectar si hay reservas con lotes próximos a vencer #}
+  {# Detectar si hay lotes próximos a vencer #}
   {% set hay_proximos_vencer = namespace(v=false) %}
   {% for r in grupo %}
     {% if r.lote_mp and r.lote_mp.proxima_caducidad %}
@@ -36,11 +32,24 @@
     {% endif %}
   {% endfor %}
 
-  {# Determinar si hay anticipo pagado #}
-  {% set anticipo_ok = venta_obj and venta_obj.estado in ['anticipo_pagado','completado'] %}
+  {# Estado de venta — anticipo recibido/pagado #}
+  {% set estado_venta_ok = venta_obj and venta_obj.estado in ESTADOS_VALIDOS_PROD %}
+  {% set puede_iniciar = estado_venta_ok and not hay_faltante_real %}
 
-<div class="mb-4 border rounded overflow-hidden" id="grupo-venta-{{ vid }}">
-  <div class="d-flex align-items-center justify-content-between px-3 py-2" style="background:#f0f3ff;border-bottom:1px solid #dee2f0">
+  {# Estado global del grupo #}
+  {% if hay_faltante_real %}
+    {% set estado_grupo = 'faltan_materiales' %}
+  {% elif not estado_venta_ok %}
+    {% set estado_grupo = 'sin_anticipo' %}
+  {% else %}
+    {% set estado_grupo = 'listo' %}
+  {% endif %}
+
+<div class="mb-4 border rounded overflow-hidden
+  {{ 'border-danger' if estado_grupo == 'faltan_materiales' else ('border-warning' if estado_grupo == 'sin_anticipo' else 'border-success') }}"
+  id="grupo-venta-{{ vid }}">
+  <div class="d-flex align-items-center justify-content-between px-3 py-2"
+       style="background:{{ '#fff4f4' if estado_grupo == 'faltan_materiales' else ('#fffbf0' if estado_grupo == 'sin_anticipo' else '#f0fff4') }};border-bottom:1px solid #dee2e6">
     <div>
       <span class="fw-bold" style="color:var(--text)">
         {% if venta_obj %}
@@ -49,30 +58,67 @@
           Venta #{{ vid }}
         {% endif %}
       </span>
-      {% if anticipo_ok %}
+
+      {# Badge estado venta #}
+      {% if estado_venta_ok %}
         <span class="badge bg-success ms-2"><i class="bi bi-check-circle me-1"></i>Anticipo recibido</span>
       {% else %}
-        <span class="badge bg-warning text-dark ms-2"><i class="bi bi-hourglass me-1"></i>Sin anticipo</span>
+        <span class="badge bg-warning text-dark ms-2">
+          <i class="bi bi-hourglass me-1"></i>Sin anticipo
+          (estado: {{ venta_obj.estado if venta_obj else '?' }})
+        </span>
       {% endif %}
-      {% if hay_faltante.v %}
+
+      {# Badge estado producción #}
+      {% if hay_faltante_real %}
         <span class="badge bg-danger ms-2"><i class="bi bi-exclamation-triangle me-1"></i>Faltan materiales</span>
+      {% elif puede_iniciar %}
+        <span class="badge bg-success ms-2"><i class="bi bi-check2-all me-1"></i>Listo para producir</span>
       {% endif %}
+
+      {# Badge próximos a vencer #}
       {% if hay_proximos_vencer.v %}
         <span class="badge bg-warning text-dark ms-2"><i class="bi bi-alarm me-1"></i>Lotes próx. a vencer</span>
       {% endif %}
     </div>
-    <div class="d-flex gap-2">
-      {% if not hay_faltante.v %}
-      <form method="POST" action="{{ url_for('reserva_iniciar_produccion', venta_id=vid) }}"
-            class="d-inline" id="form-iniciar-{{ vid }}"
-            onsubmit="return confirmarInicio({{ vid }}, this)">
-        <button type="submit" class="btn btn-sm btn-success" id="btn-iniciar-{{ vid }}">
-          <i class="bi bi-play-circle me-1"></i>Iniciar producción
-        </button>
-      </form>
+
+    <div class="d-flex gap-2 align-items-center">
+      {% if not estado_venta_ok %}
+        <span class="text-muted" style="font-size:.78rem">
+          <i class="bi bi-lock me-1"></i>Requiere anticipo para iniciar
+        </span>
+      {% elif hay_faltante_real %}
+        <span class="text-danger" style="font-size:.78rem">
+          <i class="bi bi-exclamation-circle me-1"></i>Compra materiales faltantes primero
+        </span>
+      {% else %}
+        <form method="POST" action="{{ url_for('reserva_iniciar_produccion', venta_id=vid) }}"
+              class="d-inline" id="form-iniciar-{{ vid }}"
+              onsubmit="return confirmarInicio({{ vid }}, this)">
+          <button type="submit" class="btn btn-sm btn-success" id="btn-iniciar-{{ vid }}">
+            <i class="bi bi-play-circle me-1"></i>Iniciar producción
+          </button>
+        </form>
       {% endif %}
     </div>
   </div>
+
+  {# Panel de materiales faltantes (expandible) #}
+  {% if hay_faltante_real and val.faltantes %}
+  <div class="px-3 py-2" style="background:#fff0f0;border-bottom:1px solid #ffc9c9">
+    <div class="fw-semibold text-danger mb-1" style="font-size:.82rem">
+      <i class="bi bi-exclamation-triangle-fill me-1"></i>Materiales que faltan para iniciar producción:
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      {% for f in val.faltantes %}
+      <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" style="font-size:.78rem">
+        {{ f.nombre }}: necesario {{ '%.3f'|format(f.necesario) }} — disponible {{ '%.3f'|format(f.disponible) }}
+        <strong>(falta {{ '%.3f'|format(f.falta) }} {{ f.unidad }})</strong>
+      </span>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 
   <table class="table table-hover align-middle mb-0">
     <thead><tr>

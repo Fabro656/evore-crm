@@ -1,7 +1,7 @@
 # services/inventario.py — Inventario es el núcleo del sistema
 # Toda modificación de stock DEBE pasar por esta clase.
 from extensions import db
-from models import Producto, LoteProducto, MovimientoInventario
+from models import Producto, LoteProducto, MovimientoInventario, MateriaPrima, ReservaProduccion
 from datetime import datetime
 import logging
 
@@ -81,6 +81,131 @@ class InventarioService:
                     f'{prod.nombre}: stock {stock_actual}, requerido {item["cantidad"]}'
                 )
         return problemas
+
+    @staticmethod
+    def validar_materias_produccion(venta_id):
+        """
+        Valida si todas las materias primas de una venta están disponibles para producir.
+        Retorna dict: { 'ok': bool, 'faltantes': [...], 'proximos_vencer': [...] }
+        Faltante = reserva con notas FALTANTE/Sin stock, o stock_disponible < cantidad reservada.
+        """
+        from models import ReservaProduccion
+        from datetime import date, timedelta
+        reservas = ReservaProduccion.query.filter(
+            ReservaProduccion.venta_id == venta_id,
+            ReservaProduccion.estado == 'reservado'
+        ).all()
+
+        faltantes = []
+        proximos_vencer = []
+
+        for r in reservas:
+            notas = r.notas or ''
+            es_faltante = ('FALTANTE' in notas or 'Sin stock' in notas)
+            mp = r.materia
+            if not mp:
+                continue
+
+            if es_faltante:
+                faltantes.append({
+                    'nombre': mp.nombre,
+                    'unidad': mp.unidad,
+                    'necesario': r.cantidad,
+                    'disponible': float(mp.stock_disponible or 0),
+                    'falta': round(r.cantidad - float(mp.stock_disponible or 0), 3)
+                })
+            elif float(mp.stock_disponible or 0) < r.cantidad:
+                faltan = round(r.cantidad - float(mp.stock_disponible or 0), 3)
+                faltantes.append({
+                    'nombre': mp.nombre,
+                    'unidad': mp.unidad,
+                    'necesario': r.cantidad,
+                    'disponible': float(mp.stock_disponible or 0),
+                    'falta': faltan
+                })
+            # Detectar próximos a vencer
+            if r.lote_mp and r.lote_mp.fecha_vencimiento:
+                dias = (r.lote_mp.fecha_vencimiento - date.today()).days
+                if 0 < dias <= 90:
+                    proximos_vencer.append({
+                        'nombre': mp.nombre,
+                        'lote': r.lote_mp.numero_lote or f'ID-{r.lote_mp.id}',
+                        'dias': dias,
+                        'fecha': r.lote_mp.fecha_vencimiento.strftime('%d/%m/%Y')
+                    })
+
+        return {
+            'ok': len(faltantes) == 0,
+            'faltantes': faltantes,
+            'proximos_vencer': proximos_vencer
+        }
+
+    @staticmethod
+    def descontar_materias_produccion(venta_id):
+        """
+        Descuenta materias primas del stock al iniciar producción.
+        stock_disponible -= cantidad  /  stock_reservado += cantidad
+        Solo procesa reservas sin marca FALTANTE.
+        Retorna (ok: bool, msg: str)
+        """
+        from models import ReservaProduccion
+        try:
+            reservas = ReservaProduccion.query.filter(
+                ReservaProduccion.venta_id == venta_id,
+                ReservaProduccion.estado == 'reservado'
+            ).all()
+            for r in reservas:
+                notas = r.notas or ''
+                if 'FALTANTE' in notas or 'Sin stock' in notas:
+                    continue
+                mp = r.materia
+                if not mp:
+                    continue
+                mp.stock_disponible = max(0.0, float(mp.stock_disponible or 0) - r.cantidad)
+                mp.stock_reservado  = float(mp.stock_reservado or 0) + r.cantidad
+                # Registrar movimiento
+                try:
+                    mv = MovimientoInventario(
+                        producto_id=None,
+                        tipo='reserva_produccion',
+                        cantidad=r.cantidad,
+                        referencia=f'Producción venta #{venta_id} — {mp.nombre}',
+                        fecha=datetime.utcnow()
+                    )
+                    db.session.add(mv)
+                except Exception:
+                    pass
+            return True, 'Stock de materias primas descontado correctamente.'
+        except Exception as ex:
+            logging.warning(f'InventarioService.descontar_materias_produccion error: {ex}')
+            return False, str(ex)
+
+    @staticmethod
+    def devolver_materias_venta(venta_id):
+        """
+        Devuelve al stock disponible las materias reservadas de una venta cancelada/eliminada.
+        """
+        from models import ReservaProduccion
+        try:
+            reservas = ReservaProduccion.query.filter(
+                ReservaProduccion.venta_id == venta_id,
+                ReservaProduccion.estado == 'reservado'
+            ).all()
+            for r in reservas:
+                mp = r.materia
+                if not mp:
+                    continue
+                notas = r.notas or ''
+                if 'FALTANTE' in notas or 'Sin stock' in notas:
+                    r.estado = 'cancelado'
+                    continue
+                mp.stock_disponible = float(mp.stock_disponible or 0) + r.cantidad
+                mp.stock_reservado  = max(0.0, float(mp.stock_reservado or 0) - r.cantidad)
+                r.estado = 'cancelado'
+            return True
+        except Exception as ex:
+            logging.warning(f'InventarioService.devolver_materias_venta error: {ex}')
+            return False
 
     @staticmethod
     def ajustar_stock(producto_id, cantidad_nueva, motivo='Ajuste manual'):
