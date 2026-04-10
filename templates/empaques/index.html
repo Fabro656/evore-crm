@@ -126,7 +126,7 @@
         <input type="number" id="calc_peso_unit" class="form-control form-control-sm" step="0.001" min="0" placeholder="0.250">
       </div>
       <div class="col-md-4">
-        <label class="form-label" style="font-size:.82rem">Peso máximo por caja</label>
+        <label class="form-label" style="font-size:.82rem">Peso máximo por caja (kg)</label>
         <input type="number" id="calc_peso_max" class="form-control form-control-sm" step="0.1" min="0" placeholder="20.0">
       </div>
       <div class="col-md-4 d-flex align-items-end">
@@ -417,7 +417,7 @@ function calcular() {
   const largoCm    = dimToCm(largo);
   const altoCm     = dimToCm(alto);
   const pesoUnitKg = pesoToKg(pesoUnit);
-  const pesoMaxKg  = pesoToKg(pesoMax);
+  const pesoMaxKg  = pesoMax;  // siempre en kg
   const margenCm   = dimToCm(margen);
 
   const btn = document.getElementById('btnCalcular');
