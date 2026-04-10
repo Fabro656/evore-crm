@@ -14,8 +14,17 @@ def register(app):
 
     # ── Helpers ─────────────────────────────────────────────────────
     def _prods_json():
-        return {str(p.id): {'nombre': p.nombre, 'precio': float(p.precio or 0), 'stock': float(p.stock or 0)}
-                for p in Producto.query.filter_by(activo=True).all()}
+        # Debe ser lista (array) — el template usa PRODS.map(...)
+        return [
+            {
+                'id':     p.id,
+                'nombre': p.nombre,
+                'sku':    p.sku or '',
+                'precio': float(p.precio or 0),
+                'stock':  float(p.stock or 0)
+            }
+            for p in Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
+        ]
 
     def _save_items(venta_obj):
         VentaProducto.query.filter_by(venta_id=venta_obj.id).delete()
@@ -148,10 +157,18 @@ def register(app):
             obj.dias_entrega=int(request.form.get('dias_entrega') or 30)
             obj.fecha_entrega_est=datetime.strptime(fe,'%Y-%m-%d').date() if fe else None
             obj.notas=request.form.get('notas','')
-            db.session.flush(); _save_items(obj); db.session.flush()
-            _procesar_venta_produccion(obj)
-            _noop('editar','venta',obj.id,f'Venta editada: {obj.titulo}'); db.session.commit()
-            flash('Venta actualizada.','success'); return redirect(url_for('ventas'))
+            try:
+                db.session.flush()
+                _save_items(obj)
+                db.session.flush()
+                _procesar_venta_produccion(obj)
+                db.session.commit()
+                flash('Venta actualizada.', 'success')
+                return redirect(url_for('ventas'))
+            except Exception as e:
+                db.session.rollback()
+                logging.error(f'venta_editar error: {e}')
+                flash('Error al guardar la venta. Verifica los datos e intenta de nuevo.', 'danger')
         items_j = [{'pid':it.producto_id or '','nombre':it.nombre_prod,
                     'cant':it.cantidad,'precio':it.precio_unit} for it in obj.items]
         return render_template('ventas/form.html', obj=obj, clientes_list=cl,
