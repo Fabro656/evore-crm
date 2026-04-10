@@ -1,11 +1,14 @@
 {% extends 'base.html' %}
-{% block title %}Asientos Contables{% endblock %}
-{% block page_title %}Libro de Asientos Contables{% endblock %}
+{% block title %}Asientos Manuales{% endblock %}
+{% block page_title %}Asientos Manuales{% endblock %}
 
 {% block topbar_actions %}
 <div class="d-flex gap-2 flex-wrap">
-  <a href="{{ url_for('contable_asiento_nuevo') }}" class="btn btn-sm btn-primary">
-    <i class="bi bi-plus-lg me-1"></i>Nuevo asiento
+  <a href="{{ url_for('contable_asiento_nuevo', clasificacion='ingreso') }}" class="btn btn-sm btn-outline-success">
+    <i class="bi bi-plus-circle me-1"></i>Nuevo ingreso
+  </a>
+  <a href="{{ url_for('contable_asiento_nuevo', clasificacion='egreso') }}" class="btn btn-sm btn-primary">
+    <i class="bi bi-plus-lg me-1"></i>Nuevo egreso
   </a>
   <a href="{{ url_for('contable_index') }}" class="btn btn-sm btn-outline-secondary">
     <i class="bi bi-arrow-left me-1"></i>Dashboard
@@ -14,45 +17,46 @@
 {% endblock %}
 
 {% block content %}
-{# ── Fila 1: Stats del mes ─────────────────────────────────── #}
+
+{# ── Stats del mes ──────────────────────────────────────────── #}
 <div class="row g-3 mb-3">
   <div class="col-6 col-md-3">
     <div class="fc text-center py-3">
-      <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Ingresos mes</div>
-      <div class="fw-bold mt-1" style="font-size:1.35rem;color:#2dce89">$ {{ '{:,.0f}'.format(ingresos_mes).replace(',','.') }}</div>
+      <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Ingresos este mes</div>
+      <div class="fw-bold mt-1" style="font-size:1.25rem;color:#00875A">$ {{ '{:,.0f}'.format(ingresos_mes).replace(',','.') }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="fc text-center py-3">
-      <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Gastos mes</div>
-      <div class="fw-bold mt-1" style="font-size:1.35rem;color:#f5365c">$ {{ '{:,.0f}'.format(gastos_mes).replace(',','.') }}</div>
+      <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Egresos este mes</div>
+      <div class="fw-bold mt-1" style="font-size:1.25rem;color:#DE350B">$ {{ '{:,.0f}'.format(gastos_mes).replace(',','.') }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
-    <div class="fc text-center py-3" style="border:2px solid {{ '#2dce89' if balance_mes >= 0 else '#f5365c' }}">
+    <div class="fc text-center py-3" style="border:2px solid {{ '#00875A' if balance_mes >= 0 else '#DE350B' }}">
       <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Balance</div>
-      <div class="fw-bold mt-1" style="font-size:1.35rem;color:{{ '#2dce89' if balance_mes >= 0 else '#f5365c' }}">$ {{ '{:,.0f}'.format(balance_mes).replace(',','.') }}</div>
+      <div class="fw-bold mt-1" style="font-size:1.25rem;color:{{ '#00875A' if balance_mes >= 0 else '#DE350B' }}">$ {{ '{:,.0f}'.format(balance_mes).replace(',','.') }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="fc text-center py-3">
-      <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Total asientos</div>
-      <div class="fw-bold mt-1" style="font-size:1.35rem;color:var(--ac)">{{ asientos|length }}</div>
+      <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Total filtrados</div>
+      <div class="fw-bold mt-1" style="font-size:1.25rem;color:var(--ac)">{{ asientos|length }}</div>
     </div>
   </div>
 </div>
 
-{# ── Filtros ──────────────────────────────────────────────── #}
+{# ── Filtros ─────────────────────────────────────────────────── #}
 <div class="fc mb-3">
   <form method="GET" class="row g-2 align-items-end">
     <div class="col-auto">
       <label class="form-label mb-1" style="font-size:.82rem">Filtro</label>
       <select name="filtro" class="form-select form-select-sm">
-        <option value="todos" {% if filtro == 'todos' %}selected{% endif %}>Todos</option>
-        <option value="ingresos" {% if filtro == 'ingresos' %}selected{% endif %}>Ingresos</option>
-        <option value="gastos" {% if filtro == 'gastos' %}selected{% endif %}>Gastos</option>
-        <option value="inversiones" {% if filtro == 'inversiones' %}selected{% endif %}>Inversiones</option>
-        <option value="manual" {% if filtro == 'manual' %}selected{% endif %}>Manual</option>
+        <option value="todos"       {% if filtro=='todos'       %}selected{% endif %}>Todos</option>
+        <option value="ingresos"    {% if filtro=='ingresos'    %}selected{% endif %}>Solo ingresos</option>
+        <option value="egresos"     {% if filtro=='egresos'     %}selected{% endif %}>Solo egresos</option>
+        <option value="caja_chica"  {% if filtro=='caja_chica'  %}selected{% endif %}>Caja chica</option>
+        <option value="inversiones" {% if filtro=='inversiones' %}selected{% endif %}>Inversiones</option>
       </select>
     </div>
     <div class="col-auto">
@@ -65,106 +69,165 @@
     </div>
     <div class="col-auto">
       <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
-      <a href="{{ url_for('contable_asientos') }}" class="btn btn-sm btn-outline-secondary">Limpiar</a>
+      <a href="{{ url_for('contable_asientos') }}" class="btn btn-sm btn-outline-secondary ms-1">Limpiar</a>
     </div>
   </form>
 </div>
 
-{# ── Tabla de asientos ────────────────────────────────────── #}
+{# ── Tabla de asientos ───────────────────────────────────────── #}
 <div class="tc">
-  <div class="ch">
-    <i class="bi bi-journal-text me-2"></i>{{ asientos|length }} asiento(s)
+  <div class="ch d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-journal-bookmark-fill me-2"></i>{{ asientos|length }} asiento(s) manual(es)</span>
+    <div class="d-flex gap-3" style="font-size:.82rem">
+      <span class="text-success fw-semibold">▲ Ingresos: ${{ '{:,.0f}'.format(total_ingresos_list).replace(',','.') }}</span>
+      <span class="text-danger fw-semibold">▼ Egresos: ${{ '{:,.0f}'.format(total_egresos_list).replace(',','.') }}</span>
+    </div>
   </div>
+
   {% if asientos %}
   <div class="table-responsive">
   <table class="table table-sm mb-0">
     <thead>
       <tr>
-        <th>Número</th>
-        <th>Fecha</th>
-        <th>Tipo</th>
+        <th style="width:90px">Número</th>
+        <th style="width:95px">Fecha</th>
+        <th style="width:80px">Tipo</th>
         <th>Descripción</th>
-        <th class="text-end">Debe</th>
-        <th class="text-end">Haber</th>
-        <th>Referencia</th>
-        <th class="text-center">Acciones</th>
+        <th class="text-end" style="width:110px">Monto</th>
+        <th>Referencia / Proveedor</th>
+        <th class="text-center" style="width:130px">Acciones</th>
       </tr>
     </thead>
     <tbody>
       {% for a in asientos %}
-      <tr>
+      {% set es_ingreso = (a.clasificacion == 'ingreso') %}
+      {% set es_cc = (a.tipo == 'gasto_caja_chica') %}
+      <tr style="border-left:3px solid {{ '#00875A' if es_ingreso else '#DE350B' }}">
+
         <td>
           <small class="fw-semibold text-muted">{{ a.numero or '—' }}</small>
         </td>
+
         <td>
           <small>{{ a.fecha.strftime('%d/%m/%Y') }}</small>
         </td>
+
         <td>
-          <small>
-            <span class="badge bg-{{ 'success' if a.tipo in ['venta', 'ingreso_externo'] else 'danger' if a.tipo in ['compra', 'gasto'] else 'warning' if a.tipo == 'inversion_socio' else 'secondary' }}">
-              {{ a.tipo.replace('_', ' ').title() }}
+          {% if es_ingreso %}
+            <span class="b b-activo" style="font-size:.71rem">
+              <i class="bi bi-arrow-down-circle me-1"></i>Ingreso
             </span>
-          </small>
-        </td>
-        <td>
-          <small>{{ a.descripcion[:40] }}</small>
-        </td>
-        <td class="text-end">
-          <small class="text-success">
-            {% if a.debe > 0 %}$ {{ '{:,.0f}'.format(a.debe).replace(',','.') }}{% else %}—{% endif %}
-          </small>
-        </td>
-        <td class="text-end">
-          <small class="text-danger">
-            {% if a.haber > 0 %}$ {{ '{:,.0f}'.format(a.haber).replace(',','.') }}{% else %}—{% endif %}
-          </small>
-        </td>
-        <td>
-          <small class="text-muted">{{ a.referencia or '—' }}</small>
-        </td>
-        <td class="text-center">
-          <a href="{{ url_for('contable_asiento_editar', id=a.id) }}" class="btn btn-xs btn-outline-primary" title="Editar">
-            <i class="bi bi-pencil"></i>
-          </a>
-          <a href="{{ url_for('contable_comprobante', id=a.id) }}" class="btn btn-xs btn-outline-secondary" title="Comprobante">
-            <i class="bi bi-file-pdf"></i>
-          </a>
-          {% if current_user.rol == 'admin' %}
-          <form method="POST" action="{{ url_for('contable_asiento_eliminar', id=a.id) }}" style="display:inline" onsubmit="return confirm('¿Eliminar asiento?')">
-            <button type="submit" class="btn btn-xs btn-outline-danger" title="Eliminar">
-              <i class="bi bi-trash"></i>
-            </button>
-          </form>
+          {% else %}
+            {% if es_cc %}
+              <span class="b" style="font-size:.71rem;background:#FFF0B3;color:#172B4D;border:1px solid #FFE380">
+                <i class="bi bi-wallet me-1"></i>Caja chica
+              </span>
+            {% else %}
+              <span class="b b-alta" style="font-size:.71rem">
+                <i class="bi bi-arrow-up-circle me-1"></i>Egreso
+              </span>
+            {% endif %}
           {% endif %}
+        </td>
+
+        <td>
+          <div style="font-size:.85rem">{{ a.descripcion[:50] }}{% if a.descripcion|length > 50 %}…{% endif %}</div>
+          {% if a.tipo not in ['manual'] %}
+          <small class="text-muted">{{ a.tipo.replace('_',' ').title() }}</small>
+          {% endif %}
+          {% if a.venta and es_ingreso %}
+          <small class="text-muted"><i class="bi bi-bag me-1"></i>Venta {{ a.venta.numero or ('#' ~ a.venta.id) }}</small>
+          {% endif %}
+          {% if a.metodo_pago %}
+          <small class="text-muted ms-2"><i class="bi bi-credit-card me-1"></i>{{ a.metodo_pago.title() }}</small>
+          {% endif %}
+        </td>
+
+        <td class="text-end">
+          {% set monto = a.haber if es_ingreso else a.debe %}
+          <span class="fw-bold" style="font-size:.9rem;color:{{ '#00875A' if es_ingreso else '#DE350B' }}">
+            ${{ '{:,.0f}'.format(monto or 0).replace(',','.') }}
+          </span>
+        </td>
+
+        <td>
+          <small class="text-muted">
+            {% if a.proveedor %}
+              <i class="bi bi-truck me-1"></i>{{ a.proveedor.nombre }}<br>
+            {% endif %}
+            {% if a.referencia %}{{ a.referencia }}{% endif %}
+            {% if a.nro_transaccion %}
+              <br><i class="bi bi-hash me-1"></i>{{ a.nro_transaccion }}
+            {% endif %}
+          </small>
+        </td>
+
+        <td class="text-center">
+          <div class="d-flex gap-1 justify-content-center flex-wrap">
+            <a href="{{ url_for('contable_asiento_editar', id=a.id) }}"
+               class="btn btn-xs btn-outline-primary" title="Editar">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <a href="{{ url_for('contable_comprobante', id=a.id) }}"
+               class="btn btn-xs btn-outline-secondary" title="Comprobante PDF" target="_blank">
+              <i class="bi bi-file-earmark-pdf"></i>
+            </a>
+            {% if not es_ingreso %}
+            <form method="POST" action="{{ url_for('contable_caja_chica', id=a.id) }}" style="display:inline">
+              <button type="submit" class="btn btn-xs {{ 'btn-warning' if es_cc else 'btn-outline-warning' }}"
+                      title="{{ 'Desmarcar caja chica' if es_cc else 'Marcar como caja chica' }}">
+                <i class="bi bi-wallet"></i>
+              </button>
+            </form>
+            {% endif %}
+            {% if current_user.rol == 'admin' %}
+            <form method="POST" action="{{ url_for('contable_asiento_eliminar', id=a.id) }}"
+                  style="display:inline"
+                  onsubmit="return confirm('¿Eliminar asiento {{ a.numero }}?')">
+              <button type="submit" class="btn btn-xs btn-outline-danger" title="Eliminar">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+            {% endif %}
+          </div>
         </td>
       </tr>
       {% endfor %}
     </tbody>
     <tfoot>
       <tr class="table-light fw-bold">
-        <td colspan="4" class="text-end">Totales</td>
-        <td class="text-end text-success">$ {{ '{:,.0f}'.format(total_debe).replace(',','.') }}</td>
-        <td class="text-end text-danger">$ {{ '{:,.0f}'.format(total_haber).replace(',','.') }}</td>
+        <td colspan="4" class="text-end" style="font-size:.83rem">Totales filtro actual</td>
+        <td class="text-end">
+          <div style="font-size:.83rem;color:#00875A">+${{ '{:,.0f}'.format(total_ingresos_list).replace(',','.') }}</div>
+          <div style="font-size:.83rem;color:#DE350B">−${{ '{:,.0f}'.format(total_egresos_list).replace(',','.') }}</div>
+        </td>
         <td colspan="2"></td>
       </tr>
     </tfoot>
   </table>
   </div>
   {% else %}
-  <div class="text-center text-muted py-4">
-    <i class="bi bi-inbox"></i> Sin asientos registrados.
+  <div class="text-center text-muted py-5">
+    <i class="bi bi-journal-x" style="font-size:2rem;display:block;margin-bottom:.5rem"></i>
+    Sin asientos registrados para este filtro.
+    <div class="mt-2">
+      <a href="{{ url_for('contable_asiento_nuevo') }}" class="btn btn-sm btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>Crear primer asiento
+      </a>
+    </div>
   </div>
   {% endif %}
 </div>
+
 {% endblock %}
 
 {% block extra_css %}
 <style>
-  .btn-xs { padding: 0.25rem 0.4rem; font-size: 0.75rem; }
-  .fc { background: #fff; border-radius: 8px; border: 1px solid #e8ecf5; padding: 1rem; }
-  .ch { background: #f8f9fe; padding: 0.75rem 1rem; border-bottom: 1px solid #e8ecf5; font-weight: 600; }
-  .tc { background: #fff; border-radius: 8px; border: 1px solid #e8ecf5; overflow: hidden; }
-  .table { margin: 0; }
-  .table thead { background: #f8f9fe; }
+  .btn-xs { padding:.2rem .4rem; font-size:.74rem; }
+  .fc { background:#fff; border-radius:8px; border:1px solid #e8ecf5; padding:1rem; }
+  .ch { background:#f8f9fe; padding:.75rem 1rem; border-bottom:1px solid #e8ecf5; font-weight:600; }
+  .tc { background:#fff; border-radius:8px; border:1px solid #e8ecf5; overflow:hidden; }
+  .table { margin:0; }
+  .table thead { background:#f8f9fe; }
 </style>
 {% endblock %}

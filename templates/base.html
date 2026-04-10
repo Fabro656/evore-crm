@@ -433,7 +433,7 @@ img,svg{max-width:100%;height:auto}
     {% if 'contable' in request.endpoint %}
     <a href="{{ url_for('contable_ingresos') }}" class="nav-link {% if request.endpoint=='contable_ingresos' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-graph-up"></i><span>Ingresos</span></a>
     <a href="{{ url_for('contable_egresos') }}" class="nav-link {% if request.endpoint=='contable_egresos' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-graph-down"></i><span>Egresos</span></a>
-    <a href="{{ url_for('contable_libro_diario') }}" class="nav-link {% if request.endpoint=='contable_libro_diario' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-journal-text"></i><span>Libro diario</span></a>
+    <a href="{{ url_for('contable_asientos') }}" class="nav-link {% if request.endpoint in ['contable_asientos','contable_asiento_nuevo','contable_asiento_editar'] %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-journal-bookmark-fill"></i><span>Asientos manuales</span></a>
     {% endif %}
     {% if 'gastos' in m %}<a href="{{ url_for('gastos') }}" class="nav-link {% if 'gasto' in request.endpoint %}active{% endif %}"><i class="bi bi-receipt"></i><span>Gastos</span></a>{% endif %}
     <a href="{{ url_for('impuestos') }}" class="nav-link {% if 'impuesto' in request.endpoint %}active{% endif %}"><i class="bi bi-percent"></i><span>Reglas tributarias</span></a>

@@ -1,299 +1,276 @@
-{% extends "base.html" %}
-
+{% extends 'base.html' %}
 {% block title %}Empaques Secundarios{% endblock %}
+{% block page_title %}Empaques Secundarios{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('empaques_nuevo') }}" class="btn btn-primary btn-sm">
+  <i class="bi bi-plus-lg me-1"></i>Nuevo Empaque
+</a>
+{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <h1 class="mb-0">
-                <i class="fas fa-box"></i> Empaques Secundarios
-            </h1>
-            <p class="text-muted">Gestiona cajas y empaques para productos terminados</p>
-        </div>
-        <div class="col-md-4 text-end">
-            <a href="{{ url_for('empaques_nuevo') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Nuevo Empaque
-            </a>
-        </div>
-    </div>
 
-    <!-- Tabla de Empaques Existentes -->
-    <div class="card mb-4">
-        <div class="card-header bg-light">
-            <h5 class="mb-0">
-                <i class="fas fa-list"></i> Empaques Existentes
-            </h5>
-        </div>
-        <div class="card-body">
-            {% if items %}
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Producto</th>
-                                <th>Dimensiones (cm)</th>
-                                <th>Peso Unit.</th>
-                                <th>Peso Max.</th>
-                                <th>Unidades/Caja</th>
-                                <th>Estado</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for empaque in items %}
-                                <tr>
-                                    <td>
-                                        <strong>{{ empaque.producto.nombre }}</strong>
-                                        {% if empaque.producto.sku %}
-                                            <br><small class="text-muted">SKU: {{ empaque.producto.sku }}</small>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {{ "%.1f"|format(empaque.alto) }} x
-                                        {{ "%.1f"|format(empaque.ancho) }} x
-                                        {{ "%.1f"|format(empaque.largo) }} cm
-                                    </td>
-                                    <td>{{ "%.2f"|format(empaque.peso_unitario) }} kg</td>
-                                    <td>{{ "%.2f"|format(empaque.peso_max_caja) }} kg</td>
-                                    <td>
-                                        <span class="badge bg-info">{{ empaque.unidades_por_caja }}</span>
-                                    </td>
-                                    <td>
-                                        {% if empaque.aprobado %}
-                                            <span class="badge bg-success">
-                                                <i class="fas fa-check"></i> Aprobado
-                                            </span>
-                                            {% if empaque.materia_prima %}
-                                                <br>
-                                                <small class="text-success">
-                                                    <i class="fas fa-box-open"></i>
-                                                    MP: {{ empaque.materia_prima.nombre }}
-                                                </small>
-                                            {% endif %}
-                                        {% else %}
-                                            <span class="badge bg-warning text-dark">
-                                                <i class="fas fa-edit"></i> Borrador
-                                            </span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm" role="group">
-                                            {% if not empaque.aprobado %}
-                                                <form method="POST" action="{{ url_for('empaques_aprobar', id=empaque.id) }}" style="display:inline;">
-                                                    <button type="submit" class="btn btn-success btn-sm"
-                                                            onclick="return confirm('¿Aprobar este empaque? Se creará una materia prima automáticamente.')">
-                                                        <i class="fas fa-check"></i> Aprobar
-                                                    </button>
-                                                </form>
-                                            {% endif %}
-                                            <form method="POST" action="{{ url_for('empaques_eliminar', id=empaque.id) }}" style="display:inline;">
-                                                <button type="submit" class="btn btn-danger btn-sm"
-                                                        onclick="return confirm('¿Eliminar este empaque?')">
-                                                    <i class="fas fa-trash"></i> Eliminar
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            {% else %}
-                <div class="alert alert-info mb-0">
-                    <i class="fas fa-info-circle"></i> No hay empaques configurados aún.
-                    <a href="{{ url_for('empaques_nuevo') }}" class="alert-link">Crear uno ahora</a>
-                </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Sección Calculadora -->
-    <div class="card">
-        <div class="card-header bg-light">
-            <h5 class="mb-0">
-                <i class="fas fa-calculator"></i> Calculadora de Empaques
-            </h5>
-        </div>
-        <div class="card-body">
-            <form id="calcForm" method="POST" class="row g-3">
-                <div class="col-md-6">
-                    <label for="producto_select" class="form-label">
-                        Producto <span class="text-danger">*</span>
-                    </label>
-                    <select class="form-select" id="producto_select" name="producto_id" required>
-                        <option value="">-- Seleccionar producto --</option>
-                        {% for prod in productos %}
-                            <option value="{{ prod.id }}">{{ prod.nombre }} (SKU: {{ prod.sku or 'N/A' }})</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="col-md-6"></div>
-
-                <div class="col-md-4">
-                    <label for="alto_prod" class="form-label">
-                        Altura del Producto (cm) <span class="text-danger">*</span>
-                    </label>
-                    <input type="number" class="form-control" id="alto_prod" name="alto_prod"
-                           step="0.1" min="0" placeholder="15.5" required>
-                </div>
-
-                <div class="col-md-4">
-                    <label for="ancho_prod" class="form-label">
-                        Ancho del Producto (cm) <span class="text-danger">*</span>
-                    </label>
-                    <input type="number" class="form-control" id="ancho_prod" name="ancho_prod"
-                           step="0.1" min="0" placeholder="10.0" required>
-                </div>
-
-                <div class="col-md-4">
-                    <label for="largo_prod" class="form-label">
-                        Largo del Producto (cm) <span class="text-danger">*</span>
-                    </label>
-                    <input type="number" class="form-control" id="largo_prod" name="largo_prod"
-                           step="0.1" min="0" placeholder="8.5" required>
-                </div>
-
-                <div class="col-md-6">
-                    <label for="peso_unitario" class="form-label">
-                        Peso Unitario (kg) <span class="text-danger">*</span>
-                    </label>
-                    <input type="number" class="form-control" id="peso_unitario" name="peso_unitario"
-                           step="0.01" min="0" placeholder="0.5" required>
-                </div>
-
-                <div class="col-md-6">
-                    <label for="peso_max_caja" class="form-label">
-                        Peso Máximo por Caja (kg) <span class="text-danger">*</span>
-                    </label>
-                    <input type="number" class="form-control" id="peso_max_caja" name="peso_max_caja"
-                           step="0.1" min="0" placeholder="25.0" required>
-                </div>
-
-                <div class="col-12">
-                    <button type="button" class="btn btn-info" id="calcBtn">
-                        <i class="fas fa-calculator"></i> Calcular Opciones
-                    </button>
-                    <span id="calcStatus" class="ms-2"></span>
-                </div>
-            </form>
-
-            <!-- Resultados de la Calculadora -->
-            <div id="resultados" class="mt-4" style="display:none;">
-                <h6 class="mb-3">
-                    <i class="fas fa-chart-bar"></i> Opciones Sugeridas de Empaque
-                </h6>
-                <div id="opcionesContainer" class="row g-3"></div>
+{# ── Lista de empaques guardados ────────────────────────────────── #}
+{% if items %}
+<div class="tc mb-4">
+  <div class="ch"><i class="bi bi-box2-heart-fill me-2"></i>{{ items|length }} empaque(s) configurado(s)</div>
+  <div class="table-responsive">
+  <table class="table table-sm mb-0">
+    <thead><tr>
+      <th>Producto</th>
+      <th>Dimensiones caja</th>
+      <th class="text-center">Peso unit.</th>
+      <th class="text-center">Peso máx.</th>
+      <th class="text-center">Uds/caja</th>
+      <th class="text-center">Estado</th>
+      <th class="text-center">Acciones</th>
+    </tr></thead>
+    <tbody>{% for e in items %}<tr>
+      <td>
+        <div class="fw-semibold" style="font-size:.88rem">{{ e.producto.nombre }}</div>
+        {% if e.producto.sku %}<small class="text-muted">{{ e.producto.sku }}</small>{% endif %}
+      </td>
+      <td style="font-size:.83rem">
+        {{ '%.1f'|format(e.ancho) }} × {{ '%.1f'|format(e.largo) }} × {{ '%.1f'|format(e.alto) }} cm
+        <small class="text-muted d-block">an × la × al</small>
+      </td>
+      <td class="text-center"><small>{{ '%.3f'|format(e.peso_unitario) }} kg</small></td>
+      <td class="text-center"><small>{{ '%.1f'|format(e.peso_max_caja) }} kg</small></td>
+      <td class="text-center">
+        <span class="b b-activo">{{ e.unidades_por_caja }}</span>
+      </td>
+      <td class="text-center">
+        {% if e.aprobado %}
+          <span class="b b-activo"><i class="bi bi-check-lg me-1"></i>Aprobado</span>
+          {% if e.materia_prima %}
+            <div style="font-size:.73rem;color:#00875A;margin-top:2px">
+              <i class="bi bi-boxes me-1"></i>{{ e.materia_prima.nombre }}
             </div>
+          {% endif %}
+        {% else %}
+          <span class="b b-borrador"><i class="bi bi-pencil me-1"></i>Borrador</span>
+        {% endif %}
+      </td>
+      <td class="text-center">
+        <div class="d-flex gap-1 justify-content-center flex-wrap">
+          {% if not e.aprobado %}
+          <form method="POST" action="{{ url_for('empaques_aprobar', id=e.id) }}"
+                onsubmit="return confirm('¿Aprobar este empaque? Se creará una materia prima automáticamente.')">
+            <button class="btn btn-sm btn-outline-success" title="Aprobar">
+              <i class="bi bi-check-lg"></i>
+            </button>
+          </form>
+          {% endif %}
+          <form method="POST" action="{{ url_for('empaques_eliminar', id=e.id) }}"
+                onsubmit="return confirm('¿Eliminar este empaque?')">
+            <button class="btn btn-sm btn-outline-danger" title="Eliminar">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
         </div>
+      </td>
+    </tr>{% endfor %}</tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
+
+{# ── Calculadora ────────────────────────────────────────────────── #}
+<div class="tc">
+  <div class="ch"><i class="bi bi-calculator-fill me-2"></i>Calculadora de variantes de empaque</div>
+  <div style="padding:1.2rem 1.4rem">
+
+    {# inputs #}
+    <div class="row g-3 mb-3">
+      <div class="col-md-6">
+        <label class="form-label fw-semibold" style="font-size:.85rem">Producto</label>
+        <select class="form-select form-select-sm" id="calc_producto">
+          <option value="">— Seleccionar (opcional) —</option>
+          {% for p in productos %}
+          <option value="{{ p.id }}">{{ p.nombre }}{% if p.sku %} · {{ p.sku }}{% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold" style="font-size:.85rem">Margen interior (cm)</label>
+        <input type="number" id="calc_margen" class="form-control form-control-sm"
+               value="2" min="0" step="0.5" placeholder="2">
+        <div class="form-text" style="font-size:.75rem">Holgura extra por lado</div>
+      </div>
     </div>
+
+    <div class="row g-3 mb-1">
+      <div class="col-12"><div class="fw-semibold" style="font-size:.82rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Dimensiones del producto (cm)</div></div>
+      <div class="col-4">
+        <label class="form-label" style="font-size:.82rem">Ancho</label>
+        <input type="number" id="calc_ancho" class="form-control form-control-sm" step="0.1" min="0" placeholder="10.0">
+      </div>
+      <div class="col-4">
+        <label class="form-label" style="font-size:.82rem">Largo</label>
+        <input type="number" id="calc_largo" class="form-control form-control-sm" step="0.1" min="0" placeholder="15.0">
+      </div>
+      <div class="col-4">
+        <label class="form-label" style="font-size:.82rem">Alto</label>
+        <input type="number" id="calc_alto" class="form-control form-control-sm" step="0.1" min="0" placeholder="8.0">
+      </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+      <div class="col-12"><div class="fw-semibold" style="font-size:.82rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Peso</div></div>
+      <div class="col-md-4">
+        <label class="form-label" style="font-size:.82rem">Peso por unidad (kg)</label>
+        <input type="number" id="calc_peso_unit" class="form-control form-control-sm" step="0.001" min="0" placeholder="0.250">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" style="font-size:.82rem">Peso máximo por caja (kg)</label>
+        <input type="number" id="calc_peso_max" class="form-control form-control-sm" step="0.1" min="0" placeholder="20.0">
+      </div>
+      <div class="col-md-4 d-flex align-items-end">
+        <button id="btnCalcular" class="btn btn-primary btn-sm w-100">
+          <i class="bi bi-calculator-fill me-1"></i>Calcular todas las variantes
+        </button>
+      </div>
+    </div>
+
+    {# resultado: badge de máximo y tabla #}
+    <div id="calcResumen" style="display:none" class="mb-2">
+      <span class="badge bg-light text-dark border me-2">
+        <i class="bi bi-arrow-up-circle me-1 text-success"></i>Máximo por peso: <strong id="resMaxPeso">—</strong> uds
+      </span>
+      <span class="badge bg-light text-dark border">
+        <i class="bi bi-grid-3x3 me-1 text-primary"></i><strong id="resTotalVariantes">—</strong> variantes
+      </span>
+    </div>
+
+    <div id="calcError" class="alert alert-danger py-2" style="display:none;font-size:.85rem"></div>
+
+    <div id="calcTablaWrap" style="display:none;max-height:520px;overflow-y:auto;border-radius:8px;border:1px solid #e8ecf5">
+      <table class="table table-sm mb-0" id="calcTabla">
+        <thead style="position:sticky;top:0;z-index:1;background:#f8f9fe">
+          <tr>
+            <th style="font-size:.78rem">Uds</th>
+            <th style="font-size:.78rem">Distribución<br><span style="font-weight:400;color:#6B778C">filas×cols×capas</span></th>
+            <th style="font-size:.78rem">Ancho caja</th>
+            <th style="font-size:.78rem">Largo caja</th>
+            <th style="font-size:.78rem">Alto caja</th>
+            <th style="font-size:.78rem">Peso total</th>
+            <th style="font-size:.78rem">% peso</th>
+            <th style="font-size:.78rem"></th>
+          </tr>
+        </thead>
+        <tbody id="calcTbody"></tbody>
+      </table>
+    </div>
+
+  </div>
 </div>
 
 <script>
-document.getElementById('calcBtn').addEventListener('click', function() {
-    const producto_id = document.getElementById('producto_select').value;
-    const alto_prod = parseFloat(document.getElementById('alto_prod').value);
-    const ancho_prod = parseFloat(document.getElementById('ancho_prod').value);
-    const largo_prod = parseFloat(document.getElementById('largo_prod').value);
-    const peso_unitario = parseFloat(document.getElementById('peso_unitario').value);
-    const peso_max_caja = parseFloat(document.getElementById('peso_max_caja').value);
+document.getElementById('btnCalcular').addEventListener('click', calcular);
 
-    // Validaciones básicas
-    if (!producto_id) {
-        alert('Por favor selecciona un producto.');
-        return;
-    }
-    if (isNaN(alto_prod) || isNaN(ancho_prod) || isNaN(largo_prod) ||
-        isNaN(peso_unitario) || isNaN(peso_max_caja)) {
-        alert('Por favor completa todos los campos numéricos.');
-        return;
-    }
+function calcular() {
+  const ancho     = parseFloat(document.getElementById('calc_ancho').value);
+  const largo     = parseFloat(document.getElementById('calc_largo').value);
+  const alto      = parseFloat(document.getElementById('calc_alto').value);
+  const pesoUnit  = parseFloat(document.getElementById('calc_peso_unit').value);
+  const pesoMax   = parseFloat(document.getElementById('calc_peso_max').value);
+  const margen    = parseFloat(document.getElementById('calc_margen').value) || 2;
+  const errEl     = document.getElementById('calcError');
 
-    const statusEl = document.getElementById('calcStatus');
-    statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calculando...';
+  errEl.style.display = 'none';
+  if ([ancho, largo, alto, pesoUnit, pesoMax].some(v => isNaN(v) || v <= 0)) {
+    errEl.textContent = 'Completa todos los campos de dimensiones y peso con valores mayores a 0.';
+    errEl.style.display = '';
+    return;
+  }
 
-    fetch('{{ url_for("empaques_calcular") }}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            alto_prod,
-            ancho_prod,
-            largo_prod,
-            peso_unitario,
-            peso_max_caja
-        })
+  const btn = document.getElementById('btnCalcular');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Calculando…';
+
+  fetch('{{ url_for("empaques_calcular") }}', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      ancho_prod: ancho, largo_prod: largo, alto_prod: alto,
+      peso_unitario: pesoUnit, peso_max_caja: pesoMax, margen: margen
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            alert('Error: ' + data.error);
-            statusEl.innerHTML = '';
-            return;
-        }
+  })
+  .then(r => r.json())
+  .then(data => {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-calculator-fill me-1"></i>Calcular todas las variantes';
 
-        const opcionesContainer = document.getElementById('opcionesContainer');
-        opcionesContainer.innerHTML = '';
+    if (data.error) {
+      errEl.textContent = data.error;
+      errEl.style.display = '';
+      document.getElementById('calcTablaWrap').style.display = 'none';
+      return;
+    }
 
-        data.opciones.forEach((opcion, idx) => {
-            const cardHtml = `
-                <div class="col-md-4">
-                    <div class="card border-primary">
-                        <div class="card-header bg-primary text-white">
-                            <strong>Opción ${idx + 1}: ${opcion.unidades} unidades/caja</strong>
-                        </div>
-                        <div class="card-body">
-                            <p class="mb-1">
-                                <strong>Dimensiones caja:</strong><br>
-                                ${opcion.alto_caja.toFixed(1)} x ${opcion.ancho_caja.toFixed(1)} x ${opcion.largo_caja.toFixed(1)} cm
-                            </p>
-                            <p class="mb-3">
-                                <strong>Peso total:</strong><br>
-                                ${opcion.peso_total.toFixed(2)} kg
-                            </p>
-                            <button type="button" class="btn btn-success btn-sm w-100"
-                                    onclick="usarOpcion(${producto_id}, ${opcion.unidades}, ${opcion.alto_caja}, ${opcion.ancho_caja}, ${opcion.largo_caja}, ${peso_unitario}, ${peso_max_caja})">
-                                <i class="fas fa-check"></i> Usar esta opción
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            opcionesContainer.innerHTML += cardHtml;
-        });
+    document.getElementById('resMaxPeso').textContent     = data.max_por_peso;
+    document.getElementById('resTotalVariantes').textContent = data.total_variantes;
+    document.getElementById('calcResumen').style.display  = '';
 
-        document.getElementById('resultados').style.display = 'block';
-        statusEl.innerHTML = '<span class="badge bg-success"><i class="fas fa-check"></i> Cálculo completado</span>';
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error al calcular: ' + error);
-        statusEl.innerHTML = '';
+    const tbody = document.getElementById('calcTbody');
+    tbody.innerHTML = '';
+
+    const productoId = document.getElementById('calc_producto').value;
+
+    data.variantes.forEach(v => {
+      const pct = v.pct_peso;
+      const color = pct >= 85 ? '#d4edda' : pct >= 60 ? '#fff3cd' : '#f8f9fe';
+      const pctBadge = pct >= 85
+        ? `<span class="badge" style="background:#00875A;font-size:.72rem">${pct}%</span>`
+        : pct >= 60
+          ? `<span class="badge" style="background:#FF8B00;font-size:.72rem">${pct}%</span>`
+          : `<span class="badge bg-secondary" style="font-size:.72rem">${pct}%</span>`;
+
+      const tr = document.createElement('tr');
+      tr.style.background = color;
+      tr.innerHTML = `
+        <td class="fw-bold" style="font-size:.85rem">${v.total}</td>
+        <td style="font-size:.85rem;font-family:monospace">${v.distribucion}</td>
+        <td style="font-size:.83rem">${v.ancho_caja} cm</td>
+        <td style="font-size:.83rem">${v.largo_caja} cm</td>
+        <td style="font-size:.83rem">${v.alto_caja} cm</td>
+        <td style="font-size:.83rem">${v.peso_total} kg</td>
+        <td>${pctBadge}</td>
+        <td>
+          <button class="btn btn-xs btn-outline-primary"
+                  title="Guardar esta variante como borrador"
+                  onclick="guardarVariante(
+                    ${productoId||0},${v.total},
+                    ${v.ancho_caja},${v.largo_caja},${v.alto_caja},
+                    ${pesoUnit},${pesoMax}
+                  )">
+            <i class="bi bi-floppy"></i>
+          </button>
+        </td>`;
+      tbody.appendChild(tr);
     });
-});
 
-function usarOpcion(producto_id, unidades, alto, ancho, largo, peso_unitario, peso_max) {
-    // Redirigir a /empaques/nuevo con parámetros pre-llenados
-    const params = new URLSearchParams();
-    params.append('producto_id', producto_id);
-    params.append('alto', alto);
-    params.append('ancho', ancho);
-    params.append('largo', largo);
-    params.append('peso_unitario', peso_unitario);
-    params.append('peso_max_caja', peso_max);
-    params.append('unidades_por_caja', unidades);
+    document.getElementById('calcTablaWrap').style.display = '';
+  })
+  .catch(err => {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-calculator-fill me-1"></i>Calcular todas las variantes';
+    errEl.textContent = 'Error de conexión: ' + err;
+    errEl.style.display = '';
+  });
+}
 
-    window.location.href = '{{ url_for("empaques_nuevo") }}?' + params.toString();
+function guardarVariante(prodId, uds, ancho, largo, alto, pesoUnit, pesoMax) {
+  const params = new URLSearchParams({
+    producto_id: prodId, unidades_por_caja: uds,
+    ancho: ancho, largo: largo, alto: alto,
+    peso_unitario: pesoUnit, peso_max_caja: pesoMax
+  });
+  window.location.href = '{{ url_for("empaques_nuevo") }}?' + params.toString();
 }
 </script>
 
 <style>
-    .table-hover tbody tr:hover {
-        background-color: #f5f5f5;
-    }
+.btn-xs{padding:.2rem .45rem;font-size:.75rem}
 </style>
-
 {% endblock %}

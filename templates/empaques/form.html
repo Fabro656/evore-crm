@@ -1,160 +1,139 @@
-{% extends "base.html" %}
-
+{% extends 'base.html' %}
 {% block title %}{% if obj %}Editar{% else %}Nuevo{% endif %} Empaque{% endblock %}
+{% block page_title %}{% if obj %}Editar empaque{% else %}Guardar variante de empaque{% endif %}{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <h1 class="mb-0">
-                <i class="fas fa-box"></i> {% if obj %}Editar{% else %}Crear{% endif %} Empaque
-            </h1>
-        </div>
+<div style="max-width:640px">
+<div class="tc">
+  <div class="ch"><i class="bi bi-box2-heart-fill me-2"></i>{% if obj %}Editar{% else %}Nueva{% endif %} configuración de empaque</div>
+  <div style="padding:1.4rem">
+
+    {% if not obj %}
+    <div class="alert alert-info py-2 mb-3" style="font-size:.84rem;border-radius:8px;border:none">
+      <i class="bi bi-info-circle me-1"></i>
+      Los campos se pre-rellenan con la variante elegida en la calculadora. Revisa y ajusta antes de guardar.
     </div>
+    {% endif %}
 
-    <div class="card">
-        <div class="card-body">
-            <form method="POST" class="row g-3">
-                <div class="col-md-6">
-                    <label for="producto_id" class="form-label">
-                        Producto <span class="text-danger">*</span>
-                    </label>
-                    <select class="form-select" id="producto_id" name="producto_id" required
-                            {% if obj %}disabled{% endif %}>
-                        <option value="">-- Seleccionar producto --</option>
-                        {% for prod in productos %}
-                            <option value="{{ prod.id }}"
-                                    {% if obj and obj.producto_id == prod.id %}selected{% endif %}>
-                                {{ prod.nombre }} (SKU: {{ prod.sku or 'N/A' }})
-                            </option>
-                        {% endfor %}
-                    </select>
-                    {% if obj %}
-                        <input type="hidden" name="producto_id" value="{{ obj.producto_id }}">
-                        <small class="text-muted">Producto no puede cambiar una vez creado.</small>
-                    {% endif %}
-                </div>
+    <form method="POST" class="row g-3">
 
-                <div class="col-md-6"></div>
+      {# Producto #}
+      <div class="col-12">
+        <label class="form-label fw-semibold">Producto <span class="text-danger">*</span></label>
+        <select class="form-select" name="producto_id" required {% if obj %}disabled{% endif %}>
+          <option value="">— Seleccionar —</option>
+          {% for p in productos %}
+          <option value="{{ p.id }}"
+            {% if obj and obj.producto_id == p.id %}selected
+            {% elif request.args.get('producto_id')|int == p.id %}selected{% endif %}>
+            {{ p.nombre }}{% if p.sku %} · {{ p.sku }}{% endif %}
+          </option>
+          {% endfor %}
+        </select>
+        {% if obj %}<input type="hidden" name="producto_id" value="{{ obj.producto_id }}">{% endif %}
+      </div>
 
-                <div class="col-md-4">
-                    <label for="alto" class="form-label">
-                        Altura Producto (cm) <span class="text-danger">*</span>
-                    </label>
-                    <input type="number" class="form-control" id="alto" name="alto"
-                           step="0.1" min="0"
-                           value="{% if obj %}{{ "%.1f"|format(obj.alto) }}{% endif %}"
-                           required>
-                </div>
-
-                <div class="col-md-4">
-                    <label for="ancho" class="form-label">
-                        Ancho Producto (cm) <span class="text-danger">*</span>
-                    </label>
-                    <input type="number" class="form-control" id="ancho" name="ancho"
-                           step="0.1" min="0"
-                           value="{% if obj %}{{ "%.1f"|format(obj.ancho) }}{% endif %}"
-                           required>
-                </div>
-
-                <div class="col-md-4">
-                    <label for="largo" class="form-label">
-                        Largo Producto (cm) <span class="text-danger">*</span>
-                    </label>
-                    <input type="number" class="form-control" id="largo" name="largo"
-                           step="0.1" min="0"
-                           value="{% if obj %}{{ "%.1f"|format(obj.largo) }}{% endif %}"
-                           required>
-                </div>
-
-                <div class="col-md-6">
-                    <label for="peso_unitario" class="form-label">
-                        Peso Unitario (kg) <span class="text-danger">*</span>
-                    </label>
-                    <input type="number" class="form-control" id="peso_unitario" name="peso_unitario"
-                           step="0.01" min="0"
-                           value="{% if obj %}{{ "%.2f"|format(obj.peso_unitario) }}{% endif %}"
-                           required>
-                </div>
-
-                <div class="col-md-6">
-                    <label for="peso_max_caja" class="form-label">
-                        Peso Máximo por Caja (kg) <span class="text-danger">*</span>
-                    </label>
-                    <input type="number" class="form-control" id="peso_max_caja" name="peso_max_caja"
-                           step="0.1" min="0"
-                           value="{% if obj %}{{ "%.1f"|format(obj.peso_max_caja) }}{% endif %}"
-                           required>
-                </div>
-
-                <div class="col-md-6">
-                    <label for="unidades_por_caja" class="form-label">
-                        Unidades por Caja <span class="text-danger">*</span>
-                    </label>
-                    <input type="number" class="form-control" id="unidades_por_caja" name="unidades_por_caja"
-                           step="1" min="1"
-                           value="{% if obj %}{{ obj.unidades_por_caja }}{% else %}1{% endif %}"
-                           required>
-                </div>
-
-                <div class="col-md-6"></div>
-
-                <div class="col-12">
-                    <label for="notas" class="form-label">Notas</label>
-                    <textarea class="form-control" id="notas" name="notas" rows="3"
-                             placeholder="Anotaciones adicionales sobre este empaque">{% if obj %}{{ obj.notas }}{% endif %}</textarea>
-                </div>
-
-                <!-- Información de Estado -->
-                {% if obj %}
-                    <div class="col-12">
-                        <div class="alert alert-info mb-0">
-                            <strong><i class="fas fa-info-circle"></i> Información:</strong><br>
-                            Estado: {% if obj.aprobado %}
-                                <span class="badge bg-success">Aprobado</span>
-                                {% if obj.materia_prima %}
-                                    <br>Materia Prima vinculada: <strong>{{ obj.materia_prima.nombre }}</strong>
-                                {% endif %}
-                            {% else %}
-                                <span class="badge bg-warning text-dark">Borrador</span>
-                            {% endif %}
-                            <br>
-                            Creado por: {{ obj.creado_por }} el {{ obj.creado_en.strftime('%d/%m/%Y %H:%M') if obj.creado_en else 'N/A' }}
-                        </div>
-                    </div>
-                {% endif %}
-
-                <!-- Botones -->
-                <div class="col-12">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> {% if obj %}Actualizar{% else %}Crear{% endif %} Empaque
-                    </button>
-                    <a href="{{ url_for('empaques') }}" class="btn btn-secondary">
-                        <i class="fas fa-times"></i> Cancelar
-                    </a>
-                </div>
-            </form>
+      {# Dimensiones de la CAJA (no del producto) — viene de la calculadora #}
+      <div class="col-12">
+        <div class="fw-semibold mb-1" style="font-size:.82rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">
+          Dimensiones de la caja (cm)
         </div>
-    </div>
+      </div>
+      <div class="col-4">
+        <label class="form-label" style="font-size:.83rem">Ancho</label>
+        <input type="number" name="ancho" class="form-control form-control-sm" step="0.1" min="0"
+               value="{{ obj.ancho if obj else request.args.get('ancho','') }}" required>
+      </div>
+      <div class="col-4">
+        <label class="form-label" style="font-size:.83rem">Largo</label>
+        <input type="number" name="largo" class="form-control form-control-sm" step="0.1" min="0"
+               value="{{ obj.largo if obj else request.args.get('largo','') }}" required>
+      </div>
+      <div class="col-4">
+        <label class="form-label" style="font-size:.83rem">Alto</label>
+        <input type="number" name="alto" class="form-control form-control-sm" step="0.1" min="0"
+               value="{{ obj.alto if obj else request.args.get('alto','') }}" required>
+      </div>
+
+      {# Peso #}
+      <div class="col-6">
+        <label class="form-label fw-semibold" style="font-size:.83rem">Peso unitario (kg) <span class="text-danger">*</span></label>
+        <input type="number" name="peso_unitario" class="form-control form-control-sm" step="0.001" min="0"
+               value="{{ obj.peso_unitario if obj else request.args.get('peso_unitario','') }}" required
+               id="f_peso_unit">
+      </div>
+      <div class="col-6">
+        <label class="form-label fw-semibold" style="font-size:.83rem">Peso máximo por caja (kg) <span class="text-danger">*</span></label>
+        <input type="number" name="peso_max_caja" class="form-control form-control-sm" step="0.1" min="0"
+               value="{{ obj.peso_max_caja if obj else request.args.get('peso_max_caja','') }}" required
+               id="f_peso_max">
+      </div>
+
+      {# Unidades por caja #}
+      <div class="col-6">
+        <label class="form-label fw-semibold" style="font-size:.83rem">Unidades por caja <span class="text-danger">*</span></label>
+        <input type="number" name="unidades_por_caja" class="form-control form-control-sm" step="1" min="1"
+               value="{{ obj.unidades_por_caja if obj else (request.args.get('unidades_por_caja','1')) }}"
+               required id="f_uds">
+      </div>
+      <div class="col-6 d-flex align-items-end">
+        <div id="pesoAlerta" class="text-muted" style="font-size:.8rem"></div>
+      </div>
+
+      {# Notas #}
+      <div class="col-12">
+        <label class="form-label fw-semibold" style="font-size:.83rem">Notas</label>
+        <textarea name="notas" class="form-control form-control-sm" rows="2"
+                  placeholder="Ej: distribución 2×3×4, caja de cartón doble canal">{{ obj.notas if obj else '' }}</textarea>
+      </div>
+
+      {% if obj %}
+      <div class="col-12">
+        <div class="alert alert-light border mb-0 py-2" style="font-size:.83rem">
+          Estado:
+          {% if obj.aprobado %}
+            <span class="b b-activo ms-1">Aprobado</span>
+            {% if obj.materia_prima %}
+              · MP vinculada: <strong>{{ obj.materia_prima.nombre }}</strong>
+            {% endif %}
+          {% else %}
+            <span class="b b-borrador ms-1">Borrador</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="col-12 d-flex gap-2">
+        <button type="submit" class="btn btn-primary btn-sm">
+          <i class="bi bi-floppy me-1"></i>{% if obj %}Actualizar{% else %}Guardar como borrador{% endif %}
+        </button>
+        <a href="{{ url_for('empaques') }}" class="btn btn-outline-secondary btn-sm">Cancelar</a>
+      </div>
+
+    </form>
+  </div>
+</div>
 </div>
 
 <script>
-// Validación en tiempo real
-document.getElementById('unidades_por_caja').addEventListener('change', function() {
-    const unidades = parseInt(this.value);
-    const peso_unitario = parseFloat(document.getElementById('peso_unitario').value);
-    const peso_max_caja = parseFloat(document.getElementById('peso_max_caja').value);
-
-    if (isNaN(unidades) || isNaN(peso_unitario) || isNaN(peso_max_caja)) {
-        return;
-    }
-
-    const peso_total = unidades * peso_unitario;
-    if (peso_total > peso_max_caja) {
-        alert(`⚠️ Advertencia: El peso total de ${unidades} unidades es ${peso_total.toFixed(2)} kg, ` +
-              `que excede el peso máximo de ${peso_max_caja} kg.`);
-    }
-});
+// Validación de peso en tiempo real
+function validarPeso() {
+  const uds  = parseInt(document.getElementById('f_uds').value) || 0;
+  const pu   = parseFloat(document.getElementById('f_peso_unit').value) || 0;
+  const pmax = parseFloat(document.getElementById('f_peso_max').value) || 0;
+  const el   = document.getElementById('pesoAlerta');
+  if (!uds || !pu || !pmax) { el.textContent = ''; return; }
+  const total = uds * pu;
+  const pct   = Math.round(total / pmax * 100);
+  if (total > pmax) {
+    el.innerHTML = `<span class="text-danger fw-semibold">⚠ Excede límite: ${total.toFixed(3)} kg > ${pmax} kg</span>`;
+  } else {
+    el.innerHTML = `<span class="text-success">Peso total: ${total.toFixed(3)} kg (${pct}%)</span>`;
+  }
+}
+['f_uds','f_peso_unit','f_peso_max'].forEach(id =>
+  document.getElementById(id).addEventListener('input', validarPeso)
+);
+validarPeso();
 </script>
-
 {% endblock %}

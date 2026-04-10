@@ -3,198 +3,222 @@
 {% block page_title %}{{ titulo }}{% endblock %}
 
 {% block content %}
-<div class="row g-4">
-  {# ── Formulario ──────────────────────────────────────────── #}
-  <div class="col-md-6">
-    <div class="fc">
-      <form method="POST">
+<div style="max-width:780px">
+<div class="tc">
+  <div class="ch"><i class="bi bi-journal-plus me-2"></i>{{ titulo }}</div>
+  <div style="padding:1.4rem">
 
-        <div class="mb-3">
-          <label class="form-label mb-2">Fecha *</label>
-          <input type="date" name="fecha" class="form-control"
-            value="{{ obj.fecha.isoformat() if obj and obj.fecha else hoy }}" required>
-        </div>
+  <form method="POST" id="formAsiento">
 
-        <div class="mb-3">
-          <label class="form-label mb-2">Descripción *</label>
-          <textarea name="descripcion" class="form-control" rows="3" required>{{ obj.descripcion if obj else '' }}</textarea>
-          <small class="text-muted">Ej: Ingreso por venta, Pago a proveedor, etc.</small>
-        </div>
+    {# ── Clasificación: Ingreso / Egreso ─────────────────────── #}
+    <div class="mb-4">
+      <label class="form-label fw-semibold mb-2">Clasificación <span class="text-danger">*</span></label>
+      <div class="d-flex gap-2">
+        <input type="radio" class="btn-check" name="clasificacion" id="opt_egreso"
+               value="egreso" {% if clasificacion_default != 'ingreso' %}checked{% endif %}
+               onchange="toggleClasificacion()">
+        <label class="btn btn-outline-danger" for="opt_egreso">
+          <i class="bi bi-arrow-up-circle me-1"></i>Egreso (pago / gasto)
+        </label>
 
-        <div class="row g-2 mb-3">
-          <div class="col-md-6">
-            <label class="form-label mb-2">Tipo *</label>
-            <select name="tipo" id="tipo" class="form-select" required onchange="actualizarSubtipo()">
-              <option value="">— Seleccionar —</option>
-              {% for val, lbl in tipos_asiento %}
-              <option value="{{ val }}" {% if obj and obj.tipo == val %}selected{% endif %}>
-                {{ lbl }}
-              </option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label mb-2">Subtipo</label>
-            <input type="text" name="subtipo" class="form-control"
-              value="{{ obj.subtipo if obj else '' }}" placeholder="Ej: ingreso_venta">
-          </div>
-        </div>
-
-        {# Banner para inversiones de socios #}
-        <div id="banner-inversion" class="alert alert-warning d-none mb-3" style="border-radius:6px;border:none">
-          <i class="bi bi-exclamation-triangle me-2"></i>
-          <strong>Nota:</strong> Este asiento <strong>NO</strong> se contabiliza como ingreso operacional.
-        </div>
-
-        <div class="row g-2 mb-3">
-          <div class="col-md-6">
-            <label class="form-label mb-2">Debe $</label>
-            <input type="number" name="debe" class="form-control" step="1" min="0"
-              value="{{ obj.debe if obj else 0 }}" placeholder="0">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label mb-2">Haber $</label>
-            <input type="number" name="haber" class="form-control" step="1" min="0"
-              value="{{ obj.haber if obj else 0 }}" placeholder="0">
-          </div>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label mb-2">Cuenta Debe</label>
-          <input type="text" name="cuenta_debe" class="form-control"
-            value="{{ obj.cuenta_debe if obj else '' }}" placeholder="Ej: Caja, Bancos, Cuentas por cobrar...">
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label mb-2">Cuenta Haber</label>
-          <input type="text" name="cuenta_haber" class="form-control"
-            value="{{ obj.cuenta_haber if obj else '' }}" placeholder="Ej: Ventas, IVA, Ingresos...">
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label mb-2">Referencia</label>
-          <input type="text" name="referencia" class="form-control"
-            value="{{ obj.referencia if obj else '' }}" placeholder="Factura, N° venta, comprobante...">
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label mb-2">Notas</label>
-          <textarea name="notas" class="form-control" rows="3">{{ obj.notas if obj else '' }}</textarea>
-        </div>
-
-        <div class="d-flex gap-2">
-          <button type="submit" class="btn btn-primary">
-            <i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear' }} Asiento
-          </button>
-          <a href="{{ url_for('contable_asientos') }}" class="btn btn-outline-secondary">Cancelar</a>
-        </div>
-      </form>
+        <input type="radio" class="btn-check" name="clasificacion" id="opt_ingreso"
+               value="ingreso" {% if clasificacion_default == 'ingreso' %}checked{% endif %}
+               onchange="toggleClasificacion()">
+        <label class="btn btn-outline-success" for="opt_ingreso">
+          <i class="bi bi-arrow-down-circle me-1"></i>Ingreso (cobro / pago recibido)
+        </label>
+      </div>
     </div>
-  </div>
 
-  {# ── Preview: Libro contable ─────────────────────────────── #}
-  <div class="col-md-6">
-    <div class="fc">
-      <h6 class="text-muted text-uppercase mb-3" style="font-size:.82rem;letter-spacing:1px">
-        <i class="bi bi-eye me-1"></i>Vista previa del asiento
-      </h6>
-
-      <div style="background:#f8f9fe;border-radius:6px;padding:1rem;margin-bottom:1rem">
-        <div style="text-align:center;margin-bottom:1rem">
-          <strong style="font-size:1.1rem">LIBRO CONTABLE</strong>
+    {# ── Campos comunes ──────────────────────────────────────── #}
+    <div class="row g-3 mb-3">
+      <div class="col-md-4">
+        <label class="form-label fw-semibold" style="font-size:.83rem">Fecha <span class="text-danger">*</span></label>
+        <input type="date" name="fecha" class="form-control form-control-sm"
+               value="{{ obj.fecha.isoformat() if obj and obj.fecha else hoy }}" required>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold" style="font-size:.83rem">Tipo</label>
+        <select name="tipo" id="sel_tipo" class="form-select form-select-sm">
+          {# Opciones dinámicas via JS según clasificacion #}
+          <optgroup id="opts_egreso" label="— Egreso —">
+            <option value="gasto"           {% if obj and obj.tipo=='gasto'           %}selected{% endif %}>Gasto operativo</option>
+            <option value="compra"          {% if obj and obj.tipo=='compra'          %}selected{% endif %}>Compra a proveedor</option>
+            <option value="gasto_caja_chica" {% if obj and obj.tipo=='gasto_caja_chica' %}selected{% endif %}>Gasto caja chica</option>
+          </optgroup>
+          <optgroup id="opts_ingreso" label="— Ingreso —">
+            <option value="venta"           {% if obj and obj.tipo=='venta'           %}selected{% endif %}>Pago de venta</option>
+            <option value="ingreso_externo" {% if obj and obj.tipo=='ingreso_externo' %}selected{% endif %}>Ingreso externo</option>
+            <option value="inversion_socio" {% if obj and obj.tipo=='inversion_socio' %}selected{% endif %}>Inversión de socio</option>
+          </optgroup>
+          <option value="manual" {% if obj and obj.tipo=='manual' %}selected{% endif %}>Manual</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold" style="font-size:.83rem">Monto <span class="text-danger">*</span></label>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text">$</span>
+          <input type="number" name="monto" id="monto" class="form-control"
+                 step="1" min="0" required
+                 value="{{ (obj.haber if obj and obj.clasificacion=='ingreso' else (obj.debe if obj else 0)) or 0 }}">
         </div>
+      </div>
+    </div>
 
-        <table style="width:100%;border-collapse:collapse;font-size:.9rem">
-          <thead>
-            <tr style="background:#e8ecf5">
-              <th style="padding:8px;text-align:center;border:1px solid #d8dce5">DEBE</th>
-              <th style="padding:8px;text-align:center;border:1px solid #d8dce5">HABER</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style="padding:12px;border:1px solid #d8dce5;text-align:center">
-                <div style="font-size:1.3rem;font-weight:bold;color:#2dce89" id="preview-debe">0</div>
-                <small style="color:#6B778C" id="preview-cuenta-debe">Cuenta Debe</small>
-              </td>
-              <td style="padding:12px;border:1px solid #d8dce5;text-align:center">
-                <div style="font-size:1.3rem;font-weight:bold;color:#f5365c" id="preview-haber">0</div>
-                <small style="color:#6B778C" id="preview-cuenta-haber">Cuenta Haber</small>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+    <div class="mb-3">
+      <label class="form-label fw-semibold" style="font-size:.83rem">Descripción <span class="text-danger">*</span></label>
+      <textarea name="descripcion" class="form-control form-control-sm" rows="2"
+                required placeholder="Ej: Pago factura #123, Cobro venta cliente ABC…">{{ obj.descripcion if obj else '' }}</textarea>
+    </div>
 
-        <div style="margin-top:1rem;padding:1rem;background:#fff;border-radius:4px;border-left:3px solid var(--ac)">
-          <div style="font-size:.85rem;color:#6B778C;margin-bottom:0.5rem">
-            <strong>Descripción:</strong>
-          </div>
-          <div id="preview-descripcion" style="font-size:.9rem;color:#1a1f36">
-            {{ obj.descripcion if obj else '(Sin descripción)' }}
-          </div>
+    {# ── Sección INGRESO ─────────────────────────────────────── #}
+    <div id="sec_ingreso" style="display:none">
+      <div class="alert alert-success py-2 mb-3" style="font-size:.83rem;border-radius:8px;border:none">
+        <i class="bi bi-arrow-down-circle me-1"></i>
+        Los ingresos manuales registran cobros recibidos. Vincula a una venta para actualizar la cartera.
+      </div>
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold" style="font-size:.83rem">Venta vinculada <span class="text-muted fw-normal">(opcional)</span></label>
+          <select name="venta_id" class="form-select form-select-sm">
+            <option value="">— Sin vincular a venta —</option>
+            {% for v in ventas %}
+            <option value="{{ v.id }}"
+              {% if obj and obj.venta_id == v.id %}selected{% endif %}>
+              {{ v.numero or ('#' ~ v.id) }}
+              {% if v.cliente %} · {{ v.cliente.empresa or v.cliente.nombre }}{% endif %}
+              {% if v.saldo %} — Saldo: ${{ '{:,.0f}'.format(v.saldo).replace(',','.') }}{% endif %}
+            </option>
+            {% endfor %}
+          </select>
+          <div class="form-text" style="font-size:.75rem">Al vincular, el ingreso se refleja en cuentas por cobrar.</div>
         </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold" style="font-size:.83rem">Referencia</label>
+          <input type="text" name="referencia" class="form-control form-control-sm"
+                 value="{{ obj.referencia if obj else '' }}"
+                 placeholder="Nro. factura, comprobante, etc.">
+        </div>
+      </div>
+    </div>
 
-        <div style="margin-top:0.5rem;font-size:.8rem;color:#6B778C">
-          <strong>Referencia:</strong> <span id="preview-referencia">—</span>
+    {# ── Sección EGRESO ──────────────────────────────────────── #}
+    <div id="sec_egreso" style="display:none">
+      <div class="alert alert-danger py-2 mb-3" style="font-size:.83rem;border-radius:8px;border:none;background:#FFF5F3">
+        <i class="bi bi-arrow-up-circle me-1"></i>
+        Registra todos los detalles del pago para mantener trazabilidad completa.
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold" style="font-size:.83rem">Proveedor / Beneficiario <span class="text-muted fw-normal">(opcional)</span></label>
+          <select name="proveedor_id" class="form-select form-select-sm">
+            <option value="">— Sin proveedor vinculado —</option>
+            {% for p in proveedores %}
+            <option value="{{ p.id }}"
+              {% if obj and obj.proveedor_id == p.id %}selected{% endif %}>
+              {{ p.nombre }}{% if p.empresa %} — {{ p.empresa }}{% endif %}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold" style="font-size:.83rem">Beneficiario (texto libre)</label>
+          <input type="text" name="beneficiario" class="form-control form-control-sm"
+                 value="{{ obj.beneficiario if obj else '' }}"
+                 placeholder="Ej: Juan García, Empresa XYZ">
         </div>
       </div>
 
-      <div class="alert alert-info mb-0" style="border-radius:6px;border:none">
-        <i class="bi bi-info-circle me-2"></i>
-        <strong>Ecuación contable:</strong> DEBE = HABER (se valida en presencia)
+      <div class="fw-semibold mb-2" style="font-size:.8rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">
+        Detalles del pago
+      </div>
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold" style="font-size:.83rem">Método de pago</label>
+          <select name="metodo_pago" class="form-select form-select-sm">
+            <option value="">— Seleccionar —</option>
+            <option value="efectivo"       {% if obj and obj.metodo_pago=='efectivo'      %}selected{% endif %}>Efectivo</option>
+            <option value="transferencia"  {% if obj and obj.metodo_pago=='transferencia' %}selected{% endif %}>Transferencia bancaria</option>
+            <option value="cheque"         {% if obj and obj.metodo_pago=='cheque'        %}selected{% endif %}>Cheque</option>
+            <option value="tarjeta"        {% if obj and obj.metodo_pago=='tarjeta'       %}selected{% endif %}>Tarjeta</option>
+            <option value="pse"            {% if obj and obj.metodo_pago=='pse'           %}selected{% endif %}>PSE</option>
+            <option value="nequi"          {% if obj and obj.metodo_pago=='nequi'         %}selected{% endif %}>Nequi / Daviplata</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold" style="font-size:.83rem">Fecha de pago</label>
+          <input type="date" name="fecha_pago" class="form-control form-control-sm"
+                 value="{{ obj.fecha_pago.isoformat() if obj and obj.fecha_pago else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold" style="font-size:.83rem">Nro. transacción / comprobante</label>
+          <input type="text" name="nro_transaccion" class="form-control form-control-sm"
+                 value="{{ obj.nro_transaccion if obj else '' }}"
+                 placeholder="Ej: TRX-20240410-001">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold" style="font-size:.83rem">Banco / Entidad financiera</label>
+          <input type="text" name="banco_nombre" class="form-control form-control-sm"
+                 value="{{ obj.banco_nombre if obj else '' }}"
+                 placeholder="Ej: Bancolombia, Davivienda…">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold" style="font-size:.83rem">Nro. de cuenta</label>
+          <input type="text" name="banco_cuenta" class="form-control form-control-sm"
+                 value="{{ obj.banco_cuenta if obj else '' }}"
+                 placeholder="Ej: 123-456789-00">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold" style="font-size:.83rem">Referencia</label>
+          <input type="text" name="referencia" class="form-control form-control-sm"
+                 value="{{ obj.referencia if obj else '' }}"
+                 placeholder="Factura, OC, contrato…">
+        </div>
       </div>
     </div>
+
+    {# ── Notas (siempre visible) ─────────────────────────────── #}
+    <div class="mb-4">
+      <label class="form-label fw-semibold" style="font-size:.83rem">Notas adicionales</label>
+      <textarea name="notas" class="form-control form-control-sm" rows="2"
+                placeholder="Observaciones, detalles adicionales…">{{ obj.notas if obj else '' }}</textarea>
+    </div>
+
+    {# ── Botones ─────────────────────────────────────────────── #}
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-sm">
+        <i class="bi bi-floppy me-1"></i>{{ 'Actualizar asiento' if obj else 'Guardar asiento' }}
+      </button>
+      <a href="{{ url_for('contable_asientos') }}" class="btn btn-outline-secondary btn-sm">Cancelar</a>
+    </div>
+
+  </form>
   </div>
+</div>
 </div>
 
 <script>
-function actualizarSubtipo() {
-  const tipo = document.getElementById('tipo').value;
-  const banner = document.getElementById('banner-inversion');
-  if (tipo === 'inversion_socio') {
-    banner.classList.remove('d-none');
-  } else {
-    banner.classList.add('d-none');
-  }
+function toggleClasificacion() {
+  const esIngreso = document.getElementById('opt_ingreso').checked;
+  document.getElementById('sec_ingreso').style.display = esIngreso ? '' : 'none';
+  document.getElementById('sec_egreso').style.display  = esIngreso ? 'none' : '';
+
+  // Mostrar/ocultar grupos de opciones de tipo
+  document.getElementById('opts_ingreso').style.display = esIngreso ? '' : 'none';
+  document.getElementById('opts_egreso').style.display  = esIngreso ? 'none' : '';
 }
 
-// Actualizar preview en tiempo real
 document.addEventListener('DOMContentLoaded', function() {
-  const debeInput = document.querySelector('input[name="debe"]');
-  const haberInput = document.querySelector('input[name="haber"]');
-  const cuentaDebeInput = document.querySelector('input[name="cuenta_debe"]');
-  const cuentaHaberInput = document.querySelector('input[name="cuenta_haber"]');
-  const descripcionInput = document.querySelector('textarea[name="descripcion"]');
-  const referenciaInput = document.querySelector('input[name="referencia"]');
-
-  function actualizarPreview() {
-    document.getElementById('preview-debe').textContent = (parseFloat(debeInput.value) || 0).toLocaleString();
-    document.getElementById('preview-haber').textContent = (parseFloat(haberInput.value) || 0).toLocaleString();
-    document.getElementById('preview-cuenta-debe').textContent = cuentaDebeInput.value || 'Cuenta Debe';
-    document.getElementById('preview-cuenta-haber').textContent = cuentaHaberInput.value || 'Cuenta Haber';
-    document.getElementById('preview-descripcion').textContent = descripcionInput.value || '(Sin descripción)';
-    document.getElementById('preview-referencia').textContent = referenciaInput.value || '—';
-  }
-
-  debeInput.addEventListener('input', actualizarPreview);
-  haberInput.addEventListener('input', actualizarPreview);
-  cuentaDebeInput.addEventListener('input', actualizarPreview);
-  cuentaHaberInput.addEventListener('input', actualizarPreview);
-  descripcionInput.addEventListener('input', actualizarPreview);
-  referenciaInput.addEventListener('input', actualizarPreview);
-
-  actualizarPreview();
-  actualizarSubtipo();
+  toggleClasificacion();
 });
 </script>
 
 {% block extra_css %}
 <style>
-  .fc { background: #fff; border-radius: 8px; border: 1px solid #e8ecf5; padding: 1.5rem; }
-  .form-label { color: #1a1f36; font-weight: 600; }
-  .form-control, .form-select { border-color: #e8ecf5; }
-  .form-control:focus, .form-select:focus { border-color: var(--ac); }
+  .tc  { background:#fff; border-radius:10px; border:1px solid #e8ecf5; overflow:hidden; }
+  .ch  { background:#f8f9fe; padding:.75rem 1rem; border-bottom:1px solid #e8ecf5; font-weight:600; }
+  .form-label { font-size:.83rem; }
 </style>
 {% endblock %}
-
 {% endblock %}

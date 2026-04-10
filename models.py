@@ -311,10 +311,19 @@ class AsientoContable(db.Model):
     notas            = db.Column(db.Text)
     venta_id         = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=True)       # v30
     orden_compra_id  = db.Column(db.Integer, db.ForeignKey('ordenes_compra.id'), nullable=True)  # v30
+    proveedor_id     = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)  # v31
+    clasificacion    = db.Column(db.String(10), default='egreso')    # ingreso | egreso   v31
+    nro_transaccion  = db.Column(db.String(100), nullable=True)      # v31
+    banco_nombre     = db.Column(db.String(120), nullable=True)      # v31
+    banco_cuenta     = db.Column(db.String(80), nullable=True)       # v31
+    beneficiario     = db.Column(db.String(200), nullable=True)      # v31
+    metodo_pago      = db.Column(db.String(30), nullable=True)       # efectivo|transferencia|cheque|tarjeta  v31
+    fecha_pago       = db.Column(db.Date, nullable=True)             # v31
     creado_por       = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en        = db.Column(db.DateTime, default=datetime.utcnow)
     venta            = db.relationship('Venta', foreign_keys=[venta_id])         # v30
     orden_compra     = db.relationship('OrdenCompra', foreign_keys=[orden_compra_id])  # v30
+    proveedor        = db.relationship('Proveedor', foreign_keys=[proveedor_id])  # v31
 
 class ReglaTributaria(db.Model):
     __tablename__ = 'reglas_tributarias'
@@ -849,6 +858,15 @@ def _migrate(conn):
         ("ALTER TABLE asientos_contables ADD COLUMN IF NOT EXISTS subtipo VARCHAR(50)"),
         ("ALTER TABLE asientos_contables ADD COLUMN IF NOT EXISTS venta_id INTEGER REFERENCES ventas(id)"),
         ("ALTER TABLE asientos_contables ADD COLUMN IF NOT EXISTS orden_compra_id INTEGER REFERENCES ordenes_compra(id)"),
+        # v31 — AsientoContable: campos de pago detallados + clasificacion + proveedor
+        ("ALTER TABLE asientos_contables ADD COLUMN IF NOT EXISTS clasificacion VARCHAR(10) DEFAULT 'egreso'"),
+        ("ALTER TABLE asientos_contables ADD COLUMN IF NOT EXISTS nro_transaccion VARCHAR(100)"),
+        ("ALTER TABLE asientos_contables ADD COLUMN IF NOT EXISTS banco_nombre VARCHAR(120)"),
+        ("ALTER TABLE asientos_contables ADD COLUMN IF NOT EXISTS banco_cuenta VARCHAR(80)"),
+        ("ALTER TABLE asientos_contables ADD COLUMN IF NOT EXISTS beneficiario VARCHAR(200)"),
+        ("ALTER TABLE asientos_contables ADD COLUMN IF NOT EXISTS metodo_pago VARCHAR(30)"),
+        ("ALTER TABLE asientos_contables ADD COLUMN IF NOT EXISTS fecha_pago DATE"),
+        ("ALTER TABLE asientos_contables ADD COLUMN IF NOT EXISTS proveedor_id INTEGER REFERENCES proveedores(id)"),
         # v30 — VentaProducto: servicio + unidad
         ("ALTER TABLE venta_productos ADD COLUMN IF NOT EXISTS es_servicio BOOLEAN DEFAULT FALSE"),
         ("ALTER TABLE venta_productos ADD COLUMN IF NOT EXISTS servicio_id INTEGER REFERENCES servicios(id)"),

@@ -1,4 +1,4 @@
-# routes/contable.py — BLOQUE 5: Contabilidad Completa (v30)
+# routes/contable.py — BLOQUE 5: Contabilidad Completa (v31)
 from flask import render_template, redirect, url_for, flash, request, \
                   jsonify, send_file, make_response, current_app
 from flask import session as flask_session
@@ -47,6 +47,18 @@ def register(app):
         ).all()
         total_ingresos = sum(float(v.total or 0) for v in ventas_mes)
         total_anticipo = sum(float(v.monto_anticipo or 0) for v in ventas_mes)
+
+        # Asientos manuales de ingreso del mes
+        try:
+            asientos_ingreso = AsientoContable.query.filter(
+                AsientoContable.clasificacion == 'ingreso',
+                AsientoContable.fecha >= mes_ini,
+                AsientoContable.fecha <= mes_fin
+            ).all()
+            total_ingresos_manual = sum(float(a.haber or 0) for a in asientos_ingreso)
+            total_ingresos += total_ingresos_manual
+        except Exception:
+            asientos_ingreso = []
 
         # ── Egresos: gastos operativos + compras de materia prima ─────────────
         try:
@@ -104,59 +116,51 @@ def register(app):
             ventas_mes=ventas_mes, gastos_mes=gastos_mes, compras_mes=compras_mes,
             cxc=cxc)
 
-    # ── contable_asientos: Lista todos los asientos (/contable/asientos)
+    # ── contable_asientos: Lista todos los asientos manuales (/contable/asientos)
     @app.route('/contable/asientos')
     @login_required
     def contable_asientos():
         filtro = request.args.get('filtro', 'todos')
-        desde = request.args.get('desde', '')
-        hasta = request.args.get('hasta', '')
+        desde  = request.args.get('desde', '')
+        hasta  = request.args.get('hasta', '')
 
         q = AsientoContable.query
 
         if filtro == 'ingresos':
-            q = q.filter(AsientoContable.tipo.in_(['venta', 'ingreso_externo']))
-        elif filtro == 'gastos':
-            q = q.filter(AsientoContable.tipo.in_(['compra', 'gasto', 'gasto_caja_chica']))
+            q = q.filter(AsientoContable.clasificacion == 'ingreso')
+        elif filtro == 'egresos':
+            q = q.filter(AsientoContable.clasificacion == 'egreso')
+        elif filtro == 'caja_chica':
+            q = q.filter(AsientoContable.tipo == 'gasto_caja_chica')
         elif filtro == 'inversiones':
             q = q.filter(AsientoContable.tipo == 'inversion_socio')
-        elif filtro == 'manual':
-            q = q.filter(AsientoContable.tipo == 'manual')
 
         if desde:
             try:
-                fecha_desde = datetime.strptime(desde, '%Y-%m-%d').date()
-                q = q.filter(AsientoContable.fecha >= fecha_desde)
-            except:
+                q = q.filter(AsientoContable.fecha >= datetime.strptime(desde, '%Y-%m-%d').date())
+            except Exception:
                 pass
-
         if hasta:
             try:
-                fecha_hasta = datetime.strptime(hasta, '%Y-%m-%d').date()
-                q = q.filter(AsientoContable.fecha <= fecha_hasta)
-            except:
+                q = q.filter(AsientoContable.fecha <= datetime.strptime(hasta, '%Y-%m-%d').date())
+            except Exception:
                 pass
 
         asientos = q.order_by(AsientoContable.fecha.desc(), AsientoContable.creado_en.desc()).all()
 
-        # Totales
-        total_debe = sum(float(a.debe or 0) for a in asientos)
-        total_haber = sum(float(a.haber or 0) for a in asientos)
+        total_ingresos_list = sum(float(a.haber or 0) for a in asientos if a.clasificacion == 'ingreso')
+        total_egresos_list  = sum(float(a.debe or 0)  for a in asientos if a.clasificacion == 'egreso')
 
         # Stats del mes actual
         mes_ini = date_type.today().replace(day=1)
-        asientos_mes = AsientoContable.query.filter(
-            AsientoContable.fecha >= mes_ini
-        ).all()
-
-        ingresos_mes = sum(float(a.haber or 0) for a in asientos_mes
-                          if a.tipo in ['venta', 'ingreso_externo'])
-        gastos_mes = sum(float(a.debe or 0) for a in asientos_mes
-                        if a.tipo in ['compra', 'gasto', 'gasto_caja_chica'])
+        asientos_mes = AsientoContable.query.filter(AsientoContable.fecha >= mes_ini).all()
+        ingresos_mes = sum(float(a.haber or 0) for a in asientos_mes if a.clasificacion == 'ingreso')
+        gastos_mes   = sum(float(a.debe or 0)  for a in asientos_mes if a.clasificacion == 'egreso')
 
         return render_template('contable/asientos.html',
             asientos=asientos, filtro=filtro, desde=desde, hasta=hasta,
-            total_debe=total_debe, total_haber=total_haber,
+            total_ingresos_list=total_ingresos_list,
+            total_egresos_list=total_egresos_list,
             ingresos_mes=ingresos_mes, gastos_mes=gastos_mes,
             balance_mes=ingresos_mes - gastos_mes)
 
@@ -165,61 +169,69 @@ def register(app):
     @login_required
     def contable_asiento_nuevo():
         if request.method == 'POST':
-            fecha = request.form.get('fecha', '')
-            descripcion = request.form.get('descripcion', '')
-            tipo = request.form.get('tipo', 'manual')
-            subtipo = request.form.get('subtipo', '')
-            referencia = request.form.get('referencia', '')
-            debe = float(request.form.get('debe', 0) or 0)
-            haber = float(request.form.get('haber', 0) or 0)
-            cuenta_debe = request.form.get('cuenta_debe', '')
-            cuenta_haber = request.form.get('cuenta_haber', '')
-            notas = request.form.get('notas', '')
+            clasificacion   = request.form.get('clasificacion', 'egreso')
+            fecha_str       = request.form.get('fecha', '')
+            descripcion     = request.form.get('descripcion', '').strip()
+            tipo            = request.form.get('tipo', 'manual')
+            referencia      = request.form.get('referencia', '')
+            notas           = request.form.get('notas', '')
+            monto           = float(request.form.get('monto', 0) or 0)
+
+            # Cuenta debe/haber según clasificación
+            debe  = monto if clasificacion == 'egreso'  else 0.0
+            haber = monto if clasificacion == 'ingreso' else 0.0
 
             try:
-                fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
-            except:
+                fecha_obj = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+            except Exception:
                 fecha_obj = date_type.today()
 
-            # Generar número automático: AC-YYYY-{n:04d}
-            ultimo = AsientoContable.query.order_by(AsientoContable.id.desc()).first()
-            n_ac = (ultimo.id + 1) if ultimo else 1
-            numero = f'AC-{fecha_obj.year}-{n_ac:04d}'
+            # FK opcionales
+            venta_id_raw       = request.form.get('venta_id', '')
+            proveedor_id_raw   = request.form.get('proveedor_id', '')
+            venta_id           = int(venta_id_raw) if venta_id_raw.isdigit() else None
+            proveedor_id       = int(proveedor_id_raw) if proveedor_id_raw.isdigit() else None
+
+            # Campos de pago
+            nro_transaccion = request.form.get('nro_transaccion', '') or None
+            banco_nombre    = request.form.get('banco_nombre', '') or None
+            banco_cuenta    = request.form.get('banco_cuenta', '') or None
+            beneficiario    = request.form.get('beneficiario', '') or None
+            metodo_pago     = request.form.get('metodo_pago', '') or None
+            fecha_pago_str  = request.form.get('fecha_pago', '')
+            try:
+                fecha_pago  = datetime.strptime(fecha_pago_str, '%Y-%m-%d').date() if fecha_pago_str else None
+            except Exception:
+                fecha_pago  = None
+
+            # Número automático
+            ultimo  = AsientoContable.query.order_by(AsientoContable.id.desc()).first()
+            n_ac    = (ultimo.id + 1) if ultimo else 1
+            numero  = f'AC-{fecha_obj.year}-{n_ac:04d}'
 
             asiento = AsientoContable(
-                numero=numero,
-                fecha=fecha_obj,
-                descripcion=descripcion,
-                tipo=tipo,
-                subtipo=subtipo,
-                referencia=referencia,
-                debe=debe,
-                haber=haber,
-                cuenta_debe=cuenta_debe,
-                cuenta_haber=cuenta_haber,
-                notas=notas,
+                numero=numero, fecha=fecha_obj, descripcion=descripcion,
+                tipo=tipo, referencia=referencia, notas=notas,
+                debe=debe, haber=haber,
+                clasificacion=clasificacion,
+                venta_id=venta_id, proveedor_id=proveedor_id,
+                nro_transaccion=nro_transaccion, banco_nombre=banco_nombre,
+                banco_cuenta=banco_cuenta, beneficiario=beneficiario,
+                metodo_pago=metodo_pago, fecha_pago=fecha_pago,
                 creado_por=current_user.id
             )
             db.session.add(asiento)
             db.session.commit()
-
-            flash(f'Asiento {numero} creado exitosamente.', 'success')
+            flash(f'Asiento {numero} creado correctamente.', 'success')
             return redirect(url_for('contable_asientos'))
 
-        tipos_asiento = [
-            ('manual', 'Manual'),
-            ('venta', 'Venta'),
-            ('compra', 'Compra'),
-            ('gasto', 'Gasto'),
-            ('ingreso_externo', 'Ingreso externo'),
-            ('inversion_socio', 'Inversión socio'),
-            ('gasto_caja_chica', 'Gasto caja chica')
-        ]
-
+        ventas     = Venta.query.order_by(Venta.creado_en.desc()).limit(100).all()
+        proveedores = Proveedor.query.filter_by(activo=True).order_by(Proveedor.nombre).all() if hasattr(Proveedor, 'activo') else Proveedor.query.order_by(Proveedor.nombre).all()
         return render_template('contable/asiento_form.html',
-            obj=None, tipos_asiento=tipos_asiento,
-            titulo='Nuevo asiento contable',
-            hoy=date_type.today().isoformat())
+            obj=None, ventas=ventas, proveedores=proveedores,
+            titulo='Nuevo asiento manual',
+            hoy=date_type.today().isoformat(),
+            clasificacion_default=request.args.get('clasificacion', 'egreso'))
 
     # ── contable_asiento_editar: Editar asiento (/contable/asientos/<id>/editar)
     @app.route('/contable/asientos/<int:id>/editar', methods=['GET', 'POST'])
@@ -228,35 +240,80 @@ def register(app):
         asiento = AsientoContable.query.get_or_404(id)
 
         if request.method == 'POST':
-            asiento.fecha = datetime.strptime(request.form.get('fecha', asiento.fecha.isoformat()), '%Y-%m-%d').date()
-            asiento.descripcion = request.form.get('descripcion', asiento.descripcion)
-            asiento.tipo = request.form.get('tipo', asiento.tipo)
-            asiento.subtipo = request.form.get('subtipo', '')
-            asiento.referencia = request.form.get('referencia', '')
-            asiento.debe = float(request.form.get('debe', asiento.debe) or 0)
-            asiento.haber = float(request.form.get('haber', asiento.haber) or 0)
-            asiento.cuenta_debe = request.form.get('cuenta_debe', '')
-            asiento.cuenta_haber = request.form.get('cuenta_haber', '')
-            asiento.notas = request.form.get('notas', '')
+            clasificacion  = request.form.get('clasificacion', asiento.clasificacion or 'egreso')
+            fecha_str      = request.form.get('fecha', asiento.fecha.isoformat())
+            monto          = float(request.form.get('monto', 0) or 0)
+
+            asiento.clasificacion   = clasificacion
+            asiento.fecha           = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+            asiento.descripcion     = request.form.get('descripcion', asiento.descripcion)
+            asiento.tipo            = request.form.get('tipo', asiento.tipo)
+            asiento.referencia      = request.form.get('referencia', '')
+            asiento.notas           = request.form.get('notas', '')
+            asiento.debe            = monto if clasificacion == 'egreso'  else 0.0
+            asiento.haber           = monto if clasificacion == 'ingreso' else 0.0
+
+            venta_id_raw      = request.form.get('venta_id', '')
+            proveedor_id_raw  = request.form.get('proveedor_id', '')
+            asiento.venta_id      = int(venta_id_raw) if venta_id_raw.isdigit() else None
+            asiento.proveedor_id  = int(proveedor_id_raw) if proveedor_id_raw.isdigit() else None
+
+            asiento.nro_transaccion = request.form.get('nro_transaccion', '') or None
+            asiento.banco_nombre    = request.form.get('banco_nombre', '') or None
+            asiento.banco_cuenta    = request.form.get('banco_cuenta', '') or None
+            asiento.beneficiario    = request.form.get('beneficiario', '') or None
+            asiento.metodo_pago     = request.form.get('metodo_pago', '') or None
+            fp_str = request.form.get('fecha_pago', '')
+            try:
+                asiento.fecha_pago = datetime.strptime(fp_str, '%Y-%m-%d').date() if fp_str else None
+            except Exception:
+                asiento.fecha_pago = None
 
             db.session.commit()
+
+            # Si admin editó asiento ajeno → notificar al creador via Tarea
+            if current_user.rol == 'admin' and asiento.creado_por and asiento.creado_por != current_user.id:
+                try:
+                    tarea_notif = Tarea(
+                        titulo=f'El admin editó tu asiento {asiento.numero}',
+                        descripcion=f'El administrador modificó el asiento contable {asiento.numero} '
+                                    f'({asiento.descripcion[:80]}). Revisa los cambios si tienes dudas.',
+                        estado='pendiente',
+                        prioridad='media',
+                        asignado_a=asiento.creado_por,
+                        creado_por=current_user.id,
+                        fecha_vencimiento=date_type.today()
+                    )
+                    db.session.add(tarea_notif)
+                    db.session.commit()
+                except Exception as _te:
+                    logging.warning(f'No se pudo crear tarea de notificación: {_te}')
+
             flash(f'Asiento {asiento.numero} actualizado.', 'success')
             return redirect(url_for('contable_asientos'))
 
-        tipos_asiento = [
-            ('manual', 'Manual'),
-            ('venta', 'Venta'),
-            ('compra', 'Compra'),
-            ('gasto', 'Gasto'),
-            ('ingreso_externo', 'Ingreso externo'),
-            ('inversion_socio', 'Inversión socio'),
-            ('gasto_caja_chica', 'Gasto caja chica')
-        ]
-
+        ventas     = Venta.query.order_by(Venta.creado_en.desc()).limit(100).all()
+        proveedores = Proveedor.query.order_by(Proveedor.nombre).all()
         return render_template('contable/asiento_form.html',
-            obj=asiento, tipos_asiento=tipos_asiento,
+            obj=asiento, ventas=ventas, proveedores=proveedores,
             titulo=f'Editar asiento {asiento.numero}',
-            hoy=date_type.today().isoformat())
+            hoy=date_type.today().isoformat(),
+            clasificacion_default=asiento.clasificacion or 'egreso')
+
+    # ── contable_caja_chica: Marcar/desmarcar asiento como caja chica
+    @app.route('/contable/asientos/<int:id>/caja-chica', methods=['POST'])
+    @login_required
+    def contable_caja_chica(id):
+        asiento = AsientoContable.query.get_or_404(id)
+        if asiento.tipo == 'gasto_caja_chica':
+            asiento.tipo = 'gasto'
+            msg = f'Asiento {asiento.numero} desmarcado de caja chica.'
+        else:
+            asiento.tipo = 'gasto_caja_chica'
+            msg = f'Asiento {asiento.numero} marcado como gasto de caja chica.'
+        db.session.commit()
+        flash(msg, 'info')
+        return redirect(url_for('contable_asientos'))
 
     # ── contable_asiento_eliminar: Eliminar asiento (/contable/asientos/<id>/eliminar)
     @app.route('/contable/asientos/<int:id>/eliminar', methods=['POST'])
@@ -264,24 +321,19 @@ def register(app):
     def contable_asiento_eliminar(id):
         asiento = AsientoContable.query.get_or_404(id)
         numero = asiento.numero
-
-        # Solo admin puede eliminar
         if current_user.rol != 'admin':
             flash('Solo administradores pueden eliminar asientos.', 'danger')
             return redirect(url_for('contable_asientos'))
-
         db.session.delete(asiento)
         db.session.commit()
-
         flash(f'Asiento {numero} eliminado.', 'info')
         return redirect(url_for('contable_asientos'))
 
-    # ── contable_comprobante: Generar PDF comprobante (/contable/asientos/<id>/comprobante)
+    # ── contable_comprobante: Generar PDF/comprobante (/contable/asientos/<id>/comprobante)
     @app.route('/contable/asientos/<int:id>/comprobante')
     @login_required
     def contable_comprobante(id):
         asiento = AsientoContable.query.get_or_404(id)
         empresa = ConfigEmpresa.query.first()
-
         return render_template('contable/comprobante.html',
             asiento=asiento, empresa=empresa)

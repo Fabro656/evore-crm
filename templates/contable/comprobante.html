@@ -123,66 +123,66 @@
   <!-- Info boxes -->
   <div class="info-grid">
     <div class="info-box">
-      <h4>Tipo de asiento</h4>
-      <p><strong>{{ asiento.tipo.replace('_', ' ').title() }}</strong>
-      {% if asiento.subtipo %}<br><small style="color:#6B778C">{{ asiento.subtipo }}</small>{% endif %}</p>
+      <h4>Clasificación</h4>
+      <p><strong style="color:{% if asiento.clasificacion=='ingreso' %}#00875A{% else %}#DE350B{% endif %}">
+        {% if asiento.clasificacion=='ingreso' %}▼ INGRESO{% else %}▲ EGRESO{% endif %}
+      </strong><br>
+      <small style="color:#6B778C">{{ asiento.tipo.replace('_', ' ').title() }}</small></p>
     </div>
     <div class="info-box">
-      <h4>Referencia</h4>
-      <p>{{ asiento.referencia or '—' }}</p>
+      <h4>Monto</h4>
+      <p style="font-size:16pt;font-weight:800;color:{% if asiento.clasificacion=='ingreso' %}#00875A{% else %}#DE350B{% endif %}">
+        $ {{ '{:,.0f}'.format((asiento.haber if asiento.clasificacion=='ingreso' else asiento.debe) or 0).replace(',','.') }}
+      </p>
     </div>
     <div class="info-box">
       <h4>Descripción</h4>
       <p>{{ asiento.descripcion }}</p>
     </div>
     <div class="info-box">
-      <h4>Período</h4>
+      <h4>Fecha</h4>
       <p>{{ asiento.fecha.strftime('%d de %B de %Y') if asiento.fecha else '—' }}</p>
+      {% if asiento.fecha_pago %}<p style="font-size:9pt;color:#6B778C">Fecha pago: {{ asiento.fecha_pago.strftime('%d/%m/%Y') }}</p>{% endif %}
     </div>
   </div>
 
-  <!-- Libro contable -->
-  <table>
-    <thead>
-      <tr>
-        <th style="width: 50%">DEBE</th>
-        <th style="width: 50%" class="r">HABER</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>
-          {% if asiento.cuenta_debe %}<strong>{{ asiento.cuenta_debe }}</strong>{% endif %}
-          <br><span style="font-size: 9pt; color: #6B778C;">Cargo a la cuenta</span>
-        </td>
-        <td class="r">
-          {% if asiento.cuenta_haber %}<strong>{{ asiento.cuenta_haber }}</strong>{% endif %}
-          <br><span style="font-size: 9pt; color: #6B778C;">Abono a la cuenta</span>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+  {% if asiento.clasificacion == 'ingreso' %}
+  <!-- Detalle Ingreso -->
+  <div class="info-box" style="margin-bottom:14px">
+    <h4>Detalle del ingreso</h4>
+    <table style="margin:6px 0">
+      {% if asiento.venta %}<tr><td style="color:#6B778C;font-size:9pt;padding:3px 0">Venta vinculada</td><td style="font-size:9.5pt;padding:3px 0 3px 12px"><strong>{{ asiento.venta.numero or ('#'~asiento.venta.id) }}</strong></td></tr>{% endif %}
+      <tr><td style="color:#6B778C;font-size:9pt;padding:3px 0">Referencia</td><td style="font-size:9.5pt;padding:3px 0 3px 12px">{{ asiento.referencia or '—' }}</td></tr>
+    </table>
+  </div>
+  {% else %}
+  <!-- Detalle Pago -->
+  <div class="info-box" style="margin-bottom:14px">
+    <h4>Detalles del pago</h4>
+    <table style="margin:6px 0">
+      {% if asiento.proveedor %}<tr><td style="color:#6B778C;font-size:9pt;padding:3px 0">Proveedor</td><td style="font-size:9.5pt;padding:3px 0 3px 12px">{{ asiento.proveedor.nombre }}</td></tr>{% endif %}
+      {% if asiento.beneficiario %}<tr><td style="color:#6B778C;font-size:9pt;padding:3px 0">Beneficiario</td><td style="font-size:9.5pt;padding:3px 0 3px 12px">{{ asiento.beneficiario }}</td></tr>{% endif %}
+      {% if asiento.metodo_pago %}<tr><td style="color:#6B778C;font-size:9pt;padding:3px 0">Método</td><td style="font-size:9.5pt;padding:3px 0 3px 12px">{{ asiento.metodo_pago.title() }}</td></tr>{% endif %}
+      {% if asiento.banco_nombre %}<tr><td style="color:#6B778C;font-size:9pt;padding:3px 0">Banco</td><td style="font-size:9.5pt;padding:3px 0 3px 12px">{{ asiento.banco_nombre }}</td></tr>{% endif %}
+      {% if asiento.banco_cuenta %}<tr><td style="color:#6B778C;font-size:9pt;padding:3px 0">Cuenta</td><td style="font-size:9.5pt;padding:3px 0 3px 12px">{{ asiento.banco_cuenta }}</td></tr>{% endif %}
+      {% if asiento.nro_transaccion %}<tr><td style="color:#6B778C;font-size:9pt;padding:3px 0">Nro. transacción</td><td style="font-size:9.5pt;padding:3px 0 3px 12px"><strong>{{ asiento.nro_transaccion }}</strong></td></tr>{% endif %}
+      {% if asiento.referencia %}<tr><td style="color:#6B778C;font-size:9pt;padding:3px 0">Referencia</td><td style="font-size:9.5pt;padding:3px 0 3px 12px">{{ asiento.referencia }}</td></tr>{% endif %}
+    </table>
+  </div>
+  {% endif %}
 
   <!-- Montos -->
   <div class="totals">
     <table>
       <tr>
-        <td>Movimiento Debe</td>
-        <td class="r" style="font-weight: 600;">$ {{ '{:,.0f}'.format(asiento.debe or 0).replace(',', '.') }}</td>
-      </tr>
-      <tr>
-        <td>Movimiento Haber</td>
-        <td class="r" style="font-weight: 600;">$ {{ '{:,.0f}'.format(asiento.haber or 0).replace(',', '.') }}</td>
+        <td>{{ 'Ingreso (Haber)' if asiento.clasificacion=='ingreso' else 'Egreso (Debe)' }}</td>
+        <td class="r" style="font-weight:600;color:{% if asiento.clasificacion=='ingreso' %}#00875A{% else %}#DE350B{% endif %}">
+          $ {{ '{:,.0f}'.format((asiento.haber if asiento.clasificacion=='ingreso' else asiento.debe) or 0).replace(',','.') }}
+        </td>
       </tr>
       <tr class="grand">
-        <td>BALANCE</td>
-        <td class="r">
-          {% if asiento.debe == asiento.haber %}
-            BALANCEADO ✓
-          {% else %}
-            NO BALANCEADO
-          {% endif %}
-        </td>
+        <td>TOTAL</td>
+        <td class="r">$ {{ '{:,.0f}'.format((asiento.haber if asiento.clasificacion=='ingreso' else asiento.debe) or 0).replace(',','.') }}</td>
       </tr>
     </table>
   </div>

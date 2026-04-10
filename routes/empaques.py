@@ -75,51 +75,82 @@ def register(app):
     @login_required
     @requiere_modulo('produccion')
     def empaques_calcular():
-        """Calcula opciones de empaque basado en dimensiones y peso."""
+        """Genera TODAS las variantes de distribución (filas×columnas×capas)
+        cuyo único límite real es el peso máximo por caja."""
         try:
-            alto_prod = float(request.json.get('alto_prod', 0))
-            ancho_prod = float(request.json.get('ancho_prod', 0))
-            largo_prod = float(request.json.get('largo_prod', 0))
-            peso_unitario = float(request.json.get('peso_unitario', 0))
-            peso_max_caja = float(request.json.get('peso_max_caja', 0))
+            alto_prod    = float(request.json.get('alto_prod', 0))
+            ancho_prod   = float(request.json.get('ancho_prod', 0))
+            largo_prod   = float(request.json.get('largo_prod', 0))
+            peso_unit    = float(request.json.get('peso_unitario', 0))
+            peso_max     = float(request.json.get('peso_max_caja', 0))
+            margen       = float(request.json.get('margen', 2))   # cm de holgura por lado
 
-            if peso_unitario <= 0 or peso_max_caja <= 0:
-                return jsonify({'error': 'Peso unitario y peso máximo de caja deben ser mayores a 0'}), 400
+            if peso_unit <= 0 or peso_max <= 0:
+                return jsonify({'error': 'Peso unitario y peso máximo deben ser mayores a 0'}), 400
+            if alto_prod <= 0 or ancho_prod <= 0 or largo_prod <= 0:
+                return jsonify({'error': 'Las dimensiones del producto deben ser mayores a 0'}), 400
 
-            # Calcular cuántas unidades caben por peso
-            max_unidades_por_peso = math.floor(peso_max_caja / peso_unitario)
+            # ── Límite absoluto por peso ───────────────────────────────────────
+            max_por_peso = math.floor(peso_max / peso_unit)
+            if max_por_peso < 1:
+                return jsonify({'error': f'Con ese peso máximo ({peso_max} kg) no cabe ni 1 unidad '
+                                         f'({peso_unit} kg c/u)'}), 400
 
-            # Opciones de unidades a sugerir: [6, 12, 24, 48] filtradas
-            opciones_sugeridas = [6, 12, 24, 48]
-            opciones = [o for o in opciones_sugeridas if o <= max_unidades_por_peso]
+            # Exploramos hasta este límite (cap en 500 para no generar listas gigantes)
+            tope = min(max_por_peso, 500)
 
-            if not opciones:
-                opciones = [max_unidades_por_peso] if max_unidades_por_peso > 0 else [1]
+            # ── Generar todas las factorizaciones únicas (r ≤ c ≤ l) ───────────
+            # r = filas (ancho), c = columnas (largo), l = capas (alto)
+            variantes = []
+            seen = set()
+            for total in range(1, tope + 1):
+                for r in range(1, total + 1):
+                    if total % r != 0:
+                        continue
+                    resto = total // r
+                    for c in range(r, resto + 1):   # c >= r para evitar duplicados
+                        if resto % c != 0:
+                            continue
+                        l = resto // c              # l >= c por construcción
+                        key = (r, c, l)
+                        if key in seen:
+                            continue
+                        seen.add(key)
 
-            # Limitar a máximo 3 opciones
-            opciones = opciones[:3]
+                        # Dimensiones internas de la caja:
+                        #   ancho_caja = r * ancho_prod + margen
+                        #   largo_caja = c * largo_prod + margen
+                        #   alto_caja  = l * alto_prod  + margen
+                        w = round(r * ancho_prod + margen, 1)
+                        d = round(c * largo_prod + margen, 1)
+                        h = round(l * alto_prod  + margen, 1)
+                        peso_total = round(total * peso_unit, 3)
+                        pct_peso   = round((peso_total / peso_max) * 100, 1)
+                        volumen    = round(w * d * h, 1)
 
-            # Calcular dimensiones y peso para cada opción
-            resultados = []
-            for unidades in opciones:
-                # Dimensiones mínimas de caja (simple: asumimos disposición lineal)
-                # Para simplificar: altura = altura_prod, ancho = ancho_prod,
-                # largo = largo_prod * unidades (apiladas)
-                alto_caja = alto_prod + 2  # +2cm para margen
-                ancho_caja = ancho_prod + 2
-                largo_caja = (largo_prod * unidades) + 2
+                        variantes.append({
+                            'total'      : total,
+                            'filas'      : r,
+                            'columnas'   : c,
+                            'capas'      : l,
+                            'distribucion': f'{r}×{c}×{l}',
+                            'ancho_caja' : w,
+                            'largo_caja' : d,
+                            'alto_caja'  : h,
+                            'volumen_cm3': volumen,
+                            'peso_total' : peso_total,
+                            'pct_peso'   : pct_peso,
+                        })
 
-                peso_total_caja = unidades * peso_unitario
+            # Ordenar: por total unidades, luego por volumen (más compacto primero)
+            variantes.sort(key=lambda v: (v['total'], v['volumen_cm3']))
 
-                resultados.append({
-                    'unidades': unidades,
-                    'alto_caja': round(alto_caja, 2),
-                    'ancho_caja': round(ancho_caja, 2),
-                    'largo_caja': round(largo_caja, 2),
-                    'peso_total': round(peso_total_caja, 2)
-                })
+            return jsonify({
+                'variantes'    : variantes,
+                'max_por_peso' : max_por_peso,
+                'total_variantes': len(variantes),
+            }), 200
 
-            return jsonify({'opciones': resultados}), 200
         except (ValueError, TypeError) as e:
             return jsonify({'error': f'Valores inválidos: {str(e)}'}), 400
 
