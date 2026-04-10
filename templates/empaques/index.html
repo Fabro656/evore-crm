@@ -581,6 +581,8 @@ function abrirSim(idx) {
   if (!_simModal) _simModal = new bootstrap.Modal(document.getElementById('simModal'));
   document.getElementById('simBoxHdr').textContent =
     `${_simV.ancho_caja}×${_simV.largo_caja}×${_simV.alto_caja} cm · ${_simV.peso_total} kg · ${_simV.total} uds (${_simV.distribucion})`;
+  document.getElementById('envResult').innerHTML = '';
+  initEnvioSelects();
   _simModal.show();
   setTimeout(() => selectTrk('L'), 100);
 }
@@ -647,47 +649,46 @@ function renderSim() {
     ctx.fillText('Vista superior', half/2, 14);
   })();
 
-  // ── Right: front elevation ─────────────────────────────────────
+  // ── Right: lateral (side) view — depth × height ───────────────
   (function(){
     const pad = 28, avW = half-pad*2, avH = H-pad*2;
-    const sc  = Math.min(avW/t.w, avH/t.h);
-    const tw_ = t.w*sc, th_ = t.h*sc;
-    const ox  = half+pad+(avW-tw_)/2, oy = pad+(avH-th_)/2;
+    const sc  = Math.min(avW/t.d, avH/t.h);
+    const td_ = t.d*sc, th_ = t.h*sc;
+    const ox  = half+pad+(avW-td_)/2, oy = pad+(avH-th_)/2;
 
     ctx.fillStyle='#f0f3fb'; ctx.fillRect(half,0,half,H);
-    ctx.fillStyle='#e2e8f5'; ctx.fillRect(ox,oy,tw_,th_);
-    ctx.strokeStyle='#334e68'; ctx.lineWidth=2; ctx.strokeRect(ox,oy,tw_,th_);
+    ctx.fillStyle='#e2e8f5'; ctx.fillRect(ox,oy,td_,th_);
+    ctx.strokeStyle='#334e68'; ctx.lineWidth=2; ctx.strokeRect(ox,oy,td_,th_);
 
-    // Pallet stacks
+    // Pallets stacked — lateral: columns = pf.nc (across depth), rows = ps (height)
     if (st.ps > 0 && pal.fullH > 0) {
-      const ph_  = PAL.h*sc;
-      const lh_  = pal.loadH*sc;
-      const fh_  = pal.fullH*sc;
-      const uw_  = st.pf.uw*sc;
+      const ph_ = PAL.h*sc;
+      const lh_ = pal.loadH*sc;
+      const fh_ = pal.fullH*sc;
+      // pallet footprint depth in the lateral view
+      const ud_ = st.pf.ud*sc;
       const cols = ['rgba(76,155,232,0.45)','rgba(76,232,138,0.45)','rgba(232,213,76,0.45)','rgba(200,130,232,0.45)'];
-      const drawn= Math.min(st.pf.nr, Math.floor(tw_/uw_));
+      const drawn = Math.min(st.pf.nc, Math.floor(td_/ud_));
       for (let layer=0; layer<st.ps; layer++) {
         const baseY = oy+th_ - (layer+1)*fh_;
         for (let col=0; col<drawn; col++) {
-          const px = ox + col*uw_;
-          // pallet base
+          const px = ox + col*ud_;
           ctx.fillStyle='#b8860b';
-          ctx.fillRect(px+1, baseY+lh_, uw_-2, ph_);
-          // box stack
+          ctx.fillRect(px+1, baseY+lh_, ud_-2, ph_);
           ctx.fillStyle = cols[layer % cols.length];
-          ctx.fillRect(px+1, baseY+1, uw_-2, lh_-1);
+          ctx.fillRect(px+1, baseY+1, ud_-2, lh_-1);
           ctx.strokeStyle='rgba(0,0,0,.1)'; ctx.lineWidth=1;
-          ctx.strokeRect(px+1,baseY+1,uw_-2,fh_-2);
+          ctx.strokeRect(px+1,baseY+1,ud_-2,fh_-2);
         }
       }
     }
 
     ctx.fillStyle='#334e68'; ctx.font='11px sans-serif'; ctx.textAlign='center';
-    ctx.fillText(`${t.w} cm`, ox+tw_/2, oy+th_+14);
+    ctx.fillText(`${t.d} cm`, ox+td_/2, oy+th_+14);
     ctx.save(); ctx.translate(ox-14,oy+th_/2); ctx.rotate(-Math.PI/2);
     ctx.fillText(`${t.h} cm`,0,4); ctx.restore();
     ctx.fillStyle='#1e40af'; ctx.font='bold 11px sans-serif';
-    ctx.fillText('Vista frontal', half+half/2, 14);
+    ctx.fillText('Vista lateral', half+half/2, 14);
   })();
 
   // Divider
@@ -695,22 +696,38 @@ function renderSim() {
   ctx.beginPath(); ctx.moveTo(half,0); ctx.lineTo(half,H); ctx.stroke();
 
   // ── Stats ────────────────────────────────────────────────────────
+  const uds       = _simV.total;                          // unidades por caja
+  const volKg     = +(bw * bd * bh / 5000).toFixed(3);   // peso volumétrico caja (÷5000)
+  const chargeKg  = Math.max(bKg, volKg);                // peso cobrable por caja
+  const udsPal    = uds * pal.tot;
+  const udsTruck  = uds * st.tb;
+  const palPesoCarga = pal.tot * bKg;
   const pctC = !st.pctKg ? '#888' : st.pctKg>=80 ? '#00875A' : st.pctKg>=50 ? '#FF8B00' : '#DE350B';
+
   document.getElementById('simStats').innerHTML = `
 <div class="sim-sg mb-2">
-  <div class="sim-st">Pallet EUR (120×80 cm · máx ${PAL.maxKg} kg · ${PAL.h+PAL.maxH} cm alto)</div>
-  <div class="sim-sr"><span>Cajas por capa en pallet</span><strong>${pal.fit.n}</strong></div>
-  <div class="sim-sr"><span>Capas de cajas</span><strong>${pal.ly}</strong></div>
+  <div class="sim-st">📦 Caja</div>
+  <div class="sim-sr"><span>Unidades por caja</span><strong class="text-primary">${uds}</strong></div>
+  <div class="sim-sr"><span>Peso real</span><strong>${bKg} kg</strong></div>
+  <div class="sim-sr"><span>Peso volumétrico (÷5000)</span><strong>${volKg} kg</strong></div>
+  <div class="sim-sr"><span>Peso cobrable</span><strong>${chargeKg.toFixed(3)} kg</strong></div>
+</div>
+<div class="sim-sg mb-2">
+  <div class="sim-st">🟦 Pallet EUR 120×80 cm · ≤${PAL.maxKg} kg · ${PAL.h+PAL.maxH} cm</div>
+  <div class="sim-sr"><span>Cajas por capa</span><strong>${pal.fit.n}</strong></div>
+  <div class="sim-sr"><span>Capas</span><strong>${pal.ly}</strong></div>
   <div class="sim-sr"><span>Cajas por pallet</span><strong class="text-primary">${pal.tot}</strong></div>
-  <div class="sim-sr"><span>Altura cargado</span><strong>${pal.fullH} cm</strong></div>
-  <div class="sim-sr"><span>Peso por pallet</span><strong>${(pal.tot*bKg).toFixed(1)} kg</strong></div>
+  <div class="sim-sr"><span>Unidades por pallet</span><strong class="text-success">${udsPal.toLocaleString()}</strong></div>
+  <div class="sim-sr"><span>Peso pallet cargado</span><strong>${palPesoCarga.toFixed(1)} kg</strong></div>
+  <div class="sim-sr"><span>Altura total</span><strong>${pal.fullH} cm</strong></div>
 </div>
 <div class="sim-sg">
-  <div class="sim-st">Vehículo ${t.name} — ${t.w}×${t.d}×${t.h} cm</div>
+  <div class="sim-st">🚛 Vehículo ${t.name} — ${t.w}×${t.d}×${t.h} cm · ≤${t.kg} kg</div>
   <div class="sim-sr"><span>Pallets en piso</span><strong>${st.pf.n}</strong></div>
   <div class="sim-sr"><span>Capas de pallets</span><strong>${st.ps}</strong></div>
-  <div class="sim-sr"><span>Total pallets</span><strong>${st.tp}</strong></div>
-  <div class="sim-sr"><span>Total cajas</span><strong class="text-primary fs-5">${st.tb}</strong></div>
+  <div class="sim-sr"><span>Total pallets</span><strong class="text-primary">${st.tp}</strong></div>
+  <div class="sim-sr"><span>Total cajas</span><strong class="text-primary">${st.tb}</strong></div>
+  <div class="sim-sr"><span>Total unidades de producto</span><strong class="text-success" style="font-size:1.05rem">${udsTruck.toLocaleString()}</strong></div>
   <div class="sim-sr"><span>Peso total carga</span><strong>${st.tkg.toFixed(1)} kg</strong></div>
   ${st.pctKg!==null?`<div class="sim-sr"><span>Uso de carga</span><strong style="color:${pctC}">${st.pctKg.toFixed(1)}%</strong></div>`:''}
   ${st.tb===0?`<div class="alert alert-warning py-1 mt-2 mb-0" style="font-size:.8rem"><i class="bi bi-exclamation-triangle me-1"></i>La caja no cabe en este vehículo</div>`:''}
@@ -724,6 +741,113 @@ function guardarVariante(prodId, uds, ancho, largo, alto, pesoUnit, pesoMax) {
     peso_unitario:pesoUnit, peso_max_caja:pesoMax
   });
   window.location.href = '{{ url_for("empaques_nuevo") }}?' + params.toString();
+}
+
+// ── Calculadora de envío ──────────────────────────────────────────
+const CIUDADES = [
+  {k:'CDMX', n:'Ciudad de México (CDMX)'},
+  {k:'MTY',  n:'Monterrey, Nuevo León'},
+  {k:'GDL',  n:'Guadalajara, Jalisco'},
+  {k:'PUE',  n:'Puebla'},
+  {k:'TIJ',  n:'Tijuana, Baja California'},
+  {k:'MID',  n:'Mérida, Yucatán'},
+  {k:'VER',  n:'Veracruz'},
+  {k:'SLP',  n:'San Luis Potosí'},
+  {k:'CUU',  n:'Chihuahua'},
+  {k:'HMO',  n:'Hermosillo, Sonora'},
+];
+
+const DIST_KM = {
+  'CDMX-MTY':935,'CDMX-GDL':540,'CDMX-PUE':135,'CDMX-TIJ':2780,
+  'CDMX-MID':1520,'CDMX-VER':440,'CDMX-SLP':430,'CDMX-CUU':1620,'CDMX-HMO':1970,
+  'MTY-GDL':520,'MTY-PUE':1070,'MTY-TIJ':1870,'MTY-MID':1460,
+  'MTY-VER':1160,'MTY-SLP':505,'MTY-CUU':840,'MTY-HMO':930,
+  'GDL-PUE':630,'GDL-TIJ':2350,'GDL-MID':1590,'GDL-VER':720,
+  'GDL-SLP':310,'GDL-CUU':1110,'GDL-HMO':1110,
+  'PUE-TIJ':2900,'PUE-MID':1375,'PUE-VER':305,'PUE-SLP':500,'PUE-CUU':1750,'PUE-HMO':2100,
+  'TIJ-MID':3300,'TIJ-VER':3200,'TIJ-SLP':2350,'TIJ-CUU':1160,'TIJ-HMO':830,
+  'MID-VER':620,'MID-SLP':1090,'MID-CUU':2180,'MID-HMO':2500,
+  'VER-SLP':560,'VER-CUU':1800,'VER-HMO':2200,
+  'SLP-CUU':1190,'SLP-HMO':1430,
+  'CUU-HMO':530,
+};
+function getDistKm(a,b){ if(a===b)return 0; return DIST_KM[a+'-'+b]||DIST_KM[b+'-'+a]||null; }
+
+// Tarifa paquetería (MXN/kg cobrable) por banda de distancia
+function paqRate(km){ if(km<=200)return 45; if(km<=500)return 60; if(km<=1000)return 75; if(km<=2000)return 90; return 110; }
+const PAQ_MIN = 120; // mínimo por guía
+// Tarifa FTL (MXN/km) por tipo de vehículo
+const FTL_KM_RATE = {S:12, M:18, L:25, XL:35, XXL:45};
+
+function initEnvioSelects() {
+  ['envOrig','envDest'].forEach(function(id){
+    var sel = document.getElementById(id);
+    if (!sel || sel.options.length > 1) return;
+    CIUDADES.forEach(function(c){
+      var o = document.createElement('option'); o.value=c.k; o.textContent=c.n; sel.appendChild(o);
+    });
+    if(id==='envDest'){
+      var mty = sel.querySelector('option[value="MTY"]');
+      if(mty) mty.selected=true;
+    }
+  });
+}
+
+function calcEnvio() {
+  if (!_simV) return;
+  var orig = document.getElementById('envOrig').value;
+  var dest = document.getElementById('envDest').value;
+  var res  = document.getElementById('envResult');
+  var dist = getDistKm(orig, dest);
+  if (dist === null) {
+    res.innerHTML = '<div class="alert alert-warning py-1 mb-0" style="font-size:.8rem">Ruta no disponible en la tabla. Intenta otra combinación de ciudades.</div>';
+    return;
+  }
+  if (dist === 0) {
+    res.innerHTML = '<div class="alert alert-info py-1 mb-0" style="font-size:.8rem">Origen y destino son la misma ciudad.</div>';
+    return;
+  }
+  var bw = _simV.ancho_caja, bd = _simV.largo_caja, bh = _simV.alto_caja, bKg = _simV.peso_total;
+  var volKg    = +(bw * bd * bh / 5000).toFixed(3);
+  var chargeKg = Math.max(bKg, volKg);
+  var pal  = calcPal(bw, bd, bh, bKg);
+  var t    = TRUCKS[_simTruck];
+  var st   = calcTruck(t, pal);
+  var rate    = paqRate(dist);
+  var paqBox  = Math.max(PAQ_MIN, chargeKg * rate);
+  var paqPal  = pal.tot > 0 ? Math.max(PAQ_MIN, pal.tot * chargeKg * rate) : null;
+  var ftlKmR  = FTL_KM_RATE[_simTruck] || 25;
+  var ftlTotal= dist * ftlKmR;
+  var ftlBox  = st.tb > 0 ? ftlTotal / st.tb : null;
+  var ftlPal  = st.tp > 0 ? ftlTotal / st.tp : null;
+  var fmt  = function(v){ return '$'+Math.round(v).toLocaleString('es-MX'); };
+  var fmt2 = function(v){ return '$'+v.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+  res.innerHTML = `
+<div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+  <span class="badge bg-secondary" style="font-size:.75rem"><i class="bi bi-signpost me-1"></i>${dist.toLocaleString()} km</span>
+  <small class="text-muted">Peso cobrable/caja: <strong>${chargeKg.toFixed(3)} kg</strong> · Tarifa paq: <strong>${fmt(rate)}/kg</strong> · FTL ${t.name}: <strong>${fmt(ftlKmR)}/km</strong></small>
+</div>
+<div class="row g-2">
+  <div class="col-sm-6">
+    <div class="sim-sg h-100">
+      <div class="sim-st">📬 Paquetería — por envío</div>
+      <div class="sim-sr"><span>Por caja (1 guía)</span><strong class="text-primary">${fmt2(paqBox)}</strong></div>
+      ${paqPal!==null?`<div class="sim-sr"><span>Por pallet (${pal.tot} cajas)</span><strong>${fmt2(paqPal)}</strong></div>`:''}
+      <div class="sim-sr" style="border-top:1px solid #dde;margin-top:.3rem;padding-top:.3rem">
+        <span style="font-size:.73rem;color:#888">Mínimo por guía: ${fmt(PAQ_MIN)} · Tarifa ÷ chargeable kg</span>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6">
+    <div class="sim-sg h-100">
+      <div class="sim-st">🚛 FTL — ${t.name} completo</div>
+      <div class="sim-sr"><span>Costo total viaje</span><strong class="text-success">${fmt(ftlTotal)}</strong></div>
+      ${ftlPal!==null?`<div class="sim-sr"><span>Costo por pallet</span><strong>${fmt2(ftlPal)}</strong></div>`:''}
+      ${ftlBox!==null?`<div class="sim-sr"><span>Costo por caja</span><strong>${fmt2(ftlBox)}</strong></div>`:''}
+      ${ftlBox!==null?`<div class="sim-sr"><span>Costo por unidad prod.</span><strong>${fmt2(ftlBox/_simV.total)}</strong></div>`:''}
+    </div>
+  </div>
+</div>`;
 }
 </script>
 
@@ -755,6 +879,41 @@ function guardarVariante(prodId, uds, ancho, largo, alto, pesoUnit, pesoMax) {
           <div class="col-lg-5">
             <div id="simStats"></div>
           </div>
+        </div>
+
+        {# ── Calculadora de envío ──────────────────────────────── #}
+        <hr class="mt-3 mb-3">
+        <div>
+          <div class="fw-semibold mb-2" style="font-size:.8rem;color:#334e68;text-transform:uppercase;letter-spacing:.5px">
+            <i class="bi bi-geo-alt-fill me-1 text-danger"></i>Calculadora de costo de envío
+          </div>
+          <div class="row g-2 align-items-end mb-2">
+            <div class="col">
+              <label style="font-size:.76rem;color:#5E6C84">Origen</label>
+              <select id="envOrig" class="form-select form-select-sm">
+                <option value="CDMX">Ciudad de México (CDMX)</option>
+              </select>
+            </div>
+            <div class="col-auto d-flex align-items-end pb-1">
+              <i class="bi bi-arrow-right text-muted"></i>
+            </div>
+            <div class="col">
+              <label style="font-size:.76rem;color:#5E6C84">Destino</label>
+              <select id="envDest" class="form-select form-select-sm">
+                <option value="CDMX">Ciudad de México (CDMX)</option>
+              </select>
+            </div>
+            <div class="col-auto">
+              <button class="btn btn-sm btn-info" onclick="calcEnvio()" title="Calcular costo de envío">
+                <i class="bi bi-calculator me-1"></i>Calcular
+              </button>
+            </div>
+          </div>
+          <div id="envResult"></div>
+          <small class="text-muted d-block mt-1" style="font-size:.72rem">
+            Tarifas estimadas de referencia (MXN). Paquetería: tarifa por kg cobrable = max(peso real, volumétrico ÷ 5000).
+            FTL: costo por km según tipo de vehículo. No incluye IVA ni cargos adicionales.
+          </small>
         </div>
       </div>
     </div>
