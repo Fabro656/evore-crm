@@ -28,7 +28,8 @@ __all__ = [
 # ── Module constants (originally in app.py global scope)
 _MODULOS_TODOS = ['clientes','ventas','cotizaciones','tareas','calendario',
                   'notas','inventario','produccion','gastos','reportes','proveedores',
-                  'ordenes_compra','legal','finanzas','cotizaciones_proveedor','comercial','config','nomina']
+                  'ordenes_compra','legal','finanzas','cotizaciones_proveedor','comercial','config','nomina',
+                  'empaques','servicios']
 
 _MODULOS_ROL = {
     'admin':      _MODULOS_TODOS,

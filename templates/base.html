@@ -403,6 +403,7 @@ img,svg{max-width:100%;height:auto}
     {% if 'clientes' in m %}<a href="{{ url_for('clientes') }}" class="nav-link {% if 'cliente' in request.endpoint %}active{% endif %}"><i class="bi bi-people-fill"></i><span>Clientes</span></a>{% endif %}
     {% if 'ventas' in m %}<a href="{{ url_for('ventas') }}" class="nav-link {% if 'venta' in request.endpoint %}active{% endif %}"><i class="bi bi-graph-up-arrow"></i><span>Ventas</span></a>{% endif %}
     {% if 'cotizaciones' in m %}<a href="{{ url_for('cotizaciones') }}" class="nav-link {% if request.endpoint in ['cotizaciones','cotizacion_nueva','cotizacion_ver','cotizacion_editar'] %}active{% endif %}"><i class="bi bi-file-earmark-text-fill"></i><span>Cotizaciones</span></a>{% endif %}
+    {% if 'servicios' in m %}<a href="{{ url_for('servicios') }}" class="nav-link {% if 'servicio' in request.endpoint %}active{% endif %}"><i class="bi bi-briefcase-fill"></i><span>Servicios</span></a>{% endif %}
     {% if 'tareas' in m %}<a href="{{ url_for('tareas') }}" class="nav-link {% if 'tarea' in request.endpoint %}active{% endif %}"><i class="bi bi-check2-square"></i><span>Tareas</span></a>{% endif %}
     {% if 'calendario' in m %}<a href="{{ url_for('calendario') }}" class="nav-link {% if request.endpoint=='calendario' or 'evento' in request.endpoint %}active{% endif %}"><i class="bi bi-calendar3"></i><span>Calendario</span></a>{% endif %}
     {% if 'notas' in m %}<a href="{{ url_for('notas') }}" class="nav-link {% if 'nota' in request.endpoint %}active{% endif %}"><i class="bi bi-sticky-fill"></i><span>Notas</span></a>{% endif %}
@@ -423,6 +424,7 @@ img,svg{max-width:100%;height:auto}
     {% if 'produccion' in m %}<a href="{{ url_for('produccion_index') }}" class="nav-link {% if 'produccion' in request.endpoint or 'compra' in request.endpoint or 'materia' in request.endpoint or 'receta' in request.endpoint or 'reserva' in request.endpoint %}active{% endif %}"><i class="bi bi-gear-fill"></i><span>Producción</span></a>{% endif %}
     {% if 'produccion' in m %}<a href="{{ url_for('ordenes_produccion') }}" class="nav-link {% if request.endpoint=='ordenes_produccion' or request.endpoint=='orden_completar' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-list-check"></i><span>Órdenes</span></a>{% endif %}
     {% if 'produccion' in m %}<a href="{{ url_for('gantt') }}" class="nav-link {% if request.endpoint=='gantt' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-bar-chart-steps"></i><span>Gantt</span></a>{% endif %}
+    {% if 'empaques' in m %}<a href="{{ url_for('empaques') }}" class="nav-link {% if 'empaque' in request.endpoint %}active{% endif %}"><i class="bi bi-box2-heart-fill"></i><span>Empaques secundarios</span></a>{% endif %}
     {% endif %}
     <div class="sb-sec">Legal</div>
     <a href="{{ url_for('legal_index') }}" class="nav-link {% if 'legal' in request.endpoint %}active{% endif %}"><i class="bi bi-shield-check"></i><span>Documentos legales</span></a>
