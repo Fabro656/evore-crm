@@ -14,25 +14,37 @@ def register(app):
     # ── demo (/demo) — acceso público, crea sesión temporal de demo
     @app.route('/demo')
     def demo_inicio():
-        """Inicia sesión demo con usuario tester. No requiere autenticación."""
-        # Buscar o crear usuario demo
-        demo_user = User.query.filter_by(email='demo@evore.us').first()
-        if not demo_user:
-            demo_user = User(nombre='Usuario Demo', email='demo@evore.us', rol='tester')
-            demo_user.set_password('demo2026')
-            db.session.add(demo_user); db.session.commit()
-        # Sembrar datos demo si no existen
-        if Cliente.query.filter_by(es_demo=True).count() == 0:
+        """Inicia sesion demo con usuario tester. No requiere autenticacion."""
+        try:
+            # Buscar o crear usuario demo
+            demo_user = User.query.filter_by(email='demo@evore.us').first()
+            if not demo_user:
+                demo_user = User(nombre='Usuario Demo', email='demo@evore.us', rol='tester')
+                demo_user.set_password('demo2026')
+                db.session.add(demo_user); db.session.commit()
+            # Sembrar datos demo si no existen
             try:
-                from models import _seed_demo_data
-                _seed_demo_data()
+                need_seed = Cliente.query.filter_by(es_demo=True).count() == 0
             except Exception:
-                pass
-        # Login automático
-        login_user(demo_user, remember=False)
-        from flask import session as flask_session
-        flask_session['is_demo'] = True
-        flash('Bienvenido al modo demo. Explora el sistema libremente — los datos son de ejemplo.', 'success')
+                need_seed = Cliente.query.count() == 0  # Fallback si es_demo no existe
+            if need_seed:
+                try:
+                    from models import _seed_demo_data
+                    _seed_demo_data()
+                    db.session.commit()
+                except Exception as e:
+                    db.session.rollback()
+                    logging.warning(f'Demo seed error: {e}')
+            # Login automatico
+            login_user(demo_user, remember=False)
+            from flask import session as flask_session
+            flask_session['is_demo'] = True
+            flash('Bienvenido al modo demo. Explora el sistema libremente.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            logging.error(f'Demo init error: {e}')
+            flash(f'Error al iniciar demo. Intenta de nuevo.', 'danger')
+            return redirect(url_for('login'))
         return redirect(url_for('dashboard'))
 
     @app.route('/demo/salir')

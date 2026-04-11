@@ -411,6 +411,7 @@ def register(app):
 
     @app.route('/contable/puc/api/buscar')
     @login_required
+    @requiere_modulo('finanzas')
     def api_puc_buscar():
         """API para autocompletar cuentas PUC en formularios."""
         q = request.args.get('q', '').strip()
