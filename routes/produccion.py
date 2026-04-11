@@ -383,6 +383,7 @@ def register(app):
     @login_required
     @requiere_modulo('produccion')
     def receta_nueva():
+      try:
         productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
         materias = MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).all()
         nombres_con_cot = {
@@ -426,7 +427,6 @@ def register(app):
                     flash('Selecciona un producto válido.','danger')
                     return render_template('produccion/receta_form.html', obj=None, productos=productos,
                                            materias=materias, materias_json=materias_json, titulo='Nueva Receta')
-            try:
                 r = RecetaProducto(
                     producto_id=prod_id,
                     unidades_produce=int(request.form.get('unidades_produce',1)),
@@ -470,16 +470,14 @@ def register(app):
                 db.session.commit()
                 flash(f'Receta creada. SKU: {prod_obj.sku if prod_obj else "—"}. Costo: ${costo["costo_unitario"]:,.0f}/und. Precio sugerido: ${r.precio_venta_sugerido:,.0f}','success')
                 return redirect(url_for('recetas'))
-            except Exception as e:
-                db.session.rollback()
-                logging.exception(f'Error creando receta: {e}')
-                flash(f'Error al crear receta: {type(e).__name__}: {e}', 'danger')
-                return render_template('produccion/receta_form.html', obj=None, productos=productos,
-                                       materias=materias, materias_json=materias_json,
-                                       sin_cot_ids=sin_cot_ids, titulo='Nueva Receta')
         return render_template('produccion/receta_form.html', obj=None, productos=productos,
                                materias=materias, materias_json=materias_json,
                                sin_cot_ids=sin_cot_ids, titulo='Nueva Receta')
+      except Exception as e:
+        db.session.rollback()
+        logging.exception(f'Error en receta_nueva: {e}')
+        flash(f'Error: {type(e).__name__}: {e}', 'danger')
+        return redirect(url_for('recetas'))
     
 
     # ── receta_editar (/produccion/recetas/<int:id>/editar)
