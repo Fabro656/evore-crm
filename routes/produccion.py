@@ -373,7 +373,20 @@ def register(app):
             stock_minimo=0, costo_unitario=0,
             activo=True
         )
-        db.session.add(mp); db.session.commit()
+        db.session.add(mp); db.session.flush()
+        # Auto-crear cotización pendiente en módulo Compras
+        db.session.add(CotizacionProveedor(
+            nombre_producto=nombre,
+            tipo_cotizacion='granel',
+            tipo_producto_servicio='materia prima',
+            unidad=unidad,
+            estado='en_revision',
+            materia_prima_id=mp.id,
+            precio_unitario=0,
+            notas='Requiere cotización — materia prima nueva.',
+            creado_por=current_user.id
+        ))
+        db.session.commit()
         return jsonify({'id': mp.id, 'nombre': mp.nombre,
                         'unidad': mp.unidad, 'existente': False})
 
@@ -467,7 +480,7 @@ def register(app):
             r.precio_venta_sugerido = round(precio_sin_iva * (1 + iva_pct / 100), 2)
             if prod_obj:
                 prod_obj.precio = r.precio_venta_sugerido
-            # ── Auto-crear cotizaciones pendientes para ingredientes sin cotización vigente ──
+            # ── Auto-crear cotizaciones para TODOS los ingredientes que no tengan una ──
             cots_creadas = 0
             for mid in ids:
                 if not mid:
@@ -475,16 +488,15 @@ def register(app):
                 mp = db.session.get(MateriaPrima, int(mid))
                 if not mp:
                     continue
-                # Verificar si ya tiene cotización vigente o en_revision
+                # Verificar si ya tiene CUALQUIER cotización (vigente, en_revision, o vencida)
                 tiene_cot = CotizacionProveedor.query.filter(
                     db.or_(
                         CotizacionProveedor.materia_prima_id == mp.id,
                         db.func.lower(CotizacionProveedor.nombre_producto) == mp.nombre.lower()
-                    ),
-                    CotizacionProveedor.estado.in_(['vigente', 'en_revision'])
+                    )
                 ).first()
                 if not tiene_cot:
-                    # Crear cotización pendiente (en_revision) para que se gestione
+                    # Crear cotización en_revision para que se gestione
                     db.session.add(CotizacionProveedor(
                         nombre_producto=mp.nombre,
                         tipo_cotizacion='granel',
@@ -493,7 +505,7 @@ def register(app):
                         estado='en_revision',
                         materia_prima_id=mp.id,
                         precio_unitario=mp.costo_unitario or 0,
-                        notas=f'Auto-generada desde receta: {prod_obj.nombre if prod_obj else ""}. Requiere cotización de proveedor.',
+                        notas=f'Requiere cotización — usada en receta: {prod_obj.nombre if prod_obj else ""}',
                         creado_por=current_user.id
                     ))
                     cots_creadas += 1
