@@ -413,9 +413,8 @@ img,svg{max-width:100%;height:auto}
         <span style="font-weight:800;font-size:.88rem;letter-spacing:-.2px">{{ empresa_proveedor_nombre }} <span style="color:#4C9AFF;font-weight:600">CRM</span></span>
       {% else %}
         {% if company_config and company_config.get('name') == 'Evore' %}
-        <a href="/" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:.4rem;overflow:hidden">
-          <img src="{{ url_for('static', filename='img/evore-horizontal.svg') }}" alt="Evore" height="44" style="filter:brightness(0) invert(1);opacity:.9;display:block">
-          <span style="font-size:.6rem;letter-spacing:1px;opacity:.7;white-space:nowrap;color:#fff">ERP</span>
+        <a href="/" style="text-decoration:none;display:block;overflow:hidden">
+          <img src="{{ url_for('static', filename='img/evore-horizontal.svg') }}" alt="Evore" style="filter:brightness(0) invert(1);opacity:.92;display:block;width:100%;max-width:200px;height:auto">
         </a>
         {% else %}
         <a href="/" style="text-decoration:none;color:#fff;display:flex;align-items:center;gap:.5rem;overflow:hidden">
