@@ -426,49 +426,50 @@ def register(app):
                     flash('Selecciona un producto válido.','danger')
                     return render_template('produccion/receta_form.html', obj=None, productos=productos,
                                            materias=materias, materias_json=materias_json, titulo='Nueva Receta')
-                r = RecetaProducto(
-                    producto_id=prod_id,
-                    unidades_produce=int(request.form.get('unidades_produce',1)),
-                    descripcion=request.form.get('descripcion','') or None
-                )
-                db.session.add(r); db.session.flush()
-                ids   = request.form.getlist('materia_id[]')
-                cants = request.form.getlist('cantidad[]')
-                clasifs = request.form.getlist('clasificacion[]')
-                for i, (mid, cant) in enumerate(zip(ids, cants)):
-                    if mid and cant:
-                        clasif = clasifs[i] if i < len(clasifs) else 'materia_prima'
-                        db.session.add(RecetaItem(
-                            receta_id=r.id,
-                            materia_prima_id=int(mid),
-                            cantidad_por_unidad=float(cant),
-                            clasificacion=clasif,
-                            es_empaque=clasif in ('empaque_primario','empaque_secundario')
-                        ))
-                # Registrar ingredientes al producto y asegurarse que existen en el catálogo
-                _registrar_ingredientes_en_cero(ids, prod_id)
-                # Auto-generar SKU si el producto no tiene uno
-                prod_obj = db.session.get(Producto, prod_id)
-                if prod_obj and not prod_obj.sku:
-                    from models import _generar_sku
-                    prod_obj.sku = _generar_sku(prod_obj.nombre)
-                # Calcular costo y precio desde receta
-                costo = _calcular_costo_receta(prod_id)
-                r.costo_calculado = costo['costo_unitario']
-                margen = float(request.form.get('margen_pct', 30) or 30)
-                r.margen_pct = margen
-                try:
-                    regla_iva = ReglaTributaria.query.filter_by(aplica_a='ventas', activo=True).first()
-                    iva_pct = float(regla_iva.porcentaje) if regla_iva else 19.0
-                except Exception:
-                    iva_pct = 19.0
-                precio_sin_iva = costo['costo_unitario'] * (1 + margen / 100)
-                r.precio_venta_sugerido = round(precio_sin_iva * (1 + iva_pct / 100), 2)
-                if prod_obj:
-                    prod_obj.precio = r.precio_venta_sugerido
-                db.session.commit()
-                flash(f'Receta creada. SKU: {prod_obj.sku if prod_obj else "—"}. Costo: ${costo["costo_unitario"]:,.0f}/und. Precio sugerido: ${r.precio_venta_sugerido:,.0f}','success')
-                return redirect(url_for('recetas'))
+            # ── Crear la receta (aplica tanto para producto nuevo como existente) ──
+            r = RecetaProducto(
+                producto_id=prod_id,
+                unidades_produce=int(request.form.get('unidades_produce',1)),
+                descripcion=request.form.get('descripcion','') or None
+            )
+            db.session.add(r); db.session.flush()
+            ids   = request.form.getlist('materia_id[]')
+            cants = request.form.getlist('cantidad[]')
+            clasifs = request.form.getlist('clasificacion[]')
+            for i, (mid, cant) in enumerate(zip(ids, cants)):
+                if mid and cant:
+                    clasif = clasifs[i] if i < len(clasifs) else 'materia_prima'
+                    db.session.add(RecetaItem(
+                        receta_id=r.id,
+                        materia_prima_id=int(mid),
+                        cantidad_por_unidad=float(cant),
+                        clasificacion=clasif,
+                        es_empaque=clasif in ('empaque_primario','empaque_secundario')
+                    ))
+            # Registrar ingredientes al producto y asegurarse que existen en el catálogo
+            _registrar_ingredientes_en_cero(ids, prod_id)
+            # Auto-generar SKU si el producto no tiene uno
+            prod_obj = db.session.get(Producto, prod_id)
+            if prod_obj and not prod_obj.sku:
+                from models import _generar_sku
+                prod_obj.sku = _generar_sku(prod_obj.nombre)
+            # Calcular costo y precio desde receta
+            costo = _calcular_costo_receta(prod_id)
+            r.costo_calculado = costo['costo_unitario']
+            margen = float(request.form.get('margen_pct', 30) or 30)
+            r.margen_pct = margen
+            try:
+                regla_iva = ReglaTributaria.query.filter_by(aplica_a='ventas', activo=True).first()
+                iva_pct = float(regla_iva.porcentaje) if regla_iva else 19.0
+            except Exception:
+                iva_pct = 19.0
+            precio_sin_iva = costo['costo_unitario'] * (1 + margen / 100)
+            r.precio_venta_sugerido = round(precio_sin_iva * (1 + iva_pct / 100), 2)
+            if prod_obj:
+                prod_obj.precio = r.precio_venta_sugerido
+            db.session.commit()
+            flash(f'Receta creada. SKU: {prod_obj.sku if prod_obj else "—"}. Costo: ${costo["costo_unitario"]:,.0f}/und. Precio sugerido: ${r.precio_venta_sugerido:,.0f}','success')
+            return redirect(url_for('recetas'))
         return render_template('produccion/receta_form.html', obj=None, productos=productos,
                                materias=materias, materias_json=materias_json,
                                sin_cot_ids=sin_cot_ids, titulo='Nueva Receta')
