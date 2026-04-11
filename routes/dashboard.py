@@ -18,15 +18,21 @@ def register(app):
         from datetime import date
         hoy = date.today()
         mes_inicio = hoy.replace(day=1)
-        ingresos = db.session.query(db.func.sum(Venta.total)).filter(Venta.estado.in_(['completado','anticipo_pagado'])).scalar() or 0
-        gastos_tot = db.session.query(db.func.sum(GastoOperativo.monto)).scalar() or 0
-        gastos_mes = db.session.query(db.func.sum(GastoOperativo.monto)).filter(GastoOperativo.fecha >= mes_inicio).scalar() or 0
-        compras_tot = db.session.query(db.func.sum(CompraMateria.costo_total)).scalar() or 0
-        saldo_pend = db.session.query(db.func.sum(Venta.saldo)).filter(Venta.estado.in_(['anticipo_pagado','negociacion'])).scalar() or 0
-        # Impuestos estimados globales (acumulado total, no solo mes)
+        try:
+            ingresos = db.session.query(db.func.sum(Venta.total)).filter(Venta.estado.in_(['completado','anticipo_pagado'])).scalar() or 0
+            gastos_tot = db.session.query(db.func.sum(GastoOperativo.monto)).scalar() or 0
+            gastos_mes = db.session.query(db.func.sum(GastoOperativo.monto)).filter(GastoOperativo.fecha >= mes_inicio).scalar() or 0
+            compras_tot = db.session.query(db.func.sum(CompraMateria.costo_total)).scalar() or 0
+            saldo_pend = db.session.query(db.func.sum(Venta.saldo)).filter(Venta.estado.in_(['anticipo_pagado','negociacion'])).scalar() or 0
+        except Exception:
+            db.session.rollback()
+            ingresos = gastos_tot = gastos_mes = compras_tot = saldo_pend = 0
         total_egresos_global = gastos_tot + compras_tot
         utilidad_global = ingresos - total_egresos_global
-        impuestos_estimados, detalle_imp_dash = _calcular_impuestos(ingresos, utilidad_global)
+        try:
+            impuestos_estimados, detalle_imp_dash = _calcular_impuestos(ingresos, utilidad_global)
+        except Exception:
+            impuestos_estimados, detalle_imp_dash = 0, []
         saldo_neto = ingresos - total_egresos_global - impuestos_estimados
         return render_template('dashboard.html',
             total_clientes       = Cliente.query.filter_by(estado='activo').count(),
