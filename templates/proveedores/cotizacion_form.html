@@ -10,29 +10,32 @@
       <label class="d-flex align-items-center gap-2 p-3 rounded border cursor-pointer tipo-opt {{ 'border-warning bg-warning bg-opacity-10' if (obj and obj.tipo_cotizacion=='granel') or (not obj and tipo_default=='granel') else '' }}" style="cursor:pointer;flex:1;max-width:240px" onclick="setTipo('granel',this)">
         <input type="radio" name="tipo_cotizacion" value="granel" class="d-none" {% if (obj and obj.tipo_cotizacion=='granel') or (not obj and tipo_default=='granel') %}checked{% endif %}>
         <i class="bi bi-building text-warning" style="font-size:1.4rem"></i>
-        <div><div class="fw-semibold">Granel / Materia Prima</div><small class="text-muted">Compras de materias primas a granel o grandes volúmenes</small></div>
+        <div><div class="fw-semibold">Materia Prima</div><small class="text-muted">Compras de materias primas o insumos de producción</small></div>
       </label>
       <label class="d-flex align-items-center gap-2 p-3 rounded border cursor-pointer tipo-opt {{ 'border-info bg-info bg-opacity-10' if (obj and obj.tipo_cotizacion=='general') or (not obj and tipo_default=='general') else '' }}" style="cursor:pointer;flex:1;max-width:240px" onclick="setTipo('general',this)">
         <input type="radio" name="tipo_cotizacion" value="general" class="d-none" {% if (obj and obj.tipo_cotizacion=='general') or (not obj and tipo_default=='general') %}checked{% endif %}>
         <i class="bi bi-box text-info" style="font-size:1.4rem"></i>
-        <div><div class="fw-semibold">General / Servicio</div><small class="text-muted">Productos terminados, servicios, insumos, empaques, etc.</small></div>
+        <div><div class="fw-semibold">Servicio</div><small class="text-muted">Servicios logísticos, empaque, outsourcing, etc.</small></div>
       </label>
     </div>
   </div>
   <div class="col-md-4"><label class="form-label">Tipo de producto / servicio</label>
-    <input type="text" name="tipo_producto_servicio" class="form-control" placeholder="Ej: materia prima, empaque, logística..." value="{{ obj.tipo_producto_servicio if obj else '' }}"></div>
+    <select name="tipo_producto_servicio" class="form-select">
+      <option value="">— Seleccionar —</option>
+      {% for opt in ['materia prima','empaque primario','empaque secundario','insumo','servicio logístico','servicio de producción','servicio de laboratorio','otro'] %}
+      <option value="{{ opt }}" {% if obj and obj.tipo_producto_servicio==opt %}selected{% endif %}>{{ opt|capitalize }}</option>
+      {% endfor %}
+    </select></div>
   <div class="col-md-5"><label class="form-label">Nombre del producto / ítem *</label>
     <input type="text" name="nombre_producto" class="form-control"
            value="{{ obj.nombre_producto if obj else (nombre_default|default('')) }}" required></div>
   <div class="col-md-3"><label class="form-label">SKU</label>
-    <input type="text" name="sku" class="form-control" value="{{ obj.sku if obj else '' }}"></div>
-  <div class="col-12"><label class="form-label">Descripción</label>
-    <input type="text" name="descripcion" class="form-control" value="{{ obj.descripcion if obj else '' }}"></div>
+    <input type="text" name="sku" class="form-control" value="{{ obj.sku if obj else '' }}" placeholder="Auto si vacío"></div>
 </div>
 <hr class="my-3">
 <h6 class="text-muted text-uppercase mb-3" style="font-size:.75rem;letter-spacing:1px">Proveedor y precio</h6>
 <div class="row g-3 mb-3">
-  <div class="col-md-6"><label class="form-label">Proveedor</label>
+  <div class="col-md-4"><label class="form-label">Proveedor</label>
     <select name="proveedor_id" class="form-select">
       <option value="">— Sin proveedor —</option>
       {% for pv in proveedores_list %}<option value="{{ pv.id }}" {% if obj and obj.proveedor_id==pv.id %}selected{% endif %}>{{ pv.empresa or pv.nombre }}</option>{% endfor %}
@@ -40,25 +43,33 @@
   <div class="col-md-3"><label class="form-label">Precio unitario COP</label>
     <div class="input-group"><span class="input-group-text">$</span>
       <input type="number" name="precio_unitario" class="form-control" step="1" min="0" value="{{ obj.precio_unitario|int if obj else '0' }}"></div></div>
-  <div class="col-md-3"><label class="form-label">Unidades mínimas</label>
-    <div class="input-group">
-      <input type="number" name="unidades_minimas" class="form-control" min="1" value="{{ obj.unidades_minimas if obj else '1' }}">
-      <select name="unidad" class="form-select" style="max-width:110px">
-        {% for u in ['unidades','kg','g','litros','ml','piezas','cajas','metros'] %}
-        <option value="{{ u }}" {% if obj and obj.unidad==u %}selected{% endif %}>{{ u }}</option>{% endfor %}
-      </select></div></div>
+  <div class="col-md-2"><label class="form-label">Cantidad</label>
+    <input type="number" name="unidades_minimas" class="form-control" min="1" step="0.01" value="{{ obj.unidades_minimas if obj else '1' }}"></div>
+  <div class="col-md-3"><label class="form-label">Unidad de medida</label>
+    <select name="unidad" class="form-select">
+      {% for u in ['kg','g','litros','ml','unidades','piezas','cajas','metros'] %}
+      <option value="{{ u }}" {% if obj and obj.unidad==u %}selected{% elif not obj and unidad_default is defined and unidad_default==u %}selected{% endif %}>{{ u }}</option>{% endfor %}
+    </select></div>
 </div>
 <hr class="my-3">
 <h6 class="text-muted text-uppercase mb-3" style="font-size:.75rem;letter-spacing:1px">Plazos y condiciones de pago</h6>
 <div class="row g-3 mb-3">
-  <div class="col-md-3"><label class="form-label">Plazo de entrega (días) *</label>
+  <div class="col-md-3"><label class="form-label">Plazo de entrega *</label>
     <div class="input-group">
-      <input type="number" name="plazo_entrega_dias" class="form-control" min="0" placeholder="0" value="{{ obj.plazo_entrega_dias if obj else '0' }}" id="plazoDias" oninput="updatePlazoText()">
-      <span class="input-group-text">días</span></div>
-    <small class="text-muted" id="plazoDiasLabel">Se calculará desde la fecha de recepción de OC</small></div>
-  <div class="col-md-3"><label class="form-label">Descripción del plazo</label>
-    <input type="text" name="plazo_entrega" class="form-control" placeholder="Ej: 5 días hábiles" value="{{ obj.plazo_entrega if obj else '' }}"></div>
-  <div class="col-md-3"><label class="form-label">Condición de pago</label>
+      <input type="number" name="plazo_entrega_dias" class="form-control" min="0" placeholder="0" value="{{ obj.plazo_entrega_dias if obj else '0' }}" id="plazoDias">
+      <select name="plazo_tipo_dias" class="form-select" id="plazoTipoDias" style="max-width:120px">
+        <option value="habiles" {% if obj and obj.plazo_entrega and 'háb' in (obj.plazo_entrega or '') %}selected{% endif %}>hábiles</option>
+        <option value="calendario" {% if obj and obj.plazo_entrega and 'calend' in (obj.plazo_entrega or '') %}selected{% endif %}>calendario</option>
+      </select>
+    </div></div>
+  <div class="col-md-4 d-flex align-items-end">
+    <div class="form-check mb-2">
+      <input type="checkbox" class="form-check-input" name="plazo_desde_anticipo" id="plazoDesdeAnticipo" value="1"
+             {% if obj and obj.plazo_entrega and 'anticipo' in (obj.plazo_entrega or '').lower() %}checked{% endif %}>
+      <label class="form-check-label" for="plazoDesdeAnticipo">Desde el pago del anticipo</label>
+    </div>
+  </div>
+  <div class="col-md-5"><label class="form-label">Condición de pago</label>
     <select name="condicion_pago_tipo" class="form-select" id="condPagoTipo" onchange="togglePagoFields()">
       {% for v,l in [('contado','Contado'),('credito','Crédito'),('anticipo_saldo','Anticipo + Saldo'),('consignacion','Consignación')] %}
       <option value="{{ v }}" {% if obj and obj.condicion_pago_tipo==v %}selected{% endif %}>{{ l }}</option>{% endfor %}
@@ -81,7 +92,7 @@
     <input type="date" name="vigencia" class="form-control" value="{{ obj.vigencia.strftime('%Y-%m-%d') if obj and obj.vigencia else '' }}"></div>
   <div class="col-md-4"><label class="form-label">Estado</label>
     <select name="estado" class="form-select">
-      {% for est,lbl in [('vigente','Vigente'),('vencida','Vencida'),('en_revision','En revisión')] %}
+      {% for est,lbl in [('vigente','Vigente'),('vencida','Vencida'),('en_revision','En revisión / Pendiente')] %}
       <option value="{{ est }}" {% if obj and obj.estado==est %}selected{% elif not obj and est=='vigente' %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
     </select></div>
   <div class="col-12"><label class="form-label">Notas</label>
@@ -105,13 +116,5 @@ function togglePagoFields(){
   document.getElementById('creditoDiasField').style.display = (t==='credito')?'':'none';
   document.getElementById('anticipoField').style.display = (t==='anticipo_saldo')?'':'none';
 }
-function updatePlazoText(){
-  var d=parseInt(document.getElementById('plazoDias').value)||0;
-  var msg = d>0 ? 'Al recibir la OC, se agendará la entrega en '+d+' días en el calendario.' : 'Se calculará desde la fecha de recepción de OC';
-  document.getElementById('plazoDiasLabel').textContent=msg;
-}
 togglePagoFields();
-updatePlazoText();
-</script>{% endblock %}{% endblock %}"""
-
-# ── LEGAL TEMPLATES ────────────────────────────────────────────
+</script>{% endblock %}{% endblock %}

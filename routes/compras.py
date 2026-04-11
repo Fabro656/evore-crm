@@ -76,6 +76,18 @@ def register(app):
         })
 
 
+    # ── Helper: construir texto plazo_entrega desde form ──
+    def _construir_plazo_entrega(form):
+        dias = int(form.get('plazo_entrega_dias') or 0)
+        tipo_dias = form.get('plazo_tipo_dias', 'habiles')
+        desde_anticipo = form.get('plazo_desde_anticipo')
+        if dias <= 0:
+            return ''
+        texto = f'{dias} días {tipo_dias}'
+        if desde_anticipo:
+            texto += ' desde pago del anticipo'
+        return texto
+
     # ── cotizacion_proveedor_nueva (/cotizaciones-proveedor/nueva)
     @app.route('/cotizaciones-proveedor/nueva', methods=['GET','POST'])
     @login_required
@@ -85,6 +97,7 @@ def register(app):
             Proveedor.tipo.in_(['proveedor','ambos'])).order_by(Proveedor.empresa).all()
         tipo_default   = request.args.get('tipo','general')
         nombre_default = request.args.get('nombre','')   # pre-fill desde receta
+        unidad_default = request.args.get('unidad', '')
         if request.method == 'POST':
             fc = request.form.get('fecha_cotizacion')
             fv = request.form.get('vigencia')
@@ -98,7 +111,7 @@ def register(app):
                 precio_unitario=float(request.form.get('precio_unitario') or 0),
                 unidades_minimas=int(request.form.get('unidades_minimas') or 1),
                 unidad=request.form.get('unidad','unidades'),
-                plazo_entrega=request.form.get('plazo_entrega',''),
+                plazo_entrega=_construir_plazo_entrega(request.form),
                 plazo_entrega_dias=int(request.form.get('plazo_entrega_dias') or 0),
                 condiciones_pago=request.form.get('condiciones_pago',''),
                 condicion_pago_tipo=request.form.get('condicion_pago_tipo','contado'),
@@ -125,7 +138,8 @@ def register(app):
             return redirect(url_for('cotizaciones_proveedor', tipo=cp.tipo_cotizacion))
         return render_template('proveedores/cotizacion_form.html', obj=None,
                                proveedores_list=provs, titulo='Nueva Cotización Proveedor',
-                               tipo_default=tipo_default, nombre_default=nombre_default)
+                               tipo_default=tipo_default, nombre_default=nombre_default,
+                               unidad_default=unidad_default)
 
 
     # ── cotizacion_proveedor_editar (/cotizaciones-proveedor/<int:id>/editar)
@@ -148,7 +162,7 @@ def register(app):
             obj.precio_unitario=float(request.form.get('precio_unitario') or 0)
             obj.unidades_minimas=int(request.form.get('unidades_minimas') or 1)
             obj.unidad=request.form.get('unidad','unidades')
-            obj.plazo_entrega=request.form.get('plazo_entrega','')
+            obj.plazo_entrega=_construir_plazo_entrega(request.form)
             obj.plazo_entrega_dias=int(request.form.get('plazo_entrega_dias') or 0)
             obj.condiciones_pago=request.form.get('condiciones_pago','')
             obj.condicion_pago_tipo=request.form.get('condicion_pago_tipo','contado')

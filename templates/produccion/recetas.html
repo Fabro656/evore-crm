@@ -8,20 +8,30 @@
 {% for r in recetas %}
 <div class="col-md-6">
   <div class="fc h-100">
-    <div class="d-flex justify-content-between align-items-start mb-3">
+    <div class="d-flex justify-content-between align-items-start mb-2">
       <div>
         <h5 class="mb-0">{{ r.producto.nombre }}</h5>
-        <small class="text-muted">Produce {{ r.unidades_produce }} unidad(es) por lote</small>
+        <div class="d-flex gap-2 align-items-center mt-1">
+          {% if r.producto.sku and r.producto.sku != 'None' %}<span class="badge bg-secondary">SKU: {{ r.producto.sku }}</span>{% endif %}
+          <small class="text-muted">Produce {{ r.unidades_produce }} unidad(es) por lote</small>
+        </div>
       </div>
       <div class="d-flex gap-2">
-        <a href="{{ url_for('receta_editar', id=r.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+        <a href="{{ url_for('receta_editar', id=r.id) }}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
         <form method="POST" action="{{ url_for('receta_eliminar', id=r.id) }}" class="d-inline"
               onsubmit="return confirm('¿Eliminar receta?')">
-          <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+          <button class="btn btn-sm btn-outline-danger" title="Eliminar"><i class="bi bi-trash"></i></button>
         </form>
       </div>
     </div>
-    {% if r.descripcion %}<p class="text-muted small mb-3">{{ r.descripcion }}</p>{% endif %}
+    {% if r.descripcion %}<p class="text-muted small mb-2">{{ r.descripcion }}</p>{% endif %}
+    {% if costos[r.id] %}
+    <div class="d-flex gap-3 flex-wrap mb-3" style="font-size:.82rem">
+      <div><strong>Costo:</strong> <span style="color:var(--ac)">${{ '{:,.0f}'.format(costos[r.id].costo_unitario) }}/und</span></div>
+      {% if r.precio_venta_sugerido %}<div><strong>Precio sugerido:</strong> <span style="color:var(--green)">${{ '{:,.0f}'.format(r.precio_venta_sugerido) }}</span></div>{% endif %}
+      {% if costos[r.id].alertas %}<div style="color:var(--orange)"><i class="bi bi-exclamation-triangle me-1"></i><strong>{{ costos[r.id].alertas|length }}</strong> sin cotización vigente</div>{% endif %}
+    </div>
+    {% endif %}
     <table class="table table-sm mb-0">
       <thead><tr><th>Materia Prima</th><th class="text-end">Cantidad/unidad</th><th>Unidad</th>
         <th class="text-end">Disponible</th><th class="text-end">Reservado</th></tr></thead>

@@ -383,7 +383,7 @@ def register(app):
             estado='en_revision',
             materia_prima_id=mp.id,
             precio_unitario=0,
-            notas='Requiere cotización — materia prima nueva.',
+            notas='Requiere cotización de proveedor.',
             creado_por=current_user.id
         ))
         db.session.commit()
@@ -463,7 +463,7 @@ def register(app):
             _registrar_ingredientes_en_cero(ids, prod_id)
             # Auto-generar SKU si el producto no tiene uno
             prod_obj = db.session.get(Producto, prod_id)
-            if prod_obj and not prod_obj.sku:
+            if prod_obj and (not prod_obj.sku or prod_obj.sku in ('None', '')):
                 from models import _generar_sku
                 prod_obj.sku = _generar_sku(prod_obj.nombre)
             # Calcular costo y precio desde receta
@@ -496,16 +496,17 @@ def register(app):
                     )
                 ).first()
                 if not tiene_cot:
-                    # Crear cotización en_revision para que se gestione
+                    # Nombre: ingrediente — producto
+                    nombre_cot = f'{mp.nombre} — {prod_obj.nombre}' if prod_obj else mp.nombre
                     db.session.add(CotizacionProveedor(
-                        nombre_producto=mp.nombre,
+                        nombre_producto=nombre_cot,
                         tipo_cotizacion='granel',
                         tipo_producto_servicio='materia prima',
                         unidad=mp.unidad,
                         estado='en_revision',
                         materia_prima_id=mp.id,
                         precio_unitario=mp.costo_unitario or 0,
-                        notas=f'Requiere cotización — usada en receta: {prod_obj.nombre if prod_obj else ""}',
+                        notas=f'Requiere cotización de proveedor.',
                         creado_por=current_user.id
                     ))
                     cots_creadas += 1
