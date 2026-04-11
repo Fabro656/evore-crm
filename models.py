@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date as date_type
 import json, secrets, os, logging
 
-__all__ = ['User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'AsientoContable', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'Notificacion', 'Empleado', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'load_user', '_migrate', 'init_db']
+__all__ = ['User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'Notificacion', 'Empleado', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'load_user', '_migrate', 'init_db']
 
 
 class User(UserMixin, db.Model):
@@ -1551,15 +1551,15 @@ def _seed_demo_data():
                notas='Entrega en CEDI Funza, horario 6am-2pm', creado_por=uid)
     db.session.add(v1); db.session.flush()
     db.session.add_all([
-        VentaProducto(es_demo=True, venta_id=v1.id, producto_id=p1.id, nombre_prod='Detergente Industrial 5L',
+        VentaProducto(venta_id=v1.id, producto_id=p1.id, nombre_prod='Detergente Industrial 5L',
                       cantidad=20, precio_unit=45000, subtotal=900000),
-        VentaProducto(es_demo=True, venta_id=v1.id, producto_id=p4.id, nombre_prod='Limpiador Multiusos 1L',
+        VentaProducto(venta_id=v1.id, producto_id=p4.id, nombre_prod='Limpiador Multiusos 1L',
                       cantidad=30, precio_unit=18000, subtotal=540000),
-        VentaProducto(es_demo=True, venta_id=v1.id, producto_id=p3.id, nombre_prod='Jabon Liquido Antibacterial 500ml',
+        VentaProducto(venta_id=v1.id, producto_id=p3.id, nombre_prod='Jabon Liquido Antibacterial 500ml',
                       cantidad=30, precio_unit=15000, subtotal=450000),
     ])
     # Pago del anticipo
-    db.session.add(PagoVenta(es_demo=True, venta_id=v1.id, monto=1349460, tipo='anticipo',
+    db.session.add(PagoVenta(venta_id=v1.id, monto=1349460, tipo='anticipo',
                              metodo_pago='transferencia', referencia='TRF-2026-0301',
                              fecha=hoy - timedelta(days=3), creado_por=uid))
 
@@ -1571,11 +1571,11 @@ def _seed_demo_data():
                notas='Pendiente confirmar cantidades finales', creado_por=uid)
     db.session.add(v2); db.session.flush()
     db.session.add_all([
-        VentaProducto(es_demo=True, venta_id=v2.id, producto_id=p4.id, nombre_prod='Limpiador Multiusos 1L',
+        VentaProducto(venta_id=v2.id, producto_id=p4.id, nombre_prod='Limpiador Multiusos 1L',
                       cantidad=20, precio_unit=18000, subtotal=360000),
-        VentaProducto(es_demo=True, venta_id=v2.id, producto_id=p5.id, nombre_prod='Ambientador Premium 400ml',
+        VentaProducto(venta_id=v2.id, producto_id=p5.id, nombre_prod='Ambientador Premium 400ml',
                       cantidad=15, precio_unit=22000, subtotal=330000),
-        VentaProducto(es_demo=True, venta_id=v2.id, producto_id=p6.id, nombre_prod='Suavizante Textil 2L',
+        VentaProducto(venta_id=v2.id, producto_id=p6.id, nombre_prod='Suavizante Textil 2L',
                       cantidad=10, precio_unit=32000, subtotal=320000),
     ])
 
@@ -1589,13 +1589,13 @@ def _seed_demo_data():
                notas='Entregado y pagado en su totalidad', creado_por=uid)
     db.session.add(v3); db.session.flush()
     db.session.add_all([
-        VentaProducto(es_demo=True, venta_id=v3.id, producto_id=p1.id, nombre_prod='Detergente Industrial 5L',
+        VentaProducto(venta_id=v3.id, producto_id=p1.id, nombre_prod='Detergente Industrial 5L',
                       cantidad=15, precio_unit=45000, subtotal=675000),
     ])
     db.session.add_all([
-        PagoVenta(es_demo=True, venta_id=v3.id, monto=401625, tipo='anticipo', metodo_pago='transferencia',
+        PagoVenta(venta_id=v3.id, monto=401625, tipo='anticipo', metodo_pago='transferencia',
                   referencia='TRF-NV-001', fecha=hoy - timedelta(days=15), creado_por=uid),
-        PagoVenta(es_demo=True, venta_id=v3.id, monto=401625, tipo='saldo', metodo_pago='transferencia',
+        PagoVenta(venta_id=v3.id, monto=401625, tipo='saldo', metodo_pago='transferencia',
                   referencia='TRF-NV-002', fecha=hoy - timedelta(days=7), creado_por=uid),
     ])
 

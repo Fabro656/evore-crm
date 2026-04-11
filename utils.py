@@ -1092,4 +1092,8 @@ def register_app_hooks(app):
     app.template_filter('cop')(cop)
     app.template_filter('moneda')(moneda)
     app.template_filter('moneda0')(moneda0)
+    # Also register as Jinja globals so they can be called as functions: {{ moneda(value) }}
+    app.jinja_env.globals['moneda'] = moneda
+    app.jinja_env.globals['moneda0'] = moneda0
+    app.jinja_env.globals['cop'] = cop
     app.context_processor(inject_globals)

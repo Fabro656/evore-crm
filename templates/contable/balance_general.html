@@ -10,7 +10,7 @@
   <strong>{{ empresa.nombre if empresa else 'Evore' }}</strong><br>
   <small style="color:var(--text2)">NIT: {{ empresa.nit if empresa and empresa.nit else '—' }}</small><br>
   <strong>BALANCE GENERAL</strong><br>
-  <small>Al {{ fecha_corte.strftime('%d de %B de %Y') }}</small>
+  <small>Al {{ fecha_corte.strftime('%d/%m/%Y') }}</small>
 </div>
 <div class="row g-3">
   <div class="col-md-6">
@@ -68,10 +68,10 @@
       <div class="p-3">
         <div class="d-flex justify-content-between fw-bold" style="font-size:1.05rem">
           <span>PASIVOS + PATRIMONIO</span>
-          <span style="color:{% if (pasivos + patrimonio)|round == activos|round %}var(--green){% else %}var(--red){% endif %}">{{ moneda(pasivos + patrimonio) }}</span>
+          <span style="color:{% if ((pasivos or 0) + (patrimonio or 0))|round == (activos or 0)|round %}var(--green){% else %}var(--red){% endif %}">{{ moneda(pasivos + patrimonio) }}</span>
         </div>
         {% if (pasivos + patrimonio)|round != activos|round %}
-        <small style="color:var(--red)">Diferencia: {{ moneda(activos - pasivos - patrimonio) }} — El balance no cuadra.</small>
+        <small style="color:var(--red)">Diferencia: {{ moneda((activos or 0) - (pasivos or 0) - (patrimonio or 0)) }} — El balance no cuadra.</small>
         {% else %}
         <small style="color:var(--green)">Balance cuadrado.</small>
         {% endif %}

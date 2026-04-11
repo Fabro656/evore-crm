@@ -33,6 +33,8 @@
   --card-shadow:var(--shadow);
   /* Shape */
   --radius:8px;--radius-sm:4px;
+  /* Motion */
+  --transition-fast:150ms ease;--transition-base:250ms ease;--transition-slow:350ms cubic-bezier(.4,0,.2,1);
 }
 
 /* ── Base reset ──────────────────────────────────── */
@@ -44,9 +46,9 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .sb-brand{padding:.85rem 1rem .7rem;color:#fff;font-weight:700;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:.5rem}
 .sb-sec{font-size:.62rem;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--sb-text);opacity:.6;padding:.85rem 1.1rem .2rem}
 .sb-nav{overflow-y:auto;flex:1;padding-bottom:.5rem;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent}
-.sb-nav .nav-link{color:var(--sb-text);padding:.46rem 1rem;border-radius:4px;margin:.05rem .5rem;display:flex;align-items:center;gap:.6rem;font-size:.84rem;font-weight:500;transition:background .15s,color .15s;white-space:nowrap;overflow:hidden;text-decoration:none}
+.sb-nav .nav-link{color:var(--sb-text);padding:.46rem 1rem;border-radius:4px;margin:.05rem .5rem;display:flex;align-items:center;gap:.6rem;font-size:.84rem;font-weight:500;transition:all var(--transition-fast);white-space:nowrap;overflow:hidden;text-decoration:none;border-left:3px solid transparent}
 .sb-nav .nav-link:hover{background:rgba(255,255,255,.09);color:#fff}
-.sb-nav .nav-link.active{background:rgba(91,175,250,.15);color:var(--sb-active);font-weight:600}
+.sb-nav .nav-link.active{background:rgba(91,175,250,.15);color:var(--sb-active);font-weight:600;border-left:3px solid var(--sb-active);padding-left:calc(1rem - 3px)}
 .sb-nav .nav-link i{font-size:1rem;width:18px;flex-shrink:0;opacity:.9}
 .sb-foot{padding:.75rem 1rem;border-top:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.55);font-size:.8rem;margin-top:auto}
 .u-name{color:#fff;font-weight:600;font-size:.84rem}
@@ -58,14 +60,15 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 
 /* ── Topbar ──────────────────────────────────────── */
 #main{margin-left:256px;min-height:100vh}
-.topbar{background:var(--topbar-bg);padding:.6rem 1.25rem;border-bottom:1px solid var(--topbar-border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow);gap:.75rem;transition:background-color .2s,border-color .2s}
+.topbar{background:rgba(255,255,255,.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:.6rem 1.25rem;border-bottom:1px solid var(--topbar-border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow);gap:.75rem;transition:background-color .2s,border-color .2s}
 .pg-title{font-size:1rem;font-weight:600;color:var(--text);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:1;min-width:0}
 .topbar-right{flex-wrap:nowrap;flex-shrink:0}
 #sb-tog{display:none;background:none;border:none;color:var(--text);font-size:1.25rem;padding:.3rem .4rem;border-radius:3px;cursor:pointer;flex-shrink:0;line-height:1}
 #sb-tog:hover{background:var(--surface2)}
 
 /* ── Content area ────────────────────────────────── */
-.content{padding:1.25rem}
+.content{padding:1.25rem;animation:fadeIn var(--transition-base) ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 
 /* ── Stat Cards ──────────────────────────────────── */
 .sc{background:var(--surface);border-radius:var(--radius);padding:1.1rem 1.25rem;box-shadow:var(--shadow);transition:box-shadow .15s,background-color .2s,border-color .2s;height:100%;border:1px solid var(--border)}
@@ -77,11 +80,13 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .sc-highlight{border:2px solid var(--ac)}
 
 /* ── Table Cards ─────────────────────────────────── */
-.tc{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;transition:background-color .2s,border-color .2s}
+.tc{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;transition:all var(--transition-fast)}
+.tc:hover{box-shadow:var(--shadow-md)}
 .ch{background:var(--surface);border-bottom:1px solid var(--border);padding:.75rem 1.25rem;font-weight:600;color:var(--text);font-size:.88rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem}
 .table{margin:0}
 .table th{font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);border-bottom:2px solid var(--border);padding:.55rem 1rem;white-space:nowrap;background:var(--surface2)}
 .table td{padding:.55rem 1rem;vertical-align:middle;border-bottom:1px solid var(--border);color:var(--text);font-size:.85rem}
+.table tbody tr:nth-child(even){background:rgba(0,0,0,.015)}
 .table tbody tr:last-child td{border-bottom:none}
 .table tbody tr:hover{background:var(--surface2)}
 
@@ -90,8 +95,8 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .form-label{font-weight:600;font-size:.82rem;color:var(--text);margin-bottom:.3rem}
 .form-label .req{color:var(--red);margin-left:2px}
 .form-text{font-size:.76rem;color:var(--text2);margin-top:.2rem}
-.form-control,.form-select{border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:.48rem .75rem;font-size:.88rem;transition:border-color .12s,box-shadow .12s,background-color .2s,color .2s;background:var(--input-bg);color:var(--text)}
-.form-control:focus,.form-select:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(var(--ac-rgb),.15);outline:none}
+.form-control,.form-select{border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:.48rem .75rem;font-size:.88rem;transition:border-color var(--transition-fast),box-shadow var(--transition-fast),background-color .2s,color .2s;background:var(--input-bg);color:var(--text)}
+.form-control:focus,.form-select:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(var(--ac-rgb),.2);outline:none}
 .form-control.is-invalid{border-color:var(--red)}
 .form-section{background:var(--surface2);border-radius:var(--radius);padding:1rem 1.2rem;margin-bottom:1rem;border:1px solid var(--border);border-left:3px solid var(--ac);transition:background-color .2s,border-color .2s}
 .form-section-title{font-weight:700;font-size:.75rem;text-transform:uppercase;letter-spacing:1px;color:var(--ac);margin-bottom:.65rem}
@@ -99,17 +104,18 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .input-hint i{color:var(--ac);flex-shrink:0;margin-top:1px}
 
 /* ── Buttons ─────────────────────────────────────── */
-.btn{border-radius:var(--radius-sm);font-weight:600;font-size:.84rem;transition:background .12s,box-shadow .12s;min-height:36px}
+.btn{border-radius:var(--radius-sm);font-weight:600;font-size:.84rem;transition:all var(--transition-fast);min-height:36px}
+.btn:active{transform:scale(.97)}
 .btn-primary{background:var(--ac);border-color:var(--ac);color:#fff}
 .btn-primary:hover{background:var(--ac2);border-color:var(--ac2);color:#fff;box-shadow:0 2px 8px rgba(var(--ac-rgb),.35)}
 .btn-ghost{background:transparent;border:1.5px solid var(--border);color:var(--text);transition:all .15s}
-.btn-ghost:hover{background:var(--surface2);border-color:var(--border2)}
+.btn-ghost:hover{background:var(--surface2);border-color:var(--border2);box-shadow:var(--shadow)}
 .btn-lg{min-height:44px;font-size:.9rem;padding:.65rem 1.4rem}
 .btn-action{background:var(--ac);border:none;color:#fff;border-radius:var(--radius-sm);padding:.5rem 1rem;font-weight:600;font-size:.82rem;display:flex;align-items:center;gap:.5rem;cursor:pointer;transition:background .12s;white-space:nowrap}
 .btn-action:hover{background:var(--ac2);color:#fff}
 
 /* ── Badges ──────────────────────────────────────── */
-.b{padding:2px 8px;border-radius:3px;font-size:.72rem;font-weight:600;display:inline-block;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px}
+.b{padding:3px 10px;border-radius:4px;font-size:.72rem;font-weight:600;display:inline-block;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px;transition:opacity var(--transition-fast)}
 .b-activo,.b-completado,.b-completada,.b-baja,.b-vip,.b-vigente,.b-aprobada,.b-recibida,.b-en_transito,.b-pagado,.b-usado,.b-aprobado{background:#EDFBF0;color:#1A6B3C;border:1px solid #BEEFD3}
 .b-inactivo,.b-perdido,.b-alta,.b-vencida,.b-cancelado,.b-cancelada,.b-detenida,.b-rechazado{background:#FFF0EE;color:#8A1A1A;border:1px solid #FFCCC7}
 .b-prospecto,.b-pendiente,.b-media,.b-anticipo_pagado,.b-en_revision,.b-enviada,.b-pendiente_materiales,.b-pausada{background:#FFF8E6;color:#7A4A00;border:1px solid #FADDAA}
@@ -143,7 +149,8 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .cal-ev{font-size:.69rem;padding:2px 5px;border-radius:2px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 
 /* ── Misc components ─────────────────────────────── */
-.alert{border-radius:var(--radius);border:none;transition:background-color .2s,border-color .2s}
+.alert{border-radius:var(--radius);border:none;transition:background-color .2s,border-color .2s;animation:slideDown var(--transition-base) ease}
+@keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
 .prod-row{background:var(--surface2);border-radius:var(--radius);padding:.75rem;margin-bottom:.5rem;border:1px solid var(--border);transition:background-color .2s,border-color .2s}
 .totales-box{background:var(--surface2);border-radius:var(--radius);padding:1rem 1.4rem;border:1px solid var(--border);transition:background-color .2s,border-color .2s}
 .chat-bubble{background:var(--surface2);border-radius:4px 12px 12px 4px;padding:.6rem .9rem;margin-bottom:.5rem;max-width:80%;color:var(--text)}
@@ -252,7 +259,7 @@ html[data-theme="dark"]{
   --bs-table-color:#E4E4E4;--bs-table-bg:transparent;
 }
 html[data-theme="dark"] body{background:var(--bg);color:var(--text)}
-html[data-theme="dark"] .topbar{background:var(--topbar-bg);border-color:var(--topbar-border)}
+html[data-theme="dark"] .topbar{background:rgba(30,30,30,.85);border-color:var(--topbar-border)}
 html[data-theme="dark"] .tc,.html[data-theme="dark"] .fc,html[data-theme="dark"] .sc{background:var(--surface);border-color:var(--border)}
 html[data-theme="dark"] .tc{background:var(--surface);border-color:var(--border)}
 html[data-theme="dark"] .fc{background:var(--surface);border-color:var(--border);color:var(--text)}
@@ -266,6 +273,7 @@ html[data-theme="dark"] .table>:not(caption)>*>*{background-color:var(--surface)
 html[data-theme="dark"] .table th{background:var(--surface2)!important;color:var(--text2)!important;border-color:var(--border)!important}
 html[data-theme="dark"] .table td{border-color:var(--border)!important;color:var(--text)!important}
 html[data-theme="dark"] .table tbody tr:hover>*{background-color:var(--surface2)!important;color:var(--text)}
+html[data-theme="dark"] .table tbody tr:nth-child(even){background:rgba(255,255,255,.02)}
 html[data-theme="dark"] .table-striped>tbody>tr:nth-of-type(odd)>*{background-color:var(--surface2);color:var(--text)}
 /* Forms */
 html[data-theme="dark"] .form-control,html[data-theme="dark"] .form-select{background:var(--input-bg);border-color:var(--border);color:var(--text)}
@@ -329,6 +337,18 @@ html[data-theme="dark"] .ev-venta{background:rgba(59,168,96,.12);color:#80D9A0;b
 html[data-theme="dark"] .diag-rojo{background:rgba(224,85,85,.12);color:#FFAAAA}
 html[data-theme="dark"] .diag-amarillo{background:rgba(224,144,0,.12);color:#FFCA60}
 html[data-theme="dark"] .diag-verde{background:rgba(59,168,96,.12);color:#80D9A0}
+
+/* ── Utility classes ─────────────────────────────── */
+.gap-xs{gap:4px}.gap-sm{gap:8px}.gap-md{gap:16px}.gap-lg{gap:24px}.gap-xl{gap:32px}
+.text-accent{color:var(--ac)}.text-success{color:var(--green)}.text-error{color:var(--red)}.text-warning{color:var(--orange)}
+.bg-accent-subtle{background:rgba(var(--ac-rgb),.08)}
+.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── Scrollbar ──────────────────────────────────── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--border2)}
 
 /* ══════════════════════════════════════════════════
    RESPONSIVE — Mobile
