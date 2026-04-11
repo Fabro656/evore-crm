@@ -1271,7 +1271,7 @@ def _generar_sku(nombre_producto):
 
 
 def _seed_demo_data():
-    """Crea datos demo completos si el usuario tester existe y no hay clientes."""
+    """Crea datos demo completos con flujo integrado de manufactura."""
     import logging
     from datetime import date, timedelta
 
@@ -1591,7 +1591,156 @@ def _seed_demo_data():
 
     try:
         db.session.commit()
-        logging.info('Datos demo sembrados exitosamente: 5 clientes, 6 productos, 10 materias primas, 2 recetas, 2 cotizaciones, 3 ventas, 3 empleados, usuarios de cada rol.')
     except Exception as e:
         db.session.rollback()
-        logging.error(f'Error al sembrar datos demo: {e}')
+        logging.error(f'Error al sembrar datos demo fase 1: {e}')
+        return
+
+    # ── Fase 2: datos que dependen de los anteriores (IDs ya asignados) ──
+    try:
+        # Marcas para productos
+        det5l = Producto.query.filter_by(nombre='Detergente Industrial 5L').first()
+        jab500 = Producto.query.filter_by(nombre='Jabon Liquido Antibacterial 500ml').first()
+        if det5l:
+            db.session.add(MarcaProducto(producto_id=det5l.id, nombre_marca='EvoreClean Industrial',
+                                          nso='NSO-2024-0451', registro_sanitario='INVIMA-2024-DI-001'))
+            db.session.add(MarcaProducto(producto_id=det5l.id, nombre_marca='LimpioMax Pro',
+                                          nso='NSO-2024-0452', registro_sanitario='INVIMA-2024-DI-002'))
+        if jab500:
+            db.session.add(MarcaProducto(producto_id=jab500.id, nombre_marca='EvoreHand Antibacterial',
+                                          nso='NSO-2024-0460', registro_sanitario='INVIMA-2024-JA-001'))
+
+        # Actualizar clasificación de ingredientes en recetas existentes
+        for ri in RecetaItem.query.all():
+            mp = db.session.get(MateriaPrima, ri.materia_prima_id)
+            if mp and mp.categoria == 'Empaques':
+                ri.clasificacion = 'empaque_primario'
+                ri.es_empaque = True
+            else:
+                ri.clasificacion = 'materia_prima'
+
+        # Auto-generar SKU para productos sin SKU
+        for p in Producto.query.filter(Producto.sku == None).all():
+            p.sku = _generar_sku(p.nombre)
+
+        # Calcular costos de recetas
+        for r in RecetaProducto.query.filter_by(activo=True).all():
+            try:
+                from utils import _calcular_costo_receta
+                costo = _calcular_costo_receta(r.producto_id)
+                r.costo_calculado = costo['costo_unitario']
+                r.margen_pct = 30
+                precio_sin_iva = costo['costo_unitario'] * 1.30  # 30% margen
+                r.precio_venta_sugerido = round(precio_sin_iva * 1.19, 2)  # + 19% IVA
+                if r.producto:
+                    r.producto.precio = r.precio_venta_sugerido
+                    r.producto.costo = round(costo['costo_unitario'], 2)
+                    r.producto.costo_receta = round(costo['costo_unitario'], 2)
+            except Exception:
+                pass
+
+        # Configurar envío en clientes
+        c1 = Cliente.query.filter_by(empresa='Distribuidora Nacional SAS').first()
+        c2 = Cliente.query.filter_by(empresa='Cadena FreshMart').first()
+        c4 = Cliente.query.filter_by(empresa='HotelGroup Colombia').first()
+        trans = Proveedor.query.filter_by(empresa='TransCarga Ltda').first()
+        if c1:
+            c1.envio_responsable = 'empresa'  # Nosotros enviamos
+            if trans: c1.transportista_preferido_id = trans.id
+        if c2:
+            c2.envio_responsable = 'cliente'  # Ellos recogen
+        if c4:
+            c4.envio_responsable = 'empresa'
+            if trans: c4.transportista_preferido_id = trans.id
+
+        # Capacidad del transportista
+        if trans:
+            trans.capacidad_vehiculo_kg = 5000
+            trans.capacidad_vehiculo_m3 = 20
+            trans.tipo_vehiculo = 'furgon'
+            trans.envia_material = True
+
+        # Cotizaciones de proveedor vinculadas a materias primas
+        prov1 = Proveedor.query.filter_by(empresa='QuimiCol SAS').first()
+        prov2 = Proveedor.query.filter_by(empresa='Envases del Valle').first()
+        hoy = date.today()
+        if prov1:
+            mp_tenso = MateriaPrima.query.filter_by(nombre='Tensoactivo anionico').first()
+            mp_soda = MateriaPrima.query.filter_by(nombre='Soda caustica').first()
+            mp_frag = MateriaPrima.query.filter_by(nombre='Fragancia lavanda').first()
+            if mp_tenso:
+                db.session.add(CotizacionProveedor(
+                    numero='CP-2026-001', proveedor_id=prov1.id, materia_prima_id=mp_tenso.id,
+                    nombre_producto='Tensoactivo anionico industrial', precio_unitario=8200,
+                    unidad='kg', plazo_entrega_dias=10, estado='vigente',
+                    fecha_cotizacion=hoy - timedelta(days=15), vigencia=hoy + timedelta(days=60),
+                    creado_por=uid))
+            if mp_soda:
+                db.session.add(CotizacionProveedor(
+                    numero='CP-2026-002', proveedor_id=prov1.id, materia_prima_id=mp_soda.id,
+                    nombre_producto='Soda caustica perlas', precio_unitario=4000,
+                    unidad='kg', plazo_entrega_dias=7, estado='vigente',
+                    fecha_cotizacion=hoy - timedelta(days=10), vigencia=hoy + timedelta(days=45),
+                    creado_por=uid))
+            if mp_frag:
+                db.session.add(CotizacionProveedor(
+                    numero='CP-2026-003', proveedor_id=prov1.id, materia_prima_id=mp_frag.id,
+                    nombre_producto='Fragancia lavanda concentrada', precio_unitario=43000,
+                    unidad='litros', plazo_entrega_dias=15, estado='vigente',
+                    fecha_cotizacion=hoy - timedelta(days=20), vigencia=hoy + timedelta(days=30),
+                    creado_por=uid))
+        if prov2:
+            mp_env5 = MateriaPrima.query.filter_by(nombre='Envase PET 5L').first()
+            mp_env1 = MateriaPrima.query.filter_by(nombre='Envase PET 1L').first()
+            if mp_env5:
+                db.session.add(CotizacionProveedor(
+                    numero='CP-2026-004', proveedor_id=prov2.id, materia_prima_id=mp_env5.id,
+                    nombre_producto='Envase PET 5 litros cristal', precio_unitario=2600,
+                    unidad='unidades', plazo_entrega_dias=12, estado='vigente',
+                    fecha_cotizacion=hoy - timedelta(days=10), vigencia=hoy + timedelta(days=50),
+                    creado_por=uid))
+            if mp_env1:
+                db.session.add(CotizacionProveedor(
+                    numero='CP-2026-005', proveedor_id=prov2.id, materia_prima_id=mp_env1.id,
+                    nombre_producto='Envase PET 1 litro cristal', precio_unitario=1400,
+                    unidad='unidades', plazo_entrega_dias=12, estado='vigente',
+                    fecha_cotizacion=hoy - timedelta(days=10), vigencia=hoy + timedelta(days=50),
+                    creado_por=uid))
+
+        # Documentos legales
+        db.session.add(DocumentoLegal(
+            tipo='registro_invima', titulo='Registro INVIMA Detergentes',
+            numero='INVIMA-2024-DI-001', entidad='INVIMA',
+            estado='vigente', fecha_emision=hoy - timedelta(days=200),
+            fecha_vencimiento=hoy + timedelta(days=165), recordatorio_dias=30,
+            producto_id=det5l.id if det5l else None, tipo_entidad='producto',
+            creado_por=uid))
+        db.session.add(DocumentoLegal(
+            tipo='contrato', titulo='Contrato suministro - Distribuidora Nacional',
+            numero='CTR-2026-001', entidad='Evore',
+            estado='vigente', fecha_emision=hoy - timedelta(days=90),
+            fecha_vencimiento=hoy + timedelta(days=275),
+            cliente_id=c1.id if c1 else None, tipo_entidad='cliente',
+            creado_por=uid))
+
+        db.session.commit()
+
+        # Recalcular costos con cotizaciones vigentes
+        for r in RecetaProducto.query.filter_by(activo=True).all():
+            try:
+                costo = _calcular_costo_receta(r.producto_id)
+                r.costo_calculado = costo['costo_unitario']
+                precio_sin_iva = costo['costo_unitario'] * (1 + r.margen_pct / 100)
+                r.precio_venta_sugerido = round(precio_sin_iva * 1.19, 2)
+                if r.producto:
+                    r.producto.precio = r.precio_venta_sugerido
+                    r.producto.costo = round(costo['costo_unitario'], 2)
+                    r.producto.costo_receta = round(costo['costo_unitario'], 2)
+            except Exception:
+                pass
+
+        db.session.commit()
+        logging.info('Datos demo v35 sembrados: clientes, productos, recetas con costos, marcas, cotizaciones proveedor, documentos legales, SKUs.')
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f'Error al sembrar datos demo fase 2: {e}')
