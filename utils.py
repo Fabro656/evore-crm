@@ -405,8 +405,8 @@ def _crear_notificacion(usuario_id, tipo, titulo, mensaje, url=None):
         db.session.rollback()
         print(f'Notificacion error: {e}')
 
-def _calcular_nomina(empleado):
-    """Returns a dict with all payroll calculations for an employee."""
+def _calcular_nomina_co(empleado):
+    """Colombian payroll calculation. Returns a dict with all payroll items."""
     salario = empleado.salario_base
     aux_transporte = AUXILIO_TRANSPORTE_2025 if (empleado.auxilio_transporte and salario <= 2 * SMLMV_2025) else 0
 
@@ -463,9 +463,126 @@ def _calcular_nomina(empleado):
         'costo_total_empresa': total_costo_empr + total_prestaciones,
     }
 
-def _calcular_liquidacion(empleado, motivo):
+
+def _calcular_isr(ingreso_mensual):
+    """Calculate Mexican ISR (income tax) using progressive brackets."""
+    brackets = _payroll.get('isr_brackets', [])
+    for lim_inf, lim_sup, cuota_fija, tasa in brackets:
+        if lim_inf <= ingreso_mensual <= lim_sup:
+            excedente = ingreso_mensual - lim_inf
+            return round(cuota_fija + excedente * tasa)
+    # If above all brackets, use the last one
+    if brackets:
+        lim_inf, _, cuota_fija, tasa = brackets[-1]
+        return round(cuota_fija + (ingreso_mensual - lim_inf) * tasa)
+    return 0
+
+
+def _calcular_nomina_mx(empleado):
+    """Mexican payroll calculation. Returns a dict with the same structure as Colombian version."""
+    salario = empleado.salario_base
+    aux_transporte = 0  # Mexico does not have transport subsidy
+
+    # --- Employee deductions ---
+    # ISR (income tax) — progressive brackets
+    deduccion_salud = _calcular_isr(salario)  # reuse key name: maps to ISR
+    # IMSS employee: enfermedad_maternidad + invalidez_vida + cesantia_vejez
+    imss_enf_mat_emp  = round(salario * _payroll.get('imss_employee_enf_mat', 0.00625))
+    imss_inv_vida_emp = round(salario * _payroll.get('imss_employee_invalidez', 0.00625))
+    imss_ces_vej_emp  = round(salario * _payroll.get('imss_employee_cesantia', 0.01125))
+    deduccion_pension = imss_enf_mat_emp + imss_inv_vida_emp + imss_ces_vej_emp  # reuse key name: maps to IMSS employee total
+    fondo_solidaridad = 0  # Not applicable in Mexico
+
+    total_deducciones = deduccion_salud + deduccion_pension + fondo_solidaridad
+    salario_neto = salario + aux_transporte - total_deducciones
+
+    # --- Employer contributions ---
+    # IMSS employer
+    imss_enf_mat_empr  = round(salario * _payroll.get('imss_employer_enf_mat', 0.105))
+    imss_inv_vida_empr = round(salario * _payroll.get('imss_employer_invalidez', 0.0175))
+    imss_ces_vej_empr  = round(salario * _payroll.get('imss_employer_cesantia', 0.0315))
+    imss_riesgo_empr   = round(salario * _payroll.get('imss_employer_riesgo', 0.005))
+    imss_guarderias    = round(salario * _payroll.get('imss_employer_guarderias', 0.01))
+    imss_retiro        = round(salario * _payroll.get('imss_employer_retiro', 0.02))
+    # INFONAVIT (employer only)
+    infonavit          = round(salario * _payroll.get('infonavit', 0.05))
+
+    # Map to same keys as Colombian version for template compatibility
+    aporte_salud_empr   = imss_enf_mat_empr + imss_inv_vida_empr  # IMSS enfermedad + invalidez
+    aporte_pension_empr = imss_ces_vej_empr + imss_retiro          # IMSS cesantia + retiro (SAR)
+    aporte_arl          = imss_riesgo_empr                          # Riesgo de trabajo
+    aporte_caja         = imss_guarderias                           # Guarderias
+    aporte_sena         = infonavit                                 # INFONAVIT (reuse key)
+    aporte_icbf         = 0                                         # No equivalent in Mexico
+
+    total_costo_empr = salario + aux_transporte + aporte_salud_empr + aporte_pension_empr + aporte_arl + aporte_caja + aporte_sena + aporte_icbf
+
+    # --- Prestaciones (provisioned monthly) ---
+    # Aguinaldo: 15 days / 12 months
+    aguinaldo_days = _payroll.get('aguinaldo_days', 15)
+    salario_diario = salario / 30
+    provision_cesantias     = round(salario_diario * aguinaldo_days / 12)  # monthly aguinaldo provision
+    provision_int_cesantias = 0  # No interest on aguinaldo in Mexico
+
+    # Prima vacacional: vacation days * 25% * daily salary / 12
+    vac_days = _payroll.get('vacaciones_min_days', 12)
+    prima_vac_pct = _payroll.get('prima_vacacional_pct', 0.25)
+    provision_prima = round(salario_diario * vac_days * prima_vac_pct / 12)
+
+    # Vacaciones: vacation days salary / 12
+    provision_vacaciones = round(salario_diario * vac_days / 12)
+
+    total_prestaciones = provision_cesantias + provision_int_cesantias + provision_prima + provision_vacaciones
+
+    return {
+        'salario': salario,
+        'aux_transporte': aux_transporte,
+        'deduccion_salud': deduccion_salud,
+        'deduccion_pension': deduccion_pension,
+        'fondo_solidaridad': fondo_solidaridad,
+        'total_deducciones': total_deducciones,
+        'salario_neto': salario_neto,
+        'aporte_salud_empr': aporte_salud_empr,
+        'aporte_pension_empr': aporte_pension_empr,
+        'aporte_arl': aporte_arl,
+        'aporte_caja': aporte_caja,
+        'aporte_sena': aporte_sena,
+        'aporte_icbf': aporte_icbf,
+        'total_costo_empr': total_costo_empr,
+        'provision_cesantias': provision_cesantias,
+        'provision_int_cesantias': provision_int_cesantias,
+        'provision_prima': provision_prima,
+        'provision_vacaciones': provision_vacaciones,
+        'total_prestaciones': total_prestaciones,
+        'costo_total_empresa': total_costo_empr + total_prestaciones,
+        # Mexican-specific detail (extra keys — templates can optionally show these)
+        'isr': deduccion_salud,
+        'imss_empleado': deduccion_pension,
+        'imss_empleador_detalle': {
+            'enfermedad_maternidad': imss_enf_mat_empr,
+            'invalidez_vida': imss_inv_vida_empr,
+            'cesantia_vejez': imss_ces_vej_empr,
+            'riesgo_trabajo': imss_riesgo_empr,
+            'guarderias': imss_guarderias,
+            'retiro': imss_retiro,
+        },
+        'infonavit': infonavit,
+        'aguinaldo_provision': provision_cesantias,
+        'prima_vacacional_provision': provision_prima,
+    }
+
+
+def _calcular_nomina(empleado):
+    """Dispatcher — calls Colombian or Mexican payroll based on company config."""
+    system = _payroll.get('system', 'colombian')
+    if system == 'mexican':
+        return _calcular_nomina_mx(empleado)
+    return _calcular_nomina_co(empleado)
+
+
+def _calcular_liquidacion_co(empleado, motivo):
     """
-    Calculate employee liquidation.
+    Colombian employee liquidation.
     motivo: 'renuncia' | 'despido_justa' | 'despido_sin_justa' | 'mutuo_acuerdo'
     """
     from datetime import date as date_t
@@ -534,6 +651,92 @@ def _calcular_liquidacion(empleado, motivo):
         'indemnizacion': indemnizacion,
         'total': total,
     }
+
+
+def _calcular_liquidacion_mx(empleado, motivo):
+    """
+    Mexican employee finiquito/liquidacion.
+    motivo: 'renuncia' | 'despido_justa' | 'despido_sin_justa' | 'mutuo_acuerdo'
+    """
+    from datetime import date as date_t
+    hoy = date_t.today()
+    fecha_retiro = empleado.fecha_retiro or hoy
+    fecha_ingreso = empleado.fecha_ingreso
+    if not fecha_ingreso:
+        return None
+
+    # Dias trabajados
+    dias_trabajados = (fecha_retiro - fecha_ingreso).days
+    anios = dias_trabajados / 365.25
+
+    salario = empleado.salario_base
+    aux_transporte = 0  # No transport subsidy in Mexico
+    salario_diario = salario / 30
+
+    # --- Aguinaldo proporcional ---
+    # 15 days minimum per year, proportional to days worked in the current year
+    aguinaldo_days = _payroll.get('aguinaldo_days', 15)
+    inicio_anio = date_t(fecha_retiro.year, 1, 1)
+    fecha_inicio_periodo = max(fecha_ingreso, inicio_anio)
+    dias_anio_trabajados = max((fecha_retiro - fecha_inicio_periodo).days, 0)
+    cesantias = round(salario_diario * aguinaldo_days * dias_anio_trabajados / 365)  # aguinaldo proporcional
+
+    # --- Prima vacacional proporcional ---
+    vac_days = _payroll.get('vacaciones_min_days', 12)
+    prima_vac_pct = _payroll.get('prima_vacacional_pct', 0.25)
+    int_cesantias = round(salario_diario * vac_days * prima_vac_pct * dias_anio_trabajados / 365)  # prima vacacional
+
+    # --- Vacaciones no gozadas (proporcional) ---
+    # Proportional vacation days for the current year
+    prima = 0  # Not applicable in Mexico (prima de servicios is Colombian)
+    vacaciones = round(salario_diario * vac_days * dias_anio_trabajados / 365)
+
+    # --- Indemnizacion (Art. 50 LFT — despido injustificado) ---
+    indemnizacion = 0
+    if motivo == 'despido_sin_justa':
+        # 3 months salary (indemnizacion constitucional)
+        indem_constitucional = round(salario_diario * 90)
+        # 20 days per year worked (prima de antiguedad for >15 years, but applied in unjust dismissal)
+        indem_20_dias = round(salario_diario * 20 * anios)
+        # Prima de antiguedad: 12 days per year (capped at 2x min wage daily)
+        salario_diario_tope = min(salario_diario, 2 * _payroll.get('min_wage', 7468) / 30)
+        prima_antiguedad = round(salario_diario_tope * 12 * anios)
+        indemnizacion = indem_constitucional + indem_20_dias + prima_antiguedad
+    elif motivo == 'renuncia' and anios >= 15:
+        # Prima de antiguedad solo aplica con 15+ years on voluntary resignation
+        salario_diario_tope = min(salario_diario, 2 * _payroll.get('min_wage', 7468) / 30)
+        indemnizacion = round(salario_diario_tope * 12 * anios)
+
+    total = cesantias + int_cesantias + prima + vacaciones + indemnizacion
+
+    return {
+        'empleado': empleado,
+        'motivo': motivo,
+        'fecha_ingreso': fecha_ingreso,
+        'fecha_retiro': fecha_retiro,
+        'dias_trabajados': dias_trabajados,
+        'anios': round(anios, 2),
+        'salario': salario,
+        'aux_transporte': aux_transporte,
+        'cesantias': cesantias,            # aguinaldo proporcional
+        'int_cesantias': int_cesantias,    # prima vacacional proporcional
+        'prima': prima,                    # 0 (no prima de servicios in MX)
+        'vacaciones': vacaciones,
+        'indemnizacion': indemnizacion,
+        'total': total,
+        # Mexican-specific detail
+        'aguinaldo_proporcional': cesantias,
+        'prima_vacacional': int_cesantias,
+        'vacaciones_no_gozadas': vacaciones,
+    }
+
+
+def _calcular_liquidacion(empleado, motivo):
+    """Dispatcher — calls Colombian or Mexican liquidation based on company config."""
+    system = _payroll.get('system', 'colombian')
+    if system == 'mexican':
+        return _calcular_liquidacion_mx(empleado, motivo)
+    return _calcular_liquidacion_co(empleado, motivo)
 
 def _calcular_impuestos(ingresos, utilidad):
     """Retorna (total_impuestos, lista_detalle) según reglas tributarias activas.

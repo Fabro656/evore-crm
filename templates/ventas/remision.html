@@ -97,12 +97,12 @@ table.items-table tr:nth-child(even) td{background:#F4F5F7}
       <h4>Entregado a</h4>
       <p><strong>{{ venta.cliente.empresa or venta.cliente.nombre if venta.cliente else '—' }}</strong><br>
       {% if venta.cliente and venta.cliente.dir_entrega %}{{ venta.cliente.dir_entrega }}<br>{% endif %}
-      {% if venta.cliente and venta.cliente.nit %}NIT: {{ venta.cliente.nit }}{% endif %}</p>
+      {% if venta.cliente and venta.cliente.nit %}{{ nit_label }}: {{ venta.cliente.nit }}{% endif %}</p>
     </div>
     <div class="info-box">
       <h4>Entregado por</h4>
       <p><strong>{{ empresa.nombre if empresa else '—' }}</strong><br>
-      {% if empresa and empresa.nit %}NIT: {{ empresa.nit }}<br>{% endif %}
+      {% if empresa and empresa.nit %}{{ nit_label }}: {{ empresa.nit }}<br>{% endif %}
       {% if empresa and empresa.telefono %}{{ empresa.telefono }}{% endif %}</p>
     </div>
     <div class="info-box">

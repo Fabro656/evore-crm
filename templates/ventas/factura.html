@@ -64,7 +64,7 @@ table.items tbody tr:hover{background:#fafbff}
       <div class="party-label">Emisor</div>
       <div class="party-name">{{ empresa.nombre }}</div>
       <div class="party-detail">
-        {% if empresa.nit %}NIT: {{ empresa.nit }}<br>{% endif %}
+        {% if empresa.nit %}{{ nit_label }}: {{ empresa.nit }}<br>{% endif %}
         {% if empresa.direccion %}{{ empresa.direccion }}<br>{% endif %}
         {% if empresa.ciudad %}{{ empresa.ciudad }}<br>{% endif %}
         {% if empresa.telefono %}Tel: {{ empresa.telefono }}<br>{% endif %}
@@ -76,7 +76,7 @@ table.items tbody tr:hover{background:#fafbff}
       {% if obj.cliente %}
       <div class="party-name">{{ obj.cliente.empresa or obj.cliente.nombre }}</div>
       <div class="party-detail">
-        {% if obj.cliente.nit %}NIT: {{ obj.cliente.nit }}<br>{% endif %}
+        {% if obj.cliente.nit %}{{ nit_label }}: {{ obj.cliente.nit }}<br>{% endif %}
         {% if obj.cliente.dir_comercial %}{{ obj.cliente.dir_comercial }}<br>{% endif %}
         {% for c in obj.cliente.contactos[:1] %}
           {{ c.nombre }}{% if c.cargo %} — {{ c.cargo }}{% endif %}<br>

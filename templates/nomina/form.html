@@ -52,8 +52,8 @@
           <div class="mb-3"><label class="form-label">Salario base <span class="req">*</span></label>
             <input type="number" id="salarioInput" name="salario_base" class="form-control" value="{{ empleado.salario_base if empleado else '' }}" required min="0" step="100" onchange="updateCalc()" oninput="updateCalc()"></div>
           <div class="form-check"><input type="checkbox" id="auxTransporte" name="auxilio_transporte" class="form-check-input" {% if empleado is none or empleado.auxilio_transporte %}checked{% endif %} onchange="updateCalc()">
-            <label class="form-check-label" for="auxTransporte">Aplica auxilio de transporte (para salarios ≤ 2 SMLMV)</label></div>
-          <div class="form-text" style="font-size:.8rem">SMLMV 2025: $1,423,500 | Auxilio: $200,000</div>
+            <label class="form-check-label" for="auxTransporte">{% if company_config.country == 'MX' %}Aplica vales de despensa{% else %}Aplica auxilio de transporte (salarios hasta 2 SMLMV){% endif %}</label></div>
+          <div class="form-text" style="font-size:.8rem">{{ company_config.payroll.min_wage_label }}: {{ company_config.payroll.min_wage|cop }}{% if company_config.payroll.transport_subsidy %} | {{ company_config.payroll.transport_label }}: {{ company_config.payroll.transport_subsidy|cop }}{% endif %}</div>
         </div>
         {% if empleado %}<div class="form-section">
           <label class="form-label">Notas</label>
@@ -90,8 +90,9 @@
   </form>
 </div>
 <script>
-const SMLMV = 1423500; const AUX = 200000; const TASA_ARL = {1:0.00522, 2:0.01044, 3:0.02436, 4:0.04350, 5:0.06960};
-function formatCop(v) { return '$ ' + Math.round(v).toLocaleString('es-CO'); }
+const SMLMV = {{ company_config.payroll.min_wage }}; const AUX = {{ company_config.payroll.transport_subsidy }}; const TASA_ARL = {{ company_config.payroll.get('arl', {1:0.00522})|tojson }};
+const COUNTRY = '{{ company_config.country }}';
+function formatCop(v) { return '{{ company_config.currency_symbol }} ' + Math.round(v).toLocaleString(COUNTRY==='MX'?'es-MX':'es-CO'); }
 function updateCalc() {
   const sal = parseFloat(document.getElementById('salarioInput').value) || 0;
   const auxChecked = document.getElementById('auxTransporte').checked;

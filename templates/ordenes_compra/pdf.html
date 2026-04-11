@@ -76,13 +76,13 @@ table.items-table tr:nth-child(even) td{background:#F4F5F7}
     <div class="info-box">
       <h4>Proveedor</h4>
       <p><strong>{{ oc.proveedor.empresa or oc.proveedor.nombre if oc.proveedor else '—' }}</strong><br>
-      {% if oc.proveedor and oc.proveedor.nit %}NIT: {{ oc.proveedor.nit }}<br>{% endif %}
+      {% if oc.proveedor and oc.proveedor.nit %}{{ nit_label }}: {{ oc.proveedor.nit }}<br>{% endif %}
       {% if oc.proveedor and oc.proveedor.telefono %}{{ oc.proveedor.telefono }}{% endif %}</p>
     </div>
     <div class="info-box">
       <h4>Comprante</h4>
       <p><strong>{{ empresa.nombre if empresa else '—' }}</strong><br>
-      {% if empresa and empresa.nit %}NIT: {{ empresa.nit }}<br>{% endif %}
+      {% if empresa and empresa.nit %}{{ nit_label }}: {{ empresa.nit }}<br>{% endif %}
       {% if empresa and empresa.telefono %}{{ empresa.telefono }}{% endif %}</p>
     </div>
     <div class="info-box">

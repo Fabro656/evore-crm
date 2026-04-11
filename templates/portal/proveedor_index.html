@@ -9,7 +9,7 @@
   <div class="d-flex align-items-center gap-3 flex-wrap">
     <div>
       <h4 class="mb-1 fw-bold">{{ prov.nombre }}</h4>
-      {% if prov.nit %}<div style="opacity:.7;font-size:.85rem">NIT: {{ prov.nit }}</div>{% endif %}
+      {% if prov.nit %}<div style="opacity:.7;font-size:.85rem">{{ nit_label }}: {{ prov.nit }}</div>{% endif %}
       {% if prov.contacto_nombre %}<div style="opacity:.8;font-size:.83rem;margin-top:.4rem"><i class="bi bi-person me-1"></i>Contacto: {{ prov.contacto_nombre }}</div>{% endif %}
     </div>
     <div class="ms-auto">

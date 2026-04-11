@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Plan Unico de Cuentas{% endblock %}{% block page_title %}Plan Unico de Cuentas (PUC){% endblock %}
+{% block title %}{{ company_config.chart_name }}{% endblock %}{% block page_title %}{{ company_config.chart_name }}{% endblock %}
 {% block topbar_actions %}
 {% if current_user.rol in ('admin','director_financiero','contador') %}
 <a href="{{ url_for('contable_puc_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva cuenta</a>

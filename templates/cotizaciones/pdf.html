@@ -71,7 +71,7 @@ tr:nth-child(even) td{background:#f8f9fe}
     <p><strong>{{ empresa.nombre }}</strong><br>
     {% if empresa.email %}{{ empresa.email }}<br>{% endif %}
     {% if empresa.telefono %}{{ empresa.telefono }}<br>{% endif %}
-    {% if empresa.nit %}NIT: {{ empresa.nit }}{% endif %}</p>
+    {% if empresa.nit %}{{ nit_label }}: {{ empresa.nit }}{% endif %}</p>
   </div>
   <div class="info-box">
     <h4>Descripción del proyecto</h4>

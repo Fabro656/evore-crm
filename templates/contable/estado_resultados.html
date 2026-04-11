@@ -8,7 +8,7 @@
 </form>
 <div class="tc mb-3" style="text-align:center;padding:1rem;border-bottom:2px solid var(--ac)">
   <strong>{{ empresa.nombre if empresa else 'Evore' }}</strong><br>
-  <small style="color:var(--text2)">NIT: {{ empresa.nit if empresa and empresa.nit else '—' }}</small><br>
+  <small style="color:var(--text2)">{{ nit_label }}: {{ empresa.nit if empresa and empresa.nit else '—' }}</small><br>
   <strong>ESTADO DE RESULTADOS</strong><br>
   <small>Periodo: {{ periodo }}</small>
 </div>
