@@ -66,6 +66,34 @@ def register(app):
         """Railway healthcheck — must respond fast without DB queries."""
         return 'OK', 200
 
+    @app.route('/api/transportistas/capacidad')
+    @login_required
+    def api_transportistas_capacidad():
+        """Filtra transportistas por peso/volumen requerido."""
+        peso_kg = float(request.args.get('peso', 0) or 0)
+        volumen_m3 = float(request.args.get('volumen', 0) or 0)
+        q = Proveedor.query.filter_by(tipo='transportista', activo=True)
+        if peso_kg > 0:
+            q = q.filter(Proveedor.capacidad_vehiculo_kg >= peso_kg)
+        if volumen_m3 > 0:
+            q = q.filter(Proveedor.capacidad_vehiculo_m3 >= volumen_m3)
+        transportistas = q.order_by(Proveedor.capacidad_vehiculo_kg).all()
+        return jsonify([{
+            'id': t.id, 'nombre': t.nombre, 'empresa': t.empresa,
+            'tipo_vehiculo': t.tipo_vehiculo or '—',
+            'capacidad_kg': t.capacidad_vehiculo_kg or 0,
+            'capacidad_m3': t.capacidad_vehiculo_m3 or 0,
+            'envia_material': t.envia_material,
+            'telefono': t.telefono or ''
+        } for t in transportistas])
+
+    @app.route('/api/producto/<int:id>/precio-minimo')
+    @login_required
+    def api_producto_precio_minimo(id):
+        """Retorna precio mínimo y sugerido para un producto."""
+        cant = float(request.args.get('cantidad', 1) or 1)
+        return jsonify(_precio_minimo_venta(id, cant))
+
     @app.route('/diagnostico')
     @login_required
     def diagnostico():

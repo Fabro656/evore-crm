@@ -455,6 +455,73 @@ def register(app):
         if nuevo == 'anticipo_pagado' and estado_anterior not in {'anticipo_pagado', 'pagado', 'completado'}:
             InventarioService.reservar_stock_venta(venta)
 
+            # ── Bloque 2c: Generar OC automáticas para MP faltante ──
+            try:
+                from datetime import date as _d
+                ocs_creadas = 0
+                for item in venta.items:
+                    if not item.producto_id: continue
+                    receta = RecetaProducto.query.filter_by(producto_id=item.producto_id, activo=True).first()
+                    if not receta or receta.unidades_produce <= 0: continue
+                    cant_producir = max(0, (item.cantidad or 0) - (Producto.query.get(item.producto_id).stock or 0))
+                    if cant_producir <= 0: continue
+                    factor = cant_producir / receta.unidades_produce
+                    for ri in receta.items:
+                        mp = db.session.get(MateriaPrima, ri.materia_prima_id)
+                        if not mp: continue
+                        necesaria = ri.cantidad_por_unidad * factor
+                        disponible = mp.stock_disponible or 0
+                        if disponible >= necesaria: continue
+                        faltante = necesaria - disponible
+                        # Buscar cotización vigente de proveedor para esta MP
+                        cot_prov = CotizacionProveedor.query.filter(
+                            CotizacionProveedor.materia_prima_id == mp.id,
+                            CotizacionProveedor.estado == 'vigente',
+                            CotizacionProveedor.vigencia >= _d.today()
+                        ).order_by(CotizacionProveedor.precio_unitario.asc()).first()
+                        if not cot_prov:
+                            # Alerta: no hay cotización vigente
+                            _crear_notificacion(
+                                current_user.id, 'alerta',
+                                f'MP sin cotizacion: {mp.nombre}',
+                                f'Se necesitan {faltante:.2f} {mp.unidad} de {mp.nombre} para la venta {venta.numero} pero no hay cotizacion vigente.',
+                                url_for('cotizaciones_proveedor'))
+                            continue
+                        # Crear OC automática
+                        proveedor_id = cot_prov.proveedor_id
+                        hoy_oc = _d.today()
+                        ult_oc = OrdenCompra.query.filter(
+                            OrdenCompra.numero.like(f'OC-{hoy_oc.year}-%')
+                        ).order_by(OrdenCompra.id.desc()).first()
+                        seq_oc = (int(ult_oc.numero.split('-')[-1]) + 1) if ult_oc and ult_oc.numero else 1
+                        precio_unit = cot_prov.precio_unitario or 0
+                        subtotal_oc = round(faltante * precio_unit, 2)
+                        iva_oc = round(subtotal_oc * 0.19, 2)
+                        oc = OrdenCompra(
+                            numero=f'OC-{hoy_oc.year}-{seq_oc:03d}',
+                            proveedor_id=proveedor_id,
+                            cotizacion_id=cot_prov.id,
+                            estado='borrador',
+                            fecha_emision=hoy_oc,
+                            fecha_esperada=hoy_oc + timedelta(days=cot_prov.plazo_entrega_dias or 15),
+                            subtotal=subtotal_oc, iva=iva_oc, total=subtotal_oc + iva_oc,
+                            notas=f'OC automática — Venta {venta.numero}, faltante {mp.nombre}',
+                            creado_por=current_user.id
+                        )
+                        db.session.add(oc); db.session.flush()
+                        db.session.add(OrdenCompraItem(
+                            orden_id=oc.id, cotizacion_id=cot_prov.id,
+                            nombre_item=mp.nombre,
+                            descripcion=f'Para producción venta {venta.numero}',
+                            cantidad=round(faltante, 3), unidad=mp.unidad,
+                            precio_unit=precio_unit, subtotal=subtotal_oc
+                        ))
+                        ocs_creadas += 1
+                if ocs_creadas > 0:
+                    flash(f'{ocs_creadas} orden(es) de compra creadas automáticamente para MP faltante.', 'info')
+            except Exception as ex:
+                logging.warning(f'venta_cambiar_estado: OC auto error: {ex}')
+
         # ── Bloque 3: sincronizar producción cuando venta se cancela/pierde ──
         ESTADOS_CANCEL = {'cancelado', 'perdido'}
         ESTADOS_ACTIVOS_PROD = {'anticipo_pagado', 'pagado', 'completado'}
@@ -595,29 +662,61 @@ def register(app):
     @requiere_modulo('ventas')
     def venta_remision(id):
         venta = Venta.query.get_or_404(id)
-        upp   = request.args.get('upp', type=int, default=0)
         empresa = ConfigEmpresa.query.first()
-        # Calcular totales de unidades por ítem
+        import math
+        # Calcular totales de unidades por ítem con empaque asignado
         items_data = []
         total_unidades = 0
+        empaques_detalle = []
         for it in venta.items:
             qty = it.cantidad if it.cantidad else 0
-            items_data.append({'nombre': it.nombre_prod, 'cantidad': qty,
-                               'precio_unit': it.precio_unit, 'subtotal': it.subtotal})
+            item_d = {'nombre': it.nombre_prod, 'cantidad': qty,
+                      'precio_unit': it.precio_unit, 'subtotal': it.subtotal,
+                      'marca': it.marca.nombre_marca if hasattr(it, 'marca') and it.marca else None}
+            # Buscar empaque asignado al producto
+            if it.producto_id:
+                empaque = EmpaqueSecundario.query.filter_by(
+                    producto_id=it.producto_id, aprobado=True
+                ).first()
+                if empaque and empaque.unidades_por_caja > 0:
+                    upp = empaque.unidades_por_caja
+                    cajas = math.ceil(qty / upp)
+                    cajas_completas = math.floor(qty / upp)
+                    sobrante = int(qty) % upp
+                    item_d['empaque'] = {
+                        'upp': upp,
+                        'cajas': cajas,
+                        'cajas_completas': cajas_completas,
+                        'sobrante': sobrante,
+                        'dim': f'{empaque.ancho}x{empaque.largo}x{empaque.alto} cm',
+                        'peso_caja': round(empaque.peso_unitario * upp, 2)
+                    }
+                    empaques_detalle.append({
+                        'producto': it.nombre_prod,
+                        'cajas': cajas,
+                        'upp': upp,
+                        'sobrante': sobrante
+                    })
+            items_data.append(item_d)
             total_unidades += qty
-        # Cálculo de cajas
+        # Fallback manual de UPP
+        upp_manual = request.args.get('upp', type=int, default=0)
         cajas_info = None
-        if upp and upp > 0:
-            import math
-            cajas_completas = math.floor(total_unidades / upp)
-            sobrante       = total_unidades % upp
-            cajas_parciales = 1 if sobrante > 0 else 0
-            cajas_info = {'upp': upp, 'total_unidades': total_unidades,
+        if upp_manual and upp_manual > 0:
+            cajas_completas = math.floor(total_unidades / upp_manual)
+            sobrante = int(total_unidades) % upp_manual
+            cajas_info = {'upp': upp_manual, 'total_unidades': total_unidades,
                           'cajas_completas': cajas_completas, 'sobrante': sobrante,
-                          'cajas_parciales': cajas_parciales}
+                          'cajas_parciales': 1 if sobrante > 0 else 0}
+        # Info transportista
+        transportista = None
+        if venta.cliente and hasattr(venta.cliente, 'envio_responsable') and venta.cliente.envio_responsable == 'empresa':
+            if hasattr(venta.cliente, 'transportista_preferido') and venta.cliente.transportista_preferido:
+                transportista = venta.cliente.transportista_preferido
         return render_template('ventas/remision.html', venta=venta, empresa=empresa,
                                items_data=items_data, total_unidades=total_unidades,
-                               cajas_info=cajas_info, upp=upp)
+                               cajas_info=cajas_info, upp=upp_manual,
+                               empaques_detalle=empaques_detalle, transportista=transportista)
 
 
     # ── venta_informar_cliente (/ventas/<int:id>/informar_cliente)

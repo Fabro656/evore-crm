@@ -240,8 +240,33 @@ def register(app):
             empaque.materia_prima_id = mp.id
             empaque.aprobado = True
 
+            # Agregar caja como ingrediente de la receta del producto (si existe)
+            receta = RecetaProducto.query.filter_by(producto_id=empaque.producto_id, activo=True).first()
+            receta_msg = ''
+            if receta:
+                # Verificar que no esté ya en la receta
+                ya_existe = RecetaItem.query.filter_by(receta_id=receta.id, materia_prima_id=mp.id).first()
+                if not ya_existe:
+                    # 1 caja por cada unidad producida
+                    cajas_por_lote = receta.unidades_produce / empaque.unidades_por_caja
+                    ri = RecetaItem(
+                        receta_id=receta.id,
+                        materia_prima_id=mp.id,
+                        cantidad_por_unidad=round(1.0 / empaque.unidades_por_caja, 6),
+                        es_empaque=True
+                    )
+                    db.session.add(ri)
+                    receta_msg = f' Agregada a receta ({cajas_por_lote:.1f} cajas/lote).'
+            else:
+                receta_msg = ' Sin receta activa — agregar manualmente.'
+
             db.session.commit()
-            flash(f'Empaque aprobado. Materia prima "{nombre_mp}" creada automáticamente.', 'success')
+            # Recalcular costo de la receta
+            try:
+                _calcular_costo_receta(empaque.producto_id)
+                db.session.commit()
+            except: pass
+            flash(f'Empaque aprobado. MP "{nombre_mp}" creada.{receta_msg}', 'success')
         except Exception as e:
             db.session.rollback()
             flash(f'Error al aprobar empaque: {str(e)}', 'danger')
