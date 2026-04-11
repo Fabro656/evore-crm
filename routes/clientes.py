@@ -14,10 +14,10 @@ def register(app):
     # ── Helpers ─────────────────────────────────────────────────────
     def _save_contactos(cliente_obj):
         ContactoCliente.query.filter_by(cliente_id=cliente_obj.id).delete()
-        nombres = request.form.getlist('contacto_nombre[]')
-        cargos  = request.form.getlist('contacto_cargo[]')
-        emails  = request.form.getlist('contacto_email[]')
-        tels    = request.form.getlist('contacto_tel[]')
+        nombres = request.form.getlist('c_nombre[]')
+        cargos  = request.form.getlist('c_cargo[]')
+        emails  = request.form.getlist('c_email[]')
+        tels    = request.form.getlist('c_telefono[]')
         for i, nombre in enumerate(nombres):
             if not nombre.strip(): continue
             db.session.add(ContactoCliente(

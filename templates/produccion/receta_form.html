@@ -81,12 +81,19 @@
       <input type="number" name="cantidad[]" step="0.001" min="0.001" class="form-control form-control-sm"
              value="{{ item.cantidad_por_unidad }}" placeholder="Cantidad por unidad" required>
     </div>
-    <div class="col-md-2">
+    <div class="col-md-1">
       <span class="form-control-plaintext form-control-sm text-muted unidad-lbl">
         {% for mp in materias %}{% if mp.id==item.materia_prima_id %}{{ mp.unidad }}{% endif %}{% endfor %}
       </span>
     </div>
     <div class="col-md-2">
+      <select name="clasificacion[]" class="form-select form-select-sm">
+        <option value="materia_prima" {% if item.clasificacion=='materia_prima' %}selected{% endif %}>MP / Granel</option>
+        <option value="empaque_primario" {% if item.clasificacion=='empaque_primario' %}selected{% endif %}>Empaque primario</option>
+        <option value="empaque_secundario" {% if item.clasificacion=='empaque_secundario' %}selected{% endif %}>Empaque secundario</option>
+      </select>
+    </div>
+    <div class="col-md-1">
       <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="this.closest('.item-row').remove()"><i class="bi bi-trash"></i></button>
     </div>
   </div>

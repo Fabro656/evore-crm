@@ -110,13 +110,14 @@ def register(app):
     # ── Helpers ─────────────────────────────────────────────────────
     def _save_asignados(tarea_obj):
         TareaAsignado.query.filter_by(tarea_id=tarea_obj.id).delete()
-        uids = request.form.getlist('asignado[]')
-        if not uids:
-            db.session.add(TareaAsignado(tarea_id=tarea_obj.id, usuario_id=current_user.id))
-        else:
-            for uid in uids:
-                if uid:
-                    db.session.add(TareaAsignado(tarea_id=tarea_obj.id, usuario_id=int(uid)))
+        # Siempre incluir al asignado principal
+        principal_id = int(request.form.get('asignado_a') or current_user.id)
+        db.session.add(TareaAsignado(tarea_id=tarea_obj.id, usuario_id=principal_id))
+        # Agregar asignados adicionales
+        uids = request.form.getlist('otros_asignados[]')
+        for uid in uids:
+            if uid and int(uid) != principal_id:
+                db.session.add(TareaAsignado(tarea_id=tarea_obj.id, usuario_id=int(uid)))
 
 
     # ── tareas (/tareas)
