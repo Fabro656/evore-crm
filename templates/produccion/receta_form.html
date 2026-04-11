@@ -127,11 +127,11 @@
         <div class="mb-2">
           <label class="form-label form-label-sm">Unidad de medida</label>
           <select id="mpUnidad" class="form-select form-select-sm">
-            <option value="kg">kg</option>
+            <option value="kg" selected>kg</option>
             <option value="g">g</option>
             <option value="litros">litros</option>
             <option value="ml">ml</option>
-            <option value="unidades" selected>unidades</option>
+            <option value="unidades">unidades</option>
             <option value="piezas">piezas</option>
             <option value="metros">metros</option>
             <option value="cm">cm</option>
@@ -242,6 +242,7 @@ function addItem(selectedId){
 function abrirNuevaMp(){
   if (!_mpModal) _mpModal = new bootstrap.Modal(document.getElementById('mpModal'));
   document.getElementById('mpNombre').value='';
+  document.getElementById('mpUnidad').value='kg';
   document.getElementById('mpError').style.display='none';
   _mpModal.show();
   setTimeout(function(){ document.getElementById('mpNombre').focus(); }, 300);
