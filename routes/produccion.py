@@ -415,8 +415,7 @@ def register(app):
                     prod_id = prod_exist.id
                 else:
                     nuevo_prod = Producto(nombre=nuevo_nombre, activo=True,
-                                          precio=0, stock=0,
-                                          creado_por=current_user.id)
+                                          precio=0, stock=0)
                     db.session.add(nuevo_prod); db.session.flush()
                     prod_id = nuevo_prod.id
                     flash(f'Producto "{nuevo_nombre}" creado automáticamente.','info')
