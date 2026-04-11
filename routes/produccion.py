@@ -467,8 +467,41 @@ def register(app):
             r.precio_venta_sugerido = round(precio_sin_iva * (1 + iva_pct / 100), 2)
             if prod_obj:
                 prod_obj.precio = r.precio_venta_sugerido
+            # ── Auto-crear cotizaciones pendientes para ingredientes sin cotización vigente ──
+            cots_creadas = 0
+            for mid in ids:
+                if not mid:
+                    continue
+                mp = db.session.get(MateriaPrima, int(mid))
+                if not mp:
+                    continue
+                # Verificar si ya tiene cotización vigente o en_revision
+                tiene_cot = CotizacionProveedor.query.filter(
+                    db.or_(
+                        CotizacionProveedor.materia_prima_id == mp.id,
+                        db.func.lower(CotizacionProveedor.nombre_producto) == mp.nombre.lower()
+                    ),
+                    CotizacionProveedor.estado.in_(['vigente', 'en_revision'])
+                ).first()
+                if not tiene_cot:
+                    # Crear cotización pendiente (en_revision) para que se gestione
+                    db.session.add(CotizacionProveedor(
+                        nombre_producto=mp.nombre,
+                        tipo_cotizacion='granel',
+                        tipo_producto_servicio='materia prima',
+                        unidad=mp.unidad,
+                        estado='en_revision',
+                        materia_prima_id=mp.id,
+                        precio_unitario=mp.costo_unitario or 0,
+                        notas=f'Auto-generada desde receta: {prod_obj.nombre if prod_obj else ""}. Requiere cotización de proveedor.',
+                        creado_por=current_user.id
+                    ))
+                    cots_creadas += 1
             db.session.commit()
-            flash(f'Receta creada. SKU: {prod_obj.sku if prod_obj else "—"}. Costo: ${costo["costo_unitario"]:,.0f}/und. Precio sugerido: ${r.precio_venta_sugerido:,.0f}','success')
+            msg = f'Receta creada. SKU: {prod_obj.sku if prod_obj else "—"}. Costo: ${costo["costo_unitario"]:,.0f}/und. Precio sugerido: ${r.precio_venta_sugerido:,.0f}'
+            if cots_creadas:
+                msg += f' · {cots_creadas} cotización(es) pendiente(s) creada(s) en Compras.'
+            flash(msg, 'success')
             return redirect(url_for('recetas'))
         return render_template('produccion/receta_form.html', obj=None, productos=productos,
                                materias=materias, materias_json=materias_json,
