@@ -1133,8 +1133,10 @@ document.addEventListener('DOMContentLoaded',function(){
 </script>
 
 <!-- ══════════════════════════════════════════════════
-     EVORE AI ASSISTANT PANEL
+     EVORE AI ASSISTANT PANEL (hidden in demo mode)
      ══════════════════════════════════════════════════ -->
+{% set is_demo_mode = session.get('is_demo', False) %}
+{% if not is_demo_mode %}
 <div id="aiPanel" style="position:fixed;bottom:150px;right:24px;width:380px;height:540px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.18);z-index:2000;display:flex;flex-direction:column;overflow:hidden">
   <!-- Header -->
   <div style="background:var(--sb);padding:.85rem 1.1rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
@@ -1370,5 +1372,6 @@ document.addEventListener('DOMContentLoaded',function(){
   }
 })();
 {% endraw %}</script>
+{% endif %}{# end if not demo - AI panel #}
 
 </body></html>

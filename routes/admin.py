@@ -491,35 +491,33 @@ def register(app):
     @app.route('/admin/reset-total', methods=['POST'])
     @login_required
     def admin_reset_total():
-        """Borra TODOS los datos operativos. Solo accesible para admin.
-        Requiere confirmación con contraseña del administrador."""
+        """Borra TODOS los datos operativos. Mantiene usuarios pero los resetea.
+        Requiere confirmacion con contrasena del administrador."""
         from werkzeug.security import check_password_hash
-        if current_user.rol != 'admin':
+        if current_user.rol not in ('admin', 'director_financiero'):
             flash('Acceso denegado.', 'danger')
             return redirect(url_for('admin_usuarios'))
 
         password_confirm = request.form.get('password_confirm', '')
         if not check_password_hash(current_user.password_hash, password_confirm):
-            flash('Contraseña incorrecta. El reset no fue ejecutado.', 'danger')
+            flash('Contrasena incorrecta. El reset no fue ejecutado.', 'danger')
             return redirect(url_for('admin_usuarios'))
 
         def _safe_delete(sql):
-            """Ejecuta un DELETE usando un savepoint. Si la tabla no existe,
-            descarta solo ese paso y continúa — nunca aborta el reset completo."""
             sp = db.session.begin_nested()
             try:
                 db.session.execute(db.text(sql))
                 sp.commit()
             except Exception as _e:
                 sp.rollback()
-                logging.info(f'admin_reset_total: skip "{sql}" — {_e.__class__.__name__}')
 
         try:
-            # ── Borrar en orden respetando FKs (dependientes primero) ──────────
-            # Nivel 5 — registros de asociación y comentarios
+            # ── Nivel 6: líneas contables y asociaciones ──
+            _safe_delete('DELETE FROM lineas_asiento')
             _safe_delete('DELETE FROM tarea_asignados')
             _safe_delete('DELETE FROM tarea_comentarios')
-            # Nivel 4 — ítems de documentos
+            _safe_delete('DELETE FROM pagos_venta')
+            # ── Nivel 5: ítems de documentos ──
             _safe_delete('DELETE FROM reservas_produccion')
             _safe_delete('DELETE FROM cotizacion_items')
             _safe_delete('DELETE FROM pre_cotizacion_items')
@@ -527,21 +525,23 @@ def register(app):
             _safe_delete('DELETE FROM venta_productos')
             _safe_delete('DELETE FROM materia_prima_productos')
             _safe_delete('DELETE FROM receta_items')
-            # Nivel 3 — entidades con FKs a otras entidades
+            _safe_delete('DELETE FROM marcas_producto')
+            # ── Nivel 4: entidades dependientes ──
             _safe_delete('DELETE FROM ordenes_produccion')
             _safe_delete('DELETE FROM lotes_materia_prima')
             _safe_delete('DELETE FROM lotes_producto')
             _safe_delete('DELETE FROM compras_materia')
-            _safe_delete('DELETE FROM cotizaciones_proveedor')   # nombre real del modelo
+            _safe_delete('DELETE FROM cotizaciones_proveedor')
             _safe_delete('DELETE FROM cotizaciones_granel')
             _safe_delete('DELETE FROM empaques_secundarios')
+            _safe_delete('DELETE FROM aprobaciones')
             _safe_delete('DELETE FROM asientos_contables')
             _safe_delete('DELETE FROM tareas')
             _safe_delete('DELETE FROM eventos')
             _safe_delete('DELETE FROM notas')
             _safe_delete('DELETE FROM notificaciones')
-            _safe_delete('DELETE FROM actividades')              # nombre real del modelo
-            # Nivel 2 — documentos principales
+            _safe_delete('DELETE FROM actividades')
+            # ── Nivel 3: documentos principales ──
             _safe_delete('DELETE FROM ventas')
             _safe_delete('DELETE FROM cotizaciones')
             _safe_delete('DELETE FROM pre_cotizaciones')
@@ -551,25 +551,24 @@ def register(app):
             _safe_delete('DELETE FROM empleados')
             _safe_delete('DELETE FROM recetas_producto')
             _safe_delete('DELETE FROM servicios')
-            # Nivel 1 — catálogos y configuración operativa
+            # ── Nivel 2: catálogos ──
             _safe_delete('DELETE FROM reglas_tributarias')
             _safe_delete('DELETE FROM materias_primas')
             _safe_delete('DELETE FROM productos')
             _safe_delete('DELETE FROM contactos_cliente')
             _safe_delete('DELETE FROM clientes')
             _safe_delete('DELETE FROM proveedores')
-            # Sesiones y usuarios (mantener solo admin actual)
-            _safe_delete(f'DELETE FROM user_sesiones WHERE user_id != {current_user.id}')
-            _safe_delete(f'DELETE FROM users WHERE id != {current_user.id}')
+            # ── Nivel 1: sesiones (limpiar todo) ──
+            _safe_delete('DELETE FROM user_sesiones')
+            # ── Resetear usuarios (mantener cuentas, limpiar estado) ──
+            _safe_delete('UPDATE users SET onboarding_dismissed = 0, onboarding_step = 0, onboarding_role_config = \'{}\'')
             db.session.commit()
-            logging.warning(f'RESET TOTAL ejecutado por admin user_id={current_user.id} '
-                            f'({current_user.email}) desde IP {request.remote_addr}')
-            flash('✓ Reset total ejecutado. Todos los datos han sido eliminados. '
-                  'La cuenta administradora se conservó.', 'success')
+            logging.warning(f'RESET TOTAL ejecutado por user_id={current_user.id} ({current_user.email})')
+            flash('Reset completo. Todos los datos borrados, usuarios conservados en cero.', 'success')
         except Exception as e:
             db.session.rollback()
             logging.error(f'admin_reset_total ERROR: {e}')
             flash(f'Error durante el reset: {e}', 'danger')
 
-        return redirect(url_for('admin_usuarios'))
+        return redirect(url_for('dashboard'))
 
