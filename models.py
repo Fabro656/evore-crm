@@ -1453,12 +1453,15 @@ def _seed_demo_data():
     from datetime import date, timedelta
 
     try:
-        tester = User.query.filter_by(email='tester@evore.us').first()
+        from company_config import COMPANY
+        _domain = COMPANY['default_email'].split('@')[1]
+        tester_email = f'tester@{_domain}'
+        tester = User.query.filter_by(email=tester_email).first()
         if not tester:
-            tester = User(nombre='Tester Demo', email='tester@evore.us', rol='tester')
+            tester = User(nombre='Tester Demo', email=tester_email, rol='tester')
             tester.set_password('tester123')
             db.session.add(tester); db.session.commit()
-            logging.info('Usuario tester creado: tester@evore.us / tester123')
+            logging.info(f'Usuario tester creado: {tester_email} / tester123')
 
         # Si ya hay datos demo, no sembrar de nuevo
         if Cliente.query.filter_by(es_demo=True).count() > 0:
@@ -1472,23 +1475,23 @@ def _seed_demo_data():
     logging.info('Sembrando datos demo para tester...')
 
     # ── Director financiero demo ──
-    df = User(nombre='Carlos Mendez', email='director@evore.us', rol='director_financiero')
+    df = User(nombre='Carlos Mendez', email=f'director@{_domain}', rol='director_financiero')
     df.set_password('director123')
     db.session.add(df)
 
-    do = User(nombre='Laura Rios', email='operativo@evore.us', rol='director_operativo')
+    do = User(nombre='Laura Rios', email=f'operativo@{_domain}', rol='director_operativo')
     do.set_password('operativo123')
     db.session.add(do)
 
-    vendedor = User(nombre='Andres Vargas', email='vendedor@evore.us', rol='vendedor')
+    vendedor = User(nombre='Andres Vargas', email=f'vendedor@{_domain}', rol='vendedor')
     vendedor.set_password('vendedor123')
     db.session.add(vendedor)
 
-    produccion_user = User(nombre='Maria Torres', email='produccion@evore.us', rol='produccion')
+    produccion_user = User(nombre='Maria Torres', email=f'produccion@{_domain}', rol='produccion')
     produccion_user.set_password('produccion123')
     db.session.add(produccion_user)
 
-    contador = User(nombre='Sofia Perez', email='contador@evore.us', rol='contador')
+    contador = User(nombre='Sofia Perez', email=f'contador@{_domain}', rol='contador')
     contador.set_password('contador123')
     db.session.add(contador)
     db.session.flush()

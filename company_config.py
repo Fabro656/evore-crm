@@ -106,4 +106,6 @@ COMPANIES = {
 
 # Active company (from environment variable)
 COMPANY_ID = os.environ.get('COMPANY_ID', 'evore')
-COMPANY = COMPANIES.get(COMPANY_ID, COMPANIES['evore'])
+if COMPANY_ID not in COMPANIES:
+    raise RuntimeError(f'COMPANY_ID="{COMPANY_ID}" invalido. Debe ser: {", ".join(COMPANIES.keys())}')
+COMPANY = COMPANIES[COMPANY_ID]

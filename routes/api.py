@@ -67,49 +67,19 @@ def register(app):
         return 'OK', 200
 
     @app.route('/debug-check')
+    @login_required
     def debug_check():
-        """Temporary debug endpoint — shows DB status and errors."""
-        import traceback
-        results = {}
-        try:
-            from company_config import COMPANY
-            results['company'] = COMPANY['name']
-            results['country'] = COMPANY['country']
-        except Exception as e:
-            results['company_error'] = str(e)
-        try:
-            results['users'] = User.query.count()
-        except Exception as e:
-            results['users_error'] = str(e)
-        try:
-            results['clientes'] = Cliente.query.count()
-        except Exception as e:
-            results['clientes_error'] = str(e)
-        try:
-            results['productos'] = Producto.query.count()
-        except Exception as e:
-            results['productos_error'] = str(e)
-        try:
-            from models import CuentaPUC
-            results['puc'] = CuentaPUC.query.count()
-        except Exception as e:
-            results['puc_error'] = str(e)
-        try:
-            # Test dashboard query
-            ingresos = db.session.query(db.func.sum(Venta.total)).filter(
-                Venta.estado.in_(['completado','anticipo_pagado'])).scalar() or 0
-            results['dashboard_query'] = 'OK'
-        except Exception as e:
-            db.session.rollback()
-            results['dashboard_error'] = str(e)
-        try:
-            # Test template rendering
-            from flask import render_template
-            html = render_template('login.html')
-            results['template'] = f'OK ({len(html)} bytes)'
-        except Exception as e:
-            results['template_error'] = traceback.format_exc()[-300:]
-        return jsonify(results)
+        """Debug endpoint — requires admin login."""
+        if current_user.rol not in ('admin', 'director_financiero'):
+            return jsonify({'error': 'Acceso denegado'}), 403
+        from company_config import COMPANY
+        return jsonify({
+            'company': COMPANY['name'],
+            'country': COMPANY['country'],
+            'users': User.query.count(),
+            'clientes': Cliente.query.count(),
+            'productos': Producto.query.count(),
+        })
 
     @app.route('/api/transportistas/capacidad')
     @login_required

@@ -16,10 +16,13 @@ def register(app):
     def demo_inicio():
         """Inicia sesion demo con usuario tester. No requiere autenticacion."""
         try:
+            from company_config import COMPANY
+            demo_domain = COMPANY['default_email'].split('@')[1]
+            demo_email = f'demo@{demo_domain}'
             # Buscar o crear usuario demo
-            demo_user = User.query.filter_by(email='demo@evore.us').first()
+            demo_user = User.query.filter_by(email=demo_email).first()
             if not demo_user:
-                demo_user = User(nombre='Usuario Demo', email='demo@evore.us', rol='tester')
+                demo_user = User(nombre='Usuario Demo', email=demo_email, rol='tester')
                 demo_user.set_password('demo2026')
                 db.session.add(demo_user); db.session.commit()
             # Sembrar datos demo si no existen
