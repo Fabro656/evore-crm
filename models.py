@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date as date_type
 import json, secrets, os, logging
 
-__all__ = ['User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'AsientoContable', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'Notificacion', 'Empleado', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'load_user', '_migrate', 'init_db']
+__all__ = ['User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'AsientoContable', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'Notificacion', 'Empleado', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'load_user', '_migrate', 'init_db']
 
 
 class User(UserMixin, db.Model):
@@ -56,9 +56,14 @@ class Cliente(db.Model):
     sales_manager_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     anticipo_pct     = db.Column(db.Float, default=50.0)
     minimo_pedido    = db.Column(db.Integer, default=1)
+    envio_responsable = db.Column(db.String(20), default='cliente')  # 'cliente' = ellos recogen, 'empresa' = nosotros enviamos
+    transportista_preferido_id = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
+    contrato_id      = db.Column(db.Integer, db.ForeignKey('documentos_legales.id'), nullable=True)
     contactos       = db.relationship('ContactoCliente', backref='cliente_rel', lazy=True, cascade='all, delete-orphan')
     ventas          = db.relationship('Venta', backref='cliente', lazy=True)
     sales_manager    = db.relationship('User', foreign_keys=[sales_manager_id])
+    transportista_preferido = db.relationship('Proveedor', foreign_keys=[transportista_preferido_id])
+    contrato         = db.relationship('DocumentoLegal', foreign_keys=[contrato_id])
 
 class OrdenCompra(db.Model):
     __tablename__ = 'ordenes_compra'
@@ -112,6 +117,10 @@ class Proveedor(db.Model):
     tipo       = db.Column(db.String(20), default='proveedor')  # proveedor, transportista, ambos
     notas      = db.Column(db.Text)
     activo     = db.Column(db.Boolean, default=True)
+    capacidad_vehiculo_kg = db.Column(db.Float, default=0)  # Max kg for transport
+    capacidad_vehiculo_m3 = db.Column(db.Float, default=0)  # Max volume for transport
+    tipo_vehiculo = db.Column(db.String(50))  # camion, furgon, van, moto
+    envia_material = db.Column(db.Boolean, default=True)  # Does this supplier deliver to us?
     creado_en  = db.Column(db.DateTime, default=datetime.utcnow)
 
 class VentaProducto(db.Model):
@@ -126,7 +135,10 @@ class VentaProducto(db.Model):
     subtotal    = db.Column(db.Float, default=0)
     es_servicio = db.Column(db.Boolean, default=False)    # v30
     unidad      = db.Column(db.String(30), default='unidades')  # v30
+    marca_id    = db.Column(db.Integer, db.ForeignKey('marcas_producto.id'), nullable=True)
+    costo_unitario = db.Column(db.Float, default=0)  # Cost from recipe at time of sale
     servicio    = db.relationship('Servicio', foreign_keys=[servicio_id])  # v30
+    marca       = db.relationship('MarcaProducto', foreign_keys=[marca_id])
 
 class Venta(db.Model):
     __tablename__ = 'ventas'
@@ -237,7 +249,21 @@ class Producto(db.Model):
     activo          = db.Column(db.Boolean, default=True)
     fecha_caducidad = db.Column(db.Date, nullable=True)
     creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
+    costo_receta    = db.Column(db.Float, default=0)  # Auto-calculated from recipe + MP costs
     venta_items     = db.relationship('VentaProducto', backref='producto', lazy=True)
+
+class MarcaProducto(db.Model):
+    __tablename__ = 'marcas_producto'
+    id = db.Column(db.Integer, primary_key=True)
+    producto_id = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
+    nombre_marca = db.Column(db.String(200), nullable=False)  # Brand name
+    nso = db.Column(db.String(50))  # NSO specific to this brand
+    registro_sanitario = db.Column(db.String(100))  # INVIMA number
+    documento_legal_id = db.Column(db.Integer, db.ForeignKey('documentos_legales.id'), nullable=True)
+    activo = db.Column(db.Boolean, default=True)
+    creado_en = db.Column(db.DateTime, default=datetime.utcnow)
+    producto = db.relationship('Producto', foreign_keys=[producto_id])
+    documento = db.relationship('DocumentoLegal', foreign_keys=[documento_legal_id])
 
 class CompraMateria(db.Model):
     __tablename__ = 'compras_materia'
@@ -292,7 +318,9 @@ class CotizacionProveedor(db.Model):
     calendario_integrado  = db.Column(db.Boolean, default=False)  # ya se agendó entrega al calendario
     creado_por            = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en             = db.Column(db.DateTime, default=datetime.utcnow)
+    materia_prima_id      = db.Column(db.Integer, db.ForeignKey('materias_primas.id'), nullable=True)
     proveedor             = db.relationship('Proveedor', foreign_keys=[proveedor_id])
+    materia               = db.relationship('MateriaPrima', foreign_keys=[materia_prima_id])
 
 class CotizacionGranel(db.Model):
     __tablename__ = 'cotizaciones_granel'
@@ -328,6 +356,10 @@ class DocumentoLegal(db.Model):
     archivo_url       = db.Column(db.String(500))
     notas             = db.Column(db.Text)
     activo            = db.Column(db.Boolean, default=True)
+    cliente_id        = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=True)
+    proveedor_id      = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
+    producto_id       = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=True)
+    tipo_entidad      = db.Column(db.String(30), nullable=True)  # cliente, proveedor, producto, empresa
     creado_por        = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en         = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -633,6 +665,7 @@ class RecetaItem(db.Model):
     receta_id        = db.Column(db.Integer, db.ForeignKey('recetas_producto.id'), nullable=False)
     materia_prima_id = db.Column(db.Integer, db.ForeignKey('materias_primas.id'), nullable=False)
     cantidad_por_unidad = db.Column(db.Float, default=0)
+    es_empaque       = db.Column(db.Boolean, default=False)  # True if this is packaging material
     materia          = db.relationship('MateriaPrima', foreign_keys=[materia_prima_id])
 
 class ReservaProduccion(db.Model):
@@ -985,6 +1018,48 @@ def _migrate(conn):
         ("ALTER TABLE users ADD COLUMN onboarding_step INTEGER DEFAULT 0"),
         ("ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_role_config TEXT DEFAULT '{}'"),
         ("ALTER TABLE users ADD COLUMN onboarding_role_config TEXT DEFAULT '{}'"),
+        # v35 — Producto: costo_receta auto-calculado desde receta + costos MP
+        ("ALTER TABLE productos ADD COLUMN IF NOT EXISTS costo_receta FLOAT DEFAULT 0"),
+        ("ALTER TABLE productos ADD COLUMN costo_receta FLOAT DEFAULT 0"),
+        # v35 — MarcaProducto: un producto puede tener varias marcas (mismo recipe, diferente NSO/nombre)
+        ("CREATE TABLE IF NOT EXISTS marcas_producto (id SERIAL PRIMARY KEY, producto_id INTEGER NOT NULL REFERENCES productos(id), nombre_marca VARCHAR(200) NOT NULL, nso VARCHAR(50), registro_sanitario VARCHAR(100), documento_legal_id INTEGER REFERENCES documentos_legales(id), activo BOOLEAN DEFAULT TRUE, creado_en TIMESTAMP DEFAULT NOW())"),
+        ("CREATE TABLE IF NOT EXISTS marcas_producto (id INTEGER PRIMARY KEY AUTOINCREMENT, producto_id INTEGER NOT NULL REFERENCES productos(id), nombre_marca VARCHAR(200) NOT NULL, nso VARCHAR(50), registro_sanitario VARCHAR(100), documento_legal_id INTEGER REFERENCES documentos_legales(id), activo BOOLEAN DEFAULT TRUE, creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"),
+        # v35 — Cliente: envío, transportista preferido, contrato
+        ("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS envio_responsable VARCHAR(20) DEFAULT 'cliente'"),
+        ("ALTER TABLE clientes ADD COLUMN envio_responsable VARCHAR(20) DEFAULT 'cliente'"),
+        ("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS transportista_preferido_id INTEGER REFERENCES proveedores(id)"),
+        ("ALTER TABLE clientes ADD COLUMN transportista_preferido_id INTEGER REFERENCES proveedores(id)"),
+        ("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS contrato_id INTEGER REFERENCES documentos_legales(id)"),
+        ("ALTER TABLE clientes ADD COLUMN contrato_id INTEGER REFERENCES documentos_legales(id)"),
+        # v35 — DocumentoLegal: vincular a cliente/proveedor/producto
+        ("ALTER TABLE documentos_legales ADD COLUMN IF NOT EXISTS cliente_id INTEGER REFERENCES clientes(id)"),
+        ("ALTER TABLE documentos_legales ADD COLUMN cliente_id INTEGER REFERENCES clientes(id)"),
+        ("ALTER TABLE documentos_legales ADD COLUMN IF NOT EXISTS proveedor_id INTEGER REFERENCES proveedores(id)"),
+        ("ALTER TABLE documentos_legales ADD COLUMN proveedor_id INTEGER REFERENCES proveedores(id)"),
+        ("ALTER TABLE documentos_legales ADD COLUMN IF NOT EXISTS producto_id INTEGER REFERENCES productos(id)"),
+        ("ALTER TABLE documentos_legales ADD COLUMN producto_id INTEGER REFERENCES productos(id)"),
+        ("ALTER TABLE documentos_legales ADD COLUMN IF NOT EXISTS tipo_entidad VARCHAR(30)"),
+        ("ALTER TABLE documentos_legales ADD COLUMN tipo_entidad VARCHAR(30)"),
+        # v35 — CotizacionProveedor: FK a materia prima
+        ("ALTER TABLE cotizaciones_proveedor ADD COLUMN IF NOT EXISTS materia_prima_id INTEGER REFERENCES materias_primas(id)"),
+        ("ALTER TABLE cotizaciones_proveedor ADD COLUMN materia_prima_id INTEGER REFERENCES materias_primas(id)"),
+        # v35 — Proveedor: capacidad vehículo y tipo
+        ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS capacidad_vehiculo_kg FLOAT DEFAULT 0"),
+        ("ALTER TABLE proveedores ADD COLUMN capacidad_vehiculo_kg FLOAT DEFAULT 0"),
+        ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS capacidad_vehiculo_m3 FLOAT DEFAULT 0"),
+        ("ALTER TABLE proveedores ADD COLUMN capacidad_vehiculo_m3 FLOAT DEFAULT 0"),
+        ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS tipo_vehiculo VARCHAR(50)"),
+        ("ALTER TABLE proveedores ADD COLUMN tipo_vehiculo VARCHAR(50)"),
+        ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS envia_material BOOLEAN DEFAULT TRUE"),
+        ("ALTER TABLE proveedores ADD COLUMN envia_material BOOLEAN DEFAULT TRUE"),
+        # v35 — VentaProducto: marca y costo unitario
+        ("ALTER TABLE venta_productos ADD COLUMN IF NOT EXISTS marca_id INTEGER REFERENCES marcas_producto(id)"),
+        ("ALTER TABLE venta_productos ADD COLUMN marca_id INTEGER REFERENCES marcas_producto(id)"),
+        ("ALTER TABLE venta_productos ADD COLUMN IF NOT EXISTS costo_unitario FLOAT DEFAULT 0"),
+        ("ALTER TABLE venta_productos ADD COLUMN costo_unitario FLOAT DEFAULT 0"),
+        # v35 — RecetaItem: flag empaque
+        ("ALTER TABLE receta_items ADD COLUMN IF NOT EXISTS es_empaque BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE receta_items ADD COLUMN es_empaque BOOLEAN DEFAULT FALSE"),
     ]
     for sql in migrations:
         try:

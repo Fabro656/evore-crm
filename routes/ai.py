@@ -77,75 +77,140 @@ def register(app):
             cots_vigentes = Cotizacion.query.filter(
                 Cotizacion.estado.in_(['borrador','enviada'])
             ).count()
+
+            # v34: Contexto de manufactura
+            mp_bajo_min = MateriaPrima.query.filter(
+                MateriaPrima.activo == True,
+                MateriaPrima.stock_disponible <= MateriaPrima.stock_minimo
+            ).all()
+            mp_str = ', '.join([f'{m.nombre}(disp:{m.stock_disponible:.1f} {m.unidad})' for m in mp_bajo_min[:5]]) or 'ninguna'
+
+            ordenes_prod = OrdenProduccion.query.filter(
+                OrdenProduccion.estado.in_(['pendiente_materiales','en_produccion'])
+            ).count()
+
+            recetas_total = RecetaProducto.query.filter_by(activo=True).count()
+
+            # Cotizaciones proveedor vigentes
+            from datetime import date as _date_cls
+            cots_prov_vigentes = CotizacionProveedor.query.filter(
+                CotizacionProveedor.estado == 'vigente',
+                CotizacionProveedor.vigencia >= _date_cls.today()
+            ).count()
+
+            # Alertas de cotización faltante (MP sin cotización vigente)
+            mp_sin_cot = []
+            try:
+                all_mp = MateriaPrima.query.filter_by(activo=True).all()
+                for mp in all_mp:
+                    tiene = CotizacionProveedor.query.filter(
+                        CotizacionProveedor.materia_prima_id == mp.id,
+                        CotizacionProveedor.estado == 'vigente',
+                        CotizacionProveedor.vigencia >= _date_cls.today()
+                    ).first()
+                    if not tiene:
+                        mp_sin_cot.append(mp.nombre)
+            except: pass
+            mp_sin_cot_str = ', '.join(mp_sin_cot[:8]) if mp_sin_cot else 'todas tienen cotización'
         except Exception as e:
             logging.warning(f'AI context building error: {e}')
             ventas_str = 'Error al cargar'
-            stock_str = '?'
-            tareas_str = '?'
-            ocs_pendientes = 0
-            cots_vigentes = 0
+            stock_str = '?'; tareas_str = '?'; mp_str = '?'; mp_sin_cot_str = '?'
+            ocs_pendientes = 0; cots_vigentes = 0; ordenes_prod = 0; recetas_total = 0; cots_prov_vigentes = 0
 
-        system_prompt = f"""Eres el asistente de IA integrado en Evore CRM, el sistema de gestión de {empresa_nombre}.
-Ayudas al usuario {current_user.nombre} (rol: {current_user.rol}) EXCLUSIVAMENTE con tareas relacionadas con el CRM.
+        system_prompt = f"""Eres el asistente de IA de Evore CRM, el ERP de manufactura de {empresa_nombre}.
+Ayudas al usuario {current_user.nombre} (rol: {current_user.rol}).
 
-CONTEXTO ACTUAL:
+══ MODELO DE NEGOCIO ══
+{empresa_nombre} es una empresa manufacturera colombiana (productos quimicos/limpieza).
+El flujo central del negocio es:
+
+1. RECETA: define qué materias primas (MP) se necesitan para producir un producto terminado.
+   Cada ingrediente de la receta es una materia prima. Al crear un ingrediente sin stock, se agrega a MP en 0.
+   Si la MP no tiene cotización vigente de proveedor → ALERTA para que Desarrollo la busque.
+
+2. COSTO: el costo de producción se calcula automáticamente: suma de (cantidad_ingrediente × costo_MP).
+   El costo de la MP viene de la cotización de proveedor vigente más barata.
+   Si no hay cotización → se usa el último costo registrado → si no hay → alerta.
+
+3. MARCAS: un producto puede tener varias marcas (mismo producto, diferente NSO/nombre comercial).
+   Las marcas se registran en módulo legal con registro sanitario/INVIMA.
+
+4. COTIZACIÓN AL CLIENTE: el precio mínimo = costo_receta + empaque + IVA.
+   La cotización debe basarse en costos reales, no inventados.
+
+5. VENTA: requiere cliente + productos. Si el cliente tiene envio_responsable='empresa', se necesita transportista.
+   Estado "negociación" = NO se produce nada, NO se reserva stock.
+   Solo al recibir anticipo (verificado en contabilidad) se activan:
+   → Verificar stock de MP → Si falta → OC automática al proveedor con cotización vigente
+   → El proveedor debe aceptar la OC desde su portal → Contabilidad paga → MP ingresa
+   → Con MP completa → Producción arranca → Producto terminado entra a inventario → Entrega
+
+6. EMPAQUE: la caja seleccionada para un producto se agrega como ingrediente de la receta.
+   La remisión indica cuántas cajas y unidades por caja se despachan.
+
+7. CONTABILIDAD: PUC colombiano (102 cuentas), partida doble, Balance General, Estado de Resultados.
+   Todo gasto/compra/nómina genera asiento contable automático.
+
+══ CONTEXTO ACTUAL ══
 - Clientes activos: {n_clientes}
 - Ventas en curso: {n_ventas_act}
-- Mis tareas pendientes: {n_tareas_pend}
+- Órdenes producción activas: {ordenes_prod}
+- Recetas activas: {recetas_total}
+- Tareas pendientes (mías): {n_tareas_pend}
 - Gastos este mes: {n_gastos_mes}
 - OC pendientes: {ocs_pendientes}
-- Cotizaciones vigentes: {cots_vigentes}
+- Cotizaciones cliente vigentes: {cots_vigentes}
+- Cotizaciones proveedor vigentes: {cots_prov_vigentes}
 - Módulo actual: {context_page or 'inicio'}
-- Fecha/hora: {datetime.now().strftime('%d/%m/%Y %H:%M')}
+- Fecha: {datetime.now().strftime('%d/%m/%Y %H:%M')}
 
-DATOS RECIENTES:
-Ventas activas (últimas 10):
+══ ALERTAS ══
+- Productos bajo stock mínimo: {stock_str}
+- Materias primas bajo mínimo: {mp_str}
+- MP sin cotización vigente: {mp_sin_cot_str}
+
+══ DATOS RECIENTES ══
+Ventas (últimas 10):
 {ventas_str}
 
-Stock bajo mínimo: {stock_str}
-
-Mis tareas urgentes:
+Tareas urgentes:
 {tareas_str}
 
-SCOPE PERMITIDO — solo respondes sobre:
-- Clientes, contactos, prospectos
-- Ventas, cotizaciones, remisiones, facturas
-- Tareas, recordatorios, calendario de la empresa
-- Proveedores, órdenes de compra
-- Inventario, materias primas, producción, recetas
-- Gastos, nómina, finanzas internas
-- Notas y registros internos del CRM
-- Uso y navegación del sistema Evore CRM
+══ CAPACIDADES ══
+Puedes crear, consultar y actualizar registros reales en el CRM.
 
-CAPACIDADES — puedes crear, consultar y actualizar registros reales en el CRM.
-
-Para CREAR registros:
-{{"action":"create","type":"cliente","data":{{"nombre":"...","email":"...","telefono":"...","ciudad":"..."}}}}
-{{"action":"create","type":"venta","data":{{"cliente_nombre":"...","descripcion":"...","valor_total":0,"estado":"prospecto"}}}}
-{{"action":"create","type":"orden_compra","data":{{"proveedor_nombre":"...","descripcion":"...","items":[{{"nombre":"...","cantidad":1,"precio_unit":0}}]}}}}
-{{"action":"create","type":"tarea","data":{{"titulo":"...","descripcion":"...","prioridad":"media","fecha_limite":"YYYY-MM-DD"}}}}
+CREAR:
+{{"action":"create","type":"cliente","data":{{"nombre":"...","email":"...","telefono":"..."}}}}
+{{"action":"create","type":"venta","data":{{"cliente_nombre":"...","descripcion":"...","valor_total":0}}}}
+{{"action":"create","type":"orden_compra","data":{{"proveedor_nombre":"...","items":[{{"nombre":"...","cantidad":1,"precio_unit":0}}]}}}}
+{{"action":"create","type":"tarea","data":{{"titulo":"...","descripcion":"...","prioridad":"media"}}}}
 {{"action":"create","type":"nota","data":{{"titulo":"...","contenido":"..."}}}}
-{{"action":"create","type":"evento","data":{{"titulo":"...","descripcion":"...","tipo":"evento","fecha":"YYYY-MM-DD"}}}}
+{{"action":"create","type":"evento","data":{{"titulo":"...","fecha":"YYYY-MM-DD"}}}}
 
-Para CONSULTAR datos reales:
-{{"action":"query","type":"ventas","filter":"activas"}}
+CONSULTAR:
+{{"action":"query","type":"ventas"}}
 {{"action":"query","type":"stock_bajo"}}
 {{"action":"query","type":"tareas_pendientes"}}
-{{"action":"query","type":"cotizaciones","filter":"vencidas"}}
-{{"action":"query","type":"clientes","filter":"activos"}}
+{{"action":"query","type":"cotizaciones"}}
+{{"action":"query","type":"clientes"}}
+{{"action":"query","type":"materias_primas"}}
+{{"action":"query","type":"recetas"}}
+{{"action":"query","type":"ordenes_produccion"}}
+{{"action":"query","type":"costo_producto","filter":"<nombre_producto>"}}
 
-Para ACTUALIZAR estado:
+ACTUALIZAR:
 {{"action":"update","type":"tarea","id":123,"data":{{"estado":"completada"}}}}
 {{"action":"update","type":"venta","id":456,"data":{{"estado":"anticipo_pagado"}}}}
 
-REGLAS ESTRICTAS:
-- Si el usuario pregunta algo ajeno al CRM (chistes, recetas de cocina, noticias, código genérico, etc.), responde EXACTAMENTE: "Solo puedo ayudarte con consultas relacionadas con el CRM de {empresa_nombre}. ¿En qué te ayudo?"
-- Confirma datos con el usuario antes de crear si hay ambigüedad
-- Si falta el cliente para una venta, pregunta su nombre
-- Responde siempre en español, sé conciso y profesional
-- Después de crear un registro, confirma con ✅ lo que se creó
-- Después de consultar datos, resume los hallazgos relevantes
-- No des consejos de negocio generales ni redactes contenido externo al sistema"""
+══ REGLAS ══
+- Solo CRM/ERP. Pregunta ajena → "Solo puedo ayudarte con el CRM de {empresa_nombre}."
+- Confirma datos ambiguos antes de crear
+- Responde en español, conciso, profesional
+- Después de crear → confirma lo creado
+- Si preguntan costo/precio de un producto → usa los datos de receta + cotizaciones
+- Si preguntan si se puede producir X → verifica stock de MP de la receta
+- Si falta cotización para una MP → informa y sugiere buscar proveedor"""
 
         # ── Providers ────────────────────────────────────────────────
         openai_key    = os.environ.get('OPENAI_API_KEY', '')
@@ -411,10 +476,68 @@ def _execute_ai_action(action_data):
                 clientes = Cliente.query.filter_by(activo=True).order_by(Cliente.nombre).all()
                 result = f'Clientes activos ({len(clientes)}):\n'
                 for cli in clientes[:20]:
-                    result += f'  • {cli.nombre} — {cli.email or "sin email"}\n'
+                    envio = getattr(cli, 'envio_responsable', 'cliente')
+                    result += f'  • {cli.empresa or cli.nombre} (NIT:{cli.nit or "—"}) envío:{envio}\n'
                 return result
 
-            return 'Consulta no reconocida.'
+            elif qtype == 'materias_primas':
+                mps = MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).all()
+                result = f'Materias primas ({len(mps)}):\n'
+                for m in mps:
+                    alerta = ' ⚠️ BAJO' if (m.stock_disponible or 0) <= (m.stock_minimo or 0) else ''
+                    result += f'  • {m.nombre}: disp={m.stock_disponible:.1f} {m.unidad}, min={m.stock_minimo}, costo=${m.costo_unitario:,.0f}/{m.unidad}{alerta}\n'
+                return result
+
+            elif qtype == 'recetas':
+                from utils import _calcular_costo_receta
+                recetas = RecetaProducto.query.filter_by(activo=True).all()
+                result = f'Recetas activas ({len(recetas)}):\n'
+                for r in recetas:
+                    prod = r.producto
+                    costo = _calcular_costo_receta(r.producto_id)
+                    n_alertas = len(costo['alertas'])
+                    result += f'  • {prod.nombre if prod else "?"}: {r.unidades_produce} und/lote, costo=${costo["costo_unitario"]:,.0f}/und'
+                    if n_alertas: result += f' ({n_alertas} alertas)'
+                    result += '\n'
+                    for d in costo['desglose']:
+                        result += f'    - {d["materia"]}: {d["cantidad"]:.2f} {d["unidad"]} × ${d["costo_unit"]:,.0f} = ${d["subtotal"]:,.0f}'
+                        if not d['tiene_cotizacion']: result += ' ⚠️ sin cotización'
+                        result += '\n'
+                return result
+
+            elif qtype == 'ordenes_produccion':
+                ops = OrdenProduccion.query.filter(
+                    OrdenProduccion.estado.in_(['pendiente_materiales','en_produccion','pausada'])
+                ).order_by(OrdenProduccion.creado_en.desc()).limit(20).all()
+                result = f'Órdenes de producción activas ({len(ops)}):\n'
+                for o in ops:
+                    v_num = o.venta.numero if o.venta else 'sin venta'
+                    result += f'  • OP#{o.id}: {o.producto.nombre if o.producto else "?"} ×{o.cantidad_producir:.0f}, estado={o.estado}, venta={v_num}\n'
+                return result
+
+            elif qtype == 'costo_producto':
+                from utils import _calcular_costo_receta, _precio_minimo_venta
+                prod = Producto.query.filter(Producto.nombre.ilike(f'%{qfilter}%')).first() if qfilter else None
+                if not prod:
+                    return f'No encontré producto con nombre "{qfilter}". Intenta con otro nombre.'
+                costo = _calcular_costo_receta(prod.id)
+                precio = _precio_minimo_venta(prod.id, 1)
+                result = f'Análisis de costo — {prod.nombre} (SKU:{prod.sku or "—"}):\n'
+                result += f'  Costo producción: ${costo["costo_unitario"]:,.0f}/und\n'
+                result += f'  Precio venta actual: ${prod.precio:,.0f}\n'
+                result += f'  Precio mínimo (costo+IVA): ${precio["precio_minimo"]:,.0f}\n'
+                result += f'  Precio sugerido (+30% margen): ${precio["precio_sugerido"]:,.0f}\n'
+                result += f'  Margen actual: {((prod.precio - costo["costo_unitario"]) / prod.precio * 100):.1f}%\n' if prod.precio > 0 else ''
+                if costo['alertas']:
+                    result += f'  Alertas:\n'
+                    for a in costo['alertas']:
+                        result += f'    ⚠️ {a}\n'
+                result += f'  Desglose:\n'
+                for d in costo['desglose']:
+                    result += f'    {d["materia"]}: {d["cantidad"]:.2f} {d["unidad"]} × ${d["costo_unit"]:,.0f} = ${d["subtotal"]:,.0f}\n'
+                return result
+
+            return 'Consulta no reconocida. Tipos válidos: ventas, stock_bajo, tareas_pendientes, cotizaciones, clientes, materias_primas, recetas, ordenes_produccion, costo_producto'
 
         # ══════════════════════════════════════════════════════════════════════════
         # Acciones de ACTUALIZACIÓN (update)

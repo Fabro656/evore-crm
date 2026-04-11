@@ -23,6 +23,8 @@ __all__ = [
     '_inv_form_ctx', '_save_compra', '_make_xlsx',
     '_procesar_orden_produccion', '_procesar_venta_produccion',
     '_modulos_user', 'register_app_hooks',
+    '_calcular_costo_receta', '_precio_minimo_venta',
+    'ONBOARDING_STEPS',
 ]
 
 # ── Module constants (originally in app.py global scope)
@@ -261,6 +263,116 @@ def _crear_asiento_auto(tipo, subtipo, descripcion, monto, cuenta_debe, cuenta_h
     except Exception as e:
         logging.warning(f'_crear_asiento_auto error: {e}')
         return None
+
+def _calcular_costo_receta(producto_id):
+    """
+    Calcula el costo de producción de un producto basado en su receta activa
+    y los costos de materias primas (preferiblemente de cotización vigente).
+    Retorna dict: {costo_total, costo_unitario, desglose: [{materia, cantidad, costo_unit, subtotal}], alertas: []}
+    """
+    from models import Producto, RecetaProducto, RecetaItem, MateriaPrima, CotizacionProveedor
+    prod = db.session.get(Producto, producto_id)
+    if not prod:
+        return {'costo_total': 0, 'costo_unitario': 0, 'desglose': [], 'alertas': ['Producto no encontrado']}
+
+    receta = RecetaProducto.query.filter_by(producto_id=producto_id, activo=True).first()
+    if not receta:
+        return {'costo_total': 0, 'costo_unitario': 0, 'desglose': [], 'alertas': ['Sin receta activa']}
+
+    desglose = []
+    alertas = []
+    costo_total = 0
+
+    for ri in receta.items:
+        mp = db.session.get(MateriaPrima, ri.materia_prima_id)
+        if not mp:
+            alertas.append(f'Materia prima ID {ri.materia_prima_id} no encontrada')
+            continue
+
+        cantidad_total = ri.cantidad_por_unidad * receta.unidades_produce
+
+        # Buscar cotización vigente para esta materia prima
+        from datetime import date
+        cot_vigente = CotizacionProveedor.query.filter(
+            CotizacionProveedor.materia_prima_id == mp.id,
+            CotizacionProveedor.estado == 'vigente',
+            CotizacionProveedor.vigencia >= date.today()
+        ).order_by(CotizacionProveedor.precio_unitario.asc()).first()
+
+        if cot_vigente:
+            costo_unit = cot_vigente.precio_unitario
+        elif mp.costo_unitario and mp.costo_unitario > 0:
+            costo_unit = mp.costo_unitario
+            alertas.append(f'{mp.nombre}: sin cotización vigente, usando costo registrado (${costo_unit:,.0f})')
+        else:
+            costo_unit = 0
+            alertas.append(f'{mp.nombre}: SIN COTIZACIÓN NI COSTO — no se puede calcular precio')
+
+        subtotal = cantidad_total * costo_unit
+        costo_total += subtotal
+
+        desglose.append({
+            'materia': mp.nombre,
+            'materia_id': mp.id,
+            'cantidad': cantidad_total,
+            'unidad': mp.unidad,
+            'costo_unit': costo_unit,
+            'subtotal': subtotal,
+            'tiene_cotizacion': cot_vigente is not None,
+            'es_empaque': getattr(ri, 'es_empaque', False),
+            'stock_disponible': mp.stock_disponible or 0,
+        })
+
+    costo_unitario = (costo_total / receta.unidades_produce) if receta.unidades_produce > 0 else 0
+
+    # Actualizar costo en el producto
+    try:
+        prod.costo_receta = round(costo_unitario, 2)
+        prod.costo = round(costo_unitario, 2)  # Also update legacy cost field
+    except Exception:
+        pass
+
+    return {
+        'costo_total': round(costo_total, 2),
+        'costo_unitario': round(costo_unitario, 2),
+        'unidades_produce': receta.unidades_produce,
+        'desglose': desglose,
+        'alertas': alertas
+    }
+
+def _precio_minimo_venta(producto_id, cantidad=1):
+    """
+    Calcula el precio mínimo de venta considerando costo receta + IVA.
+    Retorna dict: {precio_minimo, costo_produccion, iva, margen_sugerido}
+    """
+    from models import ReglaTributaria
+    costo = _calcular_costo_receta(producto_id)
+    costo_unit = costo['costo_unitario']
+
+    # IVA vigente
+    try:
+        regla = ReglaTributaria.query.filter_by(aplica_a='ventas', activo=True).first()
+        iva_pct = float(regla.porcentaje) if regla else 19.0
+    except:
+        iva_pct = 19.0
+
+    costo_total = costo_unit * cantidad
+    iva = round(costo_total * iva_pct / 100, 2)
+    margen_30 = round(costo_total * 0.30, 2)  # 30% suggested margin
+    precio_minimo = round(costo_total + iva, 2)
+    precio_sugerido = round(costo_total + margen_30 + (costo_total + margen_30) * iva_pct / 100, 2)
+
+    return {
+        'costo_produccion': round(costo_total, 2),
+        'costo_unitario': round(costo_unit, 2),
+        'iva_pct': iva_pct,
+        'iva': iva,
+        'precio_minimo': precio_minimo,
+        'precio_sugerido': precio_sugerido,
+        'margen_sugerido_pct': 30,
+        'alertas': costo['alertas'],
+        'cantidad': cantidad
+    }
 
 def _crear_notificacion(usuario_id, tipo, titulo, mensaje, url=None):
     try:

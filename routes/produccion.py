@@ -310,7 +310,19 @@ def register(app):
     @requiere_modulo('produccion')
     def recetas():
         items = RecetaProducto.query.filter_by(activo=True).all()
-        return render_template('produccion/recetas.html', recetas=items)
+        # Calcular costos para cada receta
+        costos = {}
+        for r in items:
+            costos[r.id] = _calcular_costo_receta(r.producto_id)
+        return render_template('produccion/recetas.html', recetas=items, costos=costos)
+
+    @app.route('/api/receta/<int:producto_id>/costo')
+    @login_required
+    def api_receta_costo(producto_id):
+        """API: calcula costo de producción y precio mínimo de venta."""
+        costo = _calcular_costo_receta(producto_id)
+        precio = _precio_minimo_venta(producto_id, 1)
+        return jsonify({**costo, 'precio': precio})
     
 
     def _registrar_ingredientes_en_cero(ids_ingredientes, producto_id):
