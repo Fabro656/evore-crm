@@ -11,6 +11,39 @@ import json, os, re, io, secrets, logging
 
 def register(app):
 
+    # ── demo (/demo) — acceso público, crea sesión temporal de demo
+    @app.route('/demo')
+    def demo_inicio():
+        """Inicia sesión demo con usuario tester. No requiere autenticación."""
+        # Buscar o crear usuario demo
+        demo_user = User.query.filter_by(email='demo@evore.us').first()
+        if not demo_user:
+            demo_user = User(nombre='Usuario Demo', email='demo@evore.us', rol='tester')
+            demo_user.set_password('demo2026')
+            db.session.add(demo_user); db.session.commit()
+        # Sembrar datos demo si no existen
+        if Cliente.query.filter_by(es_demo=True).count() == 0:
+            try:
+                from models import _seed_demo_data
+                _seed_demo_data()
+            except Exception:
+                pass
+        # Login automático
+        login_user(demo_user, remember=False)
+        from flask import session as flask_session
+        flask_session['is_demo'] = True
+        flash('Bienvenido al modo demo. Explora el sistema libremente — los datos son de ejemplo.', 'success')
+        return redirect(url_for('dashboard'))
+
+    @app.route('/demo/salir')
+    def demo_salir():
+        """Sale del modo demo."""
+        from flask import session as flask_session
+        flask_session.pop('is_demo', None)
+        logout_user()
+        flash('Sesion demo finalizada.', 'info')
+        return redirect(url_for('login'))
+
     # ── login (/login)
     @app.route('/login', methods=['GET','POST'])
     def login():

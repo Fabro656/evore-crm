@@ -34,6 +34,7 @@ class ContactoCliente(db.Model):
     cargo      = db.Column(db.String(100))
     email      = db.Column(db.String(120))
     telefono   = db.Column(db.String(20))
+    es_demo    = db.Column(db.Boolean, default=False)
 
 class Cliente(db.Model):
     __tablename__ = 'clientes'
@@ -59,6 +60,7 @@ class Cliente(db.Model):
     envio_responsable = db.Column(db.String(20), default='cliente')  # 'cliente' = ellos recogen, 'empresa' = nosotros enviamos
     transportista_preferido_id = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
     contrato_id      = db.Column(db.Integer, db.ForeignKey('documentos_legales.id'), nullable=True)
+    es_demo          = db.Column(db.Boolean, default=False)
     contactos       = db.relationship('ContactoCliente', backref='cliente_rel', lazy=True, cascade='all, delete-orphan')
     ventas          = db.relationship('Venta', backref='cliente', lazy=True)
     sales_manager    = db.relationship('User', foreign_keys=[sales_manager_id])
@@ -86,6 +88,7 @@ class OrdenCompra(db.Model):
     estado_proveedor        = db.Column(db.String(30), default='pendiente')  # pendiente, confirmada
     confirmado_en           = db.Column(db.DateTime, nullable=True)
     confirmado_por          = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    es_demo                 = db.Column(db.Boolean, default=False)
     proveedor               = db.relationship('Proveedor', foreign_keys=[proveedor_id])
     transportista           = db.relationship('Proveedor', foreign_keys=[transportista_id])
     cotizacion_ref          = db.relationship('CotizacionProveedor', foreign_keys=[cotizacion_id])
@@ -122,6 +125,7 @@ class Proveedor(db.Model):
     tipo_vehiculo = db.Column(db.String(50))  # camion, furgon, van, moto
     envia_material = db.Column(db.Boolean, default=True)  # Does this supplier deliver to us?
     creado_en  = db.Column(db.DateTime, default=datetime.utcnow)
+    es_demo    = db.Column(db.Boolean, default=False)
 
 class VentaProducto(db.Model):
     __tablename__ = 'venta_productos'
@@ -163,6 +167,7 @@ class Venta(db.Model):
     cliente_informado_en= db.Column(db.DateTime, nullable=True)  # v12.2
     entregado_en        = db.Column(db.DateTime, nullable=True)   # v12.2
     cotizacion_id       = db.Column(db.Integer, db.ForeignKey('cotizaciones.id'), nullable=True)  # v32
+    es_demo             = db.Column(db.Boolean, default=False)
     items               = db.relationship('VentaProducto', backref='venta', lazy=True, cascade='all, delete-orphan')
     ordenes_produccion  = db.relationship('OrdenProduccion', foreign_keys='OrdenProduccion.venta_id', lazy=True, back_populates='venta')
     cotizacion_origen   = db.relationship('Cotizacion', foreign_keys='Venta.cotizacion_id')
@@ -228,6 +233,7 @@ class Tarea(db.Model):
     cotizacion_id     = db.Column(db.Integer, db.ForeignKey('cotizaciones.id'), nullable=True)
     tarea_tipo        = db.Column(db.String(50), nullable=True)   # comprar_materias, verificar_abono
     tarea_pareja_id   = db.Column(db.Integer, db.ForeignKey('tareas.id'), nullable=True)
+    es_demo           = db.Column(db.Boolean, default=False)
     asignado_user     = db.relationship('User', foreign_keys=[asignado_a], backref='tareas_asignadas')
     creador           = db.relationship('User', foreign_keys=[creado_por])
     asignados         = db.relationship('TareaAsignado', backref='tarea', lazy=True, cascade='all, delete-orphan')
@@ -250,6 +256,7 @@ class Producto(db.Model):
     fecha_caducidad = db.Column(db.Date, nullable=True)
     creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
     costo_receta    = db.Column(db.Float, default=0)  # Auto-calculated from recipe + MP costs
+    es_demo         = db.Column(db.Boolean, default=False)
     venta_items     = db.relationship('VentaProducto', backref='producto', lazy=True)
 
 class MarcaProducto(db.Model):
@@ -262,6 +269,7 @@ class MarcaProducto(db.Model):
     documento_legal_id = db.Column(db.Integer, db.ForeignKey('documentos_legales.id'), nullable=True)
     activo = db.Column(db.Boolean, default=True)
     creado_en = db.Column(db.DateTime, default=datetime.utcnow)
+    es_demo = db.Column(db.Boolean, default=False)
     producto = db.relationship('Producto', foreign_keys=[producto_id])
     documento = db.relationship('DocumentoLegal', foreign_keys=[documento_legal_id])
 
@@ -288,6 +296,7 @@ class CompraMateria(db.Model):
     notas           = db.Column(db.Text)
     creado_por      = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
+    es_demo         = db.Column(db.Boolean, default=False)
     producto        = db.relationship('Producto', foreign_keys=[producto_id])
     materia         = db.relationship('MateriaPrima', foreign_keys=[materia_id])
     proveedor_rel   = db.relationship('Proveedor', foreign_keys=[proveedor_id])
@@ -319,6 +328,7 @@ class CotizacionProveedor(db.Model):
     creado_por            = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en             = db.Column(db.DateTime, default=datetime.utcnow)
     materia_prima_id      = db.Column(db.Integer, db.ForeignKey('materias_primas.id'), nullable=True)
+    es_demo               = db.Column(db.Boolean, default=False)
     proveedor             = db.relationship('Proveedor', foreign_keys=[proveedor_id])
     materia               = db.relationship('MateriaPrima', foreign_keys=[materia_prima_id])
 
@@ -360,6 +370,7 @@ class DocumentoLegal(db.Model):
     proveedor_id      = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
     producto_id       = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=True)
     tipo_entidad      = db.Column(db.String(30), nullable=True)  # cliente, proveedor, producto, empresa
+    es_demo           = db.Column(db.Boolean, default=False)
     creado_por        = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en         = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -457,6 +468,7 @@ class GastoOperativo(db.Model):
     notas        = db.Column(db.Text)
     creado_por   = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en    = db.Column(db.DateTime, default=datetime.utcnow)
+    es_demo      = db.Column(db.Boolean, default=False)
 
 class Nota(db.Model):
     __tablename__ = 'notas'
@@ -470,6 +482,7 @@ class Nota(db.Model):
     creado_por     = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en      = db.Column(db.DateTime, default=datetime.utcnow)
     actualizado_en = db.Column(db.DateTime, default=datetime.utcnow)
+    es_demo        = db.Column(db.Boolean, default=False)
     cliente        = db.relationship('Cliente', foreign_keys=[cliente_id])
     producto       = db.relationship('Producto', foreign_keys=[producto_id])
     autor          = db.relationship('User', foreign_keys=[creado_por])
@@ -508,6 +521,7 @@ class Evento(db.Model):
     descripcion = db.Column(db.Text)
     usuario_id  = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en   = db.Column(db.DateTime, default=datetime.utcnow)
+    es_demo     = db.Column(db.Boolean, default=False)
     usuario     = db.relationship('User', foreign_keys=[usuario_id])
 
 class CotizacionItem(db.Model):
@@ -550,6 +564,7 @@ class Cotizacion(db.Model):
     tiempo_desde        = db.Column(db.String(20), default='anticipo')    # v30: 'anticipo' | 'firma'
     creado_en           = db.Column(db.DateTime, default=datetime.utcnow)
     creado_por          = db.Column(db.Integer, db.ForeignKey('users.id'))
+    es_demo             = db.Column(db.Boolean, default=False)
     items               = db.relationship('CotizacionItem', backref='cotizacion', lazy=True, cascade='all, delete-orphan')
     cliente             = db.relationship('Cliente', foreign_keys=[cliente_id])
 
@@ -599,6 +614,7 @@ class MateriaPrima(db.Model):
     producto_id      = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=True)  # legacy compat (primer producto)
     activo           = db.Column(db.Boolean, default=True)
     creado_en        = db.Column(db.DateTime, default=datetime.utcnow)
+    es_demo          = db.Column(db.Boolean, default=False)
     producto         = db.relationship('Producto', foreign_keys=[producto_id])
     proveedor_rel    = db.relationship('Proveedor', foreign_keys=[proveedor_id])
     productos_rel    = db.relationship(
@@ -657,6 +673,7 @@ class RecetaProducto(db.Model):
     margen_pct       = db.Column(db.Float, default=30)  # % ganancia definido por director financiero
     precio_venta_sugerido = db.Column(db.Float, default=0)  # precio calculado: costo + margen + IVA
     costo_calculado  = db.Column(db.Float, default=0)  # costo unitario calculado desde ingredientes
+    es_demo          = db.Column(db.Boolean, default=False)
     creado_en        = db.Column(db.DateTime, default=datetime.utcnow)
     producto         = db.relationship('Producto', foreign_keys=[producto_id], backref='receta')
     items            = db.relationship('RecetaItem', backref='receta', lazy=True,
@@ -748,6 +765,7 @@ class Empleado(db.Model):
     notas               = db.Column(db.Text)
     creado_por          = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en           = db.Column(db.DateTime, default=datetime.utcnow)
+    es_demo             = db.Column(db.Boolean, default=False)
 
 class UserSesion(db.Model):
     __tablename__ = 'user_sesiones'
@@ -802,6 +820,7 @@ class Servicio(db.Model):
     activo        = db.Column(db.Boolean, default=True)
     creado_por    = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en     = db.Column(db.DateTime, default=datetime.utcnow)
+    es_demo       = db.Column(db.Boolean, default=False)
 
     @property
     def margen(self):
@@ -1073,6 +1092,45 @@ def _migrate(conn):
         ("ALTER TABLE recetas_producto ADD COLUMN precio_venta_sugerido FLOAT DEFAULT 0"),
         ("ALTER TABLE recetas_producto ADD COLUMN IF NOT EXISTS costo_calculado FLOAT DEFAULT 0"),
         ("ALTER TABLE recetas_producto ADD COLUMN costo_calculado FLOAT DEFAULT 0"),
+        # es_demo — flag para datos de demostración
+        ("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE clientes ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE productos ADD COLUMN IF NOT EXISTS es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE productos ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE materias_primas ADD COLUMN IF NOT EXISTS es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE materias_primas ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE proveedores ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE recetas_producto ADD COLUMN IF NOT EXISTS es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE recetas_producto ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE cotizaciones ADD COLUMN IF NOT EXISTS es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE cotizaciones ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE ventas ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE gastos_operativos ADD COLUMN IF NOT EXISTS es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE gastos_operativos ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE tareas ADD COLUMN IF NOT EXISTS es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE tareas ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE notas ADD COLUMN IF NOT EXISTS es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE notas ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE eventos ADD COLUMN IF NOT EXISTS es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE eventos ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE empleados ADD COLUMN IF NOT EXISTS es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE empleados ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE servicios ADD COLUMN IF NOT EXISTS es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE servicios ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE cotizaciones_proveedor ADD COLUMN IF NOT EXISTS es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE cotizaciones_proveedor ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE marcas_producto ADD COLUMN IF NOT EXISTS es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE marcas_producto ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE documentos_legales ADD COLUMN IF NOT EXISTS es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE documentos_legales ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE ordenes_compra ADD COLUMN IF NOT EXISTS es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE ordenes_compra ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE compras_materia ADD COLUMN IF NOT EXISTS es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE compras_materia ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE contactos_cliente ADD COLUMN IF NOT EXISTS es_demo BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE contactos_cliente ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
     ]
     for sql in migrations:
         try:
@@ -1106,7 +1164,7 @@ def init_db():
         db.session.add(ConfigEmpresa(nombre='Evore', email='contacto@evore.us', sitio_web='evore.us'))
         db.session.commit()
     _seed_puc()
-    _seed_demo_data()
+    # Demo data se carga solo desde /demo (ruta pública)
 
 
 def _seed_puc():
@@ -1283,8 +1341,8 @@ def _seed_demo_data():
             db.session.add(tester); db.session.commit()
             logging.info('Usuario tester creado: tester@evore.us / tester123')
 
-        # Si ya hay clientes, no sembrar de nuevo
-        if Cliente.query.count() > 0:
+        # Si ya hay datos demo, no sembrar de nuevo
+        if Cliente.query.filter_by(es_demo=True).count() > 0:
             return
     except Exception as e:
         logging.warning(f'Seed check error: {e}')
@@ -1317,86 +1375,86 @@ def _seed_demo_data():
     db.session.flush()
 
     # ── Proveedores ──
-    prov1 = Proveedor(nombre='Juan Ramirez', empresa='QuimiCol SAS', nit='900123456-1',
+    prov1 = Proveedor(es_demo=True, nombre='Juan Ramirez', empresa='QuimiCol SAS', nit='900123456-1',
                       email='ventas@quimicol.co', telefono='3101234567', tipo='proveedor',
                       categoria='Quimicos', direccion='Cra 45 #26-85, Medellin', activo=True)
-    prov2 = Proveedor(nombre='Pedro Gomez', empresa='Envases del Valle', nit='900654321-2',
+    prov2 = Proveedor(es_demo=True, nombre='Pedro Gomez', empresa='Envases del Valle', nit='900654321-2',
                       email='pedidos@envases.co', telefono='3209876543', tipo='proveedor',
                       categoria='Empaques', direccion='Cl 10 #4-20, Cali', activo=True)
-    prov3 = Proveedor(nombre='TransCarga Ltda', empresa='TransCarga Ltda', nit='800111222-3',
+    prov3 = Proveedor(es_demo=True, nombre='TransCarga Ltda', empresa='TransCarga Ltda', nit='800111222-3',
                       email='despachos@transcarga.co', telefono='3157778899', tipo='transportista',
                       categoria='Transporte', direccion='Zona Industrial, Bogota', activo=True)
     db.session.add_all([prov1, prov2, prov3]); db.session.flush()
 
     # ── Clientes ──
-    c1 = Cliente(nombre='Ana Lopez', empresa='Distribuidora Nacional SAS', nit='901234567-8',
+    c1 = Cliente(es_demo=True, nombre='Ana Lopez', empresa='Distribuidora Nacional SAS', nit='901234567-8',
                  estado_relacion='cliente_activo', dir_comercial='Cra 7 #32-16 Of. 401, Bogota',
                  dir_entrega='Bodega 5, Zona Franca Bogota', anticipo_pct=50, sales_manager_id=uid)
-    c2 = Cliente(nombre='Roberto Silva', empresa='Cadena FreshMart', nit='800987654-3',
+    c2 = Cliente(es_demo=True, nombre='Roberto Silva', empresa='Cadena FreshMart', nit='800987654-3',
                  estado_relacion='cliente_activo', dir_comercial='Av 68 #13-51, Bogota',
                  dir_entrega='CEDI FreshMart, Funza', anticipo_pct=60, sales_manager_id=uid)
-    c3 = Cliente(nombre='Patricia Herrera', empresa='NaturVida Ltda', nit='900555444-1',
+    c3 = Cliente(es_demo=True, nombre='Patricia Herrera', empresa='NaturVida Ltda', nit='900555444-1',
                  estado_relacion='prospecto', dir_comercial='Cl 80 #11-23, Medellin',
                  anticipo_pct=50, sales_manager_id=uid)
-    c4 = Cliente(nombre='Diego Castillo', empresa='HotelGroup Colombia', nit='800333222-5',
+    c4 = Cliente(es_demo=True, nombre='Diego Castillo', empresa='HotelGroup Colombia', nit='800333222-5',
                  estado_relacion='negociacion', dir_comercial='Cra 1 #5-60, Cartagena',
                  dir_entrega='Hotel Caribe, Cartagena', anticipo_pct=40, sales_manager_id=uid)
-    c5 = Cliente(nombre='Camila Ortiz', empresa='Tiendas del Barrio SAS', nit='901777888-9',
+    c5 = Cliente(es_demo=True, nombre='Camila Ortiz', empresa='Tiendas del Barrio SAS', nit='901777888-9',
                  estado_relacion='cliente_activo', dir_comercial='Cl 50 #20-10, Bucaramanga',
                  anticipo_pct=50, sales_manager_id=uid)
     db.session.add_all([c1, c2, c3, c4, c5]); db.session.flush()
 
     # Contactos
     db.session.add_all([
-        ContactoCliente(cliente_id=c1.id, nombre='Ana Lopez', cargo='Gerente Compras', email='ana@distnacional.co', telefono='3104561234'),
-        ContactoCliente(cliente_id=c1.id, nombre='Mario Diaz', cargo='Bodeguero', email='bodega@distnacional.co', telefono='3114567890'),
-        ContactoCliente(cliente_id=c2.id, nombre='Roberto Silva', cargo='Director Comercial', email='roberto@freshmart.co', telefono='3201234567'),
-        ContactoCliente(cliente_id=c3.id, nombre='Patricia Herrera', cargo='Gerente General', email='patricia@naturvida.co', telefono='3156789012'),
-        ContactoCliente(cliente_id=c4.id, nombre='Diego Castillo', cargo='Jefe Compras', email='compras@hotelgroup.co', telefono='3187654321'),
-        ContactoCliente(cliente_id=c5.id, nombre='Camila Ortiz', cargo='Propietaria', email='camila@tiendasbarrio.co', telefono='3171112233'),
+        ContactoCliente(es_demo=True, cliente_id=c1.id, nombre='Ana Lopez', cargo='Gerente Compras', email='ana@distnacional.co', telefono='3104561234'),
+        ContactoCliente(es_demo=True, cliente_id=c1.id, nombre='Mario Diaz', cargo='Bodeguero', email='bodega@distnacional.co', telefono='3114567890'),
+        ContactoCliente(es_demo=True, cliente_id=c2.id, nombre='Roberto Silva', cargo='Director Comercial', email='roberto@freshmart.co', telefono='3201234567'),
+        ContactoCliente(es_demo=True, cliente_id=c3.id, nombre='Patricia Herrera', cargo='Gerente General', email='patricia@naturvida.co', telefono='3156789012'),
+        ContactoCliente(es_demo=True, cliente_id=c4.id, nombre='Diego Castillo', cargo='Jefe Compras', email='compras@hotelgroup.co', telefono='3187654321'),
+        ContactoCliente(es_demo=True, cliente_id=c5.id, nombre='Camila Ortiz', cargo='Propietaria', email='camila@tiendasbarrio.co', telefono='3171112233'),
     ])
 
     # ── Productos terminados ──
-    p1 = Producto(nombre='Detergente Industrial 5L', sku='DET-5L', precio=45000, costo=22000,
+    p1 = Producto(es_demo=True, nombre='Detergente Industrial 5L', sku='DET-5L', precio=45000, costo=22000,
                   stock=120, stock_minimo=20, categoria='Limpieza')
-    p2 = Producto(nombre='Desengrasante Concentrado 1L', sku='DES-1L', precio=28000, costo=12000,
+    p2 = Producto(es_demo=True, nombre='Desengrasante Concentrado 1L', sku='DES-1L', precio=28000, costo=12000,
                   stock=85, stock_minimo=15, categoria='Limpieza')
-    p3 = Producto(nombre='Jabon Liquido Antibacterial 500ml', sku='JAB-500', precio=15000, costo=6500,
+    p3 = Producto(es_demo=True, nombre='Jabon Liquido Antibacterial 500ml', sku='JAB-500', precio=15000, costo=6500,
                   stock=200, stock_minimo=30, categoria='Higiene')
-    p4 = Producto(nombre='Limpiador Multiusos 1L', sku='LIM-1L', precio=18000, costo=8000,
+    p4 = Producto(es_demo=True, nombre='Limpiador Multiusos 1L', sku='LIM-1L', precio=18000, costo=8000,
                   stock=150, stock_minimo=25, categoria='Limpieza')
-    p5 = Producto(nombre='Ambientador Premium 400ml', sku='AMB-400', precio=22000, costo=9500,
+    p5 = Producto(es_demo=True, nombre='Ambientador Premium 400ml', sku='AMB-400', precio=22000, costo=9500,
                   stock=60, stock_minimo=10, categoria='Ambientacion')
-    p6 = Producto(nombre='Suavizante Textil 2L', sku='SUA-2L', precio=32000, costo=14000,
+    p6 = Producto(es_demo=True, nombre='Suavizante Textil 2L', sku='SUA-2L', precio=32000, costo=14000,
                   stock=40, stock_minimo=15, categoria='Textil')
     db.session.add_all([p1, p2, p3, p4, p5, p6]); db.session.flush()
 
     # ── Materias primas ──
-    mp1 = MateriaPrima(nombre='Tensoactivo anionico', unidad='kg', stock_disponible=250, stock_minimo=50,
+    mp1 = MateriaPrima(es_demo=True, nombre='Tensoactivo anionico', unidad='kg', stock_disponible=250, stock_minimo=50,
                        costo_unitario=8500, categoria='Quimicos', activo=True)
-    mp2 = MateriaPrima(nombre='Soda caustica', unidad='kg', stock_disponible=100, stock_minimo=20,
+    mp2 = MateriaPrima(es_demo=True, nombre='Soda caustica', unidad='kg', stock_disponible=100, stock_minimo=20,
                        costo_unitario=4200, categoria='Quimicos', activo=True)
-    mp3 = MateriaPrima(nombre='Fragancia lavanda', unidad='litros', stock_disponible=30, stock_minimo=5,
+    mp3 = MateriaPrima(es_demo=True, nombre='Fragancia lavanda', unidad='litros', stock_disponible=30, stock_minimo=5,
                        costo_unitario=45000, categoria='Fragancias', activo=True)
-    mp4 = MateriaPrima(nombre='Agua desionizada', unidad='litros', stock_disponible=500, stock_minimo=100,
+    mp4 = MateriaPrima(es_demo=True, nombre='Agua desionizada', unidad='litros', stock_disponible=500, stock_minimo=100,
                        costo_unitario=800, categoria='Base', activo=True)
-    mp5 = MateriaPrima(nombre='Colorante azul', unidad='kg', stock_disponible=15, stock_minimo=3,
+    mp5 = MateriaPrima(es_demo=True, nombre='Colorante azul', unidad='kg', stock_disponible=15, stock_minimo=3,
                        costo_unitario=32000, categoria='Colorantes', activo=True)
-    mp6 = MateriaPrima(nombre='Envase PET 5L', unidad='unidades', stock_disponible=300, stock_minimo=50,
+    mp6 = MateriaPrima(es_demo=True, nombre='Envase PET 5L', unidad='unidades', stock_disponible=300, stock_minimo=50,
                        costo_unitario=2800, categoria='Empaques', proveedor_id=prov2.id, activo=True)
-    mp7 = MateriaPrima(nombre='Envase PET 1L', unidad='unidades', stock_disponible=500, stock_minimo=80,
+    mp7 = MateriaPrima(es_demo=True, nombre='Envase PET 1L', unidad='unidades', stock_disponible=500, stock_minimo=80,
                        costo_unitario=1500, categoria='Empaques', proveedor_id=prov2.id, activo=True)
-    mp8 = MateriaPrima(nombre='Tapa rosca 38mm', unidad='unidades', stock_disponible=800, stock_minimo=100,
+    mp8 = MateriaPrima(es_demo=True, nombre='Tapa rosca 38mm', unidad='unidades', stock_disponible=800, stock_minimo=100,
                        costo_unitario=450, categoria='Empaques', activo=True)
-    mp9 = MateriaPrima(nombre='Etiqueta autoadhesiva', unidad='unidades', stock_disponible=600, stock_minimo=100,
+    mp9 = MateriaPrima(es_demo=True, nombre='Etiqueta autoadhesiva', unidad='unidades', stock_disponible=600, stock_minimo=100,
                        costo_unitario=350, categoria='Empaques', activo=True)
-    mp10 = MateriaPrima(nombre='Triclosan', unidad='kg', stock_disponible=8, stock_minimo=2,
+    mp10 = MateriaPrima(es_demo=True, nombre='Triclosan', unidad='kg', stock_disponible=8, stock_minimo=2,
                         costo_unitario=120000, categoria='Antibacterial', activo=True)
     db.session.add_all([mp1, mp2, mp3, mp4, mp5, mp6, mp7, mp8, mp9, mp10]); db.session.flush()
 
     # ── Recetas (BOM) ──
     # Detergente 5L: tensoactivo + soda + fragancia + agua + envase + tapa + etiqueta
-    r1 = RecetaProducto(producto_id=p1.id, unidades_produce=10, descripcion='Lote de 10 detergentes 5L', activo=True)
+    r1 = RecetaProducto(es_demo=True, producto_id=p1.id, unidades_produce=10, descripcion='Lote de 10 detergentes 5L', activo=True)
     db.session.add(r1); db.session.flush()
     db.session.add_all([
         RecetaItem(receta_id=r1.id, materia_prima_id=mp1.id, cantidad_por_unidad=2.5),   # 2.5kg tensoactivo x 10
@@ -1409,7 +1467,7 @@ def _seed_demo_data():
     ])
 
     # Jabon 500ml: tensoactivo + triclosan + fragancia + agua + envase 1L(se usa) + tapa + etiqueta
-    r2 = RecetaProducto(producto_id=p3.id, unidades_produce=20, descripcion='Lote de 20 jabones 500ml', activo=True)
+    r2 = RecetaProducto(es_demo=True, producto_id=p3.id, unidades_produce=20, descripcion='Lote de 20 jabones 500ml', activo=True)
     db.session.add(r2); db.session.flush()
     db.session.add_all([
         RecetaItem(receta_id=r2.id, materia_prima_id=mp1.id, cantidad_por_unidad=0.5),
@@ -1422,27 +1480,27 @@ def _seed_demo_data():
     ])
 
     # ── Servicios ──
-    s1 = Servicio(nombre='Fumigacion industrial', costo_interno=80000, precio_venta=180000,
+    s1 = Servicio(es_demo=True, nombre='Fumigacion industrial', costo_interno=80000, precio_venta=180000,
                   unidad='servicio', categoria='Especializados', activo=True, creado_por=uid)
-    s2 = Servicio(nombre='Capacitacion manejo quimicos', costo_interno=50000, precio_venta=120000,
+    s2 = Servicio(es_demo=True, nombre='Capacitacion manejo quimicos', costo_interno=50000, precio_venta=120000,
                   unidad='hora', categoria='Formacion', activo=True, creado_por=uid)
     db.session.add_all([s1, s2]); db.session.flush()
 
     # ── Empleados ──
     db.session.add_all([
-        Empleado(nombre='Carlos', apellido='Gutierrez', cedula='1020304050', cargo='Operario planta',
+        Empleado(es_demo=True, nombre='Carlos', apellido='Gutierrez', cedula='1020304050', cargo='Operario planta',
                  departamento='Produccion', salario_base=1423500, tipo_contrato='indefinido',
                  fecha_ingreso=hoy - timedelta(days=365), estado='activo', creado_por=uid),
-        Empleado(nombre='Lucia', apellido='Fernandez', cedula='1060708090', cargo='Auxiliar logistica',
+        Empleado(es_demo=True, nombre='Lucia', apellido='Fernandez', cedula='1060708090', cargo='Auxiliar logistica',
                  departamento='Logistica', salario_base=1600000, tipo_contrato='indefinido',
                  fecha_ingreso=hoy - timedelta(days=200), estado='activo', creado_por=uid),
-        Empleado(nombre='Jorge', apellido='Martinez', cedula='1030507090', cargo='Quimico formulador',
+        Empleado(es_demo=True, nombre='Jorge', apellido='Martinez', cedula='1030507090', cargo='Quimico formulador',
                  departamento='Produccion', salario_base=3200000, tipo_contrato='indefinido',
                  auxilio_transporte=False, fecha_ingreso=hoy - timedelta(days=500), estado='activo', creado_por=uid),
     ])
 
     # ── Cotizaciones ──
-    cot1 = Cotizacion(numero='COT-2026-001', titulo='Dotacion limpieza Q2 - Dist Nacional',
+    cot1 = Cotizacion(es_demo=True, numero='COT-2026-001', titulo='Dotacion limpieza Q2 - Dist Nacional',
                       cliente_id=c1.id, subtotal=2700000, iva=513000, total=3213000,
                       porcentaje_anticipo=50, monto_anticipo=1606500, saldo=1606500,
                       estado='enviada', fecha_emision=hoy - timedelta(days=5),
@@ -1464,7 +1522,7 @@ def _seed_demo_data():
                        aplica_iva=True, iva_pct=19, iva_monto=45600),
     ])
 
-    cot2 = Cotizacion(numero='COT-2026-002', titulo='Amenities hotel - HotelGroup',
+    cot2 = Cotizacion(es_demo=True, numero='COT-2026-002', titulo='Amenities hotel - HotelGroup',
                       cliente_id=c4.id, subtotal=1540000, iva=292600, total=1832600,
                       porcentaje_anticipo=40, monto_anticipo=733040, saldo=1099560,
                       estado='aprobada', fecha_emision=hoy - timedelta(days=10),
@@ -1484,7 +1542,7 @@ def _seed_demo_data():
     ])
 
     # ── Ventas en distintos estados ──
-    v1 = Venta(numero='VNT-2026-001', titulo='Pedido mensual FreshMart marzo',
+    v1 = Venta(es_demo=True, numero='VNT-2026-001', titulo='Pedido mensual FreshMart marzo',
                cliente_id=c2.id, subtotal=1890000, iva=359100, total=2249100,
                porcentaje_anticipo=60, monto_anticipo=1349460, saldo=899640,
                monto_pagado_total=1349460, estado='anticipo_pagado',
@@ -1493,19 +1551,19 @@ def _seed_demo_data():
                notas='Entrega en CEDI Funza, horario 6am-2pm', creado_por=uid)
     db.session.add(v1); db.session.flush()
     db.session.add_all([
-        VentaProducto(venta_id=v1.id, producto_id=p1.id, nombre_prod='Detergente Industrial 5L',
+        VentaProducto(es_demo=True, venta_id=v1.id, producto_id=p1.id, nombre_prod='Detergente Industrial 5L',
                       cantidad=20, precio_unit=45000, subtotal=900000),
-        VentaProducto(venta_id=v1.id, producto_id=p4.id, nombre_prod='Limpiador Multiusos 1L',
+        VentaProducto(es_demo=True, venta_id=v1.id, producto_id=p4.id, nombre_prod='Limpiador Multiusos 1L',
                       cantidad=30, precio_unit=18000, subtotal=540000),
-        VentaProducto(venta_id=v1.id, producto_id=p3.id, nombre_prod='Jabon Liquido Antibacterial 500ml',
+        VentaProducto(es_demo=True, venta_id=v1.id, producto_id=p3.id, nombre_prod='Jabon Liquido Antibacterial 500ml',
                       cantidad=30, precio_unit=15000, subtotal=450000),
     ])
     # Pago del anticipo
-    db.session.add(PagoVenta(venta_id=v1.id, monto=1349460, tipo='anticipo',
+    db.session.add(PagoVenta(es_demo=True, venta_id=v1.id, monto=1349460, tipo='anticipo',
                              metodo_pago='transferencia', referencia='TRF-2026-0301',
                              fecha=hoy - timedelta(days=3), creado_por=uid))
 
-    v2 = Venta(numero='VNT-2026-002', titulo='Suministro trimestral Tiendas del Barrio',
+    v2 = Venta(es_demo=True, numero='VNT-2026-002', titulo='Suministro trimestral Tiendas del Barrio',
                cliente_id=c5.id, subtotal=960000, iva=182400, total=1142400,
                porcentaje_anticipo=50, monto_anticipo=571200, saldo=1142400,
                estado='negociacion', dias_entrega=20,
@@ -1513,15 +1571,15 @@ def _seed_demo_data():
                notas='Pendiente confirmar cantidades finales', creado_por=uid)
     db.session.add(v2); db.session.flush()
     db.session.add_all([
-        VentaProducto(venta_id=v2.id, producto_id=p4.id, nombre_prod='Limpiador Multiusos 1L',
+        VentaProducto(es_demo=True, venta_id=v2.id, producto_id=p4.id, nombre_prod='Limpiador Multiusos 1L',
                       cantidad=20, precio_unit=18000, subtotal=360000),
-        VentaProducto(venta_id=v2.id, producto_id=p5.id, nombre_prod='Ambientador Premium 400ml',
+        VentaProducto(es_demo=True, venta_id=v2.id, producto_id=p5.id, nombre_prod='Ambientador Premium 400ml',
                       cantidad=15, precio_unit=22000, subtotal=330000),
-        VentaProducto(venta_id=v2.id, producto_id=p6.id, nombre_prod='Suavizante Textil 2L',
+        VentaProducto(es_demo=True, venta_id=v2.id, producto_id=p6.id, nombre_prod='Suavizante Textil 2L',
                       cantidad=10, precio_unit=32000, subtotal=320000),
     ])
 
-    v3 = Venta(numero='VNT-2026-003', titulo='Pedido urgente NaturVida',
+    v3 = Venta(es_demo=True, numero='VNT-2026-003', titulo='Pedido urgente NaturVida',
                cliente_id=c3.id, subtotal=675000, iva=128250, total=803250,
                porcentaje_anticipo=50, monto_anticipo=401625, saldo=0,
                monto_pagado_total=803250, estado='pagado',
@@ -1531,44 +1589,44 @@ def _seed_demo_data():
                notas='Entregado y pagado en su totalidad', creado_por=uid)
     db.session.add(v3); db.session.flush()
     db.session.add_all([
-        VentaProducto(venta_id=v3.id, producto_id=p1.id, nombre_prod='Detergente Industrial 5L',
+        VentaProducto(es_demo=True, venta_id=v3.id, producto_id=p1.id, nombre_prod='Detergente Industrial 5L',
                       cantidad=15, precio_unit=45000, subtotal=675000),
     ])
     db.session.add_all([
-        PagoVenta(venta_id=v3.id, monto=401625, tipo='anticipo', metodo_pago='transferencia',
+        PagoVenta(es_demo=True, venta_id=v3.id, monto=401625, tipo='anticipo', metodo_pago='transferencia',
                   referencia='TRF-NV-001', fecha=hoy - timedelta(days=15), creado_por=uid),
-        PagoVenta(venta_id=v3.id, monto=401625, tipo='saldo', metodo_pago='transferencia',
+        PagoVenta(es_demo=True, venta_id=v3.id, monto=401625, tipo='saldo', metodo_pago='transferencia',
                   referencia='TRF-NV-002', fecha=hoy - timedelta(days=7), creado_por=uid),
     ])
 
     # ── Gastos operativos ──
     db.session.add_all([
-        GastoOperativo(fecha=hoy - timedelta(days=30), tipo='Arriendo', descripcion='Arriendo bodega planta',
+        GastoOperativo(es_demo=True, fecha=hoy - timedelta(days=30), tipo='Arriendo', descripcion='Arriendo bodega planta',
                        monto=3500000, recurrencia='mensual', es_plantilla=True, creado_por=uid),
-        GastoOperativo(fecha=hoy - timedelta(days=15), tipo='Servicios', descripcion='Energia electrica marzo',
+        GastoOperativo(es_demo=True, fecha=hoy - timedelta(days=15), tipo='Servicios', descripcion='Energia electrica marzo',
                        monto=850000, creado_por=uid),
-        GastoOperativo(fecha=hoy - timedelta(days=10), tipo='Transporte', descripcion='Flete despacho Medellin',
+        GastoOperativo(es_demo=True, fecha=hoy - timedelta(days=10), tipo='Transporte', descripcion='Flete despacho Medellin',
                        monto=420000, creado_por=uid),
-        GastoOperativo(fecha=hoy - timedelta(days=5), tipo='Mantenimiento', descripcion='Reparacion mezcladora industrial',
+        GastoOperativo(es_demo=True, fecha=hoy - timedelta(days=5), tipo='Mantenimiento', descripcion='Reparacion mezcladora industrial',
                        monto=780000, creado_por=uid),
     ])
 
     # ── Notas ──
     db.session.add_all([
-        Nota(titulo='Reunion con FreshMart', contenido='Roberto confirmo interes en contrato anual. Preparar propuesta.',
+        Nota(es_demo=True, titulo='Reunion con FreshMart', contenido='Roberto confirmo interes en contrato anual. Preparar propuesta.',
              cliente_id=c2.id, fecha_revision=hoy + timedelta(days=3), creado_por=uid),
-        Nota(titulo='Formula nueva ambientador', contenido='Probar version con aceite esencial de eucalipto. Muestra lista para viernes.',
+        Nota(es_demo=True, titulo='Formula nueva ambientador', contenido='Probar version con aceite esencial de eucalipto. Muestra lista para viernes.',
              fecha_revision=hoy + timedelta(days=5), creado_por=uid),
     ])
 
     # ── Tareas ──
-    t1 = Tarea(titulo='Preparar muestras para HotelGroup', descripcion='Enviar 3 muestras de jabon + ambientador con logo personalizado',
+    t1 = Tarea(es_demo=True, titulo='Preparar muestras para HotelGroup', descripcion='Enviar 3 muestras de jabon + ambientador con logo personalizado',
                estado='pendiente', prioridad='alta', fecha_vencimiento=hoy + timedelta(days=2),
                asignado_a=uid, creado_por=uid)
-    t2 = Tarea(titulo='Revisar inventario quimicos', descripcion='Verificar stock de tensoactivo y soda caustica antes de produccion',
+    t2 = Tarea(es_demo=True, titulo='Revisar inventario quimicos', descripcion='Verificar stock de tensoactivo y soda caustica antes de produccion',
                estado='en_progreso', prioridad='media', fecha_vencimiento=hoy + timedelta(days=1),
                asignado_a=uid, creado_por=uid)
-    t3 = Tarea(titulo='Facturar pedido NaturVida', descripcion='Generar factura electronica VNT-2026-003',
+    t3 = Tarea(es_demo=True, titulo='Facturar pedido NaturVida', descripcion='Generar factura electronica VNT-2026-003',
                estado='completada', prioridad='baja', creado_por=uid)
     db.session.add_all([t1, t2, t3]); db.session.flush()
     db.session.add_all([
@@ -1578,9 +1636,9 @@ def _seed_demo_data():
 
     # ── Eventos ──
     db.session.add_all([
-        Evento(titulo='Visita planta FreshMart', fecha=hoy + timedelta(days=5), tipo='reunion',
+        Evento(es_demo=True, titulo='Visita planta FreshMart', fecha=hoy + timedelta(days=5), tipo='reunion',
                descripcion='Roberto Silva visita planta para auditar procesos', usuario_id=uid),
-        Evento(titulo='Vencimiento cotizacion HotelGroup', fecha=hoy + timedelta(days=20), tipo='recordatorio',
+        Evento(es_demo=True, titulo='Vencimiento cotizacion HotelGroup', fecha=hoy + timedelta(days=20), tipo='recordatorio',
                descripcion='COT-2026-002 vence, hacer seguimiento', usuario_id=uid),
     ])
 
@@ -1602,12 +1660,12 @@ def _seed_demo_data():
         det5l = Producto.query.filter_by(nombre='Detergente Industrial 5L').first()
         jab500 = Producto.query.filter_by(nombre='Jabon Liquido Antibacterial 500ml').first()
         if det5l:
-            db.session.add(MarcaProducto(producto_id=det5l.id, nombre_marca='EvoreClean Industrial',
+            db.session.add(MarcaProducto(es_demo=True, producto_id=det5l.id, nombre_marca='EvoreClean Industrial',
                                           nso='NSO-2024-0451', registro_sanitario='INVIMA-2024-DI-001'))
-            db.session.add(MarcaProducto(producto_id=det5l.id, nombre_marca='LimpioMax Pro',
+            db.session.add(MarcaProducto(es_demo=True, producto_id=det5l.id, nombre_marca='LimpioMax Pro',
                                           nso='NSO-2024-0452', registro_sanitario='INVIMA-2024-DI-002'))
         if jab500:
-            db.session.add(MarcaProducto(producto_id=jab500.id, nombre_marca='EvoreHand Antibacterial',
+            db.session.add(MarcaProducto(es_demo=True, producto_id=jab500.id, nombre_marca='EvoreHand Antibacterial',
                                           nso='NSO-2024-0460', registro_sanitario='INVIMA-2024-JA-001'))
 
         # Actualizar clasificación de ingredientes en recetas existentes
@@ -1669,21 +1727,21 @@ def _seed_demo_data():
             mp_soda = MateriaPrima.query.filter_by(nombre='Soda caustica').first()
             mp_frag = MateriaPrima.query.filter_by(nombre='Fragancia lavanda').first()
             if mp_tenso:
-                db.session.add(CotizacionProveedor(
+                db.session.add(CotizacionProveedor(es_demo=True, 
                     numero='CP-2026-001', proveedor_id=prov1.id, materia_prima_id=mp_tenso.id,
                     nombre_producto='Tensoactivo anionico industrial', precio_unitario=8200,
                     unidad='kg', plazo_entrega_dias=10, estado='vigente',
                     fecha_cotizacion=hoy - timedelta(days=15), vigencia=hoy + timedelta(days=60),
                     creado_por=uid))
             if mp_soda:
-                db.session.add(CotizacionProveedor(
+                db.session.add(CotizacionProveedor(es_demo=True, 
                     numero='CP-2026-002', proveedor_id=prov1.id, materia_prima_id=mp_soda.id,
                     nombre_producto='Soda caustica perlas', precio_unitario=4000,
                     unidad='kg', plazo_entrega_dias=7, estado='vigente',
                     fecha_cotizacion=hoy - timedelta(days=10), vigencia=hoy + timedelta(days=45),
                     creado_por=uid))
             if mp_frag:
-                db.session.add(CotizacionProveedor(
+                db.session.add(CotizacionProveedor(es_demo=True, 
                     numero='CP-2026-003', proveedor_id=prov1.id, materia_prima_id=mp_frag.id,
                     nombre_producto='Fragancia lavanda concentrada', precio_unitario=43000,
                     unidad='litros', plazo_entrega_dias=15, estado='vigente',
@@ -1693,14 +1751,14 @@ def _seed_demo_data():
             mp_env5 = MateriaPrima.query.filter_by(nombre='Envase PET 5L').first()
             mp_env1 = MateriaPrima.query.filter_by(nombre='Envase PET 1L').first()
             if mp_env5:
-                db.session.add(CotizacionProveedor(
+                db.session.add(CotizacionProveedor(es_demo=True, 
                     numero='CP-2026-004', proveedor_id=prov2.id, materia_prima_id=mp_env5.id,
                     nombre_producto='Envase PET 5 litros cristal', precio_unitario=2600,
                     unidad='unidades', plazo_entrega_dias=12, estado='vigente',
                     fecha_cotizacion=hoy - timedelta(days=10), vigencia=hoy + timedelta(days=50),
                     creado_por=uid))
             if mp_env1:
-                db.session.add(CotizacionProveedor(
+                db.session.add(CotizacionProveedor(es_demo=True, 
                     numero='CP-2026-005', proveedor_id=prov2.id, materia_prima_id=mp_env1.id,
                     nombre_producto='Envase PET 1 litro cristal', precio_unitario=1400,
                     unidad='unidades', plazo_entrega_dias=12, estado='vigente',
@@ -1708,14 +1766,14 @@ def _seed_demo_data():
                     creado_por=uid))
 
         # Documentos legales
-        db.session.add(DocumentoLegal(
+        db.session.add(DocumentoLegal(es_demo=True, 
             tipo='registro_invima', titulo='Registro INVIMA Detergentes',
             numero='INVIMA-2024-DI-001', entidad='INVIMA',
             estado='vigente', fecha_emision=hoy - timedelta(days=200),
             fecha_vencimiento=hoy + timedelta(days=165), recordatorio_dias=30,
             producto_id=det5l.id if det5l else None, tipo_entidad='producto',
             creado_por=uid))
-        db.session.add(DocumentoLegal(
+        db.session.add(DocumentoLegal(es_demo=True, 
             tipo='contrato', titulo='Contrato suministro - Distribuidora Nacional',
             numero='CTR-2026-001', entidad='Evore',
             estado='vigente', fecha_emision=hoy - timedelta(days=90),

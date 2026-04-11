@@ -506,6 +506,12 @@ img,svg{max-width:100%;height:auto}
     </form>
   </div>
   {% endif %}
+  {% if session.get('is_demo') %}
+  <div style="background:var(--orange);color:#fff;text-align:center;padding:4px 12px;font-size:.78rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">
+    <i class="bi bi-info-circle"></i> MODO DEMO — datos de ejemplo
+    <a href="/demo/salir" style="color:#fff;text-decoration:underline;font-weight:700;margin-left:8px">Salir del demo</a>
+  </div>
+  {% endif %}
   <div class="topbar">
     <!-- Hamburger for mobile -->
     <button id="sb-tog" onclick="openSB()" aria-label="Menú"><i class="bi bi-list"></i></button>

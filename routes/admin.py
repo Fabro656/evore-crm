@@ -325,20 +325,6 @@ def register(app):
 
     # ── admin_config (/admin/empresa)
     # ── Activar datos demo (cualquier usuario puede activar en su cuenta)
-    @app.route('/demo/activar', methods=['POST'])
-    @login_required
-    def activar_demo():
-        """Carga datos demo sin afectar datos reales existentes."""
-        if Cliente.query.count() > 0:
-            flash('Ya hay datos en el sistema. El demo solo funciona en un sistema vacio.', 'warning')
-            return redirect(url_for('dashboard'))
-        try:
-            from models import _seed_demo_data
-            _seed_demo_data()
-            flash('Datos demo cargados exitosamente. Puedes explorar el sistema con datos de ejemplo.', 'success')
-        except Exception as e:
-            flash(f'Error al cargar demo: {e}', 'danger')
-        return redirect(url_for('dashboard'))
 
     @app.route('/admin/empresa', methods=['GET','POST'])
     @login_required

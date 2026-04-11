@@ -29,14 +29,7 @@
       </a>
       {% endfor %}
     </div>
-    <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      {% if total_clientes == 0 %}
-      <form method="POST" action="{{ url_for('activar_demo') }}" style="display:inline">
-        <button type="submit" style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;padding:4px 14px;border-radius:4px;font-size:.8rem;cursor:pointer">
-          <i class="bi bi-play-circle me-1"></i>Cargar datos demo
-        </button>
-      </form>
-      {% endif %}
+    <div style="margin-top:10px">
       <form method="POST" action="{{ url_for('onboarding_dismiss') }}" style="display:inline">
         <button type="submit" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:.75rem;cursor:pointer;text-decoration:underline">Ocultar guia</button>
       </form>
