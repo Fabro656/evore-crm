@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Balance de Prueba{% endblock %}{% block page_title %}Balance de Prueba{% endblock %}
+{% block content %}
+<form class="d-flex gap-2 mb-3 align-items-center" method="GET">
+  <label class="form-label mb-0">Periodo:</label>
+  <input type="month" name="periodo" class="form-control form-control-sm" value="{{ periodo }}" style="max-width:180px">
+  <button class="btn btn-primary btn-sm">Consultar</button>
+</form>
+{% if filas %}
+<div class="tc">
+  <div class="ch">Balance de Prueba — {{ periodo }}</div>
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead><tr><th>Codigo</th><th>Cuenta</th><th class="text-end">Debitos</th><th class="text-end">Creditos</th><th class="text-end">Saldo</th></tr></thead>
+      <tbody>
+      {% for f in filas %}
+      <tr>
+        <td><a href="{{ url_for('contable_auxiliar', codigo=f.cuenta.codigo, periodo=periodo) }}" style="color:var(--ac)">{{ f.cuenta.codigo }}</a></td>
+        <td>{{ f.cuenta.nombre }}</td>
+        <td class="text-end">{{ moneda(f.debe) }}</td>
+        <td class="text-end">{{ moneda(f.haber) }}</td>
+        <td class="text-end fw-bold" style="color:{% if f.saldo >= 0 %}var(--green){% else %}var(--red){% endif %}">{{ moneda(f.saldo) }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+      <tfoot style="border-top:2px solid var(--ac)">
+        <tr class="fw-bold">
+          <td colspan="2">TOTALES</td>
+          <td class="text-end">{{ moneda(total_debe) }}</td>
+          <td class="text-end">{{ moneda(total_haber) }}</td>
+          <td class="text-end" style="color:{% if total_debe == total_haber %}var(--green){% else %}var(--red){% endif %}">
+            {% if total_debe == total_haber %}Cuadrado{% else %}Diferencia: {{ moneda(total_debe - total_haber) }}{% endif %}
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="sc" style="text-align:center;padding:2rem">
+  <i class="bi bi-journal-x" style="font-size:2rem;color:var(--text2);display:block;margin-bottom:.5rem"></i>
+  <p style="color:var(--text2);margin:0">No hay movimientos contables para este periodo.<br>Los asientos con lineas PUC aparecen aqui.</p>
+</div>
+{% endif %}
+{% endblock %}

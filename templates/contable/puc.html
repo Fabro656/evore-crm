@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Plan Unico de Cuentas{% endblock %}{% block page_title %}Plan Unico de Cuentas (PUC){% endblock %}
+{% block topbar_actions %}
+{% if current_user.rol in ('admin','director_financiero','contador') %}
+<a href="{{ url_for('contable_puc_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva cuenta</a>
+{% endif %}
+{% endblock %}
+{% block content %}
+<form class="d-flex gap-2 mb-3" method="GET">
+  <input type="text" name="q" class="form-control form-control-sm" placeholder="Buscar codigo o nombre..." value="{{ buscar }}" style="max-width:300px">
+  <select name="clase" class="form-select form-select-sm" style="max-width:200px" onchange="this.form.submit()">
+    <option value="">Todas las clases</option>
+    {% for c in clases %}<option value="{{ c.codigo }}" {% if clase_f == c.codigo %}selected{% endif %}>{{ c.codigo }} — {{ c.nombre }}</option>{% endfor %}
+  </select>
+  <button class="btn btn-primary btn-sm">Buscar</button>
+</form>
+<div class="tc">
+  <div class="ch">{{ cuentas|length }} cuentas</div>
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead><tr><th>Codigo</th><th>Nombre</th><th>Nivel</th><th>Naturaleza</th><th>Tipo</th><th>Mov.</th></tr></thead>
+      <tbody>
+      {% for c in cuentas %}
+      <tr style="{% if c.nivel <= 2 %}font-weight:700;background:var(--surface2){% elif c.nivel == 3 %}font-weight:600{% endif %}">
+        <td style="padding-left:{{ (c.nivel - 1) * 16 }}px">
+          {% if c.acepta_mov %}<a href="{{ url_for('contable_auxiliar', codigo=c.codigo) }}" style="color:var(--ac)">{{ c.codigo }}</a>{% else %}{{ c.codigo }}{% endif %}
+        </td>
+        <td>{{ c.nombre }}</td>
+        <td><small>{% if c.nivel==1 %}Clase{% elif c.nivel==2 %}Grupo{% elif c.nivel==3 %}Cuenta{% elif c.nivel==4 %}Subcuenta{% else %}Auxiliar{% endif %}</small></td>
+        <td><span class="b b-{% if c.naturaleza == 'debito' %}negociacion{% else %}completado{% endif %}">{{ c.naturaleza }}</span></td>
+        <td><small>{{ c.tipo|replace('_',' ')|title }}</small></td>
+        <td>{% if c.acepta_mov %}<i class="bi bi-check-circle-fill" style="color:var(--green)"></i>{% else %}<i class="bi bi-dash" style="color:var(--text2)"></i>{% endif %}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

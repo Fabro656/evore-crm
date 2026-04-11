@@ -47,6 +47,62 @@ _MODULOS_ROL = {
     'proveedor':     ['portal_proveedor'],
 }
 
+# ── Onboarding por rol ─────────────────────────────────────────────
+ONBOARDING_STEPS = {
+    'admin': [
+        {'key':'empresa','titulo':'Configura tu empresa','desc':'Nombre, NIT, direccion, firma','url':'admin_config','icon':'bi-building'},
+        {'key':'usuarios','titulo':'Invita a tu equipo','desc':'Crea usuarios para cada area','url':'admin_usuarios','icon':'bi-people'},
+        {'key':'productos','titulo':'Agrega productos','desc':'Tu catalogo de productos terminados','url':'inventario','icon':'bi-box'},
+        {'key':'receta','titulo':'Crea una receta','desc':'Formula/BOM de un producto','url':'produccion_index','icon':'bi-clipboard2-data'},
+        {'key':'cliente','titulo':'Registra tu primer cliente','desc':'Empieza a vender','url':'clientes','icon':'bi-person-plus'},
+    ],
+    'director_financiero': [
+        {'key':'dashboard','titulo':'Tu panel financiero','desc':'Revisa ingresos, egresos y utilidad','url':'contable_index','icon':'bi-speedometer2'},
+        {'key':'puc','titulo':'Revisa el Plan de Cuentas','desc':'PUC colombiano configurado','url':'contable_puc','icon':'bi-list-ol'},
+        {'key':'aprobaciones','titulo':'Aprobaciones pendientes','desc':'Revisa y aprueba gastos del equipo','url':'aprobaciones_pendientes','icon':'bi-clipboard-check'},
+        {'key':'balance','titulo':'Genera un Balance General','desc':'Activos = Pasivos + Patrimonio','url':'contable_balance_general','icon':'bi-bank2'},
+    ],
+    'director_operativo': [
+        {'key':'produccion','titulo':'Ordenes de produccion','desc':'Revisa el estado de produccion','url':'ordenes_produccion','icon':'bi-gear'},
+        {'key':'compras','titulo':'Ordenes de compra','desc':'Gestiona compras a proveedores','url':'ordenes_compra','icon':'bi-cart4'},
+        {'key':'inventario','titulo':'Inventario de productos','desc':'Stock disponible y alertas','url':'inventario','icon':'bi-box-seam'},
+        {'key':'proveedores','titulo':'Gestiona proveedores','desc':'Directorio de proveedores','url':'proveedores','icon':'bi-truck'},
+    ],
+    'vendedor': [
+        {'key':'clientes','titulo':'Conoce tus clientes','desc':'Tu cartera de clientes','url':'clientes','icon':'bi-people'},
+        {'key':'cotizacion','titulo':'Crea una cotizacion','desc':'Prepara una propuesta comercial','url':'cotizacion_nueva','icon':'bi-file-earmark-text'},
+        {'key':'venta','titulo':'Registra una venta','desc':'O convierte una cotizacion aprobada','url':'venta_nueva','icon':'bi-cart-plus'},
+        {'key':'tareas','titulo':'Gestiona tus tareas','desc':'Seguimiento a pendientes','url':'tareas','icon':'bi-check2-square'},
+    ],
+    'produccion': [
+        {'key':'inventario','titulo':'Revisa el inventario','desc':'Stock de productos y materias primas','url':'inventario','icon':'bi-box-seam'},
+        {'key':'materias','titulo':'Materias primas','desc':'Stock disponible de insumos','url':'materias','icon':'bi-droplet-half'},
+        {'key':'recetas','titulo':'Recetas / BOM','desc':'Formulas de cada producto','url':'recetas','icon':'bi-clipboard2-data'},
+        {'key':'ordenes','titulo':'Ordenes de produccion','desc':'Produccion pendiente y en curso','url':'ordenes_produccion','icon':'bi-gear'},
+    ],
+    'contador': [
+        {'key':'puc','titulo':'Plan de Cuentas (PUC)','desc':'Catalogo contable colombiano','url':'contable_puc','icon':'bi-list-ol'},
+        {'key':'asiento','titulo':'Crea un asiento contable','desc':'Registra una operacion en el libro','url':'contable_asiento_nuevo','icon':'bi-journal-plus'},
+        {'key':'impuestos','titulo':'Reglas tributarias','desc':'IVA, retencion, ICA','url':'impuestos','icon':'bi-percent'},
+        {'key':'balance','titulo':'Balance de Prueba','desc':'Verifica que todo cuadre','url':'contable_balance_prueba','icon':'bi-table'},
+        {'key':'resultados','titulo':'Estado de Resultados','desc':'Ingresos vs Gastos del periodo','url':'contable_estado_resultados','icon':'bi-graph-up-arrow'},
+    ],
+    'sales_manager': [
+        {'key':'clientes','titulo':'Cartera de clientes','desc':'Clientes asignados a tu equipo','url':'clientes','icon':'bi-people'},
+        {'key':'cotizaciones','titulo':'Cotizaciones','desc':'Pipeline comercial','url':'cotizaciones','icon':'bi-file-earmark-text'},
+        {'key':'ventas','titulo':'Ventas del equipo','desc':'Estado de cada negocio','url':'ventas','icon':'bi-graph-up-arrow'},
+        {'key':'portal','titulo':'Portal del cliente','desc':'Revisa pre-cotizaciones','url':'portal_cliente','icon':'bi-shop'},
+    ],
+    'cliente': [
+        {'key':'portal','titulo':'Tu portal de compras','desc':'Revisa tus pedidos y cotizaciones','url':'portal_cliente','icon':'bi-shop'},
+        {'key':'precotizacion','titulo':'Solicita una cotizacion','desc':'Envia tu pedido al equipo comercial','url':'portal_pre_cotizacion_nueva','icon':'bi-file-earmark-plus'},
+    ],
+    'proveedor': [
+        {'key':'portal','titulo':'Tu portal de ordenes','desc':'Revisa ordenes de compra','url':'portal_proveedor','icon':'bi-truck'},
+        {'key':'ticket','titulo':'Envia un mensaje','desc':'Contacta al equipo de compras','url':'portal_prov_ticket','icon':'bi-chat-left-text'},
+    ],
+}
+
 # Acciones que requieren aprobación de director_financiero
 REQUIERE_APROBACION = {
     'gasto_nuevo':       'Registrar gasto operativo',
@@ -138,8 +194,26 @@ def inject_globals():
                     prov = db.session.get(Proveedor, prov_id)
                     if prov: empresa_proveedor_nombre = prov.nombre
             except Exception: pass
+    # Onboarding por rol
+    onboarding_data = None
+    if current_user.is_authenticated and not getattr(current_user, 'onboarding_dismissed', False):
+        rol = current_user.rol
+        steps = ONBOARDING_STEPS.get(rol, [])
+        if steps:
+            try:
+                completed = json.loads(getattr(current_user, 'onboarding_role_config', '{}') or '{}')
+            except: completed = {}
+            pending = [s for s in steps if s['key'] not in completed]
+            if pending:
+                onboarding_data = {
+                    'steps': steps, 'completed': completed,
+                    'pending': pending, 'total': len(steps),
+                    'done': len(steps) - len(pending),
+                    'current': pending[0] if pending else None
+                }
     return {'now': datetime.utcnow(), 'modulos_user': modulos, 'notif_count': notif_count,
-            'empresa_cliente_nombre': empresa_cliente_nombre, 'empresa_proveedor_nombre': empresa_proveedor_nombre}
+            'empresa_cliente_nombre': empresa_cliente_nombre, 'empresa_proveedor_nombre': empresa_proveedor_nombre,
+            'onboarding': onboarding_data}
 
 def _send_email(to, subject, body):
     if not _mail_ok or not MailMessage: return

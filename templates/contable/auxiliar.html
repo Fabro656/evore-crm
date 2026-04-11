@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Libro Auxiliar — {{ cuenta.codigo }}{% endblock %}
+{% block page_title %}Libro Auxiliar: {{ cuenta.codigo }} — {{ cuenta.nombre }}{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('contable_puc') }}" class="btn btn-ghost btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver al PUC</a>
+{% endblock %}
+{% block content %}
+<div class="d-flex gap-2 mb-3 align-items-center">
+  <span class="b b-{{ cuenta.naturaleza }}">{{ cuenta.naturaleza|title }}</span>
+  <span class="b b-borrador">{{ cuenta.tipo|replace('_',' ')|title }}</span>
+  <form class="d-flex gap-2 ms-auto" method="GET">
+    <input type="month" name="periodo" class="form-control form-control-sm" value="{{ periodo }}" style="max-width:180px">
+    <button class="btn btn-primary btn-sm">Filtrar</button>
+  </form>
+</div>
+{% if filas %}
+<div class="tc">
+  <div class="ch">Movimientos — {{ periodo }} ({{ filas|length }} registros)</div>
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead><tr><th>Fecha</th><th>No. Asiento</th><th>Descripcion</th><th>Tercero</th><th class="text-end">Debito</th><th class="text-end">Credito</th><th class="text-end">Saldo</th></tr></thead>
+      <tbody>
+      {% for f in filas %}
+      <tr>
+        <td><small>{{ f.linea.asiento.fecha.strftime('%d/%m/%Y') }}</small></td>
+        <td><a href="{{ url_for('contable_comprobante', id=f.linea.asiento.id) }}" style="color:var(--ac)">{{ f.linea.asiento.numero }}</a></td>
+        <td style="font-size:.85rem">{{ f.linea.descripcion or f.linea.asiento.descripcion }}</td>
+        <td><small>{{ f.linea.tercero_nit or '' }}</small></td>
+        <td class="text-end">{% if f.linea.debe %}{{ moneda(f.linea.debe) }}{% endif %}</td>
+        <td class="text-end">{% if f.linea.haber %}{{ moneda(f.linea.haber) }}{% endif %}</td>
+        <td class="text-end fw-bold" style="color:{% if f.saldo_acum >= 0 %}var(--text){% else %}var(--red){% endif %}">{{ moneda(f.saldo_acum) }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+      <tfoot style="border-top:2px solid var(--ac)">
+        <tr class="fw-bold">
+          <td colspan="4">SALDO FINAL</td>
+          <td></td><td></td>
+          <td class="text-end" style="font-size:1.05rem;color:var(--ac)">{{ moneda(saldo_final) }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="sc" style="text-align:center;padding:2rem">
+  <i class="bi bi-journal-x" style="font-size:2rem;color:var(--text2);display:block;margin-bottom:.5rem"></i>
+  <p style="color:var(--text2);margin:0">No hay movimientos para esta cuenta en el periodo {{ periodo }}.</p>
+</div>
+{% endif %}
+{% endblock %}

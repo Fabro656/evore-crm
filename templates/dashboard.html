@@ -7,20 +7,31 @@
 {% endblock %}
 {% block content %}
 
-{# ── Banner bienvenida / onboarding ────────────────── #}
-{% if total_clientes == 0 %}
+{# ── Banner bienvenida / onboarding por rol ────────────────── #}
+{% if onboarding and onboarding.pending %}
 <div class="onboard-banner mb-3">
   <div style="position:relative;z-index:1">
-    <div style="font-size:.72rem;letter-spacing:2px;text-transform:uppercase;opacity:.6;margin-bottom:.3rem">Bienvenido/a al CRM</div>
-    <div style="font-size:1.25rem;font-weight:700;margin-bottom:.3rem">Hola, {{ current_user.nombre }}! 👋</div>
-    <div style="font-size:.87rem;opacity:.75;max-width:520px">Para empezar, sigue estos pasos rápidos. Cada sección del sistema tiene un propósito claro.</div>
-    <div class="onboard-steps mt-2">
-      <a href="{{ url_for('cliente_nuevo') }}" class="onboard-step"><i class="bi bi-person-plus"></i> 1. Agregar primer cliente</a>
-      <a href="{{ url_for('venta_nueva') }}" class="onboard-step"><i class="bi bi-plus-circle"></i> 2. Crear una venta</a>
-      <a href="{{ url_for('tarea_nueva') }}" class="onboard-step"><i class="bi bi-check2-square"></i> 3. Crear una tarea</a>
-      <a href="{{ url_for('impuestos') }}" class="onboard-step"><i class="bi bi-percent"></i> 4. Configurar impuestos</a>
-      <a href="{{ url_for('admin_config') }}" class="onboard-step"><i class="bi bi-gear"></i> 5. Configurar empresa</a>
+    <div style="font-size:.72rem;letter-spacing:2px;text-transform:uppercase;opacity:.6;margin-bottom:.3rem">
+      {{ current_user.rol|replace('_',' ')|title }} — {{ onboarding.done }}/{{ onboarding.total }} completados
     </div>
+    <div style="font-size:1.25rem;font-weight:700;margin-bottom:.3rem">Hola, {{ current_user.nombre }}!</div>
+    <div style="font-size:.87rem;opacity:.75;max-width:520px">Sigue estos pasos para configurar tu area de trabajo.</div>
+    <div style="background:rgba(255,255,255,.15);border-radius:4px;height:6px;margin:8px 0 12px;max-width:400px">
+      <div style="background:#fff;border-radius:4px;height:100%;width:{{ (onboarding.done / onboarding.total * 100)|int }}%;transition:width .3s"></div>
+    </div>
+    <div class="onboard-steps mt-2">
+      {% for step in onboarding.steps %}
+      {% set done = step.key in onboarding.completed %}
+      <a href="{{ url_for(step.url) }}" class="onboard-step" style="{% if done %}opacity:.5;text-decoration:line-through{% endif %}"
+         {% if not done %}onclick="fetch('/onboarding/step/{{ step.key }}/complete',{method:'POST'})"{% endif %}>
+        <i class="bi {{ step.icon }}"></i> {{ loop.index }}. {{ step.titulo }}
+        {% if done %}<i class="bi bi-check-circle-fill" style="color:#7cff7c"></i>{% endif %}
+      </a>
+      {% endfor %}
+    </div>
+    <form method="POST" action="{{ url_for('onboarding_dismiss') }}" style="margin-top:8px">
+      <button type="submit" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:.75rem;cursor:pointer;text-decoration:underline">Ocultar guia</button>
+    </form>
   </div>
 </div>
 {% else %}

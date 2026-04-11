@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Estado de Resultados{% endblock %}{% block page_title %}Estado de Resultados{% endblock %}
+{% block content %}
+<form class="d-flex gap-2 mb-3 align-items-center" method="GET">
+  <label class="form-label mb-0">Periodo:</label>
+  <input type="month" name="periodo" class="form-control form-control-sm" value="{{ periodo }}" style="max-width:180px">
+  <button class="btn btn-primary btn-sm">Consultar</button>
+</form>
+<div class="tc mb-3" style="text-align:center;padding:1rem;border-bottom:2px solid var(--ac)">
+  <strong>{{ empresa.nombre if empresa else 'Evore' }}</strong><br>
+  <small style="color:var(--text2)">NIT: {{ empresa.nit if empresa and empresa.nit else '—' }}</small><br>
+  <strong>ESTADO DE RESULTADOS</strong><br>
+  <small>Periodo: {{ periodo }}</small>
+</div>
+<div class="tc">
+  <div class="p-3">
+    <div class="d-flex justify-content-between mb-2 pb-2" style="border-bottom:1px solid var(--border)">
+      <span class="fw-bold">Ingresos operacionales (Clase 4)</span>
+      <span class="fw-bold" style="color:var(--green)">{{ moneda(ingresos) }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-1" style="padding-left:1rem;font-size:.9rem">
+      <span style="color:var(--text2)">(-) Costo de ventas (Clase 6)</span>
+      <span style="color:var(--red)">{{ moneda(costos_venta) }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-1" style="padding-left:1rem;font-size:.9rem">
+      <span style="color:var(--text2)">(-) Costos de produccion (Clase 7)</span>
+      <span style="color:var(--red)">{{ moneda(costos_produccion) }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-2 pb-2 pt-2" style="border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+      <span class="fw-bold">UTILIDAD BRUTA</span>
+      <span class="fw-bold" style="color:{% if utilidad_bruta >= 0 %}var(--green){% else %}var(--red){% endif %}">{{ moneda(utilidad_bruta) }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-1" style="padding-left:1rem;font-size:.9rem">
+      <span style="color:var(--text2)">(-) Gastos operacionales (Clase 5)</span>
+      <span style="color:var(--red)">{{ moneda(gastos) }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-2 pb-2 pt-2" style="border-top:1px solid var(--border);border-bottom:2px solid var(--ac)">
+      <span class="fw-bold" style="font-size:1.1rem">UTILIDAD OPERACIONAL</span>
+      <span class="fw-bold" style="font-size:1.1rem;color:{% if utilidad_operacional >= 0 %}var(--green){% else %}var(--red){% endif %}">{{ moneda(utilidad_operacional) }}</span>
+    </div>
+    <div class="d-flex justify-content-between pt-2" style="font-size:1.15rem">
+      <span class="fw-bold">UTILIDAD NETA DEL PERIODO</span>
+      <span class="fw-bold" style="color:{% if utilidad_neta >= 0 %}var(--green){% else %}var(--red){% endif %}">{{ moneda(utilidad_neta) }}</span>
+    </div>
+  </div>
+</div>
+{% endblock %}

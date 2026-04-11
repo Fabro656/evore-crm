@@ -19,6 +19,8 @@ class User(UserMixin, db.Model):
     modulos_permitidos  = db.Column(db.Text, default='[]')   # JSON list
     creado_en           = db.Column(db.DateTime, default=datetime.utcnow)
     onboarding_dismissed = db.Column(db.Boolean, default=False)
+    onboarding_step      = db.Column(db.Integer, default=0)
+    onboarding_role_config = db.Column(db.Text, default='{}')
     cliente_id           = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=True)
     proveedor_id        = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
     def set_password(self, p):   self.password_hash = generate_password_hash(p)
@@ -329,6 +331,20 @@ class DocumentoLegal(db.Model):
     creado_por        = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en         = db.Column(db.DateTime, default=datetime.utcnow)
 
+class CuentaPUC(db.Model):
+    """Plan Único de Cuentas — catálogo contable colombiano (Decreto 2650/1993)."""
+    __tablename__ = 'cuentas_puc'
+    id          = db.Column(db.Integer, primary_key=True)
+    codigo      = db.Column(db.String(10), unique=True, index=True, nullable=False)
+    nombre      = db.Column(db.String(200), nullable=False)
+    nivel       = db.Column(db.Integer, default=1)  # 1=clase,2=grupo,3=cuenta,4=subcuenta,5=auxiliar
+    naturaleza  = db.Column(db.String(7), default='debito')  # debito | credito
+    tipo        = db.Column(db.String(20))  # activo,pasivo,patrimonio,ingreso,gasto,costo_venta,costo_produccion
+    padre_codigo= db.Column(db.String(10), nullable=True)
+    acepta_mov  = db.Column(db.Boolean, default=True)
+    activo      = db.Column(db.Boolean, default=True)
+    descripcion = db.Column(db.Text, nullable=True)
+
 class AsientoContable(db.Model):
     __tablename__ = 'asientos_contables'
     id               = db.Column(db.Integer, primary_key=True)
@@ -336,31 +352,54 @@ class AsientoContable(db.Model):
     fecha            = db.Column(db.Date, nullable=False)
     descripcion      = db.Column(db.String(300), nullable=False)
     tipo             = db.Column(db.String(30), default='manual')
-    # tipo: manual | venta | compra | gasto | ingreso_externo | inversion_socio | gasto_caja_chica
-    subtipo          = db.Column(db.String(50), nullable=True)   # v30: descripción corta del tipo
+    # tipo: manual | venta | compra | gasto | nomina | ingreso_externo | inversion_socio | gasto_caja_chica
+    subtipo          = db.Column(db.String(50), nullable=True)
     referencia       = db.Column(db.String(100))
+    # Legacy single-line (kept for backward compat)
     debe             = db.Column(db.Float, default=0)
     haber            = db.Column(db.Float, default=0)
     cuenta_debe      = db.Column(db.String(100))
     cuenta_haber     = db.Column(db.String(100))
+    # v34 PUC fields
+    tipo_documento   = db.Column(db.String(20), default='comprobante')  # comprobante_egreso,comprobante_ingreso,nota_contable,factura_venta,factura_compra
+    estado_asiento   = db.Column(db.String(20), default='borrador')     # borrador,aprobado,anulado
+    tercero_nit      = db.Column(db.String(30), nullable=True)
+    tercero_nombre   = db.Column(db.String(200), nullable=True)
+    periodo          = db.Column(db.String(7), nullable=True)  # "2026-04" para cierre mensual
     notas            = db.Column(db.Text)
-    venta_id         = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=True)       # v30
-    orden_compra_id  = db.Column(db.Integer, db.ForeignKey('ordenes_compra.id'), nullable=True)  # v30
-    proveedor_id     = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)  # v31
-    gasto_id         = db.Column(db.Integer, db.ForeignKey('gastos_operativos.id'), nullable=True)  # v33
-    clasificacion    = db.Column(db.String(10), default='egreso')    # ingreso | egreso   v31
-    nro_transaccion  = db.Column(db.String(100), nullable=True)      # v31
-    banco_nombre     = db.Column(db.String(120), nullable=True)      # v31
-    banco_cuenta     = db.Column(db.String(80), nullable=True)       # v31
-    beneficiario     = db.Column(db.String(200), nullable=True)      # v31
-    metodo_pago      = db.Column(db.String(30), nullable=True)       # efectivo|transferencia|cheque|tarjeta  v31
-    fecha_pago       = db.Column(db.Date, nullable=True)             # v31
+    venta_id         = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=True)
+    orden_compra_id  = db.Column(db.Integer, db.ForeignKey('ordenes_compra.id'), nullable=True)
+    proveedor_id     = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
+    gasto_id         = db.Column(db.Integer, db.ForeignKey('gastos_operativos.id'), nullable=True)
+    clasificacion    = db.Column(db.String(10), default='egreso')    # ingreso | egreso
+    nro_transaccion  = db.Column(db.String(100), nullable=True)
+    banco_nombre     = db.Column(db.String(120), nullable=True)
+    banco_cuenta     = db.Column(db.String(80), nullable=True)
+    beneficiario     = db.Column(db.String(200), nullable=True)
+    metodo_pago      = db.Column(db.String(30), nullable=True)
+    fecha_pago       = db.Column(db.Date, nullable=True)
     creado_por       = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en        = db.Column(db.DateTime, default=datetime.utcnow)
-    venta            = db.relationship('Venta', foreign_keys=[venta_id])         # v30
-    orden_compra     = db.relationship('OrdenCompra', foreign_keys=[orden_compra_id])  # v30
-    proveedor        = db.relationship('Proveedor', foreign_keys=[proveedor_id])  # v31
-    gasto            = db.relationship('GastoOperativo', foreign_keys=[gasto_id])  # v33
+    venta            = db.relationship('Venta', foreign_keys=[venta_id])
+    orden_compra     = db.relationship('OrdenCompra', foreign_keys=[orden_compra_id])
+    proveedor        = db.relationship('Proveedor', foreign_keys=[proveedor_id])
+    gasto            = db.relationship('GastoOperativo', foreign_keys=[gasto_id])
+    lineas           = db.relationship('LineaAsiento', backref='asiento', lazy=True, cascade='all, delete-orphan')
+
+class LineaAsiento(db.Model):
+    """Línea de un asiento contable — partida doble con cuenta PUC."""
+    __tablename__ = 'lineas_asiento'
+    id              = db.Column(db.Integer, primary_key=True)
+    asiento_id      = db.Column(db.Integer, db.ForeignKey('asientos_contables.id'), nullable=False)
+    cuenta_puc_id   = db.Column(db.Integer, db.ForeignKey('cuentas_puc.id'), nullable=False)
+    descripcion     = db.Column(db.String(300))
+    debe            = db.Column(db.Float, default=0)
+    haber           = db.Column(db.Float, default=0)
+    tercero_nit     = db.Column(db.String(30), nullable=True)
+    tercero_nombre  = db.Column(db.String(200), nullable=True)
+    centro_costo    = db.Column(db.String(50), nullable=True)
+    orden           = db.Column(db.Integer, default=0)
+    cuenta          = db.relationship('CuentaPUC', foreign_keys=[cuenta_puc_id])
 
 class ReglaTributaria(db.Model):
     __tablename__ = 'reglas_tributarias'
@@ -930,6 +969,22 @@ def _migrate(conn):
         # v34 — Aprobaciones: sistema de confirmación para acciones financieras
         ("CREATE TABLE IF NOT EXISTS aprobaciones (id SERIAL PRIMARY KEY, tipo_accion VARCHAR(50) NOT NULL, descripcion VARCHAR(300), monto FLOAT DEFAULT 0, datos_json TEXT, estado VARCHAR(20) DEFAULT 'pendiente', solicitado_por INTEGER NOT NULL REFERENCES users(id), aprobado_por INTEGER REFERENCES users(id), notas_aprobador TEXT, creado_en TIMESTAMP DEFAULT NOW(), resuelto_en TIMESTAMP)"),
         ("CREATE TABLE IF NOT EXISTS aprobaciones (id INTEGER PRIMARY KEY AUTOINCREMENT, tipo_accion VARCHAR(50) NOT NULL, descripcion VARCHAR(300), monto FLOAT DEFAULT 0, datos_json TEXT, estado VARCHAR(20) DEFAULT 'pendiente', solicitado_por INTEGER NOT NULL REFERENCES users(id), aprobado_por INTEGER REFERENCES users(id), notas_aprobador TEXT, creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP, resuelto_en TIMESTAMP)"),
+        # v34 — PUC: Plan Único de Cuentas colombiano
+        ("ALTER TABLE asientos_contables ADD COLUMN IF NOT EXISTS tipo_documento VARCHAR(20) DEFAULT 'comprobante'"),
+        ("ALTER TABLE asientos_contables ADD COLUMN tipo_documento VARCHAR(20) DEFAULT 'comprobante'"),
+        ("ALTER TABLE asientos_contables ADD COLUMN IF NOT EXISTS estado_asiento VARCHAR(20) DEFAULT 'borrador'"),
+        ("ALTER TABLE asientos_contables ADD COLUMN estado_asiento VARCHAR(20) DEFAULT 'borrador'"),
+        ("ALTER TABLE asientos_contables ADD COLUMN IF NOT EXISTS tercero_nit VARCHAR(30)"),
+        ("ALTER TABLE asientos_contables ADD COLUMN tercero_nit VARCHAR(30)"),
+        ("ALTER TABLE asientos_contables ADD COLUMN IF NOT EXISTS tercero_nombre VARCHAR(200)"),
+        ("ALTER TABLE asientos_contables ADD COLUMN tercero_nombre VARCHAR(200)"),
+        ("ALTER TABLE asientos_contables ADD COLUMN IF NOT EXISTS periodo VARCHAR(7)"),
+        ("ALTER TABLE asientos_contables ADD COLUMN periodo VARCHAR(7)"),
+        # v34 — Onboarding por rol
+        ("ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_step INTEGER DEFAULT 0"),
+        ("ALTER TABLE users ADD COLUMN onboarding_step INTEGER DEFAULT 0"),
+        ("ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_role_config TEXT DEFAULT '{}'"),
+        ("ALTER TABLE users ADD COLUMN onboarding_role_config TEXT DEFAULT '{}'"),
     ]
     for sql in migrations:
         try:
@@ -962,8 +1017,144 @@ def init_db():
     if not ConfigEmpresa.query.first():
         db.session.add(ConfigEmpresa(nombre='Evore', email='contacto@evore.us', sitio_web='evore.us'))
         db.session.commit()
-    # Seed data para tester
+    _seed_puc()
     _seed_demo_data()
+
+
+def _seed_puc():
+    """Siembra el Plan Único de Cuentas mínimo para empresa manufacturera colombiana."""
+    import logging
+    try:
+        if CuentaPUC.query.count() > 0:
+            return
+    except Exception:
+        return
+
+    logging.info('Sembrando PUC colombiano...')
+    # (codigo, nombre, nivel, naturaleza, tipo, padre, acepta_mov)
+    cuentas = [
+        # ═══ CLASE 1: ACTIVOS ═══
+        ('1',     'Activo',                          1, 'debito', 'activo',      None, False),
+        ('11',    'Disponible',                      2, 'debito', 'activo',      '1',  False),
+        ('1105',  'Caja',                            3, 'debito', 'activo',      '11', False),
+        ('110505','Caja general',                    5, 'debito', 'activo',      '1105', True),
+        ('110510','Cajas menores',                   5, 'debito', 'activo',      '1105', True),
+        ('1110',  'Bancos',                          3, 'debito', 'activo',      '11', False),
+        ('111005','Moneda nacional',                 5, 'debito', 'activo',      '1110', True),
+        ('13',    'Deudores',                        2, 'debito', 'activo',      '1',  False),
+        ('1305',  'Clientes',                        3, 'debito', 'activo',      '13', False),
+        ('130505','Nacionales',                      5, 'debito', 'activo',      '1305', True),
+        ('1355',  'Anticipos y avances',             3, 'debito', 'activo',      '13', True),
+        ('1365',  'Cuentas por cobrar a trabajadores',3,'debito', 'activo',      '13', True),
+        ('1380',  'Deudores varios',                 3, 'debito', 'activo',      '13', True),
+        ('14',    'Inventarios',                     2, 'debito', 'activo',      '1',  False),
+        ('1405',  'Materias primas',                 3, 'debito', 'activo',      '14', True),
+        ('1410',  'Productos en proceso',            3, 'debito', 'activo',      '14', True),
+        ('1430',  'Productos terminados',            3, 'debito', 'activo',      '14', True),
+        ('1435',  'Mercancias no fabricadas',        3, 'debito', 'activo',      '14', True),
+        ('1465',  'Envases y empaques',              3, 'debito', 'activo',      '14', True),
+        ('15',    'Propiedad planta y equipo',       2, 'debito', 'activo',      '1',  False),
+        ('1520',  'Maquinaria y equipo',             3, 'debito', 'activo',      '15', True),
+        ('1524',  'Equipo de oficina',               3, 'debito', 'activo',      '15', True),
+        ('1528',  'Equipo de computacion',           3, 'debito', 'activo',      '15', True),
+        ('1540',  'Equipo de transporte',            3, 'debito', 'activo',      '15', True),
+        ('1592',  'Depreciacion acumulada',          3, 'credito','activo',      '15', True),
+        # ═══ CLASE 2: PASIVOS ═══
+        ('2',     'Pasivo',                          1, 'credito','pasivo',      None, False),
+        ('22',    'Proveedores',                     2, 'credito','pasivo',      '2',  False),
+        ('2205',  'Proveedores nacionales',          3, 'credito','pasivo',      '22', False),
+        ('220505','Nacionales',                      5, 'credito','pasivo',      '2205', True),
+        ('23',    'Cuentas por pagar',               2, 'credito','pasivo',      '2',  False),
+        ('2335',  'Costos y gastos por pagar',       3, 'credito','pasivo',      '23', True),
+        ('2365',  'Retencion en la fuente',          3, 'credito','pasivo',      '23', False),
+        ('236505','Salarios y pagos laborales',      5, 'credito','pasivo',      '2365', True),
+        ('236540','Compras',                         5, 'credito','pasivo',      '2365', True),
+        ('2367',  'Impuesto a las ventas retenido',  3, 'credito','pasivo',      '23', True),
+        ('2368',  'Impuesto industria y comercio ret',3,'credito','pasivo',      '23', True),
+        ('2370',  'Retenciones y aportes de nomina', 3, 'credito','pasivo',      '23', True),
+        ('2380',  'Acreedores varios',               3, 'credito','pasivo',      '23', True),
+        ('24',    'Impuestos gravamenes y tasas',    2, 'credito','pasivo',      '2',  False),
+        ('2404',  'De renta y complementarios',      3, 'credito','pasivo',      '24', True),
+        ('2408',  'IVA por pagar',                   3, 'credito','pasivo',      '24', False),
+        ('240801','IVA generado en ventas',          5, 'credito','pasivo',      '2408', True),
+        ('240802','IVA descontable en compras',      5, 'debito', 'pasivo',      '2408', True),
+        ('25',    'Obligaciones laborales',          2, 'credito','pasivo',      '2',  False),
+        ('2505',  'Salarios por pagar',              3, 'credito','pasivo',      '25', True),
+        ('2510',  'Cesantias consolidadas',          3, 'credito','pasivo',      '25', True),
+        ('2515',  'Intereses sobre cesantias',       3, 'credito','pasivo',      '25', True),
+        ('2520',  'Prima de servicios',              3, 'credito','pasivo',      '25', True),
+        ('2525',  'Vacaciones consolidadas',         3, 'credito','pasivo',      '25', True),
+        # ═══ CLASE 3: PATRIMONIO ═══
+        ('3',     'Patrimonio',                      1, 'credito','patrimonio',  None, False),
+        ('31',    'Capital social',                  2, 'credito','patrimonio',  '3',  False),
+        ('3105',  'Capital suscrito y pagado',       3, 'credito','patrimonio',  '31', True),
+        ('3115',  'Aportes sociales',                3, 'credito','patrimonio',  '31', True),
+        ('32',    'Superavit de capital',            2, 'credito','patrimonio',  '3',  False),
+        ('3205',  'Reserva legal',                   3, 'credito','patrimonio',  '32', True),
+        ('36',    'Resultados del ejercicio',        2, 'credito','patrimonio',  '3',  False),
+        ('3605',  'Utilidad del ejercicio',          3, 'credito','patrimonio',  '36', True),
+        ('3610',  'Perdida del ejercicio',           3, 'debito', 'patrimonio',  '36', True),
+        # ═══ CLASE 4: INGRESOS ═══
+        ('4',     'Ingresos',                        1, 'credito','ingreso',     None, False),
+        ('41',    'Operacionales',                   2, 'credito','ingreso',     '4',  False),
+        ('4135',  'Comercio al por mayor y menor',   3, 'credito','ingreso',     '41', True),
+        ('4140',  'Servicios prestados',             3, 'credito','ingreso',     '41', True),
+        ('4170',  'Devoluciones en ventas (DB)',      3, 'debito', 'ingreso',     '41', True),
+        ('42',    'No operacionales',                2, 'credito','ingreso',     '4',  False),
+        ('4210',  'Financieros',                     3, 'credito','ingreso',     '42', True),
+        ('4295',  'Diversos',                        3, 'credito','ingreso',     '42', True),
+        # ═══ CLASE 5: GASTOS ═══
+        ('5',     'Gastos',                          1, 'debito', 'gasto',       None, False),
+        ('51',    'Operacionales de administracion', 2, 'debito', 'gasto',       '5',  False),
+        ('5105',  'Gastos de personal',              3, 'debito', 'gasto',       '51', False),
+        ('510506','Sueldos',                         5, 'debito', 'gasto',       '5105', True),
+        ('510527','Auxilio de transporte',           5, 'debito', 'gasto',       '5105', True),
+        ('510530','Cesantias',                       5, 'debito', 'gasto',       '5105', True),
+        ('510533','Intereses sobre cesantias',       5, 'debito', 'gasto',       '5105', True),
+        ('510536','Prima de servicios',              5, 'debito', 'gasto',       '5105', True),
+        ('510539','Vacaciones',                      5, 'debito', 'gasto',       '5105', True),
+        ('510568','Aportes a ARL',                   5, 'debito', 'gasto',       '5105', True),
+        ('510569','Aportes EPS empleador',           5, 'debito', 'gasto',       '5105', True),
+        ('510570','Aportes pension empleador',       5, 'debito', 'gasto',       '5105', True),
+        ('510572','Aportes caja compensacion',       5, 'debito', 'gasto',       '5105', True),
+        ('5110',  'Honorarios',                      3, 'debito', 'gasto',       '51', True),
+        ('5115',  'Impuestos',                       3, 'debito', 'gasto',       '51', True),
+        ('5120',  'Arrendamientos',                  3, 'debito', 'gasto',       '51', True),
+        ('5130',  'Seguros',                         3, 'debito', 'gasto',       '51', True),
+        ('5135',  'Servicios',                       3, 'debito', 'gasto',       '51', False),
+        ('513525','Acueducto y alcantarillado',      5, 'debito', 'gasto',       '5135', True),
+        ('513530','Energia electrica',               5, 'debito', 'gasto',       '5135', True),
+        ('513535','Telefono e internet',             5, 'debito', 'gasto',       '5135', True),
+        ('5145',  'Mantenimiento y reparaciones',    3, 'debito', 'gasto',       '51', True),
+        ('5155',  'Gastos de viaje',                 3, 'debito', 'gasto',       '51', True),
+        ('5195',  'Diversos',                        3, 'debito', 'gasto',       '51', True),
+        ('53',    'No operacionales',                2, 'debito', 'gasto',       '5',  False),
+        ('5305',  'Financieros',                     3, 'debito', 'gasto',       '53', True),
+        # ═══ CLASE 6: COSTOS DE VENTA ═══
+        ('6',     'Costos de venta',                 1, 'debito', 'costo_venta', None, False),
+        ('61',    'Costo de ventas y prestacion de servicios',2,'debito','costo_venta','6', False),
+        ('6135',  'Comercio al por mayor y menor',   3, 'debito', 'costo_venta', '61', True),
+        # ═══ CLASE 7: COSTOS DE PRODUCCION ═══
+        ('7',     'Costos de produccion',            1, 'debito', 'costo_produccion', None, False),
+        ('71',    'Materia prima',                   2, 'debito', 'costo_produccion', '7',  False),
+        ('7105',  'Materia prima directa',           3, 'debito', 'costo_produccion', '71', True),
+        ('72',    'Mano de obra directa',            2, 'debito', 'costo_produccion', '7',  False),
+        ('7205',  'Mano de obra directa',            3, 'debito', 'costo_produccion', '72', True),
+        ('73',    'Costos indirectos',               2, 'debito', 'costo_produccion', '7',  False),
+        ('7305',  'Costos indirectos de fabricacion', 3,'debito', 'costo_produccion', '73', True),
+    ]
+
+    for codigo, nombre, nivel, naturaleza, tipo, padre, acepta in cuentas:
+        db.session.add(CuentaPUC(
+            codigo=codigo, nombre=nombre, nivel=nivel, naturaleza=naturaleza,
+            tipo=tipo, padre_codigo=padre, acepta_mov=acepta, activo=True))
+
+    try:
+        db.session.commit()
+        logging.info(f'PUC colombiano sembrado: {len(cuentas)} cuentas.')
+    except Exception as e:
+        db.session.rollback()
+        logging.warning(f'Error sembrando PUC: {e}')
 
 
 def _seed_demo_data():

@@ -58,9 +58,22 @@ def register(app):
     @login_required
     def onboarding_reset():
         current_user.onboarding_dismissed = False
+        current_user.onboarding_role_config = '{}'
         db.session.commit()
         flash('Tutorial restablecido.', 'info')
         return redirect(request.referrer or url_for('dashboard'))
+
+    # ── onboarding_step_complete (/onboarding/step/<key>/complete)
+    @app.route('/onboarding/step/<key>/complete', methods=['POST'])
+    @login_required
+    def onboarding_step_complete(key):
+        try:
+            config = json.loads(current_user.onboarding_role_config or '{}')
+        except: config = {}
+        config[key] = True
+        current_user.onboarding_role_config = json.dumps(config)
+        db.session.commit()
+        return ('', 204)
     
 
     # ── perfil (/perfil)

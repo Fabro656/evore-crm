@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}Balance General{% endblock %}{% block page_title %}Balance General{% endblock %}
+{% block content %}
+<form class="d-flex gap-2 mb-3 align-items-center" method="GET">
+  <label class="form-label mb-0">Fecha de corte:</label>
+  <input type="date" name="corte" class="form-control form-control-sm" value="{{ fecha_corte.isoformat() }}" style="max-width:180px">
+  <button class="btn btn-primary btn-sm">Consultar</button>
+</form>
+<div class="tc mb-3" style="text-align:center;padding:1rem;border-bottom:2px solid var(--ac)">
+  <strong>{{ empresa.nombre if empresa else 'Evore' }}</strong><br>
+  <small style="color:var(--text2)">NIT: {{ empresa.nit if empresa and empresa.nit else '—' }}</small><br>
+  <strong>BALANCE GENERAL</strong><br>
+  <small>Al {{ fecha_corte.strftime('%d de %B de %Y') }}</small>
+</div>
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="tc">
+      <div class="ch" style="background:var(--ac);color:#fff">ACTIVOS</div>
+      <div class="p-3">
+        {% for c in activos_det %}
+        <div class="d-flex justify-content-between mb-1" style="font-size:.85rem">
+          <span>{{ c.codigo }} {{ c.nombre }}</span>
+          <span style="color:var(--text2)">—</span>
+        </div>
+        {% endfor %}
+        <hr style="border-color:var(--border)">
+        <div class="d-flex justify-content-between fw-bold" style="font-size:1.05rem">
+          <span>TOTAL ACTIVOS</span>
+          <span style="color:var(--ac)">{{ moneda(activos) }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="tc mb-3">
+      <div class="ch" style="background:var(--orange);color:#fff">PASIVOS</div>
+      <div class="p-3">
+        {% for c in pasivos_det %}
+        <div class="d-flex justify-content-between mb-1" style="font-size:.85rem">
+          <span>{{ c.codigo }} {{ c.nombre }}</span>
+          <span style="color:var(--text2)">—</span>
+        </div>
+        {% endfor %}
+        <hr style="border-color:var(--border)">
+        <div class="d-flex justify-content-between fw-bold">
+          <span>TOTAL PASIVOS</span>
+          <span>{{ moneda(pasivos) }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="tc">
+      <div class="ch" style="background:var(--green);color:#fff">PATRIMONIO</div>
+      <div class="p-3">
+        {% for c in patrimonio_det %}
+        <div class="d-flex justify-content-between mb-1" style="font-size:.85rem">
+          <span>{{ c.codigo }} {{ c.nombre }}</span>
+          <span style="color:var(--text2)">—</span>
+        </div>
+        {% endfor %}
+        <hr style="border-color:var(--border)">
+        <div class="d-flex justify-content-between fw-bold">
+          <span>TOTAL PATRIMONIO</span>
+          <span>{{ moneda(patrimonio) }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="tc mt-3" style="border:2px solid var(--ac)">
+      <div class="p-3">
+        <div class="d-flex justify-content-between fw-bold" style="font-size:1.05rem">
+          <span>PASIVOS + PATRIMONIO</span>
+          <span style="color:{% if (pasivos + patrimonio)|round == activos|round %}var(--green){% else %}var(--red){% endif %}">{{ moneda(pasivos + patrimonio) }}</span>
+        </div>
+        {% if (pasivos + patrimonio)|round != activos|round %}
+        <small style="color:var(--red)">Diferencia: {{ moneda(activos - pasivos - patrimonio) }} — El balance no cuadra.</small>
+        {% else %}
+        <small style="color:var(--green)">Balance cuadrado.</small>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -347,3 +347,255 @@ def register(app):
         empresa = ConfigEmpresa.query.first()
         return render_template('contable/comprobante.html',
             asiento=asiento, empresa=empresa)
+
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # PUC — Plan Único de Cuentas (v34)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    @app.route('/contable/puc')
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_puc():
+        """Navegador del Plan Único de Cuentas."""
+        buscar = request.args.get('q', '').strip()
+        clase_f = request.args.get('clase', '')
+        q = CuentaPUC.query.filter_by(activo=True)
+        if buscar:
+            q = q.filter(db.or_(
+                CuentaPUC.codigo.ilike(f'%{buscar}%'),
+                CuentaPUC.nombre.ilike(f'%{buscar}%')
+            ))
+        if clase_f:
+            q = q.filter(CuentaPUC.codigo.startswith(clase_f))
+        cuentas = q.order_by(CuentaPUC.codigo).all()
+        clases = CuentaPUC.query.filter_by(nivel=1, activo=True).order_by(CuentaPUC.codigo).all()
+        return render_template('contable/puc.html', cuentas=cuentas, clases=clases,
+                               buscar=buscar, clase_f=clase_f)
+
+    @app.route('/contable/puc/nuevo', methods=['GET', 'POST'])
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_puc_nuevo():
+        """Agregar cuenta auxiliar al PUC."""
+        if current_user.rol not in ('admin', 'director_financiero', 'contador'):
+            flash('Solo contadores o directores pueden agregar cuentas.', 'danger')
+            return redirect(url_for('contable_puc'))
+        if request.method == 'POST':
+            codigo = request.form.get('codigo', '').strip()
+            nombre = request.form.get('nombre', '').strip()
+            padre = request.form.get('padre_codigo', '').strip()
+            if not codigo or not nombre:
+                flash('Código y nombre son requeridos.', 'danger')
+                return redirect(url_for('contable_puc_nuevo'))
+            if CuentaPUC.query.filter_by(codigo=codigo).first():
+                flash(f'Ya existe la cuenta {codigo}.', 'warning')
+                return redirect(url_for('contable_puc_nuevo'))
+            # Determinar naturaleza y tipo del padre
+            padre_obj = CuentaPUC.query.filter_by(codigo=padre).first() if padre else None
+            c = CuentaPUC(
+                codigo=codigo, nombre=nombre,
+                nivel=len(codigo) if len(codigo) <= 2 else (3 if len(codigo) <= 4 else 5),
+                naturaleza=padre_obj.naturaleza if padre_obj else request.form.get('naturaleza', 'debito'),
+                tipo=padre_obj.tipo if padre_obj else request.form.get('tipo', 'gasto'),
+                padre_codigo=padre or None,
+                acepta_mov=True, activo=True,
+                descripcion=request.form.get('descripcion', '')
+            )
+            db.session.add(c); db.session.commit()
+            flash(f'Cuenta {codigo} — {nombre} creada.', 'success')
+            return redirect(url_for('contable_puc'))
+        padres = CuentaPUC.query.filter(CuentaPUC.acepta_mov == False, CuentaPUC.activo == True)\
+                     .order_by(CuentaPUC.codigo).all()
+        return render_template('contable/puc_form.html', padres=padres)
+
+    @app.route('/contable/puc/api/buscar')
+    @login_required
+    def api_puc_buscar():
+        """API para autocompletar cuentas PUC en formularios."""
+        q = request.args.get('q', '').strip()
+        if len(q) < 2:
+            return jsonify([])
+        cuentas = CuentaPUC.query.filter(
+            CuentaPUC.acepta_mov == True, CuentaPUC.activo == True,
+            db.or_(CuentaPUC.codigo.ilike(f'%{q}%'), CuentaPUC.nombre.ilike(f'%{q}%'))
+        ).order_by(CuentaPUC.codigo).limit(15).all()
+        return jsonify([{'id': c.id, 'codigo': c.codigo, 'nombre': c.nombre,
+                         'naturaleza': c.naturaleza, 'tipo': c.tipo} for c in cuentas])
+
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # REPORTES FINANCIEROS (v34)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    @app.route('/contable/balance-prueba')
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_balance_prueba():
+        """Balance de Prueba — saldo de cada cuenta con movimiento."""
+        periodo = request.args.get('periodo', datetime.utcnow().strftime('%Y-%m'))
+        try:
+            anio, mes = int(periodo.split('-')[0]), int(periodo.split('-')[1])
+        except:
+            anio, mes = datetime.utcnow().year, datetime.utcnow().month
+        from calendar import monthrange
+        mes_ini = date_type(anio, mes, 1)
+        mes_fin = date_type(anio, mes, monthrange(anio, mes)[1])
+
+        # Obtener todas las líneas del periodo
+        lineas = db.session.query(
+            LineaAsiento.cuenta_puc_id,
+            db.func.sum(LineaAsiento.debe).label('total_debe'),
+            db.func.sum(LineaAsiento.haber).label('total_haber')
+        ).join(AsientoContable).filter(
+            AsientoContable.fecha >= mes_ini,
+            AsientoContable.fecha <= mes_fin,
+            AsientoContable.estado_asiento != 'anulado'
+        ).group_by(LineaAsiento.cuenta_puc_id).all()
+
+        filas = []
+        total_debe = total_haber = 0
+        for cuenta_id, td, th in lineas:
+            cuenta = db.session.get(CuentaPUC, cuenta_id)
+            if not cuenta: continue
+            td = float(td or 0); th = float(th or 0)
+            saldo = td - th if cuenta.naturaleza == 'debito' else th - td
+            filas.append({'cuenta': cuenta, 'debe': td, 'haber': th, 'saldo': saldo})
+            total_debe += td; total_haber += th
+
+        filas.sort(key=lambda x: x['cuenta'].codigo)
+        return render_template('contable/balance_prueba.html', filas=filas,
+                               total_debe=total_debe, total_haber=total_haber,
+                               periodo=periodo)
+
+    @app.route('/contable/balance-general')
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_balance_general():
+        """Balance General — Activos = Pasivos + Patrimonio."""
+        corte = request.args.get('corte', date_type.today().isoformat())
+        try:
+            fecha_corte = datetime.strptime(corte, '%Y-%m-%d').date()
+        except:
+            fecha_corte = date_type.today()
+
+        def _saldo_clase(prefijo):
+            lineas = db.session.query(
+                db.func.sum(LineaAsiento.debe).label('td'),
+                db.func.sum(LineaAsiento.haber).label('th')
+            ).join(AsientoContable).join(CuentaPUC, LineaAsiento.cuenta_puc_id == CuentaPUC.id).filter(
+                AsientoContable.fecha <= fecha_corte,
+                AsientoContable.estado_asiento != 'anulado',
+                CuentaPUC.codigo.startswith(prefijo)
+            ).first()
+            td = float(lineas.td or 0) if lineas else 0
+            th = float(lineas.th or 0) if lineas else 0
+            return td, th
+
+        td1, th1 = _saldo_clase('1')
+        activos = td1 - th1
+
+        td2, th2 = _saldo_clase('2')
+        pasivos = th2 - td2
+
+        td3, th3 = _saldo_clase('3')
+        patrimonio = th3 - td3
+
+        # Cuentas detalladas por grupo
+        def _detalle_clase(prefijo):
+            return CuentaPUC.query.filter(
+                CuentaPUC.codigo.startswith(prefijo),
+                CuentaPUC.nivel == 3, CuentaPUC.activo == True
+            ).order_by(CuentaPUC.codigo).all()
+
+        empresa = ConfigEmpresa.query.first()
+        return render_template('contable/balance_general.html',
+            activos=activos, pasivos=pasivos, patrimonio=patrimonio,
+            activos_det=_detalle_clase('1'), pasivos_det=_detalle_clase('2'),
+            patrimonio_det=_detalle_clase('3'),
+            fecha_corte=fecha_corte, empresa=empresa)
+
+    @app.route('/contable/estado-resultados')
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_estado_resultados():
+        """Estado de Resultados — Ingresos - Gastos - Costos = Utilidad."""
+        periodo = request.args.get('periodo', datetime.utcnow().strftime('%Y-%m'))
+        try:
+            anio, mes = int(periodo.split('-')[0]), int(periodo.split('-')[1])
+        except:
+            anio, mes = datetime.utcnow().year, datetime.utcnow().month
+        from calendar import monthrange
+        mes_ini = date_type(anio, mes, 1)
+        mes_fin = date_type(anio, mes, monthrange(anio, mes)[1])
+
+        def _total_clase(prefijo):
+            r = db.session.query(
+                db.func.sum(LineaAsiento.debe).label('td'),
+                db.func.sum(LineaAsiento.haber).label('th')
+            ).join(AsientoContable).join(CuentaPUC, LineaAsiento.cuenta_puc_id == CuentaPUC.id).filter(
+                AsientoContable.fecha >= mes_ini, AsientoContable.fecha <= mes_fin,
+                AsientoContable.estado_asiento != 'anulado',
+                CuentaPUC.codigo.startswith(prefijo)
+            ).first()
+            td = float(r.td or 0) if r else 0
+            th = float(r.th or 0) if r else 0
+            return td, th
+
+        td4, th4 = _total_clase('4')
+        ingresos = th4 - td4  # Clase 4: naturaleza crédito
+
+        td5, th5 = _total_clase('5')
+        gastos = td5 - th5  # Clase 5: naturaleza débito
+
+        td6, th6 = _total_clase('6')
+        costos_venta = td6 - th6  # Clase 6
+
+        td7, th7 = _total_clase('7')
+        costos_produccion = td7 - th7  # Clase 7
+
+        utilidad_bruta = ingresos - costos_venta - costos_produccion
+        utilidad_operacional = utilidad_bruta - gastos
+        # Simplificado: utilidad neta = operacional (sin impuestos por ahora)
+        utilidad_neta = utilidad_operacional
+
+        empresa = ConfigEmpresa.query.first()
+        return render_template('contable/estado_resultados.html',
+            ingresos=ingresos, gastos=gastos, costos_venta=costos_venta,
+            costos_produccion=costos_produccion, utilidad_bruta=utilidad_bruta,
+            utilidad_operacional=utilidad_operacional, utilidad_neta=utilidad_neta,
+            periodo=periodo, empresa=empresa)
+
+    @app.route('/contable/auxiliar/<codigo>')
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_auxiliar(codigo):
+        """Libro auxiliar por cuenta PUC."""
+        cuenta = CuentaPUC.query.filter_by(codigo=codigo).first_or_404()
+        periodo = request.args.get('periodo', datetime.utcnow().strftime('%Y-%m'))
+        try:
+            anio, mes = int(periodo.split('-')[0]), int(periodo.split('-')[1])
+        except:
+            anio, mes = datetime.utcnow().year, datetime.utcnow().month
+        from calendar import monthrange
+        mes_ini = date_type(anio, mes, 1)
+        mes_fin = date_type(anio, mes, monthrange(anio, mes)[1])
+
+        movimientos = LineaAsiento.query.join(AsientoContable).filter(
+            LineaAsiento.cuenta_puc_id == cuenta.id,
+            AsientoContable.fecha >= mes_ini,
+            AsientoContable.fecha <= mes_fin,
+            AsientoContable.estado_asiento != 'anulado'
+        ).order_by(AsientoContable.fecha, AsientoContable.numero).all()
+
+        saldo = 0
+        filas = []
+        for m in movimientos:
+            if cuenta.naturaleza == 'debito':
+                saldo += (m.debe or 0) - (m.haber or 0)
+            else:
+                saldo += (m.haber or 0) - (m.debe or 0)
+            filas.append({'linea': m, 'saldo_acum': saldo})
+
+        return render_template('contable/auxiliar.html', cuenta=cuenta, filas=filas,
+                               periodo=periodo, saldo_final=saldo)
