@@ -53,4 +53,13 @@
       <button class="btn btn-sm {% if obj.estado==e %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ lbl }}</button>
     </form>{% endfor %}
   </div>
+  {% if obj.estado in ('aprobada','confirmacion_orden') %}
+  <hr>
+  <div class="d-flex align-items-center gap-2">
+    <strong>Siguiente paso:</strong>
+    <form method="POST" action="{{ url_for('cotizacion_convertir_a_venta', id=obj.id) }}">
+      <button class="btn btn-success btn-sm"><i class="bi bi-arrow-right-circle me-1"></i>Convertir a Venta</button>
+    </form>
+  </div>
+  {% endif %}
 </div></div>{% endblock %}

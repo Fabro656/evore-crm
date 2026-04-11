@@ -10,7 +10,6 @@ from datetime import datetime, timedelta, date as date_type
 import json, os, re, io, secrets, logging
 
 def register(app):
-    def _noop(*a, **kw): pass
 
     # ── produccion_index (/produccion)
     @app.route('/produccion')
@@ -88,8 +87,16 @@ def register(app):
     @app.route('/produccion/compras/<int:id>/eliminar', methods=['POST'])
     @login_required
     def compra_eliminar(id):
-        obj=CompraMateria.query.get_or_404(id); db.session.delete(obj); db.session.commit()
-        flash('Compra eliminada.','info'); return redirect(url_for('compras'))
+        obj=CompraMateria.query.get_or_404(id)
+        # Buscar y eliminar GastoOperativo y AsientoContable vinculados
+        gastos_vinc = GastoOperativo.query.filter_by(
+            tipo='compra_produccion', fecha=obj.fecha
+        ).filter(GastoOperativo.descripcion.contains(obj.nombre_item[:30])).all()
+        for g in gastos_vinc:
+            AsientoContable.query.filter_by(gasto_id=g.id).delete()
+            db.session.delete(g)
+        db.session.delete(obj); db.session.commit()
+        flash('Compra, gasto y asiento contable eliminados.','info'); return redirect(url_for('compras'))
 
 
     # ── compra_ingresar_mp (/produccion/compras/<int:id>/ingresar_mp)
@@ -852,6 +859,25 @@ def register(app):
             motivo = 'Sin especificar'
 
         orden.estado = 'detenida'
+
+        # Devolver materias primas reservadas para esta orden (venta+producto)
+        if orden.venta_id:
+            reservas = ReservaProduccion.query.filter(
+                ReservaProduccion.venta_id == orden.venta_id,
+                ReservaProduccion.producto_id == orden.producto_id,
+                ReservaProduccion.estado == 'reservado'
+            ).all()
+            for r in reservas:
+                mp = r.materia
+                if not mp:
+                    continue
+                notas_r = r.notas or ''
+                if 'FALTANTE' in notas_r or 'Sin stock' in notas_r:
+                    r.estado = 'cancelado'
+                    continue
+                mp.stock_disponible = float(mp.stock_disponible or 0) + r.cantidad
+                mp.stock_reservado  = max(0.0, float(mp.stock_reservado or 0) - r.cantidad)
+                r.estado = 'cancelado'
 
         # Crear evento automático con detalles
         from routes.tareas import _crear_evento_automatico

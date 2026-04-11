@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}Aprobaciones{% endblock %}{% block page_title %}Aprobaciones pendientes{% endblock %}
+{% block content %}
+{% if pendientes %}
+<div class="tc mb-4">
+  <div class="ch" style="background:var(--orange);color:#fff">
+    <span>Pendientes de aprobacion ({{ pendientes|length }})</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead><tr><th>Fecha</th><th>Solicitante</th><th>Tipo</th><th>Descripcion</th><th class="text-end">Monto</th><th>Acciones</th></tr></thead>
+      <tbody>
+      {% for a in pendientes %}
+      <tr>
+        <td><small>{{ a.creado_en.strftime('%d/%m/%Y %H:%M') }}</small></td>
+        <td>{{ a.solicitante.nombre if a.solicitante else '?' }}</td>
+        <td><span class="b b-pendiente">{{ a.tipo_accion|replace('_',' ')|title }}</span></td>
+        <td style="font-size:.85rem">{{ a.descripcion }}</td>
+        <td class="text-end fw-bold">{{ moneda(a.monto) }}</td>
+        <td>
+          <div class="d-flex gap-1 align-items-center">
+            <form method="POST" action="{{ url_for('aprobacion_aprobar', id=a.id) }}" class="d-inline">
+              <input type="hidden" name="notas" value="">
+              <button class="btn btn-primary btn-sm">Aprobar</button>
+            </form>
+            <form method="POST" action="{{ url_for('aprobacion_rechazar', id=a.id) }}" class="d-flex gap-1 align-items-center">
+              <input type="text" name="notas" placeholder="Motivo..." class="form-control form-control-sm" style="min-width:100px">
+              <button class="btn btn-ghost btn-sm" style="color:var(--red);border-color:var(--red)">Rechazar</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="sc mb-4" style="text-align:center;padding:2rem">
+  <i class="bi bi-check-circle" style="font-size:2rem;color:var(--green);display:block;margin-bottom:.5rem"></i>
+  <p style="color:var(--text2);margin:0">No hay solicitudes pendientes.</p>
+</div>
+{% endif %}
+
+{% if historial %}
+<div class="tc">
+  <div class="ch">Historial reciente</div>
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead><tr><th>Fecha</th><th>Solicitante</th><th>Tipo</th><th class="text-end">Monto</th><th>Estado</th><th>Aprobador</th><th>Notas</th></tr></thead>
+      <tbody>
+      {% for a in historial %}
+      <tr>
+        <td><small>{{ a.resuelto_en.strftime('%d/%m/%Y') if a.resuelto_en else '' }}</small></td>
+        <td>{{ a.solicitante.nombre if a.solicitante else '?' }}</td>
+        <td style="font-size:.85rem">{{ a.tipo_accion|replace('_',' ')|title }}</td>
+        <td class="text-end">{{ moneda(a.monto) }}</td>
+        <td><span class="b b-{% if a.estado == 'aprobado' %}completado{% else %}cancelado{% endif %}">{{ a.estado|title }}</span></td>
+        <td>{{ a.aprobador.nombre if a.aprobador else '—' }}</td>
+        <td><small style="color:var(--text2)">{{ a.notas_aprobador or '' }}</small></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

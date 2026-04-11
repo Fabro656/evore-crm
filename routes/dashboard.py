@@ -10,7 +10,6 @@ from datetime import datetime, timedelta, date as date_type
 import json, os, re, io, secrets, logging
 
 def register(app):
-    def _noop(*a, **kw): pass
 
     # ── dashboard (/)
     @app.route('/')
@@ -232,7 +231,7 @@ def register(app):
                         if cot:
                             desc_parts.append('Cotización: ' + (cot.numero or ('#' + str(cot.id))))
                             ref_url = url_for('cotizacion_ver', id=cot.id)
-                    except Exception: pass
+                    except Exception as _e: logging.warning(f'Calendario: cotizacion lookup error: {_e}')
                 elif t.tarea_tipo == 'comprar_materias':
                     desc_parts.append('Compra de materias primas')
                 elif t.tarea_tipo == 'verificar_abono':
@@ -245,7 +244,8 @@ def register(app):
                     desc_parts.append('Prioridad: ' + t.prioridad.title())
                 eventos.setdefault(k, []).append({'t':'tarea','n':t.titulo,'s':t.estado,
                     'd':' · '.join(desc_parts),'url':ref_url,'tid':t.id})
-        except Exception: db.session.rollback()
+        except Exception as _e:
+            logging.warning(f'Calendario: tareas error: {_e}'); db.session.rollback()
         # 2. Ventas con fecha entrega estimada
         try:
             for v in Venta.query.filter(Venta.fecha_entrega_est != None).all():
@@ -253,19 +253,21 @@ def register(app):
                 cliente_nom = ''
                 try:
                     if v.cliente: cliente_nom = v.cliente.empresa or v.cliente.nombre or ''
-                except Exception: pass
+                except Exception as _e: logging.warning(f'Calendario: cliente lookup error: {_e}')
                 desc = ('Cliente: ' + cliente_nom + ' · ' if cliente_nom else '') + 'Estado: ' + v.estado
                 if v.numero: desc = 'Venta ' + v.numero + ' · ' + desc
                 eventos.setdefault(k, []).append({'t':'venta','n':v.titulo,'s':v.estado,
                     'd':desc,'url':url_for('venta_editar', id=v.id),'tid':v.id})
-        except Exception: db.session.rollback()
+        except Exception as _e:
+            logging.warning(f'Calendario: ventas error: {_e}'); db.session.rollback()
         # 3. Eventos manuales
         try:
             for e in Evento.query.all():
                 k = e.fecha.strftime('%Y-%m-%d')
                 desc = (e.descripcion[:80] if e.descripcion else '') or (e.tipo or 'Evento')
                 eventos.setdefault(k, []).append({'t':'evento','n':e.titulo,'s':e.tipo,'d':desc,'url':'','tid':e.id})
-        except Exception: db.session.rollback()
+        except Exception as _e:
+            logging.warning(f'Calendario: eventos error: {_e}'); db.session.rollback()
         # 4. Notas con fecha de revisión (columna nueva en v11)
         try:
             for n in Nota.query.filter(Nota.fecha_revision != None).all():
@@ -273,17 +275,19 @@ def register(app):
                 desc = (n.contenido[:80] if n.contenido else '') or 'Revisión programada'
                 eventos.setdefault(k, []).append({'t':'nota','n':n.titulo or '(nota sin título)','s':'revision',
                     'd':desc,'url':url_for('notas'),'tid':n.id})
-        except Exception: db.session.rollback()
+        except Exception as _e:
+            logging.warning(f'Calendario: notas error: {_e}'); db.session.rollback()
         # 5. Productos con fecha de caducidad (columna nueva en v11)
         try:
             for p in Producto.query.filter(Producto.fecha_caducidad != None, Producto.activo == True).all():
                 k = p.fecha_caducidad.strftime('%Y-%m-%d')
                 desc_p = []
                 if p.sku: desc_p.append('SKU: ' + p.sku)
-                if p.stock_disponible is not None: desc_p.append('Stock: ' + str(int(p.stock_disponible)))
+                if p.stock is not None: desc_p.append('Stock: ' + str(int(p.stock)))
                 eventos.setdefault(k, []).append({'t':'caducidad','n':p.nombre,'s':'caducidad',
                     'd':' · '.join(desc_p) or 'Próximo a caducar','url':url_for('inventario'),'tid':p.id})
-        except Exception: db.session.rollback()
+        except Exception as _e:
+            logging.warning(f'Calendario: caducidad error: {_e}'); db.session.rollback()
         import calendar as cal_mod
         from datetime import date as _date
         # Build week matrix: list of 7-element lists; 0 = filler day from other month
@@ -357,7 +361,7 @@ def register(app):
     @login_required
     def actividad():
         if current_user.rol != 'admin':
-            items = Actividad.query.filter_by(user_id=current_user.id).order_by(Actividad.creado_en.desc()).limit(150).all()
+            items = Actividad.query.filter_by(usuario_id=current_user.id).order_by(Actividad.creado_en.desc()).limit(150).all()
         else:
             items = Actividad.query.order_by(Actividad.creado_en.desc()).limit(300).all()
         return render_template('actividad.html', items=items)

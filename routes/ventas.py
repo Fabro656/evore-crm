@@ -10,7 +10,6 @@ from datetime import datetime, timedelta, date as date_type
 import json, os, re, io, secrets, logging
 
 def register(app):
-    def _noop(*a, **kw): pass
 
     # ── Helpers ─────────────────────────────────────────────────────
     def _prods_json():
@@ -246,6 +245,7 @@ def register(app):
     # ── ventas (/ventas)
     @app.route('/ventas')
     @login_required
+    @requiere_modulo('ventas')
     def ventas():
         from datetime import date, timedelta
         estado_f = request.args.get('estado','')
@@ -282,6 +282,7 @@ def register(app):
     # ── venta_nueva (/ventas/nueva)
     @app.route('/ventas/nueva', methods=['GET','POST'])
     @login_required
+    @requiere_modulo('ventas')
     def venta_nueva():
         cl = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
         iva_pct = _iva_rate()
@@ -348,9 +349,22 @@ def register(app):
                                pre_cliente_id=pre_cliente_id, pre_cotizacion_id=pre_cotizacion_id)
 
 
+    # ── venta_ver (/ventas/<int:id>)
+    @app.route('/ventas/<int:id>')
+    @login_required
+    @requiere_modulo('ventas')
+    def venta_ver(id):
+        obj = Venta.query.get_or_404(id)
+        ordenes = OrdenProduccion.query.filter_by(venta_id=obj.id).all()
+        reservas = ReservaProduccion.query.filter_by(venta_id=obj.id).all()
+        pagos = PagoVenta.query.filter_by(venta_id=obj.id).order_by(PagoVenta.fecha.desc()).all()
+        return render_template('ventas/ver.html', obj=obj, ordenes=ordenes,
+                               reservas=reservas, pagos=pagos)
+
     # ── venta_editar (/ventas/<int:id>/editar)
     @app.route('/ventas/<int:id>/editar', methods=['GET','POST'])
     @login_required
+    @requiere_modulo('ventas')
     def venta_editar(id):
         obj = Venta.query.get_or_404(id)
         cl  = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
@@ -395,6 +409,7 @@ def register(app):
     # ── venta_eliminar (/ventas/<int:id>/eliminar)
     @app.route('/ventas/<int:id>/eliminar', methods=['POST'])
     @login_required
+    @requiere_modulo('ventas')
     def venta_eliminar(id):
         from services.inventario import InventarioService
         if current_user.rol != 'admin':
@@ -402,6 +417,8 @@ def register(app):
             return redirect(url_for('ventas'))
         obj = Venta.query.get_or_404(id)
         try:
+            # Liberar stock reservado de productos terminados (ATP)
+            InventarioService.liberar_reserva_venta(obj)
             # Devolver stock de materias primas antes de borrar
             InventarioService.devolver_materias_venta(obj.id)
             ReservaProduccion.query.filter_by(venta_id=obj.id).delete()
@@ -412,7 +429,7 @@ def register(app):
             db.session.rollback()
         db.session.delete(obj)
         db.session.commit()
-        _noop('eliminar','venta',id,'Venta eliminada'); db.session.commit()
+        _log('eliminar','venta',id,'Venta eliminada'); db.session.commit()
         flash('Venta eliminada y stock de materias primas devuelto.', 'info')
         return redirect(url_for('ventas'))
 
@@ -420,6 +437,7 @@ def register(app):
     # ── venta_cambiar_estado (/ventas/<int:id>/estado)
     @app.route('/ventas/<int:id>/estado', methods=['POST'])
     @login_required
+    @requiere_modulo('ventas')
     def venta_cambiar_estado(id):
         from services.inventario import InventarioService
         venta = Venta.query.get_or_404(id)
@@ -431,12 +449,18 @@ def register(app):
             return redirect(url_for('ventas'))
 
         venta.estado = nuevo
-        _noop('editar','venta',venta.id,f'Estado → {nuevo}')
+        _log('editar','venta',venta.id,f'Estado → {nuevo}')
+
+        # ── Bloque 2b: Reservar stock de producto al confirmar anticipo ──
+        if nuevo == 'anticipo_pagado' and estado_anterior not in {'anticipo_pagado', 'pagado', 'completado'}:
+            InventarioService.reservar_stock_venta(venta)
 
         # ── Bloque 3: sincronizar producción cuando venta se cancela/pierde ──
         ESTADOS_CANCEL = {'cancelado', 'perdido'}
         ESTADOS_ACTIVOS_PROD = {'anticipo_pagado', 'pagado', 'completado'}
         if nuevo in ESTADOS_CANCEL and estado_anterior in ESTADOS_ACTIVOS_PROD:
+            # Liberar stock reservado de productos terminados
+            InventarioService.liberar_reserva_venta(venta)
             # Devolver materias primas reservadas
             try:
                 InventarioService.devolver_materias_venta(venta.id)
@@ -514,6 +538,10 @@ def register(app):
                     logging.warning(f'venta_cambiar_estado: tarea pausa error: {ep}')
             flash(f'Estado actualizado. {len(ordenes_a_pausar)} orden(es) de producción pausada(s).', 'warning')
 
+        # ── BLOQUE 4b.2: Liberar reserva de producto si venta retrocede desde anticipo_pagado ──
+        if estado_anterior in ESTADOS_ACTIVOS_PROD and nuevo in ESTADOS_PAUSAN:
+            InventarioService.liberar_reserva_venta(venta)
+
         # ── BLOQUE 4c: Reanudar producción si venta vuelve a anticipo_pagado ──
         if nuevo == 'anticipo_pagado' and estado_anterior in ESTADOS_PAUSAN:
             ordenes_pausadas = OrdenProduccion.query.filter(
@@ -524,6 +552,8 @@ def register(app):
                 o.estado = 'en_produccion'
             if ordenes_pausadas:
                 flash(f'{len(ordenes_pausadas)} orden(es) de producción reanudadas.', 'success')
+            # Re-reservar stock de producto
+            InventarioService.reservar_stock_venta(venta)
 
         # ── BLOQUE 5: Crear asiento contable automático cuando venta se marca como "pagado" ──
         if nuevo == 'pagado' and estado_anterior != 'pagado':
@@ -562,6 +592,7 @@ def register(app):
     # ── venta_remision (/ventas/<int:id>/remision)
     @app.route('/ventas/<int:id>/remision')
     @login_required
+    @requiere_modulo('ventas')
     def venta_remision(id):
         venta = Venta.query.get_or_404(id)
         upp   = request.args.get('upp', type=int, default=0)
@@ -592,6 +623,7 @@ def register(app):
     # ── venta_informar_cliente (/ventas/<int:id>/informar_cliente)
     @app.route('/ventas/<int:id>/informar_cliente', methods=['POST'])
     @login_required
+    @requiere_modulo('ventas')
     def venta_informar_cliente(id):
         venta = Venta.query.get_or_404(id)
         venta.cliente_informado_en = datetime.utcnow()
@@ -620,6 +652,7 @@ def register(app):
     # ── venta_entregar (/ventas/<int:id>/entregar)
     @app.route('/ventas/<int:id>/entregar', methods=['POST'])
     @login_required
+    @requiere_modulo('ventas')
     def venta_entregar(id):
         venta = Venta.query.get_or_404(id)
         try:
@@ -627,7 +660,8 @@ def register(app):
             # Mark as fully paid when delivered (unless already cancelled/lost)
             if venta.estado not in ('cancelado', 'perdido', 'cancelado'):
                 venta.estado = 'pagado'
-            _descontar_stock_venta(venta)
+            from services.inventario import InventarioService
+            InventarioService.descontar_stock_venta(venta)
             db.session.commit()
             flash('Venta entregada y marcada como pagada. Stock descontado del inventario.', 'success')
         except Exception as e:
@@ -642,6 +676,7 @@ def register(app):
     # ── api_venta_material_status (/api/ventas/<id>/material_status)
     @app.route('/api/ventas/<int:id>/material_status')
     @login_required
+    @requiere_modulo('ventas')
     def api_venta_material_status(id):
         """Devuelve estado de materiales para una venta (para mostrar en tiempo real)."""
         venta = Venta.query.get_or_404(id)
@@ -689,6 +724,7 @@ def register(app):
     # ── venta_factura (/ventas/<int:id>/factura)
     @app.route('/ventas/<int:id>/factura')
     @login_required
+    @requiere_modulo('ventas')
     def venta_factura(id):
         obj = Venta.query.get_or_404(id)
         empresa = ConfigEmpresa.query.first()
@@ -705,6 +741,7 @@ def register(app):
     # ── cotizaciones (/cotizaciones)
     @app.route('/cotizaciones')
     @login_required
+    @requiere_modulo('ventas')
     def cotizaciones():
         _marcar_vencidas()
         servicios = Servicio.query.filter_by(activo=True).all()
@@ -715,6 +752,7 @@ def register(app):
     # ── cotizacion_nueva (/cotizaciones/nueva)
     @app.route('/cotizaciones/nueva', methods=['GET','POST'])
     @login_required
+    @requiere_modulo('ventas')
     def cotizacion_nueva():
         from datetime import date as date_t
         clientes_list = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
@@ -806,7 +844,7 @@ def register(app):
                     cantidad=it['cantidad'], precio_unit=it['precio'], subtotal=it['subtotal'],
                     unidad=it['unidad'], tipo_item=it['tipo'], servicio_id=it['servicio_id'],
                     aplica_iva=it['aplica_iva'], iva_pct=it['iva_pct'], iva_monto=it['iva_monto']))
-            _noop('crear','cotizacion',cot.id,f'Cotización {numero}: {cot.titulo}'); db.session.commit()
+            _log('crear','cotizacion',cot.id,f'Cotización {numero}: {cot.titulo}'); db.session.commit()
             flash(f'Cotización {numero} creada.','success')
             return redirect(url_for('cotizacion_ver', id=cot.id))
 
@@ -836,6 +874,7 @@ def register(app):
     # ── cotizacion_ver (/cotizaciones/<int:id>)
     @app.route('/cotizaciones/<int:id>')
     @login_required
+    @requiere_modulo('ventas')
     def cotizacion_ver(id):
         obj = Cotizacion.query.get_or_404(id)
         empresa = ConfigEmpresa.query.first() or ConfigEmpresa(nombre='Evore')
@@ -845,6 +884,7 @@ def register(app):
     # ── cotizacion_editar (/cotizaciones/<int:id>/editar)
     @app.route('/cotizaciones/<int:id>/editar', methods=['GET','POST'])
     @login_required
+    @requiere_modulo('ventas')
     def cotizacion_editar(id):
         from datetime import date as date_t
         obj = Cotizacion.query.get_or_404(id)
@@ -930,6 +970,7 @@ def register(app):
     # ── cotizacion_cambiar_estado (/cotizaciones/<int:id>/estado)
     @app.route('/cotizaciones/<int:id>/estado', methods=['POST'])
     @login_required
+    @requiere_modulo('ventas')
     def cotizacion_cambiar_estado(id):
         obj = Cotizacion.query.get_or_404(id)
         nuevo = request.form.get('estado','borrador')
@@ -950,6 +991,7 @@ def register(app):
     # ── cotizacion_eliminar (/cotizaciones/<int:id>/eliminar)
     @app.route('/cotizaciones/<int:id>/eliminar', methods=['POST'])
     @login_required
+    @requiere_modulo('ventas')
     def cotizacion_eliminar(id):
         if current_user.rol != 'admin':
             flash('Solo administradores pueden eliminar registros.', 'danger')
@@ -963,7 +1005,154 @@ def register(app):
     # ── cotizacion_pdf (/cotizaciones/<int:id>/pdf)
     @app.route('/cotizaciones/<int:id>/pdf')
     @login_required
+    @requiere_modulo('ventas')
     def cotizacion_pdf(id):
         obj = Cotizacion.query.get_or_404(id)
         empresa = ConfigEmpresa.query.first() or ConfigEmpresa(nombre='Evore')
         return render_template('cotizaciones/pdf.html', obj=obj, empresa=empresa)
+
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # BLOQUE v33 — Conversión Cotización → Venta
+    # ══════════════════════════════════════════════════════════════════════════
+
+    @app.route('/cotizaciones/<int:id>/convertir', methods=['POST'])
+    @login_required
+    @requiere_modulo('ventas')
+    def cotizacion_convertir_a_venta(id):
+        """Convierte una cotización en venta copiando todos los datos e items."""
+        cot = Cotizacion.query.get_or_404(id)
+
+        # Validar que no esté ya vinculada a una venta
+        venta_existente = Venta.query.filter_by(cotizacion_id=cot.id).first()
+        if venta_existente:
+            flash(f'Esta cotización ya está vinculada a la venta {venta_existente.numero}.', 'warning')
+            return redirect(url_for('cotizacion_ver', id=id))
+
+        # Generar número VNT-YYYY-NNN
+        hoy = datetime.utcnow().date()
+        ultimo_vnt = Venta.query.filter(
+            Venta.numero.like(f'VNT-{hoy.year}-%')
+        ).order_by(Venta.id.desc()).first()
+        if ultimo_vnt and ultimo_vnt.numero:
+            try: seq = int(ultimo_vnt.numero.split('-')[-1]) + 1
+            except: seq = 1
+        else: seq = 1
+        numero_venta = f'VNT-{hoy.year}-{seq:03d}'
+
+        # Crear venta desde cotización
+        v = Venta(
+            titulo=cot.titulo,
+            numero=numero_venta,
+            cliente_id=cot.cliente_id,
+            subtotal=cot.subtotal,
+            iva=cot.iva,
+            total=cot.total,
+            porcentaje_anticipo=cot.porcentaje_anticipo,
+            monto_anticipo=cot.monto_anticipo,
+            saldo=cot.saldo,
+            estado='negociacion',
+            dias_entrega=cot.dias_entrega,
+            fecha_entrega_est=cot.fecha_entrega_est,
+            notas=cot.notas or '',
+            cotizacion_id=cot.id,
+            creado_por=current_user.id
+        )
+        db.session.add(v); db.session.flush()
+
+        # Copiar items
+        for item in cot.items:
+            db.session.add(VentaProducto(
+                venta_id=v.id,
+                producto_id=item.producto_id,
+                servicio_id=item.servicio_id if hasattr(item, 'servicio_id') else None,
+                nombre_prod=item.nombre_prod,
+                cantidad=item.cantidad,
+                precio_unit=item.precio_unit,
+                subtotal=item.subtotal,
+                unidad=getattr(item, 'unidad', 'unidades'),
+                es_servicio=(getattr(item, 'tipo_item', 'producto') == 'servicio')
+            ))
+
+        # Marcar cotización como aprobada
+        if cot.estado not in ('aprobada', 'vencida'):
+            cot.estado = 'aprobada'
+
+        # Procesar producción automáticamente
+        try:
+            db.session.flush()
+            _procesar_venta_produccion(v)
+        except Exception as ep:
+            logging.warning(f'cotizacion_convertir: produccion error: {ep}')
+
+        _log('crear', 'venta', v.id, f'Venta {numero_venta} creada desde cotización {cot.numero}')
+        db.session.commit()
+        flash(f'Venta {numero_venta} creada desde cotización {cot.numero}.', 'success')
+        return redirect(url_for('venta_editar', id=v.id))
+
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # BLOQUE v33 — Registro de pagos y reconciliación
+    # ══════════════════════════════════════════════════════════════════════════
+
+    @app.route('/ventas/<int:id>/pago', methods=['POST'])
+    @login_required
+    @requiere_modulo('ventas')
+    def venta_registrar_pago(id):
+        """Registra un pago parcial o total para una venta."""
+        venta = Venta.query.get_or_404(id)
+        monto = float(request.form.get('monto', 0) or 0)
+        if monto <= 0:
+            flash('El monto del pago debe ser mayor a 0.', 'danger')
+            return redirect(url_for('venta_editar', id=id))
+
+        tipo_pago = request.form.get('tipo_pago', 'parcial')
+        metodo = request.form.get('metodo_pago', 'transferencia')
+        referencia = request.form.get('referencia', '').strip() or None
+        fecha_str = request.form.get('fecha_pago')
+        fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else datetime.utcnow().date()
+        notas = request.form.get('notas_pago', '').strip()
+
+        pago = PagoVenta(
+            venta_id=venta.id,
+            monto=monto,
+            tipo=tipo_pago,
+            metodo_pago=metodo,
+            referencia=referencia,
+            fecha=fecha,
+            notas=notas,
+            creado_por=current_user.id
+        )
+        db.session.add(pago)
+
+        # Actualizar totales de la venta
+        venta.monto_pagado_total = (venta.monto_pagado_total or 0) + monto
+        venta.saldo = max(0, (venta.total or 0) - (venta.monto_pagado_total or 0))
+
+        # Auto-transicionar estado si corresponde
+        if venta.monto_pagado_total >= (venta.monto_anticipo or 0) and venta.estado == 'negociacion':
+            venta.estado = 'anticipo_pagado'
+            venta.fecha_anticipo = fecha
+            from services.inventario import InventarioService
+            InventarioService.reservar_stock_venta(venta)
+            flash('Anticipo confirmado. Estado actualizado a "Anticipo Pagado".', 'info')
+        if venta.monto_pagado_total >= (venta.total or 0) and venta.estado in ('anticipo_pagado', 'negociacion'):
+            venta.estado = 'pagado'
+            flash('Pago total confirmado. Estado actualizado a "Pagado".', 'info')
+
+        # Crear asiento contable automático
+        _crear_asiento_auto(
+            tipo='venta', subtipo=f'pago_{tipo_pago}',
+            descripcion=f'Pago {tipo_pago} venta {venta.numero or venta.id}: ${monto:,.0f}',
+            monto=monto,
+            cuenta_debe='Bancos / Caja',
+            cuenta_haber='Cuentas por cobrar clientes',
+            clasificacion='ingreso',
+            referencia=referencia or venta.numero,
+            venta_id=venta.id
+        )
+
+        _log('crear', 'pago', pago.id, f'Pago ${monto:,.0f} registrado en venta {venta.numero}')
+        db.session.commit()
+        flash(f'Pago de ${monto:,.0f} registrado. Saldo pendiente: ${venta.saldo:,.0f}', 'success')
+        return redirect(url_for('venta_editar', id=id))

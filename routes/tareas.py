@@ -106,7 +106,6 @@ def _crear_evento_automatico(titulo, descripcion, tipo='evento', fecha=None, cre
 # ══════════════════════════════════════════════════════════════════════════════
 
 def register(app):
-    def _noop(*a, **kw): pass
 
     # ── Helpers ─────────────────────────────────────────────────────
     def _save_asignados(tarea_obj):
@@ -123,6 +122,7 @@ def register(app):
     # ── tareas (/tareas)
     @app.route('/tareas')
     @login_required
+    @requiere_modulo('tareas')
     def tareas():
         estado_f=request.args.get('estado',''); prioridad_f=request.args.get('prioridad','')
         q=Tarea.query
@@ -146,6 +146,7 @@ def register(app):
     # ── tarea_nueva (/tareas/nueva)
     @app.route('/tareas/nueva', methods=['GET','POST'])
     @login_required
+    @requiere_modulo('tareas')
     def tarea_nueva():
         us=User.query.filter_by(activo=True).all()
         if request.method == 'POST':
@@ -157,7 +158,7 @@ def register(app):
                 asignado_a=asignado_id, creado_por=current_user.id)
             db.session.add(t); db.session.flush()
             _save_asignados(t)
-            _noop('crear','tarea',t.id,f'Tarea creada: {t.titulo}'); db.session.commit()
+            _log('crear','tarea',t.id,f'Tarea creada: {t.titulo}'); db.session.commit()
             # Notificación al asignado (si no es quien la crea)
             if asignado_id != current_user.id:
                 _crear_notificacion(asignado_id, 'tarea_asignada',
@@ -175,6 +176,7 @@ def register(app):
     # ── tarea_ver (/tareas/<int:id>)
     @app.route('/tareas/<int:id>')
     @login_required
+    @requiere_modulo('tareas')
     def tarea_ver(id):
         obj=Tarea.query.get_or_404(id)
         return render_template('tareas/ver.html', obj=obj, tarea=obj)
@@ -183,6 +185,7 @@ def register(app):
     # ── tarea_comentar (/tareas/<int:id>/comentar)
     @app.route('/tareas/<int:id>/comentar', methods=['POST'])
     @login_required
+    @requiere_modulo('tareas')
     def tarea_comentar(id):
         obj=Tarea.query.get_or_404(id)
         msg=request.form.get('mensaje','').strip()
@@ -196,6 +199,7 @@ def register(app):
     # ── tarea_editar (/tareas/<int:id>/editar)
     @app.route('/tareas/<int:id>/editar', methods=['GET','POST'])
     @login_required
+    @requiere_modulo('tareas')
     def tarea_editar(id):
         obj=Tarea.query.get_or_404(id); us=User.query.filter_by(activo=True).all()
         if request.method == 'POST':
@@ -206,7 +210,7 @@ def register(app):
             obj.fecha_vencimiento=datetime.strptime(fs,'%Y-%m-%d').date() if fs else None
             obj.asignado_a=int(request.form.get('asignado_a') or current_user.id)
             db.session.flush(); _save_asignados(obj)
-            _noop('editar','tarea',obj.id,f'Tarea editada: {obj.titulo}'); db.session.commit()
+            _log('editar','tarea',obj.id,f'Tarea editada: {obj.titulo}'); db.session.commit()
             # Notificar si cambió el asignado
             if obj.asignado_a != prev_asignado and obj.asignado_a != current_user.id:
                 _crear_notificacion(obj.asignado_a, 'tarea_asignada',
@@ -225,10 +229,11 @@ def register(app):
     # ── tarea_completar (/tareas/<int:id>/completar)
     @app.route('/tareas/<int:id>/completar', methods=['POST'])
     @login_required
+    @requiere_modulo('tareas')
     def tarea_completar(id):
         obj = Tarea.query.get_or_404(id)
         obj.estado = 'completada'
-        _noop('completar','tarea',obj.id,f'Tarea completada: {obj.titulo}')
+        _log('completar','tarea',obj.id,f'Tarea completada: {obj.titulo}')
         db.session.commit()
     
         # Lógica tareas pareadas: comprar_materias + verificar_abono
@@ -275,6 +280,7 @@ def register(app):
     # ── tarea_eliminar (/tareas/<int:id>/eliminar)
     @app.route('/tareas/<int:id>/eliminar', methods=['POST'])
     @login_required
+    @requiere_modulo('tareas')
     def tarea_eliminar(id):
         obj = Tarea.query.get_or_404(id)
         if current_user.rol != 'admin' and obj.creado_por != current_user.id:
@@ -287,7 +293,7 @@ def register(app):
             # cascade='all, delete-orphan' on asignados/comentarios handles those automatically
             db.session.delete(obj)
             db.session.commit()
-            _noop('eliminar', 'tarea', id, 'Tarea eliminada')
+            _log('eliminar', 'tarea', id, 'Tarea eliminada')
             db.session.commit()
             flash('Tarea eliminada.', 'info')
         except Exception as e:

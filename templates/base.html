@@ -110,11 +110,11 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 
 /* ── Badges ──────────────────────────────────────── */
 .b{padding:2px 8px;border-radius:3px;font-size:.72rem;font-weight:600;display:inline-block;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px}
-.b-activo,.b-completado,.b-completada,.b-baja,.b-vip,.b-vigente,.b-aprobada,.b-recibida,.b-en_transito,.b-pagado{background:#EDFBF0;color:#1A6B3C;border:1px solid #BEEFD3}
-.b-inactivo,.b-perdido,.b-alta,.b-vencida,.b-cancelado,.b-cancelada{background:#FFF0EE;color:#8A1A1A;border:1px solid #FFCCC7}
-.b-prospecto,.b-pendiente,.b-media,.b-anticipo_pagado,.b-en_revision,.b-enviada{background:#FFF8E6;color:#7A4A00;border:1px solid #FADDAA}
-.b-negociacion,.b-en_progreso,.b-cliente_activo,.b-confirmacion_orden{background:#EBF4FF;color:#0A3D7A;border:1px solid #B3D4F5}
-.b-borrador{background:#F4F6F9;color:#4A5568;border:1px solid #CBD5E0}
+.b-activo,.b-completado,.b-completada,.b-baja,.b-vip,.b-vigente,.b-aprobada,.b-recibida,.b-en_transito,.b-pagado,.b-usado,.b-aprobado{background:#EDFBF0;color:#1A6B3C;border:1px solid #BEEFD3}
+.b-inactivo,.b-perdido,.b-alta,.b-vencida,.b-cancelado,.b-cancelada,.b-detenida,.b-rechazado{background:#FFF0EE;color:#8A1A1A;border:1px solid #FFCCC7}
+.b-prospecto,.b-pendiente,.b-media,.b-anticipo_pagado,.b-en_revision,.b-enviada,.b-pendiente_materiales,.b-pausada{background:#FFF8E6;color:#7A4A00;border:1px solid #FADDAA}
+.b-negociacion,.b-en_progreso,.b-cliente_activo,.b-confirmacion_orden,.b-en_produccion,.b-reservado{background:#EBF4FF;color:#0A3D7A;border:1px solid #B3D4F5}
+.b-borrador,.b-convertida{background:#F4F6F9;color:#4A5568;border:1px solid #CBD5E0}
 .b-unico,.b-mensual{background:#EEFDF8;color:#1A5A4A;border:1px solid #BBEDE2}
 .b-cita{background:#F8F0FF;color:#5B21B6;border:1px solid #DDD6FE}
 .b-reunion{background:#F0F0FF;color:#3730A3;border:1px solid #C7D2FE}
@@ -300,10 +300,10 @@ html[data-theme="dark"] .qa-btn:hover{background:var(--surface2);border-color:va
 html[data-theme="dark"] .qa-modal-btn{background:var(--surface2);border-color:var(--border);color:var(--text)}
 html[data-theme="dark"] hr{border-color:var(--border)}
 /* Dark mode badges */
-html[data-theme="dark"] .b-activo,html[data-theme="dark"] .b-completado,html[data-theme="dark"] .b-completada,html[data-theme="dark"] .b-baja,html[data-theme="dark"] .b-vigente,html[data-theme="dark"] .b-aprobada,html[data-theme="dark"] .b-recibida,html[data-theme="dark"] .b-en_transito,html[data-theme="dark"] .b-pagado{background:rgba(59,168,96,.12);color:#80D9A0;border-color:rgba(59,168,96,.25)}
-html[data-theme="dark"] .b-inactivo,html[data-theme="dark"] .b-perdido,html[data-theme="dark"] .b-alta,html[data-theme="dark"] .b-vencida,html[data-theme="dark"] .b-cancelado,html[data-theme="dark"] .b-cancelada{background:rgba(224,85,85,.12);color:#FFAAAA;border-color:rgba(224,85,85,.25)}
-html[data-theme="dark"] .b-prospecto,html[data-theme="dark"] .b-pendiente,html[data-theme="dark"] .b-media,html[data-theme="dark"] .b-anticipo_pagado,html[data-theme="dark"] .b-en_revision,html[data-theme="dark"] .b-enviada,html[data-theme="dark"] .b-recordatorio{background:rgba(224,144,0,.12);color:#FFCA60;border-color:rgba(224,144,0,.25)}
-html[data-theme="dark"] .b-negociacion,html[data-theme="dark"] .b-en_progreso,html[data-theme="dark"] .b-cliente_activo,html[data-theme="dark"] .b-confirmacion_orden,html[data-theme="dark"] .b-en_revision{background:rgba(var(--ac-rgb),.12);color:#90C8F5;border-color:rgba(var(--ac-rgb),.25)}
+html[data-theme="dark"] .b-activo,html[data-theme="dark"] .b-completado,html[data-theme="dark"] .b-completada,html[data-theme="dark"] .b-baja,html[data-theme="dark"] .b-vigente,html[data-theme="dark"] .b-aprobada,html[data-theme="dark"] .b-recibida,html[data-theme="dark"] .b-en_transito,html[data-theme="dark"] .b-pagado,html[data-theme="dark"] .b-usado,html[data-theme="dark"] .b-aprobado{background:rgba(59,168,96,.12);color:#80D9A0;border-color:rgba(59,168,96,.25)}
+html[data-theme="dark"] .b-inactivo,html[data-theme="dark"] .b-perdido,html[data-theme="dark"] .b-alta,html[data-theme="dark"] .b-vencida,html[data-theme="dark"] .b-cancelado,html[data-theme="dark"] .b-cancelada,html[data-theme="dark"] .b-detenida,html[data-theme="dark"] .b-rechazado{background:rgba(224,85,85,.12);color:#FFAAAA;border-color:rgba(224,85,85,.25)}
+html[data-theme="dark"] .b-prospecto,html[data-theme="dark"] .b-pendiente,html[data-theme="dark"] .b-media,html[data-theme="dark"] .b-anticipo_pagado,html[data-theme="dark"] .b-en_revision,html[data-theme="dark"] .b-enviada,html[data-theme="dark"] .b-recordatorio,html[data-theme="dark"] .b-pendiente_materiales,html[data-theme="dark"] .b-pausada{background:rgba(224,144,0,.12);color:#FFCA60;border-color:rgba(224,144,0,.25)}
+html[data-theme="dark"] .b-negociacion,html[data-theme="dark"] .b-en_progreso,html[data-theme="dark"] .b-cliente_activo,html[data-theme="dark"] .b-confirmacion_orden,html[data-theme="dark"] .b-en_revision,html[data-theme="dark"] .b-en_produccion,html[data-theme="dark"] .b-reservado{background:rgba(var(--ac-rgb),.12);color:#90C8F5;border-color:rgba(var(--ac-rgb),.25)}
 html[data-theme="dark"] .b-borrador{background:rgba(255,255,255,.06);color:var(--text2);border-color:var(--border)}
 html[data-theme="dark"] .b-vip{background:rgba(91,33,182,.15);color:#C4B5FD;border-color:rgba(91,33,182,.3)}
 html[data-theme="dark"] .b-cita{background:rgba(124,58,237,.12);color:#C4B5FD;border-color:rgba(124,58,237,.25)}
@@ -431,8 +431,11 @@ img,svg{max-width:100%;height:auto}
     {% if 'produccion' in m %}<a href="{{ url_for('gantt') }}" class="nav-link {% if request.endpoint=='gantt' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-bar-chart-steps"></i><span>Gantt</span></a>{% endif %}
     {% if 'empaques' in m %}<a href="{{ url_for('empaques') }}" class="nav-link {% if 'empaque' in request.endpoint %}active{% endif %}"><i class="bi bi-box2-heart-fill"></i><span>Empaques secundarios</span></a>{% endif %}
     {% endif %}
+    {% if 'legal' in m or current_user.rol in ('admin','director_financiero','director_operativo') %}
     <div class="sb-sec">Legal</div>
     <a href="{{ url_for('legal_index') }}" class="nav-link {% if 'legal' in request.endpoint %}active{% endif %}"><i class="bi bi-shield-check"></i><span>Documentos legales</span></a>
+    {% endif %}
+    {% if 'finanzas' in m or current_user.rol in ('admin','director_financiero','contador') %}
     <div class="sb-sec">Finanzas</div>
     <a href="{{ url_for('contable_index') }}" class="nav-link {% if 'contable' in request.endpoint %}active{% endif %}"><i class="bi bi-calculator"></i><span>Contabilidad</span></a>
     {% if 'contable' in request.endpoint %}
@@ -443,6 +446,7 @@ img,svg{max-width:100%;height:auto}
     {% if 'gastos' in m %}<a href="{{ url_for('gastos') }}" class="nav-link {% if 'gasto' in request.endpoint %}active{% endif %}"><i class="bi bi-receipt"></i><span>Gastos</span></a>{% endif %}
     <a href="{{ url_for('impuestos') }}" class="nav-link {% if 'impuesto' in request.endpoint %}active{% endif %}"><i class="bi bi-percent"></i><span>Reglas tributarias</span></a>
     {% if 'reportes' in m %}<a href="{{ url_for('reportes') }}" class="nav-link {% if 'reporte' in request.endpoint %}active{% endif %}"><i class="bi bi-bar-chart-fill"></i><span>Reportes</span></a>{% endif %}
+    {% endif %}
     {% if 'nomina' in m %}
     <div class="sb-sec">Recursos Humanos</div>
     <a href="{{ url_for('nomina_index') }}" class="nav-link {% if 'nomina' in request.endpoint or 'empleado' in request.endpoint %}active{% endif %}"><i class="bi bi-people-fill"></i><span>Nómina</span></a>
@@ -454,7 +458,14 @@ img,svg{max-width:100%;height:auto}
     <a href="{{ url_for('portal_proveedor') }}" class="nav-link {% if request.endpoint=='portal_proveedor' %}active{% endif %}"><i class="bi bi-house-fill"></i><span>Mi Portal</span></a>
     <a href="{{ url_for('portal_prov_ticket') }}" class="nav-link {% if request.endpoint=='portal_prov_ticket' %}active{% endif %}"><i class="bi bi-chat-left-text"></i><span>Enviar Mensaje</span></a>
     {% endif %}
-    {% if current_user.rol == 'admin' %}
+    {% if current_user.rol in ('admin','director_financiero','director_operativo') %}
+    <div class="sb-sec">Aprobaciones</div>
+    <a href="{{ url_for('aprobaciones_pendientes') }}" class="nav-link {% if 'aprobacion' in request.endpoint %}active{% endif %}"><i class="bi bi-clipboard-check"></i><span>Pendientes</span></a>
+    {% endif %}
+    {% if current_user.rol not in ('admin','director_financiero','director_operativo','cliente','proveedor') %}
+    <a href="{{ url_for('mis_solicitudes') }}" class="nav-link {% if request.endpoint=='mis_solicitudes' %}active{% endif %}"><i class="bi bi-send-check"></i><span>Mis solicitudes</span></a>
+    {% endif %}
+    {% if current_user.rol in ('admin','director_financiero') %}
     <div class="sb-sec">Admin</div>
     <a href="{{ url_for('admin_usuarios') }}" class="nav-link {% if 'admin_usuario' in request.endpoint %}active{% endif %}"><i class="bi bi-shield-person-fill"></i><span>Usuarios</span></a>
     <a href="{{ url_for('actividad') }}" class="nav-link {% if request.endpoint=='actividad' %}active{% endif %}"><i class="bi bi-clock-history"></i><span>Actividad</span></a>

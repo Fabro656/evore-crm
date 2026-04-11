@@ -10,7 +10,6 @@ from datetime import datetime, timedelta, date as date_type
 import json, os, re, io, secrets, logging
 
 def register(app):
-    def _noop(*a, **kw): pass
 
     # ── login (/login)
     @app.route('/login', methods=['GET','POST'])

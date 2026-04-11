@@ -8,7 +8,6 @@ from datetime import datetime
 import math
 
 def register(app):
-    def _noop(*a, **kw): pass
 
     # ── empaques (/empaques)
     @app.route('/empaques')
@@ -68,6 +67,38 @@ def register(app):
                 return render_template('empaques/form.html', productos=productos, obj=None)
 
         return render_template('empaques/form.html', productos=productos, obj=None)
+
+
+    # ── empaques_editar (/empaques/<int:id>/editar)
+    @app.route('/empaques/<int:id>/editar', methods=['GET', 'POST'])
+    @login_required
+    @requiere_modulo('produccion')
+    def empaques_editar(id):
+        """Editar un empaque existente (solo si no está aprobado, o admin)."""
+        empaque = EmpaqueSecundario.query.get_or_404(id)
+        productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
+
+        if empaque.aprobado and current_user.rol != 'admin':
+            flash('No se pueden editar empaques aprobados. Contacta al administrador.', 'warning')
+            return redirect(url_for('empaques'))
+
+        if request.method == 'POST':
+            try:
+                empaque.producto_id = int(request.form.get('producto_id', empaque.producto_id))
+                empaque.alto = float(request.form.get('alto', 0))
+                empaque.ancho = float(request.form.get('ancho', 0))
+                empaque.largo = float(request.form.get('largo', 0))
+                empaque.peso_unitario = float(request.form.get('peso_unitario', 0))
+                empaque.peso_max_caja = float(request.form.get('peso_max_caja', 0))
+                empaque.unidades_por_caja = int(request.form.get('unidades_por_caja', 1))
+                empaque.notas = request.form.get('notas', '')
+                db.session.commit()
+                flash(f'Empaque actualizado.', 'success')
+                return redirect(url_for('empaques'))
+            except (ValueError, TypeError) as e:
+                flash(f'Error al procesar valores: {str(e)}', 'danger')
+
+        return render_template('empaques/form.html', productos=productos, obj=empaque)
 
 
     # ── empaques_calcular (/empaques/calcular) — API para la calculadora

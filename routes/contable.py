@@ -10,11 +10,11 @@ from datetime import datetime, timedelta, date as date_type
 import json, os, re, io, secrets, logging
 
 def register(app):
-    def _noop(*a, **kw): pass
 
     # ── contable_index: Dashboard contable (/contable)
     @app.route('/contable')
     @login_required
+    @requiere_modulo('finanzas')
     def contable_index():
         import calendar as cal_mod
         hoy = date_type.today()
@@ -61,7 +61,9 @@ def register(app):
         except Exception:
             asientos_ingreso = []
 
-        # ── Egresos: gastos operativos + compras de materia prima ─────────────
+        # ── Egresos: gastos operativos (ya incluyen compras de materia prima) ──
+        # NOTA: _save_compra() crea GastoOperativo automáticamente por cada compra,
+        # por lo tanto NO sumamos CompraMateria por separado para evitar doble conteo.
         try:
             gastos_mes = GastoOperativo.query.filter(
                 GastoOperativo.fecha >= mes_ini,
@@ -71,6 +73,7 @@ def register(app):
         except Exception:
             gastos_mes, total_gastos = [], 0
 
+        # Compras del mes (solo para desglose visual, NO sumadas en egresos)
         try:
             compras_mes = CompraMateria.query.filter(
                 CompraMateria.fecha >= mes_ini,
@@ -80,7 +83,7 @@ def register(app):
         except Exception:
             compras_mes, total_compras = [], 0
 
-        total_egresos = total_gastos + total_compras
+        total_egresos = total_gastos
         utilidad      = total_ingresos - total_egresos
 
         # ── Impuestos estimados via _calcular_impuestos (utils) ───────────────
@@ -120,6 +123,7 @@ def register(app):
     # ── contable_asientos: Lista todos los asientos manuales (/contable/asientos)
     @app.route('/contable/asientos')
     @login_required
+    @requiere_modulo('finanzas')
     def contable_asientos():
         filtro = request.args.get('filtro', 'todos')
         desde  = request.args.get('desde', '')
@@ -168,6 +172,7 @@ def register(app):
     # ── contable_asiento_nuevo: Crear asiento manual (/contable/asientos/nuevo)
     @app.route('/contable/asientos/nuevo', methods=['GET', 'POST'])
     @login_required
+    @requiere_modulo('finanzas')
     def contable_asiento_nuevo():
         if request.method == 'POST':
             clasificacion   = request.form.get('clasificacion', 'egreso')
@@ -237,6 +242,7 @@ def register(app):
     # ── contable_asiento_editar: Editar asiento (/contable/asientos/<id>/editar)
     @app.route('/contable/asientos/<int:id>/editar', methods=['GET', 'POST'])
     @login_required
+    @requiere_modulo('finanzas')
     def contable_asiento_editar(id):
         asiento = AsientoContable.query.get_or_404(id)
 
@@ -304,6 +310,7 @@ def register(app):
     # ── contable_caja_chica: Marcar/desmarcar asiento como caja chica
     @app.route('/contable/asientos/<int:id>/caja-chica', methods=['POST'])
     @login_required
+    @requiere_modulo('finanzas')
     def contable_caja_chica(id):
         asiento = AsientoContable.query.get_or_404(id)
         if asiento.tipo == 'gasto_caja_chica':
@@ -319,6 +326,7 @@ def register(app):
     # ── contable_asiento_eliminar: Eliminar asiento (/contable/asientos/<id>/eliminar)
     @app.route('/contable/asientos/<int:id>/eliminar', methods=['POST'])
     @login_required
+    @requiere_modulo('finanzas')
     def contable_asiento_eliminar(id):
         asiento = AsientoContable.query.get_or_404(id)
         numero = asiento.numero
@@ -333,6 +341,7 @@ def register(app):
     # ── contable_comprobante: Generar PDF/comprobante (/contable/asientos/<id>/comprobante)
     @app.route('/contable/asientos/<int:id>/comprobante')
     @login_required
+    @requiere_modulo('finanzas')
     def contable_comprobante(id):
         asiento = AsientoContable.query.get_or_404(id)
         empresa = ConfigEmpresa.query.first()

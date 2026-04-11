@@ -10,11 +10,11 @@ from datetime import datetime, timedelta, date as date_type
 import json, os, re, io, secrets, logging
 
 def register(app):
-    def _noop(*a, **kw): pass
 
     # ── proveedores (/proveedores)
     @app.route('/proveedores')
     @login_required
+    @requiere_modulo('clientes')
     def proveedores():
         busqueda = request.args.get('buscar','')
         tipo_f   = request.args.get('tipo_f','')
@@ -32,6 +32,7 @@ def register(app):
     # ── proveedor_nuevo (/proveedores/nuevo)
     @app.route('/proveedores/nuevo', methods=['GET','POST'])
     @login_required
+    @requiere_modulo('clientes')
     def proveedor_nuevo():
         if request.method == 'POST':
             p = Proveedor(
@@ -52,6 +53,7 @@ def register(app):
     # ── proveedor_editar (/proveedores/<int:id>/editar)
     @app.route('/proveedores/<int:id>/editar', methods=['GET','POST'])
     @login_required
+    @requiere_modulo('clientes')
     def proveedor_editar(id):
         obj = Proveedor.query.get_or_404(id)
         if request.method == 'POST':
@@ -72,6 +74,7 @@ def register(app):
     # ── proveedor_eliminar (/proveedores/<int:id>/eliminar)
     @app.route('/proveedores/<int:id>/eliminar', methods=['POST'])
     @login_required
+    @requiere_modulo('clientes')
     def proveedor_eliminar(id):
         if current_user.rol != 'admin':
             flash('Solo administradores pueden eliminar registros.', 'danger')

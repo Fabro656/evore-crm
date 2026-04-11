@@ -10,7 +10,6 @@ from datetime import datetime, timedelta, date as date_type
 import json, os, re, io, secrets, logging
 
 def register(app):
-    def _noop(*a, **kw): pass
 
     # ── impuestos (/finanzas/impuestos)
     @app.route('/finanzas/impuestos')
@@ -104,10 +103,27 @@ def register(app):
     @login_required
     def gasto_nuevo():
         if request.method == 'POST':
+            # Sistema de aprobación: roles no financieros requieren autorización
+            monto_gasto = float(request.form.get('monto',0) or 0)
+            if current_user.rol not in ('admin', 'director_financiero') and monto_gasto > 0:
+                from routes.aprobaciones import register as _
+                desc = f'Gasto: {request.form.get("descripcion","")[:100]} — ${monto_gasto:,.0f}'
+                a = Aprobacion(
+                    tipo_accion='gasto_nuevo', descripcion=desc, monto=monto_gasto,
+                    datos_json=json.dumps(dict(request.form), ensure_ascii=False),
+                    estado='pendiente', solicitado_por=current_user.id)
+                db.session.add(a); db.session.commit()
+                directores = User.query.filter(User.rol.in_(['admin','director_financiero']), User.activo==True).all()
+                for d in directores:
+                    _crear_notificacion(d.id, 'alerta', f'Aprobacion requerida: {desc[:80]}',
+                        f'{current_user.nombre} solicita registrar gasto de ${monto_gasto:,.0f}',
+                        url_for('aprobaciones_pendientes'))
+                flash(f'Solicitud de aprobacion enviada al director financiero. Monto: ${monto_gasto:,.0f}', 'info')
+                return redirect(url_for('gastos'))
             fd = request.form.get('fecha')
             rec = request.form.get('recurrencia','unico')
             es_pl = request.form.get('es_plantilla') == '1' and rec == 'mensual'
-            db.session.add(GastoOperativo(
+            g = GastoOperativo(
                 fecha=datetime.strptime(fd,'%Y-%m-%d').date() if fd else datetime.utcnow().date(),
                 tipo=request.form['tipo'],
                 tipo_custom=request.form.get('tipo_custom','') or None,
@@ -115,7 +131,20 @@ def register(app):
                 monto=float(request.form.get('monto',0) or 0),
                 recurrencia=rec,
                 es_plantilla=es_pl,
-                notas=request.form.get('notas',''), creado_por=current_user.id))
+                notas=request.form.get('notas',''), creado_por=current_user.id)
+            db.session.add(g); db.session.flush()
+            tipo_gasto = request.form['tipo']
+            monto_gasto = float(request.form.get('monto',0) or 0)
+            if monto_gasto > 0 and not es_pl:
+                _crear_asiento_auto(
+                    tipo='gasto', subtipo=f'gasto_{tipo_gasto}',
+                    descripcion=f'Gasto: {g.descripcion or tipo_gasto}',
+                    monto=monto_gasto,
+                    cuenta_debe=f'Gastos {tipo_gasto}',
+                    cuenta_haber='Bancos / Caja',
+                    clasificacion='egreso',
+                    gasto_id=g.id
+                )
             db.session.commit(); flash('Gasto registrado.','success'); return redirect(url_for('gastos'))
         return render_template('gastos/form.html', obj=None, titulo='Nuevo Gasto',
                                today=datetime.utcnow().strftime('%Y-%m-%d'))
@@ -137,6 +166,13 @@ def register(app):
             obj.recurrencia=rec
             obj.es_plantilla=request.form.get('es_plantilla') == '1' and rec == 'mensual'
             obj.notas=request.form.get('notas','')
+            # Sincronizar asiento contable vinculado
+            asiento_link = AsientoContable.query.filter_by(gasto_id=obj.id).first()
+            if asiento_link:
+                asiento_link.debe = float(obj.monto)
+                asiento_link.haber = float(obj.monto)
+                asiento_link.descripcion = f'Gasto: {obj.descripcion or obj.tipo}'[:300]
+                asiento_link.fecha = obj.fecha
             db.session.commit(); flash('Gasto actualizado.','success'); return redirect(url_for('gastos'))
         return render_template('gastos/form.html', obj=obj, titulo='Editar Gasto',
                                today=datetime.utcnow().strftime('%Y-%m-%d'))
@@ -149,8 +185,11 @@ def register(app):
         if current_user.rol != 'admin':
             flash('Solo administradores pueden eliminar registros.', 'danger')
             return redirect(request.referrer or url_for('dashboard'))
-        obj=GastoOperativo.query.get_or_404(id); db.session.delete(obj); db.session.commit()
-        flash('Gasto eliminado.','info'); return redirect(url_for('gastos'))
+        obj=GastoOperativo.query.get_or_404(id)
+        # Eliminar asientos contables vinculados
+        AsientoContable.query.filter_by(gasto_id=obj.id).delete()
+        db.session.delete(obj); db.session.commit()
+        flash('Gasto y asiento contable eliminados.','info'); return redirect(url_for('gastos'))
     
 
     # ── gasto_plantilla_usar (/gastos/plantilla/<int:id>/usar)
@@ -169,7 +208,18 @@ def register(app):
             es_plantilla=False,
             notas=f'Registrado desde plantilla mensual',
             creado_por=current_user.id)
-        db.session.add(nuevo); db.session.commit()
+        db.session.add(nuevo); db.session.flush()
+        if nuevo.monto and nuevo.monto > 0:
+            _crear_asiento_auto(
+                tipo='gasto', subtipo=f'gasto_{nuevo.tipo}',
+                descripcion=f'Gasto (plantilla): {nuevo.descripcion or nuevo.tipo}',
+                monto=float(nuevo.monto),
+                cuenta_debe=f'Gastos {nuevo.tipo}',
+                cuenta_haber='Bancos / Caja',
+                clasificacion='egreso',
+                gasto_id=nuevo.id
+            )
+        db.session.commit()
         flash(f'Gasto "{plantilla.tipo_custom or plantilla.tipo}" registrado para este mes.','success')
         return redirect(url_for('gastos'))
     

@@ -16,7 +16,7 @@ __all__ = [
     'TASA_CESANTIAS', 'TASA_INT_CESANTIAS', 'TASA_PRIMA', 'TASA_VACACIONES',
     # Helpers
     'cop', 'moneda', 'moneda0', 'requiere_modulo', 'inject_globals',
-    '_send_email', '_log', '_crear_notificacion',
+    '_send_email', '_log', '_crear_notificacion', '_crear_asiento_auto',
     '_calcular_nomina', '_calcular_liquidacion', '_calcular_impuestos',
     '_descontar_materias', '_descontar_stock_venta', '_save_contactos',
     '_oc_save_items', '_prods_json', '_save_items', '_save_asignados',
@@ -34,13 +34,25 @@ _MODULOS_TODOS = ['clientes','ventas','cotizaciones','tareas','calendario',
 _MODULOS_ROL = {
     'admin':      _MODULOS_TODOS,
     'tester':     _MODULOS_TODOS,   # acceso a todo, sin crear usuarios ni reset
+    'director_financiero': _MODULOS_TODOS,  # Dueño: ve todo, aprueba gastos/compras
+    'director_operativo':  ['clientes','ventas','cotizaciones','tareas','calendario','notas',
+                            'inventario','produccion','proveedores','ordenes_compra',
+                            'cotizaciones_proveedor','empaques','servicios','nomina','reportes'],
     'vendedor':   ['clientes','ventas','cotizaciones','tareas','calendario','notas','nomina'],
     'produccion': ['inventario','produccion','gastos','notas','calendario','tareas'],
-    'contador':   ['gastos','reportes','produccion','notas','nomina'],
+    'contador':   ['gastos','reportes','produccion','notas','nomina','finanzas'],
     'usuario':    ['tareas','notas','calendario'],
     'sales_manager': ['clientes','ventas','cotizaciones','tareas','calendario','notas','ordenes_compra','nomina'],
     'cliente':       ['portal_cliente'],
     'proveedor':     ['portal_proveedor'],
+}
+
+# Acciones que requieren aprobación de director_financiero
+REQUIERE_APROBACION = {
+    'gasto_nuevo':       'Registrar gasto operativo',
+    'compra_nueva':      'Registrar compra de materia prima',
+    'nomina_cerrar':     'Cerrar nómina mensual',
+    'orden_compra_nueva':'Crear orden de compra',
 }
 
 # ── Colombian labor / payroll constants (originally in app.py global scope)
@@ -147,6 +159,34 @@ def _log(tipo, entidad, entidad_id, descripcion):
             descripcion=descripcion, usuario_id=current_user.id))
     except Exception:
         pass
+
+def _crear_asiento_auto(tipo, subtipo, descripcion, monto, cuenta_debe, cuenta_haber,
+                        clasificacion='egreso', referencia=None, venta_id=None,
+                        orden_compra_id=None, gasto_id=None, proveedor_id=None):
+    """Crea un AsientoContable automático con auto-numeración."""
+    try:
+        ultimo = AsientoContable.query.order_by(AsientoContable.id.desc()).first()
+        n_ac = (ultimo.id + 1) if ultimo else 1
+        year = datetime.utcnow().year
+        numero = f'AC-{year}-{n_ac:04d}'
+        asiento = AsientoContable(
+            numero=numero,
+            fecha=datetime.utcnow().date(),
+            descripcion=descripcion[:300],
+            tipo=tipo, subtipo=subtipo,
+            referencia=referencia,
+            debe=float(monto), haber=float(monto),
+            cuenta_debe=cuenta_debe, cuenta_haber=cuenta_haber,
+            clasificacion=clasificacion,
+            venta_id=venta_id, orden_compra_id=orden_compra_id,
+            gasto_id=gasto_id, proveedor_id=proveedor_id,
+            creado_por=current_user.id if current_user and current_user.is_authenticated else None
+        )
+        db.session.add(asiento)
+        return asiento
+    except Exception as e:
+        logging.warning(f'_crear_asiento_auto error: {e}')
+        return None
 
 def _crear_notificacion(usuario_id, tipo, titulo, mensaje, url=None):
     try:
@@ -516,24 +556,63 @@ def _save_compra(c, form):
                 db.session.add(lote_mp)
             except Exception as _le:
                 import logging; logging.warning(f'LoteMateriaPrima create error: {_le}')
-    # Auto-register as GastoOperativo
+    # Auto-register/update GastoOperativo
     tipo_label = {'materia_prima': 'Materia prima', 'insumo': 'Insumo',
                   'producto': 'Producto', 'servicio': 'Servicio'}.get(c.tipo_compra, c.tipo_compra.capitalize())
     desc_gasto = (f'{c.nombre_item} — {tipo_label}')
     if c.proveedor: desc_gasto += f' | Proveedor: {c.proveedor}'
     if c.nro_factura: desc_gasto += f' | Factura: {c.nro_factura}'
-    gasto = GastoOperativo(
-        fecha=c.fecha,
-        tipo='compra_produccion',
-        tipo_custom=f'Compra / {tipo_label}',
-        descripcion=desc_gasto,
-        monto=costo_total,
-        recurrencia='unica',
-        es_plantilla=False,
-        notas=f'Registrado automáticamente desde módulo Compras.',
-        creado_por=getattr(c, 'creado_por', None)
-    )
-    db.session.add(gasto)
+    # Buscar gasto existente para esta compra (evitar duplicados en edición)
+    gasto = None
+    if c.id:
+        gasto = GastoOperativo.query.filter_by(
+            tipo='compra_produccion',
+            descripcion=db.func.substr(GastoOperativo.descripcion, 1, 50).like(f'%{c.nombre_item[:30]}%')
+        ).filter(
+            GastoOperativo.fecha == c.fecha,
+            GastoOperativo.creado_por == getattr(c, 'creado_por', None)
+        ).first()
+    if gasto:
+        # Actualizar existente
+        gasto.fecha = c.fecha
+        gasto.tipo_custom = f'Compra / {tipo_label}'
+        gasto.descripcion = desc_gasto
+        gasto.monto = costo_total
+        # Actualizar asiento vinculado
+        asiento_link = AsientoContable.query.filter_by(gasto_id=gasto.id).first()
+        if asiento_link:
+            asiento_link.debe = float(costo_total)
+            asiento_link.haber = float(costo_total)
+            asiento_link.descripcion = f'Compra: {c.nombre_item} — {tipo_label}'[:300]
+            asiento_link.fecha = c.fecha
+            asiento_link.referencia = c.nro_factura or None
+    else:
+        # Crear nuevo
+        gasto = GastoOperativo(
+            fecha=c.fecha,
+            tipo='compra_produccion',
+            tipo_custom=f'Compra / {tipo_label}',
+            descripcion=desc_gasto,
+            monto=costo_total,
+            recurrencia='unica',
+            es_plantilla=False,
+            notas=f'Registrado automáticamente desde módulo Compras.',
+            creado_por=getattr(c, 'creado_por', None)
+        )
+        db.session.add(gasto)
+        db.session.flush()
+        # Partida doble automática
+        _crear_asiento_auto(
+            tipo='compra', subtipo='compra_materia',
+            descripcion=f'Compra: {c.nombre_item} — {tipo_label}',
+            monto=costo_total,
+            cuenta_debe='Inventario materias primas',
+            cuenta_haber='Cuentas por pagar proveedores',
+            clasificacion='egreso',
+            referencia=c.nro_factura or None,
+            gasto_id=gasto.id,
+            proveedor_id=c.proveedor_id
+        )
     return c
 
 def _make_xlsx(titulo, headers, rows):
@@ -597,6 +676,7 @@ def _procesar_orden_produccion(cot):
             creado_por=current_user.id
         )
         db.session.add(orden)
+        db.session.flush()  # obtener orden.id para vincular reservas
 
         if cant_producir <= 0:
             continue  # ya hay suficiente stock, sin acción adicional
@@ -619,6 +699,7 @@ def _procesar_orden_produccion(cot):
                         materia_prima_id=mp.id,
                         cantidad=necesaria,
                         producto_id=prod.id,
+                        orden_produccion_id=orden.id,
                         estado='reservado',
                         notas=f'Auto-reserva cot #{cot.numero or cot.id}',
                         creado_por=current_user.id
@@ -636,6 +717,7 @@ def _procesar_orden_produccion(cot):
                             materia_prima_id=mp.id,
                             cantidad=disponible,
                             producto_id=prod.id,
+                            orden_produccion_id=orden.id,
                             estado='reservado',
                             notas=f'Parcial cot #{cot.numero or cot.id}',
                             creado_por=current_user.id
@@ -735,6 +817,7 @@ def _procesar_venta_produccion(venta):
                 creado_por=current_user.id
             )
             db.session.add(orden)
+            db.session.flush()  # obtener orden.id para vincular reservas
 
             # Descontar/reservar materias primas del BOM inmediatamente
             receta = RecetaProducto.query.filter_by(producto_id=prod.id, activo=True).first()
@@ -752,7 +835,8 @@ def _procesar_venta_produccion(venta):
                         mp.stock_reservado   = (mp.stock_reservado or 0) + necesaria
                         db.session.add(ReservaProduccion(
                             materia_prima_id=mp.id, cantidad=necesaria,
-                            producto_id=prod.id, venta_id=venta.id, estado='reservado',
+                            producto_id=prod.id, venta_id=venta.id,
+                            orden_produccion_id=orden.id, estado='reservado',
                             notas=f'Auto-reserva venta: {venta.titulo}',
                             creado_por=current_user.id
                         ))
@@ -767,7 +851,8 @@ def _procesar_venta_produccion(venta):
                             mp.stock_reservado   = (mp.stock_reservado or 0) + disponible
                             db.session.add(ReservaProduccion(
                                 materia_prima_id=mp.id, cantidad=disponible,
-                                producto_id=prod.id, venta_id=venta.id, estado='reservado',
+                                producto_id=prod.id, venta_id=venta.id,
+                                orden_produccion_id=orden.id, estado='reservado',
                                 notas=f'Parcial venta: {venta.titulo}',
                                 creado_por=current_user.id
                             ))

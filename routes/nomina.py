@@ -10,7 +10,6 @@ from datetime import datetime, timedelta, date as date_type
 import json, os, re, io, secrets, logging
 
 def register(app):
-    def _noop(*a, **kw): pass
 
     # ── Helpers ─────────────────────────────────────────────────────
     def _calcular_nomina(empleado):
@@ -108,7 +107,18 @@ def register(app):
             creado_por=current_user.id
         )
         db.session.add(g)
-        _noop('crear', 'gasto', g.id, f'Nómina mensual {mes}: ${total_costo:,.0f}')
+        db.session.flush()
+        _crear_asiento_auto(
+            tipo='gasto', subtipo='nomina_mensual',
+            descripcion=f'Nómina {mes}: {n_empleados} empleados',
+            monto=round(total_costo, 0),
+            cuenta_debe='Gastos de nómina',
+            cuenta_haber='Bancos / Caja',
+            clasificacion='egreso',
+            referencia=f'NOM-{mes}',
+            gasto_id=g.id
+        )
+        _log('crear', 'gasto', g.id, f'Nómina mensual {mes}: ${total_costo:,.0f}')
         db.session.commit()
         flash(f'Nómina de {mes} cerrada. Gasto registrado: ${total_costo:,.0f} ({n_empleados} empleados).', 'success')
         return redirect(url_for('nomina_index'))
@@ -228,7 +238,7 @@ def register(app):
             empleado.estado = 'despedido'
         else:
             empleado.estado = 'retirado'
-        _noop('editar', 'empleado', empleado.id, f'Marcado como {empleado.estado} por: {motivo}')
+        _log('editar', 'empleado', empleado.id, f'Marcado como {empleado.estado} por: {motivo}')
         db.session.commit()
         flash(f'Empleado {empleado.nombre} marcado como {empleado.estado}.','success')
         return redirect(url_for('nomina_index'))

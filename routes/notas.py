@@ -10,11 +10,11 @@ from datetime import datetime, timedelta, date as date_type
 import json, os, re, io, secrets, logging
 
 def register(app):
-    def _noop(*a, **kw): pass
 
     # ── notas (/notas)
     @app.route('/notas')
     @login_required
+    @requiere_modulo('notas')
     def notas():
         cliente_f = request.args.get('cliente_id','')
         q = Nota.query
@@ -29,6 +29,7 @@ def register(app):
     # ── nota_nueva (/notas/nueva)
     @app.route('/notas/nueva', methods=['GET','POST'])
     @login_required
+    @requiere_modulo('notas')
     def nota_nueva():
         cl = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
         pl = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
@@ -51,6 +52,7 @@ def register(app):
     # ── nota_editar (/notas/<int:id>/editar)
     @app.route('/notas/<int:id>/editar', methods=['GET','POST'])
     @login_required
+    @requiere_modulo('notas')
     def nota_editar(id):
         obj = Nota.query.get_or_404(id)
         cl  = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
@@ -73,6 +75,7 @@ def register(app):
     # ── nota_eliminar (/notas/<int:id>/eliminar)
     @app.route('/notas/<int:id>/eliminar', methods=['POST'])
     @login_required
+    @requiere_modulo('notas')
     def nota_eliminar(id):
         if current_user.rol != 'admin':
             flash('Solo administradores pueden eliminar registros.', 'danger')

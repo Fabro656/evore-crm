@@ -137,6 +137,7 @@ class Venta(db.Model):
     porcentaje_anticipo = db.Column(db.Float, default=0)
     monto_anticipo      = db.Column(db.Float, default=0)
     saldo               = db.Column(db.Float, default=0)
+    monto_pagado_total  = db.Column(db.Float, default=0)
     estado              = db.Column(db.String(30), default='prospecto')
     fecha_anticipo      = db.Column(db.Date)
     dias_entrega        = db.Column(db.Integer, default=30)
@@ -151,6 +152,37 @@ class Venta(db.Model):
     items               = db.relationship('VentaProducto', backref='venta', lazy=True, cascade='all, delete-orphan')
     ordenes_produccion  = db.relationship('OrdenProduccion', foreign_keys='OrdenProduccion.venta_id', lazy=True, back_populates='venta')
     cotizacion_origen   = db.relationship('Cotizacion', foreign_keys='Venta.cotizacion_id')
+    pagos               = db.relationship('PagoVenta', backref='venta', lazy=True, cascade='all, delete-orphan')
+
+class PagoVenta(db.Model):
+    __tablename__ = 'pagos_venta'
+    id          = db.Column(db.Integer, primary_key=True)
+    venta_id    = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=False)
+    monto       = db.Column(db.Float, nullable=False)
+    tipo        = db.Column(db.String(30), default='anticipo')  # anticipo, parcial, saldo
+    metodo_pago = db.Column(db.String(30), default='transferencia')  # transferencia, efectivo, cheque, tarjeta
+    referencia  = db.Column(db.String(100))  # nro transacción / comprobante
+    fecha       = db.Column(db.Date, nullable=False)
+    notas       = db.Column(db.Text)
+    creado_por  = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en   = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Aprobacion(db.Model):
+    """Sistema de aprobaciones para acciones financieras sensibles."""
+    __tablename__ = 'aprobaciones'
+    id             = db.Column(db.Integer, primary_key=True)
+    tipo_accion    = db.Column(db.String(50), nullable=False)  # gasto_nuevo, compra_nueva, etc.
+    descripcion    = db.Column(db.String(300))
+    monto          = db.Column(db.Float, default=0)
+    datos_json     = db.Column(db.Text)  # JSON serializado de los datos del formulario
+    estado         = db.Column(db.String(20), default='pendiente')  # pendiente, aprobado, rechazado
+    solicitado_por = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    aprobado_por   = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    notas_aprobador= db.Column(db.Text)
+    creado_en      = db.Column(db.DateTime, default=datetime.utcnow)
+    resuelto_en    = db.Column(db.DateTime, nullable=True)
+    solicitante    = db.relationship('User', foreign_keys=[solicitado_por])
+    aprobador      = db.relationship('User', foreign_keys=[aprobado_por])
 
 class TareaAsignado(db.Model):
     __tablename__ = 'tarea_asignados'
@@ -197,6 +229,7 @@ class Producto(db.Model):
     precio       = db.Column(db.Float, default=0)
     costo        = db.Column(db.Float, default=0)
     stock        = db.Column(db.Integer, default=0)
+    stock_reservado = db.Column(db.Integer, default=0)
     stock_minimo    = db.Column(db.Integer, default=5)
     categoria       = db.Column(db.String(100))
     activo          = db.Column(db.Boolean, default=True)
@@ -314,6 +347,7 @@ class AsientoContable(db.Model):
     venta_id         = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=True)       # v30
     orden_compra_id  = db.Column(db.Integer, db.ForeignKey('ordenes_compra.id'), nullable=True)  # v30
     proveedor_id     = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)  # v31
+    gasto_id         = db.Column(db.Integer, db.ForeignKey('gastos_operativos.id'), nullable=True)  # v33
     clasificacion    = db.Column(db.String(10), default='egreso')    # ingreso | egreso   v31
     nro_transaccion  = db.Column(db.String(100), nullable=True)      # v31
     banco_nombre     = db.Column(db.String(120), nullable=True)      # v31
@@ -326,6 +360,7 @@ class AsientoContable(db.Model):
     venta            = db.relationship('Venta', foreign_keys=[venta_id])         # v30
     orden_compra     = db.relationship('OrdenCompra', foreign_keys=[orden_compra_id])  # v30
     proveedor        = db.relationship('Proveedor', foreign_keys=[proveedor_id])  # v31
+    gasto            = db.relationship('GastoOperativo', foreign_keys=[gasto_id])  # v33
 
 class ReglaTributaria(db.Model):
     __tablename__ = 'reglas_tributarias'
@@ -570,6 +605,7 @@ class ReservaProduccion(db.Model):
     producto_id      = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=True)
     lote_id          = db.Column(db.Integer, db.ForeignKey('lotes_producto.id'), nullable=True)
     lote_materia_prima_id = db.Column(db.Integer, db.ForeignKey('lotes_materia_prima.id'), nullable=True)
+    orden_produccion_id   = db.Column(db.Integer, db.ForeignKey('ordenes_produccion.id'), nullable=True)
     notas            = db.Column(db.Text)
     creado_por       = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en        = db.Column(db.DateTime, default=datetime.utcnow)
@@ -578,6 +614,7 @@ class ReservaProduccion(db.Model):
     producto         = db.relationship('Producto', foreign_keys=[producto_id])
     venta            = db.relationship('Venta', foreign_keys=[venta_id])
     lote_mp          = db.relationship('LoteMateriaPrima', foreign_keys=[lote_materia_prima_id])
+    orden_produccion = db.relationship('OrdenProduccion', foreign_keys=[orden_produccion_id])
 
 class OrdenProduccion(db.Model):
     __tablename__ = 'ordenes_produccion'
@@ -875,6 +912,24 @@ def _migrate(conn):
         ("ALTER TABLE venta_productos ADD COLUMN IF NOT EXISTS unidad VARCHAR(30) DEFAULT 'unidades'"),
         # v32 — Venta: vincular cotización origen
         ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS cotizacion_id INTEGER REFERENCES cotizaciones(id)"),
+        # v33 — Producto: stock reservado para ATP (Available to Promise)
+        ("ALTER TABLE productos ADD COLUMN IF NOT EXISTS stock_reservado INTEGER DEFAULT 0"),
+        ("ALTER TABLE productos ADD COLUMN stock_reservado INTEGER DEFAULT 0"),
+        # v33 — ReservaProduccion: FK directa a OrdenProduccion para trazabilidad
+        ("ALTER TABLE reservas_produccion ADD COLUMN IF NOT EXISTS orden_produccion_id INTEGER REFERENCES ordenes_produccion(id)"),
+        ("ALTER TABLE reservas_produccion ADD COLUMN orden_produccion_id INTEGER REFERENCES ordenes_produccion(id)"),
+        # v33 — AsientoContable: FK a GastoOperativo para partida doble automática
+        ("ALTER TABLE asientos_contables ADD COLUMN IF NOT EXISTS gasto_id INTEGER REFERENCES gastos_operativos(id)"),
+        ("ALTER TABLE asientos_contables ADD COLUMN gasto_id INTEGER REFERENCES gastos_operativos(id)"),
+        # v33 — Venta: monto_pagado_total para reconciliación de pagos
+        ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS monto_pagado_total FLOAT DEFAULT 0"),
+        ("ALTER TABLE ventas ADD COLUMN monto_pagado_total FLOAT DEFAULT 0"),
+        # v33 — PagoVenta: tabla de pagos parciales
+        ("CREATE TABLE IF NOT EXISTS pagos_venta (id SERIAL PRIMARY KEY, venta_id INTEGER NOT NULL REFERENCES ventas(id), monto FLOAT NOT NULL, tipo VARCHAR(30) DEFAULT 'anticipo', metodo_pago VARCHAR(30) DEFAULT 'transferencia', referencia VARCHAR(100), fecha DATE NOT NULL, notas TEXT, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
+        ("CREATE TABLE IF NOT EXISTS pagos_venta (id INTEGER PRIMARY KEY AUTOINCREMENT, venta_id INTEGER NOT NULL REFERENCES ventas(id), monto FLOAT NOT NULL, tipo VARCHAR(30) DEFAULT 'anticipo', metodo_pago VARCHAR(30) DEFAULT 'transferencia', referencia VARCHAR(100), fecha DATE NOT NULL, notas TEXT, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"),
+        # v34 — Aprobaciones: sistema de confirmación para acciones financieras
+        ("CREATE TABLE IF NOT EXISTS aprobaciones (id SERIAL PRIMARY KEY, tipo_accion VARCHAR(50) NOT NULL, descripcion VARCHAR(300), monto FLOAT DEFAULT 0, datos_json TEXT, estado VARCHAR(20) DEFAULT 'pendiente', solicitado_por INTEGER NOT NULL REFERENCES users(id), aprobado_por INTEGER REFERENCES users(id), notas_aprobador TEXT, creado_en TIMESTAMP DEFAULT NOW(), resuelto_en TIMESTAMP)"),
+        ("CREATE TABLE IF NOT EXISTS aprobaciones (id INTEGER PRIMARY KEY AUTOINCREMENT, tipo_accion VARCHAR(50) NOT NULL, descripcion VARCHAR(300), monto FLOAT DEFAULT 0, datos_json TEXT, estado VARCHAR(20) DEFAULT 'pendiente', solicitado_por INTEGER NOT NULL REFERENCES users(id), aprobado_por INTEGER REFERENCES users(id), notas_aprobador TEXT, creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP, resuelto_en TIMESTAMP)"),
     ]
     for sql in migrations:
         try:

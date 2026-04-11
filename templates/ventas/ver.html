@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% block title %}Venta {{ obj.numero or obj.id }}{% endblock %}
+{% block page_title %}Venta {{ obj.numero or '#'~obj.id }}{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('venta_editar', id=obj.id) }}" class="btn btn-ghost btn-sm"><i class="bi bi-pencil me-1"></i>Editar</a>
+<a href="{{ url_for('venta_factura', id=obj.id) }}" class="btn btn-ghost btn-sm" target="_blank"><i class="bi bi-file-earmark-text me-1"></i>Factura</a>
+<a href="{{ url_for('venta_remision', id=obj.id) }}" class="btn btn-ghost btn-sm"><i class="bi bi-truck me-1"></i>Remision</a>
+{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-md-8">
+    <div class="tc mb-3">
+      <div class="ch">
+        <span>{{ obj.titulo }}</span>
+        <span class="b b-{{ obj.estado }}">{{ obj.estado|replace('_',' ')|title }}</span>
+      </div>
+      <div class="p-3">
+        <table class="table table-sm mb-0">
+          <tr><th>Cliente</th><td>{% if obj.cliente %}{{ obj.cliente.empresa or obj.cliente.nombre }}{% else %}<span style="color:var(--text2)">Sin cliente</span>{% endif %}</td></tr>
+          <tr><th>Subtotal</th><td>{{ moneda(obj.subtotal) }}</td></tr>
+          <tr><th>IVA</th><td>{{ moneda(obj.iva) }}</td></tr>
+          <tr><th>Total</th><td><strong>{{ moneda(obj.total) }}</strong></td></tr>
+          <tr><th>Anticipo ({{ obj.porcentaje_anticipo|default(0)|int }}%)</th><td>{{ moneda(obj.monto_anticipo) }}</td></tr>
+          <tr><th>Pagado</th><td>{{ moneda(obj.monto_pagado_total or 0) }}</td></tr>
+          <tr><th>Saldo pendiente</th><td><strong style="color:{% if (obj.saldo or 0) > 0 %}var(--red){% else %}var(--green){% endif %}">{{ moneda(obj.saldo) }}</strong></td></tr>
+          <tr><th>Fecha entrega est.</th><td>{{ obj.fecha_entrega_est.strftime('%d/%m/%Y') if obj.fecha_entrega_est else '—' }}</td></tr>
+          <tr><th>Dias entrega</th><td>{{ obj.dias_entrega or 30 }}</td></tr>
+          {% if obj.cotizacion_origen %}<tr><th>Cotizacion origen</th><td><a href="{{ url_for('cotizacion_ver', id=obj.cotizacion_origen.id) }}" style="color:var(--ac)">{{ obj.cotizacion_origen.numero }}</a></td></tr>{% endif %}
+          {% if obj.notas %}<tr><th>Notas</th><td>{{ obj.notas }}</td></tr>{% endif %}
+          <tr><th>Creada</th><td>{{ obj.creado_en.strftime('%d/%m/%Y %H:%M') if obj.creado_en else '—' }}</td></tr>
+        </table>
+      </div>
+    </div>
+    {# Items #}
+    <div class="tc mb-3">
+      <div class="ch">Items ({{ obj.items|length }})</div>
+      <div class="table-responsive">
+        <table class="table mb-0">
+          <thead><tr><th>Producto/Servicio</th><th class="text-end">Cant.</th><th class="text-end">Precio unit.</th><th class="text-end">Subtotal</th></tr></thead>
+          <tbody>
+          {% for it in obj.items %}
+          <tr>
+            <td>{{ it.nombre_prod }}{% if it.es_servicio %} <span class="b b-negociacion">Servicio</span>{% endif %}</td>
+            <td class="text-end">{{ it.cantidad }} {{ it.unidad or 'und' }}</td>
+            <td class="text-end">{{ moneda(it.precio_unit) }}</td>
+            <td class="text-end fw-semibold">{{ moneda(it.subtotal) }}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    {# Pagos #}
+    <div class="tc mb-3">
+      <div class="ch">Pagos registrados</div>
+      <div class="p-3">
+        {% if pagos %}
+        {% for p in pagos %}
+        <div class="d-flex justify-content-between align-items-start mb-2 pb-2" style="border-bottom:1px solid var(--border)">
+          <div>
+            <strong>{{ moneda(p.monto) }}</strong><br>
+            <small style="color:var(--text2)">{{ p.tipo|title }} · {{ p.metodo_pago|title }}{% if p.referencia %} · Ref: {{ p.referencia }}{% endif %}</small>
+          </div>
+          <small style="color:var(--text2)">{{ p.fecha.strftime('%d/%m/%Y') }}</small>
+        </div>
+        {% endfor %}
+        {% else %}<p style="color:var(--text2);font-size:.85rem" class="mb-0">Sin pagos registrados.</p>{% endif %}
+        <hr style="border-color:var(--border)">
+        <form method="POST" action="{{ url_for('venta_registrar_pago', id=obj.id) }}">
+          <div class="row g-2">
+            <div class="col-6"><input type="number" name="monto" class="form-control form-control-sm" placeholder="Monto" step="0.01" required></div>
+            <div class="col-6"><input type="date" name="fecha_pago" class="form-control form-control-sm" required></div>
+            <div class="col-6"><select name="tipo_pago" class="form-select form-select-sm"><option value="anticipo">Anticipo</option><option value="parcial">Parcial</option><option value="saldo">Saldo</option></select></div>
+            <div class="col-6"><select name="metodo_pago" class="form-select form-select-sm"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option><option value="cheque">Cheque</option><option value="tarjeta">Tarjeta</option></select></div>
+            <div class="col-12"><input type="text" name="referencia" class="form-control form-control-sm" placeholder="Ref. transaccion (opcional)"></div>
+            <div class="col-12"><button type="submit" class="btn btn-primary btn-sm w-100">Registrar pago</button></div>
+          </div>
+        </form>
+      </div>
+    </div>
+    {# Produccion #}
+    {% if ordenes %}
+    <div class="tc mb-3">
+      <div class="ch">Ordenes de produccion</div>
+      <div class="p-3">
+        {% for o in ordenes %}
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div>
+            <strong style="font-size:.85rem">{{ o.producto.nombre if o.producto else '?' }}</strong><br>
+            <small style="color:var(--text2)">Producir: {{ o.cantidad_producir|int }}</small>
+          </div>
+          <span class="b b-{{ o.estado }}">{{ o.estado|replace('_',' ') }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {# Reservas de materias primas #}
+    {% if reservas %}
+    <div class="tc mb-3">
+      <div class="ch">Reservas de materia prima</div>
+      <div class="p-3">
+        {% for r in reservas %}
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <small><strong>{{ r.materia.nombre if r.materia else '?' }}</strong>: {{ '%.2f'|format(r.cantidad) }}</small>
+          <span class="b b-{{ r.estado }}">{{ r.estado }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

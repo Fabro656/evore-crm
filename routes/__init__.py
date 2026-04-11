@@ -17,6 +17,7 @@ from routes import ai
 from routes import contable
 from routes import empaques
 from routes import servicios
+from routes import aprobaciones
 
 def register_all(app):
     auth.register(app)
@@ -37,3 +38,4 @@ def register_all(app):
     contable.register(app)
     empaques.register(app)
     servicios.register(app)
+    aprobaciones.register(app)

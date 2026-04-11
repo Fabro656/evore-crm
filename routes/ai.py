@@ -428,20 +428,26 @@ def _execute_ai_action(action_data):
             if utype == 'tarea' and uid:
                 t = Tarea.query.get(uid)
                 if t:
+                    # Verificar permisos: solo asignados, creador, o admin
+                    asignado_ids = [a.user_id for a in TareaAsignado.query.filter_by(tarea_id=t.id).all()]
+                    if current_user.id not in asignado_ids and t.creado_por != current_user.id and current_user.rol != 'admin':
+                        return 'No tienes permisos para modificar esta tarea.'
                     if 'estado' in udata and udata['estado'] in ('pendiente','en_progreso','completada','cancelada'):
                         t.estado = udata['estado']
                         db.session.commit()
-                        return f'✅ Tarea #{uid} actualizada a estado: {udata["estado"]}'
+                        return f'Tarea #{uid} actualizada a estado: {udata["estado"]}'
                 return f'Tarea #{uid} no encontrada.'
 
             elif utype == 'venta' and uid:
+                if current_user.rol not in ('admin', 'vendedor', 'sales_manager'):
+                    return 'No tienes permisos para modificar ventas.'
                 v = Venta.query.get(uid)
                 if v:
                     estados_permitidos = ['prospecto','negociacion','anticipo_pagado','pagado','cancelado']
                     if 'estado' in udata and udata['estado'] in estados_permitidos:
                         v.estado = udata['estado']
                         db.session.commit()
-                        return f'✅ Venta {v.numero or uid} actualizada a estado: {udata["estado"]}'
+                        return f'Venta {v.numero or uid} actualizada a estado: {udata["estado"]}'
                 return f'Venta #{uid} no encontrada.'
 
             return 'Actualización no reconocida.'
@@ -451,6 +457,18 @@ def _execute_ai_action(action_data):
         # ══════════════════════════════════════════════════════════════════════════
 
         elif aaction == 'create':
+            # Verificar permisos por tipo de entidad
+            _permisos_crear = {
+                'cliente': ('admin', 'vendedor', 'sales_manager'),
+                'venta': ('admin', 'vendedor', 'sales_manager'),
+                'orden_compra': ('admin', 'produccion', 'sales_manager'),
+                'tarea': ('admin', 'vendedor', 'produccion', 'contador', 'sales_manager', 'usuario'),
+                'nota': ('admin', 'vendedor', 'produccion', 'contador', 'sales_manager', 'usuario'),
+                'evento': ('admin', 'vendedor', 'produccion', 'contador', 'sales_manager', 'usuario'),
+            }
+            roles_permitidos = _permisos_crear.get(atype, ('admin',))
+            if current_user.rol not in roles_permitidos:
+                return f'No tienes permisos para crear {atype}. Se requiere rol: {", ".join(roles_permitidos)}'
 
             # ── Cliente ───────────────────────────────────────────────────
             if atype == 'cliente':

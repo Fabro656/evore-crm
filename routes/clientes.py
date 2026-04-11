@@ -10,7 +10,6 @@ from datetime import datetime, timedelta, date as date_type
 import json, os, re, io, secrets, logging
 
 def register(app):
-    def _noop(*a, **kw): pass
 
     # ── Helpers ─────────────────────────────────────────────────────
     def _save_contactos(cliente_obj):
@@ -31,6 +30,7 @@ def register(app):
     # ── clientes (/clientes)
     @app.route('/clientes')
     @login_required
+    @requiere_modulo('clientes')
     def clientes():
         busqueda = request.args.get('buscar','')
         estado_rel_f = request.args.get('estado_rel','')
@@ -47,6 +47,7 @@ def register(app):
     # ── cliente_nuevo (/clientes/nuevo)
     @app.route('/clientes/nuevo', methods=['GET','POST'])
     @login_required
+    @requiere_modulo('clientes')
     def cliente_nuevo():
         if request.method == 'POST':
             sales_manager_id = request.form.get('sales_manager_id','').strip()
@@ -80,7 +81,7 @@ def register(app):
                 minimo_pedido=minimo_pedido)
             db.session.add(c); db.session.flush()
             _save_contactos(c)
-            _noop('crear','cliente',c.id,f'Cliente creado: {c.empresa or c.nombre}'); db.session.commit()
+            _log('crear','cliente',c.id,f'Cliente creado: {c.empresa or c.nombre}'); db.session.commit()
             flash('Cliente creado.','success'); return redirect(url_for('clientes'))
         sales_managers = User.query.filter(User.rol.in_(['sales_manager','admin']), User.activo==True).order_by(User.nombre).all()
         return render_template('clientes/form.html', obj=None, titulo='Nuevo Cliente', sales_managers=sales_managers)
@@ -89,6 +90,7 @@ def register(app):
     # ── cliente_ver (/clientes/<int:id>)
     @app.route('/clientes/<int:id>')
     @login_required
+    @requiere_modulo('clientes')
     def cliente_ver(id):
         return render_template('clientes/ver.html', obj=Cliente.query.get_or_404(id))
     
@@ -96,6 +98,7 @@ def register(app):
     # ── cliente_editar (/clientes/<int:id>/editar)
     @app.route('/clientes/<int:id>/editar', methods=['GET','POST'])
     @login_required
+    @requiere_modulo('clientes')
     def cliente_editar(id):
         obj = Cliente.query.get_or_404(id)
         if request.method == 'POST':
@@ -126,7 +129,7 @@ def register(app):
             except (ValueError, TypeError):
                 obj.minimo_pedido = None
             db.session.flush(); _save_contactos(obj)
-            _noop('editar','cliente',obj.id,f'Cliente editado: {obj.empresa or obj.nombre}'); db.session.commit()
+            _log('editar','cliente',obj.id,f'Cliente editado: {obj.empresa or obj.nombre}'); db.session.commit()
             flash('Cliente actualizado.','success'); return redirect(url_for('cliente_ver', id=obj.id))
         sales_managers = User.query.filter(User.rol.in_(['sales_manager','admin']), User.activo==True).order_by(User.nombre).all()
         return render_template('clientes/form.html', obj=obj, titulo='Editar Cliente', sales_managers=sales_managers)
@@ -135,6 +138,7 @@ def register(app):
     # ── cliente_eliminar (/clientes/<int:id>/eliminar)
     @app.route('/clientes/<int:id>/eliminar', methods=['POST'])
     @login_required
+    @requiere_modulo('clientes')
     def cliente_eliminar(id):
         if current_user.rol != 'admin':
             flash('Solo administradores pueden eliminar registros.', 'danger')

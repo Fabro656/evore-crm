@@ -7,7 +7,6 @@ from utils import *
 from datetime import datetime
 
 def register(app):
-    def _noop(*a, **kw): pass
 
     # ── servicios (/servicios)
     @app.route('/servicios')

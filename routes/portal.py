@@ -10,7 +10,6 @@ from datetime import datetime, timedelta, date as date_type
 import json, os, re, io, secrets, logging
 
 def register(app):
-    def _noop(*a, **kw): pass
 
     # ── portal_cliente (/portal)
     @app.route('/portal')
@@ -213,6 +212,80 @@ def register(app):
         flash('Aceptaste la pre-cotización. Tu sales manager continuará el proceso.','success')
         return redirect(url_for('portal_cliente'))
     
+
+    # ── portal_precot_convertir (/portal/manager/pre-cotizacion/<int:id>/convertir)
+    @app.route('/portal/manager/pre-cotizacion/<int:id>/convertir', methods=['POST'])
+    @login_required
+    def portal_precot_convertir(id):
+        """Convierte una pre-cotización aceptada en cotización formal."""
+        if current_user.rol not in ['admin', 'sales_manager', 'vendedor']:
+            flash('Sin permisos.', 'danger')
+            return redirect(url_for('dashboard'))
+        pc = PreCotizacion.query.get_or_404(id)
+        if pc.estado not in ('aprobada', 'aceptada_cliente'):
+            flash('Solo se pueden convertir pre-cotizaciones aprobadas o aceptadas.', 'warning')
+            return redirect(url_for('portal_manager_revisar', id=id))
+
+        # Verificar que no exista ya una cotización para esta pre-cot
+        cot_existente = Cotizacion.query.filter_by(
+            cliente_id=pc.cliente_id,
+            titulo=f'Pre-cotización {pc.numero}'
+        ).first()
+        if cot_existente:
+            flash(f'Ya existe la cotización {cot_existente.numero} para esta pre-cotización.', 'warning')
+            return redirect(url_for('cotizacion_ver', id=cot_existente.id))
+
+        # Generar número COT-YYYY-NNN
+        from datetime import date as date_t
+        hoy = date_t.today()
+        ultimo = Cotizacion.query.filter(
+            Cotizacion.numero.like(f'COT-{hoy.year}-%')
+        ).order_by(Cotizacion.id.desc()).first()
+        if ultimo and ultimo.numero:
+            try: seq = int(ultimo.numero.split('-')[-1]) + 1
+            except: seq = 1
+        else: seq = 1
+        numero = f'COT-{hoy.year}-{seq:03d}'
+
+        cot = Cotizacion(
+            numero=numero,
+            titulo=f'Pre-cotización {pc.numero}',
+            cliente_id=pc.cliente_id,
+            subtotal=pc.subtotal,
+            iva=pc.iva,
+            total=pc.total,
+            porcentaje_anticipo=50,
+            monto_anticipo=pc.total * 0.5,
+            saldo=pc.total * 0.5,
+            fecha_emision=hoy,
+            dias_entrega=30,
+            notas=pc.notas_cliente or '',
+            estado='borrador',
+            creado_por=current_user.id
+        )
+        db.session.add(cot); db.session.flush()
+
+        # Copiar items
+        for item in pc.items:
+            db.session.add(CotizacionItem(
+                cotizacion_id=cot.id,
+                nombre_prod=item.nombre_prod,
+                cantidad=item.cantidad,
+                precio_unit=item.precio_unit,
+                subtotal=item.subtotal,
+                unidad=getattr(item, 'unidad', 'unidades'),
+                aplica_iva=True,
+                iva_pct=19.0,
+                iva_monto=round(item.subtotal * 0.19, 2)
+            ))
+
+        pc.estado = 'convertida'
+        pc.actualizado_en = datetime.utcnow()
+        db.session.commit()
+
+        flash(f'Cotización {numero} creada desde pre-cotización {pc.numero}.', 'success')
+        return redirect(url_for('cotizacion_ver', id=cot.id))
+
 
     # ── portal_proveedor (/portal-proveedor)
     @app.route('/portal-proveedor')

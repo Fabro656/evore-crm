@@ -24,6 +24,7 @@ class InventarioService:
                     continue
                 cant = int(round(item.cantidad or 0))
                 prod.stock = max(0, int(prod.stock or 0) - cant)
+                prod.stock_reservado = max(0, (prod.stock_reservado or 0) - cant)
                 # Registrar movimiento si el modelo existe
                 try:
                     from models import MovimientoInventario as _MI
@@ -68,7 +69,7 @@ class InventarioService:
     @staticmethod
     def validar_stock_venta(venta_items):
         """
-        Valida que haya stock suficiente para todos los ítems.
+        Valida que haya stock disponible (stock - stock_reservado) para todos los ítems.
         Retorna lista de problemas (vacía = OK).
         """
         problemas = []
@@ -78,12 +79,48 @@ class InventarioService:
             prod = db.session.get(Producto, item['producto_id'])
             if not prod:
                 continue
-            stock_actual = prod.stock or 0
-            if stock_actual < item.get('cantidad', 0):
+            disponible = (prod.stock or 0) - (prod.stock_reservado or 0)
+            if disponible < item.get('cantidad', 0):
                 problemas.append(
-                    f'{prod.nombre}: stock {stock_actual}, requerido {item["cantidad"]}'
+                    f'{prod.nombre}: disponible {disponible} (stock {prod.stock or 0}, reservado {prod.stock_reservado or 0}), requerido {item["cantidad"]}'
                 )
         return problemas
+
+    @staticmethod
+    def reservar_stock_venta(venta):
+        """
+        Reserva stock de productos terminados al confirmar una venta (anticipo_pagado).
+        Incrementa stock_reservado; no toca stock hasta la entrega.
+        """
+        try:
+            for item in venta.items:
+                if not item.producto_id:
+                    continue
+                prod = db.session.get(Producto, item.producto_id)
+                if not prod:
+                    continue
+                cant = int(round(item.cantidad or 0))
+                prod.stock_reservado = (prod.stock_reservado or 0) + cant
+        except Exception as ex:
+            logging.warning(f'InventarioService.reservar_stock_venta error: {ex}')
+
+    @staticmethod
+    def liberar_reserva_venta(venta):
+        """
+        Libera stock reservado de productos terminados (al cancelar/perder venta).
+        Decrementa stock_reservado sin tocar stock.
+        """
+        try:
+            for item in venta.items:
+                if not item.producto_id:
+                    continue
+                prod = db.session.get(Producto, item.producto_id)
+                if not prod:
+                    continue
+                cant = int(round(item.cantidad or 0))
+                prod.stock_reservado = max(0, (prod.stock_reservado or 0) - cant)
+        except Exception as ex:
+            logging.warning(f'InventarioService.liberar_reserva_venta error: {ex}')
 
     @staticmethod
     def validar_materias_produccion(venta_id):
@@ -146,9 +183,10 @@ class InventarioService:
     @staticmethod
     def descontar_materias_produccion(venta_id):
         """
-        Descuenta materias primas del stock al iniciar producción.
-        stock_disponible -= cantidad  /  stock_reservado += cantidad
-        Solo procesa reservas sin marca FALTANTE.
+        Confirma el inicio de producción para materias ya reservadas.
+        Las materias ya fueron descontadas de stock_disponible y movidas a stock_reservado
+        durante _procesar_venta_produccion(). Este método solo valida y marca las reservas.
+        NO modifica stock (ya fue hecho al crear la venta).
         Retorna (ok: bool, msg: str)
         """
         from models import ReservaProduccion
@@ -157,17 +195,17 @@ class InventarioService:
                 ReservaProduccion.venta_id == venta_id,
                 ReservaProduccion.estado == 'reservado'
             ).all()
+            faltantes = []
             for r in reservas:
                 notas = r.notas or ''
                 if 'FALTANTE' in notas or 'Sin stock' in notas:
+                    mp = r.materia
+                    if mp:
+                        faltantes.append(mp.nombre)
                     continue
-                mp = r.materia
-                if not mp:
-                    continue
-                mp.stock_disponible = max(0.0, float(mp.stock_disponible or 0) - r.cantidad)
-                mp.stock_reservado  = float(mp.stock_reservado or 0) + r.cantidad
-                # Movimiento omitido — MovimientoInventario es solo para productos terminados
-            return True, 'Stock de materias primas descontado correctamente.'
+            if faltantes:
+                return False, f'Materias faltantes: {", ".join(faltantes)}'
+            return True, 'Materias primas validadas. Producción puede iniciar.'
         except Exception as ex:
             logging.warning(f'InventarioService.descontar_materias_produccion error: {ex}')
             return False, str(ex)

@@ -10,7 +10,6 @@ from datetime import datetime, timedelta, date as date_type
 import json, os, re, io, secrets, logging
 
 def register(app):
-    def _noop(*a, **kw): pass
 
     # ── Helpers ─────────────────────────────────────────────────────
     def _oc_save_items(oc_id):
@@ -37,6 +36,7 @@ def register(app):
     # ── cotizaciones_proveedor (/cotizaciones-proveedor)
     @app.route('/cotizaciones-proveedor')
     @login_required
+    @requiere_modulo('ordenes_compra')
     def cotizaciones_proveedor():
         estado_f = request.args.get('estado','')
         tipo_f   = request.args.get('tipo','')   # granel / general
@@ -55,6 +55,7 @@ def register(app):
     # ── cotizacion_proveedor_json (/cotizaciones-proveedor/<int:id>/json)
     @app.route('/cotizaciones-proveedor/<int:id>/json')
     @login_required
+    @requiere_modulo('ordenes_compra')
     def cotizacion_proveedor_json(id):
         """API para traer datos de cotización al formulario de OC"""
         cp = CotizacionProveedor.query.get_or_404(id)
@@ -78,6 +79,7 @@ def register(app):
     # ── cotizacion_proveedor_nueva (/cotizaciones-proveedor/nueva)
     @app.route('/cotizaciones-proveedor/nueva', methods=['GET','POST'])
     @login_required
+    @requiere_modulo('ordenes_compra')
     def cotizacion_proveedor_nueva():
         provs = Proveedor.query.filter(Proveedor.activo==True,
             Proveedor.tipo.in_(['proveedor','ambos'])).order_by(Proveedor.empresa).all()
@@ -129,6 +131,7 @@ def register(app):
     # ── cotizacion_proveedor_editar (/cotizaciones-proveedor/<int:id>/editar)
     @app.route('/cotizaciones-proveedor/<int:id>/editar', methods=['GET','POST'])
     @login_required
+    @requiere_modulo('ordenes_compra')
     def cotizacion_proveedor_editar(id):
         obj = CotizacionProveedor.query.get_or_404(id)
         provs = Proveedor.query.filter(Proveedor.activo==True,
@@ -166,6 +169,7 @@ def register(app):
     # ── cotizacion_proveedor_eliminar (/cotizaciones-proveedor/<int:id>/eliminar)
     @app.route('/cotizaciones-proveedor/<int:id>/eliminar', methods=['POST'])
     @login_required
+    @requiere_modulo('ordenes_compra')
     def cotizacion_proveedor_eliminar(id):
         obj = CotizacionProveedor.query.get_or_404(id)
         tipo = obj.tipo_cotizacion
@@ -177,6 +181,7 @@ def register(app):
     # ── ordenes_compra (/ordenes-compra)
     @app.route('/ordenes-compra')
     @login_required
+    @requiere_modulo('ordenes_compra')
     def ordenes_compra():
         estado_f = request.args.get('estado','')
         q = OrdenCompra.query
@@ -189,6 +194,7 @@ def register(app):
     # ── oc_pdf (/ordenes_compra/<int:id>/pdf)
     @app.route('/ordenes_compra/<int:id>/pdf')
     @login_required
+    @requiere_modulo('ordenes_compra')
     def oc_pdf(id):
         oc = OrdenCompra.query.get_or_404(id)
         empresa = ConfigEmpresa.query.first()
@@ -198,6 +204,7 @@ def register(app):
     # ── orden_compra_nueva (/ordenes-compra/nueva)
     @app.route('/ordenes-compra/nueva', methods=['GET','POST'])
     @login_required
+    @requiere_modulo('ordenes_compra')
     def orden_compra_nueva():
         provs       = Proveedor.query.filter(Proveedor.activo==True, Proveedor.tipo.in_(['proveedor','ambos'])).order_by(Proveedor.empresa).all()
         transportistas = Proveedor.query.filter(Proveedor.activo==True, Proveedor.tipo.in_(['transportista','ambos'])).order_by(Proveedor.nombre).all()
@@ -266,6 +273,7 @@ def register(app):
     # ── orden_compra_editar (/ordenes-compra/<int:id>/editar)
     @app.route('/ordenes-compra/<int:id>/editar', methods=['GET','POST'])
     @login_required
+    @requiere_modulo('ordenes_compra')
     def orden_compra_editar(id):
         obj = OrdenCompra.query.get_or_404(id)
         provs       = Proveedor.query.filter(Proveedor.activo==True, Proveedor.tipo.in_(['proveedor','ambos'])).order_by(Proveedor.empresa).all()
@@ -316,6 +324,7 @@ def register(app):
     # ── orden_compra_estado (/ordenes-compra/<int:id>/estado)
     @app.route('/ordenes-compra/<int:id>/estado', methods=['POST'])
     @login_required
+    @requiere_modulo('ordenes_compra')
     def orden_compra_estado(id):
         obj = OrdenCompra.query.get_or_404(id)
         estado_anterior = obj.estado
@@ -381,6 +390,7 @@ def register(app):
     # ── BLOQUE 4: oc_anticipo_recibido (/ordenes-compra/<int:id>/anticipo-recibido)
     @app.route('/ordenes-compra/<int:id>/anticipo-recibido', methods=['POST'])
     @login_required
+    @requiere_modulo('ordenes_compra')
     def oc_anticipo_recibido(id):
         """Registra la recepción del anticipo y recalcula fecha de entrega."""
         oc = OrdenCompra.query.get_or_404(id)
@@ -400,6 +410,7 @@ def register(app):
     # ── orden_compra_eliminar (/ordenes-compra/<int:id>/eliminar)
     @app.route('/ordenes-compra/<int:id>/eliminar', methods=['POST'])
     @login_required
+    @requiere_modulo('ordenes_compra')
     def orden_compra_eliminar(id):
         if current_user.rol != 'admin':
             flash('Solo administradores pueden eliminar registros.', 'danger')

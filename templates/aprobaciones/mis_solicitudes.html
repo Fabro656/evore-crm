@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Mis Solicitudes{% endblock %}{% block page_title %}Mis solicitudes de aprobacion{% endblock %}
+{% block content %}
+{% if items %}
+<div class="tc">
+  <div class="ch">Historial de solicitudes</div>
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead><tr><th>Fecha</th><th>Tipo</th><th>Descripcion</th><th class="text-end">Monto</th><th>Estado</th><th>Notas del aprobador</th></tr></thead>
+      <tbody>
+      {% for a in items %}
+      <tr>
+        <td><small>{{ a.creado_en.strftime('%d/%m/%Y %H:%M') }}</small></td>
+        <td><span class="b b-pendiente">{{ a.tipo_accion|replace('_',' ')|title }}</span></td>
+        <td style="font-size:.85rem">{{ a.descripcion }}</td>
+        <td class="text-end">{{ moneda(a.monto) }}</td>
+        <td><span class="b b-{% if a.estado == 'aprobado' %}completado{% elif a.estado == 'rechazado' %}cancelado{% else %}pendiente{% endif %}">{{ a.estado|title }}</span></td>
+        <td><small style="color:var(--text2)">{{ a.notas_aprobador or '—' }}</small></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="sc" style="text-align:center;padding:2rem">
+  <i class="bi bi-inbox" style="font-size:2rem;color:var(--text2);display:block;margin-bottom:.5rem"></i>
+  <p style="color:var(--text2);margin:0">No tienes solicitudes de aprobacion.</p>
+</div>
+{% endif %}
+{% endblock %}
