@@ -434,12 +434,16 @@ def register(app):
             db.session.add(r); db.session.flush()
             ids   = request.form.getlist('materia_id[]')
             cants = request.form.getlist('cantidad[]')
-            for mid, cant in zip(ids, cants):
+            clasifs = request.form.getlist('clasificacion[]')
+            for i, (mid, cant) in enumerate(zip(ids, cants)):
                 if mid and cant:
+                    clasif = clasifs[i] if i < len(clasifs) else 'materia_prima'
                     db.session.add(RecetaItem(
                         receta_id=r.id,
                         materia_prima_id=int(mid),
-                        cantidad_por_unidad=float(cant)
+                        cantidad_por_unidad=float(cant),
+                        clasificacion=clasif,
+                        es_empaque=clasif in ('empaque_primario','empaque_secundario')
                     ))
             # Registrar ingredientes al producto y asegurarse que existen en el catálogo
             _registrar_ingredientes_en_cero(ids, prod_id)
@@ -498,12 +502,16 @@ def register(app):
             db.session.flush()
             ids   = request.form.getlist('materia_id[]')
             cants = request.form.getlist('cantidad[]')
-            for mid, cant in zip(ids, cants):
+            clasifs = request.form.getlist('clasificacion[]')
+            for i, (mid, cant) in enumerate(zip(ids, cants)):
                 if mid and cant:
+                    clasif = clasifs[i] if i < len(clasifs) else 'materia_prima'
                     db.session.add(RecetaItem(
                         receta_id=obj.id,
                         materia_prima_id=int(mid),
-                        cantidad_por_unidad=float(cant)
+                        cantidad_por_unidad=float(cant),
+                        clasificacion=clasif,
+                        es_empaque=clasif in ('empaque_primario','empaque_secundario')
                     ))
             _registrar_ingredientes_en_cero(ids, prod_id)
             # Auto-generar SKU si falta

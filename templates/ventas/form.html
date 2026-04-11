@@ -262,10 +262,55 @@ function cargarCotizaciones(clienteId){
 function seleccionarCot(cotId){
   const sel=document.getElementById('cotizacionSel');
   if(sel){sel.value=cotId;}
+  // Cargar items de la cotización automáticamente
+  fetch('/api/cotizacion/'+cotId+'/items')
+    .then(r=>r.json())
+    .then(data=>{
+      // Pre-llenar cliente si hay
+      if(data.cliente_id){
+        const cs=document.getElementById('clienteSel');
+        if(cs) cs.value=data.cliente_id;
+      }
+      // Pre-llenar título
+      const tit=document.querySelector('[name="titulo"]');
+      if(tit && !tit.value) tit.value=data.titulo||'';
+      // Pre-llenar anticipo
+      const pct=document.getElementById('pctA');
+      if(pct && data.porcentaje_anticipo) pct.value=data.porcentaje_anticipo;
+      // Pre-llenar días entrega
+      const dias=document.getElementById('diasEnt');
+      if(dias && data.dias_entrega) dias.value=data.dias_entrega;
+      // Limpiar items actuales y cargar los de la cotización
+      const cont=document.getElementById('prodsContainer');
+      if(cont) cont.innerHTML='';
+      if(data.items && data.items.length>0){
+        data.items.forEach(it=>{
+          if(it.tipo==='servicio') return; // por ahora solo productos
+          addProd(it.producto_id||'', it.cantidad||1, it.precio_unit||0);
+        });
+      }
+      calcTot(); calcA(); calcEnt();
+      // Indicar visualmente
+      const box=document.getElementById('cotizacionesCliente');
+      if(box){
+        const msg=document.createElement('div');
+        msg.innerHTML='<small style="color:var(--green)"><i class="bi bi-check-circle me-1"></i>Items cargados desde cotizacion '+cotId+'</small>';
+        box.appendChild(msg);
+        setTimeout(()=>msg.remove(),3000);
+      }
+    })
+    .catch(e=>console.warn('Error cargando items cotización:',e));
 }
 // Run on load if pre-selected
 document.addEventListener('DOMContentLoaded',function(){
   const cl=document.getElementById('clienteSel');
   if(cl&&cl.value) cargarCotizaciones(cl.value);
+  // Al cambiar cotización en el select principal, cargar items
+  const cotSel=document.getElementById('cotizacionSel');
+  if(cotSel){
+    cotSel.addEventListener('change',function(){
+      if(this.value) seleccionarCot(parseInt(this.value));
+    });
+  }
 });
 </script>{% endblock %}

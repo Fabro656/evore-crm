@@ -286,9 +286,9 @@ def register(app):
     def venta_nueva():
         cl = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
         iva_pct = _iva_rate()
-        # Cotizaciones disponibles para vincular (enviadas o aprobadas, o borrador)
+        # Cotizaciones disponibles para vincular (solo enviadas o aprobadas — no borradores)
         cots_disponibles = Cotizacion.query.filter(
-            Cotizacion.estado.in_(['borrador','enviada','aprobada'])
+            Cotizacion.estado.in_(['enviada','aprobada'])
         ).order_by(Cotizacion.fecha_emision.desc()).all()
         # Pre-selección de cliente via query param (desde cotizacion)
         pre_cliente_id = request.args.get('cliente_id', type=int)
