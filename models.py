@@ -654,6 +654,9 @@ class RecetaProducto(db.Model):
     unidades_produce = db.Column(db.Integer, default=1)    # cuántas unidades produce esta receta
     descripcion      = db.Column(db.Text)
     activo           = db.Column(db.Boolean, default=True)
+    margen_pct       = db.Column(db.Float, default=30)  # % ganancia definido por director financiero
+    precio_venta_sugerido = db.Column(db.Float, default=0)  # precio calculado: costo + margen + IVA
+    costo_calculado  = db.Column(db.Float, default=0)  # costo unitario calculado desde ingredientes
     creado_en        = db.Column(db.DateTime, default=datetime.utcnow)
     producto         = db.relationship('Producto', foreign_keys=[producto_id], backref='receta')
     items            = db.relationship('RecetaItem', backref='receta', lazy=True,
@@ -1064,6 +1067,12 @@ def _migrate(conn):
         ("ALTER TABLE receta_items ADD COLUMN es_empaque BOOLEAN DEFAULT FALSE"),
         ("ALTER TABLE receta_items ADD COLUMN IF NOT EXISTS clasificacion VARCHAR(30) DEFAULT 'materia_prima'"),
         ("ALTER TABLE receta_items ADD COLUMN clasificacion VARCHAR(30) DEFAULT 'materia_prima'"),
+        ("ALTER TABLE recetas_producto ADD COLUMN IF NOT EXISTS margen_pct FLOAT DEFAULT 30"),
+        ("ALTER TABLE recetas_producto ADD COLUMN margen_pct FLOAT DEFAULT 30"),
+        ("ALTER TABLE recetas_producto ADD COLUMN IF NOT EXISTS precio_venta_sugerido FLOAT DEFAULT 0"),
+        ("ALTER TABLE recetas_producto ADD COLUMN precio_venta_sugerido FLOAT DEFAULT 0"),
+        ("ALTER TABLE recetas_producto ADD COLUMN IF NOT EXISTS costo_calculado FLOAT DEFAULT 0"),
+        ("ALTER TABLE recetas_producto ADD COLUMN costo_calculado FLOAT DEFAULT 0"),
     ]
     for sql in migrations:
         try:
@@ -1234,6 +1243,31 @@ def _seed_puc():
     except Exception as e:
         db.session.rollback()
         logging.warning(f'Error sembrando PUC: {e}')
+
+
+def _generar_sku(nombre_producto):
+    """Genera SKU automático: 3 letras + 2 números (máx 5 chars)."""
+    import re, random
+    # Take first 3 consonants or letters from name
+    clean = re.sub(r'[^A-Za-z]', '', nombre_producto.upper())
+    # Remove vowels to get consonants, fallback to all letters
+    consonants = re.sub(r'[AEIOU]', '', clean)
+    if len(consonants) < 3:
+        consonants = clean
+    letters = consonants[:3].ljust(3, 'X')
+    # Random 2 digits
+    nums = f'{random.randint(10, 99)}'
+    sku = letters + nums
+    # Ensure uniqueness
+    from models import Producto
+    existing = Producto.query.filter_by(sku=sku).first()
+    attempts = 0
+    while existing and attempts < 50:
+        nums = f'{random.randint(10, 99)}'
+        sku = letters + nums
+        existing = Producto.query.filter_by(sku=sku).first()
+        attempts += 1
+    return sku
 
 
 def _seed_demo_data():

@@ -23,8 +23,24 @@
   </div>
   <div class="col-md-3"><label class="form-label">Unidades por lote <span class="req">*</span></label>
     <input type="number" name="unidades_produce" min="1" class="form-control" value="{{ obj.unidades_produce if obj else 1 }}" required></div>
-  <div class="col-12"><label class="form-label">Descripción</label>
+  <div class="col-12"><label class="form-label">Descripcion</label>
     <textarea name="descripcion" class="form-control" rows="2">{{ obj.descripcion if obj else '' }}</textarea></div>
+  <div class="col-md-3">
+    <label class="form-label">% Margen de ganancia</label>
+    <input type="number" name="margen_pct" min="0" max="500" step="0.1" class="form-control" value="{{ obj.margen_pct if obj and obj.margen_pct else 30 }}">
+    <small style="color:var(--text2)">Definido por director financiero</small>
+  </div>
+  {% if costo_actual %}
+  <div class="col-md-9">
+    <div class="sc" style="padding:.7rem 1rem;margin-top:1.4rem">
+      <div class="d-flex gap-3 flex-wrap" style="font-size:.85rem">
+        <div><strong>Costo produccion:</strong> <span style="color:var(--ac)">${{ '{:,.0f}'.format(costo_actual.costo_unitario) }}/und</span></div>
+        <div><strong>Precio sugerido:</strong> <span style="color:var(--green)">${{ '{:,.0f}'.format(obj.precio_venta_sugerido or 0) }}</span></div>
+        {% if costo_actual.alertas %}<div style="color:var(--orange)"><strong>{{ costo_actual.alertas|length }} alertas</strong></div>{% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
 </div>
 
 <div class="d-flex align-items-center justify-content-between mb-3">

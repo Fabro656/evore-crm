@@ -54,10 +54,15 @@
               <option value="servicio" {% if it.tipo_item=='servicio' %}selected{% endif %}>Servicio</option>
             </select>
           </div>
-          <div class="col-md-3" style="display:{% if it.tipo_item=='servicio' %}none{% else %}block{% endif %}" class="prod-select">
+          <div class="col-md-3 prod-select" style="display:{% if it.tipo_item=='servicio' %}none{% else %}block{% endif %}">
             <label class="form-label mb-1" style="font-size:.8rem">Producto</label>
-            <input type="text" name="item_nombre[]" class="form-control form-control-sm item-nombre" placeholder="Nombre" value="{{ it.nombre_prod }}" required></div>
-          <div class="col-md-3" style="display:{% if it.tipo_item=='producto' %}none{% else %}block{% endif %}" class="srv-select">
+            <select name="item_nombre[]" class="form-select form-select-sm item-nombre" onchange="onProductSelect(this)" required>
+              <option value="">— Seleccionar —</option>
+            </select>
+            <input type="hidden" name="item_producto_id[]" class="item-producto-id" value="{{ it.producto_id if it.producto_id else '' }}">
+            <small class="prod-info text-muted" style="font-size:.72rem;display:none"></small>
+          </div>
+          <div class="col-md-3 srv-select" style="display:{% if it.tipo_item=='producto' %}none{% else %}block{% endif %}">
             <label class="form-label mb-1" style="font-size:.8rem">Servicio</label>
             <select name="item_servicio_id[]" class="form-select form-select-sm item-servicio" onchange="autocompletar_servicio(this)">
               <option value="">— Seleccionar —</option>
@@ -85,7 +90,12 @@
             </select>
           </div>
           <div class="col-md-3 prod-select"><label class="form-label mb-1" style="font-size:.8rem">Producto</label>
-            <input type="text" name="item_nombre[]" class="form-control form-control-sm item-nombre" placeholder="Nombre del ítem o servicio" required></div>
+            <select name="item_nombre[]" class="form-select form-select-sm item-nombre" onchange="onProductSelect(this)" required>
+              <option value="">— Seleccionar —</option>
+            </select>
+            <input type="hidden" name="item_producto_id[]" class="item-producto-id" value="">
+            <small class="prod-info text-muted" style="font-size:.72rem;display:none"></small>
+          </div>
           <div class="col-md-3 srv-select" style="display:none"><label class="form-label mb-1" style="font-size:.8rem">Servicio</label>
             <select name="item_servicio_id[]" class="form-select form-select-sm item-servicio" onchange="autocompletar_servicio(this)">
               <option value="">— Seleccionar —</option>
@@ -126,7 +136,57 @@
 </div></form></div>
 {% block scripts %}<script>
 var SERVICIOS = {{ servicios_json|tojson }};
+var PRODS = typeof PRODS !== 'undefined' ? PRODS : ({{ prods_json|tojson|default('[]') }});
 function fmt(n){return'$ '+Math.round(n).toLocaleString('es-CO');}
+
+function buildProdOptions(selectedName){
+  var html='<option value="">— Seleccionar —</option>';
+  PRODS.forEach(function(p){
+    var label=p.nombre+(p.sku?' ('+p.sku+')':'');
+    var sel=(selectedName && p.nombre===selectedName)?' selected':'';
+    html+='<option value="'+p.nombre+'" data-id="'+p.id+'" data-precio="'+(p.precio_venta_sugerido||p.precio||0)+'" data-sku="'+(p.sku||'')+'" data-costo="'+(p.costo_receta||0)+'"'+sel+'>'+label+'</option>';
+  });
+  return html;
+}
+
+function onProductSelect(el){
+  var row=el.closest('.item-row');
+  var opt=el.options[el.selectedIndex];
+  var idInput=row.querySelector('.item-producto-id');
+  var infoEl=row.querySelector('.prod-info');
+  if(!opt||!opt.value){
+    if(idInput) idInput.value='';
+    if(infoEl){infoEl.style.display='none';infoEl.innerHTML='';}
+    return;
+  }
+  var pid=opt.getAttribute('data-id')||'';
+  var precio=parseFloat(opt.getAttribute('data-precio'))||0;
+  var sku=opt.getAttribute('data-sku')||'';
+  var costo=parseFloat(opt.getAttribute('data-costo'))||0;
+  if(idInput) idInput.value=pid;
+  row.querySelector('.item-precio').value=Math.round(precio);
+  // show prod info
+  if(infoEl){
+    var ivaPct=parseFloat(row.querySelector('.item-iva-pct').value)||0;
+    var precioMin=costo*(1+ivaPct/100);
+    var parts=[];
+    if(sku) parts.push('SKU: '+sku);
+    if(costo) parts.push('Costo prod: '+fmt(costo));
+    if(costo) parts.push('Precio min (costo+IVA): '+fmt(precioMin));
+    if(parts.length){infoEl.innerHTML=parts.join(' &nbsp;|&nbsp; ');infoEl.style.display='block';}
+    else{infoEl.style.display='none';infoEl.innerHTML='';}
+  }
+  calcRow(el);
+}
+
+function populateAllProdSelects(){
+  document.querySelectorAll('.item-row').forEach(function(row){
+    var sel=row.querySelector('select.item-nombre');
+    if(!sel) return;
+    var current=sel.value;
+    sel.innerHTML=buildProdOptions(current);
+  });
+}
 
 function updateItemRow(el){
   var row=el.closest('.item-row');
@@ -145,10 +205,9 @@ function updateItemRow(el){
 function autocompletar_servicio(el){
   var row=el.closest('.item-row');
   var srvId=el.value;
-  if(!srvId){row.querySelector('.item-nombre').value='';row.querySelector('.item-precio').value='0';return;}
+  if(!srvId){row.querySelector('.item-precio').value='0';return;}
   var srv=SERVICIOS.find(s=>s.id==srvId);
   if(srv){
-    row.querySelector('.item-nombre').value=srv.nombre;
     row.querySelector('.item-precio').value=srv.precio_venta;
     row.querySelector('.item-unidad').value=srv.unidad;
     calcRow(el);
@@ -201,7 +260,9 @@ function addRow(){
     +'<option value="servicio">Servicio</option>'
     +'</select></div>'
     +'<div class="col-md-3 prod-select"><label class="form-label mb-1" style="font-size:.8rem">Producto</label>'
-    +'<input type="text" name="item_nombre[]" class="form-control form-control-sm item-nombre" placeholder="Nombre del ítem o servicio" required></div>'
+    +'<select name="item_nombre[]" class="form-select form-select-sm item-nombre" onchange="onProductSelect(this)" required>'+buildProdOptions()+'</select>'
+    +'<input type="hidden" name="item_producto_id[]" class="item-producto-id" value="">'
+    +'<small class="prod-info text-muted" style="font-size:.72rem;display:none"></small></div>'
     +'<div class="col-md-3 srv-select" style="display:none"><label class="form-label mb-1" style="font-size:.8rem">Servicio</label>'
     +'<select name="item_servicio_id[]" class="form-select form-select-sm item-servicio" onchange="autocompletar_servicio(this)"><option value="">— Seleccionar —</option>'
     +SERVICIOS.map(s=>'<option value="'+s.id+'">'+s.nombre+'</option>').join('')
@@ -220,6 +281,7 @@ function addRow(){
   wrap.appendChild(div);
 }
 document.getElementById('pctAnticipo').addEventListener('input',calcTotal);
+populateAllProdSelects();
 calcTotal();
 setupAutoTitulo('[name="titulo"]',['[name="cliente_id"]','[name="fecha_emision"]']);
 </script>{% endblock %}{% endblock %}

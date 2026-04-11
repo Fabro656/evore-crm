@@ -773,6 +773,33 @@ def register(app):
 
 
     # ── api_venta_material_status (/api/ventas/<id>/material_status)
+    @app.route('/api/cotizacion/<int:id>/items')
+    @login_required
+    def api_cotizacion_items(id):
+        """API: items de una cotización para pre-llenar formulario de venta."""
+        cot = Cotizacion.query.get_or_404(id)
+        items = []
+        for it in cot.items:
+            items.append({
+                'nombre': it.nombre_prod,
+                'producto_id': it.producto_id,
+                'servicio_id': it.servicio_id,
+                'cantidad': it.cantidad,
+                'precio_unit': it.precio_unit,
+                'subtotal': it.subtotal,
+                'unidad': getattr(it, 'unidad', 'unidades'),
+                'tipo': getattr(it, 'tipo_item', 'producto'),
+                'sku': it.producto.sku if it.producto_id and it.producto else None
+            })
+        return jsonify({
+            'cliente_id': cot.cliente_id,
+            'titulo': cot.titulo,
+            'porcentaje_anticipo': cot.porcentaje_anticipo,
+            'dias_entrega': cot.dias_entrega,
+            'notas': cot.notas or '',
+            'items': items
+        })
+
     @app.route('/api/ventas/<int:id>/material_status')
     @login_required
     @requiere_modulo('ventas')
@@ -947,9 +974,13 @@ def register(app):
             flash(f'Cotización {numero} creada.','success')
             return redirect(url_for('cotizacion_ver', id=cot.id))
 
+        prods_cot = [{'id':p.id,'nombre':p.nombre,'sku':p.sku or '','precio':p.precio or 0,
+                      'precio_venta_sugerido':getattr(p,'precio_venta_sugerido',0) or p.precio or 0,
+                      'costo_receta':getattr(p,'costo_receta',0) or p.costo or 0}
+                     for p in Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()]
         return render_template('cotizaciones/form.html', obj=None, titulo='Nueva Cotización',
             clientes_list=clientes_list, today=datetime.utcnow().strftime('%Y-%m-%d'),
-            iva_default=iva_default, servicios_json=_servicios_json())
+            iva_default=iva_default, servicios_json=_servicios_json(), prods_json=prods_cot)
 
 
     # ── Helper: calcular fecha de entrega según dias_tipo
@@ -1061,9 +1092,13 @@ def register(app):
             flash('Cotización actualizada.','success')
             return redirect(url_for('cotizacion_ver', id=obj.id))
 
+        prods_cot = [{'id':p.id,'nombre':p.nombre,'sku':p.sku or '','precio':p.precio or 0,
+                      'precio_venta_sugerido':getattr(p,'precio_venta_sugerido',0) or p.precio or 0,
+                      'costo_receta':getattr(p,'costo_receta',0) or p.costo or 0}
+                     for p in Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()]
         return render_template('cotizaciones/form.html', obj=obj, titulo='Editar Cotización',
             clientes_list=clientes_list, today=datetime.utcnow().strftime('%Y-%m-%d'),
-            iva_default=iva_default, servicios_json=_servicios_json())
+            iva_default=iva_default, servicios_json=_servicios_json(), prods_json=prods_cot)
 
 
     # ── cotizacion_cambiar_estado (/cotizaciones/<int:id>/estado)
