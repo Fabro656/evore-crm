@@ -113,21 +113,23 @@ REQUIERE_APROBACION = {
     'orden_compra_nueva':'Crear orden de compra',
 }
 
-# ── Colombian labor / payroll constants (originally in app.py global scope)
-SMLMV_2025              = 1_423_500   # Salario Mínimo Legal Mensual Vigente 2025
-AUXILIO_TRANSPORTE_2025 = 200_000     # Auxilio de transporte 2025
-TASA_SALUD_EMP          = 0.04        # 4%
-TASA_PENSION_EMP        = 0.04        # 4%
-TASA_SALUD_EMPR         = 0.085       # 8.5%
-TASA_PENSION_EMPR       = 0.12        # 12%
-TASA_CAJA_COMP          = 0.04        # 4%
-TASA_SENA               = 0.02        # 2%
-TASA_ICBF               = 0.03        # 3%
-TASA_ARL = {1: 0.00522, 2: 0.01044, 3: 0.02436, 4: 0.04350, 5: 0.06960}
-TASA_CESANTIAS          = 1/12        # ~8.33%
-TASA_INT_CESANTIAS      = 0.12        # sobre cesantías
-TASA_PRIMA              = 1/12        # ~8.33%
-TASA_VACACIONES         = 0.0417      # 15 días hábiles por año
+# ── Payroll constants from company config ──────────────────────────
+from company_config import COMPANY, COMPANY_ID
+_payroll = COMPANY['payroll']
+SMLMV_2025              = _payroll.get('min_wage', 0)
+AUXILIO_TRANSPORTE_2025 = _payroll.get('transport_subsidy', 0)
+TASA_SALUD_EMP          = _payroll.get('health_employee', 0.04)
+TASA_PENSION_EMP        = _payroll.get('pension_employee', 0.04)
+TASA_SALUD_EMPR         = _payroll.get('health_employer', 0.085)
+TASA_PENSION_EMPR       = _payroll.get('pension_employer', 0.12)
+TASA_CAJA_COMP          = _payroll.get('caja_comp', 0.04)
+TASA_SENA               = _payroll.get('sena', 0.02)
+TASA_ICBF               = _payroll.get('icbf', 0.03)
+TASA_ARL                = _payroll.get('arl', {1: 0.00522})
+TASA_CESANTIAS          = _payroll.get('cesantias', 1/12)
+TASA_INT_CESANTIAS      = _payroll.get('int_cesantias', 0.12)
+TASA_PRIMA              = _payroll.get('prima', 1/12)
+TASA_VACACIONES         = _payroll.get('vacaciones', 0.0417)
 
 # ── Mail setup (graceful degradation if Flask-Mail not installed/configured)
 try:
@@ -148,17 +150,33 @@ from models import (
     GastoOperativo, Actividad, Notificacion, ReglaTributaria,
 )
 
+def _format_currency(value, decimals=None):
+    """Formatea valor monetario segun la configuracion de la empresa activa."""
+    try:
+        v = float(value or 0)
+        d = decimals if decimals is not None else COMPANY.get('currency_decimals', 0)
+        sym = COMPANY.get('currency_symbol', '$')
+        tsep = COMPANY.get('thousand_sep', '.')
+        dsep = COMPANY.get('decimal_sep', ',')
+        if d == 0:
+            formatted = f'{v:,.0f}'
+        else:
+            formatted = f'{v:,.{d}f}'
+        # Replace separators: Python uses , for thousands and . for decimal
+        # Swap to temp, then to target
+        formatted = formatted.replace(',', 'TEMP').replace('.', dsep).replace('TEMP', tsep)
+        return f'{sym} {formatted}'
+    except:
+        return f'{COMPANY.get("currency_symbol", "$")} 0'
+
 def cop(value):
-    try: return '$ {:,.0f}'.format(float(value or 0)).replace(',','.')
-    except: return '$ 0'
+    return _format_currency(value, 0)
 
 def moneda(value):
-    try: return '${:,.2f}'.format(float(value or 0))
-    except: return '$0.00'
+    return _format_currency(value)
 
 def moneda0(value):
-    try: return '${:,.0f}'.format(float(value or 0))
-    except: return '$0'
+    return _format_currency(value, 0)
 
 def requiere_modulo(modulo):
     def decorator(f):
@@ -215,7 +233,10 @@ def inject_globals():
                 }
     return {'now': datetime.utcnow(), 'modulos_user': modulos, 'notif_count': notif_count,
             'empresa_cliente_nombre': empresa_cliente_nombre, 'empresa_proveedor_nombre': empresa_proveedor_nombre,
-            'onboarding': onboarding_data}
+            'onboarding': onboarding_data,
+            'company_name': COMPANY['name'], 'company_config': COMPANY,
+            'nit_label': COMPANY.get('nit_label', 'NIT'),
+            'currency_code': COMPANY.get('currency_code', 'COP')}
 
 def _send_email(to, subject, body):
     if not _mail_ok or not MailMessage: return

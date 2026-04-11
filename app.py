@@ -9,6 +9,11 @@ logging.basicConfig(level=logging.INFO)
 def create_app():
     app = Flask(__name__, template_folder='templates')
 
+    # ── Company config ────────────────────────────────────────────────
+    from company_config import COMPANY, COMPANY_ID
+    app.config['COMPANY_NAME'] = COMPANY['name']
+    app.config['COMPANY_ID'] = COMPANY_ID
+
     # ── Config ────────────────────────────────────────────────────────
     _secret_key = os.environ.get('SECRET_KEY', 'evore-crm-stable-fallback-key-2026-xK9mP')
     if _secret_key == 'evore-crm-stable-fallback-key-2026-xK9mP':

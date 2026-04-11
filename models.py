@@ -1151,7 +1151,8 @@ def init_db():
         import logging
         logging.warning(f'Migrate error (non-critical): {em}')
     import os, secrets, logging
-    _admin_email = os.environ.get('ADMIN_EMAIL', 'admin@evore.us')
+    from company_config import COMPANY
+    _admin_email = os.environ.get('ADMIN_EMAIL', COMPANY['admin_email'])
     if not User.query.filter_by(email=_admin_email).first():
         _admin_pass = os.environ.get('ADMIN_PASSWORD')
         if not _admin_pass:
@@ -1161,10 +1162,18 @@ def init_db():
         admin.set_password(_admin_pass)
         db.session.add(admin); db.session.commit()
     if not ConfigEmpresa.query.first():
-        db.session.add(ConfigEmpresa(nombre='Evore', email='contacto@evore.us', sitio_web='evore.us'))
+        db.session.add(ConfigEmpresa(
+            nombre=COMPANY['name'],
+            email=COMPANY['default_email'],
+            sitio_web=COMPANY['default_website']
+        ))
         db.session.commit()
-    _seed_puc()
-    # Demo data se carga solo desde /demo (ruta pública)
+    # Sembrar catálogo contable según país
+    if COMPANY['chart_of_accounts'] == 'co_puc':
+        _seed_puc()
+    elif COMPANY['chart_of_accounts'] == 'mx_cuc':
+        _seed_cuc_mx()
+    logging.info(f'App iniciada para: {COMPANY["name"]} ({COMPANY["country"]})')
 
 
 def _seed_puc():
@@ -1301,6 +1310,116 @@ def _seed_puc():
     except Exception as e:
         db.session.rollback()
         logging.warning(f'Error sembrando PUC: {e}')
+
+
+def _seed_cuc_mx():
+    """Siembra el Catalogo de Cuentas minimo para empresa manufacturera mexicana."""
+    import logging
+    try:
+        if CuentaPUC.query.count() > 0:
+            return
+    except Exception:
+        return
+    logging.info('Sembrando CUC mexicano...')
+    cuentas = [
+        # Clase 1: Activos
+        ('1',     'Activo',                      1, 'debito', 'activo', None, False),
+        ('11',    'Efectivo y equivalentes',      2, 'debito', 'activo', '1', False),
+        ('1101',  'Caja',                         3, 'debito', 'activo', '11', True),
+        ('1102',  'Bancos',                       3, 'debito', 'activo', '11', True),
+        ('12',    'Cuentas por cobrar',           2, 'debito', 'activo', '1', False),
+        ('1201',  'Clientes',                     3, 'debito', 'activo', '12', True),
+        ('1202',  'Anticipos a proveedores',      3, 'debito', 'activo', '12', True),
+        ('1205',  'IVA acreditable',              3, 'debito', 'activo', '12', True),
+        ('1206',  'ISR a favor',                  3, 'debito', 'activo', '12', True),
+        ('13',    'Inventarios',                  2, 'debito', 'activo', '1', False),
+        ('1301',  'Materia prima',                3, 'debito', 'activo', '13', True),
+        ('1302',  'Produccion en proceso',        3, 'debito', 'activo', '13', True),
+        ('1303',  'Producto terminado',           3, 'debito', 'activo', '13', True),
+        ('1304',  'Envases y empaques',           3, 'debito', 'activo', '13', True),
+        ('15',    'Activo fijo',                  2, 'debito', 'activo', '1', False),
+        ('1501',  'Maquinaria y equipo',          3, 'debito', 'activo', '15', True),
+        ('1502',  'Equipo de transporte',         3, 'debito', 'activo', '15', True),
+        ('1503',  'Equipo de computo',            3, 'debito', 'activo', '15', True),
+        ('1504',  'Mobiliario y equipo oficina',  3, 'debito', 'activo', '15', True),
+        ('1590',  'Depreciacion acumulada',       3, 'credito','activo', '15', True),
+        # Clase 2: Pasivos
+        ('2',     'Pasivo',                       1, 'credito','pasivo', None, False),
+        ('21',    'Proveedores',                  2, 'credito','pasivo', '2', False),
+        ('2101',  'Proveedores nacionales',       3, 'credito','pasivo', '21', True),
+        ('22',    'Impuestos por pagar',          2, 'credito','pasivo', '2', False),
+        ('2201',  'IVA trasladado',               3, 'credito','pasivo', '22', True),
+        ('2202',  'ISR retenido sueldos',         3, 'credito','pasivo', '22', True),
+        ('2203',  'ISR por pagar',                3, 'credito','pasivo', '22', True),
+        ('2204',  'IMSS por pagar',               3, 'credito','pasivo', '22', True),
+        ('2205',  'INFONAVIT por pagar',          3, 'credito','pasivo', '22', True),
+        ('2206',  'SAR/RCV por pagar',            3, 'credito','pasivo', '22', True),
+        ('23',    'Acreedores diversos',          2, 'credito','pasivo', '2', False),
+        ('2301',  'Acreedores diversos',          3, 'credito','pasivo', '23', True),
+        ('24',    'Obligaciones laborales',       2, 'credito','pasivo', '2', False),
+        ('2401',  'Sueldos por pagar',            3, 'credito','pasivo', '24', True),
+        ('2402',  'Aguinaldo por pagar',          3, 'credito','pasivo', '24', True),
+        ('2403',  'Vacaciones por pagar',         3, 'credito','pasivo', '24', True),
+        ('2404',  'Prima vacacional por pagar',   3, 'credito','pasivo', '24', True),
+        ('2405',  'PTU por pagar',                3, 'credito','pasivo', '24', True),
+        # Clase 3: Capital contable
+        ('3',     'Capital contable',             1, 'credito','patrimonio', None, False),
+        ('31',    'Capital social',               2, 'credito','patrimonio', '3', False),
+        ('3101',  'Capital social',               3, 'credito','patrimonio', '31', True),
+        ('32',    'Resultados',                   2, 'credito','patrimonio', '3', False),
+        ('3201',  'Utilidad del ejercicio',       3, 'credito','patrimonio', '32', True),
+        ('3202',  'Perdida del ejercicio',        3, 'debito', 'patrimonio', '32', True),
+        ('3203',  'Resultados acumulados',        3, 'credito','patrimonio', '32', True),
+        # Clase 4: Ingresos
+        ('4',     'Ingresos',                     1, 'credito','ingreso', None, False),
+        ('41',    'Ingresos por ventas',          2, 'credito','ingreso', '4', False),
+        ('4101',  'Ventas nacionales',            3, 'credito','ingreso', '41', True),
+        ('4102',  'Servicios prestados',          3, 'credito','ingreso', '41', True),
+        ('4103',  'Devoluciones sobre ventas',    3, 'debito', 'ingreso', '41', True),
+        ('42',    'Otros ingresos',               2, 'credito','ingreso', '4', False),
+        ('4201',  'Ingresos financieros',         3, 'credito','ingreso', '42', True),
+        # Clase 5: Gastos
+        ('5',     'Gastos de operacion',          1, 'debito', 'gasto', None, False),
+        ('51',    'Gastos de administracion',     2, 'debito', 'gasto', '5', False),
+        ('5101',  'Sueldos y salarios',           3, 'debito', 'gasto', '51', True),
+        ('5102',  'Aguinaldo',                    3, 'debito', 'gasto', '51', True),
+        ('5103',  'Prima vacacional',             3, 'debito', 'gasto', '51', True),
+        ('5104',  'IMSS patron',                  3, 'debito', 'gasto', '51', True),
+        ('5105',  'INFONAVIT',                    3, 'debito', 'gasto', '51', True),
+        ('5106',  'SAR/RCV',                      3, 'debito', 'gasto', '51', True),
+        ('5110',  'Honorarios',                   3, 'debito', 'gasto', '51', True),
+        ('5115',  'Arrendamiento',                3, 'debito', 'gasto', '51', True),
+        ('5120',  'Servicios (agua, luz, tel)',    3, 'debito', 'gasto', '51', True),
+        ('5125',  'Mantenimiento',                3, 'debito', 'gasto', '51', True),
+        ('5130',  'Seguros',                      3, 'debito', 'gasto', '51', True),
+        ('5135',  'Fletes y transportes',         3, 'debito', 'gasto', '51', True),
+        ('5190',  'Otros gastos',                 3, 'debito', 'gasto', '51', True),
+        ('52',    'Gastos financieros',           2, 'debito', 'gasto', '5', False),
+        ('5201',  'Intereses bancarios',          3, 'debito', 'gasto', '52', True),
+        ('5202',  'Comisiones bancarias',         3, 'debito', 'gasto', '52', True),
+        # Clase 6: Costos
+        ('6',     'Costo de ventas',              1, 'debito', 'costo_venta', None, False),
+        ('61',    'Costo de lo vendido',          2, 'debito', 'costo_venta', '6', False),
+        ('6101',  'Costo de ventas',              3, 'debito', 'costo_venta', '61', True),
+        # Clase 7: Costos de produccion
+        ('7',     'Costos de produccion',         1, 'debito', 'costo_produccion', None, False),
+        ('71',    'Materia prima consumida',      2, 'debito', 'costo_produccion', '7', False),
+        ('7101',  'Materia prima directa',        3, 'debito', 'costo_produccion', '71', True),
+        ('72',    'Mano de obra directa',         2, 'debito', 'costo_produccion', '7', False),
+        ('7201',  'Sueldos produccion',           3, 'debito', 'costo_produccion', '72', True),
+        ('73',    'Gastos indirectos fabricacion', 2,'debito', 'costo_produccion', '7', False),
+        ('7301',  'CIF',                          3, 'debito', 'costo_produccion', '73', True),
+    ]
+    for codigo, nombre, nivel, naturaleza, tipo, padre, acepta in cuentas:
+        db.session.add(CuentaPUC(
+            codigo=codigo, nombre=nombre, nivel=nivel, naturaleza=naturaleza,
+            tipo=tipo, padre_codigo=padre, acepta_mov=acepta, activo=True))
+    try:
+        db.session.commit()
+        logging.info(f'CUC mexicano sembrado: {len(cuentas)} cuentas.')
+    except Exception as e:
+        db.session.rollback()
+        logging.warning(f'Error sembrando CUC: {e}')
 
 
 def _generar_sku(nombre_producto):
