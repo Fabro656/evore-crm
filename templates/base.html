@@ -587,7 +587,7 @@ img,svg{max-width:100%;height:auto}
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// ── Sidebar mobile drawer ─────────────────────────
+// ── Sidebar mobile drawer + scroll persistence ─────────────────────────
 function openSB(){
   document.getElementById('sb').classList.add('sb-open');
   document.getElementById('sb-overlay').classList.add('open');
@@ -598,12 +598,27 @@ function closeSB(){
   document.getElementById('sb-overlay').classList.remove('open');
   document.body.style.overflow='';
 }
-// Close on ESC
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeSB();});
-// Close sidebar when a nav link is clicked on mobile
 document.querySelectorAll('#sb .nav-link').forEach(function(el){
   el.addEventListener('click',function(){if(window.innerWidth<=768)closeSB();});
 });
+// Sidebar scroll position persistence
+(function(){
+  var sbNav=document.querySelector('.sb-nav');
+  if(!sbNav) return;
+  var saved=sessionStorage.getItem('sb_scroll');
+  if(saved) sbNav.scrollTop=parseInt(saved);
+  // Save before leaving page
+  window.addEventListener('beforeunload',function(){
+    sessionStorage.setItem('sb_scroll', sbNav.scrollTop);
+  });
+  // Also save on link click
+  document.querySelectorAll('#sb a').forEach(function(a){
+    a.addEventListener('click',function(){
+      sessionStorage.setItem('sb_scroll', sbNav.scrollTop);
+    });
+  });
+})();
 // Notificaciones
 function toggleNotif(e){
   e.stopPropagation();
@@ -1094,7 +1109,7 @@ document.addEventListener('DOMContentLoaded',function(){
 <!-- ══════════════════════════════════════════════════
      EVORE AI ASSISTANT PANEL
      ══════════════════════════════════════════════════ -->
-<div id="aiPanel" style="position:fixed;bottom:150px;right:24px;width:380px;height:540px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.18);z-index:2000;flex-direction:column;overflow:hidden;transition:all .25s cubic-bezier(.4,0,.2,1)">
+<div id="aiPanel" style="position:fixed;bottom:150px;right:24px;width:380px;height:540px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.18);z-index:2000;display:flex;flex-direction:column;overflow:hidden">
   <!-- Header -->
   <div style="background:var(--sb);padding:.85rem 1.1rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
     <div style="display:flex;align-items:center;gap:.6rem">
@@ -1153,8 +1168,8 @@ document.addEventListener('DOMContentLoaded',function(){
 
 <style>{% raw %}
 /* AI Panel styles */
-#aiPanel{display:none}
-#aiPanel.ai-open{display:flex!important}
+#aiPanel{opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;transform:translateY(10px)}
+#aiPanel.ai-open{opacity:1!important;pointer-events:auto!important;transform:translateY(0)!important}
 .ai-msg{display:flex;flex-direction:column;gap:.2rem}
 .ai-bubble-bot{background:var(--surface2);color:var(--text);border-radius:4px 14px 14px 14px;padding:.6rem .85rem;font-size:.84rem;line-height:1.5;border:1px solid var(--border);max-width:92%}
 .ai-bubble-bot ul{margin:.3rem 0 0 1rem;font-size:.82rem}
@@ -1172,27 +1187,59 @@ document.addEventListener('DOMContentLoaded',function(){
 
 <script>{% raw %}
 (function(){
+  // Restore chat history from localStorage
   var _history = [];
   var _open = false;
+  try {
+    var saved = localStorage.getItem('evore_ai_history');
+    if(saved) _history = JSON.parse(saved);
+  } catch(e){}
 
-  // Check AI status on load
-  fetch('/api/ai/status').then(r=>r.json()).then(d=>{
-    var lbl = document.getElementById('aiProviderLabel');
-    if(!lbl) return;
-    if(d.openai) lbl.textContent = 'GPT-4o (OpenAI) · activo';
-    else if(d.anthropic) lbl.textContent = 'Claude (Anthropic) · activo';
-    else if(d.ollama) lbl.textContent = 'Ollama (local) · activo';
-    else lbl.textContent = 'Sin clave API configurada';
-  }).catch(()=>{});
+  // Restore chat messages in UI
+  function _restoreChat(){
+    var msgs = document.getElementById('aiMessages');
+    if(!msgs || _history.length === 0) return;
+    msgs.innerHTML = '';
+    for(var i=0; i<_history.length; i++){
+      var h = _history[i];
+      _appendMsg(msgs, h.role === 'user' ? 'user' : 'bot', h.content, true);
+    }
+  }
+
+  // Save history to localStorage
+  function _saveHistory(){
+    try { localStorage.setItem('evore_ai_history', JSON.stringify(_history.slice(-30))); } catch(e){}
+  }
+
+  // Restore on load
+  setTimeout(_restoreChat, 100);
+
+  // Restore open state
+  if(localStorage.getItem('evore_ai_open')==='1'){
+    setTimeout(function(){ window.aiToggle(); }, 200);
+  }
+
+  // Check AI status on load (defer to avoid flicker)
+  setTimeout(function(){
+    fetch('/api/ai/status').then(function(r){return r.json()}).then(function(d){
+      var lbl = document.getElementById('aiProviderLabel');
+      if(!lbl) return;
+      if(d.openai) lbl.textContent = 'GPT-4o (OpenAI) · activo';
+      else if(d.anthropic) lbl.textContent = 'Claude (Anthropic) · activo';
+      else if(d.ollama) lbl.textContent = 'Ollama (local) · activo';
+      else lbl.textContent = 'Sin clave API configurada';
+    }).catch(function(){});
+  }, 500);
 
   window.aiToggle = function(){
     var panel = document.getElementById('aiPanel');
     var fab   = document.getElementById('aiFab');
     _open = !_open;
+    localStorage.setItem('evore_ai_open', _open ? '1' : '0');
     if(_open){
       panel.classList.add('ai-open');
       fab.innerHTML='<i class="bi bi-x-lg" style="font-size:1.1rem"></i>';
-      setTimeout(()=>{ var inp=document.getElementById('aiInput'); if(inp) inp.focus(); }, 200);
+      setTimeout(function(){ var inp=document.getElementById('aiInput'); if(inp) inp.focus(); }, 200);
     } else {
       panel.classList.remove('ai-open');
       fab.innerHTML='<i class="bi bi-stars" style="font-size:1.25rem"></i>';
@@ -1201,8 +1248,9 @@ document.addEventListener('DOMContentLoaded',function(){
 
   window.aiClearChat = function(){
     _history = [];
+    _saveHistory();
     var msgs = document.getElementById('aiMessages');
-    msgs.innerHTML = '<div class="ai-msg ai-msg-bot"><div class="ai-bubble-bot">✨ Conversación reiniciada. ¿En qué te ayudo?</div></div>';
+    msgs.innerHTML = '<div class="ai-msg ai-msg-bot"><div class="ai-bubble-bot">Conversacion reiniciada. En que te ayudo?</div></div>';
   };
 
   window.aiQuickPrompt = function(btn){
@@ -1225,6 +1273,7 @@ document.addEventListener('DOMContentLoaded',function(){
     _appendMsg(msgs, 'user', text);
     inp.value = ''; inp.style.height = 'auto';
     _history.push({role:'user', content:text});
+    _saveHistory();
 
     // Typing indicator
     var typing = document.createElement('div');
@@ -1251,6 +1300,7 @@ document.addEventListener('DOMContentLoaded',function(){
       } else {
         _appendMsg(msgs,'bot',d.reply);
         _history.push({role:'assistant', content:d.reply});
+        _saveHistory();
       }
     })
     .catch(()=>{
@@ -1260,21 +1310,20 @@ document.addEventListener('DOMContentLoaded',function(){
     .finally(()=>{ btn.disabled=false; btn.style.opacity='1'; });
   };
 
-  function _appendMsg(container, role, text){
+  function _appendMsg(container, role, text, silent){
     var el = document.createElement('div');
     el.className = 'ai-msg';
     var now = new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
     if(role==='user'){
       el.innerHTML = '<div class="ai-bubble-user">'+_escHtml(text)+'</div>'
-        +'<div class="ai-meta ai-meta-user">Tú · '+now+'</div>';
+        +'<div class="ai-meta ai-meta-user">Tu · '+now+'</div>';
     } else {
       el.innerHTML = '<div class="ai-bubble-bot">'+_mdToHtml(text)+'</div>'
         +'<div class="ai-meta">IA · '+now+'</div>';
     }
     container.appendChild(el);
     container.scrollTop = container.scrollHeight;
-    // Hide quick prompts after first real exchange
-    if(_history.length>1){ var qp=document.getElementById('aiQuickPrompts'); if(qp) qp.style.display='none'; }
+    if(!silent && _history.length>1){ var qp=document.getElementById('aiQuickPrompts'); if(qp) qp.style.display='none'; }
   }
 
   function _escHtml(t){

@@ -665,7 +665,9 @@ class RecetaItem(db.Model):
     receta_id        = db.Column(db.Integer, db.ForeignKey('recetas_producto.id'), nullable=False)
     materia_prima_id = db.Column(db.Integer, db.ForeignKey('materias_primas.id'), nullable=False)
     cantidad_por_unidad = db.Column(db.Float, default=0)
-    es_empaque       = db.Column(db.Boolean, default=False)  # True if this is packaging material
+    es_empaque       = db.Column(db.Boolean, default=False)
+    clasificacion    = db.Column(db.String(30), default='materia_prima')
+    # clasificacion: materia_prima | granel | empaque_primario | empaque_secundario
     materia          = db.relationship('MateriaPrima', foreign_keys=[materia_prima_id])
 
 class ReservaProduccion(db.Model):
@@ -1060,6 +1062,8 @@ def _migrate(conn):
         # v35 — RecetaItem: flag empaque
         ("ALTER TABLE receta_items ADD COLUMN IF NOT EXISTS es_empaque BOOLEAN DEFAULT FALSE"),
         ("ALTER TABLE receta_items ADD COLUMN es_empaque BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE receta_items ADD COLUMN IF NOT EXISTS clasificacion VARCHAR(30) DEFAULT 'materia_prima'"),
+        ("ALTER TABLE receta_items ADD COLUMN clasificacion VARCHAR(30) DEFAULT 'materia_prima'"),
     ]
     for sql in migrations:
         try:
