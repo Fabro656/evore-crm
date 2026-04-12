@@ -945,7 +945,7 @@ def register(app):
             # Calcular fecha_entrega_est considerando dias_tipo
             fecha_emision = datetime.strptime(fd_em,'%Y-%m-%d').date() if fd_em else date_t.today()
             dias_ent = int(request.form.get('dias_entrega', 30) or 30)
-            fecha_ent_est = self._calc_fecha_entrega(fecha_emision, dias_ent, dias_tipo)
+            fecha_ent_est = _calc_fecha_entrega(fecha_emision, dias_ent, dias_tipo)
 
             cot = Cotizacion(
                 numero=numero,
@@ -1089,7 +1089,7 @@ def register(app):
 
             fecha_emision = datetime.strptime(fd_em,'%Y-%m-%d').date() if fd_em else obj.fecha_emision
             dias_ent = int(request.form.get('dias_entrega', 30) or 30)
-            fecha_ent_est = self._calc_fecha_entrega(fecha_emision, dias_ent, dias_tipo)
+            fecha_ent_est = _calc_fecha_entrega(fecha_emision, dias_ent, dias_tipo)
 
             obj.titulo = request.form['titulo']
             obj.cliente_id = request.form.get('cliente_id') or None
