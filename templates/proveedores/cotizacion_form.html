@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('cotizaciones_proveedor') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
-{% block content %}<div class="fc" style="max-width:960px"><form method="POST">
+{% block content %}<div class="fc" style="max-width:100%"><form method="POST">
 <!-- Tipo de cotización -->
 <div class="row g-3 mb-3">
   <div class="col-12">
@@ -27,7 +27,7 @@
       {% endfor %}
     </select></div>
   <div class="col-md-5"><label class="form-label">Nombre del producto / ítem *</label>
-    <input type="text" name="nombre_producto" class="form-control"
+    <input type="text" name="nombre_producto" class="form-control" oninput="calcPrecio()"
            value="{{ obj.nombre_producto if obj else (nombre_default|default('')) }}" required></div>
   <div class="col-md-3"><label class="form-label">SKU</label>
     <input type="text" name="sku" class="form-control" value="{{ obj.sku if obj else '' }}" placeholder="Auto si vacío"></div>
@@ -62,6 +62,18 @@
              onchange="calcPrecio()">
       <label class="form-check-label" for="ivaInclCheck"><strong>IVA incluido</strong> en el precio</label>
       <small class="text-muted d-block" id="ivaExplicacion"></small>
+    </div>
+  </div>
+  <div class="col-12" id="resumenCotProv">
+    <div class="table-responsive">
+    <table class="table table-sm mb-0" style="font-size:.85rem">
+      <thead class="table-light">
+        <tr><th>Producto</th><th class="text-center">Cantidad</th><th>Unidad</th><th class="text-end">Precio unit.</th><th class="text-end">IVA 19%</th><th class="text-end fw-bold">Total con IVA</th></tr>
+      </thead>
+      <tbody id="resumenProvBody">
+        <tr><td colspan="6" class="text-center text-muted">Completa los campos para ver el resumen</td></tr>
+      </tbody>
+    </table>
     </div>
   </div>
 </div>
@@ -138,21 +150,57 @@ function calcPrecio(){
   var ivaIncl = document.getElementById('ivaInclCheck').checked;
   var el = document.getElementById('precioExplicacion');
   var elIva = document.getElementById('ivaExplicacion');
-  if (precio <= 0) { el.textContent = ''; elIva.textContent = ''; return; }
-  if (porUnidad) {
-    var total = precio * cant;
-    el.textContent = '$' + precio.toLocaleString('es-CO') + ' COP por 1' + unidad + ' × ' + cant + unidad + ' = $' + total.toLocaleString('es-CO') + ' COP total';
-  } else {
-    var unitario = precio / cant;
-    el.textContent = '$' + precio.toLocaleString('es-CO') + ' COP por ' + cant + unidad + ' = $' + Math.round(unitario).toLocaleString('es-CO') + ' COP por 1' + unidad;
+  var nombre = document.querySelector('[name="nombre_producto"]');
+  var nm = nombre ? nombre.value : '';
+  var tbody = document.getElementById('resumenProvBody');
+
+  if (precio <= 0) {
+    el.textContent = ''; elIva.textContent = '';
+    if(tbody) tbody.innerHTML='<tr><td colspan="6" class="text-center text-muted">Completa los campos para ver el resumen</td></tr>';
+    return;
   }
-  if (ivaIncl) {
-    var base = precio / 1.19;
-    var iva = precio - base;
-    elIva.textContent = 'Base: $' + Math.round(base).toLocaleString('es-CO') + ' + IVA 19%: $' + Math.round(iva).toLocaleString('es-CO') + ' = $' + precio.toLocaleString('es-CO') + ' COP';
+
+  // Precio unitario real
+  var precioUnit = porUnidad ? precio : precio / cant;
+
+  if (porUnidad) {
+    el.textContent = '$' + precio.toLocaleString('es-CO') + ' COP por 1' + unidad + ' × ' + cant + unidad + ' = $' + Math.round(precio * cant).toLocaleString('es-CO') + ' COP total';
   } else {
-    var iva = precio * 0.19;
-    elIva.textContent = 'Precio: $' + precio.toLocaleString('es-CO') + ' + IVA 19%: $' + Math.round(iva).toLocaleString('es-CO') + ' = $' + Math.round(precio + iva).toLocaleString('es-CO') + ' COP total';
+    el.textContent = '$' + precio.toLocaleString('es-CO') + ' COP por ' + cant + unidad + ' = $' + Math.round(precioUnit).toLocaleString('es-CO') + ' COP por 1' + unidad;
+  }
+
+  // Calcular base, IVA y total
+  var baseUnit, ivaUnit, totalUnit, baseTot, ivaTot, totalTot;
+  if (ivaIncl) {
+    baseUnit = precioUnit / 1.19;
+    ivaUnit = precioUnit - baseUnit;
+    totalUnit = precioUnit;
+    elIva.textContent = 'Base: $' + Math.round(baseUnit).toLocaleString('es-CO') + ' + IVA: $' + Math.round(ivaUnit).toLocaleString('es-CO') + ' = $' + Math.round(totalUnit).toLocaleString('es-CO') + ' COP por 1' + unidad;
+  } else {
+    baseUnit = precioUnit;
+    ivaUnit = precioUnit * 0.19;
+    totalUnit = precioUnit + ivaUnit;
+    elIva.textContent = 'Base: $' + Math.round(baseUnit).toLocaleString('es-CO') + ' + IVA: $' + Math.round(ivaUnit).toLocaleString('es-CO') + ' = $' + Math.round(totalUnit).toLocaleString('es-CO') + ' COP por 1' + unidad;
+  }
+  baseTot = baseUnit * cant;
+  ivaTot = ivaUnit * cant;
+  totalTot = totalUnit * cant;
+
+  // Tabla resumen
+  if(tbody){
+    var f = function(v){ return '$'+Math.round(v).toLocaleString('es-CO')+' COP'; };
+    tbody.innerHTML = '<tr>'
+      +'<td>'+(nm||'—')+'</td>'
+      +'<td class="text-center">'+cant+'</td>'
+      +'<td>'+unidad+'</td>'
+      +'<td class="text-end">'+f(totalUnit)+'</td>'
+      +'<td class="text-end">'+f(ivaTot)+'</td>'
+      +'<td class="text-end fw-bold">'+f(totalTot)+'</td>'
+      +'</tr>'
+      +'<tr class="table-light"><td colspan="3"></td>'
+      +'<td class="text-end text-muted" style="font-size:.78rem">Base: '+f(baseTot)+'</td>'
+      +'<td class="text-end text-muted" style="font-size:.78rem">IVA: '+f(ivaTot)+'</td>'
+      +'<td class="text-end fw-bold" style="font-size:.78rem">Total: '+f(totalTot)+'</td></tr>';
   }
 }
 togglePagoFields();
