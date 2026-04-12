@@ -456,16 +456,20 @@ img,svg{max-width:100%;height:auto}
     <div class="sb-sec">Proveedores</div>
     <a href="{{ url_for('proveedores') }}" class="nav-link {% if request.endpoint in ['proveedores','proveedor_nuevo','proveedor_editar'] %}active{% endif %}"><i class="bi bi-truck"></i><span>Proveedores</span></a>
     <a href="{{ url_for('proveedores', tipo_f='transportista') }}" class="nav-link {% if request.endpoint in ['proveedores'] and request.args.get('tipo_f')=='transportista' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-truck-front"></i><span>Transportistas</span></a>
+    {% endif %}
+    {% if 'ordenes_compra' in m or 'produccion' in m or 'clientes' in m %}
+    <div class="sb-sec">Compras</div>
     <a href="{{ url_for('cotizaciones_proveedor') }}" class="nav-link {% if 'cotizacion_proveedor' in request.endpoint or 'cotizaciones_proveedor' in request.endpoint %}active{% endif %}"><i class="bi bi-file-earmark-check"></i><span>Cotizaciones</span></a>
-    <a href="{{ url_for('cotizaciones_proveedor', tipo='granel') }}" class="nav-link" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-building"></i><span>Granel</span></a>
-    <a href="{{ url_for('cotizaciones_proveedor', tipo='general') }}" class="nav-link" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-box"></i><span>General</span></a>
-    <a href="{{ url_for('ordenes_compra') }}" class="nav-link {% if 'orden_compra' in request.endpoint %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-cart-check"></i><span>Órd. Compra</span></a>
+    <a href="{{ url_for('cotizaciones_proveedor', tipo='granel') }}" class="nav-link" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-droplet-fill"></i><span>Materia Prima</span></a>
+    <a href="{{ url_for('cotizaciones_proveedor', tipo='general') }}" class="nav-link" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-box"></i><span>Servicios</span></a>
+    <a href="{{ url_for('ordenes_compra') }}" class="nav-link {% if 'orden_compra' in request.endpoint %}active{% endif %}"><i class="bi bi-cart-check"></i><span>Órdenes de Compra</span></a>
     {% endif %}
     {% if 'inventario' in m or 'produccion' in m %}
     <div class="sb-sec">Operaciones</div>
+    {% if 'produccion' in m %}<a href="{{ url_for('recetas') }}" class="nav-link {% if 'receta' in request.endpoint %}active{% endif %}"><i class="bi bi-journal-bookmark"></i><span>Recetas (BOM)</span></a>{% endif %}
     {% if 'inventario' in m %}<a href="{{ url_for('inventario') }}" class="nav-link {% if 'inventario' in request.endpoint or 'producto' in request.endpoint or 'lote' in request.endpoint %}active{% endif %}"><i class="bi bi-box-seam-fill"></i><span>Inventario</span></a>{% endif %}
     {% if 'inventario' in m %}<a href="{{ url_for('inventario_ingresos') }}" class="nav-link {% if request.endpoint=='inventario_ingresos' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-plus-square"></i><span>Multi-Ingreso</span></a>{% endif %}
-    {% if 'produccion' in m %}<a href="{{ url_for('produccion_index') }}" class="nav-link {% if 'produccion' in request.endpoint or 'compra' in request.endpoint or 'materia' in request.endpoint or 'receta' in request.endpoint or 'reserva' in request.endpoint %}active{% endif %}"><i class="bi bi-gear-fill"></i><span>Producción</span></a>{% endif %}
+    {% if 'produccion' in m %}<a href="{{ url_for('produccion_index') }}" class="nav-link {% if 'produccion' in request.endpoint or 'materia' in request.endpoint or 'reserva' in request.endpoint %}active{% endif %}"><i class="bi bi-gear-fill"></i><span>Producción</span></a>{% endif %}
     {% if 'produccion' in m %}<a href="{{ url_for('ordenes_produccion') }}" class="nav-link {% if request.endpoint=='ordenes_produccion' or request.endpoint=='orden_completar' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-list-check"></i><span>Órdenes</span></a>{% endif %}
     {% if 'produccion' in m %}<a href="{{ url_for('gantt') }}" class="nav-link {% if request.endpoint=='gantt' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-bar-chart-steps"></i><span>Gantt</span></a>{% endif %}
     {% if 'empaques' in m %}<a href="{{ url_for('empaques') }}" class="nav-link {% if 'empaque' in request.endpoint %}active{% endif %}"><i class="bi bi-box2-heart-fill"></i><span>Empaques secundarios</span></a>{% endif %}

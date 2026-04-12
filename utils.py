@@ -342,6 +342,7 @@ def _calcular_costo_receta(producto_id):
             'tiene_cotizacion': cot_vigente is not None,
             'es_empaque': getattr(ri, 'es_empaque', False),
             'stock_disponible': mp.stock_disponible or 0,
+            'stock_reservado': mp.stock_reservado or 0,
         })
 
     costo_unitario = (costo_total / receta.unidades_produce) if receta.unidades_produce > 0 else 0
