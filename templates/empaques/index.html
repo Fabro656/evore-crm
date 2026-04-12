@@ -1112,11 +1112,9 @@ function calcEnvio() {
   // Leer parámetros editables si existen, sino usar defaults
   var customRate = document.getElementById('envTarifaPaq');
   var customMin = document.getElementById('envMinGuia');
-  var customFactor = document.getElementById('envFactorVol');
-  var rate = customRate ? parseFloat(customRate.value)||0 : paqRate(dist, isIntl);
-  var paqMin = customMin ? parseFloat(customMin.value)||0 : (isIntl ? PAQ_MIN_INT : PAQ_MIN);
-  var factorVol = customFactor ? parseFloat(customFactor.value)||5000 : 5000;
-  var volKg = +(bw * bd * bh / factorVol).toFixed(3);
+  var rate = customRate && customRate.value ? parseFloat(customRate.value) : paqRate(dist, isIntl);
+  var paqMin = customMin && customMin.value ? parseFloat(customMin.value) : (isIntl ? PAQ_MIN_INT : PAQ_MIN);
+  var volKg = +(bw * bd * bh / 5000).toFixed(3);
   var chargeKg = Math.max(bKg, volKg);
   var paqBox = Math.max(paqMin, chargeKg * rate);
   var fmt = function(v){ return '$'+Math.round(v).toLocaleString('es-CO')+' COP'; };
@@ -1192,18 +1190,11 @@ function calcEnvio() {
       +'</div>';
   }
 
-  // ── Parámetros editables ──
-  var paramsHtml = '<div class="sim-sg mt-3">'
-    +'<div class="sim-st">⚙ Parámetros del cálculo <small class="text-muted">(puedes ajustar)</small></div>'
-    +'<div class="row g-2 mt-1" style="font-size:.8rem">'
-    +'<div class="col-md-3"><label class="form-label mb-0" style="font-size:.75rem">Tarifa paquetería COP/kg</label>'
-    +'<input type="number" class="form-control form-control-sm" id="envTarifaPaq" value="'+rate+'" min="0" step="100"></div>'
-    +'<div class="col-md-3"><label class="form-label mb-0" style="font-size:.75rem">Mínimo por guía COP</label>'
-    +'<input type="number" class="form-control form-control-sm" id="envMinGuia" value="'+paqMin+'" min="0" step="500"></div>'
-    +'<div class="col-md-3"><label class="form-label mb-0" style="font-size:.75rem">Factor volumétrico (÷)</label>'
-    +'<input type="number" class="form-control form-control-sm" id="envFactorVol" value="5000" min="1000" step="500"></div>'
-    +'<div class="col-md-3 d-flex align-items-end"><button class="btn btn-sm btn-outline-primary w-100" onclick="calcEnvio()"><i class="bi bi-arrow-clockwise me-1"></i>Recalcular</button></div>'
-    +'</div></div>';
+  // Setear valores default en los parámetros fijos (solo la primera vez)
+  var tarifaEl = document.getElementById('envTarifaPaq');
+  var minEl = document.getElementById('envMinGuia');
+  if(tarifaEl && !tarifaEl.dataset.set){ tarifaEl.value = rate; tarifaEl.dataset.set='1'; }
+  if(minEl && !minEl.dataset.set){ minEl.value = paqMin; minEl.dataset.set='1'; }
 
   // Guardar resultado para cotización
   if(recomendacion){
@@ -1242,7 +1233,6 @@ function calcEnvio() {
     +'</div>'
     +recHtml
     +tablaHtml
-    +paramsHtml
     +cotBtn;
 }
 
@@ -1605,12 +1595,25 @@ function usarVarianteTruck(truckKey, vi) {
             </div>
           </div>
 
+          <div class="sim-sg mb-3">
+            <div class="sim-st">⚙ Tarifas <small class="text-muted">(ajusta y recalcula)</small></div>
+            <div class="row g-2 mt-1" style="font-size:.8rem">
+              <div class="col-md-4">
+                <label class="form-label mb-0" style="font-size:.75rem">Tarifa paquetería COP/kg</label>
+                <input type="number" class="form-control form-control-sm" id="envTarifaPaq" value="5500" min="0" step="100">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label mb-0" style="font-size:.75rem">Mínimo por guía COP</label>
+                <input type="number" class="form-control form-control-sm" id="envMinGuia" value="8000" min="0" step="500">
+              </div>
+              <div class="col-md-4 d-flex align-items-end">
+                <button class="btn btn-sm btn-outline-primary w-100" onclick="calcEnvio()"><i class="bi bi-arrow-clockwise me-1"></i>Recalcular</button>
+              </div>
+            </div>
+            <small class="text-muted mt-1 d-block" style="font-size:.7rem">Peso volumétrico = L×W×H ÷ 5000. Peso cobrable = máx(real, volumétrico).</small>
+          </div>
+
           <div id="envResult"></div>
-          <small class="text-muted d-block mt-2" style="font-size:.71rem">
-            Tarifas de referencia en COP. Peso cobrable = max(peso real, volumétrico ÷ 5000).
-            Internacional: tarifa estimada, no incluye aranceles ni aduana.
-            FTL: basado en tipo de vehículo seleccionado en el simulador.
-          </small>
         </div>
 
       </div>{# /modal-body #}
