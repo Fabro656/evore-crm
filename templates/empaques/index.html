@@ -606,26 +606,27 @@ function calcTruckSueltas(truck, bw, bd, bh, bKg) {
 }
 
 function simAprobado(ancho, largo, alto, pesoUnit, pesoMax, uds, anchoCaja, largoCaja, altoCaja) {
-  // Usar dimensiones reales de la caja si están guardadas, sino estimar
   function round1(v){return Math.round(v*10)/10;}
   function round3(v){return Math.round(v*1000)/1000;}
   var bw = anchoCaja > 0 ? anchoCaja : round1(ancho + 2);
   var bd = largoCaja > 0 ? largoCaja : round1(largo + 2);
   var bh = altoCaja  > 0 ? altoCaja  : round1(alto + 2);
   var pesoTotal = round3(uds * pesoUnit);
-  _simV = {
+  var v = {
     total: uds, filas: 0, columnas: 0, capas: 0,
     distribucion: uds + ' uds',
-    ancho_caja: bw,
-    largo_caja: bd,
-    alto_caja: bh,
+    ancho_caja: bw, largo_caja: bd, alto_caja: bh,
     volumen_cm3: round1(bw * bd * bh),
     peso_total: pesoTotal,
     pct_peso: pesoMax > 0 ? round1(pesoTotal / pesoMax * 100) : 0
   };
+  // Inyectar como variante única para que las pestañas funcionen
+  simVariants.length = 0;
+  simVariants.push(v);
+  _simV = v;
   if (!_simModal) _simModal = new bootstrap.Modal(document.getElementById('simModal'));
   document.getElementById('simBoxHdr').textContent =
-    _simV.ancho_caja+'×'+_simV.largo_caja+'×'+_simV.alto_caja+' cm · '+_simV.peso_total+' kg · '+_simV.total+' uds (aprobado)';
+    bw+'×'+bd+'×'+bh+' cm · '+pesoTotal+' kg · '+uds+' uds (aprobado)';
   document.getElementById('envResult').innerHTML = '';
   initEnvioSelects();
   switchSimTab('sim');
