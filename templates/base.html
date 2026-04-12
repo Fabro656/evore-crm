@@ -404,8 +404,11 @@ img,svg{max-width:100%;height:auto}
 </head><body class="{% if request.args.get('_embed') == '1' %}embed-mode{% endif %}">
 {% if request.args.get('_embed') == '1' %}
 <style>
-  #sb,#sb-overlay,.topbar,#wsTabBar,.sb-foot{display:none!important}
+  #sb,#sb-overlay,#wsTabBar,.sb-foot{display:none!important}
   #main{margin-left:0!important}
+  .topbar{position:relative!important;padding:.4rem .75rem!important}
+  .topbar .pg-title{font-size:.85rem}
+  .topbar #sb-tog{display:none!important}
   .content{padding:.75rem!important}
 </style>
 <script>
@@ -413,6 +416,10 @@ img,svg{max-width:100%;height:auto}
 (function(){
   if(window.parent && window.parent !== window){
     window.parent.postMessage({type:'embed-navigate', url:location.pathname+location.search.replace(/[?&]_embed=1/,''), title:document.title},'*');
+    // Si se redirige a login, cerrar sesion en el parent tambien
+    if(location.pathname==='/login' || location.pathname==='/logout'){
+      window.parent.location.href='/logout';
+    }
     document.addEventListener('click',function(e){
       var a=e.target.closest('a[href]');
       if(!a) return;
@@ -469,77 +476,58 @@ img,svg{max-width:100%;height:auto}
     {% endif %}
   </div>
   <div class="sb-nav py-2" style="overflow-y:auto;flex:1">
+    {% set m=modulos_user %}
     <div class="sb-sec">Principal</div>
     <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint=='dashboard' %}active{% endif %}">
-      <i class="bi bi-grid-1x2-fill"></i><span>Dashboard</span></a>
-    {% set m=modulos_user %}
-    {% if 'clientes' in m or 'ventas' in m or 'cotizaciones' in m or 'tareas' in m or 'calendario' in m or 'notas' in m %}
+      <i class="bi bi-house-fill"></i><span>Home</span></a>
+
+    {% if 'clientes' in m or 'ventas' in m or 'cotizaciones' in m %}
     <div class="sb-sec">Comercial</div>
     {% if 'clientes' in m %}<a href="{{ url_for('clientes') }}" class="nav-link {% if 'cliente' in request.endpoint %}active{% endif %}"><i class="bi bi-people-fill"></i><span>Clientes</span></a>{% endif %}
     {% if 'produccion' in m or 'ventas' in m %}<a href="{{ url_for('recetas') }}" class="nav-link {% if 'receta' in request.endpoint %}active{% endif %}"><i class="bi bi-journal-bookmark"></i><span>Productos</span></a>{% endif %}
     {% if 'ventas' in m %}<a href="{{ url_for('ventas') }}" class="nav-link {% if 'venta' in request.endpoint %}active{% endif %}"><i class="bi bi-graph-up-arrow"></i><span>Ventas</span></a>{% endif %}
     {% if 'cotizaciones' in m %}<a href="{{ url_for('cotizaciones') }}" class="nav-link {% if request.endpoint in ['cotizaciones','cotizacion_nueva','cotizacion_ver','cotizacion_editar'] %}active{% endif %}"><i class="bi bi-file-earmark-text-fill"></i><span>Cotizaciones</span></a>{% endif %}
     {% if 'servicios' in m %}<a href="{{ url_for('servicios') }}" class="nav-link {% if 'servicio' in request.endpoint %}active{% endif %}"><i class="bi bi-briefcase-fill"></i><span>Servicios</span></a>{% endif %}
-    {% if 'tareas' in m %}<a href="{{ url_for('tareas') }}" class="nav-link {% if 'tarea' in request.endpoint %}active{% endif %}"><i class="bi bi-check2-square"></i><span>Tickets</span></a>{% endif %}
-    {% if 'calendario' in m %}<a href="{{ url_for('calendario') }}" class="nav-link {% if request.endpoint=='calendario' or 'evento' in request.endpoint %}active{% endif %}"><i class="bi bi-calendar3"></i><span>Calendario</span></a>{% endif %}
-    {% if 'notas' in m %}<a href="{{ url_for('notas') }}" class="nav-link {% if 'nota' in request.endpoint %}active{% endif %}"><i class="bi bi-sticky-fill"></i><span>Notas</span></a>{% endif %}
     {% endif %}
-    {% if 'clientes' in m %}
-    <div class="sb-sec">Proveedores</div>
-    <a href="{{ url_for('proveedores') }}" class="nav-link {% if request.endpoint in ['proveedores','proveedor_nuevo','proveedor_editar'] and request.args.get('tipo_f')!='transportista' %}active{% endif %}"><i class="bi bi-truck"></i><span>Proveedores</span></a>
+
+    {% if 'clientes' in m or 'ordenes_compra' in m or 'produccion' in m %}
+    <div class="sb-sec">Proveedores y Compras</div>
+    {% if 'clientes' in m %}<a href="{{ url_for('proveedores') }}" class="nav-link {% if request.endpoint in ['proveedores','proveedor_nuevo','proveedor_editar'] and request.args.get('tipo_f')!='transportista' %}active{% endif %}"><i class="bi bi-truck"></i><span>Proveedores</span></a>{% endif %}
+    <a href="{{ url_for('cotizaciones_proveedor') }}" class="nav-link {% if 'cotizacion_proveedor' in request.endpoint or 'cotizaciones_proveedor' in request.endpoint %}active{% endif %}"><i class="bi bi-file-earmark-check"></i><span>Cotizaciones prov.</span></a>
+    <a href="{{ url_for('ordenes_compra') }}" class="nav-link {% if 'orden_compra' in request.endpoint %}active{% endif %}"><i class="bi bi-cart-check"></i><span>Ordenes de Compra</span></a>
+    <a href="{{ url_for('compras') }}" class="nav-link {% if request.endpoint=='compras' or request.endpoint=='compra_nueva' or request.endpoint=='compra_editar' %}active{% endif %}"><i class="bi bi-receipt"></i><span>Registro compras</span></a>
     {% endif %}
+
     {% if 'inventario' in m or 'produccion' in m or 'clientes' in m %}
-    <div class="sb-sec">Transportes</div>
+    <div class="sb-sec">Logistica</div>
     <a href="{{ url_for('proveedores', tipo_f='transportista') }}" class="nav-link {% if request.endpoint in ['proveedores'] and request.args.get('tipo_f')=='transportista' %}active{% endif %}"><i class="bi bi-truck-front"></i><span>Transportistas</span></a>
-    <a href="{{ url_for('empaques') }}" class="nav-link {% if 'empaque' in request.endpoint %}active{% endif %}"><i class="bi bi-box2-heart-fill"></i><span>Empaques y logística</span></a>
+    <a href="{{ url_for('empaques') }}" class="nav-link {% if 'empaque' in request.endpoint %}active{% endif %}"><i class="bi bi-box2-heart-fill"></i><span>Empaques</span></a>
     {% endif %}
-    {% if 'ordenes_compra' in m or 'produccion' in m or 'clientes' in m %}
-    <div class="sb-sec">Compras</div>
-    <a href="{{ url_for('cotizaciones_proveedor') }}" class="nav-link {% if 'cotizacion_proveedor' in request.endpoint or 'cotizaciones_proveedor' in request.endpoint %}active{% endif %}"><i class="bi bi-file-earmark-check"></i><span>Cotizaciones</span></a>
-    <a href="{{ url_for('cotizaciones_proveedor', tipo='granel') }}" class="nav-link" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-droplet-fill"></i><span>Materia Prima</span></a>
-    <a href="{{ url_for('cotizaciones_proveedor', tipo='general') }}" class="nav-link" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-box"></i><span>Servicios</span></a>
-    <a href="{{ url_for('ordenes_compra') }}" class="nav-link {% if 'orden_compra' in request.endpoint %}active{% endif %}"><i class="bi bi-cart-check"></i><span>Órdenes de Compra</span></a>
-    <a href="{{ url_for('compras') }}" class="nav-link {% if request.endpoint=='compras' or request.endpoint=='compra_nueva' or request.endpoint=='compra_editar' %}active{% endif %}"><i class="bi bi-receipt"></i><span>Registro de compras</span></a>
-    {% endif %}
+
     {% if 'inventario' in m or 'produccion' in m %}
     <div class="sb-sec">Operaciones</div>
     {% if 'inventario' in m %}<a href="{{ url_for('inventario') }}" class="nav-link {% if 'inventario' in request.endpoint or 'producto' in request.endpoint or 'lote' in request.endpoint %}active{% endif %}"><i class="bi bi-box-seam-fill"></i><span>Inventario</span></a>{% endif %}
-    {% if 'inventario' in m %}<a href="{{ url_for('inventario_ingresos') }}" class="nav-link {% if request.endpoint=='inventario_ingresos' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-plus-square"></i><span>Multi-Ingreso</span></a>{% endif %}
-    {% if 'produccion' in m %}<a href="{{ url_for('produccion_index') }}" class="nav-link {% if 'produccion' in request.endpoint or 'materia' in request.endpoint or 'reserva' in request.endpoint %}active{% endif %}"><i class="bi bi-gear-fill"></i><span>Producción</span></a>{% endif %}
-    {% if 'produccion' in m %}<a href="{{ url_for('ordenes_produccion') }}" class="nav-link {% if request.endpoint=='ordenes_produccion' or request.endpoint=='orden_completar' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-list-check"></i><span>Órdenes</span></a>{% endif %}
-    {% if 'produccion' in m %}<a href="{{ url_for('gantt') }}" class="nav-link {% if request.endpoint=='gantt' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-bar-chart-steps"></i><span>Gantt</span></a>{% endif %}
+    {% if 'produccion' in m %}<a href="{{ url_for('produccion_index') }}" class="nav-link {% if 'produccion' in request.endpoint or 'materia' in request.endpoint or 'reserva' in request.endpoint or request.endpoint=='gantt' or request.endpoint=='ordenes_produccion' %}active{% endif %}"><i class="bi bi-gear-fill"></i><span>Produccion</span></a>{% endif %}
     {% endif %}
+
     {% if 'legal' in m or current_user.rol in ('admin','director_financiero','director_operativo') %}
     <div class="sb-sec">Legal</div>
     <a href="{{ url_for('legal_index') }}" class="nav-link {% if 'legal' in request.endpoint %}active{% endif %}"><i class="bi bi-shield-check"></i><span>Documentos legales</span></a>
     {% endif %}
+
     {% if 'finanzas' in m or current_user.rol in ('admin','director_financiero','contador') %}
     <div class="sb-sec">Finanzas</div>
-    <a href="{{ url_for('contable_index') }}" class="nav-link {% if 'contable' in request.endpoint %}active{% endif %}"><i class="bi bi-calculator"></i><span>Contabilidad</span></a>
-    {% if 'contable' in request.endpoint or 'puc' in request.endpoint %}
-    <a href="{{ url_for('contable_puc') }}" class="nav-link {% if 'puc' in request.endpoint %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-list-ol"></i><span>Plan de Cuentas (PUC)</span></a>
-    <a href="{{ url_for('contable_asientos') }}" class="nav-link {% if request.endpoint in ['contable_asientos','contable_asiento_nuevo','contable_asiento_editar'] %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-journal-bookmark-fill"></i><span>Asientos contables</span></a>
-    <a href="{{ url_for('contable_balance_prueba') }}" class="nav-link {% if request.endpoint=='contable_balance_prueba' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-table"></i><span>Balance de Prueba</span></a>
-    <a href="{{ url_for('contable_balance_general') }}" class="nav-link {% if request.endpoint=='contable_balance_general' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-bank2"></i><span>Balance General</span></a>
-    <a href="{{ url_for('contable_estado_resultados') }}" class="nav-link {% if request.endpoint=='contable_estado_resultados' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-graph-up-arrow"></i><span>Estado de Resultados</span></a>
-    <a href="{{ url_for('contable_ingresos') }}" class="nav-link {% if request.endpoint=='contable_ingresos' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-graph-up"></i><span>Ingresos</span></a>
-    <a href="{{ url_for('contable_egresos') }}" class="nav-link {% if request.endpoint=='contable_egresos' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-graph-down"></i><span>Egresos</span></a>
-    {% endif %}
+    <a href="{{ url_for('contable_index') }}" class="nav-link {% if request.endpoint=='contable_index' %}active{% endif %}"><i class="bi bi-calculator"></i><span>Contabilidad</span></a>
+    <a href="{{ url_for('contable_asientos') }}" class="nav-link {% if request.endpoint in ['contable_asientos','contable_asiento_nuevo','contable_asiento_editar'] %}active{% endif %}"><i class="bi bi-journal-bookmark-fill"></i><span>Asientos contables</span></a>
     {% if 'gastos' in m %}<a href="{{ url_for('gastos') }}" class="nav-link {% if 'gasto' in request.endpoint %}active{% endif %}"><i class="bi bi-receipt"></i><span>Gastos</span></a>{% endif %}
-    <a href="{{ url_for('impuestos') }}" class="nav-link {% if 'impuesto' in request.endpoint %}active{% endif %}"><i class="bi bi-percent"></i><span>Reglas tributarias</span></a>
     {% if 'reportes' in m %}<a href="{{ url_for('reportes') }}" class="nav-link {% if 'reporte' in request.endpoint %}active{% endif %}"><i class="bi bi-bar-chart-fill"></i><span>Reportes</span></a>{% endif %}
     {% endif %}
+
     {% if 'nomina' in m %}
     <div class="sb-sec">Recursos Humanos</div>
-    <a href="{{ url_for('nomina_index') }}" class="nav-link {% if 'nomina' in request.endpoint or 'empleado' in request.endpoint %}active{% endif %}"><i class="bi bi-people-fill"></i><span>Nómina</span></a>
+    <a href="{{ url_for('nomina_index') }}" class="nav-link {% if 'nomina' in request.endpoint or 'empleado' in request.endpoint %}active{% endif %}"><i class="bi bi-people-fill"></i><span>Nomina</span></a>
     {% endif %}
-    <div class="sb-sec">Herramientas</div>
-    <a href="{{ url_for('buscador') }}" class="nav-link {% if request.endpoint=='buscador' %}active{% endif %}"><i class="bi bi-search"></i><span>Buscador</span></a>
-    {% if current_user.rol == 'proveedor' %}
-    <div class="sb-sec">Portal</div>
-    <a href="{{ url_for('portal_proveedor') }}" class="nav-link {% if request.endpoint=='portal_proveedor' %}active{% endif %}"><i class="bi bi-house-fill"></i><span>Mi Portal</span></a>
-    <a href="{{ url_for('portal_prov_ticket') }}" class="nav-link {% if request.endpoint=='portal_prov_ticket' %}active{% endif %}"><i class="bi bi-chat-left-text"></i><span>Enviar Mensaje</span></a>
-    {% endif %}
+
     {% if current_user.rol in ('admin','director_financiero','director_operativo') %}
     <div class="sb-sec">Aprobaciones</div>
     <a href="{{ url_for('aprobaciones_pendientes') }}" class="nav-link {% if 'aprobacion' in request.endpoint %}active{% endif %}"><i class="bi bi-clipboard-check"></i><span>Pendientes</span></a>
@@ -547,6 +535,16 @@ img,svg{max-width:100%;height:auto}
     {% if current_user.rol not in ('admin','director_financiero','director_operativo','cliente','proveedor') %}
     <a href="{{ url_for('mis_solicitudes') }}" class="nav-link {% if request.endpoint=='mis_solicitudes' %}active{% endif %}"><i class="bi bi-send-check"></i><span>Mis solicitudes</span></a>
     {% endif %}
+
+    <div class="sb-sec">Herramientas</div>
+    <a href="{{ url_for('buscador') }}" class="nav-link {% if request.endpoint=='buscador' %}active{% endif %}"><i class="bi bi-search"></i><span>Buscador</span></a>
+
+    {% if current_user.rol == 'proveedor' %}
+    <div class="sb-sec">Portal</div>
+    <a href="{{ url_for('portal_proveedor') }}" class="nav-link {% if request.endpoint=='portal_proveedor' %}active{% endif %}"><i class="bi bi-house-fill"></i><span>Mi Portal</span></a>
+    <a href="{{ url_for('portal_prov_ticket') }}" class="nav-link {% if request.endpoint=='portal_prov_ticket' %}active{% endif %}"><i class="bi bi-chat-left-text"></i><span>Enviar Mensaje</span></a>
+    {% endif %}
+
     {% if current_user.rol in ('admin','director_financiero') %}
     <div class="sb-sec">Admin</div>
     <a href="{{ url_for('admin_usuarios') }}" class="nav-link {% if 'admin_usuario' in request.endpoint %}active{% endif %}"><i class="bi bi-shield-person-fill"></i><span>Usuarios</span></a>
