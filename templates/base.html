@@ -579,7 +579,8 @@ img,svg{max-width:100%;height:auto}
     {% if current_user.rol in ('admin','director_financiero','director_operativo') %}
     <a href="#" class="nav-link dock-group {% if 'aprobacion' in request.endpoint %}active{% endif %}" data-tip="Aprobaciones" data-dock-panel="aprobaciones"><i class="bi bi-clipboard-check"></i><span>Aprobaciones</span></a>
     {% endif %}
-    {# ── Buscador ── #}
+    {# ── Wiki + Buscador ── #}
+    <a href="{{ url_for('wiki') }}" class="nav-link {% if request.endpoint=='wiki' %}active{% endif %}" data-tip="Wiki" data-dock-panel="wiki_page"><i class="bi bi-book"></i><span>Wiki</span></a>
     <a href="{{ url_for('buscador') }}" class="nav-link {% if request.endpoint=='buscador' %}active{% endif %}" data-tip="Buscador" data-dock-panel="buscador"><i class="bi bi-search"></i><span>Buscador</span></a>
     {# ── Admin ── #}
     {% if current_user.rol in ('admin','director_financiero') %}
@@ -604,9 +605,6 @@ img,svg{max-width:100%;height:auto}
           <i class="bi bi-bell-fill"></i>
           {% if notif_count > 0 %}<span class="notif-badge">{{ notif_count if notif_count < 10 else '9+' }}</span>{% endif %}
         </button>
-        <a href="{{ url_for('wiki') }}" class="notif-btn" title="Wiki" style="font-size:.85rem;color:inherit;text-decoration:none">
-          <i class="bi bi-book"></i>
-        </a>
         <button class="notif-btn" onclick="iniciarObContextual()" title="Tutorial" style="font-size:.85rem">
           <i class="bi bi-question-circle"></i>
         </button>
@@ -664,6 +662,14 @@ img,svg{max-width:100%;height:auto}
   <div class="dock-panel-body">
     <a href="{{ url_for('aprobaciones_pendientes') }}" class="dock-panel-link"><i class="bi bi-clipboard-check"></i>Pendientes</a>
     <a href="{{ url_for('mis_solicitudes') }}" class="dock-panel-link"><i class="bi bi-send-check"></i>Mis solicitudes</a>
+  </div>
+</div>
+<div class="dock-panel" id="dp-wiki_page">
+  <a class="dock-panel-head" href="{{ url_for('wiki') }}"><i class="bi bi-book"></i><span>Wiki del sistema</span><i class="bi bi-arrow-right dp-arrow"></i></a>
+  <div class="dock-panel-body">
+    <a href="{{ url_for('wiki') }}" class="dock-panel-link"><i class="bi bi-diagram-3"></i>Diagrama de flujo</a>
+    <a href="{{ url_for('wiki') }}" class="dock-panel-link"><i class="bi bi-tools"></i>Herramientas</a>
+    <a href="{{ url_for('wiki') }}" class="dock-panel-link"><i class="bi bi-shield-lock"></i>Roles y permisos</a>
   </div>
 </div>
 <div class="dock-panel" id="dp-buscador">
