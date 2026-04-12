@@ -1003,6 +1003,31 @@ function nominatimFetch(q) {
   }).then(function(r){ return r.json(); });
 }
 
+function elegirTarifa(idx) {
+  var v = window._todosVehiculos[idx];
+  if(!v) return;
+  var fmt = function(val){ return '$'+Math.round(val).toLocaleString('es-CO')+' COP'; };
+  var qty = window._envQty || 1;
+  // Actualizar recomendacion con la elegida
+  var recEl = document.querySelector('.sim-sg[style*="border-left:3px solid"]');
+  if(recEl){
+    recEl.innerHTML = '<div class="sim-st">✅ Tarifa seleccionada</div>'
+      +'<div class="sim-sr"><span>Vehiculo</span><strong>'+v.t.name+' — '+v.t.desc+'</strong></div>'
+      +'<div class="sim-sr"><span>Modo</span><strong>'+(v.modo==='pallet'?'Con pallets':'Cajas sueltas')+'</strong></div>'
+      +'<div class="sim-sr"><span>Enviar por</span><strong>'+(v.mejor==='FTL'?'Camion completo (FTL)':'Paqueteria por caja')+'</strong></div>'
+      +'<div class="sim-sr"><span>Costo total</span><strong style="color:#00875A;font-size:1.1rem">'+fmt(v.mejorCosto)+'</strong></div>'
+      +'<div class="sim-sr"><span>Costo por unidad</span><strong>'+fmt(v.mejorCosto/qty)+'</strong></div>'
+      +'<div class="sim-sr"><span>Viajes</span><strong>'+v.viajes+'</strong></div>';
+  }
+  // Actualizar _lastEnvioResult
+  if(window._lastEnvioResult){
+    window._lastEnvioResult.vehiculo = v.t.name + ' — ' + v.t.desc;
+    window._lastEnvioResult.modo = v.modo === 'pallet' ? 'Con pallets' : 'Cajas sueltas';
+    window._lastEnvioResult.costo = v.mejorCosto;
+    window._lastEnvioResult.costoIva = Math.round(v.mejorCosto * 1.19);
+  }
+}
+
 function mostrarMapa() {
   var orig = document.getElementById('envOrigAddr').value.trim();
   var dest = document.getElementById('envDestAddr').value.trim();
@@ -1094,18 +1119,25 @@ function sincronizarCantidad() {
 }
 
 function calcEnvio() {
-  if (!_simV) return;
   var res = document.getElementById('envResult');
+  if (!_simV) {
+    res.innerHTML = '<div class="alert alert-danger py-1 mb-0" style="font-size:.8rem"><i class="bi bi-exclamation-triangle me-1"></i>Primero selecciona un empaque del listado.</div>';
+    return;
+  }
   var manualStr = document.getElementById('envDistManual').value.trim();
   var dist = parseFloat(manualStr);
   if(isNaN(dist) || dist <= 0){
-    res.innerHTML = '<div class="alert alert-warning py-1 mb-0" style="font-size:.8rem"><i class="bi bi-exclamation-triangle me-1"></i>Ingresa la distancia en km. Usa "Ver ruta" para consultar en Google Maps.</div>';
+    res.innerHTML = '<div class="alert alert-warning py-1 mb-0" style="font-size:.8rem"><i class="bi bi-exclamation-triangle me-1"></i>Ingresa la distancia en km.</div>';
     return;
   }
 
   var qtyStr = document.getElementById('envQty').value.trim();
   var qty = parseInt(qtyStr, 10);
-  var hasQty = !isNaN(qty) && qty > 0;
+  if(isNaN(qty) || qty <= 0){
+    res.innerHTML = '<div class="alert alert-warning py-1 mb-0" style="font-size:.8rem"><i class="bi bi-exclamation-triangle me-1"></i>Ingresa la cantidad de unidades de producto.</div>';
+    return;
+  }
+  var hasQty = true;
   var isIntl = dist > 1000;
   var bw = _simV.ancho_caja, bd = _simV.largo_caja, bh = _simV.alto_caja, bKg = _simV.peso_total;
   var udsPerBox = _simV.total;
@@ -1156,13 +1188,16 @@ function calcEnvio() {
   });
 
   todosVehiculos.sort(function(a,b){ return a.mejorCosto - b.mejorCosto; });
+  window._todosVehiculos = todosVehiculos;
+  window._envQty = qty;
+  window._envDist = dist;
   recomendacion = todosVehiculos.length > 0 ? todosVehiculos[0] : null;
 
   // ── Tabla comparativa de todos los vehículos ──
   var tablaHtml = '<div class="table-responsive"><table class="table table-sm table-hover mb-0" style="font-size:.8rem">'
     +'<thead class="table-light"><tr><th>Vehículo</th><th>Modo</th><th class="text-center">Cajas/viaje</th>'
     +'<th class="text-center">Viajes</th><th class="text-end">FTL (viaje)</th><th class="text-end">FTL total</th>'
-    +'<th class="text-end">Paquetería</th><th class="text-end">Mejor opción</th></tr></thead><tbody>';
+    +'<th class="text-end">Paquetería</th><th class="text-end">Mejor opcion</th><th></th></tr></thead><tbody>';
   todosVehiculos.forEach(function(v,i){
     var hl = i===0 ? ' style="background:#f0fdf4"' : '';
     var modoB = v.modo==='pallet' ? '<span class="badge bg-info bg-opacity-25 text-dark">Pallet</span>'
@@ -1172,7 +1207,8 @@ function calcEnvio() {
     tablaHtml += '<tr'+hl+'><td class="fw-semibold">'+(i===0?'⭐ ':'')+v.t.name+'</td><td>'+modoB+'</td>'
       +'<td class="text-center">'+v.cajas+'</td><td class="text-center">'+v.viajes+'</td>'
       +'<td class="text-end">'+fmt(v.ftlViaje)+'</td><td class="text-end">'+fmt(v.ftlTotal)+'</td>'
-      +'<td class="text-end">'+fmt(v.paqTotal)+'</td><td class="text-end">'+mejorB+'</td></tr>';
+      +'<td class="text-end">'+fmt(v.paqTotal)+'</td><td class="text-end">'+mejorB+'</td>'
+      +'<td><button class="btn btn-xs btn-outline-primary" onclick="elegirTarifa('+i+')" style="font-size:.7rem;padding:2px 6px">Elegir</button></td></tr>';
   });
   tablaHtml += '</tbody></table></div>';
 
@@ -1546,7 +1582,7 @@ function usarVarianteTruck(truckKey, vi) {
             <div class="row g-2 align-items-end mt-1">
               <div class="col-sm-5">
                 <label style="font-size:.76rem;color:#5E6C84">Unidades de producto</label>
-                <input id="envQty" type="number" class="form-control form-control-sm" min="1" step="1" placeholder="Ej. 5 000">
+                <input id="envQty" type="number" class="form-control form-control-sm" min="1" step="1" placeholder="Ej. 5000" required>
               </div>
               <div class="col-sm-auto">
                 <label style="font-size:.76rem;color:transparent">_</label>

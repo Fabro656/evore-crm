@@ -79,6 +79,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 #sb.sb-expanded .sb-foot .u-name{display:block!important;font-size:.8rem;color:#fff}
 #sb.sb-expanded .sb-foot .u-rol{display:inline-block!important}
 #sb.sb-expanded+#main,.sb-expanded~#main{margin-left:240px!important}
+#sb.sb-expanded~.dock-panel,.sb-expanded~.dock-panel{left:244px!important}
 /* Dock tooltip */
 .dock-tip{position:fixed;background:rgba(15,23,42,.92);color:#fff;padding:6px 14px;border-radius:10px;font-size:.78rem;font-weight:600;white-space:nowrap;pointer-events:none;z-index:9999;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);opacity:0;transition:opacity .15s;box-shadow:0 4px 16px rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08)}
 .dock-tip.show{opacity:1}
@@ -766,6 +767,9 @@ img,svg{max-width:100%;height:auto}
     closeDockPanel();
     var panel = document.getElementById('dp-' + panelId);
     if(!panel) return;
+    var sb = document.getElementById('sb');
+    var isExpanded = sb && sb.classList.contains('sb-expanded');
+    panel.style.left = isExpanded ? '244px' : '68px';
     var rect = icon.getBoundingClientRect();
     var panelH = panel.offsetHeight || 200;
     var top = Math.max(8, Math.min(rect.top - 10, window.innerHeight - panelH - 16));
