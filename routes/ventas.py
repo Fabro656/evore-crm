@@ -8,6 +8,7 @@ from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
 import json, os, re, io, secrets, logging
+from models import HistorialPrecio, HistorialCotizacion
 
 def register(app):
 
@@ -981,11 +982,18 @@ def register(app):
                     cantidad=it['cantidad'], precio_unit=it['precio'], subtotal=it['subtotal'],
                     unidad=it['unidad'], tipo_item=it['tipo'], servicio_id=it['servicio_id'],
                     aplica_iva=it['aplica_iva'], iva_pct=it['iva_pct'], iva_monto=it['iva_monto']))
-            # Actualizar precio del producto si cambió en la cotización
+            # Actualizar precio del producto y registrar historial
             for it in items_data:
                 if it.get('producto_id') and it['tipo'] == 'producto':
                     prod = db.session.get(Producto, it['producto_id'])
-                    if prod:
+                    if prod and prod.precio != it['precio']:
+                        db.session.add(HistorialPrecio(
+                            producto_id=prod.id,
+                            precio_anterior=prod.precio or 0,
+                            precio_nuevo=it['precio'],
+                            origen=f'cotizacion {numero}',
+                            usuario_id=current_user.id
+                        ))
                         prod.precio = it['precio']
                         receta = RecetaProducto.query.filter_by(producto_id=prod.id, activo=True).first()
                         if receta:
@@ -1045,7 +1053,8 @@ def register(app):
     def cotizacion_ver(id):
         obj = Cotizacion.query.get_or_404(id)
         empresa = ConfigEmpresa.query.first() or ConfigEmpresa(nombre='Evore')
-        return render_template('cotizaciones/ver.html', obj=obj, empresa=empresa)
+        historial = HistorialCotizacion.query.filter_by(cotizacion_id=id).order_by(HistorialCotizacion.creado_en.desc()).all()
+        return render_template('cotizaciones/ver.html', obj=obj, empresa=empresa, historial=historial)
 
 
     # ── cotizacion_editar (/cotizaciones/<int:id>/editar)
@@ -1122,15 +1131,34 @@ def register(app):
             dias_ent = int(request.form.get('dias_entrega', 30) or 30)
             fecha_ent_est = _calc_fecha_entrega(fecha_emision, dias_ent, dias_tipo)
 
-            # Actualizar precio del producto desde cotización
+            # Registrar cambios y actualizar precios
+            cambios = []
+            if obj.total != total:
+                cambios.append(f'Total: ${obj.total:,.0f} → ${total:,.0f}')
+            if obj.titulo != request.form['titulo']:
+                cambios.append(f'Título: "{obj.titulo}" → "{request.form["titulo"]}"')
             for it in items_editados:
                 if it.get('producto_id') and it['tipo'] == 'producto':
                     prod = db.session.get(Producto, it['producto_id'])
-                    if prod:
+                    if prod and prod.precio != it['precio']:
+                        cambios.append(f'Precio {prod.nombre}: ${prod.precio:,.0f} → ${it["precio"]:,.0f}')
+                        db.session.add(HistorialPrecio(
+                            producto_id=prod.id,
+                            precio_anterior=prod.precio or 0,
+                            precio_nuevo=it['precio'],
+                            origen=f'cotizacion {obj.numero}',
+                            usuario_id=current_user.id
+                        ))
                         prod.precio = it['precio']
                         receta = RecetaProducto.query.filter_by(producto_id=prod.id, activo=True).first()
                         if receta:
                             receta.precio_venta_sugerido = it['precio']
+            if cambios:
+                db.session.add(HistorialCotizacion(
+                    cotizacion_id=obj.id,
+                    cambios=' | '.join(cambios),
+                    usuario_id=current_user.id
+                ))
 
             obj.titulo = request.form['titulo']
             obj.cliente_id = request.form.get('cliente_id') or None

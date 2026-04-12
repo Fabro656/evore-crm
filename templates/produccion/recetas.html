@@ -20,6 +20,7 @@
         </div>
       </div>
       <div class="d-flex gap-2">
+        <button class="btn btn-sm btn-outline-info" title="Historial de precios" onclick="verHistorial({{ r.producto_id }})"><i class="bi bi-clock-history"></i></button>
         <a href="{{ url_for('receta_editar', id=r.id) }}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
         <form method="POST" action="{{ url_for('receta_eliminar', id=r.id) }}" class="d-inline"
               onsubmit="return confirm('¿Eliminar receta?')">
@@ -120,4 +121,51 @@
   <a href="{{ url_for('receta_nueva') }}" class="btn btn-primary mt-3">Crear primer producto</a>
 </div></div>
 {% endfor %}
-</div>{% endblock %}
+</div>
+
+{# Modal historial de precios #}
+<div class="modal fade" id="historialModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title mb-0"><i class="bi bi-clock-history me-2"></i>Historial de precios</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="historialBody">
+        <div class="text-center text-muted py-3">Cargando...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% block scripts %}<script>
+var _histModal = null;
+function verHistorial(prodId) {
+  if (!_histModal) _histModal = new bootstrap.Modal(document.getElementById('historialModal'));
+  document.getElementById('historialBody').innerHTML = '<div class="text-center text-muted py-3">Cargando...</div>';
+  _histModal.show();
+  fetch('/api/producto/' + prodId + '/historial-precios')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (!data.length) {
+        document.getElementById('historialBody').innerHTML = '<div class="text-center text-muted py-3">Sin cambios de precio registrados.</div>';
+        return;
+      }
+      var html = '<table class="table table-sm" style="font-size:.85rem"><thead><tr><th>Fecha</th><th class="text-end">Precio anterior</th><th class="text-end">Precio nuevo</th><th>Origen</th><th>Usuario</th></tr></thead><tbody>';
+      data.forEach(function(h){
+        var color = h.precio_nuevo > h.precio_anterior ? 'text-success' : h.precio_nuevo < h.precio_anterior ? 'text-danger' : '';
+        html += '<tr><td>' + h.fecha + '</td>'
+          + '<td class="text-end">$' + Math.round(h.precio_anterior).toLocaleString('es-CO') + '</td>'
+          + '<td class="text-end ' + color + ' fw-bold">$' + Math.round(h.precio_nuevo).toLocaleString('es-CO') + '</td>'
+          + '<td><span class="badge bg-light text-dark border">' + h.origen + '</span></td>'
+          + '<td>' + h.usuario + '</td></tr>';
+      });
+      html += '</tbody></table>';
+      document.getElementById('historialBody').innerHTML = html;
+    })
+    .catch(function(e){
+      document.getElementById('historialBody').innerHTML = '<div class="alert alert-danger py-2">Error: ' + e + '</div>';
+    });
+}
+</script>{% endblock %}
+{% endblock %}

@@ -259,6 +259,30 @@ class Producto(db.Model):
     es_demo         = db.Column(db.Boolean, default=False)
     venta_items     = db.relationship('VentaProducto', backref='producto', lazy=True)
 
+class HistorialPrecio(db.Model):
+    """Registra cada cambio de precio de un producto con fecha y origen."""
+    __tablename__ = 'historial_precios'
+    id           = db.Column(db.Integer, primary_key=True)
+    producto_id  = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
+    precio_anterior = db.Column(db.Float, default=0)
+    precio_nuevo    = db.Column(db.Float, default=0)
+    origen       = db.Column(db.String(100))  # 'receta', 'cotizacion COT-2026-001', 'manual'
+    usuario_id   = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    creado_en    = db.Column(db.DateTime, default=datetime.utcnow)
+    producto     = db.relationship('Producto', foreign_keys=[producto_id])
+    usuario      = db.relationship('User', foreign_keys=[usuario_id])
+
+class HistorialCotizacion(db.Model):
+    """Registra cada cambio realizado en una cotización."""
+    __tablename__ = 'historial_cotizaciones'
+    id             = db.Column(db.Integer, primary_key=True)
+    cotizacion_id  = db.Column(db.Integer, db.ForeignKey('cotizaciones.id'), nullable=False)
+    cambios        = db.Column(db.Text)  # descripción de los cambios
+    usuario_id     = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    creado_en      = db.Column(db.DateTime, default=datetime.utcnow)
+    cotizacion     = db.relationship('Cotizacion', foreign_keys=[cotizacion_id])
+    usuario        = db.relationship('User', foreign_keys=[usuario_id])
+
 class MarcaProducto(db.Model):
     __tablename__ = 'marcas_producto'
     id = db.Column(db.Integer, primary_key=True)
@@ -1123,6 +1147,9 @@ def _migrate(conn):
         ("ALTER TABLE empleados ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
         ("ALTER TABLE servicios ADD COLUMN IF NOT EXISTS es_demo BOOLEAN DEFAULT FALSE"),
         ("ALTER TABLE servicios ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
+        # Historial de precios y cotizaciones
+        ("CREATE TABLE IF NOT EXISTS historial_precios (id SERIAL PRIMARY KEY, producto_id INTEGER NOT NULL REFERENCES productos(id), precio_anterior FLOAT DEFAULT 0, precio_nuevo FLOAT DEFAULT 0, origen VARCHAR(100), usuario_id INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
+        ("CREATE TABLE IF NOT EXISTS historial_cotizaciones (id SERIAL PRIMARY KEY, cotizacion_id INTEGER NOT NULL REFERENCES cotizaciones(id), cambios TEXT, usuario_id INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
         # Dimensiones de la caja final en empaques
         ("ALTER TABLE empaques_secundarios ADD COLUMN IF NOT EXISTS ancho_caja FLOAT DEFAULT 0"),
         ("ALTER TABLE empaques_secundarios ADD COLUMN ancho_caja FLOAT DEFAULT 0"),

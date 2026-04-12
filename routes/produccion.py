@@ -323,7 +323,21 @@ def register(app):
         costo = _calcular_costo_receta(producto_id)
         precio = _precio_minimo_venta(producto_id, 1)
         return jsonify({**costo, 'precio': precio})
-    
+
+    @app.route('/api/producto/<int:producto_id>/historial-precios')
+    @login_required
+    def api_historial_precios(producto_id):
+        """API: historial de cambios de precio de un producto."""
+        from models import HistorialPrecio
+        items = HistorialPrecio.query.filter_by(producto_id=producto_id)\
+            .order_by(HistorialPrecio.creado_en.desc()).limit(50).all()
+        return jsonify([{
+            'fecha': h.creado_en.strftime('%Y-%m-%d %H:%M') if h.creado_en else '',
+            'precio_anterior': h.precio_anterior,
+            'precio_nuevo': h.precio_nuevo,
+            'origen': h.origen or '',
+            'usuario': h.usuario.nombre if h.usuario else ''
+        } for h in items])
 
     def _registrar_ingredientes_en_cero(ids_ingredientes, producto_id):
         """
@@ -478,7 +492,15 @@ def register(app):
                 iva_pct = 19.0
             precio_sin_iva = costo['costo_unitario'] * (1 + margen / 100)
             r.precio_venta_sugerido = round(precio_sin_iva * (1 + iva_pct / 100), 2)
-            if prod_obj:
+            if prod_obj and prod_obj.precio != r.precio_venta_sugerido:
+                from models import HistorialPrecio
+                db.session.add(HistorialPrecio(
+                    producto_id=prod_obj.id,
+                    precio_anterior=prod_obj.precio or 0,
+                    precio_nuevo=r.precio_venta_sugerido,
+                    origen='receta',
+                    usuario_id=current_user.id
+                ))
                 prod_obj.precio = r.precio_venta_sugerido
             # ── Auto-crear cotizaciones para TODOS los ingredientes que no tengan una ──
             cots_creadas = 0
