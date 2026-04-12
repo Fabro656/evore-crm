@@ -330,6 +330,8 @@ def register(app):
                     referencia=oc.numero,
                     debe=float(oc.total or 0),
                     haber=float(oc.total or 0),
+                    cuenta_debe='1405 Materias primas',
+                    cuenta_haber='220505 Nacionales',
                     clasificacion='egreso',
                     estado_asiento='borrador',
                     estado_pago='pendiente',

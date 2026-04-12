@@ -302,6 +302,22 @@ def _log(tipo, entidad, entidad_id, descripcion):
     except Exception:
         pass
 
+# Mapeo de cuentas textuales a codigos PUC colombiano
+_PUC_MAP = {
+    'Gastos de nomina': '510506 Sueldos',
+    'Gastos de nomina - Liquidaciones': '510530 Cesantias',
+    'Bancos / Caja': '111005 Moneda nacional',
+    'Cuentas por cobrar clientes': '130505 Nacionales',
+    'Ingresos por ventas': '4135 Comercio al por mayor y menor',
+    'Inventario materias primas': '1405 Materias primas',
+    'Proveedores nacionales': '220505 Nacionales',
+    'Gastos Nomina': '510506 Sueldos',
+}
+
+def _resolver_puc(cuenta_texto):
+    """Resuelve texto de cuenta a codigo PUC si existe mapeo."""
+    return _PUC_MAP.get(cuenta_texto, cuenta_texto)
+
 def _crear_asiento_auto(tipo, subtipo, descripcion, monto, cuenta_debe, cuenta_haber,
                         clasificacion='egreso', referencia=None, venta_id=None,
                         orden_compra_id=None, gasto_id=None, proveedor_id=None):
@@ -314,7 +330,7 @@ def _crear_asiento_auto(tipo, subtipo, descripcion, monto, cuenta_debe, cuenta_h
             tipo=tipo, subtipo=subtipo,
             referencia=referencia,
             debe=float(monto), haber=float(monto),
-            cuenta_debe=cuenta_debe, cuenta_haber=cuenta_haber,
+            cuenta_debe=_resolver_puc(cuenta_debe), cuenta_haber=_resolver_puc(cuenta_haber),
             clasificacion=clasificacion,
             venta_id=venta_id, orden_compra_id=orden_compra_id,
             gasto_id=gasto_id, proveedor_id=proveedor_id,

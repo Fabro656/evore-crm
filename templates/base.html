@@ -870,6 +870,34 @@ img,svg{max-width:100%;height:auto}
     }
   },true);
 
+  // ── Guias contextuales en cada dock panel ──
+  var PANEL_GUIDES = {
+    'dp-home': '<strong>Home</strong> es tu centro de control.<br>• Revisa KPIs de ventas e ingresos<br>• Ve tickets pendientes y ventas recientes<br>• Aprobaciones que necesitan tu atencion<br>• Calendario del dia y proximos 7 dias<br>• Notas recientes de todo el equipo',
+    'dp-tickets': '<strong>Tickets</strong> organizan el trabajo.<br>• Crea tickets con prioridad y asignados<br>• Tipos: Ticket (requiere accion) o Notificacion (informativa)<br>• Categorias: calidad, logistica, pago, general<br>• Se crean automaticamente por problemas de calidad o nomina pendiente<br>• Cada ticket tiene comentarios para seguimiento',
+    'dp-calendario': '<strong>Calendario</strong> para eventos y recordatorios.<br>• Click en un dia para crear evento<br>• Navega por mes y ano con selectores<br>• Tipos: cita, reunion, recordatorio<br>• Los eventos de produccion se sincronizan automaticamente',
+    'dp-notas': '<strong>Notas</strong> vinculadas a entidades.<br>• Vincular a OC, ventas o proveedores<br>• Tipos: nota, alerta, seguimiento, resolucion<br>• Marcar como resuelta cuando se completa<br>• Filtrar por tipo, estado o entidad',
+    'dp-comercial': '<strong>Flujo comercial:</strong><br>1. Registra <strong>Clientes</strong> con contactos<br>2. Crea <strong>Cotizaciones</strong> con calculo IVA y PDF<br>3. Convierte cotizacion en <strong>Venta</strong><br>4. Al crear venta se genera asiento contable de ingreso<br>5. Anticipo solo se confirma desde Asientos Contables<br>6. Asigna transportista y envia con remision<br><br>• <strong>Productos</strong>: catalogo con recetas/BOM<br>• <strong>Servicios</strong>: sin inventario',
+    'dp-compras': '<strong>Flujo de compras:</strong><br>1. Registra <strong>Proveedores</strong> con datos de contacto<br>2. Crea <strong>Cotizaciones de proveedor</strong> con precios y plazos<br>3. Crea <strong>Orden de Compra</strong> seleccionando multiples cotizaciones<br>4. Se genera asiento contable de egreso automaticamente<br>5. Confirma pago desde Asientos Contables (parcial o total)<br>6. La OC cambia de estado automaticamente<br>7. Recibe material desde Produccion > Registro compras',
+    'dp-inventario': '<strong>Inventario</strong> de productos terminados.<br>• Stock con alertas de minimo<br>• Lotes con trazabilidad FIFO y vencimiento<br>• Multi-ingreso para registrar varios a la vez<br>• Al entregar venta, stock se descuenta automaticamente',
+    'dp-produccion': '<strong>Produccion</strong> y manufactura.<br>• <strong>Dashboard</strong>: estadisticas de compras y ordenes<br>• <strong>Ordenes</strong>: produccion pendiente y en curso<br>• <strong>Gantt</strong>: diagrama de tiempos<br>• <strong>Recepcion MP</strong>: recibir material de OC (auto-actualiza stock)<br>• Reportar problemas de calidad crea tickets automaticos',
+    'dp-logistica': '<strong>Logistica</strong> y transporte.<br>• <strong>Transportistas</strong>: registro con tipo de vehiculo y capacidad<br>• <strong>Empaques</strong>: simulador de caja y pallet<br>• <strong>Calculadora de envio</strong>: costo FTL vs paqueteria, tarifas editables, margen, transportistas compatibles',
+    'dp-finanzas': '<strong>Finanzas</strong> y contabilidad.<br>• <strong>Contabilidad</strong>: dashboard con ingresos/egresos/utilidad<br>• <strong>Asientos contables</strong>: generados (desde OC/ventas) y manuales. Confirmar pagos aqui cambia estado de OC/ventas<br>• <strong>PUC</strong>: Plan Unico de Cuentas colombiano (102 cuentas)<br>• <strong>Gastos</strong>: operativos con estado pagado/pendiente<br>• <strong>Balances</strong>: prueba, general, estado de resultados<br>• <strong>Reportes</strong>: exportables',
+    'dp-legal': '<strong>Legal</strong> y documentos.<br>• Permisos sanitarios, INVIMA, NSO, contratos, licencias<br>• Alertas de vencimiento con dias de anticipacion<br>• Busqueda por titulo, numero o entidad<br>• Vincular a clientes y proveedores',
+    'dp-nomina': '<strong>Nomina</strong> colombiana.<br>• Cerrar nomina con prorrateo por dias trabajados<br>• Retiro: renuncia, despido justificado, despido no justificado<br>• Liquidacion se registra como gasto de inmediato<br>• Ticket automatico si no se cierra nomina a tiempo<br>• Parametros: SMLMV, ARL, cesantias, etc.',
+    'dp-aprobaciones': '<strong>Aprobaciones</strong> de procesos.<br>• Solicitar aprobacion en OC, ventas, cotizaciones o asientos<br>• El proceso se BLOQUEA hasta aprobar<br>• Opciones: Aprobar, Enviar a revision, Rechazar<br>• Admin y Director Financiero se auto-aprueban<br>• Vista detallada con info del solicitante y entidad',
+    'dp-admin': '<strong>Administracion</strong> del sistema.<br>• <strong>Usuarios</strong>: crear con rol y modulos personalizados<br>• <strong>Actividad</strong>: log de todas las acciones del sistema<br>• <strong>Empresa</strong>: nombre, NIT, direccion, firma digital',
+  };
+  // Inyectar guias en cada panel
+  document.querySelectorAll('.dock-panel').forEach(function(panel){
+    var guide = PANEL_GUIDES[panel.id];
+    if(!guide) return;
+    var guideDiv = document.createElement('div');
+    guideDiv.style.cssText = 'padding:0 12px 10px;border-top:1px solid rgba(255,255,255,.06)';
+    guideDiv.innerHTML = '<div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'" style="cursor:pointer;padding:6px 0;font-size:.72rem;color:rgba(255,255,255,.4);display:flex;align-items:center;gap:4px"><i class="bi bi-book"></i>Guia del modulo <i class="bi bi-chevron-down" style="margin-left:auto;font-size:.6rem"></i></div>'
+      +'<div style="display:none;font-size:.73rem;color:rgba(255,255,255,.6);line-height:1.6;padding:4px 0">'+guide+'</div>';
+    panel.appendChild(guideDiv);
+  });
+
   window.closeDockPanel = function(){
     document.querySelectorAll('.dock-panel').forEach(function(p){ p.style.display = 'none'; });
     document.getElementById('dock-overlay').style.display = 'none';

@@ -365,6 +365,8 @@ def register(app):
                         referencia=v.numero,
                         debe=float(v.total or 0),
                         haber=float(v.total or 0),
+                        cuenta_debe='130505 Nacionales',
+                        cuenta_haber='4135 Comercio al por mayor y menor',
                         clasificacion='ingreso',
                         estado_asiento='borrador',
                         estado_pago='pendiente',
