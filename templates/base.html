@@ -402,6 +402,19 @@ img,svg{max-width:100%;height:auto}
 .logo-area svg{max-height:40px!important}
 </style>{% endraw %}
 </head><body class="{% if request.args.get('_embed') == '1' %}embed-mode{% endif %}">
+<script>
+// Auto-detect: si estamos en un iframe pero sin _embed=1, redirigir con el parametro
+(function(){
+  try {
+    if(window.parent && window.parent !== window && window.self !== window.top){
+      if(!/[?&]_embed=1/.test(location.search)){
+        var sep = location.search ? '&' : '?';
+        location.replace(location.pathname + location.search + sep + '_embed=1' + location.hash);
+      }
+    }
+  } catch(e){}
+})();
+</script>
 {% if request.args.get('_embed') == '1' %}
 <style>
   #sb,#sb-overlay,#wsTabBar,.sb-foot{display:none!important}
