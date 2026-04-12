@@ -74,6 +74,13 @@ def register(app):
         )
     
 
+    # ── wiki (/wiki)
+    @app.route('/wiki')
+    @login_required
+    def wiki():
+        return render_template('wiki.html')
+
+
     # ── mi_actividad (/mi-actividad)
     @app.route('/mi-actividad')
     @login_required

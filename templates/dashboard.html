@@ -48,11 +48,14 @@
 
 {# ── Acciones rápidas ──────────────────────────────── #}
 <div class="qa-bar">
+  <a href="{{ url_for('venta_nueva') }}" class="qa-btn"><i class="bi bi-bag-plus"></i> Nueva venta</a>
+  <a href="{{ url_for('cotizacion_nueva') }}" class="qa-btn"><i class="bi bi-file-earmark-text"></i> Cotizacion</a>
+  <a href="{{ url_for('orden_compra_nueva') }}" class="qa-btn"><i class="bi bi-cart-plus"></i> Nueva OC</a>
+  <a href="{{ url_for('tarea_nueva') }}" class="qa-btn"><i class="bi bi-check2-square"></i> Nuevo ticket</a>
+  <a href="{{ url_for('contable_asiento_nuevo') }}" class="qa-btn"><i class="bi bi-journal-plus"></i> Nuevo asiento</a>
   <a href="{{ url_for('cliente_nuevo') }}" class="qa-btn"><i class="bi bi-person-plus"></i> Nuevo cliente</a>
-  <a href="{{ url_for('venta_nueva') }}" class="qa-btn"><i class="bi bi-plus-circle"></i> Nueva venta</a>
-  <a href="{{ url_for('tarea_nueva') }}" class="qa-btn"><i class="bi bi-check2-square"></i> Nueva tarea</a>
-  <a href="{{ url_for('cotizacion_nueva') }}" class="qa-btn"><i class="bi bi-file-earmark-text"></i> Cotización</a>
-  <a href="{{ url_for('contable_index') }}" class="qa-btn"><i class="bi bi-calculator"></i> Contabilidad</a>
+  <a href="{{ url_for('nota_nueva') }}" class="qa-btn"><i class="bi bi-sticky"></i> Nueva nota</a>
+  <a href="{{ url_for('wiki') }}" class="qa-btn"><i class="bi bi-book"></i> Wiki</a>
 </div>
 
 {# ── Fila 1: métricas operativas ───────────────────── #}
