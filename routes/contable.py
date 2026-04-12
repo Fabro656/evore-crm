@@ -747,3 +747,165 @@ def register(app):
 
         return render_template('contable/auxiliar.html', cuenta=cuenta, filas=filas,
                                periodo=periodo, saldo_final=saldo)
+
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # CIERRE DE PERIODO + IVA + RETENCION (v38 — Ley colombiana)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    @app.route('/contable/cierre-periodo', methods=['GET', 'POST'])
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_cierre_periodo():
+        """Cierre contable mensual — marca asientos como cerrados y genera resumen."""
+        if current_user.rol not in ('admin', 'director_financiero', 'contador'):
+            flash('Solo admin, director financiero o contador pueden cerrar periodos.', 'danger')
+            return redirect(url_for('contable_index'))
+
+        from calendar import monthrange
+        periodo = request.args.get('periodo', datetime.utcnow().strftime('%Y-%m'))
+        try:
+            anio, mes = int(periodo.split('-')[0]), int(periodo.split('-')[1])
+        except Exception:
+            anio, mes = datetime.utcnow().year, datetime.utcnow().month
+        mes_ini = date_type(anio, mes, 1)
+        mes_fin = date_type(anio, mes, monthrange(anio, mes)[1])
+
+        if request.method == 'POST':
+            # Marcar todos los asientos del periodo como aprobados
+            asientos_periodo = AsientoContable.query.filter(
+                AsientoContable.fecha >= mes_ini,
+                AsientoContable.fecha <= mes_fin,
+                AsientoContable.estado_asiento != 'anulado'
+            ).all()
+            cerrados = 0
+            for a in asientos_periodo:
+                if a.estado_asiento == 'borrador':
+                    a.estado_asiento = 'aprobado'
+                a.periodo = periodo
+                cerrados += 1
+            db.session.commit()
+            flash(f'Periodo {periodo} cerrado. {cerrados} asiento(s) marcados.', 'success')
+            return redirect(url_for('contable_cierre_periodo', periodo=periodo))
+
+        # Estadisticas del periodo
+        asientos = AsientoContable.query.filter(
+            AsientoContable.fecha >= mes_ini,
+            AsientoContable.fecha <= mes_fin,
+            AsientoContable.estado_asiento != 'anulado'
+        ).all()
+        total_debe = sum(float(a.debe or 0) for a in asientos)
+        total_haber = sum(float(a.haber or 0) for a in asientos)
+        n_borrador = sum(1 for a in asientos if a.estado_asiento == 'borrador')
+        n_aprobado = sum(1 for a in asientos if a.estado_asiento == 'aprobado')
+        ya_cerrado = all(a.periodo == periodo for a in asientos) if asientos else False
+
+        return render_template('contable/cierre_periodo.html',
+            periodo=periodo, anio=anio, mes=mes,
+            total_asientos=len(asientos), n_borrador=n_borrador, n_aprobado=n_aprobado,
+            total_debe=total_debe, total_haber=total_haber,
+            diferencia=abs(total_debe - total_haber),
+            ya_cerrado=ya_cerrado)
+
+
+    @app.route('/contable/iva')
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_iva():
+        """Cruce de IVA generado (ventas) vs IVA descontable (compras) del periodo."""
+        from calendar import monthrange
+        periodo = request.args.get('periodo', datetime.utcnow().strftime('%Y-%m'))
+        try:
+            anio, mes = int(periodo.split('-')[0]), int(periodo.split('-')[1])
+        except Exception:
+            anio, mes = datetime.utcnow().year, datetime.utcnow().month
+        mes_ini = date_type(anio, mes, 1)
+        mes_fin = date_type(anio, mes, monthrange(anio, mes)[1])
+
+        # IVA generado: IVA de ventas del periodo
+        ventas_periodo = Venta.query.filter(
+            Venta.creado_en >= datetime(anio, mes, 1),
+            Venta.estado.in_(['anticipo_pagado', 'pagado', 'completado'])
+        ).all()
+        iva_generado = sum(float(v.iva or 0) for v in ventas_periodo)
+
+        # IVA descontable: IVA de compras (OC) del periodo
+        ocs_periodo = OrdenCompra.query.filter(
+            OrdenCompra.fecha_emision >= mes_ini,
+            OrdenCompra.fecha_emision <= mes_fin,
+            OrdenCompra.estado.notin_(['cancelada'])
+        ).all()
+        iva_descontable = sum(float(oc.iva or 0) for oc in ocs_periodo)
+
+        iva_a_pagar = max(0, iva_generado - iva_descontable)
+
+        return render_template('contable/iva.html',
+            periodo=periodo,
+            iva_generado=iva_generado, n_ventas=len(ventas_periodo),
+            iva_descontable=iva_descontable, n_compras=len(ocs_periodo),
+            iva_a_pagar=iva_a_pagar)
+
+
+    @app.route('/contable/retenciones')
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_retenciones():
+        """Resumen de retenciones en la fuente del periodo."""
+        from calendar import monthrange
+        periodo = request.args.get('periodo', datetime.utcnow().strftime('%Y-%m'))
+        try:
+            anio, mes = int(periodo.split('-')[0]), int(periodo.split('-')[1])
+        except Exception:
+            anio, mes = datetime.utcnow().year, datetime.utcnow().month
+        mes_ini = date_type(anio, mes, 1)
+        mes_fin = date_type(anio, mes, monthrange(anio, mes)[1])
+
+        # Compras del periodo para calcular retenciones
+        compras = CompraMateria.query.filter(
+            CompraMateria.fecha >= mes_ini,
+            CompraMateria.fecha <= mes_fin
+        ).all()
+
+        # Retencion en la fuente: 2.5% sobre compras > 27 UVT (aprox $1,300,000 COP 2025)
+        UVT_2025 = 49799  # UVT 2025
+        BASE_RETEFUENTE = 27 * UVT_2025  # ~$1,344,573
+        TASA_RETE = 0.025  # 2.5% compras
+        total_base_rete = 0
+        total_retenido = 0
+        detalles = []
+        for c in compras:
+            if float(c.costo_total or 0) >= BASE_RETEFUENTE:
+                rete = round(float(c.costo_total) * TASA_RETE)
+                total_base_rete += float(c.costo_total)
+                total_retenido += rete
+                detalles.append({
+                    'nombre': c.nombre_item,
+                    'proveedor': c.proveedor or '',
+                    'fecha': c.fecha,
+                    'base': float(c.costo_total),
+                    'retencion': rete
+                })
+
+        # Gastos del periodo
+        gastos = GastoOperativo.query.filter(
+            GastoOperativo.fecha >= mes_ini,
+            GastoOperativo.fecha <= mes_fin
+        ).all()
+        for g in gastos:
+            if float(g.monto or 0) >= BASE_RETEFUENTE and g.tipo != 'Nomina':
+                rete = round(float(g.monto) * TASA_RETE)
+                total_base_rete += float(g.monto)
+                total_retenido += rete
+                detalles.append({
+                    'nombre': g.descripcion or g.tipo,
+                    'proveedor': '',
+                    'fecha': g.fecha,
+                    'base': float(g.monto),
+                    'retencion': rete
+                })
+
+        return render_template('contable/retenciones.html',
+            periodo=periodo,
+            total_base=total_base_rete, total_retenido=total_retenido,
+            base_minima=BASE_RETEFUENTE, tasa=TASA_RETE*100,
+            detalles=detalles)

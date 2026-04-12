@@ -253,8 +253,9 @@ RESTRICCIONES DE IA:
 - NO puedes crear o modificar usuarios
 - NO puedes aprobar o rechazar solicitudes de aprobacion
 - NO puedes cerrar nomina ni liquidar empleados
-- SI puedes consultar el estado de asientos, aprobaciones y nomina
-- SI puedes crear tickets, notas, eventos, clientes, ventas, ordenes de compra"""
+- SI puedes consultar: ventas, ordenes de compra, gastos, empleados, cotizaciones proveedor, stock, recetas, costos, ordenes de produccion
+- SI puedes crear: tickets, notas, eventos, clientes, ventas, ordenes de compra
+- Para consultar usa: {{"action":"query","type":"<tipo>"}} donde tipo puede ser: ventas, ordenes_compra, gastos, empleados, cotizaciones_proveedor, stock_bajo, tareas_pendientes, cotizaciones, clientes, materias_primas, recetas, ordenes_produccion, costo_producto"""
 
         # ── Providers ────────────────────────────────────────────────
         openai_key    = os.environ.get('OPENAI_API_KEY', '')
@@ -581,7 +582,51 @@ def _execute_ai_action(action_data):
                     result += f'    {d["materia"]}: {d["cantidad"]:.2f} {d["unidad"]} × ${d["costo_unit"]:,.0f} = ${d["subtotal"]:,.0f}\n'
                 return result
 
-            return 'Consulta no reconocida. Tipos válidos: ventas, stock_bajo, tareas_pendientes, cotizaciones, clientes, materias_primas, recetas, ordenes_produccion, costo_producto'
+            elif qtype == 'ordenes_compra':
+                items = OrdenCompra.query.filter(
+                    OrdenCompra.estado.notin_(['cancelada'])
+                ).order_by(OrdenCompra.creado_en.desc()).limit(15).all()
+                if not items: return 'No hay ordenes de compra activas.'
+                result = f'{len(items)} orden(es) de compra:\n'
+                for o in items:
+                    prov = o.proveedor.empresa if o.proveedor else '--'
+                    result += f'• {o.numero or "#"+str(o.id)} — {prov} — ${o.total:,.0f} — Estado: {o.estado} — Pago: ${o.monto_pagado:,.0f}\n'
+                return result
+
+            elif qtype == 'gastos':
+                from datetime import date as _dt
+                mes_ini = _dt.today().replace(day=1)
+                items = GastoOperativo.query.filter(
+                    GastoOperativo.fecha >= mes_ini,
+                    GastoOperativo.es_plantilla == False
+                ).order_by(GastoOperativo.fecha.desc()).limit(15).all()
+                total = sum(float(g.monto or 0) for g in items)
+                if not items: return 'No hay gastos este mes.'
+                result = f'{len(items)} gasto(s) este mes — Total: ${total:,.0f}\n'
+                for g in items:
+                    pago = getattr(g, 'estado_pago', 'pendiente') or 'pendiente'
+                    result += f'• {g.fecha.strftime("%d/%m")} — {g.tipo}: {g.descripcion or "--"} — ${g.monto:,.0f} — {pago}\n'
+                return result
+
+            elif qtype == 'empleados':
+                items = Empleado.query.filter_by(estado='activo').order_by(Empleado.nombre).all()
+                if not items: return 'No hay empleados activos.'
+                total_sal = sum(float(e.salario_base or 0) for e in items)
+                result = f'{len(items)} empleado(s) activos — Masa salarial: ${total_sal:,.0f}\n'
+                for e in items:
+                    result += f'• {e.nombre} {e.apellido} — {e.cargo or "--"} — ${e.salario_base:,.0f}\n'
+                return result
+
+            elif qtype == 'cotizaciones_proveedor':
+                items = CotizacionProveedor.query.filter_by(estado='vigente').order_by(CotizacionProveedor.nombre_producto).limit(20).all()
+                if not items: return 'No hay cotizaciones de proveedor vigentes.'
+                result = f'{len(items)} cotizacion(es) de proveedor vigentes:\n'
+                for cp in items:
+                    prov = cp.proveedor.empresa if cp.proveedor else '--'
+                    result += f'• {cp.nombre_producto} — {prov} — ${cp.precio_unitario:,.0f}/{cp.unidad} — Plazo: {cp.plazo_entrega_dias or "--"}d\n'
+                return result
+
+            return 'Consulta no reconocida. Tipos: ventas, stock_bajo, tareas_pendientes, cotizaciones, clientes, materias_primas, recetas, ordenes_produccion, ordenes_compra, gastos, empleados, cotizaciones_proveedor, costo_producto'
 
         # ══════════════════════════════════════════════════════════════════════════
         # Acciones de ACTUALIZACIÓN (update)

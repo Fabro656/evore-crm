@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}IVA — {{ periodo }}{% endblock %}
+{% block page_title %}Cruce de IVA — {{ periodo }}{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('contable_index') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Contabilidad</a>
+{% endblock %}
+{% block content %}
+<div style="max-width:700px">
+  <div class="row g-3 mb-3">
+    <div class="col-md-4">
+      <form method="GET"><div class="input-group input-group-sm">
+        <input type="month" name="periodo" class="form-control" value="{{ periodo }}">
+        <button class="btn btn-outline-primary">Consultar</button>
+      </div></form>
+    </div>
+  </div>
+
+  <div class="tc">
+    <div class="ch"><i class="bi bi-percent me-2"></i>IVA del periodo {{ periodo }}</div>
+    <div style="padding:1rem">
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <div class="sc text-center" style="border-top:3px solid var(--green)">
+            <div class="fw-bold" style="font-size:1.3rem;color:var(--green)">{{ moneda(iva_generado) }}</div>
+            <small class="text-muted">IVA Generado (ventas)</small>
+            <div style="font-size:.75rem;color:var(--text2)">{{ n_ventas }} venta(s)</div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="sc text-center" style="border-top:3px solid var(--ac)">
+            <div class="fw-bold" style="font-size:1.3rem;color:var(--ac)">{{ moneda(iva_descontable) }}</div>
+            <small class="text-muted">IVA Descontable (compras)</small>
+            <div style="font-size:.75rem;color:var(--text2)">{{ n_compras }} OC(s)</div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="sc text-center" style="border-top:3px solid {% if iva_a_pagar > 0 %}var(--red){% else %}var(--green){% endif %}">
+            <div class="fw-bold" style="font-size:1.3rem;color:{% if iva_a_pagar > 0 %}var(--red){% else %}var(--green){% endif %}">{{ moneda(iva_a_pagar) }}</div>
+            <small class="text-muted">IVA a pagar DIAN</small>
+            <div style="font-size:.72rem;color:var(--text2)">= Generado - Descontable</div>
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-info py-2" style="font-size:.82rem">
+        <i class="bi bi-info-circle me-1"></i>
+        <strong>IVA Generado</strong> (cuenta 240801): cobrado a clientes en ventas.<br>
+        <strong>IVA Descontable</strong> (cuenta 240802): pagado a proveedores en compras.<br>
+        La diferencia es lo que se declara y paga a la DIAN bimestralmente.
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

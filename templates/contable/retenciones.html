@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}Retenciones — {{ periodo }}{% endblock %}
+{% block page_title %}Retenciones en la Fuente — {{ periodo }}{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('contable_index') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Contabilidad</a>
+{% endblock %}
+{% block content %}
+<div style="max-width:800px">
+  <div class="row g-3 mb-3">
+    <div class="col-md-4">
+      <form method="GET"><div class="input-group input-group-sm">
+        <input type="month" name="periodo" class="form-control" value="{{ periodo }}">
+        <button class="btn btn-outline-primary">Consultar</button>
+      </div></form>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-4">
+      <div class="sc text-center" style="border-top:3px solid var(--orange)">
+        <div class="fw-bold" style="font-size:1.3rem;color:var(--orange)">{{ moneda(total_base) }}</div>
+        <small class="text-muted">Base sujeta a retencion</small>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="sc text-center" style="border-top:3px solid var(--red)">
+        <div class="fw-bold" style="font-size:1.3rem;color:var(--red)">{{ moneda(total_retenido) }}</div>
+        <small class="text-muted">Total retenido ({{ tasa }}%)</small>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="sc text-center">
+        <div class="fw-bold" style="font-size:1rem;color:var(--text2)">{{ moneda(base_minima) }}</div>
+        <small class="text-muted">Base minima (27 UVT)</small>
+      </div>
+    </div>
+  </div>
+
+  {% if detalles %}
+  <div class="tc">
+    <div class="ch"><i class="bi bi-receipt-cutoff me-2"></i>Detalle de retenciones</div>
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Fecha</th><th>Concepto</th><th>Proveedor</th><th class="text-end">Base</th><th class="text-end">Retencion</th></tr></thead>
+        <tbody>
+        {% for d in detalles %}
+        <tr>
+          <td><small>{{ d.fecha.strftime('%d/%m/%Y') if d.fecha else '--' }}</small></td>
+          <td style="font-size:.85rem">{{ d.nombre[:40] }}</td>
+          <td><small class="text-muted">{{ d.proveedor[:30] }}</small></td>
+          <td class="text-end">{{ moneda(d.base) }}</td>
+          <td class="text-end fw-bold" style="color:var(--red)">{{ moneda(d.retencion) }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr class="fw-bold" style="background:var(--surface2)">
+            <td colspan="3">Total</td>
+            <td class="text-end">{{ moneda(total_base) }}</td>
+            <td class="text-end" style="color:var(--red)">{{ moneda(total_retenido) }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="alert alert-secondary"><i class="bi bi-check-circle me-1"></i>No hay operaciones sujetas a retencion en este periodo.</div>
+  {% endif %}
+
+  <div class="alert alert-info mt-3 py-2" style="font-size:.82rem">
+    <strong>Retencion en la fuente (Art. 392 ET):</strong> Se aplica {{ tasa }}% sobre compras y servicios superiores a 27 UVT ({{ moneda(base_minima) }}).
+    Cuenta PUC: 236540 Compras. Se declara mensualmente ante la DIAN.
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Cierre de Periodo{% endblock %}
+{% block page_title %}Cierre de Periodo — {{ periodo }}{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('contable_index') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Contabilidad</a>
+{% endblock %}
+{% block content %}
+<div style="max-width:700px">
+  <div class="row g-3 mb-3">
+    <div class="col-md-4">
+      <form method="GET"><div class="input-group input-group-sm">
+        <input type="month" name="periodo" class="form-control" value="{{ periodo }}">
+        <button class="btn btn-outline-primary">Consultar</button>
+      </div></form>
+    </div>
+  </div>
+
+  <div class="tc mb-3">
+    <div class="ch"><i class="bi bi-calendar-check me-2"></i>Resumen del periodo {{ periodo }}</div>
+    <div style="padding:1rem">
+      <div class="row g-3 text-center">
+        <div class="col-md-3"><div class="fw-bold" style="font-size:1.5rem;color:var(--ac)">{{ total_asientos }}</div><small class="text-muted">Asientos</small></div>
+        <div class="col-md-3"><div class="fw-bold" style="font-size:1.5rem;color:var(--orange)">{{ n_borrador }}</div><small class="text-muted">En borrador</small></div>
+        <div class="col-md-3"><div class="fw-bold" style="font-size:1.5rem;color:var(--green)">{{ n_aprobado }}</div><small class="text-muted">Aprobados</small></div>
+        <div class="col-md-3"><div class="fw-bold" style="font-size:1.5rem;color:{% if diferencia > 0 %}var(--red){% else %}var(--green){% endif %}">{{ moneda(diferencia) }}</div><small class="text-muted">Diferencia D-H</small></div>
+      </div>
+      <div class="row g-3 mt-2">
+        <div class="col-md-6"><div class="sim-sr"><span>Total Debe</span><strong>{{ moneda(total_debe) }}</strong></div></div>
+        <div class="col-md-6"><div class="sim-sr"><span>Total Haber</span><strong>{{ moneda(total_haber) }}</strong></div></div>
+      </div>
+    </div>
+  </div>
+
+  {% if ya_cerrado %}
+  <div class="alert alert-success"><i class="bi bi-check-circle me-2"></i>Este periodo ya fue cerrado.</div>
+  {% elif total_asientos > 0 %}
+  <form method="POST" onsubmit="return confirm('Cerrar periodo {{ periodo }}? Todos los asientos en borrador se marcaran como aprobados.')">
+    <button class="btn btn-primary"><i class="bi bi-lock me-1"></i>Cerrar periodo {{ periodo }}</button>
+  </form>
+  {% else %}
+  <div class="alert alert-secondary">No hay asientos en este periodo.</div>
+  {% endif %}
+</div>
+{% endblock %}

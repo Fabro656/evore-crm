@@ -723,7 +723,10 @@ img,svg{max-width:100%;height:auto}
     <a href="{{ url_for('contable_balance_general') }}" class="dock-panel-link"><i class="bi bi-bank2"></i>Balance General</a>
     <a href="{{ url_for('contable_estado_resultados') }}" class="dock-panel-link"><i class="bi bi-graph-up-arrow"></i>Estado de Resultados</a>
     {% if 'reportes' in m %}<a href="{{ url_for('reportes') }}" class="dock-panel-link"><i class="bi bi-bar-chart-fill"></i>Reportes</a>{% endif %}
-    <a href="{{ url_for('impuestos') }}" class="dock-panel-link"><i class="bi bi-percent"></i>Reglas tributarias</a>
+    <a href="{{ url_for('contable_iva') }}" class="dock-panel-link"><i class="bi bi-percent"></i>IVA (generado vs descontable)</a>
+    <a href="{{ url_for('contable_retenciones') }}" class="dock-panel-link"><i class="bi bi-receipt-cutoff"></i>Retenciones en la fuente</a>
+    <a href="{{ url_for('contable_cierre_periodo') }}" class="dock-panel-link"><i class="bi bi-lock"></i>Cierre de periodo</a>
+    <a href="{{ url_for('impuestos') }}" class="dock-panel-link"><i class="bi bi-sliders"></i>Reglas tributarias</a>
   </div>
 </div>
 {% if current_user.rol in ('admin','director_financiero') %}
