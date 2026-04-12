@@ -10,6 +10,8 @@
   <div style="padding:1.4rem">
 
   <form method="POST" id="formAsiento">
+    <input type="hidden" name="cuenta_debe" id="hCuentaDebe" value="{{ obj.cuenta_debe if obj else '' }}">
+    <input type="hidden" name="cuenta_haber" id="hCuentaHaber" value="{{ obj.cuenta_haber if obj else '' }}">
 
     {# ── Clasificación: Ingreso / Egreso ─────────────────────── #}
     <div class="mb-4">
@@ -236,8 +238,18 @@
     <div class="ch"><i class="bi bi-list-ol me-2"></i>Biblioteca PUC</div>
     <div style="padding:.75rem">
       <input type="text" id="pucLibBuscar" class="form-control form-control-sm mb-2" placeholder="Buscar cuenta PUC..." oninput="buscarPucLib()">
-      <div id="pucLibResultados" style="max-height:400px;overflow-y:auto;font-size:.8rem">
-        <div class="text-muted text-center py-3"><i class="bi bi-search me-1"></i>Escribe para buscar cuentas</div>
+      <div class="mb-2 d-flex gap-1 flex-wrap">
+        <button class="btn btn-xs btn-outline-secondary" onclick="filtrarPucClase('')" style="font-size:.68rem">Todas</button>
+        <button class="btn btn-xs btn-outline-primary" onclick="filtrarPucClase('1')" style="font-size:.68rem">1-Activo</button>
+        <button class="btn btn-xs btn-outline-primary" onclick="filtrarPucClase('2')" style="font-size:.68rem">2-Pasivo</button>
+        <button class="btn btn-xs btn-outline-primary" onclick="filtrarPucClase('3')" style="font-size:.68rem">3-Patrimonio</button>
+        <button class="btn btn-xs btn-outline-success" onclick="filtrarPucClase('4')" style="font-size:.68rem">4-Ingreso</button>
+        <button class="btn btn-xs btn-outline-danger" onclick="filtrarPucClase('5')" style="font-size:.68rem">5-Gasto</button>
+        <button class="btn btn-xs btn-outline-warning" onclick="filtrarPucClase('6')" style="font-size:.68rem">6-Costo</button>
+        <button class="btn btn-xs btn-outline-secondary" onclick="filtrarPucClase('7')" style="font-size:.68rem">7-Produccion</button>
+      </div>
+      <div id="pucLibResultados" style="max-height:450px;overflow-y:auto;font-size:.78rem">
+        <div class="text-muted text-center py-3"><i class="bi bi-hourglass-split me-1"></i>Cargando cuentas...</div>
       </div>
     </div>
   </div>
@@ -245,33 +257,112 @@
 </div>{# end row #}
 
 <script>
-function buscarPucLib(){
-  var q = document.getElementById('pucLibBuscar').value.trim();
+var _allPuc = [];
+// Cargar todas las cuentas al inicio
+fetch('/contable/puc/api/buscar?todas=1').then(function(r){return r.json()}).then(function(data){
+  _allPuc = data;
+  renderPucLib(_allPuc);
+}).catch(function(){});
+
+function renderPucLib(cuentas){
   var cont = document.getElementById('pucLibResultados');
-  if(q.length < 2){ cont.innerHTML='<div class="text-muted text-center py-3"><i class="bi bi-search me-1"></i>Escribe para buscar</div>'; return; }
-  fetch('/contable/puc/api/buscar?q='+encodeURIComponent(q))
-    .then(function(r){return r.json()})
-    .then(function(data){
-      if(!data.length){ cont.innerHTML='<div class="text-muted text-center py-2">Sin resultados</div>'; return; }
-      cont.innerHTML = data.map(function(c){
-        var color = c.naturaleza==='debito' ? '#DE350B' : '#00875A';
-        return '<div style="padding:5px 8px;border-bottom:1px solid var(--border);cursor:pointer" onclick="usarCuentaPuc(\''+c.codigo+'\',\''+c.nombre.replace(/'/g,"\\'")+'\',\''+c.tipo+'\')" title="Click para usar esta cuenta">'
-          +'<strong style="color:'+color+'">'+c.codigo+'</strong> '
-          +'<span>'+c.nombre+'</span>'
-          +'<br><small class="text-muted">'+c.tipo+' | '+c.naturaleza+'</small>'
-          +'</div>';
-      }).join('');
-    });
+  if(!cuentas.length){ cont.innerHTML='<div class="text-muted text-center py-2">Sin cuentas</div>'; return; }
+  var html = '';
+  cuentas.forEach(function(c){
+    var esMovible = c.acepta_mov;
+    var indent = (c.nivel - 1) * 12;
+    var colorNat = c.naturaleza==='debito' ? 'var(--red)' : 'var(--green)';
+    if(!esMovible){
+      // Cuenta padre (grupo) — solo visual
+      html += '<div style="padding:4px 8px;padding-left:'+(8+indent)+'px;font-size:.72rem;font-weight:700;color:var(--text2);background:var(--surface2);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.3px">'
+        +'<span style="color:'+colorNat+'">'+c.codigo+'</span> '+c.nombre+'</div>';
+    } else {
+      // Cuenta movible — clickeable
+      html += '<div class="puc-item" style="padding:5px 8px;padding-left:'+(8+indent)+'px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s" '
+        +'data-codigo="'+c.codigo+'" data-nombre="'+c.nombre.replace(/"/g,'&quot;')+'" data-nat="'+c.naturaleza+'" data-tipo="'+c.tipo+'" '
+        +'onclick="seleccionarPuc(this)" onmouseenter="this.style.background=\'rgba(var(--ac-rgb),.06)\'" onmouseleave="this.style.background=\'\'">'
+        +'<div><strong style="color:'+colorNat+'">'+c.codigo+'</strong> '+c.nombre+'</div>'
+        +(c.descripcion ? '<div style="font-size:.7rem;color:var(--text2);margin-top:1px">'+c.descripcion+'</div>' : '')
+        +'<div style="font-size:.65rem;color:var(--text2)">'+c.tipo+' | '+c.naturaleza+'</div>'
+        +'</div>';
+    }
+  });
+  cont.innerHTML = html;
 }
-function usarCuentaPuc(codigo, nombre, tipo){
-  var inp = document.getElementById('puc_buscar');
-  if(inp) inp.value = codigo + ' ' + nombre;
-  var sel = document.getElementById('puc_selected');
-  if(sel){ sel.textContent = codigo + ' — ' + nombre; sel.style.color='var(--text)'; }
-  // Auto-clasificar
+
+function buscarPucLib(){
+  var q = document.getElementById('pucLibBuscar').value.trim().toLowerCase();
+  if(!q){ renderPucLib(_allPuc); return; }
+  var filtered = _allPuc.filter(function(c){
+    return c.codigo.includes(q) || c.nombre.toLowerCase().includes(q);
+  });
+  renderPucLib(filtered);
+}
+
+function filtrarPucClase(clase){
+  if(!clase){ renderPucLib(_allPuc); return; }
+  var filtered = _allPuc.filter(function(c){ return c.codigo.startsWith(clase); });
+  renderPucLib(filtered);
+  document.getElementById('pucLibBuscar').value = '';
+}
+
+function seleccionarPuc(el){
+  var codigo = el.dataset.codigo;
+  var nombre = el.dataset.nombre;
+  var nat = el.dataset.nat;
+  var tipo = el.dataset.tipo;
   var clase = codigo.charAt(0);
-  if(clase==='4'){ document.getElementById('opt_ingreso').checked=true; toggleClasificacion(); }
-  else if(clase==='5'||clase==='6'||clase==='7'){ document.getElementById('opt_egreso').checked=true; toggleClasificacion(); }
+
+  // Determinar clasificacion segun PUC colombiano
+  // Clase 1 (Activo), 2 (Pasivo), 5 (Gasto), 6 (Costo venta), 7 (Costo produccion) → egreso (debito)
+  // Clase 3 (Patrimonio), 4 (Ingreso) → ingreso (credito)
+  var esIngreso = (clase === '4' || clase === '3');
+
+  // Auto-clasificar ingreso/egreso
+  if(esIngreso){
+    document.getElementById('opt_ingreso').checked = true;
+  } else {
+    document.getElementById('opt_egreso').checked = true;
+  }
+  toggleClasificacion();
+
+  // Llenar cuenta PUC en el campo correspondiente
+  var pucBuscar = document.getElementById('puc_buscar');
+  var pucSelected = document.getElementById('puc_selected');
+  if(pucBuscar) pucBuscar.value = codigo + ' ' + nombre;
+  if(pucSelected){ pucSelected.textContent = codigo + ' — ' + nombre + ' (' + tipo + ')'; pucSelected.style.color='var(--text)'; }
+
+  // Segun naturaleza, llenar cuenta_debe o cuenta_haber
+  if(nat === 'debito'){
+    // Debito: esta cuenta va en DEBE
+    document.getElementById('hCuentaDebe').value = codigo + ' ' + nombre;
+    // Sugerir contrapartida automatica
+    if(clase === '5' || clase === '6' || clase === '7'){
+      // Gasto/Costo → contrapartida en Bancos (1110)
+      document.getElementById('hCuentaHaber').value = '111005 Moneda nacional';
+    }
+  } else {
+    // Credito: esta cuenta va en HABER
+    document.getElementById('hCuentaHaber').value = codigo + ' ' + nombre;
+    if(clase === '4'){
+      // Ingreso → contrapartida en Caja/Bancos
+      document.getElementById('hCuentaDebe').value = '111005 Moneda nacional';
+    }
+  }
+
+  // Auto-seleccionar tipo de asiento
+  var selTipo = document.getElementById('sel_tipo');
+  if(selTipo){
+    if(clase === '4') selTipo.value = 'venta';
+    else if(clase === '5') selTipo.value = 'gasto';
+    else if(clase === '6' || clase === '7') selTipo.value = 'compra';
+    else if(clase === '1') selTipo.value = 'manual';
+    else if(clase === '2') selTipo.value = 'manual';
+  }
+
+  // Feedback visual
+  document.querySelectorAll('.puc-item').forEach(function(item){ item.style.background=''; });
+  el.style.background = 'rgba(var(--ac-rgb),.12)';
 }
 </script>
 

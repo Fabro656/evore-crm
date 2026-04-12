@@ -224,10 +224,14 @@ def register(app):
             n_ac    = (ultimo.id + 1) if ultimo else 1
             numero  = f'AC-{fecha_obj.year}-{n_ac:04d}'
 
+            cuenta_debe_val = request.form.get('cuenta_debe', '') or None
+            cuenta_haber_val = request.form.get('cuenta_haber', '') or None
             asiento = AsientoContable(
                 numero=numero, fecha=fecha_obj, descripcion=descripcion,
                 tipo=tipo, referencia=referencia, notas=notas,
                 debe=debe, haber=haber,
+                cuenta_debe=cuenta_debe_val,
+                cuenta_haber=cuenta_haber_val,
                 clasificacion=clasificacion,
                 venta_id=venta_id, proveedor_id=proveedor_id,
                 orden_compra_id=orden_compra_id,
@@ -271,6 +275,8 @@ def register(app):
             asiento.notas           = request.form.get('notas', '')
             asiento.debe            = monto if clasificacion == 'egreso'  else 0.0
             asiento.haber           = monto if clasificacion == 'ingreso' else 0.0
+            asiento.cuenta_debe     = request.form.get('cuenta_debe', '') or asiento.cuenta_debe
+            asiento.cuenta_haber    = request.form.get('cuenta_haber', '') or asiento.cuenta_haber
 
             venta_id_raw      = request.form.get('venta_id', '')
             proveedor_id_raw  = request.form.get('proveedor_id', '')
@@ -542,16 +548,28 @@ def register(app):
     @login_required
     @requiere_modulo('finanzas')
     def api_puc_buscar():
-        """API para autocompletar cuentas PUC en formularios."""
+        """API para autocompletar cuentas PUC. Sin query devuelve todas las que aceptan movimiento."""
         q = request.args.get('q', '').strip()
-        if len(q) < 2:
-            return jsonify([])
-        cuentas = CuentaPUC.query.filter(
-            CuentaPUC.acepta_mov == True, CuentaPUC.activo == True,
-            db.or_(CuentaPUC.codigo.ilike(f'%{q}%'), CuentaPUC.nombre.ilike(f'%{q}%'))
-        ).order_by(CuentaPUC.codigo).limit(15).all()
-        return jsonify([{'id': c.id, 'codigo': c.codigo, 'nombre': c.nombre,
-                         'naturaleza': c.naturaleza, 'tipo': c.tipo} for c in cuentas])
+        todas = request.args.get('todas', '')
+        query = CuentaPUC.query.filter(CuentaPUC.activo == True)
+        if todas:
+            # Todas las cuentas (incluye padres para estructura)
+            query = query.order_by(CuentaPUC.codigo)
+        elif q and len(q) >= 1:
+            query = query.filter(
+                CuentaPUC.acepta_mov == True,
+                db.or_(CuentaPUC.codigo.ilike(f'%{q}%'), CuentaPUC.nombre.ilike(f'%{q}%'))
+            ).order_by(CuentaPUC.codigo).limit(30)
+        else:
+            # Sin query: devolver las mas usadas (acepta_mov=True)
+            query = query.filter(CuentaPUC.acepta_mov == True).order_by(CuentaPUC.codigo)
+        cuentas = query.all()
+        return jsonify([{
+            'id': c.id, 'codigo': c.codigo, 'nombre': c.nombre,
+            'naturaleza': c.naturaleza, 'tipo': c.tipo, 'nivel': c.nivel,
+            'acepta_mov': c.acepta_mov,
+            'descripcion': c.descripcion or ''
+        } for c in cuentas])
 
 
     # ══════════════════════════════════════════════════════════════════════════
