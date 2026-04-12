@@ -59,8 +59,9 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .sb-nav .nav-link.active{background:rgba(91,175,250,.2);color:var(--sb-active)}
 .sb-nav .nav-link.active i{opacity:1}
 .sb-nav .nav-link.active::before{content:'';position:absolute;left:-2px;width:4px;height:20px;background:var(--sb-active);border-radius:0 3px 3px 0}
-/* Dock tooltip */
-.dock-tip{position:fixed;background:rgba(0,0,0,.88);color:#fff;padding:5px 12px;border-radius:8px;font-size:.75rem;font-weight:600;white-space:nowrap;pointer-events:none;z-index:9999;backdrop-filter:blur(8px);opacity:0;transition:opacity .12s;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+/* Remove CSS tooltip - handled by JS */
+/* Dock tooltip (hover + click-hold for items without submenu) */
+.dock-tip{position:fixed;background:rgba(15,23,42,.92);color:#fff;padding:6px 14px;border-radius:10px;font-size:.78rem;font-weight:600;white-space:nowrap;pointer-events:none;z-index:9999;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);opacity:0;transition:opacity .15s;box-shadow:0 4px 16px rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08)}
 .dock-tip.show{opacity:1}
 /* Dock divider between sections */
 .dock-div{width:28px;height:1px;background:rgba(255,255,255,.12);margin:3px 0;flex-shrink:0}
@@ -666,29 +667,58 @@ img,svg{max-width:100%;height:auto}
 
 <!-- Mobile overlay -->
 <script>
-// ── Dock: hold to open panel, click to navigate ──
+// ── Dock: hover=tooltip, click=navigate, hold=panel/label ──
 (function(){
   var holdTimer = null;
-  var activePanel = null;
-  var HOLD_MS = 350;
+  var tip = document.createElement('div');
+  tip.className = 'dock-tip';
+  document.body.appendChild(tip);
+  var tipTimer = null;
 
-  document.querySelectorAll('.dock-group').forEach(function(icon){
+  function showTip(icon, persistent){
+    var label = icon.dataset.tip || icon.querySelector('span')?.textContent || '';
+    if(!label) return;
+    var rect = icon.getBoundingClientRect();
+    tip.textContent = label;
+    tip.style.left = (rect.right + 10) + 'px';
+    tip.style.top = (rect.top + rect.height/2) + 'px';
+    tip.style.transform = 'translateY(-50%)';
+    tip.classList.add('show');
+    if(!persistent){ clearTimeout(tipTimer); tipTimer = setTimeout(function(){ tip.classList.remove('show'); }, 1500); }
+  }
+  function hideTip(){ tip.classList.remove('show'); clearTimeout(tipTimer); }
+
+  // All nav-links: hover shows tooltip
+  document.querySelectorAll('.sb-nav .nav-link').forEach(function(icon){
+    icon.addEventListener('mouseenter', function(){ showTip(icon, false); });
+    icon.addEventListener('mouseleave', function(){ hideTip(); });
+  });
+
+  // Dock groups: hold opens panel
+  var HOLD_MS = 350;
+  document.querySelectorAll('.sb-nav .nav-link').forEach(function(icon){
     var panelId = icon.dataset.dockPanel;
-    if(!panelId) return;
 
     icon.addEventListener('mousedown', function(e){
       if(e.button !== 0) return;
       e.preventDefault();
       holdTimer = setTimeout(function(){
         holdTimer = 'held';
-        openDockPanel(panelId, icon);
+        hideTip();
+        if(panelId){
+          openDockPanel(panelId, icon);
+        } else {
+          // No submenu: show persistent label
+          showTip(icon, true);
+          document.getElementById('dock-overlay').style.display = 'block';
+        }
       }, HOLD_MS);
     });
 
     icon.addEventListener('mouseup', function(e){
       if(holdTimer === 'held'){ holdTimer = null; return; }
       clearTimeout(holdTimer); holdTimer = null;
-      // Short click = navigate to href
+      // Short click = navigate
       var href = icon.getAttribute('href');
       if(href && href !== '#') window.location.href = href;
     });
@@ -697,14 +727,14 @@ img,svg{max-width:100%;height:auto}
       if(holdTimer !== 'held'){ clearTimeout(holdTimer); holdTimer = null; }
     });
 
-    // Touch support
+    // Touch
     icon.addEventListener('touchstart', function(e){
       holdTimer = setTimeout(function(){
         holdTimer = 'held';
-        openDockPanel(panelId, icon);
+        if(panelId){ openDockPanel(panelId, icon); }
+        else { showTip(icon, true); document.getElementById('dock-overlay').style.display = 'block'; }
       }, HOLD_MS);
     }, {passive:true});
-
     icon.addEventListener('touchend', function(e){
       if(holdTimer === 'held'){ holdTimer = null; e.preventDefault(); return; }
       clearTimeout(holdTimer); holdTimer = null;
@@ -715,19 +745,17 @@ img,svg{max-width:100%;height:auto}
     closeDockPanel();
     var panel = document.getElementById('dp-' + panelId);
     if(!panel) return;
-    // Position panel next to the icon
     var rect = icon.getBoundingClientRect();
     var top = Math.max(8, Math.min(rect.top - 10, window.innerHeight - 400));
     panel.style.top = top + 'px';
     panel.style.display = 'block';
     document.getElementById('dock-overlay').style.display = 'block';
-    activePanel = panel;
   };
 
   window.closeDockPanel = function(){
     document.querySelectorAll('.dock-panel').forEach(function(p){ p.style.display = 'none'; });
     document.getElementById('dock-overlay').style.display = 'none';
-    activePanel = null;
+    hideTip();
   };
 })();
 </script>
