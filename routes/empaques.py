@@ -375,9 +375,50 @@ def register(app):
 
         try:
             nombre_producto = empaque.producto.nombre if empaque.producto else 'Desconocido'
+            producto_id = empaque.producto_id
+
+            # Si estaba aprobado, eliminar ingredientes de la receta
+            if empaque.aprobado and empaque.materia_prima_id:
+                mp_id = empaque.materia_prima_id
+                # Eliminar RecetaItem de la caja en todas las recetas del producto
+                RecetaItem.query.filter_by(materia_prima_id=mp_id).delete()
+                # Eliminar la MateriaPrima de la caja
+                mp_caja = db.session.get(MateriaPrima, mp_id)
+                if mp_caja:
+                    # También eliminar cotización asociada
+                    CotizacionProveedor.query.filter_by(materia_prima_id=mp_id).delete()
+                    MateriaPrimaProducto.query.filter_by(materia_prima_id=mp_id).delete()
+                    db.session.delete(mp_caja)
+
+                # Buscar y eliminar cinta asociada si ya no hay otro empaque del mismo producto
+                otros_empaques = EmpaqueSecundario.query.filter(
+                    EmpaqueSecundario.producto_id == producto_id,
+                    EmpaqueSecundario.id != empaque.id,
+                    EmpaqueSecundario.aprobado == True
+                ).count()
+                if otros_empaques == 0:
+                    # No hay más empaques aprobados — eliminar cinta de la receta
+                    cinta_mp = MateriaPrima.query.filter(
+                        db.func.lower(MateriaPrima.nombre).like('%cinta%embalaje%'),
+                        MateriaPrima.activo == True
+                    ).first()
+                    if cinta_mp:
+                        receta = RecetaProducto.query.filter_by(producto_id=producto_id, activo=True).first()
+                        if receta:
+                            RecetaItem.query.filter_by(receta_id=receta.id, materia_prima_id=cinta_mp.id).delete()
+
             db.session.delete(empaque)
             db.session.commit()
-            flash(f'Empaque de "{nombre_producto}" eliminado.', 'info')
+
+            # Recalcular costo si hay receta
+            if producto_id:
+                try:
+                    _calcular_costo_receta(producto_id)
+                    db.session.commit()
+                except Exception:
+                    pass
+
+            flash(f'Empaque de "{nombre_producto}" eliminado. Ingredientes de empaque removidos de la receta.', 'info')
         except Exception as e:
             db.session.rollback()
             flash(f'Error al eliminar empaque: {str(e)}', 'danger')
