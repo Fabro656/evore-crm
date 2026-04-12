@@ -107,11 +107,7 @@
   <!-- Header -->
   <div class="header">
     <div class="logo-area">
-      {% if empresa and empresa.nombre %}
-      <strong>{{ empresa.nombre }}</strong>
-      {% else %}
-      <strong>Evore CRM</strong>
-      {% endif %}
+      <img src="/static/img/evore-horizontal.svg" alt="{{ empresa.nombre if empresa else 'Evore' }}" style="height:50px;width:auto">
     </div>
     <div class="doc-title">
       <h1>COMPROBANTE CONTABLE</h1>
