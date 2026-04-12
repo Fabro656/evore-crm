@@ -80,6 +80,11 @@
         <div id="pesoAlerta" class="text-muted" style="font-size:.8rem"></div>
       </div>
 
+      {# Dimensiones de la caja final (hidden, vienen de la calculadora) #}
+      <input type="hidden" name="ancho_caja" value="{{ obj.ancho_caja if obj else request.args.get('ancho_caja','0') }}">
+      <input type="hidden" name="largo_caja" value="{{ obj.largo_caja if obj else request.args.get('largo_caja','0') }}">
+      <input type="hidden" name="alto_caja" value="{{ obj.alto_caja if obj else request.args.get('alto_caja','0') }}">
+
       {# Notas #}
       <div class="col-12">
         <label class="form-label fw-semibold" style="font-size:.83rem">Notas</label>

@@ -842,6 +842,9 @@ class EmpaqueSecundario(db.Model):
     peso_unitario    = db.Column(db.Float, default=0)   # kg por unidad de producto
     peso_max_caja    = db.Column(db.Float, default=0)   # kg máximo por caja
     unidades_por_caja= db.Column(db.Integer, default=1) # calculado o aprobado
+    ancho_caja       = db.Column(db.Float, default=0)   # cm — dimensiones finales de la caja
+    largo_caja       = db.Column(db.Float, default=0)
+    alto_caja        = db.Column(db.Float, default=0)
     materia_prima_id = db.Column(db.Integer, db.ForeignKey('materias_primas.id'), nullable=True)
     # FK a la materia prima "caja" que se crea automáticamente al aprobar
     aprobado         = db.Column(db.Boolean, default=False)
@@ -1120,6 +1123,13 @@ def _migrate(conn):
         ("ALTER TABLE empleados ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
         ("ALTER TABLE servicios ADD COLUMN IF NOT EXISTS es_demo BOOLEAN DEFAULT FALSE"),
         ("ALTER TABLE servicios ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
+        # Dimensiones de la caja final en empaques
+        ("ALTER TABLE empaques_secundarios ADD COLUMN IF NOT EXISTS ancho_caja FLOAT DEFAULT 0"),
+        ("ALTER TABLE empaques_secundarios ADD COLUMN ancho_caja FLOAT DEFAULT 0"),
+        ("ALTER TABLE empaques_secundarios ADD COLUMN IF NOT EXISTS largo_caja FLOAT DEFAULT 0"),
+        ("ALTER TABLE empaques_secundarios ADD COLUMN largo_caja FLOAT DEFAULT 0"),
+        ("ALTER TABLE empaques_secundarios ADD COLUMN IF NOT EXISTS alto_caja FLOAT DEFAULT 0"),
+        ("ALTER TABLE empaques_secundarios ADD COLUMN alto_caja FLOAT DEFAULT 0"),
         ("ALTER TABLE cotizaciones_proveedor ADD COLUMN IF NOT EXISTS es_demo BOOLEAN DEFAULT FALSE"),
         ("ALTER TABLE cotizaciones_proveedor ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
         ("ALTER TABLE marcas_producto ADD COLUMN IF NOT EXISTS es_demo BOOLEAN DEFAULT FALSE"),

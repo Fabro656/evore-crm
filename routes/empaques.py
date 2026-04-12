@@ -57,6 +57,9 @@ def register(app):
                 unidades_por_caja = int(request.form.get('unidades_por_caja', 1))
                 notas = request.form.get('notas', '')
 
+                ancho_caja = float(request.form.get('ancho_caja', 0))
+                largo_caja = float(request.form.get('largo_caja', 0))
+                alto_caja = float(request.form.get('alto_caja', 0))
                 empaque = EmpaqueSecundario(
                     producto_id=int(producto_id),
                     alto=alto,
@@ -65,6 +68,9 @@ def register(app):
                     peso_unitario=peso_unitario,
                     peso_max_caja=peso_max_caja,
                     unidades_por_caja=unidades_por_caja,
+                    ancho_caja=ancho_caja,
+                    largo_caja=largo_caja,
+                    alto_caja=alto_caja,
                     notas=notas,
                     creado_por=current_user.id,
                     aprobado=False
