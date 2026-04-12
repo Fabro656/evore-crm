@@ -499,13 +499,16 @@ img,svg{max-width:100%;height:auto}
     <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint=='dashboard' %}active{% endif %}">
       <i class="bi bi-house-fill"></i><span>Home</span></a>
 
-    {% if 'clientes' in m or 'ventas' in m or 'cotizaciones' in m %}
+    {% if 'clientes' in m or 'ventas' in m or 'cotizaciones' in m or 'tareas' in m or 'calendario' in m or 'notas' in m %}
     <div class="sb-sec">Comercial</div>
     {% if 'clientes' in m %}<a href="{{ url_for('clientes') }}" class="nav-link {% if 'cliente' in request.endpoint %}active{% endif %}"><i class="bi bi-people-fill"></i><span>Clientes</span></a>{% endif %}
     {% if 'produccion' in m or 'ventas' in m %}<a href="{{ url_for('recetas') }}" class="nav-link {% if 'receta' in request.endpoint %}active{% endif %}"><i class="bi bi-journal-bookmark"></i><span>Productos</span></a>{% endif %}
     {% if 'ventas' in m %}<a href="{{ url_for('ventas') }}" class="nav-link {% if 'venta' in request.endpoint %}active{% endif %}"><i class="bi bi-graph-up-arrow"></i><span>Ventas</span></a>{% endif %}
     {% if 'cotizaciones' in m %}<a href="{{ url_for('cotizaciones') }}" class="nav-link {% if request.endpoint in ['cotizaciones','cotizacion_nueva','cotizacion_ver','cotizacion_editar'] %}active{% endif %}"><i class="bi bi-file-earmark-text-fill"></i><span>Cotizaciones</span></a>{% endif %}
     {% if 'servicios' in m %}<a href="{{ url_for('servicios') }}" class="nav-link {% if 'servicio' in request.endpoint %}active{% endif %}"><i class="bi bi-briefcase-fill"></i><span>Servicios</span></a>{% endif %}
+    {% if 'tareas' in m %}<a href="{{ url_for('tareas') }}" class="nav-link {% if 'tarea' in request.endpoint %}active{% endif %}"><i class="bi bi-check2-square"></i><span>Tickets</span></a>{% endif %}
+    {% if 'calendario' in m %}<a href="{{ url_for('calendario') }}" class="nav-link {% if request.endpoint=='calendario' or 'evento' in request.endpoint %}active{% endif %}"><i class="bi bi-calendar3"></i><span>Calendario</span></a>{% endif %}
+    {% if 'notas' in m %}<a href="{{ url_for('notas') }}" class="nav-link {% if 'nota' in request.endpoint %}active{% endif %}"><i class="bi bi-sticky-fill"></i><span>Notas</span></a>{% endif %}
     {% endif %}
 
     {% if 'clientes' in m or 'ordenes_compra' in m or 'produccion' in m %}
