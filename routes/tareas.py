@@ -126,21 +126,26 @@ def register(app):
     @requiere_modulo('tareas')
     def tareas():
         estado_f=request.args.get('estado',''); prioridad_f=request.args.get('prioridad','')
-        q=Tarea.query
-        # Non-admins only see their own tasks
-        if current_user.rol != 'admin':
-            q = q.filter(
-                db.or_(
-                    Tarea.asignado_a == current_user.id,
-                    Tarea.creado_por == current_user.id,
-                    Tarea.id.in_(
-                        db.session.query(TareaAsignado.tarea_id).filter_by(user_id=current_user.id)
+        try:
+            q=Tarea.query
+            if current_user.rol != 'admin':
+                q = q.filter(
+                    db.or_(
+                        Tarea.asignado_a == current_user.id,
+                        Tarea.creado_por == current_user.id,
+                        Tarea.id.in_(
+                            db.session.query(TareaAsignado.tarea_id).filter_by(user_id=current_user.id)
+                        )
                     )
                 )
-            )
-        if estado_f: q=q.filter_by(estado=estado_f)
-        if prioridad_f: q=q.filter_by(prioridad=prioridad_f)
-        return render_template('tareas/index.html', items=q.order_by(Tarea.creado_en.desc()).all(),
+            if estado_f: q=q.filter_by(estado=estado_f)
+            if prioridad_f: q=q.filter_by(prioridad=prioridad_f)
+            items = q.order_by(Tarea.creado_en.desc()).all()
+        except Exception as e:
+            logging.warning(f'tareas: query error: {e}')
+            db.session.rollback()
+            items = []
+        return render_template('tareas/index.html', items=items,
             estado_f=estado_f, prioridad_f=prioridad_f)
     
 

@@ -21,14 +21,23 @@ def register(app):
         estado_f = request.args.get('estado_nota','')
         oc_f = request.args.get('orden_compra_id','')
         venta_f = request.args.get('venta_id','')
-        q = Nota.query
-        if cliente_f: q = q.filter_by(cliente_id=int(cliente_f))
-        if tipo_f: q = q.filter_by(tipo_nota=tipo_f)
-        if estado_f: q = q.filter_by(estado_nota=estado_f)
-        if oc_f: q = q.filter_by(orden_compra_id=int(oc_f))
-        if venta_f: q = q.filter_by(venta_id=int(venta_f))
+        try:
+            q = Nota.query
+            if cliente_f: q = q.filter_by(cliente_id=int(cliente_f))
+            # Filtros v36 — proteger contra columnas faltantes en DB legacy
+            try:
+                if tipo_f: q = q.filter_by(tipo_nota=tipo_f)
+                if estado_f: q = q.filter_by(estado_nota=estado_f)
+                if oc_f: q = q.filter_by(orden_compra_id=int(oc_f))
+                if venta_f: q = q.filter_by(venta_id=int(venta_f))
+            except Exception:
+                pass
+            items = q.order_by(Nota.actualizado_en.desc()).all()
+        except Exception as e:
+            logging.warning(f'notas: query error (posible columna faltante): {e}')
+            items = Nota.query.order_by(Nota.creado_en.desc()).all()
         return render_template('notas/index.html',
-            items=q.order_by(Nota.actualizado_en.desc()).all(),
+            items=items,
             clientes_list=Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all(),
             productos_list=Producto.query.filter_by(activo=True).order_by(Producto.nombre).all(),
             cliente_f=cliente_f, tipo_f=tipo_f, estado_f=estado_f)
@@ -42,23 +51,32 @@ def register(app):
         cl = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
         pl = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
         provs = Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all()
-        ocs = OrdenCompra.query.filter(OrdenCompra.estado != 'cancelada').order_by(OrdenCompra.creado_en.desc()).limit(50).all()
-        ventas = Venta.query.filter(Venta.estado != 'cancelado').order_by(Venta.creado_en.desc()).limit(50).all()
+        try:
+            ocs = OrdenCompra.query.filter(OrdenCompra.estado != 'cancelada').order_by(OrdenCompra.creado_en.desc()).limit(20).all()
+        except Exception:
+            ocs = []
+        try:
+            ventas = Venta.query.filter(Venta.estado != 'cancelado').order_by(Venta.creado_en.desc()).limit(20).all()
+        except Exception:
+            ventas = []
         if request.method == 'POST':
             fd_rev = request.form.get('fecha_revision')
-            n = Nota(titulo=request.form.get('titulo','').strip() or None,
+            kwargs = dict(
+                titulo=request.form.get('titulo','').strip() or None,
                 contenido=request.form['contenido'],
                 cliente_id=request.form.get('cliente_id') or None,
                 producto_id=request.form.get('producto_id') or None,
                 modulo=request.form.get('modulo','') or None,
                 fecha_revision=datetime.strptime(fd_rev,'%Y-%m-%d').date() if fd_rev else None,
-                creado_por=current_user.id,
-                orden_compra_id=request.form.get('orden_compra_id') or None,
-                venta_id=request.form.get('venta_id') or None,
-                proveedor_id=request.form.get('proveedor_id') or None,
-                tipo_nota=request.form.get('tipo_nota','nota'),
-                estado_nota=request.form.get('estado_nota','abierta'),
-                prioridad=request.form.get('prioridad','normal'))
+                creado_por=current_user.id)
+            # Campos v36 — solo agregar si la columna existe
+            for field in ['orden_compra_id','venta_id','proveedor_id']:
+                val = request.form.get(field) or None
+                if val and hasattr(Nota, field): kwargs[field] = val
+            if hasattr(Nota, 'tipo_nota'): kwargs['tipo_nota'] = request.form.get('tipo_nota','nota')
+            if hasattr(Nota, 'estado_nota'): kwargs['estado_nota'] = request.form.get('estado_nota','abierta')
+            if hasattr(Nota, 'prioridad'): kwargs['prioridad'] = request.form.get('prioridad','normal')
+            n = Nota(**kwargs)
             db.session.add(n)
             db.session.commit()
             flash('Nota guardada.','success'); return redirect(url_for('notas'))
@@ -80,8 +98,14 @@ def register(app):
         cl  = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
         pl  = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
         provs = Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all()
-        ocs = OrdenCompra.query.filter(OrdenCompra.estado != 'cancelada').order_by(OrdenCompra.creado_en.desc()).limit(50).all()
-        ventas = Venta.query.filter(Venta.estado != 'cancelado').order_by(Venta.creado_en.desc()).limit(50).all()
+        try:
+            ocs = OrdenCompra.query.filter(OrdenCompra.estado != 'cancelada').order_by(OrdenCompra.creado_en.desc()).limit(20).all()
+        except Exception:
+            ocs = []
+        try:
+            ventas = Venta.query.filter(Venta.estado != 'cancelado').order_by(Venta.creado_en.desc()).limit(20).all()
+        except Exception:
+            ventas = []
         if request.method == 'POST':
             fd_rev = request.form.get('fecha_revision')
             obj.titulo=request.form.get('titulo','').strip() or None

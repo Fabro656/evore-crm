@@ -1546,10 +1546,14 @@ document.addEventListener('DOMContentLoaded',function(){
     WS.defaultContent.style.display = 'none';
     WS.content.style.display = 'none';
     WS.iframeContainer.style.display = 'flex';
-    // Show only active iframe
+    // Show only active iframe (lazy-create if needed)
     var frames = WS.iframeContainer.querySelectorAll('iframe');
     frames.forEach(function(f){ f.style.display = 'none'; });
     var active = document.getElementById('wsFrame_' + tabId);
+    if(!active){
+      var tab = WS.tabs.find(function(t){return t.id===tabId});
+      if(tab){ createIframe(tab); active = document.getElementById('wsFrame_' + tabId); }
+    }
     if(active) active.style.display = 'block';
     renderTabs();
     // Update sidebar active state
@@ -1685,12 +1689,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
   // ── Init
   loadTabs();
-  // Restore iframes for saved tabs
-  WS.tabs.forEach(function(tab){
-    if(!document.getElementById('wsFrame_' + tab.id)){
-      createIframe(tab);
-    }
-  });
+  // Restore tab bar (but DON'T load iframes until clicked — lazy loading)
   if(WS.tabs.length > 0){
     renderTabs();
   }
