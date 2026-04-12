@@ -1019,22 +1019,11 @@ function sincronizarCantidad() {
 
 function calcEnvio() {
   if (!_simV) return;
-  var orig = document.getElementById('envOrig').value;
-  var dest = document.getElementById('envDest').value;
-  var res  = document.getElementById('envResult');
+  var res = document.getElementById('envResult');
   var manualStr = document.getElementById('envDistManual').value.trim();
-  var dist;
-  if(manualStr !== '' && !isNaN(parseFloat(manualStr)) && parseFloat(manualStr) > 0){
-    dist = parseFloat(manualStr);
-  } else {
-    dist = getDistKm(orig, dest);
-  }
-  if (dist === null) {
-    res.innerHTML = '<div class="alert alert-warning py-1 mb-0" style="font-size:.8rem">Ruta no disponible. Ingresa la distancia manualmente o usa Google Maps.</div>';
-    return;
-  }
-  if (dist === 0) {
-    res.innerHTML = '<div class="alert alert-info py-1 mb-0" style="font-size:.8rem">Origen y destino son la misma ciudad.</div>';
+  var dist = parseFloat(manualStr);
+  if(isNaN(dist) || dist <= 0){
+    res.innerHTML = '<div class="alert alert-warning py-1 mb-0" style="font-size:.8rem"><i class="bi bi-exclamation-triangle me-1"></i>Ingresa la distancia en km. Usa "Ver ruta" para consultar en Google Maps.</div>';
     return;
   }
 
@@ -1468,33 +1457,9 @@ function usarVarianteTruck(truckKey, vi) {
             </div>
           </div>
 
-          {# Ciudad a ciudad #}
-          <div class="sim-sg mb-3">
-            <div class="sim-st">📍 Ciudad a ciudad (tabla precargada)</div>
-            <div class="row g-2 align-items-end mt-1">
-              <div class="col">
-                <label style="font-size:.76rem;color:#5E6C84">Origen</label>
-                <select id="envOrig" class="form-select form-select-sm">
-                  <option value="">— Seleccionar —</option>
-                </select>
-              </div>
-              <div class="col-auto d-flex align-items-end pb-1">
-                <i class="bi bi-arrow-right text-muted"></i>
-              </div>
-              <div class="col">
-                <label style="font-size:.76rem;color:#5E6C84">Destino</label>
-                <select id="envDest" class="form-select form-select-sm">
-                  <option value="">— Seleccionar —</option>
-                </select>
-              </div>
-              <div class="col-auto">
-                <label style="font-size:.76rem;color:transparent">_</label>
-                <button class="btn btn-sm btn-info d-block" onclick="calcEnvio()">
-                  <i class="bi bi-calculator me-1"></i>Calcular
-                </button>
-              </div>
-            </div>
-          </div>
+          {# Selects de ciudad ocultos (usados internamente) #}
+          <select id="envOrig" class="d-none"><option value="">—</option></select>
+          <select id="envDest" class="d-none"><option value="">—</option></select>
 
           {# Ruta con mapa integrado #}
           <div class="sim-sg mb-3">
@@ -1509,19 +1474,24 @@ function usarVarianteTruck(truckKey, vi) {
                 <input id="envDestAddr" type="text" class="form-control form-control-sm" placeholder="Ej. Cra 7 #45-10, Bogotá">
               </div>
               <div class="col-sm-2">
-                <label style="font-size:.76rem;color:transparent">_</label>
-                <button class="btn btn-sm btn-outline-success d-block w-100" onclick="mostrarMapa()" title="Ver ruta en mapa">
-                  <i class="bi bi-map me-1"></i>Ver ruta
-                </button>
+                <label style="font-size:.76rem;color:#5E6C84">Distancia km</label>
+                <input id="envDistManual" type="number" class="form-control form-control-sm" placeholder="415" min="1" step="1">
               </div>
               <div class="col-sm-2">
-                <label style="font-size:.76rem;color:#5E6C84">Dist. manual km</label>
-                <input id="envDistManual" type="number" class="form-control form-control-sm" placeholder="415" min="1" step="1">
+                <label style="font-size:.76rem;color:transparent">_</label>
+                <div class="d-flex gap-1">
+                  <button class="btn btn-sm btn-outline-success flex-fill" onclick="mostrarMapa()" title="Ver ruta en mapa">
+                    <i class="bi bi-map"></i>
+                  </button>
+                  <button class="btn btn-sm btn-info flex-fill" onclick="calcEnvio()" title="Calcular costos">
+                    <i class="bi bi-calculator"></i>
+                  </button>
+                </div>
               </div>
             </div>
             <div id="mapaContainer" style="display:none;margin-top:.5rem">
               <iframe id="mapaIframe" width="100%" height="280" style="border:0;border-radius:8px" allowfullscreen loading="lazy"></iframe>
-              <small class="text-muted">Consulta la distancia en el mapa e ingrésala en "Dist. manual" para un cálculo preciso.</small>
+              <small class="text-muted">Consulta la distancia en el mapa e ingrésala en "Distancia km".</small>
             </div>
           </div>
 
