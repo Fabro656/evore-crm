@@ -97,6 +97,7 @@ class OrdenCompra(db.Model):
     cantidad_recibida       = db.Column(db.Float, default=0)
     tiene_problema_calidad  = db.Column(db.Boolean, default=False)
     venta_origen_id         = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=True)
+    pendiente_aprobacion    = db.Column(db.Boolean, default=False)  # v37 bloqueo por aprobacion
     proveedor               = db.relationship('Proveedor', foreign_keys=[proveedor_id])
     transportista           = db.relationship('Proveedor', foreign_keys=[transportista_id])
     cotizacion_ref          = db.relationship('CotizacionProveedor', foreign_keys=[cotizacion_id])
@@ -165,6 +166,7 @@ class Venta(db.Model):
     saldo               = db.Column(db.Float, default=0)
     monto_pagado_total  = db.Column(db.Float, default=0)
     monto_anticipo_recibido = db.Column(db.Float, default=0)  # v36 — real recibido via asiento contable
+    pendiente_aprobacion = db.Column(db.Boolean, default=False)  # v37 bloqueo por aprobacion
     estado              = db.Column(db.String(30), default='prospecto')
     fecha_anticipo      = db.Column(db.Date)
     dias_entrega        = db.Column(db.Integer, default=30)
@@ -196,19 +198,24 @@ class PagoVenta(db.Model):
     creado_en   = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Aprobacion(db.Model):
-    """Sistema de aprobaciones para acciones financieras sensibles."""
+    """Sistema de aprobaciones que bloquean flujo de OC/ventas/cotizaciones/asientos."""
     __tablename__ = 'aprobaciones'
     id             = db.Column(db.Integer, primary_key=True)
-    tipo_accion    = db.Column(db.String(50), nullable=False)  # gasto_nuevo, compra_nueva, etc.
+    tipo_accion    = db.Column(db.String(50), nullable=False)  # orden_compra, venta, cotizacion, asiento_manual
     descripcion    = db.Column(db.String(300))
     monto          = db.Column(db.Float, default=0)
-    datos_json     = db.Column(db.Text)  # JSON serializado de los datos del formulario
-    estado         = db.Column(db.String(20), default='pendiente')  # pendiente, aprobado, rechazado
+    datos_json     = db.Column(db.Text)
+    estado         = db.Column(db.String(20), default='pendiente')  # pendiente, aprobado, revision, rechazado
     solicitado_por = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     aprobado_por   = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     notas_aprobador= db.Column(db.Text)
     creado_en      = db.Column(db.DateTime, default=datetime.utcnow)
     resuelto_en    = db.Column(db.DateTime, nullable=True)
+    # v37 — vincular a entidad especifica
+    orden_compra_id = db.Column(db.Integer, db.ForeignKey('ordenes_compra.id'), nullable=True)
+    venta_id        = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=True)
+    cotizacion_id   = db.Column(db.Integer, db.ForeignKey('cotizaciones.id'), nullable=True)
+    asiento_id      = db.Column(db.Integer, db.ForeignKey('asientos_contables.id'), nullable=True)
     solicitante    = db.relationship('User', foreign_keys=[solicitado_por])
     aprobador      = db.relationship('User', foreign_keys=[aprobado_por])
 
@@ -1252,6 +1259,20 @@ def _migrate(conn):
         # v36 — User: workspace tabs
         ("ALTER TABLE users ADD COLUMN IF NOT EXISTS workspace_tabs TEXT DEFAULT '[]'"),
         ("ALTER TABLE users ADD COLUMN workspace_tabs TEXT DEFAULT '[]'"),
+        # v37 — Aprobaciones vinculadas a entidades
+        ("ALTER TABLE aprobaciones ADD COLUMN IF NOT EXISTS orden_compra_id INTEGER REFERENCES ordenes_compra(id)"),
+        ("ALTER TABLE aprobaciones ADD COLUMN orden_compra_id INTEGER REFERENCES ordenes_compra(id)"),
+        ("ALTER TABLE aprobaciones ADD COLUMN IF NOT EXISTS venta_id INTEGER REFERENCES ventas(id)"),
+        ("ALTER TABLE aprobaciones ADD COLUMN venta_id INTEGER REFERENCES ventas(id)"),
+        ("ALTER TABLE aprobaciones ADD COLUMN IF NOT EXISTS cotizacion_id INTEGER REFERENCES cotizaciones(id)"),
+        ("ALTER TABLE aprobaciones ADD COLUMN cotizacion_id INTEGER REFERENCES cotizaciones(id)"),
+        ("ALTER TABLE aprobaciones ADD COLUMN IF NOT EXISTS asiento_id INTEGER REFERENCES asientos_contables(id)"),
+        ("ALTER TABLE aprobaciones ADD COLUMN asiento_id INTEGER REFERENCES asientos_contables(id)"),
+        # v37 — Bloqueo por aprobacion en OC y Ventas
+        ("ALTER TABLE ordenes_compra ADD COLUMN IF NOT EXISTS pendiente_aprobacion BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE ordenes_compra ADD COLUMN pendiente_aprobacion BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS pendiente_aprobacion BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE ventas ADD COLUMN pendiente_aprobacion BOOLEAN DEFAULT FALSE"),
     ]
     for sql in migrations:
         try:
