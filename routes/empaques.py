@@ -235,10 +235,17 @@ def register(app):
                 stock_reservado=0,
                 stock_minimo=0,
                 costo_unitario=0,
+                producto_id=empaque.producto_id,
                 activo=True
             )
             db.session.add(mp)
             db.session.flush()
+            # Vincular al producto en M2M
+            existe_m2m = MateriaPrimaProducto.query.filter_by(
+                materia_prima_id=mp.id, producto_id=empaque.producto_id).first()
+            if not existe_m2m:
+                db.session.add(MateriaPrimaProducto(
+                    materia_prima_id=mp.id, producto_id=empaque.producto_id))
 
             # Vincular empaque a materia prima
             empaque.materia_prima_id = mp.id
@@ -305,6 +312,38 @@ def register(app):
                     receta_msg += f' Cinta: {cinta_por_caja_m:.2f}m/caja.'
             else:
                 receta_msg = ' Sin receta activa — agregar manualmente.'
+
+            # ── Auto-crear cotizaciones pendientes para caja y cinta ──
+            prod_nombre = empaque.producto.nombre if empaque.producto else ''
+            for mat in [mp, cinta_mp]:
+                tiene_cot = CotizacionProveedor.query.filter(
+                    db.or_(
+                        CotizacionProveedor.materia_prima_id == mat.id,
+                        db.func.lower(CotizacionProveedor.nombre_producto) == mat.nombre.lower()
+                    )
+                ).first()
+                if not tiene_cot:
+                    db.session.add(CotizacionProveedor(
+                        nombre_producto=f'{mat.nombre} — {prod_nombre}',
+                        tipo_cotizacion='granel',
+                        tipo_producto_servicio='empaque secundario',
+                        unidad=mat.unidad,
+                        estado='en_revision',
+                        materia_prima_id=mat.id,
+                        precio_unitario=0,
+                        notas=f'Requiere cotización — empaque para {prod_nombre}.',
+                        creado_por=current_user.id
+                    ))
+
+            # Vincular cinta al producto
+            if cinta_mp and empaque.producto_id:
+                if not cinta_mp.producto_id:
+                    cinta_mp.producto_id = empaque.producto_id
+                cinta_m2m = MateriaPrimaProducto.query.filter_by(
+                    materia_prima_id=cinta_mp.id, producto_id=empaque.producto_id).first()
+                if not cinta_m2m:
+                    db.session.add(MateriaPrimaProducto(
+                        materia_prima_id=cinta_mp.id, producto_id=empaque.producto_id))
 
             db.session.commit()
             # Recalcular costo de la receta

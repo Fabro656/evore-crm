@@ -557,7 +557,12 @@ const TRUCKS = {
   XL:  {k:'XL', name:'XL',  w:400, d:190, h:200, kg:3000, desc:'Camión — 400×190×200 cm, ≤3 t'},
   XXL: {k:'XXL',name:'XXL', w:500, d:200, h:200, kg:4000, desc:'Camión XL — 500×200×200 cm, ≤4 t'},
 };
-const PAL = {w:120, d:80, h:15, maxH:115, maxKg:1000};
+const PALLETS = {
+  europeo:       {w:120, d:80,  h:15, maxH:115, maxKg:1000, name:'Europeo (120×80)'},
+  internacional: {w:120, d:100, h:15, maxH:115, maxKg:1500, name:'Internacional (120×100)'},
+};
+let _palType = 'europeo';
+function getPal(){ return PALLETS[_palType]; }
 
 let _simV = null, _simTruck = 'L', _simModal = null;
 
@@ -568,18 +573,30 @@ function bestFit(sw, sd, ow, od) {
   return {nr:a2, nc:b2, n:a2*b2, uw:od, ud:ow};
 }
 function calcPal(bw,bd,bh,bKg) {
+  const PAL = getPal();
   const fit = bestFit(PAL.w, PAL.d, bw, bd);
   const ly  = bh>0 ? Math.floor(PAL.maxH/bh) : 0;
   const tot = Math.min(fit.n*ly, bKg>0 ? Math.floor(PAL.maxKg/bKg) : 9999);
   return {fit, ly, tot, loadH:ly*bh, fullH:PAL.h+ly*bh};
 }
 function calcTruck(truck, pal) {
+  const PAL = getPal();
   const pf  = bestFit(truck.w, truck.d, PAL.w, PAL.d);
   const ps  = pal.fullH>0 ? Math.floor(truck.h/pal.fullH) : 0;
   const tp  = pf.n * ps;
   const tb  = tp  * pal.tot;
   const tkg = tb  * (_simV ? _simV.peso_total : 0);
   return {pf, ps, tp, tb, tkg, pctKg: truck.kg>0 ? Math.min(100, tkg/truck.kg*100) : null};
+}
+// Carga sin pallet — cajas sueltas directamente en el vehículo
+function calcTruckSueltas(truck, bw, bd, bh, bKg) {
+  const fit = bestFit(truck.w, truck.d, bw, bd);
+  const ly  = bh>0 ? Math.floor(truck.h/bh) : 0;
+  const totGeom = fit.n * ly;
+  const totPeso = bKg>0 ? Math.floor(truck.kg/bKg) : 9999;
+  const tot = Math.min(totGeom, totPeso);
+  const tkg = tot * bKg;
+  return {fit, ly, tot, tkg, pctKg: truck.kg>0 ? Math.min(100, tkg/truck.kg*100) : null};
 }
 
 function abrirSim(idx) {
@@ -745,57 +762,70 @@ function renderSim() {
     ? `⚖️ Limitado por <strong>peso</strong> (${(st.pctKg||0).toFixed(0)}% de ${t.kg} kg)`
     : `📐 Limitado por <strong>espacio</strong> (${pctVolTrk.toFixed(0)}% de volumen)`;
 
+  // Cajas sueltas (sin pallet)
+  const sueltas = calcTruckSueltas(t, bw, bd, bh, bKg);
+  const udsSueltas = sueltas.tot * uds;
+  const PAL = getPal();
+
   document.getElementById('simStats').innerHTML = `
 <div class="sim-sg mb-2">
   <div class="sim-st">📦 Caja · ${bw}×${bd}×${bh} cm</div>
   <div class="sim-sr"><span>Unidades por caja</span><strong class="text-primary">${uds}</strong></div>
   <div class="sim-sr"><span>Peso real de la caja</span><strong>${bKg} kg</strong></div>
   <div class="sim-sr">
-    <span>Peso volumétrico <small class="text-muted">(L×W×H÷5000, tarifa courier)</small></span>
+    <span>Peso volumétrico <small class="text-muted">(L×W×H÷5000)</small></span>
     <strong>${volKg} kg</strong>
   </div>
   <div class="sim-sr">
-    <span>Peso cobrable <small class="text-muted">(= máx entre real y volumétrico)</small></span>
+    <span>Peso cobrable <small class="text-muted">(= máx real vs volumétrico)</small></span>
     <strong class="${chargeKg>bKg?'text-warning':'text-success'}">${chargeKg.toFixed(3)} kg ${chargeKg>bKg?'📦 cobra vol.':''}</strong>
   </div>
 </div>
 <div class="sim-sg mb-2">
-  <div class="sim-st">🟦 Pallet EUR 120×80 cm · base 15 cm · carga máx ${PAL.maxH} cm · ≤${PAL.maxKg} kg</div>
-  <div class="sim-sr"><span>Cajas por capa (en piso del pallet)</span><strong>${pal.fit.n}</strong></div>
+  <div class="sim-st d-flex justify-content-between align-items-center">
+    <span>🟦 Pallet ${PAL.name} · base ${PAL.h}cm · carga máx ${PAL.maxH}cm · ≤${PAL.maxKg}kg</span>
+    <select class="form-select form-select-sm" style="width:auto;font-size:.75rem" onchange="_palType=this.value;renderSim()">
+      <option value="europeo" ${_palType==='europeo'?'selected':''}>Europeo (120×80)</option>
+      <option value="internacional" ${_palType==='internacional'?'selected':''}>Internacional (120×100)</option>
+    </select>
+  </div>
+  <div class="sim-sr"><span>Cajas por capa</span><strong>${pal.fit.n}</strong></div>
   <div class="sim-sr"><span>Capas de cajas</span><strong>${pal.ly}</strong></div>
   <div class="sim-sr"><span>Cajas por pallet</span><strong class="text-primary">${pal.tot}</strong></div>
-  <div class="sim-sr"><span>Unidades de producto por pallet</span><strong class="text-success">${udsPal.toLocaleString()}</strong></div>
-  <div class="sim-sr"><span>Peso de carga en pallet</span><strong>${palPesoCarga.toFixed(1)} kg</strong></div>
-  <div class="sim-sr"><span>Altura total pallet + carga</span><strong>${pal.fullH} cm</strong></div>
+  <div class="sim-sr"><span>Unidades por pallet</span><strong class="text-success">${udsPal.toLocaleString()}</strong></div>
+  <div class="sim-sr"><span>Peso carga pallet</span><strong>${palPesoCarga.toFixed(1)} kg</strong></div>
+  <div class="sim-sr"><span>Altura pallet + carga</span><strong>${pal.fullH} cm</strong></div>
   <div class="sim-sr pct-row">
-    <span>% capacidad de <strong>peso</strong> <small class="text-muted">(${palPesoCarga.toFixed(1)} ÷ ${PAL.maxKg} kg)</small></span>
-    <strong style="color:${pctPP}">${pctPesoPal.toFixed(1)}%</strong>
+    <span>% peso</span><strong style="color:${pctPP}">${pctPesoPal.toFixed(1)}%</strong>
   </div>
   <div class="sim-sr pct-row">
-    <span>% capacidad de <strong>espacio/volumen</strong> <small class="text-muted">(cajas ocupan ${(pal.tot*bw*bd*bh/1000).toFixed(1)} L de ${Math.round(PAL.w*PAL.d*PAL.maxH/1000)} L)</small></span>
-    <strong style="color:${pctVP}">${pctVolPal.toFixed(1)}%</strong>
+    <span>% espacio</span><strong style="color:${pctVP}">${pctVolPal.toFixed(1)}%</strong>
   </div>
   <div class="sim-sr"><span style="font-size:.72rem;color:#888">${palLimitante}</span></div>
 </div>
-<div class="sim-sg">
-  <div class="sim-st">🚛 Vehículo ${t.name} — ${t.w}×${t.d}×${t.h} cm · ≤${t.kg} kg</div>
-  <div class="sim-sr"><span>Pallets en piso del vehículo</span><strong>${st.pf.n}</strong></div>
-  <div class="sim-sr"><span>Filas de pallets (en altura)</span><strong>${st.ps}</strong></div>
+<div class="sim-sg mb-2">
+  <div class="sim-st">🚛 Vehículo ${t.name} — ${t.w}×${t.d}×${t.h} cm · ≤${t.kg} kg · <strong>con pallet</strong></div>
+  ${st.tb>0?`
+  <div class="sim-sr"><span>Pallets en piso</span><strong>${st.pf.n}</strong></div>
+  <div class="sim-sr"><span>Filas en altura</span><strong>${st.ps}</strong></div>
   <div class="sim-sr"><span>Total pallets</span><strong class="text-primary">${st.tp}</strong></div>
   <div class="sim-sr"><span>Total cajas</span><strong class="text-primary">${st.tb}</strong></div>
-  <div class="sim-sr"><span>Total unidades de producto</span><strong class="text-success" style="font-size:1.05rem">${udsTruck.toLocaleString()}</strong></div>
-  <div class="sim-sr"><span>Peso total de la carga</span><strong>${st.tkg.toFixed(1)} kg</strong></div>
-  ${st.pctKg!==null?`
-  <div class="sim-sr pct-row">
-    <span>% capacidad de <strong>peso</strong> <small class="text-muted">(${st.tkg.toFixed(1)} ÷ ${t.kg} kg)</small></span>
-    <strong style="color:${pctC}">${st.pctKg.toFixed(1)}%</strong>
-  </div>`:''}
-  <div class="sim-sr pct-row">
-    <span>% capacidad de <strong>espacio/volumen</strong> <small class="text-muted">(pallets ocupan ${(st.tp*PAL.w*PAL.d*pal.fullH/1e6).toFixed(2)} m³ de ${(truckVol/1e6).toFixed(2)} m³)</small></span>
-    <strong style="color:${pctVC}">${pctVolTrk.toFixed(1)}%</strong>
-  </div>
+  <div class="sim-sr"><span>Total unidades</span><strong class="text-success" style="font-size:1.05rem">${udsTruck.toLocaleString()}</strong></div>
+  <div class="sim-sr"><span>Peso carga</span><strong>${st.tkg.toFixed(1)} kg</strong></div>
+  ${st.pctKg!==null?`<div class="sim-sr pct-row"><span>% peso</span><strong style="color:${pctC}">${st.pctKg.toFixed(1)}%</strong></div>`:''}
+  <div class="sim-sr pct-row"><span>% espacio</span><strong style="color:${pctVC}">${pctVolTrk.toFixed(1)}%</strong></div>
   <div class="sim-sr"><span style="font-size:.72rem;color:#888">${trkLimitante}</span></div>
-  ${st.tb===0?`<div class="alert alert-warning py-1 mt-2 mb-0" style="font-size:.8rem"><i class="bi bi-exclamation-triangle me-1"></i>La caja no cabe en este vehículo</div>`:''}
+  `:`<div class="text-muted" style="font-size:.82rem;padding:.5rem">Pallet no cabe en este vehículo con pallets.</div>`}
+</div>
+<div class="sim-sg" style="border-left:3px solid #00875A">
+  <div class="sim-st">📦 Vehículo ${t.name} — <strong>cajas sueltas (sin pallet)</strong></div>
+  <div class="sim-sr"><span>Cajas en piso</span><strong>${sueltas.fit.n}</strong></div>
+  <div class="sim-sr"><span>Capas en altura</span><strong>${sueltas.ly}</strong></div>
+  <div class="sim-sr"><span>Total cajas</span><strong class="text-primary">${sueltas.tot}</strong></div>
+  <div class="sim-sr"><span>Total unidades</span><strong class="text-success" style="font-size:1.05rem">${udsSueltas.toLocaleString()}</strong></div>
+  <div class="sim-sr"><span>Peso carga</span><strong>${sueltas.tkg.toFixed(1)} kg</strong></div>
+  ${sueltas.pctKg!==null?`<div class="sim-sr pct-row"><span>% peso</span><strong style="color:${semaforo(sueltas.pctKg)}">${sueltas.pctKg.toFixed(1)}%</strong></div>`:''}
+  ${sueltas.tot===0?`<div class="alert alert-danger py-1 mt-1 mb-0" style="font-size:.8rem">La caja no cabe ni suelta en este vehículo</div>`:''}
 </div>`;
 }
 
