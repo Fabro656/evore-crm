@@ -321,10 +321,10 @@ def _calcular_costo_receta(producto_id):
         ).order_by(CotizacionProveedor.precio_unitario.asc()).first()
 
         if cot_vigente:
-            costo_unit = cot_vigente.precio_unitario
+            costo_unit = cot_vigente.precio_unitario * 1.19  # Precio con IVA 19%
         elif mp.costo_unitario and mp.costo_unitario > 0:
-            costo_unit = mp.costo_unitario
-            alertas.append(f'{mp.nombre}: sin cotización vigente, usando costo registrado (${costo_unit:,.0f})')
+            costo_unit = mp.costo_unitario * 1.19  # Precio con IVA 19%
+            alertas.append(f'{mp.nombre}: sin cotización vigente, usando costo registrado (${costo_unit:,.0f} con IVA)')
         else:
             costo_unit = 0
             alertas.append(f'{mp.nombre}: SIN COTIZACIÓN NI COSTO — no se puede calcular precio')

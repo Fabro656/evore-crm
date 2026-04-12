@@ -574,11 +574,32 @@ def register(app):
                 obj.producto_id=prod_id
                 obj.unidades_produce=int(request.form.get('unidades_produce',1))
                 obj.descripcion=request.form.get('descripcion','') or None
+                # Guardar items de empaque que podrían no estar en el form
+                empaques_preservados = []
+                for item in obj.items:
+                    if item.es_empaque or item.clasificacion == 'empaque_secundario':
+                        empaques_preservados.append({
+                            'materia_prima_id': item.materia_prima_id,
+                            'cantidad_por_unidad': item.cantidad_por_unidad,
+                            'es_empaque': item.es_empaque,
+                            'clasificacion': item.clasificacion
+                        })
                 for item in obj.items: db.session.delete(item)
                 db.session.flush()
                 ids   = request.form.getlist('materia_id[]')
                 cants = request.form.getlist('cantidad[]')
                 clasifs = request.form.getlist('clasificacion[]')
+                # Restaurar empaques que no vinieron en el form
+                ids_enviados = set(int(x) for x in ids if x)
+                for emp in empaques_preservados:
+                    if emp['materia_prima_id'] not in ids_enviados:
+                        db.session.add(RecetaItem(
+                            receta_id=obj.id,
+                            materia_prima_id=emp['materia_prima_id'],
+                            cantidad_por_unidad=emp['cantidad_por_unidad'],
+                            es_empaque=emp['es_empaque'],
+                            clasificacion=emp['clasificacion']
+                        ))
                 for i, (mid, cant) in enumerate(zip(ids, cants)):
                     if mid and cant:
                         clasif = clasifs[i] if i < len(clasifs) else 'materia_prima'
