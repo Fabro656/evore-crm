@@ -42,24 +42,53 @@
 body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;font-size:14px;line-height:1.57;color:var(--text);transition:background-color .2s,color .2s}
 
 /* ── Sidebar ───────────────────────────────────── */
-#sb{position:fixed;top:0;left:0;height:100vh;width:256px;background:var(--sb);display:flex;flex-direction:column;z-index:1050;transition:transform .25s cubic-bezier(.4,0,.2,1)}
-.sb-brand{padding:.85rem 1rem .7rem;color:#fff;font-weight:700;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:.5rem}
-.sb-sec{font-size:.62rem;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--sb-text);opacity:.6;padding:.85rem 1.1rem .2rem}
-.sb-nav{overflow-y:auto;flex:1;padding-bottom:.5rem;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent}
-.sb-nav .nav-link{color:var(--sb-text);padding:.46rem 1rem;border-radius:4px;margin:.05rem .5rem;display:flex;align-items:center;gap:.6rem;font-size:.84rem;font-weight:500;transition:all var(--transition-fast);white-space:nowrap;overflow:hidden;text-decoration:none;border-left:3px solid transparent}
-.sb-nav .nav-link:hover{background:rgba(255,255,255,.09);color:#fff}
-.sb-nav .nav-link.active{background:rgba(91,175,250,.15);color:var(--sb-active);font-weight:600;border-left:3px solid var(--sb-active);padding-left:calc(1rem - 3px)}
-.sb-nav .nav-link i{font-size:1rem;width:18px;flex-shrink:0;opacity:.9}
-.sb-foot{padding:.75rem 1rem;border-top:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.55);font-size:.8rem;margin-top:auto}
-.u-name{color:#fff;font-weight:600;font-size:.84rem}
-.u-rol{font-size:.62rem;padding:2px 7px;border-radius:3px;background:rgba(91,175,250,.2);color:var(--sb-active)}
+/* ── Dock Sidebar ─────────────────────────────── */
+#sb{position:fixed;top:0;left:0;height:100vh;width:64px;background:var(--sb);display:flex;flex-direction:column;align-items:center;z-index:1050;padding:6px 0;overflow:visible}
+.sb-brand{padding:8px 0;display:flex;align-items:center;justify-content:center;width:100%;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:4px}
+.sb-brand a{display:flex;align-items:center;justify-content:center;text-decoration:none}
+.sb-brand img{width:32px!important;height:32px!important;max-width:32px!important;object-fit:contain}
+.sb-brand span{display:none!important}
+.sb-sec{display:none}
+.sb-nav{overflow-y:auto;overflow-x:visible;flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 0;width:100%;scrollbar-width:none}
+.sb-nav::-webkit-scrollbar{display:none}
+.sb-nav .nav-link{color:var(--sb-text);width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;padding:0!important;margin:0;transition:all .2s cubic-bezier(.34,1.56,.64,1);text-decoration:none;position:relative;border:none!important;flex-shrink:0}
+.sb-nav .nav-link span{display:none!important}
+.sb-nav .nav-link i{font-size:1.15rem;width:auto;opacity:.7;transition:all .2s}
+.sb-nav .nav-link:hover{background:rgba(255,255,255,.12);color:#fff;transform:scale(1.22)}
+.sb-nav .nav-link:hover i{opacity:1}
+.sb-nav .nav-link.active{background:rgba(91,175,250,.2);color:var(--sb-active)}
+.sb-nav .nav-link.active i{opacity:1}
+.sb-nav .nav-link.active::before{content:'';position:absolute;left:-2px;width:4px;height:20px;background:var(--sb-active);border-radius:0 3px 3px 0}
+/* Dock tooltip */
+.dock-tip{position:fixed;background:rgba(0,0,0,.88);color:#fff;padding:5px 12px;border-radius:8px;font-size:.75rem;font-weight:600;white-space:nowrap;pointer-events:none;z-index:9999;backdrop-filter:blur(8px);opacity:0;transition:opacity .12s;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.dock-tip.show{opacity:1}
+/* Dock divider between sections */
+.dock-div{width:28px;height:1px;background:rgba(255,255,255,.12);margin:3px 0;flex-shrink:0}
+.sb-foot{padding:6px 0;display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:auto;width:100%;border-top:1px solid rgba(255,255,255,.08)}
+.sb-foot .d-flex{flex-direction:column!important;gap:4px!important}
+.sb-foot .u-name,.sb-foot .u-rol,.sb-foot span:not(.notif-badge){display:none!important}
+.sb-foot .notif-btn{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:10px}
 
-/* ── Overlay mobile ──────────────────────────────── */
+/* ── Dock flyout panel (hold to open) ────────── */
+.dock-panel{position:fixed;left:72px;width:280px;max-height:75vh;background:rgba(15,23,42,.94);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:16px;border:1px solid rgba(255,255,255,.08);box-shadow:0 20px 60px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.05) inset;z-index:1060;display:none;overflow:hidden;color:#fff;animation:dockIn .18s ease}
+@keyframes dockIn{from{opacity:0;transform:translateX(-8px) scale(.95)}to{opacity:1;transform:none}}
+.dock-panel-head{padding:14px 16px 10px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.06)}
+.dock-panel-head i{font-size:1.1rem;color:var(--sb-active)}
+.dock-panel-head span{font-size:.82rem;font-weight:700;letter-spacing:.3px}
+.dock-panel-body{padding:6px;max-height:calc(75vh - 50px);overflow-y:auto}
+.dock-panel-link{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:10px;color:rgba(255,255,255,.75);font-size:.83rem;text-decoration:none;transition:all .12s}
+.dock-panel-link:hover{background:rgba(255,255,255,.08);color:#fff}
+.dock-panel-link.dp-active{background:rgba(91,175,250,.15);color:var(--sb-active)}
+.dock-panel-link i{font-size:.9rem;width:18px;text-align:center;opacity:.6}
+.dock-panel-link:hover i{opacity:1}
+
+/* ── Overlay ─────────────────────────────────── */
 #sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1040}
 #sb-overlay.open{display:block}
+#dock-overlay{display:none;position:fixed;inset:0;z-index:1055}
 
 /* ── Topbar ──────────────────────────────────────── */
-#main{margin-left:256px;min-height:100vh;display:flex;flex-direction:column}
+#main{margin-left:64px;min-height:100vh;display:flex;flex-direction:column}
 .topbar{background:rgba(255,255,255,.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:.6rem 1.25rem;border-bottom:1px solid var(--topbar-border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow);gap:.75rem;transition:background-color .2s,border-color .2s}
 .pg-title{font-size:1rem;font-weight:600;color:var(--text);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:1;min-width:0}
 .topbar-right{flex-wrap:nowrap;flex-shrink:0}
@@ -354,7 +383,7 @@ html[data-theme="dark"] .diag-verde{background:rgba(59,168,96,.12);color:#80D9A0
    RESPONSIVE — Mobile
    ══════════════════════════════════════════════════ */
 @media(max-width:768px){
-  #sb{transform:translateX(-256px);box-shadow:none}
+  #sb{transform:translateX(-64px);box-shadow:none}
   #sb.sb-open{transform:translateX(0);box-shadow:6px 0 40px rgba(0,0,0,.3)}
   #sb-tog{display:flex}
   #main{margin-left:0;width:100%}
@@ -495,84 +524,63 @@ img,svg{max-width:100%;height:auto}
       {% endif %}
     {% endif %}
   </div>
-  <div class="sb-nav py-2" style="overflow-y:auto;flex:1">
+  <div class="sb-nav" style="overflow-y:auto;flex:1">
     {% set m=modulos_user %}
-    <div class="sb-sec">Principal</div>
-    <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint=='dashboard' %}active{% endif %}">
-      <i class="bi bi-house-fill"></i><span>Home</span></a>
-    {% if 'tareas' in m %}<a href="{{ url_for('tareas') }}" class="nav-link {% if 'tarea' in request.endpoint %}active{% endif %}"><i class="bi bi-check2-square"></i><span>Tickets</span></a>{% endif %}
-    {% if 'calendario' in m %}<a href="{{ url_for('calendario') }}" class="nav-link {% if request.endpoint=='calendario' or 'evento' in request.endpoint %}active{% endif %}"><i class="bi bi-calendar3"></i><span>Calendario</span></a>{% endif %}
-    {% if 'notas' in m %}<a href="{{ url_for('notas') }}" class="nav-link {% if 'nota' in request.endpoint %}active{% endif %}"><i class="bi bi-sticky-fill"></i><span>Notas</span></a>{% endif %}
-
+    {# ── DOCK: cada icono es un modulo. Click = navega, Hold = panel con subfunciones ── #}
+    <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint=='dashboard' %}active{% endif %}" data-tip="Home"><i class="bi bi-house-fill"></i><span>Home</span></a>
+    {% if 'tareas' in m %}<a href="{{ url_for('tareas') }}" class="nav-link {% if 'tarea' in request.endpoint %}active{% endif %}" data-tip="Tickets"><i class="bi bi-check2-square"></i><span>Tickets</span></a>{% endif %}
+    {% if 'calendario' in m %}<a href="{{ url_for('calendario') }}" class="nav-link {% if request.endpoint=='calendario' or 'evento' in request.endpoint %}active{% endif %}" data-tip="Calendario"><i class="bi bi-calendar3"></i><span>Calendario</span></a>{% endif %}
+    {% if 'notas' in m %}<a href="{{ url_for('notas') }}" class="nav-link {% if 'nota' in request.endpoint %}active{% endif %}" data-tip="Notas"><i class="bi bi-sticky-fill"></i><span>Notas</span></a>{% endif %}
+    <div class="dock-div"></div>
+    {# ── Comercial (hold para ver submenu) ── #}
     {% if 'clientes' in m or 'ventas' in m or 'cotizaciones' in m %}
-    <div class="sb-sec">Comercial</div>
-    {% if 'clientes' in m %}<a href="{{ url_for('clientes') }}" class="nav-link {% if 'cliente' in request.endpoint %}active{% endif %}"><i class="bi bi-people-fill"></i><span>Clientes</span></a>{% endif %}
-    {% if 'produccion' in m or 'ventas' in m %}<a href="{{ url_for('recetas') }}" class="nav-link {% if 'receta' in request.endpoint %}active{% endif %}"><i class="bi bi-journal-bookmark"></i><span>Productos</span></a>{% endif %}
-    {% if 'ventas' in m %}<a href="{{ url_for('ventas') }}" class="nav-link {% if 'venta' in request.endpoint %}active{% endif %}"><i class="bi bi-graph-up-arrow"></i><span>Ventas</span></a>{% endif %}
-    {% if 'cotizaciones' in m %}<a href="{{ url_for('cotizaciones') }}" class="nav-link {% if request.endpoint in ['cotizaciones','cotizacion_nueva','cotizacion_ver','cotizacion_editar'] %}active{% endif %}"><i class="bi bi-file-earmark-text-fill"></i><span>Cotizaciones</span></a>{% endif %}
-    {% if 'servicios' in m %}<a href="{{ url_for('servicios') }}" class="nav-link {% if 'servicio' in request.endpoint %}active{% endif %}"><i class="bi bi-briefcase-fill"></i><span>Servicios</span></a>{% endif %}
+    <a href="{{ url_for('ventas') }}" class="nav-link dock-group {% if 'venta' in request.endpoint or 'cliente' in request.endpoint or 'cotizacion' in request.endpoint or 'receta' in request.endpoint or 'servicio' in request.endpoint %}active{% endif %}" data-tip="Comercial"
+       data-dock-panel="comercial"><i class="bi bi-bag-fill"></i><span>Comercial</span></a>
     {% endif %}
-
+    {# ── Proveedores y Compras ── #}
     {% if 'clientes' in m or 'ordenes_compra' in m or 'produccion' in m %}
-    <div class="sb-sec">Proveedores y Compras</div>
-    {% if 'clientes' in m %}<a href="{{ url_for('proveedores') }}" class="nav-link {% if request.endpoint in ['proveedores','proveedor_nuevo','proveedor_editar'] and request.args.get('tipo_f')!='transportista' %}active{% endif %}"><i class="bi bi-truck"></i><span>Proveedores</span></a>{% endif %}
-    <a href="{{ url_for('cotizaciones_proveedor') }}" class="nav-link {% if 'cotizacion_proveedor' in request.endpoint or 'cotizaciones_proveedor' in request.endpoint %}active{% endif %}"><i class="bi bi-file-earmark-check"></i><span>Cotizaciones prov.</span></a>
-    <a href="{{ url_for('ordenes_compra') }}" class="nav-link {% if 'orden_compra' in request.endpoint %}active{% endif %}"><i class="bi bi-cart-check"></i><span>Ordenes de Compra</span></a>
-    <a href="{{ url_for('compras') }}" class="nav-link {% if request.endpoint=='compras' or request.endpoint=='compra_nueva' or request.endpoint=='compra_editar' %}active{% endif %}"><i class="bi bi-receipt"></i><span>Registro compras</span></a>
+    <a href="{{ url_for('ordenes_compra') }}" class="nav-link dock-group {% if 'proveedor' in request.endpoint or 'orden_compra' in request.endpoint or 'cotizacion_proveedor' in request.endpoint or request.endpoint in ('compras','compra_nueva','compra_editar') %}active{% endif %}" data-tip="Compras"
+       data-dock-panel="compras"><i class="bi bi-cart-check"></i><span>Compras</span></a>
     {% endif %}
-
-    {% if 'inventario' in m or 'produccion' in m or 'clientes' in m %}
-    <div class="sb-sec">Logistica</div>
-    <a href="{{ url_for('proveedores', tipo_f='transportista') }}" class="nav-link {% if request.endpoint in ['proveedores'] and request.args.get('tipo_f')=='transportista' %}active{% endif %}"><i class="bi bi-truck-front"></i><span>Transportistas</span></a>
-    <a href="{{ url_for('empaques') }}" class="nav-link {% if 'empaque' in request.endpoint %}active{% endif %}"><i class="bi bi-box2-heart-fill"></i><span>Empaques</span></a>
-    {% endif %}
-
+    <div class="dock-div"></div>
+    {# ── Operaciones ── #}
     {% if 'inventario' in m or 'produccion' in m %}
-    <div class="sb-sec">Operaciones</div>
-    {% if 'inventario' in m %}<a href="{{ url_for('inventario') }}" class="nav-link {% if 'inventario' in request.endpoint or 'producto' in request.endpoint or 'lote' in request.endpoint %}active{% endif %}"><i class="bi bi-box-seam-fill"></i><span>Inventario</span></a>{% endif %}
-    {% if 'produccion' in m %}<a href="{{ url_for('produccion_index') }}" class="nav-link {% if 'produccion' in request.endpoint or 'materia' in request.endpoint or 'reserva' in request.endpoint or request.endpoint=='gantt' or request.endpoint=='ordenes_produccion' %}active{% endif %}"><i class="bi bi-gear-fill"></i><span>Produccion</span></a>{% endif %}
+    {% if 'inventario' in m %}<a href="{{ url_for('inventario') }}" class="nav-link {% if 'inventario' in request.endpoint or 'producto' in request.endpoint %}active{% endif %}" data-tip="Inventario"><i class="bi bi-box-seam-fill"></i><span>Inventario</span></a>{% endif %}
+    {% if 'produccion' in m %}<a href="{{ url_for('produccion_index') }}" class="nav-link dock-group {% if 'produccion' in request.endpoint or 'materia' in request.endpoint or 'reserva' in request.endpoint or request.endpoint=='gantt' or request.endpoint=='ordenes_produccion' %}active{% endif %}" data-tip="Produccion"
+       data-dock-panel="produccion"><i class="bi bi-gear-fill"></i><span>Produccion</span></a>{% endif %}
     {% endif %}
-
-    {% if 'legal' in m or current_user.rol in ('admin','director_financiero','director_operativo') %}
-    <div class="sb-sec">Legal</div>
-    <a href="{{ url_for('legal_index') }}" class="nav-link {% if 'legal' in request.endpoint %}active{% endif %}"><i class="bi bi-shield-check"></i><span>Documentos legales</span></a>
+    {# ── Logistica ── #}
+    {% if 'inventario' in m or 'produccion' in m or 'clientes' in m %}
+    <a href="{{ url_for('proveedores', tipo_f='transportista') }}" class="nav-link dock-group {% if (request.endpoint=='proveedores' and request.args.get('tipo_f')=='transportista') or 'empaque' in request.endpoint %}active{% endif %}" data-tip="Logistica"
+       data-dock-panel="logistica"><i class="bi bi-truck-front-fill"></i><span>Logistica</span></a>
     {% endif %}
-
+    <div class="dock-div"></div>
+    {# ── Finanzas ── #}
     {% if 'finanzas' in m or current_user.rol in ('admin','director_financiero','contador') %}
-    <div class="sb-sec">Finanzas</div>
-    <a href="{{ url_for('contable_index') }}" class="nav-link {% if request.endpoint=='contable_index' %}active{% endif %}"><i class="bi bi-calculator"></i><span>Contabilidad</span></a>
-    <a href="{{ url_for('contable_asientos') }}" class="nav-link {% if request.endpoint in ['contable_asientos','contable_asiento_nuevo','contable_asiento_editar'] %}active{% endif %}"><i class="bi bi-journal-bookmark-fill"></i><span>Asientos contables</span></a>
-    {% if 'gastos' in m %}<a href="{{ url_for('gastos') }}" class="nav-link {% if 'gasto' in request.endpoint %}active{% endif %}"><i class="bi bi-receipt"></i><span>Gastos</span></a>{% endif %}
-    {% if 'reportes' in m %}<a href="{{ url_for('reportes') }}" class="nav-link {% if 'reporte' in request.endpoint %}active{% endif %}"><i class="bi bi-bar-chart-fill"></i><span>Reportes</span></a>{% endif %}
+    <a href="{{ url_for('contable_index') }}" class="nav-link dock-group {% if 'contable' in request.endpoint or 'gasto' in request.endpoint or 'reporte' in request.endpoint %}active{% endif %}" data-tip="Finanzas"
+       data-dock-panel="finanzas"><i class="bi bi-currency-dollar"></i><span>Finanzas</span></a>
     {% endif %}
-
-    {% if 'nomina' in m %}
-    <div class="sb-sec">Recursos Humanos</div>
-    <a href="{{ url_for('nomina_index') }}" class="nav-link {% if 'nomina' in request.endpoint or 'empleado' in request.endpoint %}active{% endif %}"><i class="bi bi-people-fill"></i><span>Nomina</span></a>
+    {# ── Legal ── #}
+    {% if 'legal' in m or current_user.rol in ('admin','director_financiero','director_operativo') %}
+    <a href="{{ url_for('legal_index') }}" class="nav-link {% if 'legal' in request.endpoint %}active{% endif %}" data-tip="Legal"><i class="bi bi-shield-check"></i><span>Legal</span></a>
     {% endif %}
-
+    {# ── Nomina ── #}
+    {% if 'nomina' in m %}<a href="{{ url_for('nomina_index') }}" class="nav-link {% if 'nomina' in request.endpoint or 'empleado' in request.endpoint %}active{% endif %}" data-tip="Nomina"><i class="bi bi-people-fill"></i><span>Nomina</span></a>{% endif %}
+    <div class="dock-div"></div>
+    {# ── Aprobaciones ── #}
     {% if current_user.rol in ('admin','director_financiero','director_operativo') %}
-    <div class="sb-sec">Aprobaciones</div>
-    <a href="{{ url_for('aprobaciones_pendientes') }}" class="nav-link {% if 'aprobacion' in request.endpoint %}active{% endif %}"><i class="bi bi-clipboard-check"></i><span>Pendientes</span></a>
+    <a href="{{ url_for('aprobaciones_pendientes') }}" class="nav-link {% if 'aprobacion' in request.endpoint %}active{% endif %}" data-tip="Aprobaciones"><i class="bi bi-clipboard-check"></i><span>Aprobaciones</span></a>
     {% endif %}
-    {% if current_user.rol not in ('admin','director_financiero','director_operativo','cliente','proveedor') %}
-    <a href="{{ url_for('mis_solicitudes') }}" class="nav-link {% if request.endpoint=='mis_solicitudes' %}active{% endif %}"><i class="bi bi-send-check"></i><span>Mis solicitudes</span></a>
+    {# ── Buscador ── #}
+    <a href="{{ url_for('buscador') }}" class="nav-link {% if request.endpoint=='buscador' %}active{% endif %}" data-tip="Buscador"><i class="bi bi-search"></i><span>Buscador</span></a>
+    {# ── Admin ── #}
+    {% if current_user.rol in ('admin','director_financiero') %}
+    <a href="#" class="nav-link dock-group" data-tip="Admin" data-dock-panel="admin"><i class="bi bi-shield-lock-fill"></i><span>Admin</span></a>
     {% endif %}
-
-    <div class="sb-sec">Herramientas</div>
-    <a href="{{ url_for('buscador') }}" class="nav-link {% if request.endpoint=='buscador' %}active{% endif %}"><i class="bi bi-search"></i><span>Buscador</span></a>
 
     {% if current_user.rol == 'proveedor' %}
-    <div class="sb-sec">Portal</div>
-    <a href="{{ url_for('portal_proveedor') }}" class="nav-link {% if request.endpoint=='portal_proveedor' %}active{% endif %}"><i class="bi bi-house-fill"></i><span>Mi Portal</span></a>
-    <a href="{{ url_for('portal_prov_ticket') }}" class="nav-link {% if request.endpoint=='portal_prov_ticket' %}active{% endif %}"><i class="bi bi-chat-left-text"></i><span>Enviar Mensaje</span></a>
-    {% endif %}
-
-    {% if current_user.rol in ('admin','director_financiero') %}
-    <div class="sb-sec">Admin</div>
-    <a href="{{ url_for('admin_usuarios') }}" class="nav-link {% if 'admin_usuario' in request.endpoint %}active{% endif %}"><i class="bi bi-shield-person-fill"></i><span>Usuarios</span></a>
-    <a href="{{ url_for('actividad') }}" class="nav-link {% if request.endpoint=='actividad' %}active{% endif %}"><i class="bi bi-clock-history"></i><span>Actividad</span></a>
-    <a href="{{ url_for('admin_config') }}" class="nav-link {% if request.endpoint=='admin_config' %}active{% endif %}"><i class="bi bi-gear"></i><span>Empresa</span></a>
+    <div class="dock-div"></div>
+    <a href="{{ url_for('portal_proveedor') }}" class="nav-link {% if request.endpoint=='portal_proveedor' %}active{% endif %}" data-tip="Mi Portal"><i class="bi bi-house-fill"></i><span>Portal</span></a>
     {% endif %}
   </div>
   <div class="sb-foot">
@@ -592,7 +600,137 @@ img,svg{max-width:100%;height:auto}
     </div>
   </div>
 </nav>
+{# ── Dock flyout panels (hidden, shown on hold) ── #}
+<div id="dock-overlay" onclick="closeDockPanel()"></div>
+{% set m=modulos_user %}
+<div class="dock-panel" id="dp-comercial">
+  <div class="dock-panel-head"><i class="bi bi-bag-fill"></i><span>Comercial</span></div>
+  <div class="dock-panel-body">
+    {% if 'clientes' in m %}<a href="{{ url_for('clientes') }}" class="dock-panel-link"><i class="bi bi-people-fill"></i>Clientes</a>{% endif %}
+    {% if 'produccion' in m or 'ventas' in m %}<a href="{{ url_for('recetas') }}" class="dock-panel-link"><i class="bi bi-journal-bookmark"></i>Productos</a>{% endif %}
+    {% if 'ventas' in m %}<a href="{{ url_for('ventas') }}" class="dock-panel-link"><i class="bi bi-graph-up-arrow"></i>Ventas</a>{% endif %}
+    {% if 'cotizaciones' in m %}<a href="{{ url_for('cotizaciones') }}" class="dock-panel-link"><i class="bi bi-file-earmark-text-fill"></i>Cotizaciones</a>{% endif %}
+    {% if 'servicios' in m %}<a href="{{ url_for('servicios') }}" class="dock-panel-link"><i class="bi bi-briefcase-fill"></i>Servicios</a>{% endif %}
+  </div>
+</div>
+<div class="dock-panel" id="dp-compras">
+  <div class="dock-panel-head"><i class="bi bi-cart-check"></i><span>Proveedores y Compras</span></div>
+  <div class="dock-panel-body">
+    {% if 'clientes' in m %}<a href="{{ url_for('proveedores') }}" class="dock-panel-link"><i class="bi bi-truck"></i>Proveedores</a>{% endif %}
+    <a href="{{ url_for('cotizaciones_proveedor') }}" class="dock-panel-link"><i class="bi bi-file-earmark-check"></i>Cotizaciones prov.</a>
+    <a href="{{ url_for('ordenes_compra') }}" class="dock-panel-link"><i class="bi bi-cart-check"></i>Ordenes de Compra</a>
+    <a href="{{ url_for('compras') }}" class="dock-panel-link"><i class="bi bi-receipt"></i>Registro compras</a>
+  </div>
+</div>
+<div class="dock-panel" id="dp-produccion">
+  <div class="dock-panel-head"><i class="bi bi-gear-fill"></i><span>Produccion</span></div>
+  <div class="dock-panel-body">
+    <a href="{{ url_for('produccion_index') }}" class="dock-panel-link"><i class="bi bi-gear"></i>Dashboard</a>
+    <a href="{{ url_for('ordenes_produccion') }}" class="dock-panel-link"><i class="bi bi-list-check"></i>Ordenes</a>
+    <a href="{{ url_for('gantt') }}" class="dock-panel-link"><i class="bi bi-bar-chart-steps"></i>Gantt</a>
+    <a href="{{ url_for('compras') }}" class="dock-panel-link"><i class="bi bi-box-arrow-in-down"></i>Recepcion MP</a>
+    {% if 'inventario' in m %}<a href="{{ url_for('inventario_ingresos') }}" class="dock-panel-link"><i class="bi bi-plus-square"></i>Multi-Ingreso</a>{% endif %}
+  </div>
+</div>
+<div class="dock-panel" id="dp-logistica">
+  <div class="dock-panel-head"><i class="bi bi-truck-front-fill"></i><span>Logistica</span></div>
+  <div class="dock-panel-body">
+    <a href="{{ url_for('proveedores', tipo_f='transportista') }}" class="dock-panel-link"><i class="bi bi-truck-front"></i>Transportistas</a>
+    <a href="{{ url_for('empaques') }}" class="dock-panel-link"><i class="bi bi-box2-heart-fill"></i>Empaques</a>
+  </div>
+</div>
+<div class="dock-panel" id="dp-finanzas">
+  <div class="dock-panel-head"><i class="bi bi-currency-dollar"></i><span>Finanzas</span></div>
+  <div class="dock-panel-body">
+    <a href="{{ url_for('contable_index') }}" class="dock-panel-link"><i class="bi bi-calculator"></i>Contabilidad</a>
+    <a href="{{ url_for('contable_asientos') }}" class="dock-panel-link"><i class="bi bi-journal-bookmark-fill"></i>Asientos contables</a>
+    <a href="{{ url_for('contable_puc') }}" class="dock-panel-link"><i class="bi bi-list-ol"></i>Plan de Cuentas</a>
+    {% if 'gastos' in m %}<a href="{{ url_for('gastos') }}" class="dock-panel-link"><i class="bi bi-receipt"></i>Gastos</a>{% endif %}
+    <a href="{{ url_for('contable_balance_prueba') }}" class="dock-panel-link"><i class="bi bi-table"></i>Balance de Prueba</a>
+    <a href="{{ url_for('contable_balance_general') }}" class="dock-panel-link"><i class="bi bi-bank2"></i>Balance General</a>
+    <a href="{{ url_for('contable_estado_resultados') }}" class="dock-panel-link"><i class="bi bi-graph-up-arrow"></i>Estado de Resultados</a>
+    {% if 'reportes' in m %}<a href="{{ url_for('reportes') }}" class="dock-panel-link"><i class="bi bi-bar-chart-fill"></i>Reportes</a>{% endif %}
+    <a href="{{ url_for('impuestos') }}" class="dock-panel-link"><i class="bi bi-percent"></i>Reglas tributarias</a>
+  </div>
+</div>
+{% if current_user.rol in ('admin','director_financiero') %}
+<div class="dock-panel" id="dp-admin">
+  <div class="dock-panel-head"><i class="bi bi-shield-lock-fill"></i><span>Administracion</span></div>
+  <div class="dock-panel-body">
+    <a href="{{ url_for('admin_usuarios') }}" class="dock-panel-link"><i class="bi bi-shield-person-fill"></i>Usuarios</a>
+    <a href="{{ url_for('actividad') }}" class="dock-panel-link"><i class="bi bi-clock-history"></i>Actividad</a>
+    <a href="{{ url_for('admin_config') }}" class="dock-panel-link"><i class="bi bi-gear"></i>Empresa</a>
+  </div>
+</div>
+{% endif %}
+
 <!-- Mobile overlay -->
+<script>
+// ── Dock: hold to open panel, click to navigate ──
+(function(){
+  var holdTimer = null;
+  var activePanel = null;
+  var HOLD_MS = 350;
+
+  document.querySelectorAll('.dock-group').forEach(function(icon){
+    var panelId = icon.dataset.dockPanel;
+    if(!panelId) return;
+
+    icon.addEventListener('mousedown', function(e){
+      if(e.button !== 0) return;
+      e.preventDefault();
+      holdTimer = setTimeout(function(){
+        holdTimer = 'held';
+        openDockPanel(panelId, icon);
+      }, HOLD_MS);
+    });
+
+    icon.addEventListener('mouseup', function(e){
+      if(holdTimer === 'held'){ holdTimer = null; return; }
+      clearTimeout(holdTimer); holdTimer = null;
+      // Short click = navigate to href
+      var href = icon.getAttribute('href');
+      if(href && href !== '#') window.location.href = href;
+    });
+
+    icon.addEventListener('mouseleave', function(){
+      if(holdTimer !== 'held'){ clearTimeout(holdTimer); holdTimer = null; }
+    });
+
+    // Touch support
+    icon.addEventListener('touchstart', function(e){
+      holdTimer = setTimeout(function(){
+        holdTimer = 'held';
+        openDockPanel(panelId, icon);
+      }, HOLD_MS);
+    }, {passive:true});
+
+    icon.addEventListener('touchend', function(e){
+      if(holdTimer === 'held'){ holdTimer = null; e.preventDefault(); return; }
+      clearTimeout(holdTimer); holdTimer = null;
+    });
+  });
+
+  window.openDockPanel = function(panelId, icon){
+    closeDockPanel();
+    var panel = document.getElementById('dp-' + panelId);
+    if(!panel) return;
+    // Position panel next to the icon
+    var rect = icon.getBoundingClientRect();
+    var top = Math.max(8, Math.min(rect.top - 10, window.innerHeight - 400));
+    panel.style.top = top + 'px';
+    panel.style.display = 'block';
+    document.getElementById('dock-overlay').style.display = 'block';
+    activePanel = panel;
+  };
+
+  window.closeDockPanel = function(){
+    document.querySelectorAll('.dock-panel').forEach(function(p){ p.style.display = 'none'; });
+    document.getElementById('dock-overlay').style.display = 'none';
+    activePanel = null;
+  };
+})();
+</script>
 <div id="sb-overlay" onclick="closeSB()"></div>
 <div id="main">
   {% if session.get('admin_real_id') %}
