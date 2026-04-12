@@ -347,10 +347,23 @@ def _calcular_costo_receta(producto_id):
 
     costo_unitario = (costo_total / receta.unidades_produce) if receta.unidades_produce > 0 else 0
 
-    # Actualizar costo en el producto
+    # Actualizar costo y precio de venta en el producto
     try:
         prod.costo_receta = round(costo_unitario, 2)
-        prod.costo = round(costo_unitario, 2)  # Also update legacy cost field
+        prod.costo = round(costo_unitario, 2)
+        # Recalcular precio de venta: costo + margen + IVA
+        margen_pct = receta.margen_pct or 30
+        try:
+            from models import ReglaTributaria
+            regla_iva = ReglaTributaria.query.filter_by(aplica_a='ventas', activo=True).first()
+            iva_pct = float(regla_iva.porcentaje) if regla_iva else 19.0
+        except Exception:
+            iva_pct = 19.0
+        precio_sin_iva = costo_unitario * (1 + margen_pct / 100)
+        precio_venta = round(precio_sin_iva * (1 + iva_pct / 100), 2)
+        receta.costo_calculado = round(costo_unitario, 2)
+        receta.precio_venta_sugerido = precio_venta
+        prod.precio = precio_venta
     except Exception:
         pass
 

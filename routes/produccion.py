@@ -310,10 +310,14 @@ def register(app):
     @requiere_modulo('produccion')
     def recetas():
         items = RecetaProducto.query.filter_by(activo=True).all()
-        # Calcular costos para cada receta
+        # Recalcular costos y precios para cada receta (siempre actualizado)
         costos = {}
         for r in items:
             costos[r.id] = _calcular_costo_receta(r.producto_id)
+        try:
+            db.session.commit()  # Persistir precios actualizados
+        except Exception:
+            db.session.rollback()
         return render_template('produccion/recetas.html', recetas=items, costos=costos)
 
     @app.route('/api/receta/<int:producto_id>/costo')
