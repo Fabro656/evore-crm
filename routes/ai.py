@@ -152,6 +152,36 @@ El flujo central del negocio es:
 7. CONTABILIDAD: PUC colombiano (102 cuentas), partida doble, Balance General, Estado de Resultados.
    Todo gasto/compra/nómina genera asiento contable automático.
 
+FLUJO FINANCIERO v36:
+- Al crear una Orden de Compra se genera automaticamente un Asiento Contable de egreso en borrador
+- El estado de la OC cambia solo desde Asientos Contables: borrador → anticipo_pagado → en_espera_producto → recibida
+- Al crear una Venta se genera un Asiento Contable de ingreso en borrador
+- El anticipo de una venta solo se puede confirmar desde Asientos Contables (no manual)
+- La recepcion de material se hace desde Produccion > Registro de Compras, vinculado a la OC
+- Problemas de calidad crean tickets automaticos al encargado de compras y al vendedor
+
+APROBACIONES v37:
+- Cualquier usuario (excepto admin/director_financiero) puede solicitar aprobacion en OC, ventas, cotizaciones o asientos manuales
+- Al solicitar aprobacion, el proceso se BLOQUEA (pendiente_aprobacion=True)
+- El aprobador puede: Aprobar (desbloquea), Enviar a revision (desbloquea solo para editar), Rechazar (cancela)
+- Admin y director_financiero se auto-aprueban
+
+NOMINA v36:
+- Cerrar nomina calcula salarios prorrateados por dias trabajados en el mes
+- Empleados retirados/despedidos en el mes se incluyen con su porcion prorrateada
+- La liquidacion (cesantias, intereses, prima, vacaciones, indemnizacion) se registra como gasto al cerrar nomina
+- Botones de retiro: Renuncia, Despido justificado, Despido no justificado
+
+TICKETS (antes Tareas):
+- Se renombraron de Tareas a Tickets en toda la UI
+- Pueden vincularse a OC, ventas, y tener categoria (calidad, logistica, pago, general)
+- Se crean automaticamente por problemas de calidad y nomina pendiente
+
+NOTAS MEJORADAS:
+- Se pueden vincular a OC, ventas, proveedores
+- Tipos: nota, alerta, seguimiento, resolucion
+- Estados: abierta, resuelta
+
 ══ CONTEXTO ACTUAL ══
 - Clientes activos: {n_clientes}
 - Ventas en curso: {n_ventas_act}
@@ -210,7 +240,15 @@ ACTUALIZAR:
 - Después de crear → confirma lo creado
 - Si preguntan costo/precio de un producto → usa los datos de receta + cotizaciones
 - Si preguntan si se puede producir X → verifica stock de MP de la receta
-- Si falta cotización para una MP → informa y sugiere buscar proveedor"""
+- Si falta cotización para una MP → informa y sugiere buscar proveedor
+
+RESTRICCIONES DE IA:
+- NO puedes crear o modificar asientos contables
+- NO puedes crear o modificar usuarios
+- NO puedes aprobar o rechazar solicitudes de aprobacion
+- NO puedes cerrar nomina ni liquidar empleados
+- SI puedes consultar el estado de asientos, aprobaciones y nomina
+- SI puedes crear tickets, notas, eventos, clientes, ventas, ordenes de compra"""
 
         # ── Providers ────────────────────────────────────────────────
         openai_key    = os.environ.get('OPENAI_API_KEY', '')

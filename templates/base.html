@@ -916,11 +916,11 @@ function copiarTexto(el,txt){
                   <div style="width:36px;height:36px;background:#E3FCEF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-people-fill" style="color:#00875A;font-size:1.1rem"></i></div>
                   <h5 class="mb-0 fw-bold" style="font-size:1rem">Clientes y Ventas</h5>
                 </div>
-                <p style="color:#42526E;font-size:.9rem">Gestiona tu cartera de clientes y el <strong>pipeline de ventas</strong> con estados: <em>Prospecto → Negociación → Anticipo pagado → Completado</em>.</p>
+                <p style="color:#42526E;font-size:.9rem">Gestiona tu cartera de clientes y el <strong>pipeline de ventas</strong> con estados: <em>Prospecto → Negociacion → Anticipo pagado → Completado</em>.</p>
                 <ul style="color:#42526E;font-size:.85rem;padding-left:1.2rem">
-                  <li>En ventas puedes cambiar el estado <strong>directamente desde la lista</strong> con el selector de estado.</li>
-                  <li>Al completar una venta puedes generar la <strong>remisión de entrega</strong>.</li>
-                  <li>Almacena información bancaria del cliente para <strong>copiar con un clic</strong>.</li>
+                  <li>Al crear una venta se genera un <strong>asiento contable de ingreso</strong> automaticamente.</li>
+                  <li>El anticipo solo se confirma desde <strong>Asientos Contables</strong> (no manual).</li>
+                  <li>Puedes solicitar <strong>aprobacion</strong> antes de avanzar una venta.</li>
                 </ul>
               </div>
             </div>
@@ -988,11 +988,12 @@ function copiarTexto(el,txt){
                   <div style="width:36px;height:36px;background:#EAE6FF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-truck" style="color:#5243AA;font-size:1.1rem"></i></div>
                   <h5 class="mb-0 fw-bold" style="font-size:1rem">Proveedores y Órdenes de Compra</h5>
                 </div>
-                <p style="color:#42526E;font-size:.9rem">Gestiona tu cadena de suministro con el módulo de <strong>Proveedores</strong> y crea <strong>Órdenes de Compra</strong> formales que tus proveedores pueden confirmar directamente desde su portal.</p>
+                <p style="color:#42526E;font-size:.9rem">Gestiona compras con <strong>seleccion multiple de cotizaciones</strong> por proveedor y seguimiento financiero automatico.</p>
                 <ul style="color:#42526E;font-size:.85rem;padding-left:1.2rem">
-                  <li>Crea órdenes de compra y envíalas como <strong>PDF profesional</strong>.</li>
-                  <li>Los proveedores con acceso al portal pueden <strong>confirmar la recepción</strong> de sus órdenes.</li>
-                  <li>Lleva un historial de cotizaciones por proveedor para <strong>comparar precios</strong>.</li>
+                  <li>Selecciona proveedor primero, luego marca las <strong>cotizaciones</strong> que quieres incluir.</li>
+                  <li>Al crear OC se genera un <strong>asiento contable de egreso</strong> automaticamente.</li>
+                  <li>El pago se confirma desde <strong>Asientos Contables</strong> (parcial o total).</li>
+                  <li>La recepcion de material se registra desde <strong>Produccion</strong> con reporte de calidad.</li>
                 </ul>
               </div>
             </div>
@@ -1018,11 +1019,13 @@ function copiarTexto(el,txt){
                   <div style="width:36px;height:36px;background:#DEEBFF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-calculator" style="color:#0052CC;font-size:1.1rem"></i></div>
                   <h5 class="mb-0 fw-bold" style="font-size:1rem">Finanzas y Gastos</h5>
                 </div>
-                <p style="color:#42526E;font-size:.9rem">Registra <strong>gastos operativos</strong>, configura <strong>reglas tributarias</strong> (IVA, retenciones) y lleva el libro contable de ingresos y egresos.</p>
+                <p style="color:#42526E;font-size:.9rem">Centro financiero con <strong>asientos contables</strong> generados automaticamente y manuales, PUC colombiano y reportes.</p>
                 <ul style="color:#42526E;font-size:.85rem;padding-left:1.2rem">
-                  <li>Las reglas tributarias se aplican automáticamente al calcular cotizaciones.</li>
-                  <li>El <strong>dashboard financiero</strong> muestra el balance del mes en tiempo real.</li>
-                  <li>Exporta reportes para tu contador.</li>
+                  <li><strong>Asientos Generados</strong>: se crean automaticamente desde OC y ventas.</li>
+                  <li><strong>Asientos Manuales</strong>: caja chica, gastos, inversiones (con PDF imprimible).</li>
+                  <li><strong>Confirmar pago</strong> desde asientos cambia el estado de OC y ventas.</li>
+                  <li>Selector PUC con <strong>auto-clasificacion</strong> del tipo de pago.</li>
+                  <li>Nomina con <strong>prorrateo por dias</strong> y liquidacion automatica.</li>
                 </ul>
               </div>
             </div>
@@ -1033,12 +1036,12 @@ function copiarTexto(el,txt){
                   <div style="width:36px;height:36px;background:#FFEBE6;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-shield-lock" style="color:#DE350B;font-size:1.1rem"></i></div>
                   <h5 class="mb-0 fw-bold" style="font-size:1rem">Administración y Seguridad</h5>
                 </div>
-                <p style="color:#42526E;font-size:.9rem">Como administrador, controlas <strong>quién accede a qué</strong> en el sistema. Cada usuario tiene un rol con permisos específicos.</p>
+                <p style="color:#42526E;font-size:.9rem">Controla accesos, aprobaciones y seguridad del sistema.</p>
                 <ul style="color:#42526E;font-size:.85rem;padding-left:1.2rem">
-                  <li><strong>Admin:</strong> acceso total al sistema.</li>
-                  <li><strong>Sales Manager / Vendedor:</strong> clientes, ventas, cotizaciones.</li>
-                  <li><strong>Portal Cliente:</strong> solo ve sus pedidos y puede solicitar cotizaciones.</li>
-                  <li><strong>Portal Proveedor:</strong> solo ve sus órdenes de compra.</li>
+                  <li><strong>Aprobaciones:</strong> OC, ventas, cotizaciones y asientos pueden requerir aprobacion.</li>
+                  <li>Al solicitar aprobacion, el proceso se <strong>bloquea</strong> hasta que se apruebe o rechace.</li>
+                  <li><strong>Workspace:</strong> abre multiples modulos en pestanas dentro de la misma ventana.</li>
+                  <li><strong>Roles:</strong> admin, vendedor, produccion, contador, cliente, proveedor.</li>
                 </ul>
                 <div style="background:#FFEBE6;border-radius:8px;padding:1rem;font-size:.83rem;color:#BF2600;margin-top:.75rem">
                   La sesión se cierra automáticamente tras <strong>5 minutos</strong> de inactividad por seguridad.

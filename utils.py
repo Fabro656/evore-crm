@@ -57,12 +57,16 @@ ONBOARDING_STEPS = {
         {'key':'productos','titulo':'Agrega productos','desc':'Tu catalogo de productos terminados','url':'inventario','icon':'bi-box'},
         {'key':'receta','titulo':'Crea una receta','desc':'Formula/BOM de un producto','url':'produccion_index','icon':'bi-clipboard2-data'},
         {'key':'cliente','titulo':'Registra tu primer cliente','desc':'Empieza a vender','url':'clientes','icon':'bi-person-plus'},
+        {'key':'ordenes_compra','titulo':'Ordenes de Compra','desc':'Compra materiales con cotizaciones multiples y seguimiento contable','url':'ordenes_compra','icon':'bi-cart-check'},
+        {'key':'aprobaciones','titulo':'Sistema de aprobaciones','desc':'Revisa y aprueba solicitudes del equipo','url':'aprobaciones_pendientes','icon':'bi-clipboard-check'},
+        {'key':'nomina','titulo':'Nomina y liquidaciones','desc':'Cierra nomina mensual con prorrateo por dias','url':'nomina_index','icon':'bi-people-fill'},
     ],
     'director_financiero': [
         {'key':'dashboard','titulo':'Tu panel financiero','desc':'Revisa ingresos, egresos y utilidad','url':'contable_index','icon':'bi-speedometer2'},
         {'key':'puc','titulo':'Revisa el Plan de Cuentas','desc':'PUC colombiano configurado','url':'contable_puc','icon':'bi-list-ol'},
         {'key':'aprobaciones','titulo':'Aprobaciones pendientes','desc':'Revisa y aprueba gastos del equipo','url':'aprobaciones_pendientes','icon':'bi-clipboard-check'},
         {'key':'balance','titulo':'Genera un Balance General','desc':'Activos = Pasivos + Patrimonio','url':'contable_balance_general','icon':'bi-bank2'},
+        {'key':'asientos','titulo':'Asientos contables','desc':'Confirma pagos de OC e ingresos de ventas','url':'contable_asientos','icon':'bi-journal-bookmark-fill'},
     ],
     'director_operativo': [
         {'key':'produccion','titulo':'Ordenes de produccion','desc':'Revisa el estado de produccion','url':'ordenes_produccion','icon':'bi-gear'},
@@ -75,12 +79,14 @@ ONBOARDING_STEPS = {
         {'key':'cotizacion','titulo':'Crea una cotizacion','desc':'Prepara una propuesta comercial','url':'cotizacion_nueva','icon':'bi-file-earmark-text'},
         {'key':'venta','titulo':'Registra una venta','desc':'O convierte una cotizacion aprobada','url':'venta_nueva','icon':'bi-cart-plus'},
         {'key':'tareas','titulo':'Gestiona tus tareas','desc':'Seguimiento a pendientes','url':'tareas','icon':'bi-check2-square'},
+        {'key':'tickets','titulo':'Tickets de seguimiento','desc':'Crea y gestiona tickets para cada negocio','url':'tareas','icon':'bi-check2-square'},
     ],
     'produccion': [
         {'key':'inventario','titulo':'Revisa el inventario','desc':'Stock de productos y materias primas','url':'inventario','icon':'bi-box-seam'},
         {'key':'materias','titulo':'Materias primas','desc':'Stock disponible de insumos','url':'materias','icon':'bi-droplet-half'},
         {'key':'recetas','titulo':'Recetas / BOM','desc':'Formulas de cada producto','url':'recetas','icon':'bi-clipboard2-data'},
         {'key':'ordenes','titulo':'Ordenes de produccion','desc':'Produccion pendiente y en curso','url':'ordenes_produccion','icon':'bi-gear'},
+        {'key':'recepcion','titulo':'Recepcion de material','desc':'Recibe material desde ordenes de compra','url':'compras','icon':'bi-box-arrow-in-down'},
     ],
     'contador': [
         {'key':'puc','titulo':'Plan de Cuentas (PUC)','desc':'Catalogo contable colombiano','url':'contable_puc','icon':'bi-list-ol'},
@@ -88,6 +94,7 @@ ONBOARDING_STEPS = {
         {'key':'impuestos','titulo':'Reglas tributarias','desc':'IVA, retencion, ICA','url':'impuestos','icon':'bi-percent'},
         {'key':'balance','titulo':'Balance de Prueba','desc':'Verifica que todo cuadre','url':'contable_balance_prueba','icon':'bi-table'},
         {'key':'resultados','titulo':'Estado de Resultados','desc':'Ingresos vs Gastos del periodo','url':'contable_estado_resultados','icon':'bi-graph-up-arrow'},
+        {'key':'asientos_oc','titulo':'Asientos desde OC','desc':'Los pagos de ordenes de compra se confirman aqui','url':'contable_asientos','icon':'bi-journal-bookmark-fill'},
     ],
     'sales_manager': [
         {'key':'clientes','titulo':'Cartera de clientes','desc':'Clientes asignados a tu equipo','url':'clientes','icon':'bi-people'},
