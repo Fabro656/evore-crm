@@ -35,6 +35,8 @@ def create_app():
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     app.config['SESSION_COOKIE_SECURE']   = os.environ.get('RAILWAY_ENVIRONMENT') == 'production'
+    app.config['PERMANENT_SESSION_LIFETIME'] = 86400  # 24 horas
+    app.config['REMEMBER_COOKIE_DURATION']  = 86400 * 7  # 7 dias
 
     # ── Mail (opcional) ───────────────────────────────────────────────
     app.config['MAIL_SERVER']         = os.environ.get('MAIL_SERVER', '')

@@ -66,8 +66,9 @@ def register(app):
         if request.method == 'POST':
             user = User.query.filter_by(email=request.form.get('email','').strip()).first()
             if user and user.check_password(request.form.get('password','')) and user.activo:
-                login_user(user, remember=bool(request.form.get('remember')))
+                login_user(user, remember=True)
                 from flask import session as flask_session
+                flask_session.permanent = True
                 flask_session['show_onboarding_once'] = True
                 ses = UserSesion(user_id=user.id); db.session.add(ses); db.session.commit()
                 flask_session['sesion_id'] = ses.id
