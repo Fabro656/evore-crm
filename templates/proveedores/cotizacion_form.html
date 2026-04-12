@@ -57,6 +57,12 @@
       <label class="form-check-label" for="precioPorUnidad">El precio es por <strong>1 unidad</strong> de medida</label>
       <small class="text-muted d-block" id="precioExplicacion"></small>
     </div>
+    <div class="form-check mt-2">
+      <input type="checkbox" class="form-check-input" name="iva_incluido" id="ivaInclCheck" value="1"
+             onchange="calcPrecio()">
+      <label class="form-check-label" for="ivaInclCheck"><strong>IVA incluido</strong> en el precio</label>
+      <small class="text-muted d-block" id="ivaExplicacion"></small>
+    </div>
   </div>
 </div>
 <hr class="my-3">
@@ -129,14 +135,24 @@ function calcPrecio(){
   var cant = parseFloat(document.getElementById('cantInput').value) || 1;
   var unidad = document.getElementById('unidadSel').value;
   var porUnidad = document.getElementById('precioPorUnidad').checked;
+  var ivaIncl = document.getElementById('ivaInclCheck').checked;
   var el = document.getElementById('precioExplicacion');
-  if (precio <= 0) { el.textContent = ''; return; }
+  var elIva = document.getElementById('ivaExplicacion');
+  if (precio <= 0) { el.textContent = ''; elIva.textContent = ''; return; }
   if (porUnidad) {
     var total = precio * cant;
-    el.textContent = '$' + precio.toLocaleString('es-CO') + ' por 1' + unidad + ' × ' + cant + unidad + ' = $' + total.toLocaleString('es-CO') + ' total';
+    el.textContent = '$' + precio.toLocaleString('es-CO') + ' COP por 1' + unidad + ' × ' + cant + unidad + ' = $' + total.toLocaleString('es-CO') + ' COP total';
   } else {
     var unitario = precio / cant;
-    el.textContent = '$' + precio.toLocaleString('es-CO') + ' por ' + cant + unidad + ' = $' + Math.round(unitario).toLocaleString('es-CO') + ' por 1' + unidad;
+    el.textContent = '$' + precio.toLocaleString('es-CO') + ' COP por ' + cant + unidad + ' = $' + Math.round(unitario).toLocaleString('es-CO') + ' COP por 1' + unidad;
+  }
+  if (ivaIncl) {
+    var base = precio / 1.19;
+    var iva = precio - base;
+    elIva.textContent = 'Base: $' + Math.round(base).toLocaleString('es-CO') + ' + IVA 19%: $' + Math.round(iva).toLocaleString('es-CO') + ' = $' + precio.toLocaleString('es-CO') + ' COP';
+  } else {
+    var iva = precio * 0.19;
+    elIva.textContent = 'Precio: $' + precio.toLocaleString('es-CO') + ' + IVA 19%: $' + Math.round(iva).toLocaleString('es-CO') + ' = $' + Math.round(precio + iva).toLocaleString('es-CO') + ' COP total';
   }
 }
 togglePagoFields();

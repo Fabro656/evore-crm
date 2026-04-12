@@ -105,8 +105,11 @@ def register(app):
             precio_raw = float(request.form.get('precio_unitario') or 0)
             cantidad = float(request.form.get('unidades_minimas') or 1)
             precio_por_unidad = request.form.get('precio_por_unidad')  # checkbox
+            iva_incluido = request.form.get('iva_incluido')  # checkbox
+            # Si IVA incluido, extraer base (precio / 1.19)
+            if iva_incluido and precio_raw > 0:
+                precio_raw = round(precio_raw / 1.19, 2)
             if not precio_por_unidad and cantidad > 0:
-                # El precio ingresado es por la cantidad total → dividir
                 precio_unitario_real = round(precio_raw / cantidad, 2)
             else:
                 precio_unitario_real = precio_raw
@@ -171,6 +174,9 @@ def register(app):
             precio_raw = float(request.form.get('precio_unitario') or 0)
             cantidad = float(request.form.get('unidades_minimas') or 1)
             precio_por_unidad = request.form.get('precio_por_unidad')
+            iva_incluido = request.form.get('iva_incluido')
+            if iva_incluido and precio_raw > 0:
+                precio_raw = round(precio_raw / 1.19, 2)
             if not precio_por_unidad and cantidad > 0:
                 obj.precio_unitario = round(precio_raw / cantidad, 2)
             else:

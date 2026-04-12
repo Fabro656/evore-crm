@@ -84,9 +84,9 @@
           <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Precio</label>
             <div class="input-group input-group-sm"><span class="input-group-text" style="font-size:.75rem">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0" step="1" min="0" value="{{ it.precio_unit|int }}" oninput="calcRow(this)"></div></div>
           <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">IVA %</label>
-            <input type="number" name="item_iva_pct[]" class="form-control form-control-sm item-iva-pct" placeholder="19" step="0.01" min="0" value="{{ it.iva_pct|int if it.aplica_iva else '0' }}" oninput="calcRow(this)"></div>
-          <div class="col-md-1 d-flex align-items-end"><label class="form-check-label mb-0"><input type="checkbox" name="item_aplica_iva[]" class="form-check-input item-aplica-iva" {% if it.aplica_iva %}checked{% endif %} onchange="calcRow(this)"> IVA</label></div>
-          <div class="col-md-1 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:var(--ac)">$ {{ '{:,.0f}'.format(it.subtotal).replace(',','.') }}</span></div>
+            <input type="number" name="item_iva_pct[]" class="form-control form-control-sm item-iva-pct" placeholder="19" step="0.01" min="0" value="{{ it.iva_pct|int if it.aplica_iva else '0' }}" oninput="calcRow(this)">
+            <input type="hidden" name="item_aplica_iva[]" class="item-aplica-iva-val" value="{{ 'on' if it.aplica_iva else 'off' }}"></div>
+          <div class="col-md-2 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:var(--ac)">$ {{ '{:,.0f}'.format(it.subtotal).replace(',','.') }}</span></div>
           <div class="col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.item-row').remove();calcTotal()"><i class="bi bi-trash"></i></button></div>
         </div>{% endfor %}
       {% else %}
@@ -116,9 +116,9 @@
           <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Precio</label>
             <div class="input-group input-group-sm"><span class="input-group-text" style="font-size:.75rem">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0" step="1" min="0" value="0" oninput="calcRow(this)"></div></div>
           <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">IVA %</label>
-            <input type="number" name="item_iva_pct[]" class="form-control form-control-sm item-iva-pct" placeholder="19" step="0.01" min="0" value="19" oninput="calcRow(this)"></div>
-          <div class="col-md-1 d-flex align-items-end"><label class="form-check-label mb-0"><input type="checkbox" name="item_aplica_iva[]" class="form-check-input item-aplica-iva" checked onchange="calcRow(this)"> IVA</label></div>
-          <div class="col-md-1 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:var(--ac)">$ 0</span></div>
+            <input type="number" name="item_iva_pct[]" class="form-control form-control-sm item-iva-pct" placeholder="19" step="0.01" min="0" value="19" oninput="calcRow(this)">
+            <input type="hidden" name="item_aplica_iva[]" class="item-aplica-iva-val" value="on"></div>
+          <div class="col-md-2 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:var(--ac)">$ 0</span></div>
           <div class="col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.item-row').remove();calcTotal()"><i class="bi bi-trash"></i></button></div>
         </div>
       {% endif %}
@@ -252,18 +252,13 @@ function calcRow(el){
   var row=el.closest('.item-row');
   var c=parseFloat(row.querySelector('.item-cant').value)||0;
   var p=parseFloat(row.querySelector('.item-precio').value)||0;
-  var aplica_iva=row.querySelector('.item-aplica-iva').checked;
-  var iva_pct=aplica_iva?parseFloat(row.querySelector('.item-iva-pct').value)||0:0;
-  if(isIvaIncluido()){
-    // Precio ya incluye IVA — extraer base e IVA
-    var base=c*p/(1+iva_pct/100);
-    var iva_monto=c*p-base;
+  var iva_pct=parseFloat(row.querySelector('.item-iva-pct').value)||0;
+  if(iva_pct>0 && isIvaIncluido()){
     row.querySelector('.item-sub').textContent=fmt(c*p)+' (IVA incl.)';
+  } else if(iva_pct>0) {
+    row.querySelector('.item-sub').textContent=fmt(c*p+c*p*iva_pct/100);
   } else {
-    // IVA se suma al precio
-    var base=c*p;
-    var iva_monto=base*iva_pct/100;
-    row.querySelector('.item-sub').textContent=fmt(base+iva_monto);
+    row.querySelector('.item-sub').textContent=fmt(c*p);
   }
   calcTotal();
 }
@@ -274,21 +269,16 @@ function calcTotal(){
   document.querySelectorAll('.item-row').forEach(function(r){
     var c=parseFloat(r.querySelector('.item-cant').value)||0;
     var p=parseFloat(r.querySelector('.item-precio').value)||0;
-    var aplica=r.querySelector('.item-aplica-iva').checked;
-    var ipct=aplica?parseFloat(r.querySelector('.item-iva-pct').value)||0:0;
-    if(ivaIncl){
-      // Precio incluye IVA: total = precio, base = precio/(1+iva%), iva = total - base
+    var ipct=parseFloat(r.querySelector('.item-iva-pct').value)||0;
+    if(ipct>0 && ivaIncl){
       var itemTotal=c*p;
       var itemBase=itemTotal/(1+ipct/100);
-      var iva_m=itemTotal-itemBase;
       sub+=itemBase;
-      iva_tot+=iva_m;
+      iva_tot+=(itemTotal-itemBase);
     } else {
-      // IVA se suma: base = precio, iva = base * %
       var itemsub=c*p;
-      var iva_m=itemsub*ipct/100;
       sub+=itemsub;
-      iva_tot+=iva_m;
+      iva_tot+=itemsub*ipct/100;
     }
   });
   var total=sub+iva_tot;
@@ -302,20 +292,15 @@ function calcTotal(){
   document.getElementById('lblSaldo').textContent=fmt(total-anticipo);
   // Actualizar labels de filas
   document.querySelectorAll('.item-row').forEach(function(r){
-    calcRowSilent(r, ivaIncl);
+    var c2=parseFloat(r.querySelector('.item-cant').value)||0;
+    var p2=parseFloat(r.querySelector('.item-precio').value)||0;
+    var ipct2=parseFloat(r.querySelector('.item-iva-pct').value)||0;
+    if(ipct2>0 && ivaIncl){
+      r.querySelector('.item-sub').textContent=fmt(c2*p2)+' (IVA incl.)';
+    } else {
+      r.querySelector('.item-sub').textContent=fmt(c2*p2+c2*p2*ipct2/100);
+    }
   });
-}
-
-function calcRowSilent(row, ivaIncl){
-  var c=parseFloat(row.querySelector('.item-cant').value)||0;
-  var p=parseFloat(row.querySelector('.item-precio').value)||0;
-  var aplica=row.querySelector('.item-aplica-iva').checked;
-  var ipct=aplica?parseFloat(row.querySelector('.item-iva-pct').value)||0:0;
-  if(ivaIncl){
-    row.querySelector('.item-sub').textContent=fmt(c*p)+' (IVA incl.)';
-  } else {
-    row.querySelector('.item-sub').textContent=fmt(c*p+c*p*ipct/100);
-  }
 }
 
 function addRow(){
@@ -343,9 +328,9 @@ function addRow(){
     +'<div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Precio</label>'
     +'<div class="input-group input-group-sm"><span class="input-group-text" style="font-size:.75rem">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0" step="1" min="0" value="0" oninput="calcRow(this)"></div></div>'
     +'<div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">IVA %</label>'
-    +'<input type="number" name="item_iva_pct[]" class="form-control form-control-sm item-iva-pct" placeholder="19" step="0.01" min="0" value="19" oninput="calcRow(this)"></div>'
-    +'<div class="col-md-1 d-flex align-items-end"><label class="form-check-label mb-0"><input type="checkbox" name="item_aplica_iva[]" class="form-check-input item-aplica-iva" checked onchange="calcRow(this)"> IVA</label></div>'
-    +'<div class="col-md-1 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:var(--ac)">$ 0</span></div>'
+    +'<input type="number" name="item_iva_pct[]" class="form-control form-control-sm item-iva-pct" placeholder="19" step="0.01" min="0" value="19" oninput="calcRow(this)">'
+    +'<input type="hidden" name="item_aplica_iva[]" class="item-aplica-iva-val" value="on"></div>'
+    +'<div class="col-md-2 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:var(--ac)">$ 0</span></div>'
     +'<div class="col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest(\'.item-row\').remove();calcTotal()"><i class="bi bi-trash"></i></button></div>';
   wrap.appendChild(div);
 }
