@@ -98,9 +98,11 @@ def register(app):
             except Exception as _ne:
                 logging.warning(f'nomina_index: calcular_nomina({_e.id}) error: {_ne}')
         retirados = Empleado.query.filter_by(estado='retirado').count()
+        despedidos = Empleado.query.filter_by(estado='despedido').count()
         return render_template('nomina/index.html', empleados=empleados, departamentos=departamentos,
                               estado_filter=estado_filter, departamento_filter=departamento_filter,
-                              activos=activos, masa_salarial=masa_salarial, costo_empresa=costo_empresa, retirados=retirados)
+                              activos=activos, masa_salarial=masa_salarial, costo_empresa=costo_empresa,
+                              retirados=retirados, despedidos=despedidos)
     
 
     # ── nomina_cerrar_mes (/nomina/cerrar-mes)
@@ -354,11 +356,36 @@ def register(app):
         else:
             empleado.estado = 'retirado'
 
-        # Calcular liquidacion y mostrar resumen
+        # Calcular liquidacion y registrar gasto + asiento de inmediato
         liq = _calcular_liquidacion(empleado, motivo)
         liq_msg = ''
-        if liq:
-            liq_msg = f' Liquidacion estimada: ${liq["total"]:,.0f} (se registrara al cerrar nomina del mes).'
+        if liq and liq['total'] > 0:
+            motivo_label = {'renuncia':'Renuncia','despido_justa':'Despido justificado','despido_sin_justa':'Despido sin justa causa'}.get(motivo, motivo)
+            g = GastoOperativo(
+                fecha=empleado.fecha_retiro or date_type.today(),
+                tipo='Nomina',
+                descripcion=f'Liquidacion {empleado.nombre} {empleado.apellido} ({motivo_label})',
+                monto=round(liq['total'], 0),
+                recurrencia='unico',
+                estado_pago='pendiente',
+                notas=f'Cesantias: ${liq["cesantias"]:,.0f}, Int: ${liq["int_cesantias"]:,.0f}, '
+                      f'Prima: ${liq["prima"]:,.0f}, Vac: ${liq["vacaciones"]:,.0f}, '
+                      f'Indem: ${liq["indemnizacion"]:,.0f}. Dias trabajados: {liq["dias_trabajados"]}',
+                creado_por=current_user.id
+            )
+            db.session.add(g)
+            db.session.flush()
+            _crear_asiento_auto(
+                tipo='gasto', subtipo='liquidacion_empleado',
+                descripcion=f'Liquidacion {empleado.nombre} {empleado.apellido}',
+                monto=round(liq['total'], 0),
+                cuenta_debe='Gastos de nomina - Liquidaciones',
+                cuenta_haber='Bancos / Caja',
+                clasificacion='egreso',
+                referencia=f'LIQ-{empleado.cedula or empleado.id}',
+                gasto_id=g.id
+            )
+            liq_msg = f' Liquidacion: ${liq["total"]:,.0f} registrada en gastos y asientos contables.'
 
         _log('editar', 'empleado', empleado.id, f'Marcado como {empleado.estado} por: {motivo}')
         db.session.commit()

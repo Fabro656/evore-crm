@@ -523,6 +523,7 @@ class GastoOperativo(db.Model):
     creado_por   = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en    = db.Column(db.DateTime, default=datetime.utcnow)
     es_demo      = db.Column(db.Boolean, default=False)
+    estado_pago  = db.Column(db.String(20), default='pendiente')  # pendiente, pagado
 
 class Nota(db.Model):
     __tablename__ = 'notas'
@@ -1268,6 +1269,9 @@ def _migrate(conn):
         ("ALTER TABLE aprobaciones ADD COLUMN cotizacion_id INTEGER REFERENCES cotizaciones(id)"),
         ("ALTER TABLE aprobaciones ADD COLUMN IF NOT EXISTS asiento_id INTEGER REFERENCES asientos_contables(id)"),
         ("ALTER TABLE aprobaciones ADD COLUMN asiento_id INTEGER REFERENCES asientos_contables(id)"),
+        # v37 — GastoOperativo: estado de pago
+        ("ALTER TABLE gastos_operativos ADD COLUMN IF NOT EXISTS estado_pago VARCHAR(20) DEFAULT 'pendiente'"),
+        ("ALTER TABLE gastos_operativos ADD COLUMN estado_pago VARCHAR(20) DEFAULT 'pendiente'"),
         # v37 — Bloqueo por aprobacion en OC y Ventas
         ("ALTER TABLE ordenes_compra ADD COLUMN IF NOT EXISTS pendiente_aprobacion BOOLEAN DEFAULT FALSE"),
         ("ALTER TABLE ordenes_compra ADD COLUMN pendiente_aprobacion BOOLEAN DEFAULT FALSE"),

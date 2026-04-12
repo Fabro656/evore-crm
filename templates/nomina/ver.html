@@ -8,14 +8,16 @@
     <div class="col-md-8">
       <div class="tc">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
-          <div><label style="color:var(--text2);font-size:.85rem">Cédula</label><div style="font-weight:600">{{ empleado.cedula or '—' }}</div></div>
-          <div><label style="color:var(--text2);font-size:.85rem">Email</label><div style="font-weight:600">{{ empleado.email or '—' }}</div></div>
-          <div><label style="color:var(--text2);font-size:.85rem">Cargo</label><div style="font-weight:600">{{ empleado.cargo or '—' }}</div></div>
-          <div><label style="color:var(--text2);font-size:.85rem">Departamento</label><div style="font-weight:600">{{ empleado.departamento or '—' }}</div></div>
-          <div><label style="color:var(--text2);font-size:.85rem">Tipo contrato</label><div><span class="b" style="background:{% if empleado.tipo_contrato=='indefinido' %}var(--ac){% elif empleado.tipo_contrato=='fijo' %}#00875A{% elif empleado.tipo_contrato=='obra_labor' %}#FF8B00{% else %}#6D42C8{% endif %}">{{ empleado.tipo_contrato }}</span></div></div>
-          <div><label style="color:var(--text2);font-size:.85rem">Estado</label><div><span class="b" style="background:{% if empleado.estado=='activo' %}#00875A{% elif empleado.estado=='inactivo' %}#FF8B00{% else %}#6D42C8{% endif %}">{{ empleado.estado }}</span></div></div>
-          <div><label style="color:var(--text2);font-size:.85rem">Fecha ingreso</label><div style="font-weight:600">{{ empleado.fecha_ingreso.strftime('%d/%m/%Y') if empleado.fecha_ingreso else '—' }}</div></div>
-          <div><label style="color:var(--text2);font-size:.85rem">Nivel ARL</label><div style="font-weight:600">{{ empleado.nivel_riesgo_arl }}</div></div>
+          <div><label style="color:var(--text2);font-size:.85rem">Cedula</label><div style="font-weight:600">{{ empleado.cedula or 'No disponible' }}</div></div>
+          <div><label style="color:var(--text2);font-size:.85rem">Email</label><div style="font-weight:600">{{ empleado.email or 'No disponible' }}</div></div>
+          <div><label style="color:var(--text2);font-size:.85rem">Telefono</label><div style="font-weight:600">{{ empleado.telefono or 'No disponible' }}</div></div>
+          <div><label style="color:var(--text2);font-size:.85rem">Cargo</label><div style="font-weight:600">{{ empleado.cargo or 'No disponible' }}</div></div>
+          <div><label style="color:var(--text2);font-size:.85rem">Departamento</label><div style="font-weight:600">{{ empleado.departamento or 'No disponible' }}</div></div>
+          <div><label style="color:var(--text2);font-size:.85rem">Tipo contrato</label><div><span class="b" style="background:{% if empleado.tipo_contrato=='indefinido' %}var(--ac){% elif empleado.tipo_contrato=='fijo' %}var(--green){% elif empleado.tipo_contrato=='obra_labor' %}var(--orange){% else %}#6D42C8{% endif %}">{{ empleado.tipo_contrato or 'No disponible' }}</span></div></div>
+          <div><label style="color:var(--text2);font-size:.85rem">Estado</label><div><span class="b" style="background:{% if empleado.estado=='activo' %}var(--green){% elif empleado.estado=='despedido' %}var(--red){% elif empleado.estado=='inactivo' %}var(--orange){% else %}#6D42C8{% endif %}">{{ empleado.estado }}</span></div></div>
+          <div><label style="color:var(--text2);font-size:.85rem">Fecha ingreso</label><div style="font-weight:600">{{ empleado.fecha_ingreso.strftime('%d/%m/%Y') if empleado.fecha_ingreso else 'No disponible' }}</div></div>
+          <div><label style="color:var(--text2);font-size:.85rem">Nivel ARL</label><div style="font-weight:600">{{ empleado.nivel_riesgo_arl or 'No disponible' }}</div></div>
+          <div><label style="color:var(--text2);font-size:.85rem">Notas</label><div style="font-weight:600">{{ empleado.notas or 'No disponible' }}</div></div>
         </div>
       </div>
     </div>

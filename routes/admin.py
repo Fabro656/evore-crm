@@ -192,6 +192,22 @@ def register(app):
         flash('Gasto y asiento contable eliminados.','info'); return redirect(url_for('gastos'))
     
 
+    # ── gasto_marcar_pagado (/gastos/<int:id>/marcar-pagado)
+    @app.route('/gastos/<int:id>/marcar-pagado', methods=['POST'])
+    @login_required
+    def gasto_marcar_pagado(id):
+        obj = GastoOperativo.query.get_or_404(id)
+        obj.estado_pago = 'pagado'
+        # Tambien marcar el asiento contable vinculado
+        asiento = AsientoContable.query.filter_by(gasto_id=obj.id).first()
+        if asiento:
+            asiento.estado_pago = 'completo'
+            asiento.fecha_pago = date_type.today()
+        db.session.commit()
+        flash(f'Gasto marcado como pagado.', 'success')
+        return redirect(url_for('gastos'))
+
+
     # ── gasto_plantilla_usar (/gastos/plantilla/<int:id>/usar)
     @app.route('/gastos/plantilla/<int:id>/usar', methods=['POST'])
     @login_required

@@ -266,6 +266,10 @@ def register(app):
         transportistas = Proveedor.query.filter(Proveedor.activo==True, Proveedor.tipo.in_(['transportista','ambos'])).order_by(Proveedor.nombre).all()
         cotizaciones_disponibles = CotizacionProveedor.query.filter_by(estado='vigente').order_by(CotizacionProveedor.nombre_producto).all()
         if request.method == 'POST':
+            total_oc = float(request.form.get('total_calc') or 0)
+            if total_oc <= 0:
+                flash('No se puede crear una orden de compra con valor cero.', 'danger')
+                return redirect(url_for('orden_compra_nueva'))
             fe  = request.form.get('fecha_emision')
             fes = request.form.get('fecha_esperada')
             fep = request.form.get('fecha_estimada_pago')

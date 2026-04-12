@@ -269,12 +269,8 @@ def _crear_asiento_auto(tipo, subtipo, descripcion, monto, cuenta_debe, cuenta_h
                         orden_compra_id=None, gasto_id=None, proveedor_id=None):
     """Crea un AsientoContable automático con auto-numeración."""
     try:
-        ultimo = AsientoContable.query.order_by(AsientoContable.id.desc()).first()
-        n_ac = (ultimo.id + 1) if ultimo else 1
-        year = datetime.utcnow().year
-        numero = f'AC-{year}-{n_ac:04d}'
         asiento = AsientoContable(
-            numero=numero,
+            numero='AC-TEMP',
             fecha=datetime.utcnow().date(),
             descripcion=descripcion[:300],
             tipo=tipo, subtipo=subtipo,
@@ -287,6 +283,8 @@ def _crear_asiento_auto(tipo, subtipo, descripcion, monto, cuenta_debe, cuenta_h
             creado_por=current_user.id if current_user and current_user.is_authenticated else None
         )
         db.session.add(asiento)
+        db.session.flush()
+        asiento.numero = f'AC-{datetime.utcnow().year}-{asiento.id:04d}'
         return asiento
     except Exception as e:
         logging.warning(f'_crear_asiento_auto error: {e}')
