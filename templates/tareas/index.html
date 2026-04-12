@@ -20,13 +20,23 @@
     <td>{% if t.fecha_vencimiento %}
       <small class="{{ 'text-danger fw-bold' if t.estado!='completada' and t.fecha_vencimiento < now.date() else 'text-muted' }}">{{ t.fecha_vencimiento.strftime('%d/%m/%Y') }}</small>
       {% else %}—{% endif %}</td>
-    <td><div class="d-flex gap-1">
-      <a href="{{ url_for('tarea_ver', id=t.id) }}" class="btn btn-sm btn-outline-primary" title="Ver y chatear"><i class="bi bi-chat-dots"></i></a>
-      {% if t.estado!='completada' %}<form method="POST" action="{{ url_for('tarea_completar', id=t.id) }}">
-        <button class="btn btn-sm btn-outline-success"><i class="bi bi-check2"></i></button></form>{% endif %}
-      <a href="{{ url_for('tarea_editar', id=t.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
-      <form method="POST" action="{{ url_for('tarea_eliminar', id=t.id) }}" onsubmit="return confirm('¿Eliminar?')">
-        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+    <td><div class="dropdown">
+      <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.78rem">
+        <i class="bi bi-three-dots me-1"></i>Acciones
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end" style="font-size:.83rem;min-width:180px">
+        <li><a class="dropdown-item" href="{{ url_for('tarea_ver', id=t.id) }}"><i class="bi bi-chat-dots me-2 text-primary"></i>Ver / Chat</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('tarea_editar', id=t.id) }}"><i class="bi bi-pencil me-2 text-secondary"></i>Editar</a></li>
+        {% if t.estado!='completada' %}
+        <li><form method="POST" action="{{ url_for('tarea_completar', id=t.id) }}" class="px-0 m-0">
+          <button class="dropdown-item text-success" type="submit"><i class="bi bi-check2 me-2"></i>Completar</button>
+        </form></li>
+        {% endif %}
+        <li><hr class="dropdown-divider"></li>
+        <li><form method="POST" action="{{ url_for('tarea_eliminar', id=t.id) }}" onsubmit="return confirm('¿Eliminar?')" class="px-0 m-0">
+          <button class="dropdown-item text-danger" type="submit"><i class="bi bi-trash me-2"></i>Eliminar</button>
+        </form></li>
+      </ul>
     </div></td>
   </tr>{% endfor %}</tbody>
 </table></div>

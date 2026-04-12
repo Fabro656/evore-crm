@@ -88,47 +88,36 @@
           <i class="bi bi-check-circle me-1"></i>Lista para envío
         </span>
       {% endif %}
-      <div class="d-flex gap-1 flex-wrap justify-content-end mt-1">
-        <a href="{{ url_for('venta_ver', id=v.id) }}" class="btn btn-sm btn-outline-primary" title="Ver detalle"><i class="bi bi-eye"></i></a>
-        <a href="{{ url_for('venta_factura', id=v.id) }}" class="btn btn-sm btn-outline-secondary" target="_blank" title="Ver factura"><i class="bi bi-file-earmark-text"></i></a>
-        <a href="{{ url_for('venta_editar', id=v.id) }}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
-        {# Ver reservas / producción de esta venta #}
-        {% if v.ordenes_produccion|list|length > 0 %}
-        <a href="{{ url_for('reservas') }}" class="btn btn-sm btn-outline-primary" title="Ver reservas de producción">
-          <i class="bi bi-layers"></i>
-        </a>
-        {% endif %}
-        {# Informar al cliente: TODAS las órdenes completadas y aún no notificado #}
-        {% if todas_completadas and not v.cliente_informado_en and not v.entregado_en %}
-        <form method="POST" action="{{ url_for('venta_informar_cliente', id=v.id) }}" class="d-inline">
-          <button class="btn btn-sm btn-warning" title="Producción lista — Notificar al cliente">
-            <i class="bi bi-envelope-check"></i>
-          </button>
-        </form>
-        {% elif v.ordenes_produccion|list|length == 0 and not v.cliente_informado_en and not v.entregado_en and v.estado == 'anticipo_pagado' %}
-        {# Sin producción: igual puede notificar si anticipo pagado #}
-        <form method="POST" action="{{ url_for('venta_informar_cliente', id=v.id) }}" class="d-inline">
-          <button class="btn btn-sm btn-warning" title="Notificar al cliente">
-            <i class="bi bi-envelope-check"></i>
-          </button>
-        </form>
-        {% endif %}
-        {# Marcar entregado: disponible si hay anticipo o está pagado, y aún no se entregó #}
-        {% if not v.entregado_en and v.estado in ('anticipo_pagado','pagado','completado') %}
-        <form method="POST" action="{{ url_for('venta_entregar', id=v.id) }}" class="d-inline"
-              onsubmit="return confirm('¿Marcar como entregado? Se actualizará el estado a Pagado y se descontará el stock.')">
-          <button class="btn btn-sm btn-success" title="Marcar como entregado"><i class="bi bi-box-arrow-up"></i></button>
-        </form>
-        {% endif %}
-        {# Remisión: disponible cuando ya fue entregado o anticipo pagado #}
-        {% if v.entregado_en or v.estado in ('anticipo_pagado','pagado','completado') %}
-        <a href="{{ url_for('venta_remision', id=v.id) }}" class="btn btn-sm btn-primary" title="Ver remisión de entrega" target="_blank">
-          <i class="bi bi-receipt me-1"></i><span class="d-none d-lg-inline">Remisión</span>
-        </a>
-        {% endif %}
-        <form method="POST" action="{{ url_for('venta_eliminar', id=v.id) }}" onsubmit="return confirm('¿Eliminar esta venta?')">
-          <button class="btn btn-sm btn-outline-danger" title="Eliminar"><i class="bi bi-trash"></i></button>
-        </form>
+      <div class="dropdown mt-1">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.78rem">
+          <i class="bi bi-three-dots me-1"></i>Acciones
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" style="font-size:.83rem;min-width:180px">
+          <li><a class="dropdown-item" href="{{ url_for('venta_ver', id=v.id) }}"><i class="bi bi-eye me-2 text-primary"></i>Ver detalle</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('venta_editar', id=v.id) }}"><i class="bi bi-pencil me-2 text-secondary"></i>Editar</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('venta_factura', id=v.id) }}" target="_blank"><i class="bi bi-file-earmark-text me-2 text-secondary"></i>Ver factura</a></li>
+          {% if v.ordenes_produccion|list|length > 0 %}
+          <li><a class="dropdown-item" href="{{ url_for('reservas') }}"><i class="bi bi-layers me-2 text-primary"></i>Ver reservas</a></li>
+          {% endif %}
+          {% if v.entregado_en or v.estado in ('anticipo_pagado','pagado','completado') %}
+          <li><a class="dropdown-item" href="{{ url_for('venta_remision', id=v.id) }}" target="_blank"><i class="bi bi-receipt me-2 text-primary"></i>Remision</a></li>
+          {% endif %}
+          <li><hr class="dropdown-divider"></li>
+          {% if (todas_completadas and not v.cliente_informado_en and not v.entregado_en) or (v.ordenes_produccion|list|length == 0 and not v.cliente_informado_en and not v.entregado_en and v.estado == 'anticipo_pagado') %}
+          <li><form method="POST" action="{{ url_for('venta_informar_cliente', id=v.id) }}" class="px-0 m-0">
+            <button class="dropdown-item" type="submit"><i class="bi bi-envelope-check me-2 text-warning"></i>Notificar cliente</button>
+          </form></li>
+          {% endif %}
+          {% if not v.entregado_en and v.estado in ('anticipo_pagado','pagado','completado') %}
+          <li><form method="POST" action="{{ url_for('venta_entregar', id=v.id) }}" onsubmit="return confirm('Marcar como entregado?')" class="px-0 m-0">
+            <button class="dropdown-item" type="submit"><i class="bi bi-box-arrow-up me-2 text-success"></i>Marcar entregado</button>
+          </form></li>
+          {% endif %}
+          <li><hr class="dropdown-divider"></li>
+          <li><form method="POST" action="{{ url_for('venta_eliminar', id=v.id) }}" onsubmit="return confirm('Eliminar esta venta?')" class="px-0 m-0">
+            <button class="dropdown-item text-danger" type="submit"><i class="bi bi-trash me-2"></i>Eliminar</button>
+          </form></li>
+        </ul>
       </div>
     </td>
   </tr>{% endfor %}</tbody>

@@ -58,34 +58,38 @@
       {% endif %}
     </td>
     <td>
-      <div class="d-flex gap-1 flex-wrap">
-        {# Recibir material #}
-        {% if c.estado_recepcion in ('solicitado', 'parcial') %}
-        <button type="button" class="btn btn-sm btn-outline-success" title="Registrar recepcion"
-          onclick="abrirModalRecibir({{ c.id }}, '{{ c.nombre_item }}', {{ c.cantidad }}, {{ c.cantidad_recibida or 0 }})">
-          <i class="bi bi-box-arrow-in-down me-1"></i>Recibir
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.78rem">
+          <i class="bi bi-three-dots me-1"></i>Acciones
         </button>
-        {% endif %}
-        {# Problema de calidad #}
-        {% if c.estado_recepcion in ('solicitado', 'parcial') and c.orden_compra_id %}
-        <button type="button" class="btn btn-sm btn-outline-danger" title="Reportar problema de calidad"
-          onclick="abrirModalCalidad({{ c.id }}, '{{ c.nombre_item }}', {{ c.orden_compra_id or 0 }})">
-          <i class="bi bi-exclamation-triangle"></i>
-        </button>
-        {% endif %}
-        <a href="{{ url_for('compra_editar', id=c.id) }}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
-        {% if c.tipo_compra != 'materia_prima' or not c.materia_id %}
-        <button type="button" class="btn btn-sm btn-outline-success" title="Ingresar al stock MP"
-          data-bs-toggle="modal" data-bs-target="#modalIngresarMP"
-          data-compra-id="{{ c.id }}" data-compra-nombre="{{ c.nombre_item }}"
-          data-compra-cant="{{ c.cantidad }}" data-compra-unidad="{{ c.unidad or 'unidades' }}"
-          onclick="prepIngresarMP(this)">
-          <i class="bi bi-flask"></i>
-        </button>
-        {% endif %}
-        <form method="POST" action="{{ url_for('compra_eliminar', id=c.id) }}" onsubmit="return confirm('Eliminar?')" class="d-inline">
-          <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-        </form>
+        <ul class="dropdown-menu dropdown-menu-end" style="font-size:.83rem;min-width:200px">
+          {% if c.estado_recepcion in ('solicitado', 'parcial') %}
+          <li><button type="button" class="dropdown-item"
+            onclick="abrirModalRecibir({{ c.id }}, '{{ c.nombre_item }}', {{ c.cantidad }}, {{ c.cantidad_recibida or 0 }})">
+            <i class="bi bi-box-arrow-in-down me-2 text-success"></i>Recibir
+          </button></li>
+          {% endif %}
+          {% if c.estado_recepcion in ('solicitado', 'parcial') and c.orden_compra_id %}
+          <li><button type="button" class="dropdown-item"
+            onclick="abrirModalCalidad({{ c.id }}, '{{ c.nombre_item }}', {{ c.orden_compra_id or 0 }})">
+            <i class="bi bi-exclamation-triangle me-2 text-warning"></i>Problema calidad
+          </button></li>
+          {% endif %}
+          <li><a class="dropdown-item" href="{{ url_for('compra_editar', id=c.id) }}"><i class="bi bi-pencil me-2 text-secondary"></i>Editar</a></li>
+          {% if c.tipo_compra != 'materia_prima' or not c.materia_id %}
+          <li><button type="button" class="dropdown-item"
+            data-bs-toggle="modal" data-bs-target="#modalIngresarMP"
+            data-compra-id="{{ c.id }}" data-compra-nombre="{{ c.nombre_item }}"
+            data-compra-cant="{{ c.cantidad }}" data-compra-unidad="{{ c.unidad or 'unidades' }}"
+            onclick="prepIngresarMP(this)">
+            <i class="bi bi-flask me-2 text-success"></i>Ingresar a MP
+          </button></li>
+          {% endif %}
+          <li><hr class="dropdown-divider"></li>
+          <li><form method="POST" action="{{ url_for('compra_eliminar', id=c.id) }}" onsubmit="return confirm('Eliminar?')" class="px-0 m-0">
+            <button class="dropdown-item text-danger" type="submit"><i class="bi bi-trash me-2"></i>Eliminar</button>
+          </form></li>
+        </ul>
       </div>
     </td>
   </tr>{% endfor %}</tbody>

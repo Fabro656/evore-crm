@@ -44,15 +44,22 @@
         {% if n.prioridad is defined and n.prioridad == 'alta' %}<span class="badge bg-danger me-1">Alta</span>{% endif %}
         <div class="fw-semibold" style="color:var(--text);font-size:.95rem">{{ n.titulo or '(Sin titulo)' }}</div>
       </div>
-      <div class="d-flex gap-1">
-        {% if not (n.estado_nota is defined and n.estado_nota == 'resuelta') %}
-        <form method="POST" action="{{ url_for('nota_resolver', id=n.id) }}" class="d-inline">
-          <button class="btn btn-sm btn-outline-success py-0 px-1" title="Marcar resuelta"><i class="bi bi-check-lg" style="font-size:.75rem"></i></button>
-        </form>
-        {% endif %}
-        <a href="{{ url_for('nota_editar', id=n.id) }}" class="btn btn-sm btn-outline-secondary py-0 px-1"><i class="bi bi-pencil" style="font-size:.75rem"></i></a>
-        <form method="POST" action="{{ url_for('nota_eliminar', id=n.id) }}" onsubmit="return confirm('Eliminar nota?')">
-          <button class="btn btn-sm btn-outline-danger py-0 px-1"><i class="bi bi-trash" style="font-size:.75rem"></i></button></form>
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle py-0 px-1" data-bs-toggle="dropdown" style="font-size:.75rem">
+          <i class="bi bi-three-dots"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" style="font-size:.83rem;min-width:170px">
+          {% if not (n.estado_nota is defined and n.estado_nota == 'resuelta') %}
+          <li><form method="POST" action="{{ url_for('nota_resolver', id=n.id) }}" class="px-0 m-0">
+            <button class="dropdown-item text-success" type="submit"><i class="bi bi-check-lg me-2"></i>Resolver</button>
+          </form></li>
+          {% endif %}
+          <li><a class="dropdown-item" href="{{ url_for('nota_editar', id=n.id) }}"><i class="bi bi-pencil me-2 text-secondary"></i>Editar</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><form method="POST" action="{{ url_for('nota_eliminar', id=n.id) }}" onsubmit="return confirm('Eliminar nota?')" class="px-0 m-0">
+            <button class="dropdown-item text-danger" type="submit"><i class="bi bi-trash me-2"></i>Eliminar</button>
+          </form></li>
+        </ul>
       </div>
     </div>
     <p style="font-size:.88rem;color:var(--text2);white-space:pre-line;margin-bottom:.75rem">{{ n.contenido[:300] }}{% if n.contenido|length > 300 %}...{% endif %}</p>
