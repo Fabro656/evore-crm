@@ -173,14 +173,16 @@
             {# -- Boton confirmar pago (egreso vinculado a OC) -- #}
             {% if not es_ingreso and a.orden_compra_id and a.estado_pago != 'completo' %}
             <button type="button" class="btn btn-xs btn-success" title="Confirmar pago"
-                    onclick="abrirModalPago({{ a.id }}, '{{ a.numero }}', {{ (a.debe or 0) }}, {{ (a.monto_pagado or 0) }}, 'egreso')">
+                    data-aid="{{ a.id }}" data-anum="{{ a.numero or '' }}" data-amonto="{{ a.debe or 0 }}" data-apagado="{{ a.monto_pagado or 0 }}" data-atipo="egreso"
+                    onclick="abrirModalPago(this)">
               <i class="bi bi-check-circle me-1"></i>Pago
             </button>
             {% endif %}
             {# -- Boton confirmar ingreso (ingreso vinculado a venta) -- #}
             {% if es_ingreso and a.venta_id and a.estado_pago != 'completo' %}
             <button type="button" class="btn btn-xs btn-success" title="Confirmar cobro recibido"
-                    onclick="abrirModalPago({{ a.id }}, '{{ a.numero }}', {{ (a.haber or 0) }}, {{ (a.monto_pagado or 0) }}, 'ingreso')">
+                    data-aid="{{ a.id }}" data-anum="{{ a.numero or '' }}" data-amonto="{{ a.haber or 0 }}" data-apagado="{{ a.monto_pagado or 0 }}" data-atipo="ingreso"
+                    onclick="abrirModalPago(this)">
               <i class="bi bi-check-circle me-1"></i>Cobro
             </button>
             {% endif %}
@@ -267,33 +269,42 @@
 </div>
 
 <script>
-function abrirModalPago(asientoId, numero, montoTotal, yaPagado, tipo) {
+function abrirModalPago(btn) {
+  var aid = btn.dataset.aid;
+  var numero = btn.dataset.anum || '';
+  var montoTotal = parseFloat(btn.dataset.amonto) || 0;
+  var yaPagado = parseFloat(btn.dataset.apagado) || 0;
+  var tipo = btn.dataset.atipo || 'egreso';
+
   document.getElementById('modalPagoTitle').textContent = tipo === 'ingreso' ? 'Confirmar cobro recibido' : 'Confirmar pago';
   document.getElementById('modalPagoNumero').textContent = numero;
   document.getElementById('modalPagoTotal').textContent = '$ ' + Math.round(montoTotal).toLocaleString('es-CO');
   document.getElementById('modalPagoYaPagado').textContent = '$ ' + Math.round(yaPagado).toLocaleString('es-CO');
+
   var restante = montoTotal - yaPagado;
   document.getElementById('montoPago').value = Math.round(restante);
-  document.getElementById('montoPago').max = restante;
+  document.getElementById('montoPago').max = Math.round(restante);
+
   var actionUrl = tipo === 'ingreso'
-    ? '/contable/asientos/' + asientoId + '/confirmar-ingreso'
-    : '/contable/asientos/' + asientoId + '/confirmar-pago';
-  // Mantener _embed si estamos en iframe
-  if(/[?&]_embed=1/.test(location.search)) actionUrl += '?_embed=1';
+    ? '/contable/asientos/' + aid + '/confirmar-ingreso'
+    : '/contable/asientos/' + aid + '/confirmar-pago';
+  if(/[?&]_embed=1/.test(location.search)) actionUrl += (actionUrl.includes('?') ? '&' : '?') + '_embed=1';
   document.getElementById('formConfirmarPago').action = actionUrl;
+
   document.getElementById('tipoParcial').checked = true;
   toggleMontoPago();
-  new bootstrap.Modal(document.getElementById('modalPago')).show();
+
+  var modalEl = document.getElementById('modalPago');
+  var bsModal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+  bsModal.show();
 }
 
 function toggleMontoPago() {
   var esTotal = document.getElementById('tipoTotal').checked;
   document.getElementById('secMontoPartial').style.display = esTotal ? 'none' : '';
   var inp = document.getElementById('montoPago');
-  if(esTotal){ inp.removeAttribute('required'); inp.value = '0'; }
-  else { inp.setAttribute('required',''); }
-  if (esTotal) document.getElementById('montoPago').removeAttribute('required');
-  else document.getElementById('montoPago').setAttribute('required', '');
+  if (esTotal) { inp.removeAttribute('required'); inp.value = '0'; }
+  else { inp.setAttribute('required', 'required'); }
 }
 </script>
 
