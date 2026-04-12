@@ -1020,42 +1020,37 @@ function mostrarMapa() {
   container.style.display = 'block';
   if(statusEl) statusEl.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Calculando distancia por carretera...';
 
-  // Geocodificar con delay para evitar rate limit de Nominatim
-  nominatimFetch(orig).then(function(geoOrig){
-    if(!geoOrig || !geoOrig.length){
-      if(statusEl) statusEl.innerHTML = '<span class="text-warning">No se encontró la dirección de origen. Intenta ser más específico.</span>';
-      return Promise.reject('geo_fail');
-    }
-    return new Promise(function(resolve){ setTimeout(function(){ resolve(geoOrig); }, 1100); });
-  }).then(function(geoOrig){
-    return nominatimFetch(dest).then(function(geoDest){
-      return {orig: geoOrig, dest: geoDest};
+  // Geocodificar secuencialmente con delay
+  var geoO = null, geoD = null;
+  nominatimFetch(orig)
+    .then(function(r){ geoO = r; })
+    .then(function(){ return new Promise(function(ok){ setTimeout(ok, 1200); }); })
+    .then(function(){ return nominatimFetch(dest); })
+    .then(function(r){ geoD = r; })
+    .then(function(){
+      if(!geoO || !geoO.length || !geoD || !geoD.length){
+        if(statusEl) statusEl.innerHTML = '<span class="text-warning">No se pudo ubicar alguna dirección. Ingresa la distancia en km manualmente y haz clic en Calcular.</span>';
+        return;
+      }
+      var lonO = geoO[0].lon, latO = geoO[0].lat;
+      var lonD = geoD[0].lon, latD = geoD[0].lat;
+      return fetch('https://router.project-osrm.org/route/v1/driving/' + lonO + ',' + latO + ';' + lonD + ',' + latD + '?overview=false')
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+          if(data.routes && data.routes.length > 0){
+            var distKm = Math.round(data.routes[0].distance / 1000);
+            var durH = Math.round(data.routes[0].duration / 3600 * 10) / 10;
+            distInput.value = distKm;
+            if(statusEl) statusEl.innerHTML = '🛣️ <strong>' + distKm + ' km</strong> por carretera · ~' + durH + ' horas';
+            calcEnvio();
+          } else {
+            if(statusEl) statusEl.innerHTML = '<span class="text-warning">Ruta no disponible. Ingresa km manualmente.</span>';
+          }
+        });
+    }).catch(function(e){
+      console.error('Error ruta:', e);
+      if(statusEl) statusEl.innerHTML = '<span class="text-warning">Error de conexión. Ingresa km manualmente.</span>';
     });
-  }).then(function(geo){
-    if(!geo.dest || !geo.dest.length){
-      if(statusEl) statusEl.innerHTML = '<span class="text-warning">No se encontró la dirección de destino. Intenta ser más específico.</span>';
-      return;
-    }
-    var lonO = geo.orig[0].lon, latO = geo.orig[0].lat;
-    var lonD = geo.dest[0].lon, latD = geo.dest[0].lat;
-    return fetch('https://router.project-osrm.org/route/v1/driving/' + lonO + ',' + latO + ';' + lonD + ',' + latD + '?overview=false')
-      .then(function(r){ return r.json(); })
-      .then(function(data){
-        if(data.routes && data.routes.length > 0){
-          var distKm = Math.round(data.routes[0].distance / 1000);
-          var durH = Math.round(data.routes[0].duration / 3600 * 10) / 10;
-          distInput.value = distKm;
-          if(statusEl) statusEl.innerHTML = '🛣️ <strong>' + distKm + ' km</strong> por carretera · ~' + durH + ' horas de viaje';
-          calcEnvio();
-        } else {
-          if(statusEl) statusEl.innerHTML = '<span class="text-warning">Ruta no encontrada por OSRM. Ingresa la distancia manualmente.</span>';
-        }
-      });
-  }).catch(function(e){
-    if(e === 'geo_fail') return;
-    console.error('Error ruta:', e);
-    if(statusEl) statusEl.innerHTML = '<span class="text-warning">Error al calcular ruta. Ingresa la distancia manualmente.</span>';
-  });
 }
 
 function crearCotizacionEnvio() {
@@ -1092,7 +1087,7 @@ function calcEnvio() {
   var qtyStr = document.getElementById('envQty').value.trim();
   var qty = parseInt(qtyStr, 10);
   var hasQty = !isNaN(qty) && qty > 0;
-  var isIntl = ciudadIsInt(orig) || ciudadIsInt(dest);
+  var isIntl = dist > 1000;  // estimación: >1000km probablemente internacional
   var bw = _simV.ancho_caja, bd = _simV.largo_caja, bh = _simV.alto_caja, bKg = _simV.peso_total;
   var udsPerBox = _simV.total;
   var volKg = +(bw * bd * bh / 5000).toFixed(3);
