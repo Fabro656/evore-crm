@@ -406,9 +406,14 @@ img,svg{max-width:100%;height:auto}
 <style>
   #sb,#sb-overlay,#wsTabBar,.sb-foot{display:none!important}
   #main{margin-left:0!important}
-  .topbar{position:relative!important;padding:.4rem .75rem!important}
+  .topbar{position:relative!important;padding:.3rem .75rem!important}
   .topbar .pg-title{font-size:.85rem}
   .topbar #sb-tog{display:none!important}
+  /* Ocultar elementos que ya estan en el shell padre: fecha, tema, ayuda, perfil */
+  .topbar .dropdown{display:none!important}
+  .topbar .text-muted.d-none.d-md-inline{display:none!important}
+  .topbar [onclick="toggleTheme()"]{display:none!important}
+  .topbar [title="Ver tutorial"]{display:none!important}
   .content{padding:.75rem!important}
 </style>
 <script>
