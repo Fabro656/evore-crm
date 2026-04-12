@@ -395,10 +395,11 @@ def register(app):
             nombre_producto = empaque.producto.nombre if empaque.producto else 'Desconocido'
             producto_id = empaque.producto_id
 
-            # Si estaba aprobado, eliminar de la RECETA (no del stock/MP)
+            # Si estaba aprobado, quitar de la receta y marcar cotización como no actual
             if empaque.aprobado and empaque.materia_prima_id:
                 mp_id = empaque.materia_prima_id
-                # Solo eliminar RecetaItem — la MateriaPrima y su stock se conservan
+
+                # Quitar de la receta activa (el item sigue disponible para futuras recetas)
                 receta = RecetaProducto.query.filter_by(producto_id=producto_id, activo=True).first()
                 if receta:
                     RecetaItem.query.filter_by(receta_id=receta.id, materia_prima_id=mp_id).delete()
@@ -417,6 +418,12 @@ def register(app):
                         if cinta_mp:
                             RecetaItem.query.filter_by(receta_id=receta.id, materia_prima_id=cinta_mp.id).delete()
 
+                # Marcar cotización de la caja como "vencida" (no actual), NO eliminar
+                cots_caja = CotizacionProveedor.query.filter_by(materia_prima_id=mp_id).all()
+                for cot in cots_caja:
+                    if cot.estado in ('vigente', 'en_revision'):
+                        cot.estado = 'vencida'
+
             db.session.delete(empaque)
             db.session.commit()
 
@@ -428,7 +435,7 @@ def register(app):
                 except Exception:
                     pass
 
-            flash(f'Empaque de "{nombre_producto}" eliminado. Removido de la receta (stock conservado).', 'info')
+            flash(f'Empaque de "{nombre_producto}" eliminado de receta. Cotización marcada como no actual. Stock y materias primas conservados.', 'info')
         except Exception as e:
             db.session.rollback()
             flash(f'Error al eliminar empaque: {str(e)}', 'danger')
