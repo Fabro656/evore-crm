@@ -445,6 +445,7 @@ img,svg{max-width:100%;height:auto}
     {% if 'clientes' in m or 'ventas' in m or 'cotizaciones' in m or 'tareas' in m or 'calendario' in m or 'notas' in m %}
     <div class="sb-sec">Comercial</div>
     {% if 'clientes' in m %}<a href="{{ url_for('clientes') }}" class="nav-link {% if 'cliente' in request.endpoint %}active{% endif %}"><i class="bi bi-people-fill"></i><span>Clientes</span></a>{% endif %}
+    {% if 'produccion' in m or 'ventas' in m %}<a href="{{ url_for('recetas') }}" class="nav-link {% if 'receta' in request.endpoint %}active{% endif %}"><i class="bi bi-journal-bookmark"></i><span>Productos</span></a>{% endif %}
     {% if 'ventas' in m %}<a href="{{ url_for('ventas') }}" class="nav-link {% if 'venta' in request.endpoint %}active{% endif %}"><i class="bi bi-graph-up-arrow"></i><span>Ventas</span></a>{% endif %}
     {% if 'cotizaciones' in m %}<a href="{{ url_for('cotizaciones') }}" class="nav-link {% if request.endpoint in ['cotizaciones','cotizacion_nueva','cotizacion_ver','cotizacion_editar'] %}active{% endif %}"><i class="bi bi-file-earmark-text-fill"></i><span>Cotizaciones</span></a>{% endif %}
     {% if 'servicios' in m %}<a href="{{ url_for('servicios') }}" class="nav-link {% if 'servicio' in request.endpoint %}active{% endif %}"><i class="bi bi-briefcase-fill"></i><span>Servicios</span></a>{% endif %}
@@ -463,10 +464,10 @@ img,svg{max-width:100%;height:auto}
     <a href="{{ url_for('cotizaciones_proveedor', tipo='granel') }}" class="nav-link" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-droplet-fill"></i><span>Materia Prima</span></a>
     <a href="{{ url_for('cotizaciones_proveedor', tipo='general') }}" class="nav-link" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-box"></i><span>Servicios</span></a>
     <a href="{{ url_for('ordenes_compra') }}" class="nav-link {% if 'orden_compra' in request.endpoint %}active{% endif %}"><i class="bi bi-cart-check"></i><span>Órdenes de Compra</span></a>
+    <a href="{{ url_for('compras') }}" class="nav-link {% if request.endpoint=='compras' or request.endpoint=='compra_nueva' or request.endpoint=='compra_editar' %}active{% endif %}"><i class="bi bi-receipt"></i><span>Registro de compras</span></a>
     {% endif %}
     {% if 'inventario' in m or 'produccion' in m %}
     <div class="sb-sec">Operaciones</div>
-    {% if 'produccion' in m %}<a href="{{ url_for('recetas') }}" class="nav-link {% if 'receta' in request.endpoint %}active{% endif %}"><i class="bi bi-journal-bookmark"></i><span>Recetas (BOM)</span></a>{% endif %}
     {% if 'inventario' in m %}<a href="{{ url_for('inventario') }}" class="nav-link {% if 'inventario' in request.endpoint or 'producto' in request.endpoint or 'lote' in request.endpoint %}active{% endif %}"><i class="bi bi-box-seam-fill"></i><span>Inventario</span></a>{% endif %}
     {% if 'inventario' in m %}<a href="{{ url_for('inventario_ingresos') }}" class="nav-link {% if request.endpoint=='inventario_ingresos' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-plus-square"></i><span>Multi-Ingreso</span></a>{% endif %}
     {% if 'produccion' in m %}<a href="{{ url_for('produccion_index') }}" class="nav-link {% if 'produccion' in request.endpoint or 'materia' in request.endpoint or 'reserva' in request.endpoint %}active{% endif %}"><i class="bi bi-gear-fill"></i><span>Producción</span></a>{% endif %}

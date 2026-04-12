@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
-{% block title %}Recetas de Producción{% endblock %}{% block page_title %}Recetas de Producción (BOM){% endblock %}
+{% block title %}Productos{% endblock %}{% block page_title %}Productos{% endblock %}
 {% block topbar_actions %}
-<a href="{{ url_for('receta_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva Receta</a>
+<a href="{{ url_for('receta_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo Producto</a>
 {% endblock %}
 {% block content %}
 <div class="row g-3">
@@ -76,17 +76,19 @@
             <td>+ Margen {{ r.margen_pct }}%</td>
             <td class="text-end">${{ '{:,.0f}'.format(c.costo_unitario * r.margen_pct / 100) }}</td>
           </tr>
+          {% set precio_sin_iva = c.costo_unitario * (1 + r.margen_pct / 100) %}
+          {% set iva = precio_sin_iva * 0.19 %}
           <tr>
             <td>= Precio sin IVA</td>
-            <td class="text-end">${{ '{:,.0f}'.format(c.costo_unitario * (1 + r.margen_pct / 100)) }}</td>
+            <td class="text-end">${{ '{:,.0f}'.format(precio_sin_iva) }}</td>
           </tr>
           <tr>
             <td>+ IVA 19%</td>
-            <td class="text-end">${{ '{:,.0f}'.format(c.costo_unitario * (1 + r.margen_pct / 100) * 0.19) }}</td>
+            <td class="text-end">${{ '{:,.0f}'.format(iva) }}</td>
           </tr>
           <tr class="table-success">
-            <td><strong>Precio de venta</strong></td>
-            <td class="text-end"><strong>${{ '{:,.0f}'.format(r.precio_venta_sugerido or 0) }}</strong></td>
+            <td><strong>Precio de venta (sin IVA + IVA)</strong></td>
+            <td class="text-end"><strong>${{ '{:,.0f}'.format(precio_sin_iva + iva) }}</strong></td>
           </tr>
           {% endif %}
         </table>
@@ -104,8 +106,8 @@
 </div>
 {% else %}
 <div class="col-12"><div class="fc text-center py-5 text-muted">
-  <i class="bi bi-diagram-3 fs-1 d-block mb-2"></i>No hay recetas de producción.
-  <a href="{{ url_for('receta_nueva') }}" class="btn btn-primary mt-3">Crear primera receta</a>
+  <i class="bi bi-diagram-3 fs-1 d-block mb-2"></i>No hay productos registrados.
+  <a href="{{ url_for('receta_nueva') }}" class="btn btn-primary mt-3">Crear primer producto</a>
 </div></div>
 {% endfor %}
 </div>{% endblock %}
