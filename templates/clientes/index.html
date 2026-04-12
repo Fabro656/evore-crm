@@ -24,11 +24,18 @@
     <td><span class="b b-{{ c.estado_relacion }}">{{ c.estado_relacion.replace('_',' ').title() }}</span></td>
     <td>{% if c.contactos %}<small>{{ c.contactos[0].nombre }}{% if c.contactos[0].cargo %} · {{ c.contactos[0].cargo }}{% endif %}</small>{% else %}—{% endif %}</td>
     <td><small class="text-muted">{{ c.creado_en.strftime('%d/%m/%Y') }}</small></td>
-    <td><div class="d-flex gap-1">
-      <a href="{{ url_for('cliente_ver', id=c.id) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a>
-      <a href="{{ url_for('cliente_editar', id=c.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
-      <form method="POST" action="{{ url_for('cliente_eliminar', id=c.id) }}" onsubmit="return confirm('¿Eliminar?')">
-        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+    <td><div class="dropdown">
+      <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.78rem">
+        <i class="bi bi-three-dots me-1"></i>Acciones
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end" style="font-size:.83rem;min-width:180px">
+        <li><a class="dropdown-item" href="{{ url_for('cliente_ver', id=c.id) }}"><i class="bi bi-eye me-2 text-primary"></i>Ver</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('cliente_editar', id=c.id) }}"><i class="bi bi-pencil me-2 text-secondary"></i>Editar</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><form method="POST" action="{{ url_for('cliente_eliminar', id=c.id) }}" onsubmit="return confirm('¿Eliminar?')" class="px-0 m-0">
+          <button class="dropdown-item text-danger" type="submit"><i class="bi bi-trash me-2"></i>Eliminar</button>
+        </form></li>
+      </ul>
     </div></td>
   </tr>{% endfor %}</tbody>
 </table></div>

@@ -1234,6 +1234,23 @@ function calcEnvio() {
       +'</div>';
   }
 
+  // ── Transportistas compatibles ──
+  var transHtml = '';
+  if(recomendacion && typeof TRANSPORTISTAS !== 'undefined' && TRANSPORTISTAS.length > 0){
+    var reqKg = recomendacion.t.kg;
+    var compatibles = TRANSPORTISTAS.filter(function(t){ return t.kg >= reqKg || t.kg === 0; });
+    if(compatibles.length > 0){
+      transHtml = '<div class="sim-sg mt-3" style="border-left:3px solid var(--ac)">'
+        +'<div class="sim-st"><i class="bi bi-truck me-1"></i> Transportistas disponibles</div>';
+      compatibles.forEach(function(t){
+        transHtml += '<div class="sim-sr"><span>'+t.nombre+'</span><strong>'
+          +(t.tipo || 'Sin tipo')+(t.kg > 0 ? ' — '+t.kg+' kg' : '')
+          +'</strong></div>';
+      });
+      transHtml += '</div>';
+    }
+  }
+
   // Setear valores default en los parámetros fijos (solo la primera vez)
   var tarifaEl = document.getElementById('envTarifaPaq');
   var minEl = document.getElementById('envMinGuia');
@@ -1276,6 +1293,7 @@ function calcEnvio() {
     +intlNote
     +'</div>'
     +recHtml
+    +transHtml
     +tablaHtml
     +cotBtn;
 }

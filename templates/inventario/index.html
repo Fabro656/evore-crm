@@ -34,10 +34,17 @@
     <td><span class="fw-semibold {{ 'text-danger' if p.stock <= p.stock_minimo else 'text-success' }}">{{ (p.stock|float)|round(0)|int }}</span>
       <small class="text-muted"> / mín {{ p.stock_minimo }}</small>
       {% if p.stock <= p.stock_minimo %}<span class="badge bg-danger ms-1" style="font-size:.65rem">BAJO</span>{% endif %}</td>
-    <td><div class="d-flex gap-1">
-      <a href="{{ url_for('producto_editar', id=p.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
-      <form method="POST" action="{{ url_for('producto_eliminar', id=p.id) }}" onsubmit="return confirm('¿Eliminar?')">
-        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+    <td><div class="dropdown">
+      <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.78rem">
+        <i class="bi bi-three-dots me-1"></i>Acciones
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end" style="font-size:.83rem;min-width:180px">
+        <li><a class="dropdown-item" href="{{ url_for('producto_editar', id=p.id) }}"><i class="bi bi-pencil me-2 text-secondary"></i>Editar</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><form method="POST" action="{{ url_for('producto_eliminar', id=p.id) }}" onsubmit="return confirm('¿Eliminar?')" class="px-0 m-0">
+          <button class="dropdown-item text-danger" type="submit"><i class="bi bi-trash me-2"></i>Eliminar</button>
+        </form></li>
+      </ul>
     </div></td>
   </tr>{% endfor %}</tbody>
 </table></div>

@@ -182,6 +182,12 @@ NOTAS MEJORADAS:
 - Tipos: nota, alerta, seguimiento, resolucion
 - Estados: abierta, resuelta
 
+ENVIO Y LOGISTICA v38:
+- Las ventas pueden asignarse a un transportista y marcarse como enviadas
+- Al enviar, se notifica al cliente por email con el nombre del transportista
+- La remision de entrega incluye datos del transportista
+- El simulador de logistica calcula costos de envio y puede vincularse a cotizaciones/ventas existentes
+
 ══ CONTEXTO ACTUAL ══
 - Clientes activos: {n_clientes}
 - Ventas en curso: {n_ventas_act}

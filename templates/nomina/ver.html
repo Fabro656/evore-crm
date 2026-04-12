@@ -25,12 +25,12 @@
       <div class="tc">
         <div style="text-align:center">
           <div style="font-size:2rem;color:var(--ac);font-weight:700">{{ (empleado.salario_base|cop) }}</div>
-          <div style="font-size:.9rem;color:#666">Salario base</div>
+          <div style="font-size:.9rem;color:var(--text2)">Salario base</div>
         </div>
         <hr style="margin:1rem 0">
         <div style="text-align:center">
           <div style="font-size:1.4rem;color:var(--green);font-weight:700">{{ (calc.salario_neto|cop) }}</div>
-          <div style="font-size:.9rem;color:#666">Salario neto</div>
+          <div style="font-size:.9rem;color:var(--text2)">Salario neto</div>
         </div>
       </div>
     </div>
@@ -42,10 +42,10 @@
         <table style="font-size:.9rem;width:100%">
           <tr><td style="padding:6px">Salario bruto:</td><td style="text-align:right"><strong>{{ (calc.salario|cop) }}</strong></td></tr>
           <tr><td style="padding:6px">+ Auxilio transporte:</td><td style="text-align:right">{{ (calc.aux_transporte|cop) }}</td></tr>
-          <tr style="border-top:1px solid #ddd"><td style="padding:6px">— Salud (4%):</td><td style="text-align:right" style="color:#999">{{ (calc.deduccion_salud|cop) }}</td></tr>
-          <tr><td style="padding:6px">— Pensión (4%):</td><td style="text-align:right" style="color:#999">{{ (calc.deduccion_pension|cop) }}</td></tr>
-          {% if calc.fondo_solidaridad > 0 %}<tr><td style="padding:6px">— Fondo solidaridad:</td><td style="text-align:right" style="color:#999">{{ (calc.fondo_solidaridad|cop) }}</td></tr>{% endif %}
-          <tr style="border-top:2px solid var(--ac);background:#f5f8ff"><td style="padding:8px"><strong>= NETO:</strong></td><td style="text-align:right"><strong style="color:var(--green);font-size:1.1rem">{{ (calc.salario_neto|cop) }}</strong></td></tr>
+          <tr style="border-top:1px solid var(--border)"><td style="padding:6px">— Salud (4%):</td><td style="text-align:right" style="color:var(--text2)">{{ (calc.deduccion_salud|cop) }}</td></tr>
+          <tr><td style="padding:6px">— Pensión (4%):</td><td style="text-align:right" style="color:var(--text2)">{{ (calc.deduccion_pension|cop) }}</td></tr>
+          {% if calc.fondo_solidaridad > 0 %}<tr><td style="padding:6px">— Fondo solidaridad:</td><td style="text-align:right" style="color:var(--text2)">{{ (calc.fondo_solidaridad|cop) }}</td></tr>{% endif %}
+          <tr style="border-top:2px solid var(--ac);background:var(--surface2)"><td style="padding:8px"><strong>= NETO:</strong></td><td style="text-align:right"><strong style="color:var(--green);font-size:1.1rem">{{ (calc.salario_neto|cop) }}</strong></td></tr>
         </table>
       </div>
     </div>
@@ -54,13 +54,13 @@
         <h6 style="margin-bottom:1rem"><i class="bi bi-briefcase me-2"></i>Lo que paga la empresa</h6>
         <table style="font-size:.9rem;width:100%">
           <tr><td style="padding:6px">Salario + auxilio:</td><td style="text-align:right"><strong>{{ ((calc.salario + calc.aux_transporte)|cop) }}</strong></td></tr>
-          <tr style="border-top:1px solid #ddd"><td style="padding:6px">+ Salud (8.5%):</td><td style="text-align:right">{{ (calc.aporte_salud_empr|cop) }}</td></tr>
+          <tr style="border-top:1px solid var(--border)"><td style="padding:6px">+ Salud (8.5%):</td><td style="text-align:right">{{ (calc.aporte_salud_empr|cop) }}</td></tr>
           <tr><td style="padding:6px">+ Pensión (12%):</td><td style="text-align:right">{{ (calc.aporte_pension_empr|cop) }}</td></tr>
           <tr><td style="padding:6px">+ ARL:</td><td style="text-align:right">{{ (calc.aporte_arl|cop) }}</td></tr>
           <tr><td style="padding:6px">+ Caja compensación:</td><td style="text-align:right">{{ (calc.aporte_caja|cop) }}</td></tr>
           <tr><td style="padding:6px">+ SENA:</td><td style="text-align:right">{{ (calc.aporte_sena|cop) }}</td></tr>
           <tr><td style="padding:6px">+ ICBF:</td><td style="text-align:right">{{ (calc.aporte_icbf|cop) }}</td></tr>
-          <tr style="border-top:2px solid var(--ac);background:#f5f8ff"><td style="padding:8px"><strong>COSTO TOTAL:</strong></td><td style="text-align:right"><strong style="color:var(--ac);font-size:1.1rem">{{ (calc.costo_total_empresa|cop) }}</strong></td></tr>
+          <tr style="border-top:2px solid var(--ac);background:var(--surface2)"><td style="padding:8px"><strong>COSTO TOTAL:</strong></td><td style="text-align:right"><strong style="color:var(--ac);font-size:1.1rem">{{ (calc.costo_total_empresa|cop) }}</strong></td></tr>
         </table>
       </div>
     </div>
