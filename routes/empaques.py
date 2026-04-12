@@ -133,8 +133,11 @@ def register(app):
             # (el empaque puede transportar hasta max_por_peso aunque la caja quepa más).
             tope = min(int(max_por_peso * 2), 1200)
 
-            # ── Generar todas las factorizaciones únicas (r ≤ c ≤ l) ───────────
-            # r = filas (ancho), c = columnas (largo), l = capas (alto)
+            # ── Generar todas las factorizaciones con TODAS las orientaciones ──
+            # Probar las 3 orientaciones únicas del producto (rotaciones XYZ)
+            from itertools import permutations
+            orientaciones = list(set(permutations([ancho_prod, largo_prod, alto_prod])))
+
             variantes = []
             seen = set()
             for total in range(1, tope + 1):
@@ -146,53 +149,54 @@ def register(app):
                         if resto % c != 0:
                             continue
                         l = resto // c              # l >= c por construcción
-                        key = (r, c, l)
-                        if key in seen:
-                            continue
-                        seen.add(key)
 
-                        # Dimensiones internas de la caja:
-                        #   ancho_caja = r * ancho_prod + margen
-                        #   largo_caja = c * largo_prod + margen
-                        #   alto_caja  = l * alto_prod  + margen
-                        w = round(r * ancho_prod + margen, 1)
-                        d = round(c * largo_prod + margen, 1)
-                        h = round(l * alto_prod  + margen, 1)
-                        volumen    = round(w * d * h, 1)
+                        # Probar cada orientación del producto
+                        for (dim_x, dim_z, dim_y) in orientaciones:
+                            w = round(r * dim_x + margen, 1)
+                            d = round(c * dim_z + margen, 1)
+                            h = round(l * dim_y + margen, 1)
 
-                        # ── Filtro de proporciones para transporte/almacenaje ─────
-                        # 1) En unidades: ningún lado puede ser más de 6× otro
-                        dims_u = sorted([r, c, l])
-                        if dims_u[2] / max(dims_u[0], 1) > 6:
-                            continue
-                        # 2) En centímetros: ratio máx/mín de la caja ≤ 4.5
-                        #    (evita palillos; si total > max_por_peso la caja es válida
-                        #    pero sólo se cargan max_por_peso unidades)
-                        dims_cm = sorted([w, d, h])
-                        if dims_cm[2] / max(dims_cm[0], 0.01) > 4.5:
-                            continue
+                            key = (r, c, l, round(w,0), round(d,0), round(h,0))
+                            if key in seen:
+                                continue
+                            seen.add(key)
 
-                        # Si la configuración geométrica supera el límite de peso,
-                        # sólo cargamos max_por_peso unidades (caja "sobredimensionada").
-                        # Esto permite encontrar cajas de buenas proporciones aunque
-                        # el peso sea el factor limitante.
-                        actual_units = min(total, max_por_peso)
-                        peso_total   = round(actual_units * peso_unit, 3)
-                        pct_peso     = round((peso_total / peso_max) * 100, 1)
+                            volumen = round(w * d * h, 1)
 
-                        variantes.append({
-                            'total'      : actual_units,
-                            'filas'      : r,
-                            'columnas'   : c,
-                            'capas'      : l,
-                            'distribucion': f'{r}×{c}×{l}',
-                            'ancho_caja' : w,
-                            'largo_caja' : d,
-                            'alto_caja'  : h,
-                            'volumen_cm3': volumen,
-                            'peso_total' : peso_total,
-                            'pct_peso'   : pct_peso,
-                        })
+                            # ── Filtro de proporciones para transporte/almacenaje ──
+                            dims_u = sorted([r, c, l])
+                            if dims_u[2] / max(dims_u[0], 1) > 6:
+                                continue
+                            dims_cm = sorted([w, d, h])
+                            if dims_cm[2] / max(dims_cm[0], 0.01) > 4.5:
+                                continue
+
+                            actual_units = min(total, max_por_peso)
+                            peso_total   = round(actual_units * peso_unit, 3)
+                            pct_peso     = round((peso_total / peso_max) * 100, 1)
+
+                            # Cálculo de cinta: perímetro cara superior + inferior + 30%
+                            perimetro_superior = 2 * (w + d)
+                            perimetro_inferior = 2 * (w + d)
+                            cinta_cm = round((perimetro_superior + perimetro_inferior) * 1.3, 1)
+                            cinta_m = round(cinta_cm / 100, 3)
+
+                            variantes.append({
+                                'total'      : actual_units,
+                                'filas'      : r,
+                                'columnas'   : c,
+                                'capas'      : l,
+                                'distribucion': f'{r}×{c}×{l}',
+                                'ancho_caja' : w,
+                                'largo_caja' : d,
+                                'alto_caja'  : h,
+                                'volumen_cm3': volumen,
+                                'peso_total' : peso_total,
+                                'pct_peso'   : pct_peso,
+                                'cinta_cm'   : cinta_cm,
+                                'cinta_m'    : cinta_m,
+                                'orientacion': f'{dim_x}×{dim_z}×{dim_y}',
+                            })
 
             # Ordenar: por total unidades, luego por volumen (más compacto primero)
             variantes.sort(key=lambda v: (v['total'], v['volumen_cm3']))
@@ -234,29 +238,71 @@ def register(app):
                 activo=True
             )
             db.session.add(mp)
-            db.session.flush()  # Para obtener el ID generado
+            db.session.flush()
 
             # Vincular empaque a materia prima
             empaque.materia_prima_id = mp.id
             empaque.aprobado = True
 
+            # ── Crear/buscar MateriaPrima de cinta de embalaje ──
+            cinta_mp = MateriaPrima.query.filter(
+                db.func.lower(MateriaPrima.nombre).like('%cinta%embalaje%'),
+                MateriaPrima.activo == True
+            ).first()
+            if not cinta_mp:
+                cinta_mp = MateriaPrima(
+                    nombre='Cinta de embalaje (rollo 100m)',
+                    categoria='empaques',
+                    unidad='metros',
+                    stock_disponible=0,
+                    stock_reservado=0,
+                    stock_minimo=0,
+                    costo_unitario=0,
+                    activo=True
+                )
+                db.session.add(cinta_mp)
+                db.session.flush()
+
+            # Calcular cinta necesaria: perímetro superior + inferior + 30%
+            ancho_caja = getattr(empaque, 'ancho_caja', 0) or 0
+            largo_caja = getattr(empaque, 'largo_caja', 0) or 0
+            if ancho_caja and largo_caja:
+                perimetro = 2 * (ancho_caja + largo_caja)
+                cinta_por_caja_cm = perimetro * 2 * 1.3  # sup + inf + 30%
+                cinta_por_caja_m = round(cinta_por_caja_cm / 100, 4)
+            else:
+                cinta_por_caja_m = 0.5  # fallback 50cm si no hay dims
+
             # Agregar caja como ingrediente de la receta del producto (si existe)
             receta = RecetaProducto.query.filter_by(producto_id=empaque.producto_id, activo=True).first()
             receta_msg = ''
             if receta:
-                # Verificar que no esté ya en la receta
+                # Agregar caja si no existe
                 ya_existe = RecetaItem.query.filter_by(receta_id=receta.id, materia_prima_id=mp.id).first()
                 if not ya_existe:
-                    # 1 caja por cada unidad producida
                     cajas_por_lote = receta.unidades_produce / empaque.unidades_por_caja
-                    ri = RecetaItem(
+                    db.session.add(RecetaItem(
                         receta_id=receta.id,
                         materia_prima_id=mp.id,
                         cantidad_por_unidad=round(1.0 / empaque.unidades_por_caja, 6),
-                        es_empaque=True
-                    )
-                    db.session.add(ri)
-                    receta_msg = f' Agregada a receta ({cajas_por_lote:.1f} cajas/lote).'
+                        es_empaque=True,
+                        clasificacion='empaque_secundario'
+                    ))
+                    receta_msg = f' Caja agregada ({cajas_por_lote:.1f}/lote).'
+
+                # Agregar cinta si no existe
+                cinta_existe = RecetaItem.query.filter_by(receta_id=receta.id, materia_prima_id=cinta_mp.id).first()
+                if not cinta_existe:
+                    # Cinta por unidad = cinta_por_caja / unidades_por_caja
+                    cinta_por_unidad = round(cinta_por_caja_m / empaque.unidades_por_caja, 6)
+                    db.session.add(RecetaItem(
+                        receta_id=receta.id,
+                        materia_prima_id=cinta_mp.id,
+                        cantidad_por_unidad=cinta_por_unidad,
+                        es_empaque=True,
+                        clasificacion='empaque_secundario'
+                    ))
+                    receta_msg += f' Cinta: {cinta_por_caja_m:.2f}m/caja.'
             else:
                 receta_msg = ' Sin receta activa — agregar manualmente.'
 
@@ -265,7 +311,8 @@ def register(app):
             try:
                 _calcular_costo_receta(empaque.producto_id)
                 db.session.commit()
-            except: pass
+            except Exception:
+                pass
             flash(f'Empaque aprobado. MP "{nombre_mp}" creada.{receta_msg}', 'success')
         except Exception as e:
             db.session.rollback()

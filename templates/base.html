@@ -465,6 +465,7 @@ img,svg{max-width:100%;height:auto}
     <a href="{{ url_for('cotizaciones_proveedor', tipo='general') }}" class="nav-link" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-box"></i><span>Servicios</span></a>
     <a href="{{ url_for('ordenes_compra') }}" class="nav-link {% if 'orden_compra' in request.endpoint %}active{% endif %}"><i class="bi bi-cart-check"></i><span>Órdenes de Compra</span></a>
     <a href="{{ url_for('compras') }}" class="nav-link {% if request.endpoint=='compras' or request.endpoint=='compra_nueva' or request.endpoint=='compra_editar' %}active{% endif %}"><i class="bi bi-receipt"></i><span>Registro de compras</span></a>
+    {% if 'empaques' in m or 'produccion' in m %}<a href="{{ url_for('empaques') }}" class="nav-link {% if 'empaque' in request.endpoint %}active{% endif %}"><i class="bi bi-box2-heart-fill"></i><span>Empaques secundarios</span></a>{% endif %}
     {% endif %}
     {% if 'inventario' in m or 'produccion' in m %}
     <div class="sb-sec">Operaciones</div>
@@ -473,7 +474,6 @@ img,svg{max-width:100%;height:auto}
     {% if 'produccion' in m %}<a href="{{ url_for('produccion_index') }}" class="nav-link {% if 'produccion' in request.endpoint or 'materia' in request.endpoint or 'reserva' in request.endpoint %}active{% endif %}"><i class="bi bi-gear-fill"></i><span>Producción</span></a>{% endif %}
     {% if 'produccion' in m %}<a href="{{ url_for('ordenes_produccion') }}" class="nav-link {% if request.endpoint=='ordenes_produccion' or request.endpoint=='orden_completar' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-list-check"></i><span>Órdenes</span></a>{% endif %}
     {% if 'produccion' in m %}<a href="{{ url_for('gantt') }}" class="nav-link {% if request.endpoint=='gantt' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-bar-chart-steps"></i><span>Gantt</span></a>{% endif %}
-    {% if 'empaques' in m %}<a href="{{ url_for('empaques') }}" class="nav-link {% if 'empaque' in request.endpoint %}active{% endif %}"><i class="bi bi-box2-heart-fill"></i><span>Empaques secundarios</span></a>{% endif %}
     {% endif %}
     {% if 'legal' in m or current_user.rol in ('admin','director_financiero','director_operativo') %}
     <div class="sb-sec">Legal</div>
