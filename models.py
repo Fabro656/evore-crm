@@ -373,6 +373,7 @@ class DocumentoLegal(db.Model):
     es_demo           = db.Column(db.Boolean, default=False)
     creado_por        = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en         = db.Column(db.DateTime, default=datetime.utcnow)
+    producto          = db.relationship('Producto', foreign_keys=[producto_id])
 
 class CuentaPUC(db.Model):
     """Plan Único de Cuentas — catálogo contable colombiano (Decreto 2650/1993)."""

@@ -978,9 +978,15 @@ def register(app):
                       'precio_venta_sugerido':getattr(p,'precio_venta_sugerido',0) or p.precio or 0,
                       'costo_receta':getattr(p,'costo_receta',0) or p.costo or 0}
                      for p in Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()]
+        # NSOs vigentes del módulo legal vinculados a productos
+        nsos = [{'id':d.id,'titulo':d.titulo,'producto_id':d.producto_id or 0,
+                 'producto_nombre': d.producto.nombre if d.producto_id and hasattr(d,'producto') and d.producto else '',
+                 'numero':d.numero or ''}
+                for d in DocumentoLegal.query.filter_by(tipo='nso', activo=True).all()]
         return render_template('cotizaciones/form.html', obj=None, titulo='Nueva Cotización',
             clientes_list=clientes_list, today=datetime.utcnow().strftime('%Y-%m-%d'),
-            iva_default=iva_default, servicios_json=_servicios_json(), prods_json=prods_cot)
+            iva_default=iva_default, servicios_json=_servicios_json(), prods_json=prods_cot,
+            nsos_json=nsos)
 
 
     # ── Helper: calcular fecha de entrega según dias_tipo

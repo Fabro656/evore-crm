@@ -95,7 +95,17 @@
       </div>
     </div>
 
-    {# ── Alertas ── #}
+    {# ── Alerta empaque secundario ── #}
+    {% set tiene_empaque = r.items|selectattr('clasificacion','equalto','empaque_secundario')|list %}
+    {% if not tiene_empaque %}
+    <div class="mt-2 p-2 rounded" style="background:#fff3cd;font-size:.82rem;color:#856404;border:1px solid #ffc107">
+      <i class="bi bi-box2-heart me-1"></i><strong>Empaque secundario no registrado.</strong>
+      Agrega la caja/empaque secundario como ingrediente antes de enviar cotización.
+      <a href="{{ url_for('receta_editar', id=r.id) }}" class="ms-2 btn btn-sm btn-outline-warning">Agregar empaque</a>
+    </div>
+    {% endif %}
+
+    {# ── Alertas de cotización ── #}
     {% if c.alertas %}
     <div class="mt-2 p-2 rounded" style="background:var(--surface2);font-size:.8rem;color:var(--orange)">
       <i class="bi bi-exclamation-triangle me-1"></i><strong>{{ c.alertas|length }} alerta(s):</strong>

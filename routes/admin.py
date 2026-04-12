@@ -429,9 +429,11 @@ def register(app):
     @app.route('/legal/nuevo', methods=['GET','POST'])
     @login_required
     def legal_nuevo():
+        productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
         if request.method == 'POST':
             fe = request.form.get('fecha_emision')
             fv = request.form.get('fecha_vencimiento')
+            prod_id = request.form.get('producto_id')
             d = DocumentoLegal(
                 tipo=request.form.get('tipo','otro'),
                 titulo=request.form['titulo'],
@@ -444,12 +446,14 @@ def register(app):
                 recordatorio_dias=int(request.form.get('recordatorio_dias') or 30),
                 archivo_url=request.form.get('archivo_url',''),
                 notas=request.form.get('notas',''),
+                producto_id=int(prod_id) if prod_id else None,
+                tipo_entidad='producto' if prod_id else None,
                 activo=True, creado_por=current_user.id
             )
             db.session.add(d); db.session.commit()
             flash('Documento legal creado.','success')
             return redirect(url_for('legal_index'))
-        return render_template('legal/form.html', obj=None, titulo='Nuevo Documento Legal')
+        return render_template('legal/form.html', obj=None, titulo='Nuevo Documento Legal', productos=productos)
     
 
     # ── legal_editar (/legal/<int:id>/editar)
@@ -474,7 +478,8 @@ def register(app):
             db.session.commit()
             flash('Documento actualizado.','success')
             return redirect(url_for('legal_index'))
-        return render_template('legal/form.html', obj=obj, titulo='Editar Documento Legal')
+        productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
+        return render_template('legal/form.html', obj=obj, titulo='Editar Documento Legal', productos=productos)
     
 
     # ── legal_eliminar (/legal/<int:id>/eliminar)

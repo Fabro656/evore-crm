@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('cotizaciones') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
-{% block content %}<div class="fc" style="max-width:900px"><form method="POST"><div class="row g-3">
+{% block content %}<div class="fc"><form method="POST"><div class="row g-3">
   <div class="col-md-8"><label class="form-label">Título de la cotización *</label>
     <input type="text" name="titulo" class="form-control" placeholder="Ej: Diseño y producción de catálogo Q2 2026" value="{{ obj.titulo if obj else '' }}" required></div>
   <div class="col-md-4"><label class="form-label">Cliente</label>
@@ -72,7 +72,7 @@
           <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Cant.</label>
             <input type="number" name="item_cantidad[]" class="form-control form-control-sm item-cant" placeholder="1" step="0.01" min="0" value="{{ it.cantidad }}" oninput="calcRow(this)"></div>
           <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Unidad</label>
-            <input type="text" name="item_unidad[]" class="form-control form-control-sm item-unidad" placeholder="un" value="{{ it.unidad or 'unidades' }}"></div>
+            <input type="text" name="item_unidad[]" class="form-control form-control-sm item-unidad" value="{{ it.unidad or 'unidades' }}" readonly style="background:var(--surface2)"></div>
           <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Precio</label>
             <div class="input-group input-group-sm"><span class="input-group-text" style="font-size:.75rem">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0" step="1" min="0" value="{{ it.precio_unit|int }}" oninput="calcRow(this)"></div></div>
           <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">IVA %</label>
@@ -104,7 +104,7 @@
           <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Cant.</label>
             <input type="number" name="item_cantidad[]" class="form-control form-control-sm item-cant" placeholder="1" step="0.01" min="0" value="1" oninput="calcRow(this)"></div>
           <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Unidad</label>
-            <input type="text" name="item_unidad[]" class="form-control form-control-sm item-unidad" placeholder="un" value="unidades"></div>
+            <input type="text" name="item_unidad[]" class="form-control form-control-sm item-unidad" value="unidades" readonly style="background:var(--surface2)"></div>
           <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Precio</label>
             <div class="input-group input-group-sm"><span class="input-group-text" style="font-size:.75rem">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0" step="1" min="0" value="0" oninput="calcRow(this)"></div></div>
           <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">IVA %</label>
@@ -137,12 +137,26 @@
 {% block scripts %}<script>
 var SERVICIOS = {{ servicios_json|tojson }};
 var PRODS = typeof PRODS !== 'undefined' ? PRODS : ({{ prods_json|tojson|default('[]') }});
+var NSOS = {{ nsos_json|tojson|default('[]') }};
 function fmt(n){return'$ '+Math.round(n).toLocaleString('es-CO');}
 
 function buildProdOptions(selectedName){
-  var html='<option value="">— Seleccionar —</option>';
+  var html='<option value="">— Seleccionar producto —</option>';
+  // Mostrar NSOs (nombre comercial — producto)
+  if(NSOS && NSOS.length){
+    NSOS.forEach(function(nso){
+      var prod = PRODS.find(p=>p.id===nso.producto_id);
+      if(!prod) return;
+      var label = nso.titulo + ' — ' + prod.nombre + (prod.sku?' ('+prod.sku+')':'');
+      var sel=(selectedName && nso.titulo===selectedName)?' selected':'';
+      html+='<option value="'+nso.titulo+'" data-id="'+prod.id+'" data-precio="'+(prod.precio_venta_sugerido||prod.precio||0)+'" data-sku="'+(prod.sku||'')+'" data-costo="'+(prod.costo_receta||0)+'" data-nso="'+nso.numero+'"'+sel+'>'+label+'</option>';
+    });
+  }
+  // Productos sin NSO
   PRODS.forEach(function(p){
-    var label=p.nombre+(p.sku?' ('+p.sku+')':'');
+    var tieneNso = NSOS && NSOS.find(n=>n.producto_id===p.id);
+    if(tieneNso) return; // ya se mostró arriba
+    var label=p.nombre+(p.sku?' ('+p.sku+')':'') + ' [sin NSO]';
     var sel=(selectedName && p.nombre===selectedName)?' selected':'';
     html+='<option value="'+p.nombre+'" data-id="'+p.id+'" data-precio="'+(p.precio_venta_sugerido||p.precio||0)+'" data-sku="'+(p.sku||'')+'" data-costo="'+(p.costo_receta||0)+'"'+sel+'>'+label+'</option>';
   });

@@ -1,19 +1,28 @@
 {% extends 'base.html' %}
 {% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('legal_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
-{% block content %}<div class="fc" style="max-width:900px"><form method="POST">
+{% block content %}<div class="fc"><form method="POST">
 <div class="row g-3">
-  <div class="col-md-4"><label class="form-label">Tipo de documento *</label>
+  <div class="col-md-3"><label class="form-label">Tipo de documento *</label>
     <select name="tipo" class="form-select" required>
       {% for t,l in [('permiso_sanitario','Permiso Sanitario'),('registro_invima','Registro INVIMA'),('nso','NSO'),('contrato','Contrato'),('licencia','Licencia'),('certificado','Certificado'),('otro','Otro')] %}
       <option value="{{ t }}" {% if obj and obj.tipo==t %}selected{% endif %}>{{ l }}</option>{% endfor %}
     </select></div>
-  <div class="col-md-8"><label class="form-label">Título *</label>
-    <input type="text" name="titulo" class="form-control" value="{{ obj.titulo if obj else '' }}" required></div>
+  <div class="col-md-5"><label class="form-label">Título (nombre comercial) *</label>
+    <input type="text" name="titulo" class="form-control" value="{{ obj.titulo if obj else '' }}" required placeholder="Nombre comercial del producto"></div>
+  <div class="col-md-4"><label class="form-label">Producto (receta) vinculado</label>
+    <select name="producto_id" class="form-select">
+      <option value="">— Sin vincular —</option>
+      {% for p in productos %}<option value="{{ p.id }}" {% if obj and obj.producto_id==p.id %}selected{% endif %}>{{ p.nombre }}{% if p.sku %} ({{ p.sku }}){% endif %}</option>{% endfor %}
+    </select></div>
   <div class="col-md-4"><label class="form-label">Número del documento</label>
     <input type="text" name="numero" class="form-control" placeholder="Número de resolución, contrato..." value="{{ obj.numero if obj else '' }}"></div>
   <div class="col-md-4"><label class="form-label">Entidad emisora</label>
-    <input type="text" name="entidad" class="form-control" placeholder="INVIMA, Secretaría, etc." value="{{ obj.entidad if obj else '' }}"></div>
+    <select name="entidad" class="form-select">
+      <option value="">— Seleccionar —</option>
+      {% for ent in ['INVIMA','Secretaría de Salud Departamental','Secretaría de Salud Municipal','ICA','Ministerio de Salud','Ministerio de Ambiente','DIAN','Superintendencia de Industria y Comercio','CDA (Corporación Autónoma)','ICONTEC','Otro'] %}
+      <option value="{{ ent }}" {% if obj and obj.entidad==ent %}selected{% endif %}>{{ ent }}</option>{% endfor %}
+    </select></div>
   <div class="col-md-4"><label class="form-label">Estado</label>
     <select name="estado" class="form-select">
       {% for est,lbl in [('vigente','Vigente'),('en_tramite','En trámite'),('vencido','Vencido'),('suspendido','Suspendido')] %}
@@ -35,6 +44,6 @@
 <div class="d-flex gap-2 mt-4">
   <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear Documento' }}</button>
   <a href="{{ url_for('legal_index') }}" class="btn btn-outline-secondary">Cancelar</a>
-</div></form></div>{% endblock %}"""
+</div></form></div>{% endblock %}
 
 # ── CONTABLE TEMPLATES ─────────────────────────────────────────
