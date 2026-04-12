@@ -970,7 +970,9 @@ const FTL_KM_RATE = {S:1800, M:2500, L:3500, XL:5000, XXL:6500};
 function initEnvioSelects() {
   ['envOrig','envDest'].forEach(function(id){
     var sel = document.getElementById(id);
-    if (!sel || sel.options.length > 1) return;
+    if (!sel) return;
+    // Siempre reconstruir opciones
+    sel.innerHTML = '';
     var lastGroup = null;
     CIUDADES.forEach(function(c){
       var grp = c.int ? 'Internacional' : 'Colombia';
@@ -1298,7 +1300,7 @@ function calcPorCantidad() {
   <span class="badge ${hasSingle?'bg-success':'bg-warning text-dark'}" style="font-size:.8rem">
     ${hasSingle?'Cabe en 1 solo viaje':'Se requieren múltiples viajes'}
   </span>
-  <small class="text-muted">${udsTarget.toLocaleString()} unidades · ${boxesNeeded} cajas · ${show.length} opciones</small>
+  <small class="text-muted">${udsTarget.toLocaleString()} unidades · ${show.length>0?show[0].boxesNeeded:0} cajas · ${show.length} opciones</small>
 </div>
 <div class="table-responsive">
 <table class="table table-sm table-hover mb-0" style="font-size:.8rem">
@@ -1478,7 +1480,7 @@ function usarVarianteTruck(truckKey, vi) {
               <div class="col">
                 <label style="font-size:.76rem;color:#5E6C84">Origen</label>
                 <select id="envOrig" class="form-select form-select-sm">
-                  <option value="CDMX">🇲🇽 Ciudad de México</option>
+                  <option value="">— Seleccionar —</option>
                 </select>
               </div>
               <div class="col-auto d-flex align-items-end pb-1">
@@ -1487,7 +1489,7 @@ function usarVarianteTruck(truckKey, vi) {
               <div class="col">
                 <label style="font-size:.76rem;color:#5E6C84">Destino</label>
                 <select id="envDest" class="form-select form-select-sm">
-                  <option value="CDMX">🇲🇽 Ciudad de México</option>
+                  <option value="">— Seleccionar —</option>
                 </select>
               </div>
               <div class="col-auto">
