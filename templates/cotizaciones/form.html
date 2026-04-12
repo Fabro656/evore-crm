@@ -378,4 +378,38 @@ document.getElementById('pctAnticipo').addEventListener('input',calcTotal);
 populateAllProdSelects();
 calcTotal();
 setupAutoTitulo('[name="titulo"]',['[name="cliente_id"]','[name="fecha_emision"]']);
+
+// Pre-fill de envío desde simulador logístico
+{% if envio_prefill %}
+(function(){
+  var ep = {{ envio_prefill|tojson }};
+  // Setear título
+  var tituloEl = document.querySelector('[name="titulo"]');
+  if(tituloEl && ep.titulo) tituloEl.value = ep.titulo;
+  // Cambiar primera fila a servicio con datos de envío
+  var firstRow = document.querySelector('.item-row');
+  if(firstRow){
+    var tipoSel = firstRow.querySelector('.item-tipo');
+    if(tipoSel){ tipoSel.value = 'servicio'; updateItemRow(tipoSel); }
+    var nombreSel = firstRow.querySelector('.item-nombre');
+    if(nombreSel){
+      // Agregar opción manual de envío
+      var opt = document.createElement('option');
+      opt.value = 'Servicio de envío — ' + ep.vehiculo + ' (' + ep.modo + ') · ' + ep.dist + ' km · ' + ep.cajas + ' cajas';
+      opt.textContent = opt.value;
+      opt.selected = true;
+      nombreSel.appendChild(opt);
+    }
+    var cantEl = firstRow.querySelector('.item-cant');
+    if(cantEl) cantEl.value = 1;
+    var unidadEl = firstRow.querySelector('.item-unidad');
+    if(unidadEl) unidadEl.value = 'servicio';
+    var precioEl = firstRow.querySelector('.item-precio');
+    if(precioEl) precioEl.value = ep.costo;
+    var ivaPctEl = firstRow.querySelector('.item-iva-pct');
+    if(ivaPctEl) ivaPctEl.value = 19;
+    calcRow(precioEl || cantEl);
+  }
+})();
+{% endif %}
 </script>{% endblock %}{% endblock %}

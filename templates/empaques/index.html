@@ -995,56 +995,84 @@ function initEnvioSelects() {
   });
 }
 
+var _lastEnvioResult = null; // Guardar resultado para cotización
+
+function nominatimFetch(q) {
+  return fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q), {
+    headers: {'Accept': 'application/json'}
+  }).then(function(r){ return r.json(); });
+}
+
 function mostrarMapa() {
   var orig = document.getElementById('envOrigAddr').value.trim();
   var dest = document.getElementById('envDestAddr').value.trim();
   if(!orig) orig = 'Bogotá, Colombia';
   if(!dest) dest = 'Medellín, Colombia';
-  if(!orig.includes('Colombia')) orig += ', Colombia';
-  if(!dest.includes('Colombia')) dest += ', Colombia';
+  if(!orig.toLowerCase().includes('colombia')) orig += ', Colombia';
+  if(!dest.toLowerCase().includes('colombia')) dest += ', Colombia';
 
   var container = document.getElementById('mapaContainer');
   var iframe = document.getElementById('mapaIframe');
   var distInput = document.getElementById('envDistManual');
   var statusEl = document.getElementById('mapaStatus');
 
-  // Mostrar mapa
   iframe.src = 'https://maps.google.com/maps?saddr=' + encodeURIComponent(orig) + '&daddr=' + encodeURIComponent(dest) + '&output=embed&z=6';
   container.style.display = 'block';
-  if(statusEl) statusEl.textContent = 'Calculando distancia...';
+  if(statusEl) statusEl.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Calculando distancia por carretera...';
 
-  // Geocodificar ambas direcciones con Nominatim y luego calcular distancia con OSRM
-  Promise.all([
-    fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(orig)).then(function(r){return r.json();}),
-    fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(dest)).then(function(r){return r.json();})
-  ]).then(function(results){
-    var geoOrig = results[0], geoDest = results[1];
-    if(!geoOrig.length || !geoDest.length){
-      if(statusEl) statusEl.textContent = 'No se pudo geocodificar. Ingresa la distancia manualmente.';
+  // Geocodificar con delay para evitar rate limit de Nominatim
+  nominatimFetch(orig).then(function(geoOrig){
+    if(!geoOrig || !geoOrig.length){
+      if(statusEl) statusEl.innerHTML = '<span class="text-warning">No se encontró la dirección de origen. Intenta ser más específico.</span>';
+      return Promise.reject('geo_fail');
+    }
+    return new Promise(function(resolve){ setTimeout(function(){ resolve(geoOrig); }, 1100); });
+  }).then(function(geoOrig){
+    return nominatimFetch(dest).then(function(geoDest){
+      return {orig: geoOrig, dest: geoDest};
+    });
+  }).then(function(geo){
+    if(!geo.dest || !geo.dest.length){
+      if(statusEl) statusEl.innerHTML = '<span class="text-warning">No se encontró la dirección de destino. Intenta ser más específico.</span>';
       return;
     }
-    var lonO = geoOrig[0].lon, latO = geoOrig[0].lat;
-    var lonD = geoDest[0].lon, latD = geoDest[0].lat;
-    // OSRM: distancia real por carretera
+    var lonO = geo.orig[0].lon, latO = geo.orig[0].lat;
+    var lonD = geo.dest[0].lon, latD = geo.dest[0].lat;
     return fetch('https://router.project-osrm.org/route/v1/driving/' + lonO + ',' + latO + ';' + lonD + ',' + latD + '?overview=false')
-      .then(function(r){return r.json();})
+      .then(function(r){ return r.json(); })
       .then(function(data){
         if(data.routes && data.routes.length > 0){
           var distKm = Math.round(data.routes[0].distance / 1000);
           var durH = Math.round(data.routes[0].duration / 3600 * 10) / 10;
           distInput.value = distKm;
-          if(statusEl) statusEl.innerHTML = '<strong>' + distKm + ' km</strong> por carretera · ~' + durH + ' horas de viaje';
-          // Auto-calcular
+          if(statusEl) statusEl.innerHTML = '🛣️ <strong>' + distKm + ' km</strong> por carretera · ~' + durH + ' horas de viaje';
           calcEnvio();
         } else {
-          if(statusEl) statusEl.textContent = 'Ruta no encontrada. Ingresa la distancia manualmente.';
+          if(statusEl) statusEl.innerHTML = '<span class="text-warning">Ruta no encontrada por OSRM. Ingresa la distancia manualmente.</span>';
         }
       });
   }).catch(function(e){
-    if(statusEl) statusEl.textContent = 'Error al calcular: ' + e.message + '. Ingresa la distancia manualmente.';
+    if(e === 'geo_fail') return;
+    console.error('Error ruta:', e);
+    if(statusEl) statusEl.innerHTML = '<span class="text-warning">Error al calcular ruta. Ingresa la distancia manualmente.</span>';
   });
 }
-function abrirGoogleMaps() { mostrarMapa(); }
+
+function crearCotizacionEnvio() {
+  if(!_lastEnvioResult) { alert('Primero calcula el costo de envío.'); return; }
+  var r = _lastEnvioResult;
+  var params = new URLSearchParams({
+    titulo: 'Envío ' + (document.getElementById('envOrigAddr').value||'Origen') + ' → ' + (document.getElementById('envDestAddr').value||'Destino'),
+    servicio_envio: '1',
+    envio_vehiculo: r.vehiculo,
+    envio_modo: r.modo,
+    envio_costo: Math.round(r.costo),
+    envio_dist: r.distancia,
+    envio_cajas: r.cajas,
+    envio_uds: r.unidades
+  });
+  window.location.href = '/cotizaciones/nueva?' + params.toString();
+}
 
 function sincronizarCantidad() {
   var v = document.getElementById('qtyUds').value;
@@ -1167,7 +1195,38 @@ function calcEnvio() {
 </div>
 ${recHtml}
 ${tablaHtml}
-${paramsHtml}`;
+  // Guardar resultado para cotización
+  if(recomendacion){
+    var costoConIva = Math.round(recomendacion.mejorCosto * 1.19);
+    _lastEnvioResult = {
+      vehiculo: recomendacion.t.name + ' — ' + recomendacion.t.desc,
+      modo: recomendacion.modo === 'pallet' ? 'Con pallets' : 'Cajas sueltas',
+      costo: recomendacion.mejorCosto,
+      costoIva: costoConIva,
+      distancia: dist,
+      cajas: cajasNec,
+      unidades: hasQty ? qty : udsPerBox,
+      viajes: recomendacion.viajes,
+      metodo: recomendacion.mejor
+    };
+  }
+
+  // Botón crear cotización
+  var cotBtn = '';
+  if(recomendacion){
+    var costoIva = Math.round(recomendacion.mejorCosto * 1.19);
+    cotBtn = '<div class="sim-sg mt-3" style="border-left:3px solid #4C9BE8">'
+      +'<div class="sim-st">📄 Crear cotización de envío</div>'
+      +'<div class="sim-sr"><span>Costo del envío</span><strong>'+fmt(recomendacion.mejorCosto)+'</strong></div>'
+      +'<div class="sim-sr"><span>+ IVA 19%</span><strong>'+fmt(costoIva - recomendacion.mejorCosto)+'</strong></div>'
+      +'<div class="sim-sr"><span>Total con IVA</span><strong style="color:var(--ac);font-size:1.1rem">'+fmt(costoIva)+'</strong></div>'
+      +'<div class="mt-2"><button class="btn btn-sm btn-primary" onclick="crearCotizacionEnvio()">'
+      +'<i class="bi bi-file-earmark-plus me-1"></i>Crear cotización de venta con este envío</button></div>'
+      +'</div>';
+  }
+
+${paramsHtml}
+${cotBtn}`;
 }
 
 // ── Caja óptima por vehículo ──────────────────────────────────────

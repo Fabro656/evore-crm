@@ -1030,10 +1030,22 @@ def register(app):
                         for d in DocumentoLegal.query.filter_by(activo=True).all()
                         if d.producto_id]
         nsos = [dl for dl in docs_legales if dl['tipo'] == 'nso']
+        # Pre-fill de envío si viene del simulador de logística
+        envio_prefill = None
+        if request.args.get('servicio_envio'):
+            envio_prefill = {
+                'titulo': request.args.get('titulo', ''),
+                'vehiculo': request.args.get('envio_vehiculo', ''),
+                'modo': request.args.get('envio_modo', ''),
+                'costo': int(request.args.get('envio_costo', 0)),
+                'dist': request.args.get('envio_dist', ''),
+                'cajas': request.args.get('envio_cajas', ''),
+                'uds': request.args.get('envio_uds', ''),
+            }
         return render_template('cotizaciones/form.html', obj=None, titulo='Nueva Cotización',
             clientes_list=clientes_list, today=datetime.utcnow().strftime('%Y-%m-%d'),
             iva_default=iva_default, servicios_json=_servicios_json(), prods_json=prods_cot,
-            nsos_json=nsos, docs_legales_json=docs_legales)
+            nsos_json=nsos, docs_legales_json=docs_legales, envio_prefill=envio_prefill)
 
 
     # ── Helper: calcular fecha de entrega según dias_tipo
