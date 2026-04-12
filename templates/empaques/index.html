@@ -46,8 +46,13 @@
         {% endif %}
       </td>
       <td class="text-center">
-        <div class="d-flex gap-1 justify-content-center">
-          {% if not e.aprobado %}
+        <div class="d-flex gap-1 justify-content-center flex-wrap">
+          {% if e.aprobado %}
+          <button class="btn btn-sm btn-outline-info" title="Simular logística"
+                  onclick="simAprobado({{ e.ancho }},{{ e.largo }},{{ e.alto }},{{ e.peso_unitario }},{{ e.peso_max_caja }},{{ e.unidades_por_caja }})">
+            <i class="bi bi-truck me-1"></i>Logística
+          </button>
+          {% else %}
           <form method="POST" action="{{ url_for('empaques_aprobar', id=e.id) }}"
                 onsubmit="return confirm('¿Aprobar este empaque? Se creará una materia prima automáticamente.')">
             <button class="btn btn-sm btn-outline-success" title="Aprobar"><i class="bi bi-check-lg"></i></button>
@@ -598,6 +603,31 @@ function calcTruckSueltas(truck, bw, bd, bh, bKg) {
   const tot = Math.min(totGeom, totPeso);
   const tkg = tot * bKg;
   return {fit, ly, tot, tkg, pctKg: truck.kg>0 ? Math.min(100, tkg/truck.kg*100) : null};
+}
+
+function simAprobado(ancho, largo, alto, pesoUnit, pesoMax, uds) {
+  // Crear variante virtual desde empaque aprobado
+  var pesoTotal = round3(uds * pesoUnit);
+  _simV = {
+    total: uds, filas: 0, columnas: 0, capas: 0,
+    distribucion: uds + ' uds',
+    ancho_caja: round1(uds > 1 ? ancho + 2 : ancho),
+    largo_caja: round1(uds > 1 ? largo + 2 : largo),
+    alto_caja: round1(uds > 1 ? alto + 2 : alto),
+    volumen_cm3: 0,
+    peso_total: pesoTotal,
+    pct_peso: pesoMax > 0 ? round1(pesoTotal / pesoMax * 100) : 0
+  };
+  function round1(v){return Math.round(v*10)/10;}
+  function round3(v){return Math.round(v*1000)/1000;}
+  if (!_simModal) _simModal = new bootstrap.Modal(document.getElementById('simModal'));
+  document.getElementById('simBoxHdr').textContent =
+    _simV.ancho_caja+'×'+_simV.largo_caja+'×'+_simV.alto_caja+' cm · '+_simV.peso_total+' kg · '+_simV.total+' uds (aprobado)';
+  document.getElementById('envResult').innerHTML = '';
+  initEnvioSelects();
+  switchSimTab('sim');
+  _simModal.show();
+  setTimeout(function(){ selectTrk('L'); }, 100);
 }
 
 function abrirSim(idx) {
