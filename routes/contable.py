@@ -383,6 +383,7 @@ def register(app):
 
         if asiento.monto_pagado >= total_asiento:
             asiento.estado_pago = 'completo'
+            asiento.estado_asiento = 'aprobado'  # auto-aprobar al completar pago
         else:
             asiento.estado_pago = 'parcial'
 

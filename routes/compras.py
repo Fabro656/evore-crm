@@ -22,6 +22,7 @@ def register(app):
             if not nom.strip(): continue
             cant   = float(cants[i])   if i < len(cants)   else 1
             precio = float(precios[i]) if i < len(precios) else 0
+            if cant <= 0: continue  # skip invalid items
             cot_id = int(cot_ids[i]) if i < len(cot_ids) and cot_ids[i].strip() else None
             items.append(OrdenCompraItem(
                 orden_id=oc_id, nombre_item=nom.strip(),

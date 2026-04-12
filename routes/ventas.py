@@ -303,11 +303,23 @@ def register(app):
             fa = request.form.get('fecha_anticipo')
             fe = request.form.get('fecha_entrega_est')
             subtotal = float(request.form.get('subtotal_calc') or 0)
+            if subtotal <= 0:
+                flash('El valor de la venta debe ser mayor a cero.', 'danger')
+                return redirect(url_for('venta_nueva'))
             iva_monto = round(subtotal * iva_pct / 100.0, 2)
-            total = subtotal + iva_monto
+            total = round(subtotal + iva_monto, 2)
             cot_id = request.form.get('cotizacion_id') or None
+            if cot_id:
+                venta_dup = Venta.query.filter_by(cotizacion_id=int(cot_id)).first()
+                if venta_dup:
+                    flash(f'Ya existe una venta ({venta_dup.numero}) para esa cotizacion.', 'warning')
+                    return redirect(url_for('ventas'))
+            cliente_id = request.form.get('cliente_id') or None
+            if not cliente_id:
+                flash('Debes seleccionar un cliente.', 'danger')
+                return redirect(url_for('venta_nueva'))
             v = Venta(titulo=request.form['titulo'],
-                cliente_id=request.form.get('cliente_id') or None,
+                cliente_id=cliente_id,
                 subtotal=subtotal,
                 iva=iva_monto,
                 total=total,
@@ -476,6 +488,21 @@ def register(app):
         if nuevo not in estados_validos:
             return redirect(url_for('ventas'))
 
+        # State machine: validar transiciones permitidas
+        TRANSICIONES = {
+            'prospecto': ['negociacion', 'cancelado', 'perdido'],
+            'negociacion': ['prospecto', 'anticipo_pagado', 'cancelado', 'perdido'],
+            'anticipo_pagado': ['negociacion', 'pagado', 'cancelado', 'perdido', 'completado'],
+            'pagado': ['completado', 'cancelado'],
+            'completado': [],
+            'cancelado': ['prospecto'],
+            'perdido': ['prospecto'],
+        }
+        permitidos = TRANSICIONES.get(estado_anterior, [])
+        if nuevo not in permitidos and current_user.rol != 'admin':
+            flash(f'No se puede cambiar de "{estado_anterior}" a "{nuevo}". Transiciones validas: {", ".join(permitidos)}', 'warning')
+            return redirect(url_for('ventas'))
+
         # Restringir: anticipo_pagado solo se puede marcar desde asientos contables
         # (a menos que venga con flag _from_contable en el form)
         if nuevo == 'anticipo_pagado' and estado_anterior in ('prospecto', 'negociacion'):
@@ -540,8 +567,9 @@ def register(app):
                             fecha_emision=hoy_oc,
                             fecha_esperada=hoy_oc + timedelta(days=cot_prov.plazo_entrega_dias or 15),
                             subtotal=subtotal_oc, iva=iva_oc, total=subtotal_oc + iva_oc,
-                            notas=f'OC automática — Venta {venta.numero}, faltante {mp.nombre}',
-                            creado_por=current_user.id
+                            notas=f'OC automatica — Venta {venta.numero}, faltante {mp.nombre}',
+                            creado_por=current_user.id,
+                            venta_origen_id=venta.id
                         )
                         db.session.add(oc); db.session.flush()
                         db.session.add(OrdenCompraItem(

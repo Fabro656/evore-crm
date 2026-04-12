@@ -37,7 +37,7 @@ def register(app):
         hoy = date.today()
         mes_inicio = hoy.replace(day=1)
         try:
-            ingresos = db.session.query(db.func.sum(Venta.total)).filter(Venta.estado.in_(['completado','anticipo_pagado'])).scalar() or 0
+            ingresos = db.session.query(db.func.sum(Venta.total)).filter(Venta.estado.in_(['completado','pagado'])).scalar() or 0
             gastos_tot = db.session.query(db.func.sum(GastoOperativo.monto)).scalar() or 0
             gastos_mes = db.session.query(db.func.sum(GastoOperativo.monto)).filter(GastoOperativo.fecha >= mes_inicio).scalar() or 0
             compras_tot = db.session.query(db.func.sum(CompraMateria.costo_total)).scalar() or 0
@@ -52,6 +52,20 @@ def register(app):
         except Exception:
             impuestos_estimados, detalle_imp_dash = 0, []
         saldo_neto = ingresos - total_egresos_global - impuestos_estimados
+        # Auto-alertas de stock bajo (crear ticket si no existe)
+        try:
+            prods_bajo = Producto.query.filter(Producto.activo==True, Producto.stock<=Producto.stock_minimo).all()
+            for pb in prods_bajo[:5]:  # max 5 alertas
+                titulo_alerta = f'Stock bajo: {pb.nombre} ({pb.stock}/{pb.stock_minimo})'
+                ya_existe = Tarea.query.filter(Tarea.titulo==titulo_alerta, Tarea.estado=='pendiente').first()
+                if not ya_existe:
+                    t = Tarea(titulo=titulo_alerta, descripcion=f'El producto {pb.nombre} tiene stock {pb.stock} por debajo del minimo {pb.stock_minimo}.',
+                              estado='pendiente', prioridad='alta', tarea_tipo='alerta_stock', categoria='logistica',
+                              creado_por=current_user.id, asignado_a=current_user.id)
+                    db.session.add(t)
+            if prods_bajo: db.session.commit()
+        except Exception: pass
+
         return render_template('dashboard.html',
             total_clientes       = Cliente.query.filter_by(estado='activo').count(),
             ventas_completadas       = Venta.query.filter_by(estado='completado').count(),

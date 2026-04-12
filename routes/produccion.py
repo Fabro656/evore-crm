@@ -115,8 +115,30 @@ def register(app):
                     oc.estado_recepcion = 'parcial'
                     if oc.estado in ('en_espera_producto', 'pagado', 'anticipo_pagado'):
                         oc.estado = 'recibida_parcial'
+        # Auto-incrementar stock de materia prima si aplica
+        cant_recibida = obj.cantidad if tipo == 'total' else float(request.form.get('cantidad_recibida') or 0)
+        if cant_recibida > 0 and obj.materia_id:
+            try:
+                mp = db.session.get(MateriaPrima, obj.materia_id)
+                if mp:
+                    mp.stock_disponible = float(mp.stock_disponible or 0) + cant_recibida
+                    # Crear lote de trazabilidad
+                    lote = LoteMateriaPrima(
+                        materia_prima_id=mp.id,
+                        compra_id=obj.id,
+                        nro_factura=obj.nro_factura,
+                        proveedor=obj.proveedor or '',
+                        fecha_compra=obj.fecha,
+                        cantidad_inicial=cant_recibida,
+                        cantidad_disponible=cant_recibida,
+                        costo_unitario=obj.precio_unitario or 0
+                    )
+                    db.session.add(lote)
+            except Exception as ex:
+                logging.warning(f'compra_recibir: auto-stock error: {ex}')
+
         db.session.commit()
-        flash(f'Recepcion de "{obj.nombre_item}" registrada.', 'success')
+        flash(f'Recepcion de "{obj.nombre_item}" registrada. Stock actualizado.', 'success')
         return redirect(url_for('compras'))
 
 
