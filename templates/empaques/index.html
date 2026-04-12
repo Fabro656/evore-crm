@@ -1106,13 +1106,18 @@ function calcEnvio() {
   var qtyStr = document.getElementById('envQty').value.trim();
   var qty = parseInt(qtyStr, 10);
   var hasQty = !isNaN(qty) && qty > 0;
-  var isIntl = dist > 1000;  // estimación: >1000km probablemente internacional
+  var isIntl = dist > 1000;
   var bw = _simV.ancho_caja, bd = _simV.largo_caja, bh = _simV.alto_caja, bKg = _simV.peso_total;
   var udsPerBox = _simV.total;
-  var volKg = +(bw * bd * bh / 5000).toFixed(3);
+  // Leer parámetros editables si existen, sino usar defaults
+  var customRate = document.getElementById('envTarifaPaq');
+  var customMin = document.getElementById('envMinGuia');
+  var customFactor = document.getElementById('envFactorVol');
+  var rate = customRate ? parseFloat(customRate.value)||0 : paqRate(dist, isIntl);
+  var paqMin = customMin ? parseFloat(customMin.value)||0 : (isIntl ? PAQ_MIN_INT : PAQ_MIN);
+  var factorVol = customFactor ? parseFloat(customFactor.value)||5000 : 5000;
+  var volKg = +(bw * bd * bh / factorVol).toFixed(3);
   var chargeKg = Math.max(bKg, volKg);
-  var rate = paqRate(dist, isIntl);
-  var paqMin = isIntl ? PAQ_MIN_INT : PAQ_MIN;
   var paqBox = Math.max(paqMin, chargeKg * rate);
   var fmt = function(v){ return '$'+Math.round(v).toLocaleString('es-CO')+' COP'; };
   var intlNote = isIntl ? ' <span class="badge bg-warning text-dark" style="font-size:.7rem">Intl — no incl. aduana</span>' : '';
