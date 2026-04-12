@@ -1200,23 +1200,13 @@ function calcEnvio() {
     +'<div class="col-md-3 d-flex align-items-end"><button class="btn btn-sm btn-outline-primary w-100" onclick="calcEnvio()"><i class="bi bi-arrow-clockwise me-1"></i>Recalcular</button></div>'
     +'</div></div>';
 
-  res.innerHTML = `
-<div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
-  <span class="badge bg-secondary" style="font-size:.75rem"><i class="bi bi-signpost me-1"></i>${dist.toLocaleString()} km</span>
-  <span class="badge bg-light text-dark border" style="font-size:.75rem">Caja: ${bw}×${bd}×${bh} cm · ${bKg} kg · ${udsPerBox} uds</span>
-  ${hasQty?'<span class="badge bg-primary" style="font-size:.75rem">'+qty.toLocaleString()+' unidades → '+cajasNec+' cajas</span>':''}
-  ${intlNote}
-</div>
-${recHtml}
-${tablaHtml}
   // Guardar resultado para cotización
   if(recomendacion){
-    var costoConIva = Math.round(recomendacion.mejorCosto * 1.19);
     _lastEnvioResult = {
       vehiculo: recomendacion.t.name + ' — ' + recomendacion.t.desc,
       modo: recomendacion.modo === 'pallet' ? 'Con pallets' : 'Cajas sueltas',
       costo: recomendacion.mejorCosto,
-      costoIva: costoConIva,
+      costoIva: Math.round(recomendacion.mejorCosto * 1.19),
       distancia: dist,
       cajas: cajasNec,
       unidades: hasQty ? qty : udsPerBox,
@@ -1239,8 +1229,16 @@ ${tablaHtml}
       +'</div>';
   }
 
-${paramsHtml}
-${cotBtn}`;
+  res.innerHTML = '<div class="d-flex align-items-center gap-2 mb-2 flex-wrap">'
+    +'<span class="badge bg-secondary" style="font-size:.75rem"><i class="bi bi-signpost me-1"></i>'+dist.toLocaleString()+' km</span>'
+    +'<span class="badge bg-light text-dark border" style="font-size:.75rem">Caja: '+bw+'×'+bd+'×'+bh+' cm · '+bKg+' kg · '+udsPerBox+' uds</span>'
+    +(hasQty?'<span class="badge bg-primary" style="font-size:.75rem">'+qty.toLocaleString()+' unidades → '+cajasNec+' cajas</span>':'')
+    +intlNote
+    +'</div>'
+    +recHtml
+    +tablaHtml
+    +paramsHtml
+    +cotBtn;
 }
 
 // ── Caja óptima por vehículo ──────────────────────────────────────
