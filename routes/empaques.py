@@ -9,6 +9,44 @@ import math
 
 def register(app):
 
+    # ── calculadora_envio (/logistica/calculadora)
+    @app.route('/logistica/calculadora')
+    @login_required
+    def calculadora_envio():
+        """Calculadora de costo de envio independiente."""
+        transportistas = Proveedor.query.filter(
+            Proveedor.activo == True,
+            Proveedor.tipo.in_(['transportista', 'ambos'])
+        ).order_by(Proveedor.empresa).all()
+        trans_json = [{'id': t.id, 'nombre': t.empresa or t.nombre,
+                       'kg': t.capacidad_vehiculo_kg or 0,
+                       'm3': t.capacidad_vehiculo_m3 or 0,
+                       'tipo': t.tipo_vehiculo or ''}
+                      for t in transportistas]
+        try:
+            cotizaciones_envio = []
+            for c in Cotizacion.query.filter(Cotizacion.estado.in_(['enviada','aprobada'])).order_by(Cotizacion.fecha_emision.desc()).limit(20).all():
+                total_qty = sum(i.cantidad or 0 for i in c.items) if c.items else 0
+                if total_qty > 0:
+                    cotizaciones_envio.append({'id': c.id, 'numero': c.numero, 'titulo': c.titulo or '', 'total_qty': int(total_qty)})
+        except Exception:
+            cotizaciones_envio = []
+        try:
+            ventas_envio = []
+            for v in Venta.query.filter(Venta.estado.in_(['anticipo_pagado','pagado'])).order_by(Venta.creado_en.desc()).limit(20).all():
+                total_qty = sum(i.cantidad or 0 for i in v.items) if v.items else 0
+                if total_qty > 0:
+                    ventas_envio.append({'id': v.id, 'numero': v.numero, 'titulo': v.titulo or '', 'total_qty': int(total_qty)})
+        except Exception:
+            ventas_envio = []
+        empaques = EmpaqueSecundario.query.join(Producto).order_by(Producto.nombre).all()
+        return render_template('empaques/calculadora.html',
+                               transportistas_json=trans_json,
+                               cotizaciones_envio=cotizaciones_envio,
+                               ventas_envio=ventas_envio,
+                               empaques=empaques)
+
+
     # ── empaques (/empaques)
     @app.route('/empaques')
     @login_required
