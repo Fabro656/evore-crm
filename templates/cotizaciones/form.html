@@ -43,7 +43,15 @@
     </div>
   </div>
 
-  <div class="col-12"><label class="form-label fw-semibold">Ítems / Servicios</label>
+  <div class="col-12">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <label class="form-label fw-semibold mb-0">Ítems / Servicios</label>
+      <div class="form-check form-switch">
+        <input type="checkbox" class="form-check-input" name="iva_incluido" id="ivaIncluidoCheck" value="1"
+               onchange="calcTotal()" {% if obj and obj.notas and 'IVA incluido' in (obj.notas or '') %}checked{% endif %}>
+        <label class="form-check-label fw-semibold" for="ivaIncluidoCheck">IVA incluido en precio</label>
+      </div>
+    </div>
     <div id="itemsWrap">
       {% if obj and obj.items %}
         {% for it in obj.items %}
@@ -238,29 +246,50 @@ function autocompletar_servicio(el){
   }
 }
 
+function isIvaIncluido(){ return document.getElementById('ivaIncluidoCheck').checked; }
+
 function calcRow(el){
   var row=el.closest('.item-row');
   var c=parseFloat(row.querySelector('.item-cant').value)||0;
   var p=parseFloat(row.querySelector('.item-precio').value)||0;
-  var sub=c*p;
   var aplica_iva=row.querySelector('.item-aplica-iva').checked;
   var iva_pct=aplica_iva?parseFloat(row.querySelector('.item-iva-pct').value)||0:0;
-  var iva_monto=sub*iva_pct/100;
-  row.querySelector('.item-sub').textContent=fmt(sub+iva_monto);
+  if(isIvaIncluido()){
+    // Precio ya incluye IVA — extraer base e IVA
+    var base=c*p/(1+iva_pct/100);
+    var iva_monto=c*p-base;
+    row.querySelector('.item-sub').textContent=fmt(c*p)+' (IVA incl.)';
+  } else {
+    // IVA se suma al precio
+    var base=c*p;
+    var iva_monto=base*iva_pct/100;
+    row.querySelector('.item-sub').textContent=fmt(base+iva_monto);
+  }
   calcTotal();
 }
 
 function calcTotal(){
-  var sub=0;var iva_tot=0;
+  var sub=0; var iva_tot=0;
+  var ivaIncl = isIvaIncluido();
   document.querySelectorAll('.item-row').forEach(function(r){
     var c=parseFloat(r.querySelector('.item-cant').value)||0;
     var p=parseFloat(r.querySelector('.item-precio').value)||0;
-    var itemsub=c*p;
     var aplica=r.querySelector('.item-aplica-iva').checked;
     var ipct=aplica?parseFloat(r.querySelector('.item-iva-pct').value)||0:0;
-    var iva_m=itemsub*ipct/100;
-    sub+=itemsub;
-    iva_tot+=iva_m;
+    if(ivaIncl){
+      // Precio incluye IVA: total = precio, base = precio/(1+iva%), iva = total - base
+      var itemTotal=c*p;
+      var itemBase=itemTotal/(1+ipct/100);
+      var iva_m=itemTotal-itemBase;
+      sub+=itemBase;
+      iva_tot+=iva_m;
+    } else {
+      // IVA se suma: base = precio, iva = base * %
+      var itemsub=c*p;
+      var iva_m=itemsub*ipct/100;
+      sub+=itemsub;
+      iva_tot+=iva_m;
+    }
   });
   var total=sub+iva_tot;
   var pct=parseFloat(document.getElementById('pctAnticipo').value)||50;
@@ -271,6 +300,22 @@ function calcTotal(){
   document.getElementById('lblPct').textContent=Math.round(pct);
   document.getElementById('lblAnticipo').textContent=fmt(anticipo);
   document.getElementById('lblSaldo').textContent=fmt(total-anticipo);
+  // Actualizar labels de filas
+  document.querySelectorAll('.item-row').forEach(function(r){
+    calcRowSilent(r, ivaIncl);
+  });
+}
+
+function calcRowSilent(row, ivaIncl){
+  var c=parseFloat(row.querySelector('.item-cant').value)||0;
+  var p=parseFloat(row.querySelector('.item-precio').value)||0;
+  var aplica=row.querySelector('.item-aplica-iva').checked;
+  var ipct=aplica?parseFloat(row.querySelector('.item-iva-pct').value)||0:0;
+  if(ivaIncl){
+    row.querySelector('.item-sub').textContent=fmt(c*p)+' (IVA incl.)';
+  } else {
+    row.querySelector('.item-sub').textContent=fmt(c*p+c*p*ipct/100);
+  }
 }
 
 function addRow(){

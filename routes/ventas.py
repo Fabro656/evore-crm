@@ -909,6 +909,9 @@ def register(app):
             iva_pcts = request.form.getlist('item_iva_pct[]')
             servicio_ids = request.form.getlist('item_servicio_id[]')
 
+            iva_incluido = bool(request.form.get('iva_incluido'))
+            producto_ids = request.form.getlist('item_producto_id[]')
+
             items_data = []
             subtotal = 0.0
             iva_total = 0.0
@@ -920,21 +923,29 @@ def register(app):
                 unidad = unidades[i] if i < len(unidades) else 'unidades'
                 tipo = tipos[i] if i < len(tipos) else 'producto'
                 srv_id = int(servicio_ids[i]) if i < len(servicio_ids) and servicio_ids[i].strip() else None
+                prod_id = int(producto_ids[i]) if i < len(producto_ids) and producto_ids[i].strip() else None
                 aplica_iva = aplica_ivas[i] if i < len(aplica_ivas) else 'on'
                 aplica_iva = aplica_iva == 'on'
                 iva_pct = float(iva_pcts[i]) if i < len(iva_pcts) else 0.0
                 if not aplica_iva:
                     iva_pct = 0.0
 
-                sub = cant * precio
-                iva_monto = sub * iva_pct / 100.0 if aplica_iva else 0.0
+                if iva_incluido and aplica_iva and iva_pct > 0:
+                    # Precio incluye IVA: extraer base
+                    item_total = cant * precio
+                    sub = item_total / (1 + iva_pct / 100.0)
+                    iva_monto = item_total - sub
+                else:
+                    sub = cant * precio
+                    iva_monto = sub * iva_pct / 100.0 if aplica_iva else 0.0
                 subtotal += sub
                 iva_total += iva_monto
 
                 items_data.append({
                     'nombre': nm, 'cantidad': cant, 'precio': precio, 'subtotal': sub,
                     'unidad': unidad, 'tipo': tipo, 'servicio_id': srv_id,
-                    'aplica_iva': aplica_iva, 'iva_pct': iva_pct, 'iva_monto': iva_monto
+                    'aplica_iva': aplica_iva, 'iva_pct': iva_pct, 'iva_monto': iva_monto,
+                    'producto_id': prod_id
                 })
 
             total = subtotal + iva_total
@@ -970,6 +981,15 @@ def register(app):
                     cantidad=it['cantidad'], precio_unit=it['precio'], subtotal=it['subtotal'],
                     unidad=it['unidad'], tipo_item=it['tipo'], servicio_id=it['servicio_id'],
                     aplica_iva=it['aplica_iva'], iva_pct=it['iva_pct'], iva_monto=it['iva_monto']))
+            # Actualizar precio del producto si cambió en la cotización
+            for it in items_data:
+                if it.get('producto_id') and it['tipo'] == 'producto':
+                    prod = db.session.get(Producto, it['producto_id'])
+                    if prod:
+                        prod.precio = it['precio']
+                        receta = RecetaProducto.query.filter_by(producto_id=prod.id, activo=True).first()
+                        if receta:
+                            receta.precio_venta_sugerido = it['precio']
             _log('crear','cotizacion',cot.id,f'Cotización {numero}: {cot.titulo}'); db.session.commit()
             flash(f'Cotización {numero} creada.','success')
             return redirect(url_for('cotizacion_ver', id=cot.id))
@@ -1057,8 +1077,12 @@ def register(app):
             for it in obj.items: db.session.delete(it)
             db.session.flush()
 
+            iva_incluido = bool(request.form.get('iva_incluido'))
+            producto_ids = request.form.getlist('item_producto_id[]')
+
             subtotal = 0.0
             iva_total = 0.0
+            items_editados = []
             for i in range(len(nombres)):
                 nm = nombres[i].strip() if i < len(nombres) else ''
                 if not nm: continue
@@ -1067,14 +1091,20 @@ def register(app):
                 unidad = unidades[i] if i < len(unidades) else 'unidades'
                 tipo = tipos[i] if i < len(tipos) else 'producto'
                 srv_id = int(servicio_ids[i]) if i < len(servicio_ids) and servicio_ids[i].strip() else None
+                prod_id = int(producto_ids[i]) if i < len(producto_ids) and producto_ids[i].strip() else None
                 aplica_iva = aplica_ivas[i] if i < len(aplica_ivas) else 'on'
                 aplica_iva = aplica_iva == 'on'
                 iva_pct = float(iva_pcts[i]) if i < len(iva_pcts) else 0.0
                 if not aplica_iva:
                     iva_pct = 0.0
 
-                sub = cant * precio
-                iva_monto = sub * iva_pct / 100.0 if aplica_iva else 0.0
+                if iva_incluido and aplica_iva and iva_pct > 0:
+                    item_total = cant * precio
+                    sub = item_total / (1 + iva_pct / 100.0)
+                    iva_monto = item_total - sub
+                else:
+                    sub = cant * precio
+                    iva_monto = sub * iva_pct / 100.0 if aplica_iva else 0.0
                 subtotal += sub
                 iva_total += iva_monto
 
@@ -1083,6 +1113,7 @@ def register(app):
                     cantidad=cant, precio_unit=precio, subtotal=sub,
                     unidad=unidad, tipo_item=tipo, servicio_id=srv_id,
                     aplica_iva=aplica_iva, iva_pct=iva_pct, iva_monto=iva_monto))
+                items_editados.append({'producto_id': prod_id, 'precio': precio, 'tipo': tipo})
 
             total = subtotal + iva_total
             pct_anticipo = float(request.form.get('porcentaje_anticipo', 50) or 50)
@@ -1090,6 +1121,16 @@ def register(app):
             fecha_emision = datetime.strptime(fd_em,'%Y-%m-%d').date() if fd_em else obj.fecha_emision
             dias_ent = int(request.form.get('dias_entrega', 30) or 30)
             fecha_ent_est = _calc_fecha_entrega(fecha_emision, dias_ent, dias_tipo)
+
+            # Actualizar precio del producto desde cotización
+            for it in items_editados:
+                if it.get('producto_id') and it['tipo'] == 'producto':
+                    prod = db.session.get(Producto, it['producto_id'])
+                    if prod:
+                        prod.precio = it['precio']
+                        receta = RecetaProducto.query.filter_by(producto_id=prod.id, activo=True).first()
+                        if receta:
+                            receta.precio_venta_sugerido = it['precio']
 
             obj.titulo = request.form['titulo']
             obj.cliente_id = request.form.get('cliente_id') or None
