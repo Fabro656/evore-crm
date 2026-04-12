@@ -167,7 +167,10 @@ function addProd(pid='',cant=1,precio=0){
 }
 function onPC(sel,idx){
   const o=sel.options[sel.selectedIndex];
-  document.getElementById('pp'+idx).value=Math.round(o.dataset.p||0);
+  // Precio del producto ya incluye IVA — extraer base sin IVA
+  var precioConIva = parseFloat(o.dataset.p||0);
+  var precioBase = IVA_PCT > 0 ? Math.round(precioConIva / (1 + IVA_PCT/100)) : precioConIva;
+  document.getElementById('pp'+idx).value=precioBase;
   const stock=parseInt(o.dataset.stock||0);
   const pr=document.getElementById('pr'+idx);
   const cant=parseFloat(pr.querySelector('[name="prod_cant[]"]').value)||1;
@@ -285,8 +288,14 @@ function seleccionarCot(cotId){
       if(cont) cont.innerHTML='';
       if(data.items && data.items.length>0){
         data.items.forEach(it=>{
-          if(it.tipo==='servicio') return; // por ahora solo productos
-          addProd(it.producto_id||'', it.cantidad||1, it.precio_unit||0);
+          if(it.tipo==='servicio') return;
+          // El precio de la cotización ya incluye IVA — extraer base
+          var precioBase = it.precio_unit||0;
+          var ivaPct = it.iva_pct||19;
+          if(it.aplica_iva && ivaPct > 0){
+            precioBase = Math.round(precioBase / (1 + ivaPct/100));
+          }
+          addProd(it.producto_id||'', it.cantidad||1, precioBase);
         });
       }
       calcTot(); calcA(); calcEnt();

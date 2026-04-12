@@ -790,7 +790,9 @@ def register(app):
                 'subtotal': it.subtotal,
                 'unidad': getattr(it, 'unidad', 'unidades'),
                 'tipo': getattr(it, 'tipo_item', 'producto'),
-                'sku': it.producto.sku if it.producto_id and it.producto else None
+                'sku': it.producto.sku if it.producto_id and it.producto else None,
+                'aplica_iva': getattr(it, 'aplica_iva', True),
+                'iva_pct': getattr(it, 'iva_pct', 19)
             })
         return jsonify({
             'cliente_id': cot.cliente_id,
