@@ -859,8 +859,8 @@ ${(function(){
   return '<div class="sim-sg mt-2" style="border-left:3px solid #4C9BE8">'
     +'<div class="sim-st">🚚 Transporte</div>'
     +'<div class="sim-sr"><span>Vehículo mínimo requerido</span><strong>'+vehMin+'</strong></div>'
-    +'<div class="sim-sr"><span>Peso cobrable por caja <small class="text-muted">(máx real vs volumétrico)</small></span><strong>'+pesoCobrable.toFixed(2)+' kg</strong></div>'
-    +'<div class="sim-sr"><span>Costo estimado envío <small class="text-muted">('+cajasTotal+' cajas × '+pesoCobrable.toFixed(2)+' kg × $4.500/kg ref.)</small></span><strong style="color:var(--ac)">$ '+Math.round(costoEnvioRef).toLocaleString('es-CO')+'</strong></div>'
+    +'<div class="sim-sr"><span>Peso cobrable por caja <small class="text-muted">(máx entre real y volumétrico)</small></span><strong>'+pesoCobrable.toFixed(2)+' kg</strong></div>'
+    +'<div class="sim-sr"><span>Costo estimado envío <small class="text-muted">('+cajasTotal+' cajas × '+pesoCobrable.toFixed(2)+' kg × $4.500 COP/kg ref.)</small></span><strong style="color:var(--ac)">$'+Math.round(costoEnvioRef).toLocaleString('es-CO')+' COP</strong></div>'
     +'<div class="sim-st mt-2">Transportistas disponibles</div>'
     +transHtml
     +'</div>';
@@ -1025,8 +1025,8 @@ function calcEnvio() {
   var ftlBox   = st.tb > 0 ? ftlTotal / st.tb : null;   // por caja si camión lleno
   var ftlPal   = st.tp > 0 ? ftlTotal / st.tp : null;   // por pallet si camión lleno
 
-  var fmt  = function(v){ return '$'+Math.round(v).toLocaleString('es-CO'); };
-  var fmt2 = function(v){ return '$'+v.toLocaleString('es-CO',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+  var fmt  = function(v){ return '$'+Math.round(v).toLocaleString('es-CO')+' COP'; };
+  var fmt2 = function(v){ return '$'+v.toLocaleString('es-CO',{minimumFractionDigits:0,maximumFractionDigits:0})+' COP'; };
   var intlNote = isIntl ? ' <span class="badge bg-warning text-dark" style="font-size:.7rem">Internacional — no incl. aduana</span>' : '';
 
   // ── Costos por cantidad ──────────────────────────────────────────
@@ -1096,7 +1096,7 @@ function calcEnvio() {
       </div>
       ${paqPal!==null?`<div class="sim-sr"><span>Por pallet (${pal.tot} cajas × 1 guía c/u)</span><strong>${fmt2(paqPal)}</strong></div>`:''}
       <div class="sim-sr" style="border-top:1px solid #dde;margin-top:.3rem;padding-top:.3rem">
-        <span style="font-size:.73rem;color:#888">Mín. por guía: ${fmt(paqMin)} COP · Sin IVA · Cada caja = 1 guía</span>
+        <span style="font-size:.73rem;color:#888">Mín. por guía: ${fmt(paqMin)} · Sin IVA · Cada caja = 1 guía</span>
       </div>
     </div>
   </div>
