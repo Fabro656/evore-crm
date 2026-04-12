@@ -1,11 +1,23 @@
 {% extends 'base.html' %}
 {% block title %}Calendario{% endblock %}{% block page_title %}Calendario{% endblock %}
 {% block topbar_actions %}
-<a href="{{ url_for('calendario') }}?mes={{ prev_mes }}&anio={{ prev_anio }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i></a>
-<span class="fw-semibold mx-2" style="min-width:160px;display:inline-block;text-align:center">{{ mes_nombre }} {{ anio }}</span>
-<a href="{{ url_for('calendario') }}?mes={{ next_mes }}&anio={{ next_anio }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-right"></i></a>
-<a href="{{ url_for('calendario') }}" class="btn btn-outline-secondary btn-sm ms-1">Hoy</a>
-<button class="btn btn-primary btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#modalEvento"><i class="bi bi-plus-lg me-1"></i>Nuevo evento</button>
+<div class="d-flex align-items-center gap-1 flex-wrap">
+  <a href="{{ url_for('calendario', mes=prev_mes, anio=prev_anio) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i></a>
+  <select id="calMes" class="form-select form-select-sm" style="width:auto;font-size:.8rem" onchange="irAMes()">
+    {% for i,n in [(1,'Ene'),(2,'Feb'),(3,'Mar'),(4,'Abr'),(5,'May'),(6,'Jun'),(7,'Jul'),(8,'Ago'),(9,'Sep'),(10,'Oct'),(11,'Nov'),(12,'Dic')] %}
+    <option value="{{ i }}" {% if mes == i %}selected{% endif %}>{{ n }}</option>
+    {% endfor %}
+  </select>
+  <select id="calAnio" class="form-select form-select-sm" style="width:auto;font-size:.8rem" onchange="irAMes()">
+    {% for y in range(anio-2, anio+3) %}
+    <option value="{{ y }}" {% if anio == y %}selected{% endif %}>{{ y }}</option>
+    {% endfor %}
+  </select>
+  <a href="{{ url_for('calendario', mes=next_mes, anio=next_anio) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-right"></i></a>
+  <a href="{{ url_for('calendario') }}" class="btn btn-outline-secondary btn-sm">Hoy</a>
+  <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalEvento"><i class="bi bi-plus-lg me-1"></i>Evento</button>
+</div>
+<script>function irAMes(){var m=document.getElementById('calMes').value,a=document.getElementById('calAnio').value;location.href='{{ url_for("calendario") }}?mes='+m+'&anio='+a;}</script>
 {% endblock %}
 {% block content %}
 <div class="row g-2 mb-3">
@@ -68,7 +80,7 @@
   <div class="modal-dialog"><div class="modal-content">
     <div class="modal-header"><h5 class="modal-title"><i class="bi bi-calendar-plus me-2"></i>Nuevo Evento</h5>
       <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-    <form method="POST" action="{{ url_for('evento_nuevo') }}">
+    <form method="POST" action="{{ url_for('evento_nuevo') }}" onsubmit="this.querySelector('[type=submit]').disabled=true">
     <div class="modal-body"><div class="row g-3">
       <div class="col-12"><label class="form-label">Título *</label>
         <input type="text" name="titulo" class="form-control" id="evTitulo" required></div>

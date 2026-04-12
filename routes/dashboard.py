@@ -340,17 +340,29 @@ def register(app):
     def evento_nuevo():
         if request.method == 'POST':
             fd = request.form.get('fecha')
+            titulo = request.form.get('titulo', '').strip()
+            if not titulo:
+                flash('El titulo es obligatorio.', 'danger')
+                return redirect(url_for('calendario'))
+            fecha_ev = datetime.strptime(fd, '%Y-%m-%d').date() if fd else datetime.utcnow().date()
+            # Proteccion contra duplicados (mismo titulo+fecha en ultimos 5 seg)
+            dup = Evento.query.filter_by(
+                titulo=titulo, fecha=fecha_ev, usuario_id=current_user.id
+            ).first()
+            if dup:
+                flash('Ese evento ya existe.', 'warning')
+                return redirect(url_for('calendario', mes=fecha_ev.month, anio=fecha_ev.year))
             ev = Evento(
-                titulo=request.form['titulo'],
-                tipo=request.form.get('tipo','recordatorio'),
-                fecha=datetime.strptime(fd,'%Y-%m-%d').date() if fd else datetime.utcnow().date(),
-                hora_inicio=request.form.get('hora_inicio','') or None,
-                hora_fin=request.form.get('hora_fin','') or None,
-                descripcion=request.form.get('descripcion',''),
+                titulo=titulo,
+                tipo=request.form.get('tipo', 'recordatorio'),
+                fecha=fecha_ev,
+                hora_inicio=request.form.get('hora_inicio', '') or None,
+                hora_fin=request.form.get('hora_fin', '') or None,
+                descripcion=request.form.get('descripcion', ''),
                 usuario_id=current_user.id)
             db.session.add(ev); db.session.commit()
-            flash('Evento creado.','success')
-            return redirect(url_for('calendario'))
+            flash('Evento creado.', 'success')
+            return redirect(url_for('calendario', mes=fecha_ev.month, anio=fecha_ev.year))
         return redirect(url_for('calendario'))
     
 
