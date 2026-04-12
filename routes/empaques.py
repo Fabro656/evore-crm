@@ -313,32 +313,50 @@ def register(app):
             else:
                 receta_msg = ' Sin receta activa — agregar manualmente.'
 
-            # ── Auto-crear cotizaciones pendientes para caja y cinta ──
+            # ── Auto-crear cotización para la CAJA (específica por producto) ──
             prod_nombre = empaque.producto.nombre if empaque.producto else ''
-            for mat in [mp, cinta_mp]:
-                tiene_cot = CotizacionProveedor.query.filter(
-                    db.or_(
-                        CotizacionProveedor.materia_prima_id == mat.id,
-                        db.func.lower(CotizacionProveedor.nombre_producto) == mat.nombre.lower()
-                    )
-                ).first()
-                if not tiene_cot:
-                    db.session.add(CotizacionProveedor(
-                        nombre_producto=f'{mat.nombre} — {prod_nombre}',
-                        tipo_cotizacion='granel',
-                        tipo_producto_servicio='empaque secundario',
-                        unidad=mat.unidad,
-                        estado='en_revision',
-                        materia_prima_id=mat.id,
-                        precio_unitario=0,
-                        notas=f'Requiere cotización — empaque para {prod_nombre}.',
-                        creado_por=current_user.id
-                    ))
+            tiene_cot_caja = CotizacionProveedor.query.filter(
+                db.or_(
+                    CotizacionProveedor.materia_prima_id == mp.id,
+                    db.func.lower(CotizacionProveedor.nombre_producto) == mp.nombre.lower()
+                )
+            ).first()
+            if not tiene_cot_caja:
+                db.session.add(CotizacionProveedor(
+                    nombre_producto=f'{mp.nombre} — {prod_nombre}',
+                    tipo_cotizacion='granel',
+                    tipo_producto_servicio='empaque secundario',
+                    unidad='unidades',
+                    estado='en_revision',
+                    materia_prima_id=mp.id,
+                    precio_unitario=0,
+                    notas=f'Cotizar caja para {prod_nombre}. Incluir cantidad mínima y transporte.',
+                    creado_por=current_user.id
+                ))
 
-            # Vincular cinta al producto
+            # ── Cotización de CINTA: una sola global (rollo 100m, compartida) ──
+            tiene_cot_cinta = CotizacionProveedor.query.filter(
+                db.or_(
+                    CotizacionProveedor.materia_prima_id == cinta_mp.id,
+                    db.func.lower(CotizacionProveedor.nombre_producto).like('%cinta%embalaje%')
+                )
+            ).first()
+            if not tiene_cot_cinta:
+                db.session.add(CotizacionProveedor(
+                    nombre_producto='Cinta de embalaje — Rollo 100m',
+                    tipo_cotizacion='granel',
+                    tipo_producto_servicio='empaque secundario',
+                    unidad='metros',
+                    unidades_minimas=100,
+                    estado='en_revision',
+                    materia_prima_id=cinta_mp.id,
+                    precio_unitario=0,
+                    notas='Cotizar rollo de 100 metros. Incluir cantidad mínima de rollos y costo de transporte.',
+                    creado_por=current_user.id
+                ))
+
+            # Vincular cinta al producto (M2M, sin producto_id fijo porque es compartida)
             if cinta_mp and empaque.producto_id:
-                if not cinta_mp.producto_id:
-                    cinta_mp.producto_id = empaque.producto_id
                 cinta_m2m = MateriaPrimaProducto.query.filter_by(
                     materia_prima_id=cinta_mp.id, producto_id=empaque.producto_id).first()
                 if not cinta_m2m:
@@ -377,34 +395,26 @@ def register(app):
             nombre_producto = empaque.producto.nombre if empaque.producto else 'Desconocido'
             producto_id = empaque.producto_id
 
-            # Si estaba aprobado, eliminar ingredientes de la receta
+            # Si estaba aprobado, eliminar de la RECETA (no del stock/MP)
             if empaque.aprobado and empaque.materia_prima_id:
                 mp_id = empaque.materia_prima_id
-                # Eliminar RecetaItem de la caja en todas las recetas del producto
-                RecetaItem.query.filter_by(materia_prima_id=mp_id).delete()
-                # Eliminar la MateriaPrima de la caja
-                mp_caja = db.session.get(MateriaPrima, mp_id)
-                if mp_caja:
-                    # También eliminar cotización asociada
-                    CotizacionProveedor.query.filter_by(materia_prima_id=mp_id).delete()
-                    MateriaPrimaProducto.query.filter_by(materia_prima_id=mp_id).delete()
-                    db.session.delete(mp_caja)
+                # Solo eliminar RecetaItem — la MateriaPrima y su stock se conservan
+                receta = RecetaProducto.query.filter_by(producto_id=producto_id, activo=True).first()
+                if receta:
+                    RecetaItem.query.filter_by(receta_id=receta.id, materia_prima_id=mp_id).delete()
 
-                # Buscar y eliminar cinta asociada si ya no hay otro empaque del mismo producto
-                otros_empaques = EmpaqueSecundario.query.filter(
-                    EmpaqueSecundario.producto_id == producto_id,
-                    EmpaqueSecundario.id != empaque.id,
-                    EmpaqueSecundario.aprobado == True
-                ).count()
-                if otros_empaques == 0:
-                    # No hay más empaques aprobados — eliminar cinta de la receta
-                    cinta_mp = MateriaPrima.query.filter(
-                        db.func.lower(MateriaPrima.nombre).like('%cinta%embalaje%'),
-                        MateriaPrima.activo == True
-                    ).first()
-                    if cinta_mp:
-                        receta = RecetaProducto.query.filter_by(producto_id=producto_id, activo=True).first()
-                        if receta:
+                    # Si no quedan otros empaques aprobados, quitar cinta de esta receta
+                    otros_empaques = EmpaqueSecundario.query.filter(
+                        EmpaqueSecundario.producto_id == producto_id,
+                        EmpaqueSecundario.id != empaque.id,
+                        EmpaqueSecundario.aprobado == True
+                    ).count()
+                    if otros_empaques == 0:
+                        cinta_mp = MateriaPrima.query.filter(
+                            db.func.lower(MateriaPrima.nombre).like('%cinta%embalaje%'),
+                            MateriaPrima.activo == True
+                        ).first()
+                        if cinta_mp:
                             RecetaItem.query.filter_by(receta_id=receta.id, materia_prima_id=cinta_mp.id).delete()
 
             db.session.delete(empaque)
@@ -418,7 +428,7 @@ def register(app):
                 except Exception:
                     pass
 
-            flash(f'Empaque de "{nombre_producto}" eliminado. Ingredientes de empaque removidos de la receta.', 'info')
+            flash(f'Empaque de "{nombre_producto}" eliminado. Removido de la receta (stock conservado).', 'info')
         except Exception as e:
             db.session.rollback()
             flash(f'Error al eliminar empaque: {str(e)}', 'danger')
