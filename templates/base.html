@@ -84,18 +84,21 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .dock-tip.show{opacity:1}
 .sb-expanded .dock-tip{display:none!important}
 .dock-div{width:28px;height:1px;background:rgba(255,255,255,.12);margin:3px 0;flex-shrink:0}
-.sb-foot{padding:6px 0;display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:auto;width:100%;border-top:1px solid rgba(255,255,255,.08)}
-.sb-foot .d-flex{flex-direction:column!important;gap:2px!important;align-items:center!important}
+.sb-foot{padding:8px 0 6px;display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:auto;width:100%;border-top:1px solid rgba(255,255,255,.08)}
+.sb-foot>.d-flex{flex-direction:column!important;gap:4px!important;align-items:center!important;width:100%}
+.sb-foot>.d-flex>.d-flex{justify-content:center!important}
 .sb-foot .ui,.sb-foot .u-name,.sb-foot .u-rol{display:none!important}
-.sb-foot .rounded-circle{width:34px!important;height:34px!important}
-.sb-foot .notif-btn{width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:10px}
+.sb-foot .rounded-circle{width:30px!important;height:30px!important;font-size:.7rem!important}
+.sb-foot .notif-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;font-size:.9rem}
 
 /* ── Dock flyout panel (hold to open) ────────── */
-.dock-panel{position:fixed;left:72px;width:280px;max-height:75vh;background:rgba(15,23,42,.94);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:16px;border:1px solid rgba(255,255,255,.08);box-shadow:0 20px 60px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.05) inset;z-index:1060;display:none;overflow:hidden;color:#fff;animation:dockIn .18s ease}
+.dock-panel{position:fixed;left:68px;width:260px;max-height:75vh;background:rgba(15,23,42,.94);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:16px;border:1px solid rgba(255,255,255,.08);box-shadow:0 20px 60px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.05) inset;z-index:1060;display:none;overflow:hidden;color:#fff;animation:dockIn .18s ease}
 @keyframes dockIn{from{opacity:0;transform:translateX(-8px) scale(.95)}to{opacity:1;transform:none}}
-.dock-panel-head{padding:14px 16px 10px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.06)}
-.dock-panel-head i{font-size:1.1rem;color:var(--sb-active)}
+.dock-panel-head{padding:12px 14px 10px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.06);text-decoration:none;color:#fff;transition:background .12s;cursor:pointer}
+.dock-panel-head:hover{background:rgba(255,255,255,.06);color:#fff}
+.dock-panel-head i{font-size:1.05rem;color:var(--sb-active)}
 .dock-panel-head span{font-size:.82rem;font-weight:700;letter-spacing:.3px}
+.dock-panel-head .dp-arrow{margin-left:auto;font-size:.7rem;opacity:.4}
 .dock-panel-body{padding:6px;max-height:calc(75vh - 50px);overflow-y:auto}
 .dock-panel-link{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:10px;color:rgba(255,255,255,.75);font-size:.83rem;text-decoration:none;transition:all .12s}
 .dock-panel-link:hover{background:rgba(255,255,255,.08);color:#fff}
@@ -608,47 +611,41 @@ img,svg{max-width:100%;height:auto}
 <div id="dock-overlay" onclick="closeDockPanel()"></div>
 {% set m=modulos_user %}
 <div class="dock-panel" id="dp-home">
-  <div class="dock-panel-head"><i class="bi bi-house-fill"></i><span>Home</span></div>
-  <div class="dock-panel-body">
-    <a href="{{ url_for('dashboard') }}" class="dock-panel-link"><i class="bi bi-grid-1x2-fill"></i>Dashboard</a>
-  </div>
+  <a class="dock-panel-head" href="{{ url_for('dashboard') }}"><i class="bi bi-house-fill"></i><span>Home</span><i class="bi bi-arrow-right dp-arrow"></i></a>
 </div>
 <div class="dock-panel" id="dp-tickets">
-  <div class="dock-panel-head"><i class="bi bi-check2-square"></i><span>Tickets</span></div>
+  <a class="dock-panel-head" href="{{ url_for('tareas') }}"><i class="bi bi-check2-square"></i><span>Tickets</span><i class="bi bi-arrow-right dp-arrow"></i></a>
   <div class="dock-panel-body">
     <a href="{{ url_for('tareas') }}" class="dock-panel-link"><i class="bi bi-list-check"></i>Todos los tickets</a>
     <a href="{{ url_for('tarea_nueva') }}" class="dock-panel-link"><i class="bi bi-plus-circle"></i>Nuevo ticket</a>
   </div>
 </div>
 <div class="dock-panel" id="dp-calendario">
-  <div class="dock-panel-head"><i class="bi bi-calendar3"></i><span>Calendario</span></div>
-  <div class="dock-panel-body">
-    <a href="{{ url_for('calendario') }}" class="dock-panel-link"><i class="bi bi-calendar3"></i>Ver calendario</a>
-  </div>
+  <a class="dock-panel-head" href="{{ url_for('calendario') }}"><i class="bi bi-calendar3"></i><span>Calendario</span><i class="bi bi-arrow-right dp-arrow"></i></a>
 </div>
 <div class="dock-panel" id="dp-notas">
-  <div class="dock-panel-head"><i class="bi bi-sticky-fill"></i><span>Notas</span></div>
+  <a class="dock-panel-head" href="{{ url_for('notas') }}"><i class="bi bi-sticky-fill"></i><span>Notas</span><i class="bi bi-arrow-right dp-arrow"></i></a>
   <div class="dock-panel-body">
     <a href="{{ url_for('notas') }}" class="dock-panel-link"><i class="bi bi-sticky"></i>Todas las notas</a>
     <a href="{{ url_for('nota_nueva') }}" class="dock-panel-link"><i class="bi bi-plus-circle"></i>Nueva nota</a>
   </div>
 </div>
 <div class="dock-panel" id="dp-inventario">
-  <div class="dock-panel-head"><i class="bi bi-box-seam-fill"></i><span>Inventario</span></div>
+  <a class="dock-panel-head" href="{{ url_for('inventario') }}"><i class="bi bi-box-seam-fill"></i><span>Inventario</span><i class="bi bi-arrow-right dp-arrow"></i></a>
   <div class="dock-panel-body">
     <a href="{{ url_for('inventario') }}" class="dock-panel-link"><i class="bi bi-box-seam"></i>Productos</a>
     {% if 'inventario' in m %}<a href="{{ url_for('inventario_ingresos') }}" class="dock-panel-link"><i class="bi bi-plus-square"></i>Multi-Ingreso</a>{% endif %}
   </div>
 </div>
 <div class="dock-panel" id="dp-legal">
-  <div class="dock-panel-head"><i class="bi bi-shield-check"></i><span>Legal</span></div>
+  <a class="dock-panel-head" href="{{ url_for('legal_index') }}"><i class="bi bi-shield-check"></i><span>Legal</span><i class="bi bi-arrow-right dp-arrow"></i></a>
   <div class="dock-panel-body">
-    <a href="{{ url_for('legal_index') }}" class="dock-panel-link"><i class="bi bi-shield-check"></i>Documentos legales</a>
+    <a href="{{ url_for('legal_index') }}" class="dock-panel-link"><i class="bi bi-shield-check"></i>Documentos</a>
     <a href="{{ url_for('legal_nuevo') }}" class="dock-panel-link"><i class="bi bi-plus-circle"></i>Nuevo documento</a>
   </div>
 </div>
 <div class="dock-panel" id="dp-nomina">
-  <div class="dock-panel-head"><i class="bi bi-people-fill"></i><span>Nomina</span></div>
+  <a class="dock-panel-head" href="{{ url_for('nomina_index') }}"><i class="bi bi-people-fill"></i><span>Nomina</span><i class="bi bi-arrow-right dp-arrow"></i></a>
   <div class="dock-panel-body">
     <a href="{{ url_for('nomina_index') }}" class="dock-panel-link"><i class="bi bi-people"></i>Empleados</a>
     <a href="{{ url_for('empleado_nuevo') }}" class="dock-panel-link"><i class="bi bi-person-plus"></i>Nuevo empleado</a>
@@ -656,20 +653,17 @@ img,svg{max-width:100%;height:auto}
   </div>
 </div>
 <div class="dock-panel" id="dp-aprobaciones">
-  <div class="dock-panel-head"><i class="bi bi-clipboard-check"></i><span>Aprobaciones</span></div>
+  <a class="dock-panel-head" href="{{ url_for('aprobaciones_pendientes') }}"><i class="bi bi-clipboard-check"></i><span>Aprobaciones</span><i class="bi bi-arrow-right dp-arrow"></i></a>
   <div class="dock-panel-body">
     <a href="{{ url_for('aprobaciones_pendientes') }}" class="dock-panel-link"><i class="bi bi-clipboard-check"></i>Pendientes</a>
     <a href="{{ url_for('mis_solicitudes') }}" class="dock-panel-link"><i class="bi bi-send-check"></i>Mis solicitudes</a>
   </div>
 </div>
 <div class="dock-panel" id="dp-buscador">
-  <div class="dock-panel-head"><i class="bi bi-search"></i><span>Buscador</span></div>
-  <div class="dock-panel-body">
-    <a href="{{ url_for('buscador') }}" class="dock-panel-link"><i class="bi bi-search"></i>Buscador global</a>
-  </div>
+  <a class="dock-panel-head" href="{{ url_for('buscador') }}"><i class="bi bi-search"></i><span>Buscador</span><i class="bi bi-arrow-right dp-arrow"></i></a>
 </div>
 <div class="dock-panel" id="dp-comercial">
-  <div class="dock-panel-head"><i class="bi bi-bag-fill"></i><span>Comercial</span></div>
+  <a class="dock-panel-head" href="{{ url_for('ventas') }}"><i class="bi bi-bag-fill"></i><span>Comercial</span><i class="bi bi-arrow-right dp-arrow"></i></a>
   <div class="dock-panel-body">
     {% if 'clientes' in m %}<a href="{{ url_for('clientes') }}" class="dock-panel-link"><i class="bi bi-people-fill"></i>Clientes</a>{% endif %}
     {% if 'produccion' in m or 'ventas' in m %}<a href="{{ url_for('recetas') }}" class="dock-panel-link"><i class="bi bi-journal-bookmark"></i>Productos</a>{% endif %}
@@ -679,7 +673,7 @@ img,svg{max-width:100%;height:auto}
   </div>
 </div>
 <div class="dock-panel" id="dp-compras">
-  <div class="dock-panel-head"><i class="bi bi-cart-check"></i><span>Proveedores y Compras</span></div>
+  <a class="dock-panel-head" href="{{ url_for('ordenes_compra') }}"><i class="bi bi-cart-check"></i><span>Proveedores y Compras</span><i class="bi bi-arrow-right dp-arrow"></i></a>
   <div class="dock-panel-body">
     {% if 'clientes' in m %}<a href="{{ url_for('proveedores') }}" class="dock-panel-link"><i class="bi bi-truck"></i>Proveedores</a>{% endif %}
     <a href="{{ url_for('cotizaciones_proveedor') }}" class="dock-panel-link"><i class="bi bi-file-earmark-check"></i>Cotizaciones prov.</a>
@@ -688,7 +682,7 @@ img,svg{max-width:100%;height:auto}
   </div>
 </div>
 <div class="dock-panel" id="dp-produccion">
-  <div class="dock-panel-head"><i class="bi bi-gear-fill"></i><span>Produccion</span></div>
+  <a class="dock-panel-head" href="{{ url_for('produccion_index') }}"><i class="bi bi-gear-fill"></i><span>Produccion</span><i class="bi bi-arrow-right dp-arrow"></i></a>
   <div class="dock-panel-body">
     <a href="{{ url_for('produccion_index') }}" class="dock-panel-link"><i class="bi bi-gear"></i>Dashboard</a>
     <a href="{{ url_for('ordenes_produccion') }}" class="dock-panel-link"><i class="bi bi-list-check"></i>Ordenes</a>
@@ -698,14 +692,14 @@ img,svg{max-width:100%;height:auto}
   </div>
 </div>
 <div class="dock-panel" id="dp-logistica">
-  <div class="dock-panel-head"><i class="bi bi-truck-front-fill"></i><span>Logistica</span></div>
+  <a class="dock-panel-head" href="{{ url_for('proveedores', tipo_f='transportista') }}"><i class="bi bi-truck-front-fill"></i><span>Logistica</span><i class="bi bi-arrow-right dp-arrow"></i></a>
   <div class="dock-panel-body">
     <a href="{{ url_for('proveedores', tipo_f='transportista') }}" class="dock-panel-link"><i class="bi bi-truck-front"></i>Transportistas</a>
     <a href="{{ url_for('empaques') }}" class="dock-panel-link"><i class="bi bi-box2-heart-fill"></i>Empaques</a>
   </div>
 </div>
 <div class="dock-panel" id="dp-finanzas">
-  <div class="dock-panel-head"><i class="bi bi-currency-dollar"></i><span>Finanzas</span></div>
+  <a class="dock-panel-head" href="{{ url_for('contable_index') }}"><i class="bi bi-currency-dollar"></i><span>Finanzas</span><i class="bi bi-arrow-right dp-arrow"></i></a>
   <div class="dock-panel-body">
     <a href="{{ url_for('contable_index') }}" class="dock-panel-link"><i class="bi bi-calculator"></i>Contabilidad</a>
     <a href="{{ url_for('contable_asientos') }}" class="dock-panel-link"><i class="bi bi-journal-bookmark-fill"></i>Asientos contables</a>
@@ -720,7 +714,7 @@ img,svg{max-width:100%;height:auto}
 </div>
 {% if current_user.rol in ('admin','director_financiero') %}
 <div class="dock-panel" id="dp-admin">
-  <div class="dock-panel-head"><i class="bi bi-shield-lock-fill"></i><span>Administracion</span></div>
+  <a class="dock-panel-head" href="{{ url_for('admin_usuarios') }}"><i class="bi bi-shield-lock-fill"></i><span>Administracion</span><i class="bi bi-arrow-right dp-arrow"></i></a>
   <div class="dock-panel-body">
     <a href="{{ url_for('admin_usuarios') }}" class="dock-panel-link"><i class="bi bi-shield-person-fill"></i>Usuarios</a>
     <a href="{{ url_for('actividad') }}" class="dock-panel-link"><i class="bi bi-clock-history"></i>Actividad</a>
@@ -756,18 +750,14 @@ img,svg{max-width:100%;height:auto}
     icon.addEventListener('mouseleave', function(){ hideTip(); });
   });
 
-  // Click = open panel (for dock-group items)
+  // Click = always open panel (never navigate directly from dock icon)
   document.querySelectorAll('.sb-nav .nav-link').forEach(function(icon){
     icon.addEventListener('click', function(e){
       e.preventDefault();
+      hideTip();
       var panelId = icon.dataset.dockPanel;
       if(panelId){
-        hideTip();
         openDockPanel(panelId, icon);
-      } else {
-        // No panel defined, navigate directly
-        var href = icon.getAttribute('href');
-        if(href && href !== '#') window.location.href = href;
       }
     });
   });
@@ -1422,6 +1412,10 @@ document.addEventListener('DOMContentLoaded',function(){
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('evore_theme', next);
     updateIcon();
+    // Propagar tema a iframes del workspace
+    try{document.querySelectorAll('#wsIframeContainer iframe').forEach(function(f){
+      try{f.contentDocument.documentElement.setAttribute('data-theme',next)}catch(e){}
+    })}catch(e){}
   };
   document.addEventListener('DOMContentLoaded', updateIcon);
 })();

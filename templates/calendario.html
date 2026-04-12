@@ -27,11 +27,11 @@
   <div class="col-auto"><span class="cal-ev ev-nota px-2 py-1 rounded" style="font-size:.75rem;display:inline-block">● Revisión nota</span></div>
   <div class="col-auto"><span class="cal-ev ev-caducidad px-2 py-1 rounded" style="font-size:.75rem;display:inline-block">● Caducidad producto</span></div>
 </div>
-<div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)">
+<div style="background:var(--surface);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)">
 <table style="width:100%;border-collapse:collapse;table-layout:fixed">
 <thead><tr>
   {% for dia in ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'] %}
-  <th style="padding:.6rem;text-align:center;font-size:.8rem;color:var(--text2);background:var(--surface2);font-weight:600;border:1px solid #f0f2ff">{{ dia }}</th>
+  <th style="padding:.6rem;text-align:center;font-size:.8rem;color:var(--text2);background:var(--surface2);font-weight:600;border:1px solid var(--border)">{{ dia }}</th>
   {% endfor %}
 </tr></thead>
 <tbody>
@@ -39,13 +39,13 @@
 <tr>
   {% for day in week %}
     {% if day == 0 %}
-    <td class="cal-day other-month" style="border:1px solid #f0f2ff;height:80px;vertical-align:top;padding:4px"></td>
+    <td class="cal-day other-month" style="border:1px solid var(--border);height:80px;vertical-align:top;padding:4px"></td>
     {% else %}
       {% set dk = '%04d-%02d-%02d'|format(anio, mes, day) %}
       {% set evs = eventos.get(dk, []) %}
       {% set is_today = (dk == today_str) %}
       <td class="cal-day{% if is_today %} today{% endif %}"
-          style="border:1px solid #f0f2ff;height:80px;vertical-align:top;padding:4px;cursor:pointer{% if is_today %};background:#f5f7ff{% endif %}"
+          style="border:1px solid var(--border);height:80px;vertical-align:top;padding:4px;cursor:pointer{% if is_today %};background:rgba(var(--ac-rgb),.08){% endif %}"
           onclick="document.getElementById('evFecha').value='{{ dk }}';new bootstrap.Modal(document.getElementById('modalEvento')).show()">
         {% if is_today %}
         <div style="margin-bottom:3px">
