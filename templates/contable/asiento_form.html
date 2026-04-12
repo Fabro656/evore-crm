@@ -65,8 +65,26 @@
       </div>
     </div>
 
+    {# ── Cuenta PUC (auto-clasifica el tipo de pago) ──────────── #}
+    <div class="row g-3 mb-3">
+      <div class="col-md-6">
+        <label class="form-label fw-semibold" style="font-size:.83rem">Cuenta PUC <span class="text-muted fw-normal">(auto-clasifica)</span></label>
+        <input type="text" id="puc_buscar" class="form-control form-control-sm"
+               placeholder="Buscar cuenta PUC (ej: 1105 Caja, 5105 Gastos personal...)"
+               autocomplete="off" value="{{ obj.cuenta_debe if obj and obj.clasificacion=='egreso' else (obj.cuenta_haber if obj else '') }}">
+        <div id="puc_results" style="display:none;position:absolute;z-index:100;background:var(--surface);border:1px solid var(--border);border-radius:4px;max-height:200px;overflow-y:auto;width:100%;box-shadow:var(--shadow-md)"></div>
+        <div class="form-text" style="font-size:.72rem">Al seleccionar una cuenta PUC, la clasificacion y tipo se ajustan automaticamente.</div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold" style="font-size:.83rem">Cuenta seleccionada</label>
+        <div id="puc_selected" class="form-control-plaintext form-control-sm text-muted" style="font-size:.82rem">
+          {{ (obj.cuenta_debe or obj.cuenta_haber or 'Ninguna') if obj else 'Ninguna' }}
+        </div>
+      </div>
+    </div>
+
     <div class="mb-3">
-      <label class="form-label fw-semibold" style="font-size:.83rem">Descripción <span class="text-danger">*</span></label>
+      <label class="form-label fw-semibold" style="font-size:.83rem">Descripcion <span class="text-danger">*</span></label>
       <textarea name="descripcion" class="form-control form-control-sm" rows="2"
                 required placeholder="Ej: Pago factura #123, Cobro venta cliente ABC…">{{ obj.descripcion if obj else '' }}</textarea>
     </div>
@@ -222,6 +240,65 @@ function toggleClasificacion() {
   document.getElementById('opts_ingreso').style.display = esIngreso ? '' : 'none';
   document.getElementById('opts_egreso').style.display  = esIngreso ? 'none' : '';
 }
+
+// ── PUC Autocomplete + Auto-clasificacion
+(function(){
+  var inp = document.getElementById('puc_buscar');
+  var res = document.getElementById('puc_results');
+  var sel = document.getElementById('puc_selected');
+  var timer = null;
+  if(!inp) return;
+  inp.addEventListener('input', function(){
+    clearTimeout(timer);
+    var q = inp.value.trim();
+    if(q.length < 2){ res.style.display='none'; return; }
+    timer = setTimeout(function(){
+      fetch('/contable/puc/api/buscar?q=' + encodeURIComponent(q))
+        .then(function(r){return r.json()})
+        .then(function(data){
+          if(!data.length){ res.innerHTML='<div style="padding:8px;font-size:.8rem;color:var(--text2)">Sin resultados</div>'; res.style.display=''; return; }
+          res.innerHTML = data.map(function(c){
+            return '<div class="puc-opt" style="padding:6px 10px;cursor:pointer;font-size:.82rem;border-bottom:1px solid var(--border)" data-codigo="'+c.codigo+'" data-nombre="'+c.nombre+'" data-naturaleza="'+c.naturaleza+'" data-tipo="'+c.tipo+'">'
+              +'<strong>'+c.codigo+'</strong> '+c.nombre+' <small class="text-muted">('+c.tipo+')</small></div>';
+          }).join('');
+          res.style.display='';
+          res.querySelectorAll('.puc-opt').forEach(function(opt){
+            opt.addEventListener('click', function(){
+              var codigo = opt.dataset.codigo;
+              var nombre = opt.dataset.nombre;
+              var naturaleza = opt.dataset.naturaleza;
+              var tipo = opt.dataset.tipo;
+              inp.value = codigo + ' ' + nombre;
+              sel.textContent = codigo + ' — ' + nombre + ' (' + tipo + ')';
+              sel.style.color = 'var(--text)';
+              res.style.display = 'none';
+              // Auto-clasificar segun la cuenta PUC
+              // Clase 1 (Activo), 2 (Pasivo), 5 (Gasto), 6-7 (Costo) → egreso
+              // Clase 3 (Patrimonio), 4 (Ingreso) → ingreso
+              var clase = codigo.charAt(0);
+              if(clase === '4'){ // Ingresos
+                document.getElementById('opt_ingreso').checked = true;
+                toggleClasificacion();
+                // Auto-seleccionar tipo
+                var selTipo = document.getElementById('sel_tipo');
+                selTipo.value = 'venta';
+              } else if(clase === '5' || clase === '6' || clase === '7'){
+                document.getElementById('opt_egreso').checked = true;
+                toggleClasificacion();
+                var selTipo2 = document.getElementById('sel_tipo');
+                if(codigo.startsWith('51')) selTipo2.value = 'gasto';
+                else selTipo2.value = 'compra';
+              } else if(clase === '1' || clase === '2'){
+                document.getElementById('opt_egreso').checked = true;
+                toggleClasificacion();
+              }
+            });
+          });
+        });
+    }, 300);
+  });
+  document.addEventListener('click', function(e){ if(!inp.contains(e.target) && !res.contains(e.target)) res.style.display='none'; });
+})();
 
 document.addEventListener('DOMContentLoaded', function() {
   toggleClasificacion();

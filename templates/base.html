@@ -428,6 +428,9 @@ img,svg{max-width:100%;height:auto}
   .topbar [onclick="toggleTheme()"]{display:none!important}
   .topbar [title="Ver tutorial"]{display:none!important}
   .content{padding:.75rem!important}
+  /* Ocultar botones flotantes (busqueda, IA) que ya estan en el shell padre */
+  #diagBtn,#aiBtn,.ai-float-btn,[id*="Float"]{display:none!important}
+  #chatBotWrapper,.notif-dd{display:none!important}
 </style>
 <script>
 // Embed mode: intercept navigation to keep _embed=1

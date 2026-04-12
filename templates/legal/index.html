@@ -8,10 +8,17 @@
   {% for a in alertas %}<span class="badge bg-danger ms-2">{{ a.titulo }}</span>{% endfor %}
 </div>
 {% endif %}
-<div class="mb-3 d-flex gap-2 flex-wrap">
+<div class="mb-3 d-flex gap-2 flex-wrap align-items-center">
   <a href="{{ url_for('legal_index') }}" class="btn btn-sm {{ 'btn-primary' if not tipo_f else 'btn-outline-secondary' }}">Todos</a>
   {% for t,l in [('permiso_sanitario','Permisos'),('registro_invima','INVIMA'),('nso','NSO'),('contrato','Contratos'),('licencia','Licencias'),('certificado','Certificados'),('otro','Otros')] %}
   <a href="{{ url_for('legal_index', tipo=t) }}" class="btn btn-sm {{ 'btn-primary' if tipo_f==t else 'btn-outline-secondary' }}">{{ l }}</a>{% endfor %}
+  <div class="ms-auto" style="min-width:220px">
+    <form method="GET" class="d-flex gap-1">
+      {% if tipo_f %}<input type="hidden" name="tipo" value="{{ tipo_f }}">{% endif %}
+      <input type="text" name="q" class="form-control form-control-sm" placeholder="Buscar por titulo, entidad, numero..." value="{{ q or '' }}">
+      <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-search"></i></button>
+    </form>
+  </div>
 </div>
 <div class="tc"><div class="ch"><i class="bi bi-shield-check me-2"></i>{{ items|length }} documento(s)</div>
 {% if items %}<div class="table-responsive"><table class="table">

@@ -411,18 +411,25 @@ def register(app):
     def legal_index():
         tipo_f = request.args.get('tipo','')
         estado_f = request.args.get('estado','')
+        buscar = request.args.get('q','').strip()
         q = DocumentoLegal.query.filter_by(activo=True)
         if tipo_f: q = q.filter_by(tipo=tipo_f)
         if estado_f: q = q.filter_by(estado=estado_f)
+        if buscar:
+            q = q.filter(db.or_(
+                DocumentoLegal.titulo.ilike(f'%{buscar}%'),
+                DocumentoLegal.numero.ilike(f'%{buscar}%'),
+                DocumentoLegal.entidad.ilike(f'%{buscar}%'),
+                DocumentoLegal.descripcion.ilike(f'%{buscar}%')
+            ))
         items = q.order_by(DocumentoLegal.fecha_vencimiento).all()
-        # Alertas: vencimientos próximos
         from datetime import timedelta
         hoy = datetime.utcnow().date()
         alertas = [d for d in items if d.fecha_vencimiento and
                    (d.fecha_vencimiento - hoy).days <= d.recordatorio_dias
                    and d.estado == 'vigente']
         return render_template('legal/index.html', items=items,
-                               tipo_f=tipo_f, estado_f=estado_f, alertas=alertas)
+                               tipo_f=tipo_f, estado_f=estado_f, alertas=alertas, q=buscar)
     
 
     # ── legal_nuevo (/legal/nuevo)
