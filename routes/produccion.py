@@ -12,6 +12,7 @@ def register(app):
     # ── produccion_index (/produccion)
     @app.route('/produccion')
     @login_required
+    @requiere_modulo('produccion')
     def produccion_index():
         from datetime import date
         mes_ini = date.today().replace(day=1)
@@ -30,6 +31,7 @@ def register(app):
     # ── compras (/produccion/compras)
     @app.route('/produccion/compras')
     @login_required
+    @requiere_modulo('produccion')
     def compras():
         busqueda=request.args.get('buscar','')
         q=CompraMateria.query

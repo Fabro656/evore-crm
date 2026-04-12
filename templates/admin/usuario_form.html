@@ -59,22 +59,32 @@
 
   <!-- Módulos — oculto para portales externos -->
   <div class="col-12" id="divModulos">
-    <label class="form-label fw-semibold">Módulos permitidos <small class="text-muted fw-normal">(personalizar acceso)</small></label>
-    <div class="row g-2 mt-1">
-      {% set modulos_map = [('clientes','Clientes','people-fill'),('ventas','Ventas','graph-up-arrow'),('cotizaciones','Cotizaciones','file-earmark-text-fill'),('tareas','Tareas','check2-square'),('calendario','Calendario','calendar3'),('notas','Notas','sticky-fill'),('inventario','Inventario','box-seam-fill'),('produccion','Producción','gear-fill'),('gastos','Gastos','receipt'),('reportes','Reportes','bar-chart-fill'),('proveedores','Proveedores','truck'),('ordenes_compra','Órdenes de Compra','cart-check'),('legal','Legal','shield-check'),('finanzas','Finanzas','calculator'),('cotizaciones_proveedor','Cot. Proveedor','file-earmark-check'),('comercial','Comercial','briefcase-fill'),('config','Configuración','gear')] %}
-      {% for key,label,icon in modulos_map %}
+    <label class="form-label fw-semibold">Modulos permitidos <small class="text-muted fw-normal">(personalizar acceso por usuario)</small></label>
+    {% set grupos = [
+      ('Principal', [('tareas','Tickets','check2-square'),('calendario','Calendario','calendar3'),('notas','Notas','sticky-fill')]),
+      ('Comercial', [('clientes','Clientes','people-fill'),('ventas','Ventas','graph-up-arrow'),('cotizaciones','Cotizaciones','file-earmark-text-fill'),('servicios','Servicios','briefcase-fill')]),
+      ('Proveedores y Compras', [('proveedores','Proveedores','truck'),('cotizaciones_proveedor','Cotizaciones proveedor','file-earmark-check'),('ordenes_compra','Ordenes de Compra','cart-check')]),
+      ('Operaciones', [('inventario','Inventario','box-seam-fill'),('produccion','Produccion','gear-fill'),('empaques','Empaques y logistica','box2-heart-fill'),('logistica','Transportistas','truck-front')]),
+      ('Finanzas', [('finanzas','Contabilidad','calculator'),('gastos','Gastos','receipt'),('reportes','Reportes','bar-chart-fill'),('nomina','Nomina','people-fill')]),
+      ('Administracion', [('legal','Legal','shield-check'),('aprobaciones','Aprobaciones','clipboard-check'),('config','Configuracion','gear')])
+    ] %}
+    {% for grupo_nombre, modulos in grupos %}
+    <div class="mt-2 mb-1" style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text2)">{{ grupo_nombre }}</div>
+    <div class="row g-2">
+      {% for key,label,icon in modulos %}
       <div class="col-md-3 col-6">
         <div class="form-check p-2 border rounded" style="background:var(--surface2)">
           <input class="form-check-input mod-check" type="checkbox" name="modulos" value="{{ key }}" id="mod_{{ key }}"
             {% if obj and key in (obj.modulos_permitidos or '[]') %}checked
             {% elif not obj %}checked{% endif %}>
-          <label class="form-check-label" for="mod_{{ key }}" style="font-size:.85rem">
+          <label class="form-check-label" for="mod_{{ key }}" style="font-size:.82rem">
             <i class="bi bi-{{ icon }} me-1 text-primary"></i>{{ label }}
           </label>
         </div>
       </div>{% endfor %}
     </div>
-    <small class="text-muted">Los roles Admin, Cliente y Proveedor ignoran esta lista.</small>
+    {% endfor %}
+    <small class="text-muted mt-2 d-block">Al cambiar de rol se preseleccionan los modulos predeterminados. Puedes personalizar individualmente.</small>
   </div>
 </div>
 <div class="d-flex gap-2 mt-4">
@@ -84,11 +94,14 @@
 {% block scripts %}<script>
 var ROL_MODULOS = {
   usuario:       ['tareas','notas','calendario'],
-  vendedor:      ['clientes','ventas','cotizaciones','tareas','calendario','notas','proveedores','cotizaciones_proveedor'],
-  sales_manager: ['clientes','ventas','cotizaciones','tareas','calendario','notas','proveedores','ordenes_compra','cotizaciones_proveedor'],
-  produccion:    ['inventario','produccion','gastos','notas','calendario','tareas'],
-  contador:      ['gastos','reportes','produccion','notas','finanzas'],
-  admin:         ['clientes','ventas','cotizaciones','tareas','calendario','notas','inventario','produccion','gastos','reportes','proveedores','ordenes_compra','legal','finanzas','cotizaciones_proveedor','comercial','config'],
+  vendedor:      ['clientes','ventas','cotizaciones','tareas','calendario','notas','servicios','nomina'],
+  sales_manager: ['clientes','ventas','cotizaciones','tareas','calendario','notas','proveedores','ordenes_compra','cotizaciones_proveedor','nomina'],
+  produccion:    ['inventario','produccion','gastos','notas','calendario','tareas','ordenes_compra','empaques','logistica'],
+  contador:      ['gastos','reportes','produccion','notas','finanzas','tareas','nomina'],
+  director_operativo: ['clientes','ventas','cotizaciones','tareas','calendario','notas','inventario','produccion','proveedores','ordenes_compra','cotizaciones_proveedor','empaques','servicios','nomina','reportes','logistica','aprobaciones'],
+  director_financiero: ['clientes','ventas','cotizaciones','tareas','calendario','notas','inventario','produccion','gastos','reportes','proveedores','ordenes_compra','legal','finanzas','cotizaciones_proveedor','empaques','servicios','config','nomina','aprobaciones','logistica'],
+  tester:        ['clientes','ventas','cotizaciones','tareas','calendario','notas','inventario','produccion','gastos','reportes','proveedores','ordenes_compra','legal','finanzas','cotizaciones_proveedor','empaques','servicios','config','nomina','aprobaciones','logistica'],
+  admin:         ['clientes','ventas','cotizaciones','tareas','calendario','notas','inventario','produccion','gastos','reportes','proveedores','ordenes_compra','legal','finanzas','cotizaciones_proveedor','empaques','servicios','config','nomina','aprobaciones','logistica'],
   cliente:       [],
   proveedor:     []
 };

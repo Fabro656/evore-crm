@@ -31,7 +31,44 @@ __all__ = [
 _MODULOS_TODOS = ['clientes','ventas','cotizaciones','tareas','calendario',
                   'notas','inventario','produccion','gastos','reportes','proveedores',
                   'ordenes_compra','legal','finanzas','cotizaciones_proveedor','comercial','config','nomina',
-                  'empaques','servicios']
+                  'empaques','servicios','aprobaciones','logistica']
+
+# Agrupacion visual para el form de usuario
+_MODULOS_GRUPOS = [
+    ('Principal', [
+        ('tareas','Tickets','check2-square'),
+        ('calendario','Calendario','calendar3'),
+        ('notas','Notas','sticky-fill'),
+    ]),
+    ('Comercial', [
+        ('clientes','Clientes','people-fill'),
+        ('ventas','Ventas','graph-up-arrow'),
+        ('cotizaciones','Cotizaciones','file-earmark-text-fill'),
+        ('servicios','Servicios','briefcase-fill'),
+    ]),
+    ('Proveedores y Compras', [
+        ('proveedores','Proveedores','truck'),
+        ('cotizaciones_proveedor','Cotizaciones proveedor','file-earmark-check'),
+        ('ordenes_compra','Ordenes de Compra','cart-check'),
+    ]),
+    ('Operaciones', [
+        ('inventario','Inventario','box-seam-fill'),
+        ('produccion','Produccion','gear-fill'),
+        ('empaques','Empaques y logistica','box2-heart-fill'),
+        ('logistica','Transportistas','truck-front'),
+    ]),
+    ('Finanzas', [
+        ('finanzas','Contabilidad y Asientos','calculator'),
+        ('gastos','Gastos operativos','receipt'),
+        ('reportes','Reportes','bar-chart-fill'),
+        ('nomina','Nomina','people-fill'),
+    ]),
+    ('Administracion', [
+        ('legal','Legal','shield-check'),
+        ('aprobaciones','Aprobaciones','clipboard-check'),
+        ('config','Configuracion','gear'),
+    ]),
+]
 
 _MODULOS_ROL = {
     'admin':      _MODULOS_TODOS,
@@ -39,10 +76,11 @@ _MODULOS_ROL = {
     'director_financiero': _MODULOS_TODOS,  # Dueño: ve todo, aprueba gastos/compras
     'director_operativo':  ['clientes','ventas','cotizaciones','tareas','calendario','notas',
                             'inventario','produccion','proveedores','ordenes_compra',
-                            'cotizaciones_proveedor','empaques','servicios','nomina','reportes'],
-    'vendedor':   ['clientes','ventas','cotizaciones','tareas','calendario','notas','nomina'],
-    'produccion': ['inventario','produccion','gastos','notas','calendario','tareas'],
-    'contador':   ['gastos','reportes','produccion','notas','nomina','finanzas'],
+                            'cotizaciones_proveedor','empaques','servicios','nomina','reportes',
+                            'logistica','aprobaciones'],
+    'vendedor':   ['clientes','ventas','cotizaciones','tareas','calendario','notas','nomina','servicios'],
+    'produccion': ['inventario','produccion','gastos','notas','calendario','tareas','ordenes_compra','empaques','logistica'],
+    'contador':   ['gastos','reportes','produccion','notas','nomina','finanzas','tareas'],
     'usuario':    ['tareas','notas','calendario'],
     'sales_manager': ['clientes','ventas','cotizaciones','tareas','calendario','notas','ordenes_compra','nomina'],
     'cliente':       ['portal_cliente'],

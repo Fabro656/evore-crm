@@ -64,6 +64,7 @@ def register(app):
     # ── gastos (/gastos)
     @app.route('/gastos')
     @login_required
+    @requiere_modulo('gastos')
     def gastos():
         from datetime import date as date_t
         tipo_f  = request.args.get('tipo','')
@@ -424,6 +425,7 @@ def register(app):
     # ── legal_index (/legal)
     @app.route('/legal')
     @login_required
+    @requiere_modulo('legal')
     def legal_index():
         tipo_f = request.args.get('tipo','')
         estado_f = request.args.get('estado','')
