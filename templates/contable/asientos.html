@@ -278,6 +278,8 @@ function abrirModalPago(asientoId, numero, montoTotal, yaPagado, tipo) {
   var actionUrl = tipo === 'ingreso'
     ? '/contable/asientos/' + asientoId + '/confirmar-ingreso'
     : '/contable/asientos/' + asientoId + '/confirmar-pago';
+  // Mantener _embed si estamos en iframe
+  if(/[?&]_embed=1/.test(location.search)) actionUrl += '?_embed=1';
   document.getElementById('formConfirmarPago').action = actionUrl;
   document.getElementById('tipoParcial').checked = true;
   toggleMontoPago();
@@ -287,6 +289,9 @@ function abrirModalPago(asientoId, numero, montoTotal, yaPagado, tipo) {
 function toggleMontoPago() {
   var esTotal = document.getElementById('tipoTotal').checked;
   document.getElementById('secMontoPartial').style.display = esTotal ? 'none' : '';
+  var inp = document.getElementById('montoPago');
+  if(esTotal){ inp.removeAttribute('required'); inp.value = '0'; }
+  else { inp.setAttribute('required',''); }
   if (esTotal) document.getElementById('montoPago').removeAttribute('required');
   else document.getElementById('montoPago').setAttribute('required', '');
 }
