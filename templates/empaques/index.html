@@ -902,10 +902,9 @@ ${(function(){
 }
 
 function guardarVariante(prodId, uds, anchoCaja, largoCaja, altoCaja, pesoUnit, pesoMax) {
-  // Recuperar dims del producto del formulario
-  var anchoProd = parseFloat(document.getElementById('ancho_prod').value)||0;
-  var largoProd = parseFloat(document.getElementById('largo_prod').value)||0;
-  var altoProd  = parseFloat(document.getElementById('alto_prod').value)||0;
+  var anchoProd = parseFloat(document.getElementById('calc_ancho').value)||0;
+  var largoProd = parseFloat(document.getElementById('calc_largo').value)||0;
+  var altoProd  = parseFloat(document.getElementById('calc_alto').value)||0;
   const params = new URLSearchParams({
     producto_id:prodId, unidades_por_caja:uds,
     ancho:anchoProd, largo:largoProd, alto:altoProd,
