@@ -11,6 +11,24 @@ import json, os, re, io, secrets, logging
 
 def register(app):
 
+    # ── API: guardar/cargar workspace tabs del usuario
+    @app.route('/api/workspace/tabs', methods=['GET', 'POST'])
+    @login_required
+    def api_workspace_tabs():
+        if request.method == 'POST':
+            data = request.get_json(silent=True) or {}
+            tabs = data.get('tabs', [])
+            current_user.workspace_tabs = json.dumps(tabs)
+            db.session.commit()
+            return jsonify({'ok': True})
+        # GET
+        try:
+            tabs = json.loads(current_user.workspace_tabs or '[]')
+        except Exception:
+            tabs = []
+        return jsonify({'tabs': tabs})
+
+
     # ── dashboard (/)
     @app.route('/')
     @login_required

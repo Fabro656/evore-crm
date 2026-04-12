@@ -23,6 +23,7 @@ class User(UserMixin, db.Model):
     onboarding_role_config = db.Column(db.Text, default='{}')
     cliente_id           = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=True)
     proveedor_id        = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
+    workspace_tabs      = db.Column(db.Text, default='[]')  # v36 JSON: [{url, title, order}]
     def set_password(self, p):   self.password_hash = generate_password_hash(p)
     def check_password(self, p): return check_password_hash(self.password_hash, p)
 
@@ -1248,6 +1249,9 @@ def _migrate(conn):
         ("ALTER TABLE notas ADD COLUMN estado_nota VARCHAR(20) DEFAULT 'abierta'"),
         ("ALTER TABLE notas ADD COLUMN IF NOT EXISTS prioridad VARCHAR(10) DEFAULT 'normal'"),
         ("ALTER TABLE notas ADD COLUMN prioridad VARCHAR(10) DEFAULT 'normal'"),
+        # v36 — User: workspace tabs
+        ("ALTER TABLE users ADD COLUMN IF NOT EXISTS workspace_tabs TEXT DEFAULT '[]'"),
+        ("ALTER TABLE users ADD COLUMN workspace_tabs TEXT DEFAULT '[]'"),
     ]
     for sql in migrations:
         try:

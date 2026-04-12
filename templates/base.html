@@ -59,7 +59,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 #sb-overlay.open{display:block}
 
 /* ── Topbar ──────────────────────────────────────── */
-#main{margin-left:256px;min-height:100vh}
+#main{margin-left:256px;min-height:100vh;display:flex;flex-direction:column}
 .topbar{background:rgba(255,255,255,.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:.6rem 1.25rem;border-bottom:1px solid var(--topbar-border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow);gap:.75rem;transition:background-color .2s,border-color .2s}
 .pg-title{font-size:1rem;font-weight:600;color:var(--text);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:1;min-width:0}
 .topbar-right{flex-wrap:nowrap;flex-shrink:0}
@@ -401,7 +401,38 @@ html[data-theme="dark"] .diag-verde{background:rgba(59,168,96,.12);color:#80D9A0
 img,svg{max-width:100%;height:auto}
 .logo-area svg{max-height:40px!important}
 </style>{% endraw %}
-</head><body>
+</head><body class="{% if request.args.get('_embed') == '1' %}embed-mode{% endif %}">
+{% if request.args.get('_embed') == '1' %}
+<style>
+  #sb,#sb-overlay,.topbar,#wsTabBar,.sb-foot{display:none!important}
+  #main{margin-left:0!important}
+  .content{padding:.75rem!important}
+</style>
+<script>
+// Embed mode: intercept navigation to keep _embed=1
+(function(){
+  if(window.parent && window.parent !== window){
+    window.parent.postMessage({type:'embed-navigate', url:location.pathname+location.search.replace(/[?&]_embed=1/,''), title:document.title},'*');
+    document.addEventListener('click',function(e){
+      var a=e.target.closest('a[href]');
+      if(!a) return;
+      var h=a.getAttribute('href');
+      if(!h||h.startsWith('#')||h.startsWith('javascript:')||h.startsWith('http')||a.target=='_blank') return;
+      e.preventDefault();
+      location.href=h+(h.includes('?')?'&':'?')+'_embed=1';
+    });
+    document.addEventListener('submit',function(e){
+      var f=e.target, action=f.getAttribute('action')||'';
+      if(f.method&&f.method.toUpperCase()==='GET'){
+        if(!f.querySelector('input[name="_embed"]')){var inp=document.createElement('input');inp.type='hidden';inp.name='_embed';inp.value='1';f.appendChild(inp);}
+      } else if(action&&!action.includes('_embed')){
+        f.setAttribute('action',action+(action.includes('?')?'&':'?')+'_embed=1');
+      }
+    },true);
+  }
+})();
+</script>
+{% endif %}
 <nav id="sb">
   <div class="sb-brand" style="padding:.85rem 1rem .7rem;display:flex;align-items:center;gap:.5rem">
     {% if current_user.is_authenticated %}
@@ -595,18 +626,19 @@ img,svg{max-width:100%;height:auto}
       </div>
     </div>
   </div>
-  {# ── Sistema de pestanas multi-modulo ── #}
-  <div id="tabBar" style="display:none;background:var(--surface);border-bottom:1px solid var(--border);padding:0 .5rem;overflow-x:auto;white-space:nowrap;scrollbar-width:thin">
-    <div id="tabList" style="display:flex;gap:0;min-height:32px;align-items:stretch"></div>
+  {# ── Workspace: barra de pestanas + area de contenido/iframes ── #}
+  <div id="wsTabBar" style="display:none;background:var(--surface);border-bottom:1px solid var(--border);padding:0 .25rem;overflow-x:auto;white-space:nowrap;scrollbar-width:thin;position:relative">
+    <div id="wsTabList" style="display:flex;gap:0;min-height:34px;align-items:stretch"></div>
   </div>
-  <div class="content">
+  <div class="content" id="wsContent">
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}{% for cat, msg in messages %}
     <div class="alert alert-{{ cat }} alert-dismissible fade show">{{ msg }}
       <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
     {% endfor %}{% endif %}{% endwith %}
-    {% block content %}{% endblock %}
+    <div id="wsDefaultContent">{% block content %}{% endblock %}</div>
   </div>
+  <div id="wsIframeContainer" style="display:none;flex:1;position:relative"></div>
 </div>
 <!-- Panel notificaciones flotante -->
 <div class="notif-dd" id="notifDd" style="display:none">
@@ -1405,94 +1437,256 @@ document.addEventListener('DOMContentLoaded',function(){
 {% endraw %}</script>
 {% endif %}{# end if not demo - AI panel #}
 
-{# ── Tab System JS ── #}
+{# ── Workspace Tab System JS ── #}
 <script>
 (function(){
-  var tabs = JSON.parse(sessionStorage.getItem('evore_tabs') || '[]');
-  var activeTab = sessionStorage.getItem('evore_active_tab') || '';
-  var tabBar = document.getElementById('tabBar');
-  var tabList = document.getElementById('tabList');
-  var currentUrl = window.location.pathname + window.location.search;
-  var currentTitle = document.querySelector('.pg-title') ? document.querySelector('.pg-title').textContent.trim() : document.title;
+  var WS = {
+    tabs: [],
+    activeId: null,
+    tabBar: document.getElementById('wsTabBar'),
+    tabList: document.getElementById('wsTabList'),
+    content: document.getElementById('wsContent'),
+    defaultContent: document.getElementById('wsDefaultContent'),
+    iframeContainer: document.getElementById('wsIframeContainer'),
+    saveTimer: null,
+    dragSrcIdx: null
+  };
 
-  // Asegurar que la pagina actual este en tabs
-  if (!tabs.find(function(t){return t.url === currentUrl})) {
-    tabs.push({url: currentUrl, title: currentTitle.substring(0, 25)});
-    activeTab = currentUrl;
-  } else {
-    activeTab = currentUrl;
+  // ── Load tabs from server (fallback to sessionStorage)
+  function loadTabs(){
+    try {
+      var cached = sessionStorage.getItem('evore_ws_tabs');
+      if(cached) WS.tabs = JSON.parse(cached);
+    } catch(e){ WS.tabs = []; }
+    // Async load from server
+    fetch('/api/workspace/tabs').then(function(r){return r.json()}).then(function(d){
+      if(d.tabs && d.tabs.length > 0){
+        WS.tabs = d.tabs;
+        sessionStorage.setItem('evore_ws_tabs', JSON.stringify(WS.tabs));
+        renderTabs();
+      }
+    }).catch(function(){});
   }
-  sessionStorage.setItem('evore_active_tab', activeTab);
-  saveTabs();
 
-  function saveTabs(){ sessionStorage.setItem('evore_tabs', JSON.stringify(tabs)); }
+  function saveTabs(){
+    sessionStorage.setItem('evore_ws_tabs', JSON.stringify(WS.tabs));
+    // Debounce server save
+    clearTimeout(WS.saveTimer);
+    WS.saveTimer = setTimeout(function(){
+      fetch('/api/workspace/tabs', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({tabs: WS.tabs})
+      }).catch(function(){});
+    }, 1000);
+  }
 
-  function renderTabs(){
-    if (tabs.length <= 1) { tabBar.style.display = 'none'; return; }
-    tabBar.style.display = '';
-    tabList.innerHTML = '';
-    tabs.forEach(function(tab, i){
-      var isActive = tab.url === activeTab;
-      var el = document.createElement('a');
-      el.href = tab.url;
-      el.className = 'evore-tab' + (isActive ? ' active' : '');
-      el.innerHTML = '<span class="tab-title">' + tab.title + '</span>' +
-        (tabs.length > 1 ? '<span class="tab-close" data-idx="' + i + '">&times;</span>' : '');
-      el.onclick = function(e){
-        if(e.target.classList.contains('tab-close')){
-          e.preventDefault(); e.stopPropagation();
-          closeTab(parseInt(e.target.dataset.idx));
-          return;
+  function genId(){ return 'tab_' + Date.now() + '_' + Math.random().toString(36).substr(2,5); }
+
+  // ── Open a module in a workspace tab
+  function openTab(url, title){
+    // Already open? Just activate
+    var existing = WS.tabs.find(function(t){return t.url === url});
+    if(existing){
+      activateTab(existing.id);
+      return;
+    }
+    var tab = { id: genId(), url: url, title: (title||'Tab').substring(0,30) };
+    WS.tabs.push(tab);
+    createIframe(tab);
+    activateTab(tab.id);
+    saveTabs();
+    renderTabs();
+  }
+
+  function createIframe(tab){
+    var iframe = document.createElement('iframe');
+    iframe.id = 'wsFrame_' + tab.id;
+    iframe.src = tab.url + (tab.url.includes('?') ? '&' : '?') + '_embed=1';
+    iframe.style.cssText = 'width:100%;height:100%;border:none;display:none;position:absolute;top:0;left:0';
+    WS.iframeContainer.appendChild(iframe);
+    // Listen for navigation inside iframe
+    iframe.addEventListener('load', function(){
+      try {
+        var iTitle = iframe.contentDocument.title;
+        if(iTitle && iTitle !== 'Evore CRM'){
+          var t = WS.tabs.find(function(x){return x.id===tab.id});
+          if(t){ t.title = iTitle.substring(0,30); renderTabs(); saveTabs(); }
         }
-        // Normal navigation
-      };
-      tabList.appendChild(el);
+      }catch(e){}
     });
   }
 
-  function closeTab(idx){
-    var closed = tabs.splice(idx, 1)[0];
-    saveTabs();
-    if (closed.url === activeTab && tabs.length > 0) {
-      // Navigate to the last tab
-      window.location.href = tabs[Math.min(idx, tabs.length - 1)].url;
-    } else {
-      renderTabs();
-    }
+  function activateTab(tabId){
+    WS.activeId = tabId;
+    // Hide default content, show iframe container
+    WS.defaultContent.style.display = 'none';
+    WS.content.style.display = 'none';
+    WS.iframeContainer.style.display = 'block';
+    // Calculate height
+    var topOffset = WS.iframeContainer.getBoundingClientRect().top;
+    WS.iframeContainer.style.height = 'calc(100vh - ' + topOffset + 'px)';
+    // Show only active iframe
+    var frames = WS.iframeContainer.querySelectorAll('iframe');
+    frames.forEach(function(f){ f.style.display = 'none'; });
+    var active = document.getElementById('wsFrame_' + tabId);
+    if(active) active.style.display = 'block';
+    renderTabs();
+    // Update sidebar active state
+    updateSidebarActive(tabId);
   }
 
-  // Interceptar clicks del sidebar para abrir en nueva tab
+  function closeTab(tabId){
+    var idx = WS.tabs.findIndex(function(t){return t.id===tabId});
+    if(idx < 0) return;
+    WS.tabs.splice(idx, 1);
+    var frame = document.getElementById('wsFrame_' + tabId);
+    if(frame) frame.remove();
+    if(WS.tabs.length === 0){
+      // No more tabs, show default content
+      WS.activeId = null;
+      WS.defaultContent.style.display = '';
+      WS.content.style.display = '';
+      WS.iframeContainer.style.display = 'none';
+    } else if(WS.activeId === tabId){
+      // Activate adjacent tab
+      var newIdx = Math.min(idx, WS.tabs.length - 1);
+      activateTab(WS.tabs[newIdx].id);
+    }
+    saveTabs();
+    renderTabs();
+  }
+
+  function showDefaultContent(){
+    WS.activeId = null;
+    WS.defaultContent.style.display = '';
+    WS.content.style.display = '';
+    WS.iframeContainer.style.display = 'none';
+    // Hide all iframes
+    WS.iframeContainer.querySelectorAll('iframe').forEach(function(f){f.style.display='none'});
+    renderTabs();
+  }
+
+  function updateSidebarActive(tabId){
+    var tab = WS.tabs.find(function(t){return t.id===tabId});
+    if(!tab) return;
+    document.querySelectorAll('.sb-nav .nav-link').forEach(function(link){
+      link.classList.remove('active');
+      if(tab.url === link.getAttribute('href')) link.classList.add('active');
+    });
+  }
+
+  // ── Render tab bar
+  function renderTabs(){
+    if(WS.tabs.length === 0){
+      WS.tabBar.style.display = 'none';
+      return;
+    }
+    WS.tabBar.style.display = '';
+    WS.tabList.innerHTML = '';
+    // "Page" tab (current page, non-iframe)
+    var pgTab = document.createElement('div');
+    pgTab.className = 'ws-tab' + (!WS.activeId ? ' active' : '');
+    pgTab.innerHTML = '<i class="bi bi-house-door" style="font-size:.75rem"></i><span class="ws-tab-title">Pagina actual</span>';
+    pgTab.onclick = function(){ showDefaultContent(); };
+    WS.tabList.appendChild(pgTab);
+
+    WS.tabs.forEach(function(tab, idx){
+      var el = document.createElement('div');
+      el.className = 'ws-tab' + (tab.id === WS.activeId ? ' active' : '');
+      el.draggable = true;
+      el.dataset.idx = idx;
+      el.innerHTML = '<span class="ws-tab-title">' + escHtml(tab.title) + '</span>'
+        + '<span class="ws-tab-close" data-id="'+tab.id+'">&times;</span>';
+      // Click to activate
+      el.addEventListener('click', function(e){
+        if(e.target.classList.contains('ws-tab-close')){
+          e.stopPropagation();
+          closeTab(e.target.dataset.id);
+          return;
+        }
+        activateTab(tab.id);
+      });
+      // Drag & drop for reorder
+      el.addEventListener('dragstart', function(e){
+        WS.dragSrcIdx = idx;
+        e.dataTransfer.effectAllowed = 'move';
+        el.classList.add('dragging');
+      });
+      el.addEventListener('dragend', function(){ el.classList.remove('dragging'); });
+      el.addEventListener('dragover', function(e){ e.preventDefault(); e.dataTransfer.dropEffect='move'; el.classList.add('drag-over'); });
+      el.addEventListener('dragleave', function(){ el.classList.remove('drag-over'); });
+      el.addEventListener('drop', function(e){
+        e.preventDefault();
+        el.classList.remove('drag-over');
+        var from = WS.dragSrcIdx;
+        var to = idx;
+        if(from === to) return;
+        var moved = WS.tabs.splice(from, 1)[0];
+        WS.tabs.splice(to, 0, moved);
+        saveTabs();
+        renderTabs();
+      });
+      WS.tabList.appendChild(el);
+    });
+  }
+
+  function escHtml(s){ var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+  // ── Intercept sidebar clicks to open as workspace tabs
   document.querySelectorAll('.sb-nav .nav-link').forEach(function(link){
     link.addEventListener('click', function(e){
       var href = link.getAttribute('href');
-      if (!href || href === '#') return;
-      // Middle-click or ctrl+click opens in browser tab (default behavior)
-      if (e.ctrlKey || e.metaKey || e.button === 1) return;
-      // Add to tabs if not already there
-      var existing = tabs.find(function(t){return t.url === href});
-      if (!existing) {
-        var label = link.querySelector('span') ? link.querySelector('span').textContent.trim() : 'Tab';
-        tabs.push({url: href, title: label.substring(0, 25)});
-        saveTabs();
-      }
-      // Normal navigation continues
+      if(!href || href === '#') return;
+      if(e.ctrlKey || e.metaKey) return; // let browser handle
+      e.preventDefault();
+      var label = link.querySelector('span') ? link.querySelector('span').textContent.trim() : 'Tab';
+      openTab(href, label);
     });
   });
 
-  renderTabs();
+  // Listen for messages from embedded iframes
+  window.addEventListener('message', function(e){
+    if(!e.data || e.data.type !== 'embed-navigate') return;
+    // Update tab title when iframe navigates
+    var tab = WS.tabs.find(function(t){return t.id === WS.activeId});
+    if(tab && e.data.title){
+      tab.title = e.data.title.substring(0,30);
+      renderTabs();
+      saveTabs();
+    }
+  });
 
-  // Expose for external use
-  window.evoreCloseTab = closeTab;
-  window.evoreCloseAllTabs = function(){ tabs = []; saveTabs(); sessionStorage.removeItem('evore_active_tab'); };
+  // ── Init
+  loadTabs();
+  // Restore iframes for saved tabs
+  WS.tabs.forEach(function(tab){
+    if(!document.getElementById('wsFrame_' + tab.id)){
+      createIframe(tab);
+    }
+  });
+  if(WS.tabs.length > 0){
+    renderTabs();
+  }
+
+  // Expose API
+  window.wsOpenTab = openTab;
+  window.wsCloseTab = closeTab;
+  window.wsCloseAll = function(){ while(WS.tabs.length) closeTab(WS.tabs[0].id); };
 })();
 </script>
 <style>
-.evore-tab{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;font-size:.78rem;color:var(--text2);text-decoration:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .12s;white-space:nowrap;max-width:180px;overflow:hidden}
-.evore-tab:hover{color:var(--text);background:var(--surface2)}
-.evore-tab.active{color:var(--ac);border-bottom-color:var(--ac);font-weight:600}
-.evore-tab .tab-title{overflow:hidden;text-overflow:ellipsis}
-.evore-tab .tab-close{font-size:1rem;line-height:1;opacity:.4;cursor:pointer;padding:0 2px}
-.evore-tab .tab-close:hover{opacity:1;color:var(--red)}
+#wsTabBar{scrollbar-height:4px}
+#wsTabBar::-webkit-scrollbar{height:4px}
+#wsTabBar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.ws-tab{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;font-size:.78rem;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all .12s;white-space:nowrap;max-width:180px;user-select:none}
+.ws-tab:hover{color:var(--text);background:var(--surface2)}
+.ws-tab.active{color:var(--ac);border-bottom-color:var(--ac);font-weight:600;background:rgba(var(--ac-rgb),.05)}
+.ws-tab .ws-tab-title{overflow:hidden;text-overflow:ellipsis;max-width:140px}
+.ws-tab .ws-tab-close{font-size:1rem;line-height:1;opacity:.3;cursor:pointer;padding:0 2px;margin-left:2px}
+.ws-tab .ws-tab-close:hover{opacity:1;color:var(--red)}
+.ws-tab.dragging{opacity:.4}
+.ws-tab.drag-over{border-bottom-color:var(--ac);background:rgba(var(--ac-rgb),.1)}
+#wsIframeContainer{overflow:hidden}
 </style>
 
 </body></html>
