@@ -876,84 +876,58 @@ function guardarVariante(prodId, uds, ancho, largo, alto, pesoUnit, pesoMax) {
   window.location.href = '{{ url_for("empaques_nuevo") }}?' + params.toString();
 }
 
-// ── Calculadora de envío — ciudades MX + LATAM ───────────────────
+// ── Calculadora de envío — ciudades Colombia ─────────────────────
 const CIUDADES = [
-  // México
-  {k:'CDMX', n:'🇲🇽 Ciudad de México',    int:false},
-  {k:'MTY',  n:'🇲🇽 Monterrey, NL',        int:false},
-  {k:'GDL',  n:'🇲🇽 Guadalajara, JAL',     int:false},
-  {k:'PUE',  n:'🇲🇽 Puebla',               int:false},
-  {k:'TIJ',  n:'🇲🇽 Tijuana, BC',          int:false},
-  {k:'MID',  n:'🇲🇽 Mérida, YUC',          int:false},
-  {k:'VER',  n:'🇲🇽 Veracruz',             int:false},
-  {k:'SLP',  n:'🇲🇽 San Luis Potosí',      int:false},
-  {k:'CUU',  n:'🇲🇽 Chihuahua',            int:false},
-  {k:'HMO',  n:'🇲🇽 Hermosillo, SON',      int:false},
-  // Centroamérica
-  {k:'GUA',  n:'🇬🇹 Guatemala City',        int:true},
-  {k:'SJO',  n:'🇨🇷 San José, C.Rica',     int:true},
-  {k:'PTY',  n:'🇵🇦 Ciudad de Panamá',     int:true},
-  // Sudamérica
-  {k:'BOG',  n:'🇨🇴 Bogotá, Colombia',     int:true},
-  {k:'QUI',  n:'🇪🇨 Quito, Ecuador',       int:true},
-  {k:'LIM',  n:'🇵🇪 Lima, Perú',           int:true},
-  {k:'SCL',  n:'🇨🇱 Santiago, Chile',      int:true},
-  {k:'BUE',  n:'🇦🇷 Buenos Aires, Arg.',   int:true},
-  {k:'SAO',  n:'🇧🇷 São Paulo, Brasil',    int:true},
-  {k:'MVD',  n:'🇺🇾 Montevideo, Uruguay',  int:true},
+  {k:'BOG', n:'Bogotá D.C.',           int:false},
+  {k:'MDE', n:'Medellín, Antioquia',   int:false},
+  {k:'CLO', n:'Cali, Valle del Cauca', int:false},
+  {k:'BAQ', n:'Barranquilla, Atlántico',int:false},
+  {k:'CTG', n:'Cartagena, Bolívar',    int:false},
+  {k:'BGA', n:'Bucaramanga, Santander',int:false},
+  {k:'CUC', n:'Cúcuta, N. Santander',  int:false},
+  {k:'PEI', n:'Pereira, Risaralda',    int:false},
+  {k:'MZL', n:'Manizales, Caldas',     int:false},
+  {k:'IBG', n:'Ibagué, Tolima',        int:false},
+  // Internacionales
+  {k:'QUI', n:'Quito, Ecuador',         int:true},
+  {k:'LIM', n:'Lima, Perú',             int:true},
+  {k:'PTY', n:'Panamá City',            int:true},
 ];
 
 const DIST_KM = {
-  // ── México interno ──────────────────────────────────────────────
-  'CDMX-MTY':935, 'CDMX-GDL':540, 'CDMX-PUE':135, 'CDMX-TIJ':2780,
-  'CDMX-MID':1520,'CDMX-VER':440, 'CDMX-SLP':430, 'CDMX-CUU':1620,'CDMX-HMO':1970,
-  'MTY-GDL':520,  'MTY-PUE':1070, 'MTY-TIJ':1870, 'MTY-MID':1460,
-  'MTY-VER':1160, 'MTY-SLP':505,  'MTY-CUU':840,  'MTY-HMO':930,
-  'GDL-PUE':630,  'GDL-TIJ':2350, 'GDL-MID':1590, 'GDL-VER':720,
-  'GDL-SLP':310,  'GDL-CUU':1110, 'GDL-HMO':1110,
-  'PUE-TIJ':2900, 'PUE-MID':1375, 'PUE-VER':305,  'PUE-SLP':500, 'PUE-CUU':1750,'PUE-HMO':2100,
-  'TIJ-MID':3300, 'TIJ-VER':3200, 'TIJ-SLP':2350, 'TIJ-CUU':1160,'TIJ-HMO':830,
-  'MID-VER':620,  'MID-SLP':1090, 'MID-CUU':2180, 'MID-HMO':2500,
-  'VER-SLP':560,  'VER-CUU':1800, 'VER-HMO':2200,
-  'SLP-CUU':1190, 'SLP-HMO':1430, 'CUU-HMO':530,
-  // ── México → Centroamérica ──────────────────────────────────────
-  'CDMX-GUA':1050,'CDMX-SJO':2000,'CDMX-PTY':3000,
-  'MTY-GUA':1800, 'MTY-SJO':2700, 'MTY-PTY':3600,
-  'GDL-GUA':1700, 'GDL-SJO':2600, 'GDL-PTY':3500,
-  'PUE-GUA':900,  'PUE-SJO':1850, 'PUE-PTY':2800,
-  'MID-GUA':700,  'MID-SJO':1700, 'MID-PTY':2600,
-  // ── México → Sudamérica ─────────────────────────────────────────
-  'CDMX-BOG':3800,'CDMX-QUI':4400,'CDMX-LIM':5300,
-  'CDMX-SCL':7200,'CDMX-BUE':8600,'CDMX-SAO':8100,'CDMX-MVD':9000,
-  'MTY-BOG':4400, 'MTY-LIM':6000, 'MTY-SCL':7900, 'MTY-BUE':9300, 'MTY-SAO':8800,
-  'GDL-BOG':4200, 'GDL-LIM':5700, 'GDL-SCL':7600, 'GDL-BUE':9100, 'GDL-SAO':8600,
-  // ── Centroamérica interna ───────────────────────────────────────
-  'GUA-SJO':1100, 'GUA-PTY':2100,
-  'SJO-PTY':1000,
-  // ── Centroamérica → Sudamérica ──────────────────────────────────
-  'GUA-BOG':3100, 'GUA-QUI':3700, 'GUA-LIM':4600, 'GUA-SCL':6700,'GUA-BUE':8200,'GUA-SAO':7500,
-  'SJO-BOG':2100, 'SJO-QUI':2800, 'SJO-LIM':3700, 'SJO-SCL':5700,'SJO-BUE':7200,'SJO-SAO':6600,
-  'PTY-BOG':1300, 'PTY-QUI':1900, 'PTY-LIM':2900, 'PTY-SCL':4900,'PTY-BUE':6400,'PTY-SAO':5900,
-  // ── Sudamérica interna ──────────────────────────────────────────
-  'BOG-QUI':650,  'BOG-LIM':1900, 'BOG-SCL':3700, 'BOG-BUE':5000,'BOG-SAO':4200,'BOG-MVD':5200,
-  'QUI-LIM':1500, 'QUI-SCL':3400, 'QUI-BUE':4700, 'QUI-SAO':3900,
-  'LIM-SCL':2500, 'LIM-BUE':3100, 'LIM-SAO':3500, 'LIM-MVD':3300,
-  'SCL-BUE':1200, 'SCL-SAO':2800, 'SCL-MVD':2000,
-  'BUE-SAO':2200, 'BUE-MVD':230,
-  'SAO-MVD':1700,
+  // ── Colombia interno (distancias terrestres aprox.) ─────────────
+  'BOG-MDE':415, 'BOG-CLO':460, 'BOG-BAQ':1000, 'BOG-CTG':1040,
+  'BOG-BGA':395, 'BOG-CUC':555, 'BOG-PEI':340, 'BOG-MZL':295, 'BOG-IBG':200,
+  'MDE-CLO':415, 'MDE-BAQ':700, 'MDE-CTG':640, 'MDE-BGA':385, 'MDE-CUC':555,
+  'MDE-PEI':220, 'MDE-MZL':195, 'MDE-IBG':345,
+  'CLO-BAQ':1100,'CLO-CTG':1130,'CLO-BGA':680, 'CLO-CUC':830,
+  'CLO-PEI':215, 'CLO-MZL':300, 'CLO-IBG':280,
+  'BAQ-CTG':120, 'BAQ-BGA':620, 'BAQ-CUC':730,
+  'BAQ-PEI':900, 'BAQ-MZL':870, 'BAQ-IBG':960,
+  'CTG-BGA':670, 'CTG-CUC':780, 'CTG-PEI':940, 'CTG-MZL':910, 'CTG-IBG':1000,
+  'BGA-CUC':195, 'BGA-PEI':465, 'BGA-MZL':430, 'BGA-IBG':440,
+  'CUC-PEI':600, 'CUC-MZL':570, 'CUC-IBG':600,
+  'PEI-MZL':50,  'PEI-IBG':180, 'MZL-IBG':160,
+  // ── Colombia → Internacional ────────────────────────────────────
+  'BOG-QUI':1200, 'BOG-LIM':2400, 'BOG-PTY':1300,
+  'MDE-QUI':1500, 'MDE-LIM':2700, 'MDE-PTY':1200,
+  'CLO-QUI':800,  'CLO-LIM':2100, 'CLO-PTY':1500,
+  'BAQ-PTY':1100, 'CTG-PTY':1050,
+  // Internacional entre sí
+  'QUI-LIM':1500, 'QUI-PTY':2000, 'LIM-PTY':3000,
 };
 function getDistKm(a,b){ if(a===b)return 0; return DIST_KM[a+'-'+b]||DIST_KM[b+'-'+a]||null; }
 function ciudadIsInt(k){ var c=CIUDADES.find(function(x){return x.k===k;}); return c?c.int:false; }
 
-// Tarifa paquetería (MXN/kg cobrable) por banda de distancia
+// Tarifa paquetería (COP/kg cobrable) por banda de distancia
 function paqRate(km,intl){
-  if(intl) return km<=2000?140:km<=5000?180:220;  // internacional
-  if(km<=200)return 45; if(km<=500)return 60; if(km<=1000)return 75; if(km<=2000)return 90; return 110;
+  if(intl) return km<=1500?8500:km<=3000?12000:18000;
+  if(km<=200)return 4500; if(km<=500)return 5500; if(km<=800)return 6500; return 7500;
 }
-const PAQ_MIN = 120; // mínimo por guía nacional
-const PAQ_MIN_INT = 400; // mínimo internacional
-// Tarifa FTL (MXN/km) por tipo de vehículo
-const FTL_KM_RATE = {S:12, M:18, L:25, XL:35, XXL:45};
+const PAQ_MIN = 8000;     // mínimo por guía nacional COP
+const PAQ_MIN_INT = 35000; // mínimo internacional COP
+// Tarifa FTL (COP/km) por tipo de vehículo
+const FTL_KM_RATE = {S:1800, M:2500, L:3500, XL:5000, XXL:6500};
 
 function initEnvioSelects() {
   ['envOrig','envDest'].forEach(function(id){
@@ -961,7 +935,7 @@ function initEnvioSelects() {
     if (!sel || sel.options.length > 1) return;
     var lastGroup = null;
     CIUDADES.forEach(function(c){
-      var grp = c.int ? 'LATAM' : 'México';
+      var grp = c.int ? 'Internacional' : 'Colombia';
       if(grp !== lastGroup){
         var og = document.createElement('optgroup'); og.label = grp; sel.appendChild(og);
         lastGroup = grp;
@@ -969,9 +943,14 @@ function initEnvioSelects() {
       var o = document.createElement('option'); o.value=c.k; o.textContent=c.n;
       sel.lastElementChild.appendChild(o);
     });
+    // Defaults: origen Bogotá, destino Medellín
+    if(id==='envOrig'){
+      var bog = sel.querySelector('option[value="BOG"]');
+      if(bog) bog.selected=true;
+    }
     if(id==='envDest'){
-      var mty = sel.querySelector('option[value="MTY"]');
-      if(mty) mty.selected=true;
+      var mde = sel.querySelector('option[value="MDE"]');
+      if(mde) mde.selected=true;
     }
   });
 }
@@ -1032,7 +1011,7 @@ function calcEnvio() {
   var t   = TRUCKS[_simTruck];
   var st  = calcTruck(t, pal);
 
-  // Tarifa paquetería (MXN/kg cobrable)
+  // Tarifa paquetería (COP/kg cobrable)
   var rate    = paqRate(dist, isIntl);
   var paqMin  = isIntl ? PAQ_MIN_INT : PAQ_MIN;
   // Paquetería por caja = max(mínimo_guía, kg_cobrable × tarifa)
@@ -1046,8 +1025,8 @@ function calcEnvio() {
   var ftlBox   = st.tb > 0 ? ftlTotal / st.tb : null;   // por caja si camión lleno
   var ftlPal   = st.tp > 0 ? ftlTotal / st.tp : null;   // por pallet si camión lleno
 
-  var fmt  = function(v){ return '$'+Math.round(v).toLocaleString('es-MX'); };
-  var fmt2 = function(v){ return '$'+v.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+  var fmt  = function(v){ return '$'+Math.round(v).toLocaleString('es-CO'); };
+  var fmt2 = function(v){ return '$'+v.toLocaleString('es-CO',{minimumFractionDigits:2,maximumFractionDigits:2}); };
   var intlNote = isIntl ? ' <span class="badge bg-warning text-dark" style="font-size:.7rem">Internacional — no incl. aduana</span>' : '';
 
   // ── Costos por cantidad ──────────────────────────────────────────
@@ -1117,7 +1096,7 @@ function calcEnvio() {
       </div>
       ${paqPal!==null?`<div class="sim-sr"><span>Por pallet (${pal.tot} cajas × 1 guía c/u)</span><strong>${fmt2(paqPal)}</strong></div>`:''}
       <div class="sim-sr" style="border-top:1px solid #dde;margin-top:.3rem;padding-top:.3rem">
-        <span style="font-size:.73rem;color:#888">Mín. por guía: ${fmt(paqMin)} MXN · Sin IVA · Cada caja = 1 guía</span>
+        <span style="font-size:.73rem;color:#888">Mín. por guía: ${fmt(paqMin)} COP · Sin IVA · Cada caja = 1 guía</span>
       </div>
     </div>
   </div>
@@ -1135,14 +1114,16 @@ function calcEnvio() {
 
 // ── Caja óptima por vehículo ──────────────────────────────────────
 function calcPalV(v) {
+  var P=getPal();
   var bw=v.ancho_caja, bd=v.largo_caja, bh=v.alto_caja, bKg=v.peso_total;
-  var fit = bestFit(PAL.w, PAL.d, bw, bd);
-  var ly  = bh>0 ? Math.floor(PAL.maxH/bh) : 0;
-  var tot = Math.min(fit.n*ly, bKg>0 ? Math.floor(PAL.maxKg/bKg) : 9999);
-  return {fit, ly, tot, loadH:ly*bh, fullH:PAL.h+ly*bh};
+  var fit = bestFit(P.w, P.d, bw, bd);
+  var ly  = bh>0 ? Math.floor(P.maxH/bh) : 0;
+  var tot = Math.min(fit.n*ly, bKg>0 ? Math.floor(P.maxKg/bKg) : 9999);
+  return {fit, ly, tot, loadH:ly*bh, fullH:P.h+ly*bh};
 }
 function calcTruckV(truck, pal, v) {
-  var pf  = bestFit(truck.w, truck.d, PAL.w, PAL.d);
+  var P=getPal();
+  var pf  = bestFit(truck.w, truck.d, P.w, P.d);
   var ps  = pal.fullH>0 ? Math.floor(truck.h/pal.fullH) : 0;
   var tp  = pf.n * ps;
   var tb  = tp  * pal.tot;
@@ -1269,7 +1250,7 @@ function calcPorCantidad() {
     : multiTruck.slice(0,6);
 
   var pctColor=function(p){return !p?'#888':p>=80?'#00875A':p>=50?'#FF8B00':'#DE350B';};
-  var fmt=function(v){return '$'+Math.round(v).toLocaleString('es-MX');};
+  var fmt=function(v){return '$'+Math.round(v).toLocaleString('es-CO');};
 
   var hasSingle=singleTruck.length>0;
   var html=`
@@ -1515,7 +1496,7 @@ function usarVarianteTruck(truckKey, vi) {
 
           <div id="envResult"></div>
           <small class="text-muted d-block mt-2" style="font-size:.71rem">
-            Tarifas de referencia en MXN. Peso cobrable = max(peso real, volumétrico ÷ 5000).
+            Tarifas de referencia en COP. Peso cobrable = max(peso real, volumétrico ÷ 5000).
             Internacional: tarifa estimada, no incluye aranceles ni aduana.
             FTL: basado en tipo de vehículo seleccionado en el simulador.
           </small>
