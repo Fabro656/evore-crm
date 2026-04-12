@@ -249,11 +249,9 @@ def register(app):
             fes = request.form.get('fecha_esperada')
             fep = request.form.get('fecha_estimada_pago')
             fer = request.form.get('fecha_estimada_recogida')
-            frc = request.form.get('fecha_anticipo_real')
             cot_id = int(request.form.get('cotizacion_id')) if request.form.get('cotizacion_id') else None
             tra_id = int(request.form.get('transportista_id')) if request.form.get('transportista_id') else None
             fecha_emision = datetime.strptime(fe,'%Y-%m-%d').date() if fe else datetime.utcnow().date()
-            # Calcular fecha_esperada desde cotización si no se ingresó manualmente
             fecha_esp = None
             if fes:
                 fecha_esp = datetime.strptime(fes,'%Y-%m-%d').date()
@@ -270,7 +268,6 @@ def register(app):
                 fecha_esperada=fecha_esp,
                 fecha_estimada_pago=datetime.strptime(fep,'%Y-%m-%d').date() if fep else None,
                 fecha_estimada_recogida=datetime.strptime(fer,'%Y-%m-%d').date() if fer else None,
-                fecha_anticipo_real=datetime.strptime(frc,'%Y-%m-%d').date() if frc else None,
                 subtotal=float(request.form.get('subtotal_calc') or 0),
                 iva=float(request.form.get('iva_calc') or 0),
                 total=float(request.form.get('total_calc') or 0),
@@ -319,7 +316,6 @@ def register(app):
             fes = request.form.get('fecha_esperada')
             fep = request.form.get('fecha_estimada_pago')
             fer = request.form.get('fecha_estimada_recogida')
-            frc = request.form.get('fecha_anticipo_real')
             cot_id = int(request.form.get('cotizacion_id')) if request.form.get('cotizacion_id') else None
             tra_id = int(request.form.get('transportista_id')) if request.form.get('transportista_id') else None
             fecha_emision = datetime.strptime(fe,'%Y-%m-%d').date() if fe else obj.fecha_emision
@@ -338,7 +334,6 @@ def register(app):
             obj.fecha_esperada      = fecha_esp
             obj.fecha_estimada_pago = datetime.strptime(fep,'%Y-%m-%d').date() if fep else None
             obj.fecha_estimada_recogida = datetime.strptime(fer,'%Y-%m-%d').date() if fer else None
-            obj.fecha_anticipo_real = datetime.strptime(frc,'%Y-%m-%d').date() if frc else None
             obj.subtotal = float(request.form.get('subtotal_calc') or 0)
             obj.iva      = float(request.form.get('iva_calc') or 0)
             obj.total    = float(request.form.get('total_calc') or 0)
