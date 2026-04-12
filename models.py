@@ -1176,6 +1176,8 @@ def init_db():
         _seed_cuc_mx()
     # Auto-generar SKU para productos que no tengan
     _fix_missing_skus()
+    # Limpiar RecetaItems de empaques huérfanos (caja eliminada pero item quedó)
+    _limpiar_empaques_huerfanos()
     logging.info(f'App iniciada para: {COMPANY["name"]} ({COMPANY["country"]})')
 
 
@@ -1189,6 +1191,39 @@ def _fix_missing_skus():
     for p in prods:
         p.sku = _generar_sku(p.nombre)
     db.session.commit()
+
+
+def _limpiar_empaques_huerfanos():
+    """Elimina RecetaItems de cajas que ya no tienen EmpaqueSecundario aprobado."""
+    import logging
+    try:
+        recetas = RecetaProducto.query.filter_by(activo=True).all()
+        eliminados = 0
+        for r in recetas:
+            for item in list(r.items):
+                if not (item.clasificacion == 'empaque_secundario' or item.es_empaque):
+                    continue
+                mp = db.session.get(MateriaPrima, item.materia_prima_id)
+                if not mp:
+                    continue
+                # Solo limpiar cajas (no cinta, que es compartida)
+                if 'caja' not in mp.nombre.lower():
+                    continue
+                # Verificar si existe empaque aprobado para este producto con esta MP
+                empaque_activo = EmpaqueSecundario.query.filter_by(
+                    producto_id=r.producto_id,
+                    materia_prima_id=item.materia_prima_id,
+                    aprobado=True
+                ).first()
+                if not empaque_activo:
+                    db.session.delete(item)
+                    eliminados += 1
+        if eliminados:
+            db.session.commit()
+            logging.info(f'Limpieza: {eliminados} RecetaItem(s) de cajas huérfanas eliminados.')
+    except Exception as e:
+        db.session.rollback()
+        logging.warning(f'Error limpiando empaques huérfanos: {e}')
 
 
 def _seed_puc():
