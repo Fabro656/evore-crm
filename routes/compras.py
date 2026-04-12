@@ -101,6 +101,15 @@ def register(app):
         if request.method == 'POST':
             fc = request.form.get('fecha_cotizacion')
             fv = request.form.get('vigencia')
+            # Calcular precio unitario real
+            precio_raw = float(request.form.get('precio_unitario') or 0)
+            cantidad = float(request.form.get('unidades_minimas') or 1)
+            precio_por_unidad = request.form.get('precio_por_unidad')  # checkbox
+            if not precio_por_unidad and cantidad > 0:
+                # El precio ingresado es por la cantidad total → dividir
+                precio_unitario_real = round(precio_raw / cantidad, 2)
+            else:
+                precio_unitario_real = precio_raw
             cp = CotizacionProveedor(
                 proveedor_id=int(request.form.get('proveedor_id')) if request.form.get('proveedor_id') else None,
                 tipo_cotizacion=request.form.get('tipo_cotizacion','general'),
@@ -108,8 +117,8 @@ def register(app):
                 nombre_producto=request.form['nombre_producto'],
                 descripcion=request.form.get('descripcion',''),
                 sku=request.form.get('sku',''),
-                precio_unitario=float(request.form.get('precio_unitario') or 0),
-                unidades_minimas=int(request.form.get('unidades_minimas') or 1),
+                precio_unitario=precio_unitario_real,
+                unidades_minimas=int(cantidad),
                 unidad=request.form.get('unidad','unidades'),
                 plazo_entrega=_construir_plazo_entrega(request.form),
                 plazo_entrega_dias=int(request.form.get('plazo_entrega_dias') or 0),
@@ -159,8 +168,14 @@ def register(app):
             obj.nombre_producto=request.form.get('nombre_producto','')
             obj.descripcion=request.form.get('descripcion','')
             obj.sku=request.form.get('sku','')
-            obj.precio_unitario=float(request.form.get('precio_unitario') or 0)
-            obj.unidades_minimas=int(request.form.get('unidades_minimas') or 1)
+            precio_raw = float(request.form.get('precio_unitario') or 0)
+            cantidad = float(request.form.get('unidades_minimas') or 1)
+            precio_por_unidad = request.form.get('precio_por_unidad')
+            if not precio_por_unidad and cantidad > 0:
+                obj.precio_unitario = round(precio_raw / cantidad, 2)
+            else:
+                obj.precio_unitario = precio_raw
+            obj.unidades_minimas=int(cantidad)
             obj.unidad=request.form.get('unidad','unidades')
             obj.plazo_entrega=_construir_plazo_entrega(request.form)
             obj.plazo_entrega_dias=int(request.form.get('plazo_entrega_dias') or 0)

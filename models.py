@@ -1173,7 +1173,21 @@ def init_db():
         _seed_puc()
     elif COMPANY['chart_of_accounts'] == 'mx_cuc':
         _seed_cuc_mx()
+    # Auto-generar SKU para productos que no tengan
+    _fix_missing_skus()
     logging.info(f'App iniciada para: {COMPANY["name"]} ({COMPANY["country"]})')
+
+
+def _fix_missing_skus():
+    """Genera SKU para productos que tengan None o vacío."""
+    prods = Producto.query.filter(
+        db.or_(Producto.sku == None, Producto.sku == 'None', Producto.sku == '')
+    ).all()
+    if not prods:
+        return
+    for p in prods:
+        p.sku = _generar_sku(p.nombre)
+    db.session.commit()
 
 
 def _seed_puc():
