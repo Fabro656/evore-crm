@@ -13,7 +13,7 @@
 /* ── Light theme (default) ───────────────────────── */
 :root{
   /* Sidebar */
-  --sb:#0B2D61;--sb-text:#A2BFDF;--sb-active:#5BAFFA;
+  --sb:#1A1F2E;--sb-text:#9CA3B4;--sb-active:#5BAFFA;
   /* Brand accent */
   --ac:#0176D3;--ac2:#0047A1;--ac-rgb:1,118,211;
   /* Page surfaces */
@@ -73,9 +73,10 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 #sb.sb-expanded .sb-nav .nav-link:hover{transform:none}
 #sb.sb-expanded .sb-nav .nav-link i{font-size:1rem}
 #sb.sb-expanded .dock-div{width:100%;margin:2px 0}
-#sb.sb-expanded .sb-foot{align-items:stretch;padding:6px 8px}
-#sb.sb-expanded .sb-foot .d-flex{flex-direction:row!important}
-#sb.sb-expanded .sb-foot .u-name{display:block!important;font-size:.8rem}
+#sb.sb-expanded .sb-foot{align-items:stretch;padding:8px 10px}
+#sb.sb-expanded .sb-foot .d-flex{flex-direction:row!important;align-items:center!important}
+#sb.sb-expanded .sb-foot .ui{display:block!important}
+#sb.sb-expanded .sb-foot .u-name{display:block!important;font-size:.8rem;color:#fff}
 #sb.sb-expanded .sb-foot .u-rol{display:inline-block!important}
 #sb.sb-expanded+#main,.sb-expanded~#main{margin-left:240px!important}
 /* Dock tooltip */
@@ -83,10 +84,11 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .dock-tip.show{opacity:1}
 .sb-expanded .dock-tip{display:none!important}
 .dock-div{width:28px;height:1px;background:rgba(255,255,255,.12);margin:3px 0;flex-shrink:0}
-.sb-foot{padding:6px 0;display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:auto;width:100%;border-top:1px solid rgba(255,255,255,.08)}
-.sb-foot .d-flex{flex-direction:column!important;gap:4px!important}
-.sb-foot .u-name,.sb-foot .u-rol,.sb-foot span:not(.notif-badge){display:none!important}
-.sb-foot .notif-btn{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:10px}
+.sb-foot{padding:6px 0;display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:auto;width:100%;border-top:1px solid rgba(255,255,255,.08)}
+.sb-foot .d-flex{flex-direction:column!important;gap:2px!important;align-items:center!important}
+.sb-foot .ui,.sb-foot .u-name,.sb-foot .u-rol{display:none!important}
+.sb-foot .rounded-circle{width:34px!important;height:34px!important}
+.sb-foot .notif-btn{width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:10px}
 
 /* ── Dock flyout panel (hold to open) ────────── */
 .dock-panel{position:fixed;left:72px;width:280px;max-height:75vh;background:rgba(15,23,42,.94);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:16px;border:1px solid rgba(255,255,255,.08);box-shadow:0 20px 60px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.05) inset;z-index:1060;display:none;overflow:hidden;color:#fff;animation:dockIn .18s ease}
@@ -288,7 +290,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
    DARK THEME
    ══════════════════════════════════════════════════ */
 html[data-theme="dark"]{
-  --sb:#0E1B33;--sb-text:#7A9CBD;--sb-active:#4BAEFF;
+  --sb:#141414;--sb-text:#8A8F9C;--sb-active:#4BAEFF;
   --ac:#1589EE;--ac2:#0E6BBD;--ac-rgb:21,137,238;
   --bg:#161616;--surface:#1E1E1E;--surface2:#262626;
   --border:#323232;--border2:#484848;
