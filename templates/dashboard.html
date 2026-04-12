@@ -17,7 +17,7 @@
     <div style="font-size:1.25rem;font-weight:700;margin-bottom:.3rem">Hola, {{ current_user.nombre }}!</div>
     <div style="font-size:.87rem;opacity:.75;max-width:520px">Sigue estos pasos para configurar tu area de trabajo.</div>
     <div style="background:rgba(255,255,255,.15);border-radius:4px;height:6px;margin:8px 0 12px;max-width:400px">
-      <div style="background:#fff;border-radius:4px;height:100%;width:{{ (onboarding.done / onboarding.total * 100)|int }}%;transition:width .3s"></div>
+      <div style="background:var(--surface);border-radius:4px;height:100%;width:{{ (onboarding.done / onboarding.total * 100)|int }}%;transition:width .3s"></div>
     </div>
     <div class="onboard-steps mt-2">
       {% for step in onboarding.steps %}
@@ -61,7 +61,7 @@
     <div class="sc sc-accent" style="border-top-color:var(--ac)">
       <div class="d-flex justify-content-between align-items-start">
         <div><div class="sv">{{ total_clientes }}</div><div class="sl">Clientes activos</div></div>
-        <div class="si" style="background:#e8eeff"><i class="bi bi-people-fill" style="color:var(--ac)"></i></div>
+        <div class="si" style="background:var(--surface2)"><i class="bi bi-people-fill" style="color:var(--ac)"></i></div>
       </div>
       <div class="mt-2"><a href="{{ url_for('clientes') }}" style="font-size:.75rem;color:var(--ac);text-decoration:none">Ver clientes →</a></div>
     </div>
@@ -70,7 +70,7 @@
     <div class="sc sc-accent" style="border-top-color:#2dce89">
       <div class="d-flex justify-content-between align-items-start">
         <div><div class="sv">{{ ventas_completadas }}</div><div class="sl">Ventas ganadas</div></div>
-        <div class="si" style="background:#e3f9ee"><i class="bi bi-graph-up-arrow" style="color:#2dce89"></i></div>
+        <div class="si" style="background:var(--surface2)"><i class="bi bi-graph-up-arrow" style="color:#2dce89"></i></div>
       </div>
       <div class="mt-2"><a href="{{ url_for('ventas') }}" style="font-size:.75rem;color:#2dce89;text-decoration:none">Ver ventas →</a></div>
     </div>
@@ -79,7 +79,7 @@
     <div class="sc sc-accent" style="border-top-color:#fb6340">
       <div class="d-flex justify-content-between align-items-start">
         <div><div class="sv">{{ tareas_pendientes }}</div><div class="sl">Tareas pendientes</div></div>
-        <div class="si" style="background:#fff4e5"><i class="bi bi-check2-square" style="color:#fb6340"></i></div>
+        <div class="si" style="background:var(--surface2)"><i class="bi bi-check2-square" style="color:#fb6340"></i></div>
       </div>
       <div class="mt-2"><a href="{{ url_for('tareas') }}" style="font-size:.75rem;color:#fb6340;text-decoration:none">Ver tareas →</a></div>
     </div>
@@ -89,7 +89,7 @@
       <div class="d-flex justify-content-between align-items-start">
         <div><div class="sv valor-cop" data-cop="{{ saldo_pendiente }}">$ {{ '{:,.0f}'.format(saldo_pendiente).replace(',','.') }}</div>
           <div class="sl">Por cobrar</div></div>
-        <div class="si" style="background:#fff8e1"><i class="bi bi-hourglass-split" style="color:#f39c12"></i></div>
+        <div class="si" style="background:var(--surface2)"><i class="bi bi-hourglass-split" style="color:#f39c12"></i></div>
       </div>
       <div class="mt-2"><a href="{{ url_for('ventas') }}" style="font-size:.75rem;color:#f39c12;text-decoration:none">Ver pendientes →</a></div>
     </div>
@@ -103,7 +103,7 @@
       <div class="d-flex justify-content-between align-items-start">
         <div><div class="sv valor-cop" data-cop="{{ ingresos_totales }}" style="color:#2dce89">$ {{ '{:,.0f}'.format(ingresos_totales).replace(',','.') }}</div>
           <div class="sl">Ingresos totales</div></div>
-        <div class="si" style="background:#e3f9ee"><i class="bi bi-currency-dollar" style="color:#2dce89"></i></div>
+        <div class="si" style="background:var(--surface2)"><i class="bi bi-currency-dollar" style="color:#2dce89"></i></div>
       </div>
     </div>
   </div>
@@ -112,7 +112,7 @@
       <div class="d-flex justify-content-between align-items-start">
         <div><div class="sv valor-cop" data-cop="{{ gastos_totales }}" style="color:#f5365c">$ {{ '{:,.0f}'.format(gastos_totales).replace(',','.') }}</div>
           <div class="sl">Gastos + compras</div></div>
-        <div class="si" style="background:#ffeaea"><i class="bi bi-receipt" style="color:#f5365c"></i></div>
+        <div class="si" style="background:var(--surface2)"><i class="bi bi-receipt" style="color:#f5365c"></i></div>
       </div>
     </div>
   </div>
@@ -121,7 +121,7 @@
       <div class="d-flex justify-content-between align-items-start">
         <div><div class="sv valor-cop" data-cop="{{ impuestos_estimados }}" style="color:#e83e8c">$ {{ '{:,.0f}'.format(impuestos_estimados).replace(',','.') }}</div>
           <div class="sl">Impuestos estimados</div></div>
-        <div class="si" style="background:#fce4ec"><i class="bi bi-percent" style="color:#e83e8c"></i></div>
+        <div class="si" style="background:var(--surface2)"><i class="bi bi-percent" style="color:#e83e8c"></i></div>
       </div>
       {% if impuestos_estimados == 0 %}
       <div class="mt-1"><a href="{{ url_for('impuestos') }}" style="font-size:.73rem;color:#e83e8c">Configurar reglas →</a></div>

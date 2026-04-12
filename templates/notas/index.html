@@ -63,11 +63,11 @@
       </div>
     </div>
     <p style="font-size:.88rem;color:var(--text2);white-space:pre-line;margin-bottom:.75rem">{{ n.contenido[:300] }}{% if n.contenido|length > 300 %}...{% endif %}</p>
-    <div style="font-size:.75rem;color:#adb5bd;border-top:1px solid #f0f2ff;padding-top:.5rem;margin-top:auto">
+    <div style="font-size:.75rem;color:var(--text2);border-top:1px solid var(--border);padding-top:.5rem;margin-top:auto">
       {% if n.cliente %}<span class="badge bg-light text-dark me-1"><i class="bi bi-person me-1"></i>{{ n.cliente.empresa or n.cliente.nombre }}</span>{% endif %}
       {% if n.orden_compra_id is defined and n.orden_compra_id %}<span class="badge bg-light text-dark me-1"><i class="bi bi-cart me-1"></i>OC</span>{% endif %}
       {% if n.venta_id is defined and n.venta_id %}<span class="badge bg-light text-dark me-1"><i class="bi bi-bag me-1"></i>Venta</span>{% endif %}
-      {% if n.modulo %}<span class="badge" style="background:#e8eeff;color:var(--ac)">{{ n.modulo }}</span>{% endif %}
+      {% if n.modulo %}<span class="badge" style="background:var(--surface2);color:var(--ac)">{{ n.modulo }}</span>{% endif %}
       {% if n.estado_nota is defined and n.estado_nota == 'resuelta' %}<span class="badge bg-success">Resuelta</span>{% endif %}
       <br>{{ n.autor.nombre if n.autor else '' }} -- {{ n.creado_en.strftime('%d/%m/%Y') }}
     </div>

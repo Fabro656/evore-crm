@@ -23,13 +23,13 @@
   <div class="col-6 col-md-3">
     <div class="fc text-center py-3">
       <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Ingresos este mes</div>
-      <div class="fw-bold mt-1" style="font-size:1.25rem;color:#00875A">{{ moneda(ingresos_mes) }}</div>
+      <div class="fw-bold mt-1" style="font-size:1.25rem;color:var(--green)">{{ moneda(ingresos_mes) }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="fc text-center py-3">
       <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Egresos este mes</div>
-      <div class="fw-bold mt-1" style="font-size:1.25rem;color:#DE350B">{{ moneda(gastos_mes) }}</div>
+      <div class="fw-bold mt-1" style="font-size:1.25rem;color:var(--red)">{{ moneda(gastos_mes) }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
@@ -127,7 +127,7 @@
           {% if es_ingreso %}
             <span class="b b-activo" style="font-size:.71rem"><i class="bi bi-arrow-down-circle me-1"></i>Ingreso</span>
           {% elif es_cc %}
-            <span class="b" style="font-size:.71rem;background:#FFF0B3;color:#172B4D;border:1px solid #FFE380"><i class="bi bi-wallet me-1"></i>Caja chica</span>
+            <span class="b" style="font-size:.71rem;background:var(--surface2);color:var(--text);border:1px solid var(--border)"><i class="bi bi-wallet me-1"></i>Caja chica</span>
           {% else %}
             <span class="b b-alta" style="font-size:.71rem"><i class="bi bi-arrow-up-circle me-1"></i>Egreso</span>
           {% endif %}

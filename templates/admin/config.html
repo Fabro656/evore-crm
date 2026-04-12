@@ -26,8 +26,8 @@
     <input type="file" name="firma_imagen" class="form-control" accept="image/png,image/jpeg,image/gif">
     <small class="text-muted d-block mt-2">Tamaño recomendado: 200x80px. Esta imagen aparecerá en los PDF de cotizaciones, órdenes de compra y remisiones.</small>
     {% if obj.firma_path %}
-    <div style="margin-top:1rem;padding:1rem;background:#f8f9fe;border-radius:6px;border:1px solid #e8ecf5">
-      <strong style="font-size:.85rem;color:#6B778C;text-transform:uppercase;display:block;margin-bottom:0.5rem">Firma actual:</strong>
+    <div style="margin-top:1rem;padding:1rem;background:var(--surface2);border-radius:6px;border:1px solid var(--border)">
+      <strong style="font-size:.85rem;color:var(--text2);text-transform:uppercase;display:block;margin-bottom:0.5rem">Firma actual:</strong>
       <img src="/{{ obj.firma_path }}" style="max-height:80px;max-width:200px;border-radius:4px">
     </div>
     {% endif %}

@@ -44,7 +44,10 @@ def register(app):
                 direccion=request.form.get('direccion',''),
                 categoria=request.form.get('categoria',''),
                 tipo=request.form.get('tipo','proveedor'),
-                notas=request.form.get('notas',''), activo=True)
+                notas=request.form.get('notas',''), activo=True,
+                tipo_vehiculo=request.form.get('tipo_vehiculo','') or None,
+                capacidad_vehiculo_kg=float(request.form.get('capacidad_vehiculo_kg') or 0),
+                capacidad_vehiculo_m3=float(request.form.get('capacidad_vehiculo_m3') or 0))
             db.session.add(p); db.session.commit()
             flash('Registro creado.','success'); return redirect(url_for('proveedores'))
         return render_template('proveedores/form.html', obj=None, titulo='Nuevo Proveedor / Transportista')
@@ -66,6 +69,9 @@ def register(app):
             obj.categoria=request.form.get('categoria','')
             obj.tipo=request.form.get('tipo','proveedor')
             obj.notas=request.form.get('notas','')
+            obj.tipo_vehiculo=request.form.get('tipo_vehiculo','') or None
+            obj.capacidad_vehiculo_kg=float(request.form.get('capacidad_vehiculo_kg') or 0)
+            obj.capacidad_vehiculo_m3=float(request.form.get('capacidad_vehiculo_m3') or 0)
             db.session.commit()
             flash('Registro actualizado.','success'); return redirect(url_for('proveedores'))
         return render_template('proveedores/form.html', obj=obj, titulo='Editar Proveedor / Transportista')

@@ -1,39 +1,60 @@
 {% extends 'base.html' %}
-{% block title %}Aprobaciones{% endblock %}{% block page_title %}Aprobaciones pendientes{% endblock %}
+{% block title %}Aprobaciones{% endblock %}{% block page_title %}Aprobaciones{% endblock %}
 {% block content %}
 {% if pendientes %}
 <div class="tc mb-4">
   <div class="ch" style="background:var(--orange);color:#fff">
-    <span>Pendientes de aprobacion ({{ pendientes|length }})</span>
+    <span><i class="bi bi-clock-history me-1"></i>Pendientes de aprobacion ({{ pendientes|length }})</span>
   </div>
-  <div class="table-responsive">
-    <table class="table mb-0">
-      <thead><tr><th>Fecha</th><th>Solicitante</th><th>Tipo</th><th>Descripcion</th><th class="text-end">Monto</th><th>Acciones</th></tr></thead>
-      <tbody>
-      {% for a in pendientes %}
-      <tr>
-        <td><small>{{ a.creado_en.strftime('%d/%m/%Y %H:%M') }}</small></td>
-        <td>{{ a.solicitante.nombre if a.solicitante else '?' }}</td>
-        <td><span class="b b-pendiente">{{ a.tipo_accion|replace('_',' ')|title }}</span></td>
-        <td style="font-size:.85rem">{{ a.descripcion }}</td>
-        <td class="text-end fw-bold">{{ moneda(a.monto) }}</td>
-        <td>
-          <div class="d-flex gap-1 align-items-center">
-            <form method="POST" action="{{ url_for('aprobacion_aprobar', id=a.id) }}" class="d-inline">
-              <input type="hidden" name="notas" value="">
-              <button class="btn btn-primary btn-sm">Aprobar</button>
-            </form>
-            <form method="POST" action="{{ url_for('aprobacion_rechazar', id=a.id) }}" class="d-flex gap-1 align-items-center">
-              <input type="text" name="notas" placeholder="Motivo..." class="form-control form-control-sm" style="min-width:100px">
-              <button class="btn btn-ghost btn-sm" style="color:var(--red);border-color:var(--red)">Rechazar</button>
-            </form>
-          </div>
-        </td>
-      </tr>
-      {% endfor %}
-      </tbody>
-    </table>
+  {% for a in pendientes %}
+  <div style="padding:1rem;border-bottom:1px solid var(--border)">
+    <div class="row g-3">
+      <div class="col-md-8">
+        <div class="d-flex align-items-start gap-2 mb-2">
+          <span class="b b-pendiente">{{ a.tipo_accion|replace('_',' ')|title }}</span>
+          <span class="fw-bold" style="font-size:.95rem">{{ a.descripcion }}</span>
+        </div>
+        <div class="row g-2" style="font-size:.82rem;color:var(--text2)">
+          <div class="col-auto"><i class="bi bi-person me-1"></i><strong>Solicitante:</strong> {{ a.solicitante.nombre if a.solicitante else '?' }} ({{ a.solicitante.rol if a.solicitante else '' }})</div>
+          <div class="col-auto"><i class="bi bi-calendar me-1"></i>{{ a.creado_en.strftime('%d/%m/%Y %H:%M') }}</div>
+          <div class="col-auto"><i class="bi bi-cash me-1"></i><strong>Monto:</strong> {{ moneda(a.monto) }}</div>
+        </div>
+        {% if a.orden_compra_id %}
+        <div class="mt-1" style="font-size:.8rem"><i class="bi bi-cart me-1 text-primary"></i>Orden de Compra #{{ a.orden_compra_id }}
+          {% if a.orden_compra %} — {{ a.orden_compra.numero or '' }} ({{ a.orden_compra.proveedor.empresa if a.orden_compra.proveedor else '' }}){% endif %}
+        </div>
+        {% endif %}
+        {% if a.venta_id %}
+        <div class="mt-1" style="font-size:.8rem"><i class="bi bi-bag me-1 text-success"></i>Venta #{{ a.venta_id }}
+          {% if a.venta %} — {{ a.venta.numero or '' }} ({{ a.venta.titulo[:40] }}){% endif %}
+        </div>
+        {% endif %}
+        {% if a.cotizacion_id %}
+        <div class="mt-1" style="font-size:.8rem"><i class="bi bi-file-text me-1 text-info"></i>Cotizacion #{{ a.cotizacion_id }}</div>
+        {% endif %}
+        {% if a.asiento_id %}
+        <div class="mt-1" style="font-size:.8rem"><i class="bi bi-journal me-1 text-warning"></i>Asiento contable #{{ a.asiento_id }}</div>
+        {% endif %}
+      </div>
+      <div class="col-md-4">
+        <div class="d-flex flex-column gap-2">
+          <form method="POST" action="{{ url_for('aprobacion_aprobar', id=a.id) }}">
+            <input type="hidden" name="notas" value="">
+            <button class="btn btn-success btn-sm w-100"><i class="bi bi-check-lg me-1"></i>Aprobar</button>
+          </form>
+          <form method="POST" action="{{ url_for('aprobacion_revision', id=a.id) }}">
+            <input type="text" name="notas" placeholder="Observaciones para corregir..." class="form-control form-control-sm mb-1" style="font-size:.8rem">
+            <button class="btn btn-warning btn-sm w-100"><i class="bi bi-arrow-return-left me-1"></i>Enviar a revision</button>
+          </form>
+          <form method="POST" action="{{ url_for('aprobacion_rechazar', id=a.id) }}">
+            <input type="text" name="notas" placeholder="Motivo del rechazo..." class="form-control form-control-sm mb-1" style="font-size:.8rem">
+            <button class="btn btn-outline-danger btn-sm w-100"><i class="bi bi-x-lg me-1"></i>Rechazar</button>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
+  {% endfor %}
 </div>
 {% else %}
 <div class="sc mb-4" style="text-align:center;padding:2rem">
@@ -42,21 +63,45 @@
 </div>
 {% endif %}
 
+{% if en_revision %}
+<div class="tc mb-4">
+  <div class="ch" style="background:var(--ac);color:#fff">
+    <span><i class="bi bi-pencil-square me-1"></i>En revision ({{ en_revision|length }})</span>
+  </div>
+  {% for a in en_revision %}
+  <div style="padding:.75rem 1rem;border-bottom:1px solid var(--border);font-size:.85rem">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <span class="b b-negociacion">Revision</span>
+        <strong class="ms-2">{{ a.descripcion }}</strong>
+        <span class="text-muted ms-2">— {{ a.solicitante.nombre if a.solicitante else '?' }}</span>
+      </div>
+      <div>
+        <span class="text-muted">{{ moneda(a.monto) }}</span>
+        {% if a.notas_aprobador %}<br><small class="text-warning">{{ a.notas_aprobador }}</small>{% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
 {% if historial %}
 <div class="tc">
-  <div class="ch">Historial reciente</div>
+  <div class="ch"><i class="bi bi-clock-history me-2"></i>Historial reciente</div>
   <div class="table-responsive">
     <table class="table mb-0">
-      <thead><tr><th>Fecha</th><th>Solicitante</th><th>Tipo</th><th class="text-end">Monto</th><th>Estado</th><th>Aprobador</th><th>Notas</th></tr></thead>
+      <thead><tr><th>Fecha</th><th>Solicitante</th><th>Tipo</th><th>Descripcion</th><th class="text-end">Monto</th><th>Estado</th><th>Aprobador</th><th>Notas</th></tr></thead>
       <tbody>
       {% for a in historial %}
-      <tr>
+      <tr style="opacity:{% if a.estado=='rechazado' %}.6{% else %}1{% endif %}">
         <td><small>{{ a.resuelto_en.strftime('%d/%m/%Y') if a.resuelto_en else '' }}</small></td>
         <td>{{ a.solicitante.nombre if a.solicitante else '?' }}</td>
-        <td style="font-size:.85rem">{{ a.tipo_accion|replace('_',' ')|title }}</td>
+        <td><small>{{ a.tipo_accion|replace('_',' ')|title }}</small></td>
+        <td style="font-size:.82rem">{{ a.descripcion[:50] }}</td>
         <td class="text-end">{{ moneda(a.monto) }}</td>
         <td><span class="b b-{% if a.estado == 'aprobado' %}completado{% else %}cancelado{% endif %}">{{ a.estado|title }}</span></td>
-        <td>{{ a.aprobador.nombre if a.aprobador else '—' }}</td>
+        <td><small>{{ a.aprobador.nombre if a.aprobador else '--' }}</small></td>
         <td><small style="color:var(--text2)">{{ a.notas_aprobador or '' }}</small></td>
       </tr>
       {% endfor %}

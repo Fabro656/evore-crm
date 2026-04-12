@@ -34,6 +34,31 @@
   <div class="col-12"><label class="form-label">Notas</label>
     <textarea name="notas" class="form-control" rows="2">{{ obj.notas if obj else '' }}</textarea></div>
 </div>
+<div id="secVehiculo" style="display:none">
+  <h6 class="text-muted mb-2 text-uppercase" style="letter-spacing:1px;font-size:.75rem">Vehiculo de transporte</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-4"><label class="form-label">Tipo de vehiculo</label>
+      <select name="tipo_vehiculo" class="form-select">
+        <option value="">-- Seleccionar --</option>
+        {% for v,l in [('sedan','Sedan cargo'),('van','Van mediana'),('furgon','Furgon'),('camion_3t','Camion 3t'),('camion_5t','Camion 5t'),('camion_10t','Camion 10t'),('tractomula','Tractomula'),('otro','Otro')] %}
+        <option value="{{ v }}" {% if obj and obj.tipo_vehiculo==v %}selected{% endif %}>{{ l }}</option>
+        {% endfor %}
+      </select></div>
+    <div class="col-md-4"><label class="form-label">Capacidad kg</label>
+      <input type="number" name="capacidad_vehiculo_kg" class="form-control" step="1" min="0" placeholder="Ej: 3000" value="{{ obj.capacidad_vehiculo_kg if obj and obj.capacidad_vehiculo_kg else '' }}"></div>
+    <div class="col-md-4"><label class="form-label">Capacidad m3</label>
+      <input type="number" name="capacidad_vehiculo_m3" class="form-control" step="0.1" min="0" placeholder="Ej: 15.5" value="{{ obj.capacidad_vehiculo_m3 if obj and obj.capacidad_vehiculo_m3 else '' }}"></div>
+  </div>
+</div>
+<script>
+function toggleVehiculo(){
+  var tipo = document.querySelector('input[name="tipo"]:checked');
+  var sec = document.getElementById('secVehiculo');
+  sec.style.display = (tipo && (tipo.value==='transportista' || tipo.value==='ambos')) ? '' : 'none';
+}
+document.querySelectorAll('input[name="tipo"]').forEach(function(r){r.addEventListener('change',toggleVehiculo)});
+document.addEventListener('DOMContentLoaded',toggleVehiculo);
+</script>
 <div class="d-flex gap-2 mt-4">
   <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear' }}</button>
   <a href="{{ url_for('proveedores') }}" class="btn btn-outline-secondary">Cancelar</a>

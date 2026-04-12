@@ -221,6 +221,8 @@ class Aprobacion(db.Model):
     asiento_id      = db.Column(db.Integer, db.ForeignKey('asientos_contables.id'), nullable=True)
     solicitante    = db.relationship('User', foreign_keys=[solicitado_por])
     aprobador      = db.relationship('User', foreign_keys=[aprobado_por])
+    orden_compra   = db.relationship('OrdenCompra', foreign_keys=[orden_compra_id])
+    venta          = db.relationship('Venta', foreign_keys=[venta_id])
 
 class TareaAsignado(db.Model):
     __tablename__ = 'tarea_asignados'

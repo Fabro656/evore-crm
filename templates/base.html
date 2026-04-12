@@ -745,16 +745,31 @@ img,svg{max-width:100%;height:auto}
   }
   function hideTip(){ tip.classList.remove('show'); }
 
-  // Hover = tooltip
+  var hoverTimer = null;
+  // Hover = tooltip + auto-open panel after 3s
   document.querySelectorAll('.sb-nav .nav-link').forEach(function(icon){
-    icon.addEventListener('mouseenter', function(){ showTip(icon); });
-    icon.addEventListener('mouseleave', function(){ hideTip(); });
+    icon.addEventListener('mouseenter', function(){
+      showTip(icon);
+      clearTimeout(hoverTimer);
+      var panelId = icon.dataset.dockPanel;
+      if(panelId){
+        hoverTimer = setTimeout(function(){
+          hideTip();
+          openDockPanel(panelId, icon);
+        }, 2500);
+      }
+    });
+    icon.addEventListener('mouseleave', function(){
+      hideTip();
+      clearTimeout(hoverTimer);
+    });
   });
 
-  // Click = always open panel (never navigate directly from dock icon)
+  // Click = open panel immediately
   document.querySelectorAll('.sb-nav .nav-link').forEach(function(icon){
     icon.addEventListener('click', function(e){
       e.preventDefault();
+      clearTimeout(hoverTimer);
       hideTip();
       var panelId = icon.dataset.dockPanel;
       if(panelId){

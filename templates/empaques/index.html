@@ -495,9 +495,9 @@ function calcular() {
             <div class="emp-badge ${badgeClass}">${pct}%<br><small>peso</small></div>
           </div>
           <canvas id="canvas_${idx}" width="220" height="180"
-                  style="display:block;margin:0 auto 4px;border-radius:8px;background:#f0f3fb;cursor:grab"
+                  style="display:block;margin:0 auto 4px;border-radius:8px;background:var(--surface2);cursor:grab"
                   title="Arrastra para rotar"></canvas>
-          <div style="text-align:center;font-size:.68rem;color:#8896a8;margin-bottom:6px;user-select:none">
+          <div style="text-align:center;font-size:.68rem;color:var(--text2);margin-bottom:6px;user-select:none">
             <i class="bi bi-cursor-fill me-1"></i>arrastra para rotar
           </div>
           <div class="emp-dims">
@@ -1342,7 +1342,7 @@ function buildRecomendaciones() {
 
   var pctColor=function(p){ return !p?'#888':p>=80?'#00875A':p>=50?'#FF8B00':'#DE350B'; };
   var html = `
-<div class="mb-2" style="font-size:.78rem;color:#5E6C84">
+<div class="mb-2" style="font-size:.78rem;color:var(--text2)">
   Comparativa de la variante que <strong>maximiza unidades</strong> de producto para cada vehículo y pallet.
   Haz clic en <em>Usar esta</em> para simular esa variante.
 </div>
@@ -1358,7 +1358,7 @@ function buildRecomendaciones() {
     html+=`<tr>
       <td class="fw-semibold">${r.label}<br><span style="font-size:.72rem;color:#888;font-weight:400">${r.sub}</span></td>
       <td><span class="badge bg-light text-dark border">${r.v.distribucion}</span></td>
-      <td class="text-nowrap" style="color:#334e68">${r.v.ancho_caja}×${r.v.largo_caja}×${r.v.alto_caja}</td>
+      <td class="text-nowrap" style="color:var(--text)">${r.v.ancho_caja}×${r.v.largo_caja}×${r.v.alto_caja}</td>
       <td class="text-center fw-bold text-primary">${r.v.total}</td>
       <td class="text-center">${r.tb}</td>
       <td class="text-center fw-bold text-success">${r.uds.toLocaleString()}</td>
@@ -1468,7 +1468,7 @@ function calcPorCantidad() {
     html+='<tr'+highlight+'>'
       +'<td class="fw-semibold text-nowrap">'+(idx<3?['🥇','🥈','🥉'][idx]:'')+' '+r.t.name+'<br><span style="font-size:.71rem;color:#888">'+r.t.kg+' kg</span></td>'
       +'<td>'+modoLabel+'</td>'
-      +'<td class="text-nowrap" style="color:#334e68">'+r.v.ancho_caja+'×'+r.v.largo_caja+'×'+r.v.alto_caja+'</td>'
+      +'<td class="text-nowrap" style="color:var(--text)">'+r.v.ancho_caja+'×'+r.v.largo_caja+'×'+r.v.alto_caja+'</td>'
       +'<td class="text-center text-primary fw-bold">'+r.v.total+'</td>'
       +'<td class="text-center">'+r.boxesNeeded+'</td>'
       +'<td class="text-center">'+r.cajasPorCamion+'</td>'
@@ -1522,7 +1522,7 @@ function usarVarianteTruck(truckKey, vi) {
       </div>
 
       {# ── Tabs ─────────────────────────────────────────────────── #}
-      <div style="background:#f8f9fb;border-bottom:1px solid #e0e4ef;padding:.4rem 1rem 0">
+      <div style="background:var(--surface2);border-bottom:1px solid var(--border);padding:.4rem 1rem 0">
         <div class="d-flex gap-1">
           <button class="sim-tab-btn active" data-tab="sim" onclick="switchSimTab('sim')">
             <i class="bi bi-display me-1"></i>Simulador
@@ -1544,7 +1544,7 @@ function usarVarianteTruck(truckKey, vi) {
         {# ── Panel: Simulador ───────────────────────────────────── #}
         <div id="simPanel_sim">
           <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
-            <span style="font-size:.8rem;color:#5E6C84;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Vehículo:</span>
+            <span style="font-size:.8rem;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.5px">Vehículo:</span>
             <div class="d-flex gap-1 flex-wrap">
               {% for k in ['S','M','L','XL','XXL'] %}
               <button class="btn btn-sm btn-outline-secondary trk-btn" data-k="{{ k }}" onclick="selectTrk('{{ k }}')">{{ k }}</button>
@@ -1554,7 +1554,7 @@ function usarVarianteTruck(truckKey, vi) {
           </div>
           <div class="row g-3">
             <div class="col-lg-7">
-              <canvas id="simCv" style="width:100%;border-radius:8px;background:#f8f9fb;display:block"></canvas>
+              <canvas id="simCv" style="width:100%;border-radius:8px;background:var(--surface2);display:block"></canvas>
             </div>
             <div class="col-lg-5">
               <div id="simStats"></div>
@@ -1571,14 +1571,14 @@ function usarVarianteTruck(truckKey, vi) {
 
         {# ── Panel: Por cantidad ────────────────────────────────── #}
         <div id="simPanel_qty" style="display:none">
-          <div class="fw-semibold mb-3" style="font-size:.8rem;color:#334e68;text-transform:uppercase;letter-spacing:.5px">
+          <div class="fw-semibold mb-3" style="font-size:.8rem;color:var(--text);text-transform:uppercase;letter-spacing:.5px">
             <i class="bi bi-123 me-1 text-primary"></i>¿Cuántas unidades quieres enviar?
           </div>
           <div class="sim-sg mb-3">
             <div class="sim-st">Ingresa la cantidad total de unidades de producto</div>
             <div class="row g-2 align-items-end mt-1">
               <div class="col-sm-5">
-                <label style="font-size:.76rem;color:#5E6C84">Unidades de producto a enviar</label>
+                <label style="font-size:.76rem;color:var(--text2)">Unidades de producto a enviar</label>
                 <input id="qtyUds" type="number" class="form-control form-control-sm" min="1" step="1"
                        placeholder="Ej. 5000" oninput="document.getElementById('qtyResult').innerHTML=''">
               </div>
@@ -1598,7 +1598,7 @@ function usarVarianteTruck(truckKey, vi) {
 
         {# ── Panel: Costo de envío ──────────────────────────────── #}
         <div id="simPanel_env" style="display:none">
-          <div class="fw-semibold mb-3" style="font-size:.8rem;color:#334e68;text-transform:uppercase;letter-spacing:.5px">
+          <div class="fw-semibold mb-3" style="font-size:.8rem;color:var(--text);text-transform:uppercase;letter-spacing:.5px">
             <i class="bi bi-geo-alt-fill me-1 text-danger"></i>Calculadora de costo de envío
           </div>
 
@@ -1644,15 +1644,15 @@ function usarVarianteTruck(truckKey, vi) {
             <div class="sim-st">🗺️ Ruta y distancia</div>
             <div class="row g-2 align-items-end mt-1">
               <div class="col-sm-4">
-                <label style="font-size:.76rem;color:#5E6C84">Dirección de origen</label>
+                <label style="font-size:.76rem;color:var(--text2)">Dirección de origen</label>
                 <input id="envOrigAddr" type="text" class="form-control form-control-sm" placeholder="Ej. Calle 10 #43-12, Medellín">
               </div>
               <div class="col-sm-4">
-                <label style="font-size:.76rem;color:#5E6C84">Dirección de destino</label>
+                <label style="font-size:.76rem;color:var(--text2)">Dirección de destino</label>
                 <input id="envDestAddr" type="text" class="form-control form-control-sm" placeholder="Ej. Cra 7 #45-10, Bogotá">
               </div>
               <div class="col-sm-2">
-                <label style="font-size:.76rem;color:#5E6C84">Distancia km</label>
+                <label style="font-size:.76rem;color:var(--text2)">Distancia km</label>
                 <input id="envDistManual" type="number" class="form-control form-control-sm" placeholder="415" min="1" step="1">
               </div>
               <div class="col-sm-2">
@@ -1715,21 +1715,21 @@ function usarVarianteTruck(truckKey, vi) {
 .emp-badge { text-align:center; font-size:1.1rem; font-weight:800; border-radius:8px; padding:.35rem .6rem; min-width:52px; }
 .badge-green  { background:#E3FCEF; color:#00875A; }
 .badge-orange { background:#FFF0B3; color:#974F0C; }
-.badge-gray   { background:#F4F5F7; color:#5E6C84; }
+.badge-gray   { background:#F4F5F7; color:var(--text2); }
 .emp-dims { display:flex; gap:.5rem; flex-wrap:wrap; font-size:.78rem; color:#1a1f36; margin-bottom:.3rem; }
 .emp-dims span { background:#f4f5f7; border-radius:4px; padding:.2rem .45rem; }
-.emp-ori { font-size:.78rem; color:#5E6C84; font-style:italic; min-height:1.2em; }
-.sim-sg  { background:#f8f9fb; border-radius:8px; padding:.65rem .9rem; }
-.sim-st  { font-size:.72rem; font-weight:700; color:#5E6C84; text-transform:uppercase; letter-spacing:.5px; margin-bottom:.4rem; }
+.emp-ori { font-size:.78rem; color:var(--text2); font-style:italic; min-height:1.2em; }
+.sim-sg  { background:var(--surface2); border-radius:8px; padding:.65rem .9rem; }
+.sim-st  { font-size:.72rem; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:.5px; margin-bottom:.4rem; }
 .sim-sr  { display:flex; justify-content:space-between; align-items:center; font-size:.82rem; padding:.18rem 0; border-bottom:1px solid #eee; }
 .sim-sr:last-child { border-bottom:none; }
 .trk-btn { min-width:44px; }
 .sim-tab-btn {
   background:none; border:none; border-bottom:3px solid transparent;
-  color:#5E6C84; font-size:.8rem; font-weight:600; padding:.35rem .75rem;
+  color:var(--text2); font-size:.8rem; font-weight:600; padding:.35rem .75rem;
   cursor:pointer; border-radius:4px 4px 0 0; transition:color .15s;
 }
-.sim-tab-btn:hover { color:#334e68; background:#edf0f8; }
+.sim-tab-btn:hover { color:var(--text); background:#edf0f8; }
 .sim-tab-btn.active { color:#1e40af; border-bottom-color:#1e40af; background:#fff; }
 .btn-xs { font-size:.72rem; padding:.1rem .4rem; }
 .pct-row { background: rgba(0,0,0,.025); border-radius:4px; }
