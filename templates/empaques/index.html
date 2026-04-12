@@ -1016,24 +1016,38 @@ function elegirTarifa(idx) {
   if(!v) return;
   var fmt = function(val){ return '$'+Math.round(val).toLocaleString('es-CO')+' COP'; };
   var qty = window._envQty || 1;
-  // Actualizar recomendacion con la elegida
-  var recEl = document.querySelector('.sim-sg[style*="border-left:3px solid"]');
+  var dist = window._envDist || 0;
+
+  // Actualizar bloque de recomendacion con la elegida
+  var recEl = document.querySelector('.sim-sg[style*="border-left"]');
   if(recEl){
+    recEl.style.borderLeftColor = 'var(--ac)';
     recEl.innerHTML = '<div class="sim-st">✅ Tarifa seleccionada</div>'
       +'<div class="sim-sr"><span>Vehiculo</span><strong>'+v.t.name+' — '+v.t.desc+'</strong></div>'
       +'<div class="sim-sr"><span>Modo</span><strong>'+(v.modo==='pallet'?'Con pallets':'Cajas sueltas')+'</strong></div>'
       +'<div class="sim-sr"><span>Enviar por</span><strong>'+(v.mejor==='FTL'?'Camion completo (FTL)':'Paqueteria por caja')+'</strong></div>'
-      +'<div class="sim-sr"><span>Costo total</span><strong style="color:#00875A;font-size:1.1rem">'+fmt(v.mejorCosto)+'</strong></div>'
+      +'<div class="sim-sr"><span>Costo total</span><strong style="color:var(--green);font-size:1.1rem">'+fmt(v.mejorCosto)+'</strong></div>'
       +'<div class="sim-sr"><span>Costo por unidad</span><strong>'+fmt(v.mejorCosto/qty)+'</strong></div>'
       +'<div class="sim-sr"><span>Viajes</span><strong>'+v.viajes+'</strong></div>';
   }
-  // Actualizar _lastEnvioResult
-  if(window._lastEnvioResult){
-    window._lastEnvioResult.vehiculo = v.t.name + ' — ' + v.t.desc;
-    window._lastEnvioResult.modo = v.modo === 'pallet' ? 'Con pallets' : 'Cajas sueltas';
-    window._lastEnvioResult.costo = v.mejorCosto;
-    window._lastEnvioResult.costoIva = Math.round(v.mejorCosto * 1.19);
-  }
+
+  // Resaltar fila en la tabla
+  document.querySelectorAll('#envResult table tbody tr').forEach(function(tr,i){
+    tr.style.background = i===idx ? 'rgba(var(--ac-rgb),.1)' : '';
+  });
+
+  // Actualizar o crear _lastEnvioResult (esto es lo que se usa para cotizar)
+  window._lastEnvioResult = {
+    vehiculo: v.t.name + ' — ' + v.t.desc,
+    modo: v.modo === 'pallet' ? 'Con pallets' : 'Cajas sueltas',
+    costo: v.mejorCosto,
+    costoIva: Math.round(v.mejorCosto * 1.19),
+    distancia: dist,
+    cajas: v.cajas * v.viajes,
+    unidades: qty,
+    viajes: v.viajes,
+    metodo: v.mejor
+  };
 }
 
 function mostrarMapa() {
@@ -1170,8 +1184,11 @@ function calcEnvio() {
     var pal = calcPal(bw, bd, bh, bKg);
     var stP = calcTruck(t, pal);
     var stS = calcTruckSueltas(t, bw, bd, bh, bKg);
-    var ftlR = FTL_KM_RATE[k] || 3500;
-    var ftlCosto = dist * ftlR;
+    // Leer tarifa FTL custom si existe
+    var ftlInput = document.querySelector('.ftl-rate[data-veh="'+k+'"]');
+    var ftlR = ftlInput ? (parseFloat(ftlInput.value) || FTL_KM_RATE[k]) : (FTL_KM_RATE[k] || 3500);
+    var margenPct = parseFloat(document.getElementById('envMargenFtl')?.value || 0) / 100;
+    var ftlCosto = dist * ftlR * (1 + margenPct);
 
     // Con pallet
     if(stP.tb > 0){
@@ -1674,21 +1691,56 @@ function usarVarianteTruck(truckKey, vi) {
           </div>
 
           <div class="sim-sg mb-3">
-            <div class="sim-st">⚙ Tarifas <small class="text-muted">(ajusta y recalcula)</small></div>
+            <div class="sim-st">⚙ Tarifas paqueteria <small class="text-muted">(ajusta y recalcula)</small></div>
             <div class="row g-2 mt-1" style="font-size:.8rem">
               <div class="col-md-4">
-                <label class="form-label mb-0" style="font-size:.75rem">Tarifa paquetería COP/kg</label>
+                <label class="form-label mb-0" style="font-size:.75rem">Tarifa paqueteria COP/kg</label>
                 <input type="number" class="form-control form-control-sm" id="envTarifaPaq" value="5500" min="0" step="100">
               </div>
               <div class="col-md-4">
-                <label class="form-label mb-0" style="font-size:.75rem">Mínimo por guía COP</label>
+                <label class="form-label mb-0" style="font-size:.75rem">Minimo por guia COP</label>
                 <input type="number" class="form-control form-control-sm" id="envMinGuia" value="8000" min="0" step="500">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label mb-0" style="font-size:.75rem">Peso vol. = L*W*H / 5000</label>
+                <div class="form-control-plaintext form-control-sm text-muted" style="font-size:.75rem">Cobrable = max(real, vol.)</div>
+              </div>
+            </div>
+          </div>
+          <div class="sim-sg mb-3">
+            <div class="sim-st">🚛 Tarifas FTL (camion completo) <small class="text-muted">COP por km — ajusta segun tu costo</small></div>
+            <div class="row g-2 mt-1" style="font-size:.8rem">
+              <div class="col">
+                <label class="form-label mb-0" style="font-size:.7rem">S (Sedan)</label>
+                <input type="number" class="form-control form-control-sm ftl-rate" data-veh="S" value="1800" min="0" step="100">
+              </div>
+              <div class="col">
+                <label class="form-label mb-0" style="font-size:.7rem">M (Van)</label>
+                <input type="number" class="form-control form-control-sm ftl-rate" data-veh="M" value="2500" min="0" step="100">
+              </div>
+              <div class="col">
+                <label class="form-label mb-0" style="font-size:.7rem">L (Furgon)</label>
+                <input type="number" class="form-control form-control-sm ftl-rate" data-veh="L" value="3500" min="0" step="100">
+              </div>
+              <div class="col">
+                <label class="form-label mb-0" style="font-size:.7rem">XL (Camion)</label>
+                <input type="number" class="form-control form-control-sm ftl-rate" data-veh="XL" value="5000" min="0" step="100">
+              </div>
+              <div class="col">
+                <label class="form-label mb-0" style="font-size:.7rem">XXL (Camion XL)</label>
+                <input type="number" class="form-control form-control-sm ftl-rate" data-veh="XXL" value="6500" min="0" step="100">
+              </div>
+            </div>
+            <div class="row g-2 mt-2">
+              <div class="col-md-4">
+                <label class="form-label mb-0" style="font-size:.75rem">Margen adicional %</label>
+                <input type="number" class="form-control form-control-sm" id="envMargenFtl" value="0" min="0" max="100" step="5">
               </div>
               <div class="col-md-4 d-flex align-items-end">
                 <button class="btn btn-sm btn-outline-primary w-100" onclick="calcEnvio()"><i class="bi bi-arrow-clockwise me-1"></i>Recalcular</button>
               </div>
             </div>
-            <small class="text-muted mt-1 d-block" style="font-size:.7rem">Peso volumétrico = L×W×H ÷ 5000. Peso cobrable = máx(real, volumétrico).</small>
+            <small class="text-muted mt-1 d-block" style="font-size:.7rem">Costo FTL = distancia * tarifa/km * (1 + margen%). Ajusta las tarifas segun el costo real de tus transportistas.</small>
           </div>
 
           <div id="envResult"></div>
