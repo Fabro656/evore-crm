@@ -138,6 +138,7 @@
 var SERVICIOS = {{ servicios_json|tojson }};
 var PRODS = typeof PRODS !== 'undefined' ? PRODS : ({{ prods_json|tojson|default('[]') }});
 var NSOS = {{ nsos_json|tojson|default('[]') }};
+var DOCS_LEGALES = {{ docs_legales_json|tojson|default('[]') }};
 function fmt(n){return'$ '+Math.round(n).toLocaleString('es-CO');}
 
 function buildProdOptions(selectedName){
@@ -177,18 +178,27 @@ function onProductSelect(el){
   var precio=parseFloat(opt.getAttribute('data-precio'))||0;
   var sku=opt.getAttribute('data-sku')||'';
   var costo=parseFloat(opt.getAttribute('data-costo'))||0;
+  var nsoNum=opt.getAttribute('data-nso')||'';
   if(idInput) idInput.value=pid;
   row.querySelector('.item-precio').value=Math.round(precio);
-  // show prod info
+  // Mostrar info del producto: NSO, docs legales, costo
   if(infoEl){
-    var ivaPct=parseFloat(row.querySelector('.item-iva-pct').value)||0;
-    var precioMin=costo*(1+ivaPct/100);
     var parts=[];
+    if(nsoNum) parts.push('<strong>NSO:</strong> '+nsoNum);
     if(sku) parts.push('SKU: '+sku);
     if(costo) parts.push('Costo prod: '+fmt(costo));
-    if(costo) parts.push('Precio min (costo+IVA): '+fmt(precioMin));
-    if(parts.length){infoEl.innerHTML=parts.join(' &nbsp;|&nbsp; ');infoEl.style.display='block';}
-    else{infoEl.style.display='none';infoEl.innerHTML='';}
+    parts.push('<strong>Precio venta: '+fmt(precio)+'</strong>');
+    // Buscar docs legales del producto
+    var docsP = DOCS_LEGALES.filter(function(d){ return d.producto_id == pid; });
+    if(docsP.length){
+      docsP.forEach(function(d){
+        parts.push('<span class="badge bg-info bg-opacity-25 text-dark">'+d.tipo.toUpperCase()+': '+d.titulo+(d.numero?' ('+d.numero+')':'')+'</span>');
+      });
+    } else {
+      parts.push('<span class="badge bg-warning bg-opacity-50 text-dark">Sin documentos legales</span>');
+    }
+    infoEl.innerHTML=parts.join(' &nbsp;|&nbsp; ');
+    infoEl.style.display='block';
   }
   calcRow(el);
 }

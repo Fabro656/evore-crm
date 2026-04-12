@@ -974,19 +974,30 @@ def register(app):
             flash(f'Cotización {numero} creada.','success')
             return redirect(url_for('cotizacion_ver', id=cot.id))
 
-        prods_cot = [{'id':p.id,'nombre':p.nombre,'sku':p.sku or '','precio':p.precio or 0,
-                      'precio_venta_sugerido':getattr(p,'precio_venta_sugerido',0) or p.precio or 0,
-                      'costo_receta':getattr(p,'costo_receta',0) or p.costo or 0}
-                     for p in Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()]
-        # NSOs vigentes del módulo legal vinculados a productos
-        nsos = [{'id':d.id,'titulo':d.titulo,'producto_id':d.producto_id or 0,
-                 'producto_nombre': d.producto.nombre if d.producto_id and hasattr(d,'producto') and d.producto else '',
-                 'numero':d.numero or ''}
-                for d in DocumentoLegal.query.filter_by(tipo='nso', activo=True).all()]
+        # Construir lista de productos con precio correcto desde receta
+        prods_cot = []
+        for p in Producto.query.filter_by(activo=True).order_by(Producto.nombre).all():
+            receta = RecetaProducto.query.filter_by(producto_id=p.id, activo=True).first()
+            precio_venta = receta.precio_venta_sugerido if receta and receta.precio_venta_sugerido else p.precio or 0
+            costo = receta.costo_calculado if receta and receta.costo_calculado else p.costo_receta or p.costo or 0
+            prods_cot.append({
+                'id': p.id, 'nombre': p.nombre, 'sku': p.sku or '',
+                'precio': p.precio or 0,
+                'precio_venta_sugerido': precio_venta,
+                'costo_receta': costo
+            })
+        # NSOs y documentos legales vinculados a productos
+        docs_legales = [{'id':d.id, 'titulo':d.titulo, 'tipo':d.tipo,
+                         'numero':d.numero or '', 'entidad':d.entidad or '',
+                         'producto_id':d.producto_id or 0,
+                         'producto_nombre': d.producto.nombre if d.producto_id and d.producto else ''}
+                        for d in DocumentoLegal.query.filter_by(activo=True).all()
+                        if d.producto_id]
+        nsos = [dl for dl in docs_legales if dl['tipo'] == 'nso']
         return render_template('cotizaciones/form.html', obj=None, titulo='Nueva Cotización',
             clientes_list=clientes_list, today=datetime.utcnow().strftime('%Y-%m-%d'),
             iva_default=iva_default, servicios_json=_servicios_json(), prods_json=prods_cot,
-            nsos_json=nsos)
+            nsos_json=nsos, docs_legales_json=docs_legales)
 
 
     # ── Helper: calcular fecha de entrega según dias_tipo
@@ -1098,13 +1109,28 @@ def register(app):
             flash('Cotización actualizada.','success')
             return redirect(url_for('cotizacion_ver', id=obj.id))
 
-        prods_cot = [{'id':p.id,'nombre':p.nombre,'sku':p.sku or '','precio':p.precio or 0,
-                      'precio_venta_sugerido':getattr(p,'precio_venta_sugerido',0) or p.precio or 0,
-                      'costo_receta':getattr(p,'costo_receta',0) or p.costo or 0}
-                     for p in Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()]
+        prods_cot = []
+        for p in Producto.query.filter_by(activo=True).order_by(Producto.nombre).all():
+            receta = RecetaProducto.query.filter_by(producto_id=p.id, activo=True).first()
+            precio_venta = receta.precio_venta_sugerido if receta and receta.precio_venta_sugerido else p.precio or 0
+            costo = receta.costo_calculado if receta and receta.costo_calculado else p.costo_receta or p.costo or 0
+            prods_cot.append({
+                'id': p.id, 'nombre': p.nombre, 'sku': p.sku or '',
+                'precio': p.precio or 0,
+                'precio_venta_sugerido': precio_venta,
+                'costo_receta': costo
+            })
+        docs_legales = [{'id':d.id, 'titulo':d.titulo, 'tipo':d.tipo,
+                         'numero':d.numero or '', 'entidad':d.entidad or '',
+                         'producto_id':d.producto_id or 0,
+                         'producto_nombre': d.producto.nombre if d.producto_id and d.producto else ''}
+                        for d in DocumentoLegal.query.filter_by(activo=True).all()
+                        if d.producto_id]
+        nsos = [dl for dl in docs_legales if dl['tipo'] == 'nso']
         return render_template('cotizaciones/form.html', obj=obj, titulo='Editar Cotización',
             clientes_list=clientes_list, today=datetime.utcnow().strftime('%Y-%m-%d'),
-            iva_default=iva_default, servicios_json=_servicios_json(), prods_json=prods_cot)
+            iva_default=iva_default, servicios_json=_servicios_json(), prods_json=prods_cot,
+            nsos_json=nsos, docs_legales_json=docs_legales)
 
 
     # ── cotizacion_cambiar_estado (/cotizaciones/<int:id>/estado)
