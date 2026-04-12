@@ -455,8 +455,12 @@ img,svg{max-width:100%;height:auto}
     {% endif %}
     {% if 'clientes' in m %}
     <div class="sb-sec">Proveedores</div>
-    <a href="{{ url_for('proveedores') }}" class="nav-link {% if request.endpoint in ['proveedores','proveedor_nuevo','proveedor_editar'] %}active{% endif %}"><i class="bi bi-truck"></i><span>Proveedores</span></a>
-    <a href="{{ url_for('proveedores', tipo_f='transportista') }}" class="nav-link {% if request.endpoint in ['proveedores'] and request.args.get('tipo_f')=='transportista' %}active{% endif %}" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-truck-front"></i><span>Transportistas</span></a>
+    <a href="{{ url_for('proveedores') }}" class="nav-link {% if request.endpoint in ['proveedores','proveedor_nuevo','proveedor_editar'] and request.args.get('tipo_f')!='transportista' %}active{% endif %}"><i class="bi bi-truck"></i><span>Proveedores</span></a>
+    {% endif %}
+    {% if 'inventario' in m or 'produccion' in m or 'clientes' in m %}
+    <div class="sb-sec">Transportes</div>
+    <a href="{{ url_for('proveedores', tipo_f='transportista') }}" class="nav-link {% if request.endpoint in ['proveedores'] and request.args.get('tipo_f')=='transportista' %}active{% endif %}"><i class="bi bi-truck-front"></i><span>Transportistas</span></a>
+    <a href="{{ url_for('empaques') }}" class="nav-link {% if 'empaque' in request.endpoint %}active{% endif %}"><i class="bi bi-box2-heart-fill"></i><span>Empaques y logística</span></a>
     {% endif %}
     {% if 'ordenes_compra' in m or 'produccion' in m or 'clientes' in m %}
     <div class="sb-sec">Compras</div>
@@ -465,7 +469,6 @@ img,svg{max-width:100%;height:auto}
     <a href="{{ url_for('cotizaciones_proveedor', tipo='general') }}" class="nav-link" style="padding-left:2.4rem;font-size:.82rem"><i class="bi bi-box"></i><span>Servicios</span></a>
     <a href="{{ url_for('ordenes_compra') }}" class="nav-link {% if 'orden_compra' in request.endpoint %}active{% endif %}"><i class="bi bi-cart-check"></i><span>Órdenes de Compra</span></a>
     <a href="{{ url_for('compras') }}" class="nav-link {% if request.endpoint=='compras' or request.endpoint=='compra_nueva' or request.endpoint=='compra_editar' %}active{% endif %}"><i class="bi bi-receipt"></i><span>Registro de compras</span></a>
-    {% if 'empaques' in m or 'produccion' in m %}<a href="{{ url_for('empaques') }}" class="nav-link {% if 'empaque' in request.endpoint %}active{% endif %}"><i class="bi bi-box2-heart-fill"></i><span>Empaques secundarios</span></a>{% endif %}
     {% endif %}
     {% if 'inventario' in m or 'produccion' in m %}
     <div class="sb-sec">Operaciones</div>

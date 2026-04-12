@@ -17,7 +17,18 @@ def register(app):
         """Lista todos los empaques secundarios con calculadora inline."""
         items = EmpaqueSecundario.query.join(Producto).order_by(Producto.nombre).all()
         productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
-        return render_template('empaques/index.html', items=items, productos=productos)
+        # Transportistas para simulador logístico
+        transportistas = Proveedor.query.filter(
+            Proveedor.activo == True,
+            Proveedor.tipo.in_(['transportista', 'ambos'])
+        ).order_by(Proveedor.empresa).all()
+        trans_json = [{'id': t.id, 'nombre': t.empresa or t.nombre,
+                       'kg': t.capacidad_vehiculo_kg or 0,
+                       'm3': t.capacidad_vehiculo_m3 or 0,
+                       'tipo': t.tipo_vehiculo or ''}
+                      for t in transportistas]
+        return render_template('empaques/index.html', items=items, productos=productos,
+                               transportistas_json=trans_json)
 
 
     # ── empaques_nuevo (/empaques/nuevo)

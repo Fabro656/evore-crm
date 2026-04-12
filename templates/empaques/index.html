@@ -550,6 +550,7 @@ function orientationLabel(filas, cols, capas, ux, uz, uy) {
 // ── Simulador de logística ────────────────────────────────────────
 const simVariants = [];
 
+const TRANSPORTISTAS = {{ transportistas_json|tojson|default('[]') }};
 const TRUCKS = {
   S:   {k:'S',  name:'S',   w:170, d:100, h:90,  kg:300,  desc:'Sedán cargo — 170×100×90 cm, ≤300 kg'},
   M:   {k:'M',  name:'M',   w:260, d:130, h:150, kg:700,  desc:'Van mediana — 260×130×150 cm, ≤700 kg'},
@@ -623,6 +624,7 @@ function selectTrk(k) {
 }
 function renderSim() {
   if (!_simV) return;
+  const PAL = getPal();
   const t   = TRUCKS[_simTruck];
   const bw  = _simV.ancho_caja, bd = _simV.largo_caja, bh = _simV.alto_caja;
   const bKg = _simV.peso_total;
@@ -765,7 +767,6 @@ function renderSim() {
   // Cajas sueltas (sin pallet)
   const sueltas = calcTruckSueltas(t, bw, bd, bh, bKg);
   const udsSueltas = sueltas.tot * uds;
-  const PAL = getPal();
 
   document.getElementById('simStats').innerHTML = `
 <div class="sim-sg mb-2">
@@ -826,7 +827,44 @@ function renderSim() {
   <div class="sim-sr"><span>Peso carga</span><strong>${sueltas.tkg.toFixed(1)} kg</strong></div>
   ${sueltas.pctKg!==null?`<div class="sim-sr pct-row"><span>% peso</span><strong style="color:${semaforo(sueltas.pctKg)}">${sueltas.pctKg.toFixed(1)}%</strong></div>`:''}
   ${sueltas.tot===0?`<div class="alert alert-danger py-1 mt-1 mb-0" style="font-size:.8rem">La caja no cabe ni suelta en este vehículo</div>`:''}
-</div>`;
+</div>
+${(function(){
+  // Peso total mínimo requerido (cajas sueltas o con pallet)
+  var pesoMin = st.tb > 0 ? st.tkg : sueltas.tkg;
+  var volMin_m3 = st.tb > 0 ? (st.tp * PAL.w * PAL.d * pal.fullH / 1e6) : (sueltas.tot * bw * bd * bh / 1e6);
+  // Vehículo mínimo requerido
+  var vehMin = '—';
+  for (var vk of ['S','M','L','XL','XXL']) {
+    var veh = TRUCKS[vk];
+    var s2 = calcTruckSueltas(veh, bw, bd, bh, bKg);
+    if (s2.tot > 0) { vehMin = vk + ' (' + veh.desc + ')'; break; }
+  }
+  // Costo envío volumétrico (peso cobrable × $4.500/kg referencia nacional)
+  var pesoVol = bw*bd*bh/5000;
+  var pesoCobrable = Math.max(bKg, pesoVol);
+  var cajasTotal = st.tb > 0 ? st.tb : sueltas.tot;
+  var costoEnvioRef = cajasTotal * pesoCobrable * 4500;
+  // Transportistas compatibles
+  var compatibles = TRANSPORTISTAS.filter(function(tr){
+    return tr.kg >= pesoMin || tr.m3 >= volMin_m3;
+  });
+  var transHtml = '';
+  if (compatibles.length) {
+    transHtml = compatibles.map(function(tr){
+      return '<div class="sim-sr"><span>'+tr.nombre+'</span><strong class="text-success">'+tr.kg+' kg / '+tr.m3+' m³'+(tr.tipo?' · '+tr.tipo:'')+'</strong></div>';
+    }).join('');
+  } else {
+    transHtml = '<div class="alert alert-warning py-1 mt-1 mb-0" style="font-size:.8rem"><i class="bi bi-exclamation-triangle me-1"></i>No hay transportistas registrados con capacidad suficiente. <a href="/proveedores?tipo_f=transportista">Buscar transportista</a></div>';
+  }
+  return '<div class="sim-sg mt-2" style="border-left:3px solid #4C9BE8">'
+    +'<div class="sim-st">🚚 Transporte</div>'
+    +'<div class="sim-sr"><span>Vehículo mínimo requerido</span><strong>'+vehMin+'</strong></div>'
+    +'<div class="sim-sr"><span>Peso cobrable por caja <small class="text-muted">(máx real vs volumétrico)</small></span><strong>'+pesoCobrable.toFixed(2)+' kg</strong></div>'
+    +'<div class="sim-sr"><span>Costo estimado envío <small class="text-muted">('+cajasTotal+' cajas × '+pesoCobrable.toFixed(2)+' kg × $4.500/kg ref.)</small></span><strong style="color:var(--ac)">$ '+Math.round(costoEnvioRef).toLocaleString('es-CO')+'</strong></div>'
+    +'<div class="sim-st mt-2">Transportistas disponibles</div>'
+    +transHtml
+    +'</div>';
+})()}`;
 }
 
 function guardarVariante(prodId, uds, ancho, largo, alto, pesoUnit, pesoMax) {
