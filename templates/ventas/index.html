@@ -108,6 +108,11 @@
             <button class="dropdown-item" type="submit"><i class="bi bi-envelope-check me-2 text-warning"></i>Notificar cliente</button>
           </form></li>
           {% endif %}
+          {% if not v.enviado_en and v.estado in ('anticipo_pagado','pagado','completado') %}
+          <li><button class="dropdown-item" type="button" onclick="abrirEnvio({{ v.id }},'{{ v.numero or '' }}')"><i class="bi bi-truck me-2 text-info"></i>Enviar (transportista)</button></li>
+          {% elif v.enviado_en and not v.entregado_en %}
+          <li><span class="dropdown-item text-muted"><i class="bi bi-check-circle me-2 text-success"></i>Enviado{% if v.transportista %} — {{ v.transportista.empresa or v.transportista.nombre }}{% endif %}</span></li>
+          {% endif %}
           {% if not v.entregado_en and v.estado in ('anticipo_pagado','pagado','completado') %}
           <li><form method="POST" action="{{ url_for('venta_entregar', id=v.id) }}" onsubmit="return confirm('Marcar como entregado?')" class="px-0 m-0">
             <button class="dropdown-item" type="submit"><i class="bi bi-box-arrow-up me-2 text-success"></i>Marcar entregado</button>
@@ -128,4 +133,44 @@
   <p>No hay ventas{% if estado_f %} con estado "{{ estado_f }}"{% endif %}.</p>
   <a href="{{ url_for('venta_nueva') }}" class="btn btn-primary">Crear primera venta</a>
 </div>
-{% endif %}</div>{% endblock %}
+{% endif %}</div>
+
+{# Modal enviar con transportista #}
+<div class="modal fade" id="modalEnvio" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <form method="POST" id="formEnvio">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-truck me-2"></i>Enviar pedido</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2"><strong>Venta: <span id="envioNumero"></span></strong></div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Transportista</label>
+          <select name="transportista_id" class="form-select" required>
+            <option value="">-- Seleccionar transportista --</option>
+            {% for t in transportistas_list %}
+            <option value="{{ t.id }}">{{ t.empresa or t.nombre }}{% if t.tipo_vehiculo %} ({{ t.tipo_vehiculo }}){% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-truck me-1"></i>Enviar y notificar cliente</button>
+      </div>
+    </form>
+  </div></div>
+</div>
+<script>
+function abrirEnvio(ventaId, numero){
+  document.getElementById('envioNumero').textContent = numero;
+  var url = '/ventas/' + ventaId + '/enviar';
+  if(/[?&]_embed=1/.test(location.search)) url += '?_embed=1';
+  document.getElementById('formEnvio').action = url;
+  var m = document.getElementById('modalEnvio');
+  var bm = bootstrap.Modal.getInstance(m) || new bootstrap.Modal(m);
+  bm.show();
+}
+</script>
+{% endblock %}

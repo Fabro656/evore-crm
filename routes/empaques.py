@@ -27,8 +27,27 @@ def register(app):
                        'm3': t.capacidad_vehiculo_m3 or 0,
                        'tipo': t.tipo_vehiculo or ''}
                       for t in transportistas]
+        # Cotizaciones y ventas para vincular al simulador de envio
+        try:
+            cotizaciones_envio = []
+            for c in Cotizacion.query.filter(Cotizacion.estado.in_(['enviada','aprobada'])).order_by(Cotizacion.fecha_emision.desc()).limit(20).all():
+                total_qty = sum(i.cantidad or 0 for i in c.items) if c.items else 0
+                if total_qty > 0:
+                    cotizaciones_envio.append({'id': c.id, 'numero': c.numero, 'titulo': c.titulo or '', 'total_qty': int(total_qty)})
+        except Exception:
+            cotizaciones_envio = []
+        try:
+            ventas_envio = []
+            for v in Venta.query.filter(Venta.estado.in_(['anticipo_pagado','pagado'])).order_by(Venta.creado_en.desc()).limit(20).all():
+                total_qty = sum(i.cantidad or 0 for i in v.items) if v.items else 0
+                if total_qty > 0:
+                    ventas_envio.append({'id': v.id, 'numero': v.numero, 'titulo': v.titulo or '', 'total_qty': int(total_qty)})
+        except Exception:
+            ventas_envio = []
         return render_template('empaques/index.html', items=items, productos=productos,
-                               transportistas_json=trans_json)
+                               transportistas_json=trans_json,
+                               cotizaciones_envio=cotizaciones_envio,
+                               ventas_envio=ventas_envio)
 
 
     # ── empaques_nuevo (/empaques/nuevo)

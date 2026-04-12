@@ -268,8 +268,13 @@ def register(app):
         except Exception:
             proximas_vencer = []
 
+        transportistas_list = Proveedor.query.filter(
+            Proveedor.activo == True,
+            Proveedor.tipo.in_(['transportista', 'ambos'])
+        ).order_by(Proveedor.empresa).all()
         return render_template('ventas/index.html', items=items, estado_f=estado_f,
-                               proximas_vencer=proximas_vencer, today_date=hoy)
+                               proximas_vencer=proximas_vencer, today_date=hoy,
+                               transportistas_list=transportistas_list)
 
 
     # helper: get configured IVA rate (%)
@@ -776,6 +781,54 @@ def register(app):
         else:
             flash('Venta marcada como "cliente informado". (Sin email del cliente para enviar notificación.)','info')
         return redirect(url_for('ventas'))
+
+
+    # ── venta_enviar (/ventas/<int:id>/enviar) — asignar transportista y notificar
+    @app.route('/ventas/<int:id>/enviar', methods=['POST'])
+    @login_required
+    @requiere_modulo('ventas')
+    def venta_enviar(id):
+        venta = Venta.query.get_or_404(id)
+        transportista_id = request.form.get('transportista_id', type=int)
+        if transportista_id:
+            venta.transportista_id = transportista_id
+        venta.enviado_en = datetime.utcnow()
+        db.session.commit()
+
+        # Notificar al cliente
+        if venta.cliente_id:
+            try:
+                cli = db.session.get(Cliente, venta.cliente_id)
+                if cli:
+                    transportista = db.session.get(Proveedor, transportista_id) if transportista_id else None
+                    trans_nombre = (transportista.empresa or transportista.nombre) if transportista else 'por definir'
+                    _crear_notificacion(
+                        venta.creado_por or current_user.id, 'info',
+                        f'Venta {venta.numero} enviada',
+                        f'Transportista: {trans_nombre}',
+                        url_for('venta_ver', id=venta.id)
+                    )
+                    # Email al cliente
+                    email_dest = None
+                    if hasattr(cli, 'contactos') and cli.contactos:
+                        for c in cli.contactos:
+                            if c.email:
+                                email_dest = c.email
+                                break
+                    if email_dest:
+                        empresa = ConfigEmpresa.query.first()
+                        _send_email(
+                            email_dest,
+                            f'Tu pedido ha sido enviado — {venta.numero}',
+                            f'Hola,\n\nTu pedido {venta.numero} ha sido enviado.\n'
+                            f'Transportista: {trans_nombre}\n\n'
+                            f'Saludos,\n{empresa.nombre if empresa else "Evore"}'
+                        )
+            except Exception as ex:
+                logging.warning(f'venta_enviar notificacion error: {ex}')
+
+        flash(f'Venta {venta.numero} marcada como enviada. Cliente notificado.', 'success')
+        return redirect(url_for('venta_remision', id=venta.id))
 
 
     # ── venta_entregar (/ventas/<int:id>/entregar)

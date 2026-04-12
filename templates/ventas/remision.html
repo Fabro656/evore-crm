@@ -111,8 +111,22 @@ table.items-table tr:nth-child(even) td{background:#F4F5F7}
     </div>
     <div class="info-box">
       <h4>Fecha entrega</h4>
-      <p>{{ venta.entregado_en.strftime('%d de %B de %Y') if venta.entregado_en else '—' }}</p>
+      <p>{{ venta.entregado_en.strftime('%d de %B de %Y') if venta.entregado_en else '--' }}</p>
     </div>
+    {% if venta.transportista %}
+    <div class="info-box">
+      <h4>Transportista</h4>
+      <p><strong>{{ venta.transportista.empresa or venta.transportista.nombre }}</strong>
+      {% if venta.transportista.telefono %}<br>Tel: {{ venta.transportista.telefono }}{% endif %}
+      {% if venta.transportista.tipo_vehiculo %}<br>Vehiculo: {{ venta.transportista.tipo_vehiculo }}{% endif %}</p>
+    </div>
+    {% endif %}
+    {% if venta.enviado_en %}
+    <div class="info-box">
+      <h4>Fecha envio</h4>
+      <p>{{ venta.enviado_en.strftime('%d de %B de %Y') }}</p>
+    </div>
+    {% endif %}
   </div>
 
   <!-- Items table -->

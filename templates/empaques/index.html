@@ -1003,6 +1003,14 @@ function nominatimFetch(q) {
   }).then(function(r){ return r.json(); });
 }
 
+function cargarCantidadDoc() {
+  var sel = document.getElementById('envFromDoc');
+  var opt = sel.options[sel.selectedIndex];
+  if(opt && opt.dataset.qty){
+    document.getElementById('envQty').value = opt.dataset.qty;
+  }
+}
+
 function elegirTarifa(idx) {
   var v = window._todosVehiculos[idx];
   if(!v) return;
@@ -1576,18 +1584,34 @@ function usarVarianteTruck(truckKey, vi) {
             <i class="bi bi-geo-alt-fill me-1 text-danger"></i>Calculadora de costo de envío
           </div>
 
-          {# Cantidad opcional #}
+          {# Cantidad — manual o desde cotizacion/venta #}
           <div class="sim-sg mb-3">
-            <div class="sim-st">📦 Cantidad a enviar <span class="text-muted" style="font-size:.72rem;text-transform:none;font-weight:400">(opcional — activa desglose total del envío)</span></div>
+            <div class="sim-st">📦 Cantidad a enviar</div>
             <div class="row g-2 align-items-end mt-1">
-              <div class="col-sm-5">
-                <label style="font-size:.76rem;color:#5E6C84">Unidades de producto</label>
+              <div class="col-sm-4">
+                <label style="font-size:.76rem;color:var(--text2)">Desde cotizacion o venta</label>
+                <select id="envFromDoc" class="form-select form-select-sm" onchange="cargarCantidadDoc()">
+                  <option value="">-- Manual --</option>
+                  <optgroup label="Cotizaciones">
+                    {% for cot in cotizaciones_envio %}
+                    <option value="cot_{{ cot.id }}" data-qty="{{ cot.total_qty }}">{{ cot.numero or '#'~cot.id }} — {{ cot.titulo[:30] }} ({{ cot.total_qty }} uds)</option>
+                    {% endfor %}
+                  </optgroup>
+                  <optgroup label="Ventas">
+                    {% for v in ventas_envio %}
+                    <option value="vnt_{{ v.id }}" data-qty="{{ v.total_qty }}">{{ v.numero or '#'~v.id }} — {{ v.titulo[:30] }} ({{ v.total_qty }} uds)</option>
+                    {% endfor %}
+                  </optgroup>
+                </select>
+              </div>
+              <div class="col-sm-3">
+                <label style="font-size:.76rem;color:var(--text2)">Unidades de producto</label>
                 <input id="envQty" type="number" class="form-control form-control-sm" min="1" step="1" placeholder="Ej. 5000" required>
               </div>
               <div class="col-sm-auto">
                 <label style="font-size:.76rem;color:transparent">_</label>
-                <button class="btn btn-sm btn-outline-secondary d-block" onclick="sincronizarCantidad()" title="Tomar la cantidad del análisis 'Por cantidad'">
-                  <i class="bi bi-arrow-left-square me-1"></i>Del análisis anterior
+                <button class="btn btn-sm btn-outline-secondary d-block" onclick="sincronizarCantidad()" title="Del analisis anterior">
+                  <i class="bi bi-arrow-left-square me-1"></i>Del analisis
                 </button>
               </div>
             </div>

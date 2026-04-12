@@ -167,6 +167,8 @@ class Venta(db.Model):
     monto_pagado_total  = db.Column(db.Float, default=0)
     monto_anticipo_recibido = db.Column(db.Float, default=0)  # v36 — real recibido via asiento contable
     pendiente_aprobacion = db.Column(db.Boolean, default=False)  # v37 bloqueo por aprobacion
+    transportista_id    = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)  # v38
+    enviado_en          = db.Column(db.DateTime, nullable=True)  # v38
     estado              = db.Column(db.String(30), default='prospecto')
     fecha_anticipo      = db.Column(db.Date)
     dias_entrega        = db.Column(db.Integer, default=30)
@@ -182,6 +184,7 @@ class Venta(db.Model):
     items               = db.relationship('VentaProducto', backref='venta', lazy=True, cascade='all, delete-orphan')
     ordenes_produccion  = db.relationship('OrdenProduccion', foreign_keys='OrdenProduccion.venta_id', lazy=True, back_populates='venta')
     cotizacion_origen   = db.relationship('Cotizacion', foreign_keys='Venta.cotizacion_id')
+    transportista       = db.relationship('Proveedor', foreign_keys=[transportista_id])
     pagos               = db.relationship('PagoVenta', backref='venta', lazy=True, cascade='all, delete-orphan')
 
 class PagoVenta(db.Model):
@@ -1269,6 +1272,11 @@ def _migrate(conn):
         ("ALTER TABLE aprobaciones ADD COLUMN cotizacion_id INTEGER REFERENCES cotizaciones(id)"),
         ("ALTER TABLE aprobaciones ADD COLUMN IF NOT EXISTS asiento_id INTEGER REFERENCES asientos_contables(id)"),
         ("ALTER TABLE aprobaciones ADD COLUMN asiento_id INTEGER REFERENCES asientos_contables(id)"),
+        # v38 — Venta: transportista y enviado
+        ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS transportista_id INTEGER REFERENCES proveedores(id)"),
+        ("ALTER TABLE ventas ADD COLUMN transportista_id INTEGER REFERENCES proveedores(id)"),
+        ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS enviado_en TIMESTAMP"),
+        ("ALTER TABLE ventas ADD COLUMN enviado_en TIMESTAMP"),
         # v37 — GastoOperativo: estado de pago
         ("ALTER TABLE gastos_operativos ADD COLUMN IF NOT EXISTS estado_pago VARCHAR(20) DEFAULT 'pendiente'"),
         ("ALTER TABLE gastos_operativos ADD COLUMN estado_pago VARCHAR(20) DEFAULT 'pendiente'"),
