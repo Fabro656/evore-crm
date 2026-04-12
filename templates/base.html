@@ -406,13 +406,12 @@ img,svg{max-width:100%;height:auto}
 // Auto-detect: si estamos en un iframe pero sin _embed=1, redirigir con el parametro
 (function(){
   try {
-    if(window.parent && window.parent !== window && window.self !== window.top){
-      if(!/[?&]_embed=1/.test(location.search)){
-        var sep = location.search ? '&' : '?';
-        location.replace(location.pathname + location.search + sep + '_embed=1' + location.hash);
-      }
+    if(window.self !== window.top && !/[?&]_embed=1/.test(location.search)){
+      var url = new URL(location.href);
+      url.searchParams.set('_embed','1');
+      location.replace(url.toString());
     }
-  } catch(e){}
+  } catch(e){/* cross-origin iframe, ignorar */}
 })();
 </script>
 {% if request.args.get('_embed') == '1' %}
@@ -436,10 +435,10 @@ img,svg{max-width:100%;height:auto}
 // Embed mode: intercept navigation to keep _embed=1
 (function(){
   if(window.parent && window.parent !== window){
-    window.parent.postMessage({type:'embed-navigate', url:location.pathname+location.search.replace(/[?&]_embed=1/,''), title:document.title},'*');
-    // Si se redirige a login, cerrar sesion en el parent tambien
+    window.parent.postMessage({type:'embed-navigate', url:location.pathname+location.search.replace(/[?&]_embed=1/g,'').replace(/\?$/,''), title:document.title},'*');
+    // Si el iframe llega a login (sesion expirada), notificar al parent
     if(location.pathname==='/login' || location.pathname==='/logout'){
-      window.parent.location.href='/logout';
+      window.parent.postMessage({type:'embed-logout'},'*');
     }
     document.addEventListener('click',function(e){
       var a=e.target.closest('a[href]');
@@ -643,7 +642,7 @@ img,svg{max-width:100%;height:auto}
           <li><a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('mi_actividad') }}" style="font-size:.85rem;padding:.5rem 1rem"><i class="bi bi-bar-chart-fill" style="color:#00875A"></i>Mi actividad</a></li>
           <li><a class="dropdown-item d-flex align-items-center gap-2" href="#" onclick="new bootstrap.Modal(document.getElementById('modalOnboarding')).show();goStep(0);" style="font-size:.85rem;padding:.5rem 1rem"><i class="bi bi-question-circle" style="color:#FF8B00"></i>Ver tutorial</a></li>
           <li><hr class="dropdown-divider my-1"></li>
-          <li><a class="dropdown-item d-flex align-items-center gap-2 text-danger" href="{{ url_for('logout') }}" style="font-size:.85rem;padding:.5rem 1rem"><i class="bi bi-box-arrow-right"></i>Cerrar sesión</a></li>
+          <li><a class="dropdown-item d-flex align-items-center gap-2 text-danger" href="{{ url_for('logout') }}" onclick="try{sessionStorage.removeItem('evore_ws_tabs');document.querySelectorAll('#wsIframeContainer iframe').forEach(function(f){f.src='about:blank'})}catch(e){}" style="font-size:.85rem;padding:.5rem 1rem"><i class="bi bi-box-arrow-right"></i>Cerrar sesion</a></li>
         </ul>
       </div>
     </div>
@@ -1524,7 +1523,7 @@ document.addEventListener('DOMContentLoaded',function(){
     var iframe = document.createElement('iframe');
     iframe.id = 'wsFrame_' + tab.id;
     iframe.src = tab.url + (tab.url.includes('?') ? '&' : '?') + '_embed=1';
-    iframe.style.cssText = 'width:100%;height:100%;border:none;display:none;position:absolute;top:0;left:0';
+    iframe.style.display = 'none';
     WS.iframeContainer.appendChild(iframe);
     // Listen for navigation inside iframe
     iframe.addEventListener('load', function(){
@@ -1543,10 +1542,7 @@ document.addEventListener('DOMContentLoaded',function(){
     // Hide default content, show iframe container
     WS.defaultContent.style.display = 'none';
     WS.content.style.display = 'none';
-    WS.iframeContainer.style.display = 'block';
-    // Calculate height
-    var topOffset = WS.iframeContainer.getBoundingClientRect().top;
-    WS.iframeContainer.style.height = 'calc(100vh - ' + topOffset + 'px)';
+    WS.iframeContainer.style.display = 'flex';
     // Show only active iframe
     var frames = WS.iframeContainer.querySelectorAll('iframe');
     frames.forEach(function(f){ f.style.display = 'none'; });
@@ -1668,7 +1664,13 @@ document.addEventListener('DOMContentLoaded',function(){
 
   // Listen for messages from embedded iframes
   window.addEventListener('message', function(e){
-    if(!e.data || e.data.type !== 'embed-navigate') return;
+    if(!e.data) return;
+    // Logout desde un iframe → cerrar sesion global
+    if(e.data.type === 'embed-logout'){
+      window.location.href = '/logout';
+      return;
+    }
+    if(e.data.type !== 'embed-navigate') return;
     // Update tab title when iframe navigates
     var tab = WS.tabs.find(function(t){return t.id === WS.activeId});
     if(tab && e.data.title){
@@ -1708,7 +1710,8 @@ document.addEventListener('DOMContentLoaded',function(){
 .ws-tab .ws-tab-close:hover{opacity:1;color:var(--red)}
 .ws-tab.dragging{opacity:.4}
 .ws-tab.drag-over{border-bottom-color:var(--ac);background:rgba(var(--ac-rgb),.1)}
-#wsIframeContainer{overflow:hidden}
+#wsIframeContainer{overflow:hidden;flex:1}
+#wsIframeContainer iframe{width:100%;height:100%;border:none;position:absolute;top:0;left:0;right:0;bottom:0}
 </style>
 
 </body></html>

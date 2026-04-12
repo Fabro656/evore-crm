@@ -3,7 +3,8 @@
 {% block page_title %}{{ titulo }}{% endblock %}
 
 {% block content %}
-<div style="max-width:780px">
+<div class="row g-3">
+<div class="col-lg-8">
 <div class="tc">
   <div class="ch"><i class="bi bi-journal-plus me-2"></i>{{ titulo }}</div>
   <div style="padding:1.4rem">
@@ -228,7 +229,51 @@
   </form>
   </div>
 </div>
+</div>{# end col-lg-8 #}
+
+<div class="col-lg-4">
+  <div class="tc" style="position:sticky;top:80px">
+    <div class="ch"><i class="bi bi-list-ol me-2"></i>Biblioteca PUC</div>
+    <div style="padding:.75rem">
+      <input type="text" id="pucLibBuscar" class="form-control form-control-sm mb-2" placeholder="Buscar cuenta PUC..." oninput="buscarPucLib()">
+      <div id="pucLibResultados" style="max-height:400px;overflow-y:auto;font-size:.8rem">
+        <div class="text-muted text-center py-3"><i class="bi bi-search me-1"></i>Escribe para buscar cuentas</div>
+      </div>
+    </div>
+  </div>
 </div>
+</div>{# end row #}
+
+<script>
+function buscarPucLib(){
+  var q = document.getElementById('pucLibBuscar').value.trim();
+  var cont = document.getElementById('pucLibResultados');
+  if(q.length < 2){ cont.innerHTML='<div class="text-muted text-center py-3"><i class="bi bi-search me-1"></i>Escribe para buscar</div>'; return; }
+  fetch('/contable/puc/api/buscar?q='+encodeURIComponent(q))
+    .then(function(r){return r.json()})
+    .then(function(data){
+      if(!data.length){ cont.innerHTML='<div class="text-muted text-center py-2">Sin resultados</div>'; return; }
+      cont.innerHTML = data.map(function(c){
+        var color = c.naturaleza==='debito' ? '#DE350B' : '#00875A';
+        return '<div style="padding:5px 8px;border-bottom:1px solid var(--border);cursor:pointer" onclick="usarCuentaPuc(\''+c.codigo+'\',\''+c.nombre.replace(/'/g,"\\'")+'\',\''+c.tipo+'\')" title="Click para usar esta cuenta">'
+          +'<strong style="color:'+color+'">'+c.codigo+'</strong> '
+          +'<span>'+c.nombre+'</span>'
+          +'<br><small class="text-muted">'+c.tipo+' | '+c.naturaleza+'</small>'
+          +'</div>';
+      }).join('');
+    });
+}
+function usarCuentaPuc(codigo, nombre, tipo){
+  var inp = document.getElementById('puc_buscar');
+  if(inp) inp.value = codigo + ' ' + nombre;
+  var sel = document.getElementById('puc_selected');
+  if(sel){ sel.textContent = codigo + ' — ' + nombre; sel.style.color='var(--text)'; }
+  // Auto-clasificar
+  var clase = codigo.charAt(0);
+  if(clase==='4'){ document.getElementById('opt_ingreso').checked=true; toggleClasificacion(); }
+  else if(clase==='5'||clase==='6'||clase==='7'){ document.getElementById('opt_egreso').checked=true; toggleClasificacion(); }
+}
+</script>
 
 <script>
 function toggleClasificacion() {
