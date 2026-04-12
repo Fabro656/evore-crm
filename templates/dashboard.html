@@ -234,6 +234,86 @@
 </div>
 {% endif %}
 
+{# ── Aprobaciones + Calendario + Notas ──────────────── #}
+<div class="row g-3 mb-3 mt-1">
+  {% if aprobaciones_pendientes %}
+  <div class="col-lg-4">
+    <div class="tc">
+      <div class="ch">
+        <span><i class="bi bi-clipboard-check me-2" style="color:var(--orange)"></i>Aprobaciones</span>
+        <span class="badge bg-warning text-dark">{{ aprobaciones_pendientes|length }}</span>
+      </div>
+      {% for a in aprobaciones_pendientes %}
+      <div style="padding:.5rem .75rem;border-bottom:1px solid var(--border);font-size:.82rem">
+        <div class="fw-semibold">{{ a.descripcion[:40] }}</div>
+        <small class="text-muted">{{ a.solicitante.nombre if a.solicitante else '' }} — {{ moneda(a.monto) }}</small>
+      </div>
+      {% endfor %}
+      <div style="padding:.5rem .75rem;text-align:center">
+        <a href="{{ url_for('aprobaciones_pendientes') }}" style="font-size:.8rem;color:var(--ac);text-decoration:none">Ver todas</a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="col-lg-{% if aprobaciones_pendientes %}4{% else %}6{% endif %}">
+    <div class="tc">
+      <div class="ch">
+        <span><i class="bi bi-calendar3 me-2" style="color:var(--ac)"></i>Hoy y proximos dias</span>
+        <a href="{{ url_for('calendario') }}" class="btn btn-sm btn-outline-secondary" style="font-size:.75rem">Calendario</a>
+      </div>
+      {% if eventos_hoy %}
+      <div style="padding:.4rem .75rem"><small class="fw-bold text-uppercase" style="color:var(--text2);font-size:.68rem;letter-spacing:1px">Hoy</small></div>
+      {% for ev in eventos_hoy %}
+      <div style="padding:.35rem .75rem;border-bottom:1px solid var(--border);font-size:.82rem" class="d-flex align-items-center gap-2">
+        <i class="bi bi-{% if ev.tipo=='cita' %}calendar-event{% elif ev.tipo=='reunion' %}camera-video{% else %}bell{% endif %}" style="color:var(--ac);font-size:.85rem"></i>
+        <div>
+          <div class="fw-semibold">{{ ev.titulo }}</div>
+          {% if ev.hora_inicio %}<small class="text-muted">{{ ev.hora_inicio }}</small>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+      {% endif %}
+      {% if eventos_proximos %}
+      <div style="padding:.4rem .75rem"><small class="fw-bold text-uppercase" style="color:var(--text2);font-size:.68rem;letter-spacing:1px">Proximos 7 dias</small></div>
+      {% for ev in eventos_proximos %}
+      <div style="padding:.35rem .75rem;border-bottom:1px solid var(--border);font-size:.82rem" class="d-flex align-items-center gap-2">
+        <small class="text-muted" style="min-width:40px">{{ ev.fecha.strftime('%d/%m') }}</small>
+        <div class="fw-semibold">{{ ev.titulo }}</div>
+      </div>
+      {% endfor %}
+      {% endif %}
+      {% if not eventos_hoy and not eventos_proximos %}
+      <div style="padding:1.5rem;text-align:center;color:var(--text2);font-size:.85rem"><i class="bi bi-calendar-check me-1"></i>Sin eventos programados</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-lg-{% if aprobaciones_pendientes %}4{% else %}6{% endif %}">
+    <div class="tc">
+      <div class="ch">
+        <span><i class="bi bi-sticky-fill me-2" style="color:#7C3AED"></i>Notas recientes</span>
+        <a href="{{ url_for('nota_nueva') }}" class="btn btn-sm btn-outline-secondary" style="font-size:.75rem"><i class="bi bi-plus"></i></a>
+      </div>
+      {% if notas_recientes %}
+      {% for n in notas_recientes %}
+      <div style="padding:.5rem .75rem;border-bottom:1px solid var(--border);font-size:.82rem">
+        <div class="fw-semibold">{{ n.titulo or '(Sin titulo)' }}
+          {% if n.tipo_nota is defined and n.tipo_nota == 'alerta' %}<span class="badge bg-danger ms-1" style="font-size:.6rem">!</span>{% endif %}
+        </div>
+        <small style="color:var(--text2)">{{ n.contenido[:60] }}{% if n.contenido|length > 60 %}...{% endif %}</small>
+      </div>
+      {% endfor %}
+      <div style="padding:.5rem .75rem;text-align:center">
+        <a href="{{ url_for('notas') }}" style="font-size:.8rem;color:var(--ac);text-decoration:none">Ver todas</a>
+      </div>
+      {% else %}
+      <div style="padding:1.5rem;text-align:center;color:var(--text2);font-size:.85rem"><i class="bi bi-sticky me-1"></i>Sin notas</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 {% block scripts %}<script>
 (function(){

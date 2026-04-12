@@ -13,6 +13,8 @@
   <thead><tr><th>Ticket</th><th>Prioridad</th><th>Estado</th><th>Asignada a</th><th>Vence</th><th></th></tr></thead>
   <tbody>{% for t in items %}<tr {% if t.estado=='completada' %}style="opacity:.6"{% endif %}>
     <td><a href="{{ url_for('tarea_ver', id=t.id) }}" class="fw-semibold text-decoration-none {% if t.estado=='completada' %}text-decoration-line-through{% endif %}" style="color:var(--text)">{{ t.titulo }}</a>
+      {% if t.tarea_tipo == 'notificacion' %}<span class="badge bg-info ms-1" style="font-size:.6rem">Info</span>{% endif %}
+      {% if t.categoria and t.categoria != 'general' %}<span class="badge bg-light text-dark ms-1" style="font-size:.6rem">{{ t.categoria }}</span>{% endif %}
       {% if t.comentarios %}<span class="badge bg-light text-secondary ms-1" style="font-size:.65rem"><i class="bi bi-chat-dots"></i> {{ t.comentarios|length }}</span>{% endif %}</td>
     <td><span class="b b-{{ t.prioridad }}">{{ t.prioridad.title() }}</span></td>
     <td><span class="b b-{{ t.estado }}">{{ t.estado.replace('_',' ').title() }}</span></td>

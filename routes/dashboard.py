@@ -67,6 +67,10 @@ def register(app):
             tareas_recientes     = Tarea.query.filter(Tarea.estado!='completada').order_by(Tarea.creado_en.desc()).limit(5).all(),
             ventas_recientes     = Venta.query.order_by(Venta.creado_en.desc()).limit(6).all(),
             actividades_recientes= Actividad.query.order_by(Actividad.creado_en.desc()).limit(8).all(),
+            aprobaciones_pendientes = Aprobacion.query.filter_by(estado='pendiente').order_by(Aprobacion.creado_en.desc()).limit(5).all() if current_user.rol in ('admin','director_financiero','director_operativo') else [],
+            notas_recientes      = Nota.query.order_by(Nota.actualizado_en.desc()).limit(4).all(),
+            eventos_hoy          = Evento.query.filter(Evento.fecha==hoy).order_by(Evento.hora_inicio).all(),
+            eventos_proximos     = Evento.query.filter(Evento.fecha>hoy, Evento.fecha<=hoy+timedelta(days=7)).order_by(Evento.fecha).limit(5).all(),
         )
     
 

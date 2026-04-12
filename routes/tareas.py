@@ -161,7 +161,9 @@ def register(app):
             t=Tarea(titulo=request.form['titulo'], descripcion=request.form.get('descripcion',''),
                 estado=request.form.get('estado','pendiente'), prioridad=request.form.get('prioridad','media'),
                 fecha_vencimiento=datetime.strptime(fs,'%Y-%m-%d').date() if fs else None,
-                asignado_a=asignado_id, creado_por=current_user.id)
+                asignado_a=asignado_id, creado_por=current_user.id,
+                tarea_tipo=request.form.get('tarea_tipo','') or None,
+                categoria=request.form.get('categoria','general') or None)
             db.session.add(t); db.session.flush()
             _save_asignados(t)
             _log('crear','tarea',t.id,f'Tarea creada: {t.titulo}'); db.session.commit()
@@ -213,6 +215,8 @@ def register(app):
             prev_asignado = obj.asignado_a
             obj.titulo=request.form['titulo']; obj.descripcion=request.form.get('descripcion','')
             obj.estado=request.form.get('estado','pendiente'); obj.prioridad=request.form.get('prioridad','media')
+            obj.tarea_tipo=request.form.get('tarea_tipo','') or obj.tarea_tipo
+            obj.categoria=request.form.get('categoria','general') or obj.categoria
             obj.fecha_vencimiento=datetime.strptime(fs,'%Y-%m-%d').date() if fs else None
             obj.asignado_a=int(request.form.get('asignado_a') or current_user.id)
             db.session.flush(); _save_asignados(obj)
