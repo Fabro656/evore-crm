@@ -337,8 +337,30 @@ def register(app):
             try:
                 _save_items(v); db.session.flush()
                 _procesar_venta_produccion(v)
+                # Auto-crear asiento contable de ingreso en borrador
+                try:
+                    asiento_venta = AsientoContable(
+                        numero='AC-TEMP',
+                        fecha=hoy,
+                        descripcion=f'Ingreso pendiente — Venta {v.numero}',
+                        tipo='venta',
+                        subtipo='ingreso_venta',
+                        referencia=v.numero,
+                        debe=float(v.total or 0),
+                        haber=float(v.total or 0),
+                        clasificacion='ingreso',
+                        estado_asiento='borrador',
+                        estado_pago='pendiente',
+                        venta_id=v.id,
+                        creado_por=current_user.id
+                    )
+                    db.session.add(asiento_venta)
+                    db.session.flush()
+                    asiento_venta.numero = f'AC-{hoy.year}-{asiento_venta.id:04d}'
+                except Exception as ex_ac:
+                    logging.warning(f'venta_nueva: auto-asiento ingreso error: {ex_ac}')
                 db.session.commit()
-                flash('Venta creada.', 'success')
+                flash('Venta creada con asiento contable de ingreso pendiente.', 'success')
                 return redirect(url_for('ventas'))
             except Exception as e:
                 db.session.rollback()
@@ -448,6 +470,13 @@ def register(app):
                            'completado','perdido']  # completado/perdido kept for backward compat
         if nuevo not in estados_validos:
             return redirect(url_for('ventas'))
+
+        # Restringir: anticipo_pagado solo se puede marcar desde asientos contables
+        # (a menos que venga con flag _from_contable en el form)
+        if nuevo == 'anticipo_pagado' and estado_anterior in ('prospecto', 'negociacion'):
+            if not request.form.get('_from_contable'):
+                flash('El pago de anticipo solo se puede confirmar desde Asientos Contables (seccion Ingresos).', 'warning')
+                return redirect(url_for('ventas'))
 
         venta.estado = nuevo
         _log('editar','venta',venta.id,f'Estado → {nuevo}')

@@ -13,20 +13,28 @@ from datetime import date as date_t
 class NominaService:
 
     @staticmethod
-    def calcular_nomina(empleado):
-        """Retorna dict con todos los cálculos de nómina para un empleado."""
-        salario = float(empleado.salario_base or 0)
-        aux_transporte = AUXILIO_TRANSPORTE_2025 if (
-            empleado.auxilio_transporte and salario <= 2 * SMLMV_2025
+    def calcular_nomina(empleado, dias_mes=30, dias_trabajados=None):
+        """Retorna dict con todos los calculos de nomina para un empleado.
+        Si dias_trabajados < dias_mes, se prorratean salario y aportes."""
+        salario_completo = float(empleado.salario_base or 0)
+        # Prorrateo si no trabajo el mes completo
+        if dias_trabajados is not None and dias_trabajados < dias_mes:
+            factor = max(dias_trabajados, 0) / dias_mes
+        else:
+            factor = 1.0
+            dias_trabajados = dias_mes
+        salario = round(salario_completo * factor)
+        aux_transporte = round(AUXILIO_TRANSPORTE_2025 * factor) if (
+            empleado.auxilio_transporte and salario_completo <= 2 * SMLMV_2025
         ) else 0
 
         deduccion_salud   = round(salario * TASA_SALUD_EMP)
         deduccion_pension = round(salario * TASA_PENSION_EMP)
 
         fondo_solidaridad = 0
-        if salario > 16 * SMLMV_2025:
+        if salario_completo > 16 * SMLMV_2025:
             fondo_solidaridad = round(salario * 0.012)
-        elif salario > 4 * SMLMV_2025:
+        elif salario_completo > 4 * SMLMV_2025:
             fondo_solidaridad = round(salario * 0.01)
 
         total_deducciones = deduccion_salud + deduccion_pension + fondo_solidaridad
@@ -52,6 +60,10 @@ class NominaService:
 
         return {
             'salario': salario,
+            'salario_completo': salario_completo,
+            'dias_trabajados': dias_trabajados,
+            'dias_mes': dias_mes,
+            'factor_prorrateo': round(factor, 4),
             'aux_transporte': aux_transporte,
             'deduccion_salud': deduccion_salud,
             'deduccion_pension': deduccion_pension,
@@ -117,6 +129,8 @@ class NominaService:
         total = cesantias + int_cesantias + prima + vacaciones + indemnizacion
 
         return {
+            'fecha_ingreso': fecha_ingreso,
+            'fecha_retiro': fecha_retiro,
             'dias_trabajados': dias_trabajados,
             'anios': round(anios, 2),
             'cesantias': cesantias,

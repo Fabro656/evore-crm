@@ -1,4 +1,4 @@
-# routes/notas.py — reconstruido desde v27 con CRUD completo
+# routes/notas.py — v36 notas mejoradas con vinculos a entidades
 from flask import render_template, redirect, url_for, flash, request, \
                   jsonify, send_file, make_response, current_app
 from flask import session as flask_session
@@ -17,14 +17,22 @@ def register(app):
     @requiere_modulo('notas')
     def notas():
         cliente_f = request.args.get('cliente_id','')
+        tipo_f = request.args.get('tipo_nota','')
+        estado_f = request.args.get('estado_nota','')
+        oc_f = request.args.get('orden_compra_id','')
+        venta_f = request.args.get('venta_id','')
         q = Nota.query
         if cliente_f: q = q.filter_by(cliente_id=int(cliente_f))
+        if tipo_f: q = q.filter_by(tipo_nota=tipo_f)
+        if estado_f: q = q.filter_by(estado_nota=estado_f)
+        if oc_f: q = q.filter_by(orden_compra_id=int(oc_f))
+        if venta_f: q = q.filter_by(venta_id=int(venta_f))
         return render_template('notas/index.html',
             items=q.order_by(Nota.actualizado_en.desc()).all(),
             clientes_list=Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all(),
             productos_list=Producto.query.filter_by(activo=True).order_by(Producto.nombre).all(),
-            cliente_f=cliente_f)
-    
+            cliente_f=cliente_f, tipo_f=tipo_f, estado_f=estado_f)
+
 
     # ── nota_nueva (/notas/nueva)
     @app.route('/notas/nueva', methods=['GET','POST'])
@@ -33,6 +41,9 @@ def register(app):
     def nota_nueva():
         cl = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
         pl = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
+        provs = Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all()
+        ocs = OrdenCompra.query.filter(OrdenCompra.estado != 'cancelada').order_by(OrdenCompra.creado_en.desc()).limit(50).all()
+        ventas = Venta.query.filter(Venta.estado != 'cancelado').order_by(Venta.creado_en.desc()).limit(50).all()
         if request.method == 'POST':
             fd_rev = request.form.get('fecha_revision')
             n = Nota(titulo=request.form.get('titulo','').strip() or None,
@@ -41,13 +52,24 @@ def register(app):
                 producto_id=request.form.get('producto_id') or None,
                 modulo=request.form.get('modulo','') or None,
                 fecha_revision=datetime.strptime(fd_rev,'%Y-%m-%d').date() if fd_rev else None,
-                creado_por=current_user.id)
+                creado_por=current_user.id,
+                orden_compra_id=request.form.get('orden_compra_id') or None,
+                venta_id=request.form.get('venta_id') or None,
+                proveedor_id=request.form.get('proveedor_id') or None,
+                tipo_nota=request.form.get('tipo_nota','nota'),
+                estado_nota=request.form.get('estado_nota','abierta'),
+                prioridad=request.form.get('prioridad','normal'))
             db.session.add(n)
             db.session.commit()
             flash('Nota guardada.','success'); return redirect(url_for('notas'))
+        # Pre-fill from query params (para crear desde OC/venta)
+        pre_oc = request.args.get('orden_compra_id', type=int)
+        pre_venta = request.args.get('venta_id', type=int)
         return render_template('notas/form.html', obj=None, titulo='Nueva Nota',
-            clientes_list=cl, productos_list=pl)
-    
+            clientes_list=cl, productos_list=pl, proveedores_list=provs,
+            ocs_list=ocs, ventas_list=ventas,
+            pre_oc=pre_oc, pre_venta=pre_venta)
+
 
     # ── nota_editar (/notas/<int:id>/editar)
     @app.route('/notas/<int:id>/editar', methods=['GET','POST'])
@@ -57,6 +79,9 @@ def register(app):
         obj = Nota.query.get_or_404(id)
         cl  = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
         pl  = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
+        provs = Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all()
+        ocs = OrdenCompra.query.filter(OrdenCompra.estado != 'cancelada').order_by(OrdenCompra.creado_en.desc()).limit(50).all()
+        ventas = Venta.query.filter(Venta.estado != 'cancelado').order_by(Venta.creado_en.desc()).limit(50).all()
         if request.method == 'POST':
             fd_rev = request.form.get('fecha_revision')
             obj.titulo=request.form.get('titulo','').strip() or None
@@ -66,11 +91,31 @@ def register(app):
             obj.modulo=request.form.get('modulo','') or None
             obj.fecha_revision=datetime.strptime(fd_rev,'%Y-%m-%d').date() if fd_rev else None
             obj.actualizado_en=datetime.utcnow()
+            obj.orden_compra_id=request.form.get('orden_compra_id') or None
+            obj.venta_id=request.form.get('venta_id') or None
+            obj.proveedor_id=request.form.get('proveedor_id') or None
+            obj.tipo_nota=request.form.get('tipo_nota','nota')
+            obj.estado_nota=request.form.get('estado_nota','abierta')
+            obj.prioridad=request.form.get('prioridad','normal')
             db.session.commit()
             flash('Nota actualizada.','success'); return redirect(url_for('notas'))
         return render_template('notas/form.html', obj=obj, titulo='Editar Nota',
-            clientes_list=cl, productos_list=pl)
-    
+            clientes_list=cl, productos_list=pl, proveedores_list=provs,
+            ocs_list=ocs, ventas_list=ventas, pre_oc=None, pre_venta=None)
+
+
+    # ── nota_resolver (/notas/<int:id>/resolver)
+    @app.route('/notas/<int:id>/resolver', methods=['POST'])
+    @login_required
+    @requiere_modulo('notas')
+    def nota_resolver(id):
+        obj = Nota.query.get_or_404(id)
+        obj.estado_nota = 'resuelta'
+        obj.actualizado_en = datetime.utcnow()
+        db.session.commit()
+        flash('Nota marcada como resuelta.', 'success')
+        return redirect(url_for('notas'))
+
 
     # ── nota_eliminar (/notas/<int:id>/eliminar)
     @app.route('/notas/<int:id>/eliminar', methods=['POST'])
@@ -82,4 +127,4 @@ def register(app):
             return redirect(request.referrer or url_for('dashboard'))
         obj=Nota.query.get_or_404(id); db.session.delete(obj); db.session.commit()
         flash('Nota eliminada.','info'); return redirect(url_for('notas'))
-    
+

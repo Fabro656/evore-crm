@@ -64,23 +64,46 @@
     </div>
   </div>
   {% if empleado.estado == 'activo' %}
-  <div style="margin-top:2rem;display:flex;gap:1rem;flex-wrap:wrap">
-    <form method="GET" action="{{ url_for('empleado_liquidacion', id=empleado.id) }}" style="display:inline">
-      <input type="hidden" name="motivo" value="renuncia">
-      <button type="submit" class="btn btn-outline-warning" onclick="return confirm('¿Liquidar por renuncia?')"><i class="bi bi-file-text me-1"></i>Liquidar - Renuncia</button>
-    </form>
-    <form method="GET" action="{{ url_for('empleado_liquidacion', id=empleado.id) }}" style="display:inline">
-      <input type="hidden" name="motivo" value="despido_justa">
-      <button type="submit" class="btn btn-outline-warning" onclick="return confirm('¿Liquidar por despido con justa causa?')"><i class="bi bi-file-text me-1"></i>Liquidar - Despido (justa)</button>
-    </form>
-    <form method="GET" action="{{ url_for('empleado_liquidacion', id=empleado.id) }}" style="display:inline">
-      <input type="hidden" name="motivo" value="despido_sin_justa">
-      <button type="submit" class="btn btn-outline-danger" onclick="return confirm('¿Liquidar por despido sin justa causa?')"><i class="bi bi-file-text me-1"></i>Liquidar - Despido (sin justa)</button>
-    </form>
-    <form method="POST" action="{{ url_for('empleado_retirar', id=empleado.id) }}" style="display:inline">
-      <input type="hidden" name="motivo" value="despido_sin_justa">
-      <button type="submit" class="btn btn-danger" onclick="return confirm('¿Confirmar retiro del empleado? Esto marcará su estado como despedido.')"><i class="bi bi-person-x me-1"></i>Marcar como Despedido</button>
-    </form>
+  <div class="tc mt-3" style="padding:1.2rem">
+    <h6><i class="bi bi-person-dash me-2"></i>Acciones de retiro</h6>
+    <div class="alert alert-warning py-2 mb-3" style="font-size:.82rem">
+      <i class="bi bi-info-circle me-1"></i>Al confirmar un retiro, se calcula la liquidacion y se registrara como gasto al cerrar la nomina del mes.
+    </div>
+    <div class="row g-2 mb-2">
+      <div class="col-auto">
+        <a href="{{ url_for('empleado_liquidacion', id=empleado.id, motivo='renuncia') }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-calculator me-1"></i>Simular liquidacion
+        </a>
+      </div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <form method="POST" action="{{ url_for('empleado_retirar', id=empleado.id) }}" class="d-inline"
+            onsubmit="return confirm('Confirmar RENUNCIA de {{ empleado.nombre }}?')">
+        <input type="hidden" name="motivo" value="renuncia">
+        <input type="hidden" name="fecha_retiro" value="{{ now.strftime('%Y-%m-%d') if now else '' }}">
+        <button type="submit" class="btn btn-sm btn-warning"><i class="bi bi-box-arrow-right me-1"></i>Renuncia</button>
+      </form>
+      <form method="POST" action="{{ url_for('empleado_retirar', id=empleado.id) }}" class="d-inline"
+            onsubmit="return confirm('Confirmar DESPIDO CON JUSTA CAUSA de {{ empleado.nombre }}?')">
+        <input type="hidden" name="motivo" value="despido_justa">
+        <input type="hidden" name="fecha_retiro" value="{{ now.strftime('%Y-%m-%d') if now else '' }}">
+        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-person-x me-1"></i>Despido justificado</button>
+      </form>
+      <form method="POST" action="{{ url_for('empleado_retirar', id=empleado.id) }}" class="d-inline"
+            onsubmit="return confirm('Confirmar DESPIDO SIN JUSTA CAUSA de {{ empleado.nombre }}? Esto incluira indemnizacion.')">
+        <input type="hidden" name="motivo" value="despido_sin_justa">
+        <input type="hidden" name="fecha_retiro" value="{{ now.strftime('%Y-%m-%d') if now else '' }}">
+        <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-person-x-fill me-1"></i>Despido no justificado</button>
+      </form>
+    </div>
+  </div>
+  {% elif empleado.estado in ('retirado', 'despedido') %}
+  <div class="tc mt-3" style="padding:1.2rem">
+    <div class="alert alert-secondary py-2 mb-0" style="font-size:.85rem">
+      <i class="bi bi-info-circle me-1"></i>Empleado <strong>{{ empleado.estado }}</strong> el {{ empleado.fecha_retiro.strftime('%d/%m/%Y') if empleado.fecha_retiro else '--' }}
+      por: <strong>{{ empleado.motivo_retiro or '--' }}</strong>
+      <a href="{{ url_for('empleado_liquidacion', id=empleado.id, motivo=empleado.motivo_retiro or 'renuncia') }}" class="ms-2">Ver liquidacion</a>
+    </div>
   </div>
   {% endif %}
 </div>

@@ -111,6 +111,20 @@
 
       <div class="row g-3 mb-3">
         <div class="col-md-6">
+          <label class="form-label fw-semibold" style="font-size:.83rem">Orden de compra vinculada <span class="text-muted fw-normal">(opcional)</span></label>
+          <select name="orden_compra_id" class="form-select form-select-sm">
+            <option value="">-- Sin OC vinculada --</option>
+            {% if ordenes_compra %}
+            {% for oc in ordenes_compra %}
+            <option value="{{ oc.id }}" {% if obj and obj.orden_compra_id == oc.id %}selected{% endif %}>
+              {{ oc.numero or '--' }} -- {{ oc.proveedor.empresa if oc.proveedor else '' }} ({{ moneda(oc.total or 0) }})
+            </option>
+            {% endfor %}
+            {% endif %}
+          </select>
+          <div class="form-text" style="font-size:.75rem">Si vinculas una OC, podras confirmar el pago desde la lista de asientos.</div>
+        </div>
+        <div class="col-md-6">
           <label class="form-label fw-semibold" style="font-size:.83rem">Proveedor / Beneficiario <span class="text-muted fw-normal">(opcional)</span></label>
           <select name="proveedor_id" class="form-select form-select-sm">
             <option value="">— Sin proveedor vinculado —</option>

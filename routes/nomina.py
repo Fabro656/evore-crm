@@ -12,13 +12,63 @@ import json, os, re, io, secrets, logging
 def register(app):
 
     # ── Helpers ─────────────────────────────────────────────────────
-    def _calcular_nomina(empleado):
+    def _calcular_nomina(empleado, dias_mes=30, dias_trabajados=None):
         from services.nomina import NominaService
-        return NominaService.calcular_nomina(empleado)
+        return NominaService.calcular_nomina(empleado, dias_mes=dias_mes, dias_trabajados=dias_trabajados)
 
     def _calcular_liquidacion(empleado, motivo):
         from services.nomina import NominaService
         return NominaService.calcular_liquidacion(empleado, motivo)
+
+
+    # ── Helper: verificar si nomina del mes anterior fue cerrada
+    def _verificar_nomina_pendiente():
+        """Si el mes anterior no tiene nomina cerrada, crear ticket al admin."""
+        import calendar
+        hoy = date_type.today()
+        # Solo verificar despues del dia 1 del mes (para mes anterior)
+        if hoy.day < 2:
+            return
+        # Mes anterior
+        if hoy.month == 1:
+            mes_ant = f'{hoy.year - 1}-12'
+        else:
+            mes_ant = f'{hoy.year}-{hoy.month - 1:02d}'
+        desc_check = f'Nomina mensual {mes_ant}'
+        ya_cerrada = GastoOperativo.query.filter(
+            GastoOperativo.descripcion == desc_check, GastoOperativo.tipo == 'Nomina'
+        ).first()
+        if ya_cerrada:
+            return
+        # Verificar si hay empleados activos
+        if Empleado.query.filter_by(estado='activo').count() == 0:
+            return
+        # Verificar si ya existe ticket para esto
+        titulo_ticket = f'Nomina pendiente de cerrar: {mes_ant}'
+        ya_ticket = Tarea.query.filter(
+            Tarea.titulo == titulo_ticket, Tarea.estado == 'pendiente'
+        ).first()
+        if ya_ticket:
+            return
+        # Crear ticket al admin
+        admin = User.query.filter_by(rol='admin', activo=True).first()
+        if admin:
+            t = Tarea(
+                titulo=titulo_ticket,
+                descripcion=f'La nomina del mes {mes_ant} no ha sido cerrada. '
+                            f'Ingresa a Nomina y cierra el mes para registrar el gasto.',
+                estado='pendiente', prioridad='alta',
+                asignado_a=admin.id,
+                creado_por=admin.id,
+                tarea_tipo='nomina_pendiente',
+                categoria='pago',
+                fecha_vencimiento=hoy
+            )
+            db.session.add(t)
+            try:
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
 
 
     # ── nomina_index (/nomina)
@@ -26,6 +76,7 @@ def register(app):
     @login_required
     @requiere_modulo('nomina')
     def nomina_index():
+        _verificar_nomina_pendiente()
         estado_filter = request.args.get('estado', 'activo')
         departamento_filter = request.args.get('departamento', '')
         query = Empleado.query
@@ -57,70 +108,128 @@ def register(app):
     @login_required
     @requiere_modulo('nomina')
     def nomina_cerrar_mes():
-        """Create a monthly payroll expense entry for all active employees."""
-        mes = request.form.get('mes', '')  # format: YYYY-MM
+        """Cierra nomina mensual con prorrateo por dias trabajados."""
+        import calendar
+        mes = request.form.get('mes', '')
         if not mes:
-            from datetime import date as date_obj
-            today = date_obj.today()
-            mes = today.strftime('%Y-%m')
-    
-        empleados_activos = Empleado.query.filter_by(estado='activo').all()
-        if not empleados_activos:
-            flash('No hay empleados activos para cerrar nómina.', 'warning')
-            return redirect(url_for('nomina_index'))
-    
-        total_costo = 0
-        total_neto = 0
-        for _e2 in empleados_activos:
-            try:
-                _c = _calcular_nomina(_e2)
-                total_costo += _c['costo_total_empresa']
-                total_neto  += _c['salario_neto']
-            except Exception as _ce:
-                logging.warning(f'nomina_cerrar_mes: calcular_nomina({_e2.id}) error: {_ce}')
-        n_empleados = len(empleados_activos)
-    
-        from datetime import date as date_obj
+            mes = date_type.today().strftime('%Y-%m')
+
         try:
             year, month = int(mes.split('-')[0]), int(mes.split('-')[1])
-            fecha_gasto = date_obj(year, month, 1)
-        except:
-            fecha_gasto = date_obj.today()
-    
-        # Check if already closed for this month
-        desc_check = f'Nómina mensual {mes}'
-        existing = GastoOperativo.query.filter(
-            GastoOperativo.descripcion == desc_check,
-            GastoOperativo.tipo == 'Nómina'
-        ).first()
-        if existing:
-            flash(f'La nómina de {mes} ya fue cerrada anteriormente.', 'warning')
+            fecha_gasto = date_type(year, month, 1)
+            dias_del_mes = calendar.monthrange(year, month)[1]
+            primer_dia = date_type(year, month, 1)
+            ultimo_dia = date_type(year, month, dias_del_mes)
+        except Exception:
+            flash('Formato de mes invalido.', 'danger')
             return redirect(url_for('nomina_index'))
-    
+
+        # Check si ya se cerro
+        desc_check = f'Nomina mensual {mes}'
+        if GastoOperativo.query.filter(GastoOperativo.descripcion == desc_check, GastoOperativo.tipo == 'Nomina').first():
+            flash(f'La nomina de {mes} ya fue cerrada anteriormente.', 'warning')
+            return redirect(url_for('nomina_index'))
+
+        # Incluir activos + retirados/despedidos en este mes (trabajaron parte del mes)
+        empleados = Empleado.query.filter(
+            db.or_(
+                Empleado.estado == 'activo',
+                db.and_(
+                    Empleado.estado.in_(['retirado', 'despedido']),
+                    Empleado.fecha_retiro >= primer_dia,
+                    Empleado.fecha_retiro <= ultimo_dia
+                )
+            )
+        ).all()
+
+        if not empleados:
+            flash('No hay empleados para cerrar nomina.', 'warning')
+            return redirect(url_for('nomina_index'))
+
+        total_costo = 0
+        total_neto = 0
+        total_liquidacion = 0
+        detalle_empleados = []
+        for emp in empleados:
+            # Calcular dias trabajados en el mes
+            inicio_trabajo = max(emp.fecha_ingreso or primer_dia, primer_dia)
+            if emp.estado in ('retirado', 'despedido') and emp.fecha_retiro and emp.fecha_retiro <= ultimo_dia:
+                fin_trabajo = emp.fecha_retiro
+            else:
+                fin_trabajo = ultimo_dia
+            dias_trabajados = max((fin_trabajo - inicio_trabajo).days + 1, 0)
+            dias_trabajados = min(dias_trabajados, dias_del_mes)
+
+            try:
+                calc = _calcular_nomina(emp, dias_mes=dias_del_mes, dias_trabajados=dias_trabajados)
+                total_costo += calc['costo_total_empresa']
+                total_neto += calc['salario_neto']
+                detalle_empleados.append(f'{emp.nombre} {emp.apellido}: {dias_trabajados}d')
+            except Exception as _ce:
+                logging.warning(f'nomina_cerrar_mes: calc({emp.id}) error: {_ce}')
+
+            # Si fue retirado/despedido este mes, agregar liquidacion a gastos
+            if emp.estado in ('retirado', 'despedido') and emp.fecha_retiro and primer_dia <= emp.fecha_retiro <= ultimo_dia:
+                try:
+                    liq = _calcular_liquidacion(emp, emp.motivo_retiro or 'renuncia')
+                    if liq and liq['total'] > 0:
+                        total_liquidacion += liq['total']
+                        # Crear gasto separado para liquidacion
+                        g_liq = GastoOperativo(
+                            fecha=emp.fecha_retiro,
+                            tipo='Nomina',
+                            descripcion=f'Liquidacion {emp.nombre} {emp.apellido} ({emp.motivo_retiro})',
+                            monto=round(liq['total'], 0),
+                            recurrencia='unico',
+                            notas=f'Cesantias: ${liq["cesantias"]:,.0f}, Int: ${liq["int_cesantias"]:,.0f}, '
+                                  f'Prima: ${liq["prima"]:,.0f}, Vac: ${liq["vacaciones"]:,.0f}, '
+                                  f'Indem: ${liq["indemnizacion"]:,.0f}',
+                            creado_por=current_user.id
+                        )
+                        db.session.add(g_liq)
+                        db.session.flush()
+                        _crear_asiento_auto(
+                            tipo='gasto', subtipo='liquidacion_empleado',
+                            descripcion=f'Liquidacion {emp.nombre} {emp.apellido}',
+                            monto=round(liq['total'], 0),
+                            cuenta_debe='Gastos de nomina - Liquidaciones',
+                            cuenta_haber='Bancos / Caja',
+                            clasificacion='egreso',
+                            referencia=f'LIQ-{emp.cedula or emp.id}',
+                            gasto_id=g_liq.id
+                        )
+                except Exception as ex_liq:
+                    logging.warning(f'nomina_cerrar_mes: liquidacion({emp.id}) error: {ex_liq}')
+
+        n_empleados = len(empleados)
+
         g = GastoOperativo(
             fecha=fecha_gasto,
-            tipo='Nómina',
+            tipo='Nomina',
             descripcion=desc_check,
             monto=round(total_costo, 0),
             recurrencia='unico',
-            notas=f'{n_empleados} empleados activos. Masa salarial neta: ${total_neto:,.0f}',
+            notas=f'{n_empleados} empleados. Neto: ${total_neto:,.0f}. Detalle: {"; ".join(detalle_empleados[:10])}',
             creado_por=current_user.id
         )
         db.session.add(g)
         db.session.flush()
         _crear_asiento_auto(
             tipo='gasto', subtipo='nomina_mensual',
-            descripcion=f'Nómina {mes}: {n_empleados} empleados',
+            descripcion=f'Nomina {mes}: {n_empleados} empleados',
             monto=round(total_costo, 0),
-            cuenta_debe='Gastos de nómina',
+            cuenta_debe='Gastos de nomina',
             cuenta_haber='Bancos / Caja',
             clasificacion='egreso',
             referencia=f'NOM-{mes}',
             gasto_id=g.id
         )
-        _log('crear', 'gasto', g.id, f'Nómina mensual {mes}: ${total_costo:,.0f}')
+        _log('crear', 'gasto', g.id, f'Nomina mensual {mes}: ${total_costo:,.0f}')
         db.session.commit()
-        flash(f'Nómina de {mes} cerrada. Gasto registrado: ${total_costo:,.0f} ({n_empleados} empleados).', 'success')
+        msg = f'Nomina de {mes} cerrada. Gasto: ${total_costo:,.0f} ({n_empleados} empleados).'
+        if total_liquidacion > 0:
+            msg += f' Liquidaciones: ${total_liquidacion:,.0f}'
+        flash(msg, 'success')
         return redirect(url_for('nomina_index'))
     
 
@@ -231,17 +340,30 @@ def register(app):
     @requiere_modulo('nomina')
     def empleado_retirar(id):
         empleado = Empleado.query.get_or_404(id)
+        if empleado.estado in ('retirado', 'despedido'):
+            flash('Este empleado ya fue retirado.', 'warning')
+            return redirect(url_for('empleado_ver', id=id))
+
         motivo = request.form.get('motivo', 'renuncia')
+        fecha_retiro_str = request.form.get('fecha_retiro', '')
         empleado.motivo_retiro = motivo
-        empleado.fecha_retiro = date_type.today()
+        empleado.fecha_retiro = datetime.strptime(fecha_retiro_str, '%Y-%m-%d').date() if fecha_retiro_str else date_type.today()
+
         if motivo in ('despido_justa', 'despido_sin_justa'):
             empleado.estado = 'despedido'
         else:
             empleado.estado = 'retirado'
+
+        # Calcular liquidacion y mostrar resumen
+        liq = _calcular_liquidacion(empleado, motivo)
+        liq_msg = ''
+        if liq:
+            liq_msg = f' Liquidacion estimada: ${liq["total"]:,.0f} (se registrara al cerrar nomina del mes).'
+
         _log('editar', 'empleado', empleado.id, f'Marcado como {empleado.estado} por: {motivo}')
         db.session.commit()
-        flash(f'Empleado {empleado.nombre} marcado como {empleado.estado}.','success')
-        return redirect(url_for('nomina_index'))
+        flash(f'Empleado {empleado.nombre} marcado como {empleado.estado} ({motivo}).{liq_msg}', 'success')
+        return redirect(url_for('empleado_liquidacion', id=id, motivo=motivo))
 
 
     # ── parametros_nomina_editar (/nomina/parametros)

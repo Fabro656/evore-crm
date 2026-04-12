@@ -449,7 +449,7 @@ img,svg{max-width:100%;height:auto}
     {% if 'ventas' in m %}<a href="{{ url_for('ventas') }}" class="nav-link {% if 'venta' in request.endpoint %}active{% endif %}"><i class="bi bi-graph-up-arrow"></i><span>Ventas</span></a>{% endif %}
     {% if 'cotizaciones' in m %}<a href="{{ url_for('cotizaciones') }}" class="nav-link {% if request.endpoint in ['cotizaciones','cotizacion_nueva','cotizacion_ver','cotizacion_editar'] %}active{% endif %}"><i class="bi bi-file-earmark-text-fill"></i><span>Cotizaciones</span></a>{% endif %}
     {% if 'servicios' in m %}<a href="{{ url_for('servicios') }}" class="nav-link {% if 'servicio' in request.endpoint %}active{% endif %}"><i class="bi bi-briefcase-fill"></i><span>Servicios</span></a>{% endif %}
-    {% if 'tareas' in m %}<a href="{{ url_for('tareas') }}" class="nav-link {% if 'tarea' in request.endpoint %}active{% endif %}"><i class="bi bi-check2-square"></i><span>Tareas</span></a>{% endif %}
+    {% if 'tareas' in m %}<a href="{{ url_for('tareas') }}" class="nav-link {% if 'tarea' in request.endpoint %}active{% endif %}"><i class="bi bi-check2-square"></i><span>Tickets</span></a>{% endif %}
     {% if 'calendario' in m %}<a href="{{ url_for('calendario') }}" class="nav-link {% if request.endpoint=='calendario' or 'evento' in request.endpoint %}active{% endif %}"><i class="bi bi-calendar3"></i><span>Calendario</span></a>{% endif %}
     {% if 'notas' in m %}<a href="{{ url_for('notas') }}" class="nav-link {% if 'nota' in request.endpoint %}active{% endif %}"><i class="bi bi-sticky-fill"></i><span>Notas</span></a>{% endif %}
     {% endif %}
@@ -594,6 +594,10 @@ img,svg{max-width:100%;height:auto}
         </ul>
       </div>
     </div>
+  </div>
+  {# ── Sistema de pestanas multi-modulo ── #}
+  <div id="tabBar" style="display:none;background:var(--surface);border-bottom:1px solid var(--border);padding:0 .5rem;overflow-x:auto;white-space:nowrap;scrollbar-width:thin">
+    <div id="tabList" style="display:flex;gap:0;min-height:32px;align-items:stretch"></div>
   </div>
   <div class="content">
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -846,7 +850,7 @@ function copiarTexto(el,txt){
                   <div style="width:36px;height:36px;background:#DEEBFF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-speedometer2" style="color:#0052CC;font-size:1.1rem"></i></div>
                   <h5 class="mb-0 fw-bold" style="font-size:1rem">Dashboard principal</h5>
                 </div>
-                <p style="color:#42526E;font-size:.9rem">El dashboard es tu centro de control. Aquí verás un resumen de <strong>ventas activas, clientes, tareas pendientes</strong> y los KPIs más importantes del negocio en tiempo real.</p>
+                <p style="color:#42526E;font-size:.9rem">El dashboard es tu centro de control. Aquí verás un resumen de <strong>ventas activas, clientes, tickets pendientes</strong> y los KPIs más importantes del negocio en tiempo real.</p>
                 <div style="background:#F4F5F7;border-radius:8px;padding:1rem;font-size:.83rem;color:#6B778C">
                   💡 <strong>Tip:</strong> Usa el botón <strong>+</strong> (esquina inferior derecha) para acceder rápidamente a las acciones más frecuentes sin navegar por el menú.
                 </div>
@@ -885,13 +889,13 @@ function copiarTexto(el,txt){
               <div style="padding:1.75rem">
                 <div class="d-flex align-items-center gap-2 mb-3">
                   <div style="width:36px;height:36px;background:#EAE6FF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-check2-all" style="color:#5243AA;font-size:1.1rem"></i></div>
-                  <h5 class="mb-0 fw-bold" style="font-size:1rem">Tareas y Calendario</h5>
+                  <h5 class="mb-0 fw-bold" style="font-size:1rem">Tickets y Calendario</h5>
                 </div>
-                <p style="color:#42526E;font-size:.9rem">Organiza el trabajo del equipo con <strong>tareas asignadas, prioridades y fechas límite</strong>. El calendario muestra todo de un vistazo.</p>
+                <p style="color:#42526E;font-size:.9rem">Organiza el trabajo del equipo con <strong>tickets asignados, prioridades y fechas límite</strong>. El calendario muestra todo de un vistazo.</p>
                 <ul style="color:#42526E;font-size:.85rem;padding-left:1.2rem">
-                  <li>Cada tarea puede tener <strong>múltiples asignados</strong> y comentarios.</li>
-                  <li>Los <strong>administradores</strong> ven todas las tareas del equipo.</li>
-                  <li>Otros usuarios ven únicamente <strong>sus propias tareas</strong>.</li>
+                  <li>Cada ticket puede tener <strong>múltiples asignados</strong> y comentarios.</li>
+                  <li>Los <strong>administradores</strong> ven todos los tickets del equipo.</li>
+                  <li>Otros usuarios ven únicamente <strong>sus propios tickets</strong>.</li>
                 </ul>
               </div>
             </div>
@@ -918,7 +922,7 @@ function copiarTexto(el,txt){
                   <div style="width:36px;height:36px;background:#E3FCEF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-graph-up-arrow" style="color:#00875A;font-size:1.1rem"></i></div>
                   <h5 class="mb-0 fw-bold" style="font-size:1rem">Tu actividad mensual</h5>
                 </div>
-                <p style="color:#42526E;font-size:.9rem">Cada usuario tiene un <strong>resumen de actividad mensual</strong> accesible desde "Mi perfil": tareas completadas, clientes creados y más.</p>
+                <p style="color:#42526E;font-size:.9rem">Cada usuario tiene un <strong>resumen de actividad mensual</strong> accesible desde "Mi perfil": tickets completados, clientes creados y más.</p>
                 <div style="background:#E3FCEF;border-radius:8px;padding:1rem;font-size:.83rem;color:#006644">
                   ✅ Puedes consultar este tutorial en cualquier momento desde el menú de tu perfil.
                 </div>
@@ -1101,7 +1105,7 @@ document.addEventListener('DOMContentLoaded',function(){
             <i class="bi bi-cart-plus" style="color:#5243AA"></i><span>Orden de Compra</span>
           </a>
           <a href="{{ url_for('tarea_nueva') }}" class="qa-modal-btn">
-            <i class="bi bi-check2-square" style="color:#00875A"></i><span>Nueva Tarea</span>
+            <i class="bi bi-check2-square" style="color:#00875A"></i><span>Nuevo Ticket</span>
           </a>
           <a href="{{ url_for('proveedor_nuevo') }}" class="qa-modal-btn">
             <i class="bi bi-truck" style="color:#42526E"></i><span>Proveedor</span>
@@ -1196,7 +1200,7 @@ document.addEventListener('DOMContentLoaded',function(){
           <li>Responder preguntas sobre tus datos</li>
           <li>Redactar correos y mensajes</li>
           <li>Resumir actividad reciente</li>
-          <li>Crear tareas, notas y eventos</li>
+          <li>Crear tickets, notas y eventos</li>
         </ul>
       </div>
     </div>
@@ -1400,5 +1404,95 @@ document.addEventListener('DOMContentLoaded',function(){
 })();
 {% endraw %}</script>
 {% endif %}{# end if not demo - AI panel #}
+
+{# ── Tab System JS ── #}
+<script>
+(function(){
+  var tabs = JSON.parse(sessionStorage.getItem('evore_tabs') || '[]');
+  var activeTab = sessionStorage.getItem('evore_active_tab') || '';
+  var tabBar = document.getElementById('tabBar');
+  var tabList = document.getElementById('tabList');
+  var currentUrl = window.location.pathname + window.location.search;
+  var currentTitle = document.querySelector('.pg-title') ? document.querySelector('.pg-title').textContent.trim() : document.title;
+
+  // Asegurar que la pagina actual este en tabs
+  if (!tabs.find(function(t){return t.url === currentUrl})) {
+    tabs.push({url: currentUrl, title: currentTitle.substring(0, 25)});
+    activeTab = currentUrl;
+  } else {
+    activeTab = currentUrl;
+  }
+  sessionStorage.setItem('evore_active_tab', activeTab);
+  saveTabs();
+
+  function saveTabs(){ sessionStorage.setItem('evore_tabs', JSON.stringify(tabs)); }
+
+  function renderTabs(){
+    if (tabs.length <= 1) { tabBar.style.display = 'none'; return; }
+    tabBar.style.display = '';
+    tabList.innerHTML = '';
+    tabs.forEach(function(tab, i){
+      var isActive = tab.url === activeTab;
+      var el = document.createElement('a');
+      el.href = tab.url;
+      el.className = 'evore-tab' + (isActive ? ' active' : '');
+      el.innerHTML = '<span class="tab-title">' + tab.title + '</span>' +
+        (tabs.length > 1 ? '<span class="tab-close" data-idx="' + i + '">&times;</span>' : '');
+      el.onclick = function(e){
+        if(e.target.classList.contains('tab-close')){
+          e.preventDefault(); e.stopPropagation();
+          closeTab(parseInt(e.target.dataset.idx));
+          return;
+        }
+        // Normal navigation
+      };
+      tabList.appendChild(el);
+    });
+  }
+
+  function closeTab(idx){
+    var closed = tabs.splice(idx, 1)[0];
+    saveTabs();
+    if (closed.url === activeTab && tabs.length > 0) {
+      // Navigate to the last tab
+      window.location.href = tabs[Math.min(idx, tabs.length - 1)].url;
+    } else {
+      renderTabs();
+    }
+  }
+
+  // Interceptar clicks del sidebar para abrir en nueva tab
+  document.querySelectorAll('.sb-nav .nav-link').forEach(function(link){
+    link.addEventListener('click', function(e){
+      var href = link.getAttribute('href');
+      if (!href || href === '#') return;
+      // Middle-click or ctrl+click opens in browser tab (default behavior)
+      if (e.ctrlKey || e.metaKey || e.button === 1) return;
+      // Add to tabs if not already there
+      var existing = tabs.find(function(t){return t.url === href});
+      if (!existing) {
+        var label = link.querySelector('span') ? link.querySelector('span').textContent.trim() : 'Tab';
+        tabs.push({url: href, title: label.substring(0, 25)});
+        saveTabs();
+      }
+      // Normal navigation continues
+    });
+  });
+
+  renderTabs();
+
+  // Expose for external use
+  window.evoreCloseTab = closeTab;
+  window.evoreCloseAllTabs = function(){ tabs = []; saveTabs(); sessionStorage.removeItem('evore_active_tab'); };
+})();
+</script>
+<style>
+.evore-tab{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;font-size:.78rem;color:var(--text2);text-decoration:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .12s;white-space:nowrap;max-width:180px;overflow:hidden}
+.evore-tab:hover{color:var(--text);background:var(--surface2)}
+.evore-tab.active{color:var(--ac);border-bottom-color:var(--ac);font-weight:600}
+.evore-tab .tab-title{overflow:hidden;text-overflow:ellipsis}
+.evore-tab .tab-close{font-size:1rem;line-height:1;opacity:.4;cursor:pointer;padding:0 2px}
+.evore-tab .tab-close:hover{opacity:1;color:var(--red)}
+</style>
 
 </body></html>

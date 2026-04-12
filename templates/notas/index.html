@@ -1,35 +1,68 @@
 {% extends 'base.html' %}
-{% block title %}Notas{% endblock %}{% block page_title %}Notas Rápidas{% endblock %}
+{% block title %}Notas{% endblock %}{% block page_title %}Notas y Seguimiento{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('nota_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva nota</a>{% endblock %}
 {% block content %}
 <div class="row g-3 mb-3">
-  <div class="col-md-4">
-    <form method="GET"><select name="cliente_id" class="form-select form-select-sm" onchange="this.form.submit()">
-      <option value="">Todas las notas</option>
-      {% for c in clientes_list %}<option value="{{ c.id }}" {% if c.id|string == cliente_f %}selected{% endif %}>{{ c.empresa or c.nombre }}</option>{% endfor %}
-    </select></form>
+  <div class="col-md-3">
+    <form method="GET" id="filtroNotas">
+      <select name="cliente_id" class="form-select form-select-sm" onchange="this.form.submit()">
+        <option value="">Todos los clientes</option>
+        {% for c in clientes_list %}<option value="{{ c.id }}" {% if c.id|string == cliente_f %}selected{% endif %}>{{ c.empresa or c.nombre }}</option>{% endfor %}
+      </select>
+    </form>
+  </div>
+  <div class="col-md-2">
+    <form method="GET">
+      <select name="tipo_nota" class="form-select form-select-sm" onchange="this.form.submit()">
+        <option value="">Todos los tipos</option>
+        {% for t,l in [('nota','Nota'),('alerta','Alerta'),('seguimiento','Seguimiento'),('resolucion','Resolucion')] %}
+        <option value="{{ t }}" {% if tipo_f == t %}selected{% endif %}>{{ l }}</option>{% endfor %}
+      </select>
+    </form>
+  </div>
+  <div class="col-md-2">
+    <form method="GET">
+      <select name="estado_nota" class="form-select form-select-sm" onchange="this.form.submit()">
+        <option value="">Todos los estados</option>
+        <option value="abierta" {% if estado_f == 'abierta' %}selected{% endif %}>Abiertas</option>
+        <option value="resuelta" {% if estado_f == 'resuelta' %}selected{% endif %}>Resueltas</option>
+      </select>
+    </form>
   </div>
 </div>
 {% if items %}
 <div class="row g-3">
 {% for n in items %}
 <div class="col-md-6 col-lg-4">
-  <div class="tc h-100" style="position:relative">
+  <div class="tc h-100" style="position:relative;{% if n.estado_nota == 'resuelta' %}opacity:.6{% endif %}">
     <div class="d-flex justify-content-between align-items-start mb-2">
-      <div class="fw-semibold" style="color:var(--text);font-size:.95rem">{{ n.titulo or '(Sin título)' }}</div>
+      <div>
+        {% if n.tipo_nota == 'alerta' %}<span class="badge bg-danger me-1">Alerta</span>
+        {% elif n.tipo_nota == 'seguimiento' %}<span class="badge bg-warning text-dark me-1">Seguimiento</span>
+        {% elif n.tipo_nota == 'resolucion' %}<span class="badge bg-success me-1">Resolucion</span>
+        {% endif %}
+        {% if n.prioridad == 'alta' %}<span class="badge bg-danger me-1">Alta</span>{% endif %}
+        <div class="fw-semibold" style="color:var(--text);font-size:.95rem">{{ n.titulo or '(Sin titulo)' }}</div>
+      </div>
       <div class="d-flex gap-1">
+        {% if n.estado_nota != 'resuelta' %}
+        <form method="POST" action="{{ url_for('nota_resolver', id=n.id) }}" class="d-inline">
+          <button class="btn btn-sm btn-outline-success py-0 px-1" title="Marcar resuelta"><i class="bi bi-check-lg" style="font-size:.75rem"></i></button>
+        </form>
+        {% endif %}
         <a href="{{ url_for('nota_editar', id=n.id) }}" class="btn btn-sm btn-outline-secondary py-0 px-1"><i class="bi bi-pencil" style="font-size:.75rem"></i></a>
-        <form method="POST" action="{{ url_for('nota_eliminar', id=n.id) }}" onsubmit="return confirm('¿Eliminar nota?')">
+        <form method="POST" action="{{ url_for('nota_eliminar', id=n.id) }}" onsubmit="return confirm('Eliminar nota?')">
           <button class="btn btn-sm btn-outline-danger py-0 px-1"><i class="bi bi-trash" style="font-size:.75rem"></i></button></form>
       </div>
     </div>
-    <p style="font-size:.88rem;color:var(--text2);white-space:pre-line;margin-bottom:.75rem">{{ n.contenido[:300] }}{% if n.contenido|length > 300 %}…{% endif %}</p>
+    <p style="font-size:.88rem;color:var(--text2);white-space:pre-line;margin-bottom:.75rem">{{ n.contenido[:300] }}{% if n.contenido|length > 300 %}...{% endif %}</p>
     <div style="font-size:.75rem;color:#adb5bd;border-top:1px solid #f0f2ff;padding-top:.5rem;margin-top:auto">
       {% if n.cliente %}<span class="badge bg-light text-dark me-1"><i class="bi bi-person me-1"></i>{{ n.cliente.empresa or n.cliente.nombre }}</span>{% endif %}
-      {% if n.producto %}<span class="badge bg-light text-dark me-1"><i class="bi bi-box me-1"></i>{{ n.producto.nombre }}</span>{% endif %}
+      {% if n.orden_compra_id %}<span class="badge bg-light text-dark me-1"><i class="bi bi-cart me-1"></i>OC</span>{% endif %}
+      {% if n.venta_id %}<span class="badge bg-light text-dark me-1"><i class="bi bi-bag me-1"></i>Venta</span>{% endif %}
       {% if n.modulo %}<span class="badge" style="background:#e8eeff;color:var(--ac)">{{ n.modulo }}</span>{% endif %}
-      {% if n.fecha_revision %}<span class="badge" style="background:#f3e8ff;color:#8965e0"><i class="bi bi-calendar-check me-1"></i>Rev. {{ n.fecha_revision.strftime('%d/%m/%Y') }}</span>{% endif %}
-      <br>{{ n.autor.nombre if n.autor else '' }} · {{ n.creado_en.strftime('%d/%m/%Y') }}
+      {% if n.estado_nota == 'resuelta' %}<span class="badge bg-success">Resuelta</span>{% endif %}
+      <br>{{ n.autor.nombre if n.autor else '' }} -- {{ n.creado_en.strftime('%d/%m/%Y') }}
     </div>
   </div>
 </div>{% endfor %}

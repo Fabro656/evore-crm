@@ -1,13 +1,11 @@
 # routes/produccion.py — reconstruido desde v27 con CRUD completo
-from flask import render_template, redirect, url_for, flash, request, \
-                  jsonify, send_file, make_response, current_app
-from flask import session as flask_session
-from flask_login import login_required, current_user, login_user, logout_user
+from flask import render_template, redirect, url_for, flash, request, jsonify
+from flask_login import login_required, current_user
 from extensions import db
 from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
-import json, os, re, io, secrets, logging
+import logging
 
 def register(app):
 
@@ -82,6 +80,130 @@ def register(app):
                                proveedores_list=Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all(),
                                today=datetime.utcnow().strftime('%Y-%m-%d'))
     
+
+    # ── compra_recibir (/produccion/compras/<int:id>/recibir)
+    @app.route('/produccion/compras/<int:id>/recibir', methods=['POST'])
+    @login_required
+    def compra_recibir(id):
+        """Registrar recepcion total o parcial de material."""
+        obj = CompraMateria.query.get_or_404(id)
+        tipo = request.form.get('tipo_recepcion', 'total')
+        if tipo == 'total':
+            obj.estado_recepcion = 'recibido'
+            obj.cantidad_recibida = obj.cantidad
+        else:
+            cant = float(request.form.get('cantidad_recibida') or 0)
+            obj.cantidad_recibida = float(obj.cantidad_recibida or 0) + cant
+            if obj.cantidad_recibida >= obj.cantidad:
+                obj.estado_recepcion = 'recibido'
+            else:
+                obj.estado_recepcion = 'parcial'
+        # Actualizar OC vinculada si aplica
+        if obj.orden_compra_id:
+            oc = db.session.get(OrdenCompra, obj.orden_compra_id)
+            if oc:
+                # Verificar si todos los items de esta OC estan recibidos
+                compras_oc = CompraMateria.query.filter_by(orden_compra_id=oc.id).all()
+                todos_recibidos = all(c.estado_recepcion == 'recibido' for c in compras_oc)
+                alguno_parcial = any(c.estado_recepcion in ('parcial', 'recibido') for c in compras_oc)
+                if todos_recibidos:
+                    oc.estado_recepcion = 'recibida'
+                    oc.estado = 'recibida'
+                elif alguno_parcial:
+                    oc.estado_recepcion = 'parcial'
+                    if oc.estado in ('en_espera_producto', 'pagado', 'anticipo_pagado'):
+                        oc.estado = 'recibida_parcial'
+        db.session.commit()
+        flash(f'Recepcion de "{obj.nombre_item}" registrada.', 'success')
+        return redirect(url_for('compras'))
+
+
+    # ── compra_problema_calidad (/produccion/compras/<int:id>/problema-calidad)
+    @app.route('/produccion/compras/<int:id>/problema-calidad', methods=['POST'])
+    @login_required
+    def compra_problema_calidad(id):
+        """Reportar problema de calidad en material recibido."""
+        obj = CompraMateria.query.get_or_404(id)
+        descripcion = request.form.get('descripcion_problema', '')
+        requiere_cambio = request.form.get('requiere_cambio') == '1'
+
+        obj.estado_recepcion = 'parcial'
+
+        # Marcar problema en OC
+        oc = None
+        if obj.orden_compra_id:
+            oc = db.session.get(OrdenCompra, obj.orden_compra_id)
+            if oc:
+                oc.tiene_problema_calidad = True
+                if oc.estado in ('en_espera_producto', 'pagado', 'anticipo_pagado'):
+                    oc.estado = 'recibida_parcial'
+                oc.estado_recepcion = 'parcial'
+
+        # Crear ticket para el creador de la OC (contactar proveedor)
+        # Evitar duplicados si el boton se presiona varias veces
+        if oc:
+            titulo_t1 = f'Problema de calidad MP — {obj.nombre_item} (OC {oc.numero})'
+            existente_t1 = Tarea.query.filter(
+                Tarea.titulo == titulo_t1,
+                Tarea.tarea_tipo == 'problema_calidad',
+                Tarea.estado == 'pendiente'
+            ).first()
+            if not existente_t1:
+                t1 = Tarea(
+                    titulo=titulo_t1,
+                    descripcion=f'Se reporto un problema de calidad con "{obj.nombre_item}" de la OC {oc.numero}.\n\n'
+                                f'Problema: {descripcion}\n\n'
+                                f'Accion requerida: Contactar al proveedor para resolver el problema.',
+                    estado='pendiente', prioridad='alta',
+                    asignado_a=oc.creado_por or current_user.id,
+                    creado_por=current_user.id,
+                    orden_compra_id=oc.id,
+                    categoria='calidad',
+                    tarea_tipo='problema_calidad',
+                    fecha_vencimiento=(datetime.utcnow() + timedelta(days=2)).date()
+                )
+                db.session.add(t1)
+
+            # Si hay venta vinculada, crear ticket para el vendedor
+            if oc.venta_origen_id:
+                venta = db.session.get(Venta, oc.venta_origen_id)
+                if venta:
+                    titulo_t2 = f'Retraso por calidad MP — Venta {venta.numero}'
+                    existente_t2 = Tarea.query.filter(
+                        Tarea.titulo == titulo_t2,
+                        Tarea.tarea_tipo == 'retraso_calidad',
+                        Tarea.estado == 'pendiente'
+                    ).first()
+                    if not existente_t2:
+                        t2 = Tarea(
+                            titulo=titulo_t2,
+                            descripcion=f'La materia prima "{obj.nombre_item}" de la OC {oc.numero} tiene un problema de calidad.\n\n'
+                                        f'Problema: {descripcion}\n\n'
+                                        f'Esto puede afectar la fecha de entrega de la venta {venta.numero}. '
+                                        f'Contactar al cliente para informar del posible retraso.',
+                            estado='pendiente', prioridad='alta',
+                            asignado_a=venta.creado_por or current_user.id,
+                            creado_por=current_user.id,
+                            venta_id=venta.id,
+                            orden_compra_id=oc.id,
+                            categoria='calidad',
+                            tarea_tipo='retraso_calidad',
+                            fecha_vencimiento=(datetime.utcnow() + timedelta(days=1)).date()
+                        )
+                        db.session.add(t2)
+
+                    if requiere_cambio:
+                        # Marcar en la venta que hay un problema
+                        # Reabrir la OC para que se solicite reemplazo
+                        oc.estado = 'en_espera_producto'  # reabrir
+
+        db.session.commit()
+        msg = f'Problema de calidad reportado para "{obj.nombre_item}". Tickets creados.'
+        if requiere_cambio:
+            msg += ' La OC fue reabierta para solicitar reemplazo.'
+        flash(msg, 'warning')
+        return redirect(url_for('compras'))
+
 
     # ── compra_eliminar (/produccion/compras/<int:id>/eliminar)
     @app.route('/produccion/compras/<int:id>/eliminar', methods=['POST'])

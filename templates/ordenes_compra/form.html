@@ -4,110 +4,83 @@
 {% block content %}<div class="fc" style="max-width:1040px"><form method="POST">
 
 <div class="form-section">
-  <div class="form-section-title"><i class="bi bi-file-earmark-text me-2"></i>Información general</div>
-  <div class="input-hint mb-3"><i class="bi bi-lightbulb me-1"></i><strong>Tip:</strong> Si ya tienes una cotización del proveedor, selecciónala primero — los datos del ítem y la fecha de entrega se completarán automáticamente.</div>
+  <div class="form-section-title"><i class="bi bi-file-earmark-text me-2"></i>Informacion general</div>
+  <div class="input-hint mb-3"><i class="bi bi-lightbulb me-1"></i><strong>Tip:</strong> Selecciona primero el proveedor y luego marca las cotizaciones que quieres incluir en esta orden.</div>
   <div class="row g-3 mb-2">
     <div class="col-md-4">
-      <label class="form-label">Proveedor</label>
-      <select name="proveedor_id" class="form-select" id="selectProv">
-        <option value="">— Sin proveedor —</option>
+      <label class="form-label">Proveedor <span class="text-danger">*</span></label>
+      <select name="proveedor_id" class="form-select" id="selectProv" onchange="onProvChange()" required>
+        <option value="">-- Seleccionar proveedor --</option>
         {% for pv in proveedores_list %}<option value="{{ pv.id }}" {% if obj and obj.proveedor_id==pv.id %}selected{% endif %}>{{ pv.empresa or pv.nombre }}</option>{% endfor %}
       </select>
-      <div class="form-text">¿A quién le estás comprando?</div>
+      <div class="form-text">Selecciona primero para ver sus cotizaciones.</div>
     </div>
-    <div class="col-md-4">
-      <label class="form-label">Cotización de referencia</label>
-      <select name="cotizacion_id" class="form-select" id="selectCot" onchange="onCotChange()">
-        <option value="">— Sin cotización —</option>
-        {% for c in cotizaciones_list %}<option value="{{ c.id }}"
-          data-plazo="{{ c.plazo_entrega_dias or 0 }}"
-          data-prov="{{ c.proveedor_id or '' }}"
-          data-nombre="{{ c.nombre_producto }}"
-          data-precio="{{ c.precio_unitario }}"
-          data-unidad="{{ c.unidad }}"
-          data-cond="{{ c.condicion_pago_tipo }}"
-          {% if obj and obj.cotizacion_id==c.id %}selected{% endif %}>
-          {{ c.numero or '' }} — {{ c.nombre_producto }} ({{ c.proveedor.empresa if c.proveedor else '—' }})
-        </option>{% endfor %}
-      </select>
-      <div class="form-text">Al seleccionar, se auto-completan ítems y fechas.</div>
+    <div class="col-md-5">
+      <label class="form-label">Cotizaciones del proveedor</label>
+      <div id="cotizacionesContainer" class="border rounded p-2" style="max-height:200px;overflow-y:auto;background:var(--surface2,#f8f9fe)">
+        <div class="text-muted small" id="cotPlaceholder"><i class="bi bi-info-circle me-1"></i>Selecciona un proveedor para ver cotizaciones disponibles.</div>
+      </div>
+      <div class="mt-1">
+        <button type="button" class="btn btn-sm btn-outline-success" id="btnAgregarCots" onclick="agregarCotizacionesSeleccionadas()" disabled>
+          <i class="bi bi-plus-lg me-1"></i>Agregar seleccionadas como items
+        </button>
+      </div>
     </div>
-    <div class="col-md-2">
+    <div class="col-md-3">
       <label class="form-label">Estado</label>
-      <select name="estado" class="form-select">
-        {% for est,lbl in [('borrador','Borrador'),('enviada','Enviada'),('recibida','Recibida'),('cancelada','Cancelada')] %}
-        <option value="{{ est }}" {% if obj and obj.estado==est %}selected{% elif not obj and est=='borrador' %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
-      </select>
-      <div class="form-text">Empieza en Borrador y avanza.</div>
+      <div class="form-control-plaintext">
+        <span class="badge bg-secondary fs-6">Borrador</span>
+      </div>
+      <div class="form-text">El estado cambia desde asientos contables.</div>
     </div>
   </div>
   <div class="row g-3 mb-2">
     <div class="col-md-3">
-      <label class="form-label">Fecha emisión</label>
-      <input type="date" name="fecha_emision" id="fechaEmision" class="form-control" value="{{ obj.fecha_emision.strftime('%Y-%m-%d') if obj and obj.fecha_emision else today }}" oninput="calcFechaEntrega()">
+      <label class="form-label">Fecha emision</label>
+      <input type="date" name="fecha_emision" id="fechaEmision" class="form-control" value="{{ obj.fecha_emision.strftime('%Y-%m-%d') if obj and obj.fecha_emision else today }}">
       <div class="form-text">Fecha en que se emite la OC.</div>
     </div>
     <div class="col-md-3">
       <label class="form-label">Fecha entrega esperada <small class="text-muted" id="plazoHint"></small></label>
       <input type="date" name="fecha_esperada" id="fechaEsperada" class="form-control" value="{{ obj.fecha_esperada.strftime('%Y-%m-%d') if obj and obj.fecha_esperada else '' }}">
-      <div class="form-text">Se calcula desde la cotización o edítala manualmente.</div>
+      <div class="form-text">Se calcula desde la cotizacion o editala manualmente.</div>
     </div>
     <div class="col-md-3">
       <label class="form-label">Fecha estimada pago</label>
       <input type="date" name="fecha_estimada_pago" class="form-control" value="{{ obj.fecha_estimada_pago.strftime('%Y-%m-%d') if obj and obj.fecha_estimada_pago else '' }}">
-      <div class="form-text">¿Cuándo planeas pagar al proveedor?</div>
+      <div class="form-text">Cuando planeas pagar al proveedor?</div>
     </div>
-  </div>
-  <div id="condPagoInfo" class="alert alert-info py-2 mb-2" style="display:none;font-size:.85rem">
-    <i class="bi bi-credit-card me-2"></i><span id="condPagoText"></span>
   </div>
 </div>
 
 <div class="form-section">
-  <div class="form-section-title"><i class="bi bi-truck me-2"></i>Transportista y logística</div>
+  <div class="form-section-title"><i class="bi bi-truck me-2"></i>Transportista y logistica</div>
   <div class="row g-3 mb-2">
     <div class="col-md-4">
       <label class="form-label">Transportista</label>
       <select name="transportista_id" class="form-select" id="selectTrans">
-        <option value="">— Sin transportista —</option>
+        <option value="">-- Sin transportista --</option>
         {% for t in transportistas_list %}<option value="{{ t.id }}" {% if obj and obj.transportista_id==t.id %}selected{% endif %}>{{ t.empresa or t.nombre }}</option>{% endfor %}
       </select>
-      <div class="form-text">Opcional — complétalo si ya lo tienes definido.</div>
     </div>
     <div class="col-md-3">
       <label class="form-label">Fecha estimada recogida</label>
       <input type="date" name="fecha_estimada_recogida" id="fechaRecogida" class="form-control" value="{{ obj.fecha_estimada_recogida.strftime('%Y-%m-%d') if obj and obj.fecha_estimada_recogida else '' }}">
-      <div class="form-text">¿Cuándo pasará a recoger la mercancía?</div>
     </div>
     <div class="col-md-5 d-flex align-items-center">
       <div class="alert alert-warning py-2 mb-0" style="font-size:.82rem" id="transAlert" {% if not (obj and obj.transportista_id) %}style="display:none"{% endif %}>
-        <i class="bi bi-bell me-1"></i>Al guardar se creará una <strong>tarea automática</strong> para contactar al transportista 2 días antes de la recogida.
+        <i class="bi bi-bell me-1"></i>Al guardar se creara un <strong>ticket automatico</strong> para contactar al transportista 2 dias antes de la recogida.
       </div>
     </div>
   </div>
 </div>
 
 <div class="form-section">
-  <div class="form-section-title"><i class="bi bi-cash-coin me-2"></i>Anticipo (BLOQUE 4)</div>
-  <div class="row g-3 mb-2">
-    <div class="col-md-4">
-      <label class="form-label">Fecha real de anticipo</label>
-      <input type="date" name="fecha_anticipo_real" id="fechaAnticipoReal" class="form-control" value="{{ obj.fecha_anticipo_real.strftime('%Y-%m-%d') if obj and obj.fecha_anticipo_real else '' }}">
-      <div class="form-text">Fecha en que se recibió realmente el anticipo.</div>
-    </div>
-  </div>
-</div>
-
-<div class="form-section">
   <div class="d-flex justify-content-between align-items-center mb-2">
-    <div class="form-section-title mb-0"><i class="bi bi-list-ul me-2"></i>Ítems de la orden</div>
-    <div class="d-flex gap-2">
-      <button type="button" class="btn btn-sm btn-outline-success" onclick="importarDesdeCot()" id="btnImportCot" {% if not cotizaciones_list %}disabled{% endif %} title="Importar ítem desde cotización seleccionada">
-        <i class="bi bi-cloud-download me-1"></i>Importar de cotización</button>
-      <button type="button" class="btn btn-sm btn-outline-primary" onclick="addItem()"><i class="bi bi-plus-lg me-1"></i>Agregar ítem manual</button>
-    </div>
+    <div class="form-section-title mb-0"><i class="bi bi-list-ul me-2"></i>Items de la orden</div>
+    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addItem()"><i class="bi bi-plus-lg me-1"></i>Agregar item manual</button>
   </div>
-  <div class="input-hint mb-3"><i class="bi bi-info-circle me-1"></i>Cada ítem es un producto o material que estás comprando. El precio es <strong>sin IVA</strong>.</div>
+  <div class="input-hint mb-3"><i class="bi bi-info-circle me-1"></i>Cada item es un producto o material que estas comprando. El precio es <strong>sin IVA</strong>.</div>
   <div id="itemsContainer"></div>
   <div class="mt-3 mb-2"><div class="row g-2 justify-content-end"><div class="col-md-4">
     <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">Subtotal:</span><strong id="lblSub">$ 0</strong></div>
@@ -128,6 +101,8 @@
 {% block scripts %}<script>
 var ITEMS_EDIT = {{ items_json|tojson }};
 var UNIDADES = ['unidades','kg','g','litros','ml','libras','galones','metros','cm','piezas','cajas','bolsas'];
+var cotizacionesData = []; // cache de cotizaciones del proveedor actual
+
 function fmt(n){return'$ '+Math.round(n).toLocaleString('es-CO');}
 
 function recalc(){
@@ -152,9 +127,9 @@ function addItem(d){
   var unOpts=UNIDADES.map(function(u){return'<option value="'+u+'"'+(d.unidad===u?' selected':'')+'>'+u+'</option>';}).join('');
   var html='<div class="oc-row row g-2 mb-2 align-items-end" style="background:var(--surface2);border-radius:8px;padding:.5rem">'
     +'<input type="hidden" name="item_cot_id[]" value="'+(d.cot_id||'')+'"/>'
-    +'<div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Ítem *</label>'
+    +'<div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Item *</label>'
     +'<input type="text" name="item_nombre[]" class="form-control form-control-sm" value="'+(d.nombre||'')+'" required></div>'
-    +'<div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Descripción</label>'
+    +'<div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Descripcion</label>'
     +'<input type="text" name="item_desc[]" class="form-control form-control-sm" value="'+(d.desc||'')+'"></div>'
     +'<div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Cant.</label>'
     +'<input type="number" name="item_cant[]" data-f="cant" class="form-control form-control-sm" step="0.001" min="0.001" value="'+(d.cant||1)+'" oninput="recalc()"></div>'
@@ -165,58 +140,82 @@ function addItem(d){
     +'<div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Subtotal</label>'
     +'<span class="form-control-plaintext form-control-sm fw-semibold" data-f="sub" style="font-size:.82rem">$ 0</span></div>'
     +'<div class="col-auto d-flex align-items-end"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest(\'.oc-row\').remove();recalc()"><i class="bi bi-trash"></i></button></div>'
-    +(d.cot_id ? '<div class="col-12"><small class="text-success"><i class="bi bi-link-45deg me-1"></i>Vinculado a cotización</small></div>' : '')
+    +(d.cot_id ? '<div class="col-12"><small class="text-success"><i class="bi bi-link-45deg me-1"></i>Vinculado a cotizacion</small></div>' : '')
     +'</div>';
   document.getElementById('itemsContainer').insertAdjacentHTML('beforeend',html);
   recalc();
 }
 
-function onCotChange(){
-  var sel=document.getElementById('selectCot');
-  var opt=sel.options[sel.selectedIndex];
-  if(!opt||!opt.value){ document.getElementById('condPagoInfo').style.display='none'; return; }
-  var plazo=parseInt(opt.dataset.plazo)||0;
-  var prov=opt.dataset.prov;
-  var cond=opt.dataset.cond;
-  // Auto-fill proveedor if empty
-  if(prov && !document.getElementById('selectProv').value){
-    document.getElementById('selectProv').value=prov;
+// ── Multi-cotizacion: cargar cotizaciones al cambiar proveedor ──
+function onProvChange(){
+  var provId = document.getElementById('selectProv').value;
+  var container = document.getElementById('cotizacionesContainer');
+  var btn = document.getElementById('btnAgregarCots');
+  if(!provId){
+    container.innerHTML='<div class="text-muted small" id="cotPlaceholder"><i class="bi bi-info-circle me-1"></i>Selecciona un proveedor para ver cotizaciones disponibles.</div>';
+    btn.disabled=true;
+    cotizacionesData=[];
+    return;
   }
-  // Recalculate delivery date
-  calcFechaEntrega();
-  // Show payment condition info
-  var condTexts={'contado':'Pago de contado al recibir','credito':'Pago a crédito','anticipo_saldo':'Anticipo + saldo contra entrega','consignacion':'Pago por consignación'};
-  document.getElementById('condPagoText').textContent='Condición de pago: '+(condTexts[cond]||cond);
-  document.getElementById('condPagoInfo').style.display='';
+  container.innerHTML='<div class="text-muted small"><i class="bi bi-hourglass-split me-1"></i>Cargando cotizaciones...</div>';
+  fetch('/api/cotizaciones-por-proveedor/'+provId)
+    .then(r=>r.json())
+    .then(function(data){
+      cotizacionesData=data;
+      if(data.length===0){
+        container.innerHTML='<div class="text-muted small"><i class="bi bi-exclamation-circle me-1"></i>Este proveedor no tiene cotizaciones vigentes.</div>';
+        btn.disabled=true;
+        return;
+      }
+      var html='';
+      data.forEach(function(c){
+        html+='<div class="form-check mb-1">'
+          +'<input class="form-check-input cot-check" type="checkbox" value="'+c.id+'" id="cot_'+c.id+'" data-idx="'+c.id+'">'
+          +'<label class="form-check-label small" for="cot_'+c.id+'">'
+          +'<strong>'+c.nombre_producto+'</strong>'
+          +' <span class="text-muted">'+(c.numero||'')+'</span>'
+          +' &mdash; $'+Math.round(c.precio_unitario).toLocaleString('es-CO')+'/'+c.unidad
+          +' (min: '+c.unidades_minimas+')'
+          +'</label></div>';
+      });
+      container.innerHTML=html;
+      btn.disabled=false;
+    })
+    .catch(function(){
+      container.innerHTML='<div class="text-danger small">Error cargando cotizaciones.</div>';
+      btn.disabled=true;
+    });
 }
 
-function calcFechaEntrega(){
-  var sel=document.getElementById('selectCot');
-  var opt=sel&&sel.options[sel.selectedIndex];
-  var plazo=opt&&opt.dataset?parseInt(opt.dataset.plazo)||0:0;
-  if(!plazo) return;
-  var feVal=document.getElementById('fechaEmision').value;
-  if(!feVal) return;
-  var fe=new Date(feVal+'T12:00:00');
-  fe.setDate(fe.getDate()+plazo);
-  var yy=fe.getFullYear();
-  var mm=String(fe.getMonth()+1).padStart(2,'0');
-  var dd=String(fe.getDate()).padStart(2,'0');
-  document.getElementById('fechaEsperada').value=yy+'-'+mm+'-'+dd;
-  document.getElementById('plazoHint').textContent='(auto: '+plazo+'d desde emisión)';
-}
-
-function importarDesdeCot(){
-  var sel=document.getElementById('selectCot');
-  var opt=sel.options[sel.selectedIndex];
-  if(!opt||!opt.value){alert('Selecciona una cotización primero.');return;}
-  addItem({
-    nombre: opt.dataset.nombre||'',
-    desc: '',
-    cant: 1,
-    unidad: opt.dataset.unidad||'unidades',
-    precio: parseFloat(opt.dataset.precio)||0,
-    cot_id: opt.value
+function agregarCotizacionesSeleccionadas(){
+  var checks = document.querySelectorAll('.cot-check:checked');
+  if(checks.length===0){alert('Selecciona al menos una cotizacion.');return;}
+  checks.forEach(function(chk){
+    var cotId = parseInt(chk.value);
+    var c = cotizacionesData.find(function(x){return x.id===cotId;});
+    if(!c) return;
+    addItem({
+      nombre: c.nombre_producto,
+      desc: c.numero || '',
+      cant: c.unidades_minimas || 1,
+      unidad: c.unidad || 'unidades',
+      precio: c.precio_unitario || 0,
+      cot_id: c.id
+    });
+    chk.checked=false;
+    // Calcular fecha entrega si tiene plazo
+    if(c.plazo_entrega_dias > 0){
+      var feVal=document.getElementById('fechaEmision').value;
+      if(feVal){
+        var fe=new Date(feVal+'T12:00:00');
+        fe.setDate(fe.getDate()+c.plazo_entrega_dias);
+        var fechaEsp=document.getElementById('fechaEsperada');
+        if(!fechaEsp.value){
+          fechaEsp.value=fe.toISOString().split('T')[0];
+          document.getElementById('plazoHint').textContent='(auto: '+c.plazo_entrega_dias+'d)';
+        }
+      }
+    }
   });
 }
 
@@ -227,6 +226,7 @@ document.getElementById('selectTrans').addEventListener('change',function(){
 
 // Init
 ITEMS_EDIT.forEach(function(it){addItem(it);});
-if(ITEMS_EDIT.length===0) addItem();
-onCotChange();
+if(ITEMS_EDIT.length===0 && !document.getElementById('selectProv').value) addItem();
+// Si ya hay proveedor seleccionado (edicion), cargar cotizaciones
+if(document.getElementById('selectProv').value) onProvChange();
 </script>{% endblock %}{% endblock %}

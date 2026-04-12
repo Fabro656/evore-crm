@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
-{% block title %}Asientos Manuales{% endblock %}
-{% block page_title %}Asientos Manuales{% endblock %}
+{% block title %}Asientos Contables{% endblock %}
+{% block page_title %}Asientos Contables{% endblock %}
 
 {% block topbar_actions %}
 <div class="d-flex gap-2 flex-wrap">
@@ -18,24 +18,24 @@
 
 {% block content %}
 
-{# ── Stats del mes ──────────────────────────────────────────── #}
+{# -- Stats del mes -- #}
 <div class="row g-3 mb-3">
   <div class="col-6 col-md-3">
     <div class="fc text-center py-3">
       <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Ingresos este mes</div>
-      <div class="fw-bold mt-1" style="font-size:1.25rem;color:#00875A">$ {{ '{:,.0f}'.format(ingresos_mes).replace(',','.') }}</div>
+      <div class="fw-bold mt-1" style="font-size:1.25rem;color:#00875A">{{ moneda(ingresos_mes) }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="fc text-center py-3">
       <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Egresos este mes</div>
-      <div class="fw-bold mt-1" style="font-size:1.25rem;color:#DE350B">$ {{ '{:,.0f}'.format(gastos_mes).replace(',','.') }}</div>
+      <div class="fw-bold mt-1" style="font-size:1.25rem;color:#DE350B">{{ moneda(gastos_mes) }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="fc text-center py-3" style="border:2px solid {{ '#00875A' if balance_mes >= 0 else '#DE350B' }}">
       <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Balance</div>
-      <div class="fw-bold mt-1" style="font-size:1.25rem;color:{{ '#00875A' if balance_mes >= 0 else '#DE350B' }}">$ {{ '{:,.0f}'.format(balance_mes).replace(',','.') }}</div>
+      <div class="fw-bold mt-1" style="font-size:1.25rem;color:{{ '#00875A' if balance_mes >= 0 else '#DE350B' }}">{{ moneda(balance_mes) }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
@@ -46,9 +46,24 @@
   </div>
 </div>
 
-{# ── Filtros ─────────────────────────────────────────────────── #}
+{# -- Pestanas Generados / Manuales -- #}
+<ul class="nav nav-tabs mb-3" role="tablist">
+  <li class="nav-item">
+    <a class="nav-link {{ 'active' if vista != 'manuales' }}" href="{{ url_for('contable_asientos', filtro=filtro, desde=desde, hasta=hasta, vista='generados') }}">
+      <i class="bi bi-gear me-1"></i>Generados <span class="badge bg-secondary ms-1">{{ asientos|selectattr('tipo','in',['compra','venta','nomina','gasto'])|list|length }}</span>
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link {{ 'active' if vista == 'manuales' }}" href="{{ url_for('contable_asientos', filtro=filtro, desde=desde, hasta=hasta, vista='manuales') }}">
+      <i class="bi bi-pencil-square me-1"></i>Manuales <span class="badge bg-secondary ms-1">{{ asientos|rejectattr('tipo','in',['compra','venta','nomina','gasto'])|list|length }}</span>
+    </a>
+  </li>
+</ul>
+
+{# -- Filtros -- #}
 <div class="fc mb-3">
   <form method="GET" class="row g-2 align-items-end">
+    <input type="hidden" name="vista" value="{{ vista }}">
     <div class="col-auto">
       <label class="form-label mb-1" style="font-size:.82rem">Filtro</label>
       <select name="filtro" class="form-select form-select-sm">
@@ -74,119 +89,109 @@
   </form>
 </div>
 
-{# ── Tabla de asientos ───────────────────────────────────────── #}
+{# -- Tabla de asientos -- #}
 <div class="tc">
   <div class="ch d-flex justify-content-between align-items-center">
-    <span><i class="bi bi-journal-bookmark-fill me-2"></i>{{ asientos|length }} asiento(s) manual(es)</span>
+    <span><i class="bi bi-journal-bookmark-fill me-2"></i>{{ asientos_filtrados|length }} asiento(s) contable(s)</span>
     <div class="d-flex gap-3" style="font-size:.82rem">
-      <span class="text-success fw-semibold">▲ Ingresos: ${{ '{:,.0f}'.format(total_ingresos_list).replace(',','.') }}</span>
-      <span class="text-danger fw-semibold">▼ Egresos: ${{ '{:,.0f}'.format(total_egresos_list).replace(',','.') }}</span>
+      <span class="text-success fw-semibold">Ingresos: {{ moneda(total_ingresos_list) }}</span>
+      <span class="text-danger fw-semibold">Egresos: {{ moneda(total_egresos_list) }}</span>
     </div>
   </div>
 
-  {% if asientos %}
+  {% if asientos_filtrados %}
   <div class="table-responsive">
   <table class="table table-sm mb-0">
     <thead>
       <tr>
-        <th style="width:90px">Número</th>
+        <th style="width:90px">Numero</th>
         <th style="width:95px">Fecha</th>
         <th style="width:80px">Tipo</th>
-        <th>Descripción</th>
+        <th>Descripcion</th>
         <th class="text-end" style="width:110px">Monto</th>
-        <th>Referencia / Proveedor</th>
-        <th class="text-center" style="width:130px">Acciones</th>
+        <th>Estado pago</th>
+        <th>Referencia</th>
+        <th class="text-center" style="width:180px">Acciones</th>
       </tr>
     </thead>
     <tbody>
-      {% for a in asientos %}
+      {% for a in asientos_filtrados %}
       {% set es_ingreso = (a.clasificacion == 'ingreso') %}
       {% set es_cc = (a.tipo == 'gasto_caja_chica') %}
       <tr style="border-left:3px solid {{ '#00875A' if es_ingreso else '#DE350B' }}">
 
-        <td>
-          <small class="fw-semibold text-muted">{{ a.numero or '—' }}</small>
-        </td>
-
-        <td>
-          <small>{{ a.fecha.strftime('%d/%m/%Y') }}</small>
-        </td>
+        <td><small class="fw-semibold text-muted">{{ a.numero or '--' }}</small></td>
+        <td><small>{{ a.fecha.strftime('%d/%m/%Y') }}</small></td>
 
         <td>
           {% if es_ingreso %}
-            <span class="b b-activo" style="font-size:.71rem">
-              <i class="bi bi-arrow-down-circle me-1"></i>Ingreso
-            </span>
+            <span class="b b-activo" style="font-size:.71rem"><i class="bi bi-arrow-down-circle me-1"></i>Ingreso</span>
+          {% elif es_cc %}
+            <span class="b" style="font-size:.71rem;background:#FFF0B3;color:#172B4D;border:1px solid #FFE380"><i class="bi bi-wallet me-1"></i>Caja chica</span>
           {% else %}
-            {% if es_cc %}
-              <span class="b" style="font-size:.71rem;background:#FFF0B3;color:#172B4D;border:1px solid #FFE380">
-                <i class="bi bi-wallet me-1"></i>Caja chica
-              </span>
-            {% else %}
-              <span class="b b-alta" style="font-size:.71rem">
-                <i class="bi bi-arrow-up-circle me-1"></i>Egreso
-              </span>
-            {% endif %}
+            <span class="b b-alta" style="font-size:.71rem"><i class="bi bi-arrow-up-circle me-1"></i>Egreso</span>
           {% endif %}
         </td>
 
         <td>
-          <div style="font-size:.85rem">{{ a.descripcion[:50] }}{% if a.descripcion|length > 50 %}…{% endif %}</div>
-          {% if a.tipo not in ['manual'] %}
-          <small class="text-muted">{{ a.tipo.replace('_',' ').title() }}</small>
+          <div style="font-size:.85rem">{{ a.descripcion[:60] }}{% if a.descripcion|length > 60 %}...{% endif %}</div>
+          {% if a.orden_compra %}
+          <small class="text-primary"><i class="bi bi-cart me-1"></i>OC {{ a.orden_compra.numero or '' }}</small>
           {% endif %}
           {% if a.venta and es_ingreso %}
           <small class="text-muted"><i class="bi bi-bag me-1"></i>Venta {{ a.venta.numero or ('#' ~ a.venta.id) }}</small>
-          {% endif %}
-          {% if a.metodo_pago %}
-          <small class="text-muted ms-2"><i class="bi bi-credit-card me-1"></i>{{ a.metodo_pago.title() }}</small>
           {% endif %}
         </td>
 
         <td class="text-end">
           {% set monto = a.haber if es_ingreso else a.debe %}
           <span class="fw-bold" style="font-size:.9rem;color:{{ '#00875A' if es_ingreso else '#DE350B' }}">
-            ${{ '{:,.0f}'.format(monto or 0).replace(',','.') }}
+            {{ moneda(monto or 0) }}
           </span>
         </td>
 
         <td>
+          {% if a.estado_pago == 'completo' %}
+            <span class="badge bg-success">Pagado</span>
+          {% elif a.estado_pago == 'parcial' %}
+            <span class="badge bg-warning text-dark">Parcial</span>
+            {% if a.monto_pagado %}<br><small>{{ moneda(a.monto_pagado) }}</small>{% endif %}
+          {% else %}
+            <span class="badge bg-secondary">Pendiente</span>
+          {% endif %}
+        </td>
+
+        <td>
           <small class="text-muted">
-            {% if a.proveedor %}
-              <i class="bi bi-truck me-1"></i>{{ a.proveedor.nombre }}<br>
-            {% endif %}
+            {% if a.proveedor %}<i class="bi bi-truck me-1"></i>{{ a.proveedor.nombre }}<br>{% endif %}
             {% if a.referencia %}{{ a.referencia }}{% endif %}
-            {% if a.nro_transaccion %}
-              <br><i class="bi bi-hash me-1"></i>{{ a.nro_transaccion }}
-            {% endif %}
           </small>
         </td>
 
         <td class="text-center">
           <div class="d-flex gap-1 justify-content-center flex-wrap">
-            <a href="{{ url_for('contable_asiento_editar', id=a.id) }}"
-               class="btn btn-xs btn-outline-primary" title="Editar">
-              <i class="bi bi-pencil"></i>
-            </a>
-            <a href="{{ url_for('contable_comprobante', id=a.id) }}"
-               class="btn btn-xs btn-outline-secondary" title="Comprobante PDF" target="_blank">
-              <i class="bi bi-file-earmark-pdf"></i>
-            </a>
-            {% if not es_ingreso %}
-            <form method="POST" action="{{ url_for('contable_caja_chica', id=a.id) }}" style="display:inline">
-              <button type="submit" class="btn btn-xs {{ 'btn-warning' if es_cc else 'btn-outline-warning' }}"
-                      title="{{ 'Desmarcar caja chica' if es_cc else 'Marcar como caja chica' }}">
-                <i class="bi bi-wallet"></i>
-              </button>
-            </form>
+            {# -- Boton confirmar pago (egreso vinculado a OC) -- #}
+            {% if not es_ingreso and a.orden_compra_id and a.estado_pago != 'completo' %}
+            <button type="button" class="btn btn-xs btn-success" title="Confirmar pago"
+                    onclick="abrirModalPago({{ a.id }}, '{{ a.numero }}', {{ (a.debe or 0) }}, {{ (a.monto_pagado or 0) }}, 'egreso')">
+              <i class="bi bi-check-circle me-1"></i>Pago
+            </button>
+            {% endif %}
+            {# -- Boton confirmar ingreso (ingreso vinculado a venta) -- #}
+            {% if es_ingreso and a.venta_id and a.estado_pago != 'completo' %}
+            <button type="button" class="btn btn-xs btn-success" title="Confirmar cobro recibido"
+                    onclick="abrirModalPago({{ a.id }}, '{{ a.numero }}', {{ (a.haber or 0) }}, {{ (a.monto_pagado or 0) }}, 'ingreso')">
+              <i class="bi bi-check-circle me-1"></i>Cobro
+            </button>
+            {% endif %}
+            <a href="{{ url_for('contable_asiento_editar', id=a.id) }}" class="btn btn-xs btn-outline-primary" title="Editar"><i class="bi bi-pencil"></i></a>
+            <a href="{{ url_for('contable_comprobante', id=a.id) }}" class="btn btn-xs btn-outline-secondary" title="Comprobante" target="_blank"><i class="bi bi-file-earmark-pdf"></i></a>
+            {% if es_cc %}
+            <a href="{{ url_for('contable_pdf_caja_chica', id=a.id) }}" class="btn btn-xs btn-outline-warning" title="PDF Caja Chica" target="_blank"><i class="bi bi-printer"></i></a>
             {% endif %}
             {% if current_user.rol == 'admin' %}
-            <form method="POST" action="{{ url_for('contable_asiento_eliminar', id=a.id) }}"
-                  style="display:inline"
-                  onsubmit="return confirm('¿Eliminar asiento {{ a.numero }}?')">
-              <button type="submit" class="btn btn-xs btn-outline-danger" title="Eliminar">
-                <i class="bi bi-trash"></i>
-              </button>
+            <form method="POST" action="{{ url_for('contable_asiento_eliminar', id=a.id) }}" style="display:inline" onsubmit="return confirm('Eliminar asiento {{ a.numero }}?')">
+              <button type="submit" class="btn btn-xs btn-outline-danger" title="Eliminar"><i class="bi bi-trash"></i></button>
             </form>
             {% endif %}
           </div>
@@ -194,30 +199,98 @@
       </tr>
       {% endfor %}
     </tbody>
-    <tfoot>
-      <tr class="table-light fw-bold">
-        <td colspan="4" class="text-end" style="font-size:.83rem">Totales filtro actual</td>
-        <td class="text-end">
-          <div style="font-size:.83rem;color:#00875A">+${{ '{:,.0f}'.format(total_ingresos_list).replace(',','.') }}</div>
-          <div style="font-size:.83rem;color:#DE350B">−${{ '{:,.0f}'.format(total_egresos_list).replace(',','.') }}</div>
-        </td>
-        <td colspan="2"></td>
-      </tr>
-    </tfoot>
   </table>
   </div>
   {% else %}
   <div class="text-center text-muted py-5">
     <i class="bi bi-journal-x" style="font-size:2rem;display:block;margin-bottom:.5rem"></i>
-    Sin asientos registrados para este filtro.
+    Sin asientos para este filtro.
     <div class="mt-2">
-      <a href="{{ url_for('contable_asiento_nuevo') }}" class="btn btn-sm btn-primary">
-        <i class="bi bi-plus-lg me-1"></i>Crear primer asiento
-      </a>
+      <a href="{{ url_for('contable_asiento_nuevo') }}" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg me-1"></i>Crear asiento</a>
     </div>
   </div>
   {% endif %}
 </div>
+
+{# -- Modal confirmar pago -- #}
+<div class="modal fade" id="modalPago" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" id="formConfirmarPago">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalPagoTitle">Confirmar pago</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <div class="fw-semibold mb-1">Asiento: <span id="modalPagoNumero"></span></div>
+            <div class="text-muted small">Monto total: <span id="modalPagoTotal"></span> | Ya pagado: <span id="modalPagoYaPagado"></span></div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Tipo de pago</label>
+            <div class="d-flex gap-2">
+              <input type="radio" class="btn-check" name="tipo_pago" id="tipoParcial" value="parcial" checked onchange="toggleMontoPago()">
+              <label class="btn btn-outline-warning btn-sm" for="tipoParcial">Parcial (anticipo)</label>
+              <input type="radio" class="btn-check" name="tipo_pago" id="tipoTotal" value="total" onchange="toggleMontoPago()">
+              <label class="btn btn-outline-success btn-sm" for="tipoTotal">Pago total</label>
+            </div>
+          </div>
+          <div class="mb-3" id="secMontoPartial">
+            <label class="form-label fw-semibold">Monto a pagar</label>
+            <div class="input-group">
+              <span class="input-group-text">$</span>
+              <input type="number" name="monto_pago" id="montoPago" class="form-control" step="1" min="1" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Metodo de pago</label>
+            <select name="metodo_pago" class="form-select form-select-sm">
+              <option value="transferencia">Transferencia</option>
+              <option value="efectivo">Efectivo</option>
+              <option value="cheque">Cheque</option>
+              <option value="nequi">Nequi / Daviplata</option>
+              <option value="tarjeta">Tarjeta</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Referencia / N transaccion</label>
+            <input type="text" name="referencia_pago" class="form-control form-control-sm" placeholder="Opcional">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check-lg me-1"></i>Confirmar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function abrirModalPago(asientoId, numero, montoTotal, yaPagado, tipo) {
+  document.getElementById('modalPagoTitle').textContent = tipo === 'ingreso' ? 'Confirmar cobro recibido' : 'Confirmar pago';
+  document.getElementById('modalPagoNumero').textContent = numero;
+  document.getElementById('modalPagoTotal').textContent = '$ ' + Math.round(montoTotal).toLocaleString('es-CO');
+  document.getElementById('modalPagoYaPagado').textContent = '$ ' + Math.round(yaPagado).toLocaleString('es-CO');
+  var restante = montoTotal - yaPagado;
+  document.getElementById('montoPago').value = Math.round(restante);
+  document.getElementById('montoPago').max = restante;
+  var actionUrl = tipo === 'ingreso'
+    ? '/contable/asientos/' + asientoId + '/confirmar-ingreso'
+    : '/contable/asientos/' + asientoId + '/confirmar-pago';
+  document.getElementById('formConfirmarPago').action = actionUrl;
+  document.getElementById('tipoParcial').checked = true;
+  toggleMontoPago();
+  new bootstrap.Modal(document.getElementById('modalPago')).show();
+}
+
+function toggleMontoPago() {
+  var esTotal = document.getElementById('tipoTotal').checked;
+  document.getElementById('secMontoPartial').style.display = esTotal ? 'none' : '';
+  if (esTotal) document.getElementById('montoPago').removeAttribute('required');
+  else document.getElementById('montoPago').setAttribute('required', '');
+}
+</script>
 
 {% endblock %}
 

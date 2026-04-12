@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Comprobante Caja Chica — {{ asiento.numero }}</title>
+  <style>
+    @page { size: letter; margin: 2cm; }
+    @media print { body { margin: 0; } .no-print { display: none !important; } }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #333; line-height: 1.4; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
+    .header .empresa { font-size: 16px; font-weight: bold; }
+    .header .doc-info { text-align: right; }
+    .header .doc-info .numero { font-size: 18px; font-weight: bold; color: #d32f2f; }
+    table.datos { width: 100%; border-collapse: collapse; margin: 10px 0; }
+    table.datos td { padding: 6px 10px; border: 1px solid #ccc; vertical-align: top; }
+    table.datos td.label { background: #f5f5f5; font-weight: bold; width: 25%; }
+    .monto-box { background: #fff3e0; border: 2px solid #ff9800; border-radius: 8px; padding: 15px; text-align: center; margin: 15px 0; }
+    .monto-box .valor { font-size: 28px; font-weight: bold; color: #e65100; }
+    .firmas { display: flex; justify-content: space-between; margin-top: 50px; }
+    .firma-block { width: 40%; text-align: center; }
+    .firma-block .linea { border-top: 1px solid #333; margin-top: 40px; padding-top: 5px; }
+    .btn-print { position: fixed; top: 10px; right: 10px; background: #1976d2; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <button class="btn-print no-print" onclick="window.print()">Imprimir</button>
+
+  <div class="header">
+    <div>
+      <div class="empresa">{{ empresa.nombre if empresa else 'Empresa' }}</div>
+      {% if empresa and empresa.nit %}<div>NIT: {{ empresa.nit }}</div>{% endif %}
+      {% if empresa and empresa.direccion %}<div>{{ empresa.direccion }}</div>{% endif %}
+    </div>
+    <div class="doc-info">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#666">Comprobante de Caja Chica</div>
+      <div class="numero">{{ asiento.numero }}</div>
+      <div>Fecha: {{ asiento.fecha.strftime('%d/%m/%Y') if asiento.fecha else '--' }}</div>
+    </div>
+  </div>
+
+  <table class="datos">
+    <tr>
+      <td class="label">Concepto:</td>
+      <td colspan="3">{{ asiento.descripcion }}</td>
+    </tr>
+    <tr>
+      <td class="label">Beneficiario:</td>
+      <td>{{ asiento.beneficiario or asiento.tercero_nombre or '--' }}</td>
+      <td class="label">Metodo pago:</td>
+      <td>{{ (asiento.metodo_pago or 'efectivo')|title }}</td>
+    </tr>
+    <tr>
+      <td class="label">Referencia:</td>
+      <td>{{ asiento.referencia or asiento.nro_transaccion or '--' }}</td>
+      <td class="label">Fecha pago:</td>
+      <td>{{ asiento.fecha_pago.strftime('%d/%m/%Y') if asiento.fecha_pago else asiento.fecha.strftime('%d/%m/%Y') }}</td>
+    </tr>
+    {% if asiento.notas %}
+    <tr>
+      <td class="label">Observaciones:</td>
+      <td colspan="3">{{ asiento.notas }}</td>
+    </tr>
+    {% endif %}
+  </table>
+
+  <div class="monto-box">
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#666;margin-bottom:5px">Valor del gasto</div>
+    <div class="valor">$ {{ '{:,.0f}'.format(asiento.debe or 0).replace(',','.') }}</div>
+  </div>
+
+  <div class="firmas">
+    <div class="firma-block">
+      <div class="linea">Elaborado por</div>
+    </div>
+    <div class="firma-block">
+      <div class="linea">Autorizado por</div>
+    </div>
+  </div>
+</body>
+</html>

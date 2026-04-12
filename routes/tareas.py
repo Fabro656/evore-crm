@@ -163,15 +163,15 @@ def register(app):
             # Notificación al asignado (si no es quien la crea)
             if asignado_id != current_user.id:
                 _crear_notificacion(asignado_id, 'tarea_asignada',
-                    f'Nueva tarea asignada: {t.titulo}',
-                    f'Te asignó una tarea: {current_user.nombre}',
+                    f'Nuevo ticket asignado: {t.titulo}',
+                    f'Te asignó un ticket: {current_user.nombre}',
                     url_for('tarea_ver', id=t.id))
                 asignado = db.session.get(User, asignado_id)
                 if asignado and asignado.email:
-                    _send_email(asignado.email, f'Nueva tarea: {t.titulo}',
-                        f'Hola {asignado.nombre},\n\n{current_user.nombre} te asignó la tarea "{t.titulo}".\n\nDescripción: {t.descripcion or "—"}')
-            flash('Tarea creada.','success'); return redirect(url_for('tareas'))
-        return render_template('tareas/form.html', obj=None, usuarios=us, titulo='Nueva Tarea', asignados_ids=[])
+                    _send_email(asignado.email, f'Nuevo ticket: {t.titulo}',
+                        f'Hola {asignado.nombre},\n\n{current_user.nombre} te asignó el ticket "{t.titulo}".\n\nDescripción: {t.descripcion or "—"}')
+            flash('Ticket creado.','success'); return redirect(url_for('tareas'))
+        return render_template('tareas/form.html', obj=None, usuarios=us, titulo='Nuevo Ticket', asignados_ids=[])
     
 
     # ── tarea_ver (/tareas/<int:id>)
@@ -215,16 +215,16 @@ def register(app):
             # Notificar si cambió el asignado
             if obj.asignado_a != prev_asignado and obj.asignado_a != current_user.id:
                 _crear_notificacion(obj.asignado_a, 'tarea_asignada',
-                    f'Tarea reasignada: {obj.titulo}',
-                    f'{current_user.nombre} te reasignó esta tarea.',
+                    f'Ticket reasignado: {obj.titulo}',
+                    f'{current_user.nombre} te reasignó este ticket.',
                     url_for('tarea_ver', id=obj.id))
                 asignado = db.session.get(User, obj.asignado_a)
                 if asignado and asignado.email:
-                    _send_email(asignado.email, f'Tarea reasignada: {obj.titulo}',
-                        f'Hola {asignado.nombre},\n\n{current_user.nombre} te reasignó la tarea "{obj.titulo}".')
-            flash('Tarea actualizada.','success'); return redirect(url_for('tarea_ver', id=obj.id))
+                    _send_email(asignado.email, f'Ticket reasignado: {obj.titulo}',
+                        f'Hola {asignado.nombre},\n\n{current_user.nombre} te reasignó el ticket "{obj.titulo}".')
+            flash('Ticket actualizado.','success'); return redirect(url_for('tarea_ver', id=obj.id))
         asignados_ids=[a.user_id for a in obj.asignados]
-        return render_template('tareas/form.html', obj=obj, usuarios=us, titulo='Editar Tarea', asignados_ids=asignados_ids)
+        return render_template('tareas/form.html', obj=obj, usuarios=us, titulo='Editar Ticket', asignados_ids=asignados_ids)
     
 
     # ── tarea_completar (/tareas/<int:id>/completar)
@@ -275,7 +275,7 @@ def register(app):
                             url_for('cotizacion_ver', id=cot.id)
                         )
     
-        flash('¡Tarea completada!','success'); return redirect(url_for('tareas'))
+        flash('¡Ticket completado!','success'); return redirect(url_for('tareas'))
     
 
     # ── tarea_eliminar (/tareas/<int:id>/eliminar)
@@ -285,7 +285,7 @@ def register(app):
     def tarea_eliminar(id):
         obj = Tarea.query.get_or_404(id)
         if current_user.rol != 'admin' and obj.creado_por != current_user.id:
-            flash('Solo puedes eliminar tareas que tú creaste.', 'danger')
+            flash('Solo puedes eliminar tickets que tú creaste.', 'danger')
             return redirect(url_for('tareas'))
         try:
             # Clear self-referencing FK: other tareas that point to this one as "pareja"
@@ -296,9 +296,9 @@ def register(app):
             db.session.commit()
             _log('eliminar', 'tarea', id, 'Tarea eliminada')
             db.session.commit()
-            flash('Tarea eliminada.', 'info')
+            flash('Ticket eliminado.', 'info')
         except Exception as e:
             db.session.rollback()
-            flash('No se pudo eliminar la tarea. Intenta de nuevo.', 'danger')
+            flash('No se pudo eliminar el ticket. Intenta de nuevo.', 'danger')
         return redirect(url_for('tareas'))
     

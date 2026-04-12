@@ -1,62 +1,89 @@
 {% extends 'base.html' %}
-{% block title %}Compras{% endblock %}{% block page_title %}Compras de Materia Prima{% endblock %}
+{% block title %}Registro de Compras{% endblock %}{% block page_title %}Registro de Compras{% endblock %}
 {% block topbar_actions %}
-<a href="{{ url_for('compra_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva compra</a>
-<a href="{{ url_for('produccion_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Producción</a>
+<a href="{{ url_for('compra_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva compra manual</a>
+<a href="{{ url_for('produccion_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Produccion</a>
 {% endblock %}
 {% block content %}
 <div class="row g-3 mb-3">
-  <div class="col-md-3"><div class="sc"><div class="sv">$ {{ '{:,.0f}'.format(total_general).replace(',','.') }}</div><div class="sl">Total acumulado</div></div></div>
-  <div class="col-md-3"><div class="sc"><div class="sv">$ {{ '{:,.0f}'.format(total_mes).replace(',','.') }}</div><div class="sl">Este mes</div></div></div>
+  <div class="col-md-3"><div class="sc"><div class="sv">{{ moneda(total_general) }}</div><div class="sl">Total acumulado</div></div></div>
+  <div class="col-md-3"><div class="sc"><div class="sv">{{ moneda(total_mes) }}</div><div class="sl">Este mes</div></div></div>
 </div>
 <div class="tc"><div class="ch"><i class="bi bi-cart3 me-2"></i>{{ items|length }} compra(s)</div>
 {% if items %}<div class="table-responsive"><table class="table">
   <thead><tr>
-    <th>Ítem</th><th>Tipo</th><th>Proveedor</th><th>Fecha</th><th># Factura</th>
-    <th class="text-end">Cantidad</th><th class="text-end">P. Unitario</th>
-    <th class="text-end">Total</th><th>Vinculado a</th><th></th>
+    <th>Item</th><th>Tipo</th><th>Proveedor</th><th>Fecha</th><th>OC</th>
+    <th class="text-end">Cantidad</th><th class="text-end">Total</th>
+    <th>Estado recepcion</th><th></th>
   </tr></thead>
   <tbody>{% for c in items %}<tr>
     <td class="fw-semibold" style="color:var(--text)">{{ c.nombre_item }}</td>
     <td>
-      {% if c.tipo_compra == 'materia_prima' %}<span class="badge bg-success-subtle text-success border border-success-subtle">Materia prima</span>
-      {% elif c.tipo_compra == 'producto_terminado' %}<span class="badge bg-primary-subtle text-primary border border-primary-subtle">Producto</span>
+      {% if c.tipo_compra == 'materia_prima' %}<span class="badge bg-success-subtle text-success border border-success-subtle">MP</span>
       {% elif c.tipo_compra == 'insumo' %}<span class="badge bg-secondary-subtle text-secondary border">Insumo</span>
-      {% else %}<span class="badge bg-light text-dark border">{{ c.tipo_compra or '—' }}</span>{% endif %}
+      {% else %}<span class="badge bg-light text-dark border">{{ c.tipo_compra or '--' }}</span>{% endif %}
     </td>
-    <td>{{ c.proveedor or '—' }}</td>
+    <td>{{ c.proveedor or '--' }}</td>
     <td><small>{{ c.fecha.strftime('%d/%m/%Y') }}</small></td>
-    <td><small class="text-muted">{{ c.nro_factura or '—' }}</small></td>
-    <td class="text-end">{{ c.cantidad }} <small class="text-muted">{{ c.unidad or '' }}</small></td>
-    <td class="text-end">$ {{ '{:,.0f}'.format(c.precio_unitario).replace(',','.') }}</td>
-    <td class="text-end fw-semibold">$ {{ '{:,.0f}'.format(c.costo_total).replace(',','.') }}</td>
     <td>
-      {% if c.materia %}
-        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
-          <i class="bi bi-flask me-1"></i>{{ c.materia.nombre }}
-        </span>
-      {% elif c.producto %}
-        <span class="badge bg-light text-dark border">{{ c.producto.nombre }}</span>
+      {% if c.orden_compra %}
+        <a href="{{ url_for('ordenes_compra') }}" class="text-primary small">
+          <i class="bi bi-cart me-1"></i>{{ c.orden_compra.numero or '--' }}
+        </a>
+        <br><small class="text-muted">Pago:
+          {% if c.orden_compra.estado in ('en_espera_producto', 'pagado', 'recibida', 'recibida_parcial') %}
+            <span class="text-success">Pagado</span>
+          {% elif c.orden_compra.estado == 'anticipo_pagado' %}
+            <span class="text-warning">Anticipo</span>
+          {% else %}
+            <span class="text-muted">Pendiente</span>
+          {% endif %}
+        </small>
       {% else %}
-        <span class="text-muted" style="font-size:.78rem">—</span>
+        <span class="text-muted">Manual</span>
+      {% endif %}
+    </td>
+    <td class="text-end">{{ c.cantidad }} <small class="text-muted">{{ c.unidad or '' }}</small></td>
+    <td class="text-end fw-semibold">{{ moneda(c.costo_total) }}</td>
+    <td>
+      {% if c.estado_recepcion == 'recibido' %}
+        <span class="badge bg-success">Recibido</span>
+      {% elif c.estado_recepcion == 'parcial' %}
+        <span class="badge bg-warning text-dark">Parcial</span>
+        {% if c.cantidad_recibida %}<br><small>{{ c.cantidad_recibida }}/{{ c.cantidad }}</small>{% endif %}
+      {% elif c.estado_recepcion == 'devuelto' %}
+        <span class="badge bg-danger">Devuelto</span>
+      {% else %}
+        <span class="badge bg-secondary">Solicitado</span>
       {% endif %}
     </td>
     <td>
       <div class="d-flex gap-1 flex-wrap">
-        <a href="{{ url_for('compra_editar', id=c.id) }}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
-        {# Botón ingresar a stock MP — disponible si no está ya vinculada a materia prima #}
-        {% if c.tipo_compra != 'materia_prima' or not c.materia_id %}
-        <button type="button" class="btn btn-sm btn-outline-success" title="Ingresar al stock de Materias Primas"
-          data-bs-toggle="modal" data-bs-target="#modalIngresarMP"
-          data-compra-id="{{ c.id }}"
-          data-compra-nombre="{{ c.nombre_item }}"
-          data-compra-cant="{{ c.cantidad }}"
-          data-compra-unidad="{{ c.unidad or 'unidades' }}"
-          onclick="prepIngresarMP(this)">
-          <i class="bi bi-box-arrow-in-down me-1"></i>→ MP
+        {# Recibir material #}
+        {% if c.estado_recepcion in ('solicitado', 'parcial') %}
+        <button type="button" class="btn btn-sm btn-outline-success" title="Registrar recepcion"
+          onclick="abrirModalRecibir({{ c.id }}, '{{ c.nombre_item }}', {{ c.cantidad }}, {{ c.cantidad_recibida or 0 }})">
+          <i class="bi bi-box-arrow-in-down me-1"></i>Recibir
         </button>
         {% endif %}
-        <form method="POST" action="{{ url_for('compra_eliminar', id=c.id) }}" onsubmit="return confirm('¿Eliminar?')" class="d-inline">
+        {# Problema de calidad #}
+        {% if c.estado_recepcion in ('solicitado', 'parcial') and c.orden_compra_id %}
+        <button type="button" class="btn btn-sm btn-outline-danger" title="Reportar problema de calidad"
+          onclick="abrirModalCalidad({{ c.id }}, '{{ c.nombre_item }}', {{ c.orden_compra_id or 0 }})">
+          <i class="bi bi-exclamation-triangle"></i>
+        </button>
+        {% endif %}
+        <a href="{{ url_for('compra_editar', id=c.id) }}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
+        {% if c.tipo_compra != 'materia_prima' or not c.materia_id %}
+        <button type="button" class="btn btn-sm btn-outline-success" title="Ingresar al stock MP"
+          data-bs-toggle="modal" data-bs-target="#modalIngresarMP"
+          data-compra-id="{{ c.id }}" data-compra-nombre="{{ c.nombre_item }}"
+          data-compra-cant="{{ c.cantidad }}" data-compra-unidad="{{ c.unidad or 'unidades' }}"
+          onclick="prepIngresarMP(this)">
+          <i class="bi bi-flask"></i>
+        </button>
+        {% endif %}
+        <form method="POST" action="{{ url_for('compra_eliminar', id=c.id) }}" onsubmit="return confirm('Eliminar?')" class="d-inline">
           <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
         </form>
       </div>
@@ -64,10 +91,79 @@
   </tr>{% endfor %}</tbody>
 </table></div>
 {% else %}<div class="text-center text-muted py-5"><i class="bi bi-cart3" style="font-size:3rem"></i>
-  <p class="mt-3">Sin compras.</p><a href="{{ url_for('compra_nueva') }}" class="btn btn-primary">Registrar primera</a></div>
+  <p class="mt-3">Sin compras registradas.</p></div>
 {% endif %}</div>
 
-<!-- Modal: Ingresar a stock de Materias Primas -->
+{# -- Modal Recibir material -- #}
+<div class="modal fade" id="modalRecibir" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" id="formRecibir">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-box-arrow-in-down text-success me-2"></i>Registrar recepcion</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-2"><strong id="recibirNombre"></strong></div>
+          <div class="text-muted small mb-3">Pedido: <span id="recibirCantTotal"></span> | Ya recibido: <span id="recibirCantYa"></span></div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Tipo de recepcion</label>
+            <div class="d-flex gap-2">
+              <input type="radio" class="btn-check" name="tipo_recepcion" id="recTotal" value="total" checked onchange="toggleRecibirCant()">
+              <label class="btn btn-outline-success btn-sm" for="recTotal">Recepcion total</label>
+              <input type="radio" class="btn-check" name="tipo_recepcion" id="recParcial" value="parcial" onchange="toggleRecibirCant()">
+              <label class="btn btn-outline-warning btn-sm" for="recParcial">Parcial</label>
+            </div>
+          </div>
+          <div class="mb-3" id="secCantParcial" style="display:none">
+            <label class="form-label fw-semibold">Cantidad recibida</label>
+            <input type="number" name="cantidad_recibida" id="recibirCant" class="form-control" step="0.001" min="0.001">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check-lg me-1"></i>Confirmar recepcion</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# -- Modal Problema de calidad -- #}
+<div class="modal fade" id="modalCalidad" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" id="formCalidad">
+        <div class="modal-header">
+          <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Reportar problema de calidad</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-2"><strong id="calidadNombre"></strong></div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Descripcion del problema</label>
+            <textarea name="descripcion_problema" class="form-control" rows="3" required placeholder="Describe el problema de calidad encontrado..."></textarea>
+          </div>
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" name="requiere_cambio" id="requiereCambio" value="1">
+            <label class="form-check-label" for="requiereCambio">
+              La materia prima necesita ser reemplazada (afecta produccion)
+            </label>
+          </div>
+          <div class="alert alert-warning py-2" style="font-size:.82rem">
+            <i class="bi bi-info-circle me-1"></i>Se crearan tickets automaticos para el encargado de compras y, si aplica, para el vendedor de la venta vinculada.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-exclamation-triangle me-1"></i>Reportar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# -- Modal Ingresar a MP (legacy) -- #}
 <div class="modal fade" id="modalIngresarMP" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -78,30 +174,23 @@
         </div>
         <div class="modal-body">
           <div class="alert alert-info py-2 mb-3" style="font-size:.83rem">
-            <strong id="mpNombreCompra"></strong> — se registrará como entrada de stock en la materia prima seleccionada.
+            <strong id="mpNombreCompra"></strong> -- se registrara como entrada de stock.
           </div>
           <div class="mb-3">
             <label class="form-label fw-semibold">Materia prima destino *</label>
             <select name="materia_id" class="form-select" required>
-              <option value="">— Seleccionar —</option>
-              {% for m in materias %}
-              <option value="{{ m.id }}">{{ m.nombre }} ({{ m.unidad }}) — Stock actual: {{ '%.2f'|format(m.stock_disponible) }}</option>
-              {% endfor %}
+              <option value="">-- Seleccionar --</option>
+              {% for m in materias %}<option value="{{ m.id }}">{{ m.nombre }} ({{ m.unidad }}) -- Stock: {{ '%.2f'|format(m.stock_disponible) }}</option>{% endfor %}
             </select>
           </div>
           <div class="mb-3">
-            <label class="form-label fw-semibold">Cantidad a ingresar *</label>
-            <input type="number" name="cantidad_ingresar" id="mpCantIngresar"
-                   class="form-control" step="0.001" min="0.001" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">N° Lote (opcional)</label>
-            <input type="text" name="nro_lote" class="form-control" placeholder="Ej: LOT-2026-001">
+            <label class="form-label fw-semibold">Cantidad *</label>
+            <input type="number" name="cantidad_ingresar" id="mpCantIngresar" class="form-control" step="0.001" min="0.001" required>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn btn-success"><i class="bi bi-check-lg me-1"></i>Ingresar a stock</button>
+          <button type="submit" class="btn btn-success"><i class="bi bi-check-lg me-1"></i>Ingresar</button>
         </div>
       </form>
     </div>
@@ -113,6 +202,28 @@ function prepIngresarMP(btn){
   document.getElementById('mpNombreCompra').textContent = btn.dataset.compraNombre;
   document.getElementById('mpCantIngresar').value = btn.dataset.compraCant;
   document.getElementById('formIngresarMP').action = '/produccion/compras/' + btn.dataset.compraId + '/ingresar_mp';
+}
+
+function abrirModalRecibir(compraId, nombre, cantTotal, cantYa) {
+  document.getElementById('recibirNombre').textContent = nombre;
+  document.getElementById('recibirCantTotal').textContent = cantTotal;
+  document.getElementById('recibirCantYa').textContent = cantYa;
+  document.getElementById('recibirCant').value = cantTotal - cantYa;
+  document.getElementById('formRecibir').action = '/produccion/compras/' + compraId + '/recibir';
+  document.getElementById('recTotal').checked = true;
+  toggleRecibirCant();
+  new bootstrap.Modal(document.getElementById('modalRecibir')).show();
+}
+
+function toggleRecibirCant() {
+  var esParcial = document.getElementById('recParcial').checked;
+  document.getElementById('secCantParcial').style.display = esParcial ? '' : 'none';
+}
+
+function abrirModalCalidad(compraId, nombre, ocId) {
+  document.getElementById('calidadNombre').textContent = nombre;
+  document.getElementById('formCalidad').action = '/produccion/compras/' + compraId + '/problema-calidad';
+  new bootstrap.Modal(document.getElementById('modalCalidad')).show();
 }
 </script>{% endblock %}
 {% endblock %}

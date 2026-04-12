@@ -74,7 +74,7 @@ class OrdenCompra(db.Model):
     proveedor_id            = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
     cotizacion_id           = db.Column(db.Integer, db.ForeignKey('cotizaciones_proveedor.id'), nullable=True)
     transportista_id        = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
-    estado                  = db.Column(db.String(30), default='borrador')  # borrador, enviada, recibida, cancelada
+    estado                  = db.Column(db.String(30), default='borrador')  # borrador, anticipo_pagado, pagado, en_espera_producto, recibida_parcial, recibida, cancelada
     fecha_emision           = db.Column(db.Date)
     fecha_esperada          = db.Column(db.Date)   # fecha entrega esperada (calculada desde cotización)
     fecha_estimada_pago     = db.Column(db.Date)   # fecha estimada de pago al proveedor
@@ -89,6 +89,13 @@ class OrdenCompra(db.Model):
     confirmado_en           = db.Column(db.DateTime, nullable=True)
     confirmado_por          = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     es_demo                 = db.Column(db.Boolean, default=False)
+    fecha_anticipo_real     = db.Column(db.Date, nullable=True)  # v30
+    # v36 — nuevos campos flujo OC ↔ contable
+    monto_pagado            = db.Column(db.Float, default=0)  # acumulado de pagos confirmados
+    estado_recepcion        = db.Column(db.String(30), default='pendiente')  # pendiente, parcial, recibida
+    cantidad_recibida       = db.Column(db.Float, default=0)
+    tiene_problema_calidad  = db.Column(db.Boolean, default=False)
+    venta_origen_id         = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=True)
     proveedor               = db.relationship('Proveedor', foreign_keys=[proveedor_id])
     transportista           = db.relationship('Proveedor', foreign_keys=[transportista_id])
     cotizacion_ref          = db.relationship('CotizacionProveedor', foreign_keys=[cotizacion_id])
@@ -156,6 +163,7 @@ class Venta(db.Model):
     monto_anticipo      = db.Column(db.Float, default=0)
     saldo               = db.Column(db.Float, default=0)
     monto_pagado_total  = db.Column(db.Float, default=0)
+    monto_anticipo_recibido = db.Column(db.Float, default=0)  # v36 — real recibido via asiento contable
     estado              = db.Column(db.String(30), default='prospecto')
     fecha_anticipo      = db.Column(db.Date)
     dias_entrega        = db.Column(db.Integer, default=30)
@@ -234,6 +242,10 @@ class Tarea(db.Model):
     tarea_tipo        = db.Column(db.String(50), nullable=True)   # comprar_materias, verificar_abono
     tarea_pareja_id   = db.Column(db.Integer, db.ForeignKey('tareas.id'), nullable=True)
     es_demo           = db.Column(db.Boolean, default=False)
+    # v36 — vincular tickets a entidades
+    orden_compra_id   = db.Column(db.Integer, db.ForeignKey('ordenes_compra.id'), nullable=True)
+    venta_id          = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=True)
+    categoria         = db.Column(db.String(50), nullable=True)  # calidad, logistica, pago, general
     asignado_user     = db.relationship('User', foreign_keys=[asignado_a], backref='tareas_asignadas')
     creador           = db.relationship('User', foreign_keys=[creado_por])
     asignados         = db.relationship('TareaAsignado', backref='tarea', lazy=True, cascade='all, delete-orphan')
@@ -321,9 +333,15 @@ class CompraMateria(db.Model):
     creado_por      = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
     es_demo         = db.Column(db.Boolean, default=False)
+    # v36 — vincular a OC y recepcion
+    orden_compra_id      = db.Column(db.Integer, db.ForeignKey('ordenes_compra.id'), nullable=True)
+    orden_compra_item_id = db.Column(db.Integer, db.ForeignKey('ordenes_compra_items.id'), nullable=True)
+    estado_recepcion     = db.Column(db.String(30), default='solicitado')  # solicitado, recibido, parcial, devuelto
+    cantidad_recibida    = db.Column(db.Float, default=0)
     producto        = db.relationship('Producto', foreign_keys=[producto_id])
     materia         = db.relationship('MateriaPrima', foreign_keys=[materia_id])
     proveedor_rel   = db.relationship('Proveedor', foreign_keys=[proveedor_id])
+    orden_compra    = db.relationship('OrdenCompra', foreign_keys=[orden_compra_id])
 
 class CotizacionProveedor(db.Model):
     __tablename__ = 'cotizaciones_proveedor'
@@ -448,6 +466,9 @@ class AsientoContable(db.Model):
     fecha_pago       = db.Column(db.Date, nullable=True)
     creado_por       = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en        = db.Column(db.DateTime, default=datetime.utcnow)
+    # v36 — estado de pago para flujo OC/ventas
+    estado_pago      = db.Column(db.String(20), default='pendiente')  # pendiente, parcial, completo
+    monto_pagado     = db.Column(db.Float, default=0)  # para pagos parciales
     venta            = db.relationship('Venta', foreign_keys=[venta_id])
     orden_compra     = db.relationship('OrdenCompra', foreign_keys=[orden_compra_id])
     proveedor        = db.relationship('Proveedor', foreign_keys=[proveedor_id])
@@ -508,9 +529,19 @@ class Nota(db.Model):
     creado_en      = db.Column(db.DateTime, default=datetime.utcnow)
     actualizado_en = db.Column(db.DateTime, default=datetime.utcnow)
     es_demo        = db.Column(db.Boolean, default=False)
+    # v36 — notas vinculadas a entidades + tipos
+    orden_compra_id = db.Column(db.Integer, db.ForeignKey('ordenes_compra.id'), nullable=True)
+    venta_id        = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=True)
+    proveedor_id    = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
+    tipo_nota       = db.Column(db.String(30), default='nota')   # nota, alerta, seguimiento, resolucion
+    estado_nota     = db.Column(db.String(20), default='abierta')  # abierta, resuelta
+    prioridad       = db.Column(db.String(10), default='normal')   # baja, normal, alta
     cliente        = db.relationship('Cliente', foreign_keys=[cliente_id])
     producto       = db.relationship('Producto', foreign_keys=[producto_id])
     autor          = db.relationship('User', foreign_keys=[creado_por])
+    orden_compra   = db.relationship('OrdenCompra', foreign_keys=[orden_compra_id])
+    venta_ref      = db.relationship('Venta', foreign_keys=[venta_id])
+    proveedor_rel  = db.relationship('Proveedor', foreign_keys=[proveedor_id])
 
 class Actividad(db.Model):
     __tablename__ = 'actividades'
@@ -1169,6 +1200,54 @@ def _migrate(conn):
         ("ALTER TABLE compras_materia ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
         ("ALTER TABLE contactos_cliente ADD COLUMN IF NOT EXISTS es_demo BOOLEAN DEFAULT FALSE"),
         ("ALTER TABLE contactos_cliente ADD COLUMN es_demo BOOLEAN DEFAULT FALSE"),
+        # v36 — OrdenCompra: campos flujo OC ↔ contable
+        ("ALTER TABLE ordenes_compra ADD COLUMN IF NOT EXISTS monto_pagado FLOAT DEFAULT 0"),
+        ("ALTER TABLE ordenes_compra ADD COLUMN monto_pagado FLOAT DEFAULT 0"),
+        ("ALTER TABLE ordenes_compra ADD COLUMN IF NOT EXISTS estado_recepcion VARCHAR(30) DEFAULT 'pendiente'"),
+        ("ALTER TABLE ordenes_compra ADD COLUMN estado_recepcion VARCHAR(30) DEFAULT 'pendiente'"),
+        ("ALTER TABLE ordenes_compra ADD COLUMN IF NOT EXISTS cantidad_recibida FLOAT DEFAULT 0"),
+        ("ALTER TABLE ordenes_compra ADD COLUMN cantidad_recibida FLOAT DEFAULT 0"),
+        ("ALTER TABLE ordenes_compra ADD COLUMN IF NOT EXISTS tiene_problema_calidad BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE ordenes_compra ADD COLUMN tiene_problema_calidad BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE ordenes_compra ADD COLUMN IF NOT EXISTS venta_origen_id INTEGER REFERENCES ventas(id)"),
+        ("ALTER TABLE ordenes_compra ADD COLUMN venta_origen_id INTEGER REFERENCES ventas(id)"),
+        # v36 — CompraMateria: vincular a OC y recepcion
+        ("ALTER TABLE compras_materia ADD COLUMN IF NOT EXISTS orden_compra_id INTEGER REFERENCES ordenes_compra(id)"),
+        ("ALTER TABLE compras_materia ADD COLUMN orden_compra_id INTEGER REFERENCES ordenes_compra(id)"),
+        ("ALTER TABLE compras_materia ADD COLUMN IF NOT EXISTS orden_compra_item_id INTEGER REFERENCES ordenes_compra_items(id)"),
+        ("ALTER TABLE compras_materia ADD COLUMN orden_compra_item_id INTEGER REFERENCES ordenes_compra_items(id)"),
+        ("ALTER TABLE compras_materia ADD COLUMN IF NOT EXISTS estado_recepcion VARCHAR(30) DEFAULT 'solicitado'"),
+        ("ALTER TABLE compras_materia ADD COLUMN estado_recepcion VARCHAR(30) DEFAULT 'solicitado'"),
+        ("ALTER TABLE compras_materia ADD COLUMN IF NOT EXISTS cantidad_recibida FLOAT DEFAULT 0"),
+        ("ALTER TABLE compras_materia ADD COLUMN cantidad_recibida FLOAT DEFAULT 0"),
+        # v36 — AsientoContable: estado de pago
+        ("ALTER TABLE asientos_contables ADD COLUMN IF NOT EXISTS estado_pago VARCHAR(20) DEFAULT 'pendiente'"),
+        ("ALTER TABLE asientos_contables ADD COLUMN estado_pago VARCHAR(20) DEFAULT 'pendiente'"),
+        ("ALTER TABLE asientos_contables ADD COLUMN IF NOT EXISTS monto_pagado FLOAT DEFAULT 0"),
+        ("ALTER TABLE asientos_contables ADD COLUMN monto_pagado FLOAT DEFAULT 0"),
+        # v36 — Venta: monto anticipo recibido real
+        ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS monto_anticipo_recibido FLOAT DEFAULT 0"),
+        ("ALTER TABLE ventas ADD COLUMN monto_anticipo_recibido FLOAT DEFAULT 0"),
+        # v36 — Tarea: vincular a OC/venta + categoria
+        ("ALTER TABLE tareas ADD COLUMN IF NOT EXISTS orden_compra_id INTEGER REFERENCES ordenes_compra(id)"),
+        ("ALTER TABLE tareas ADD COLUMN orden_compra_id INTEGER REFERENCES ordenes_compra(id)"),
+        ("ALTER TABLE tareas ADD COLUMN IF NOT EXISTS venta_id INTEGER REFERENCES ventas(id)"),
+        ("ALTER TABLE tareas ADD COLUMN venta_id INTEGER REFERENCES ventas(id)"),
+        ("ALTER TABLE tareas ADD COLUMN IF NOT EXISTS categoria VARCHAR(50)"),
+        ("ALTER TABLE tareas ADD COLUMN categoria VARCHAR(50)"),
+        # v36 — Nota: vincular a entidades + tipos
+        ("ALTER TABLE notas ADD COLUMN IF NOT EXISTS orden_compra_id INTEGER REFERENCES ordenes_compra(id)"),
+        ("ALTER TABLE notas ADD COLUMN orden_compra_id INTEGER REFERENCES ordenes_compra(id)"),
+        ("ALTER TABLE notas ADD COLUMN IF NOT EXISTS venta_id INTEGER REFERENCES ventas(id)"),
+        ("ALTER TABLE notas ADD COLUMN venta_id INTEGER REFERENCES ventas(id)"),
+        ("ALTER TABLE notas ADD COLUMN IF NOT EXISTS proveedor_id INTEGER REFERENCES proveedores(id)"),
+        ("ALTER TABLE notas ADD COLUMN proveedor_id INTEGER REFERENCES proveedores(id)"),
+        ("ALTER TABLE notas ADD COLUMN IF NOT EXISTS tipo_nota VARCHAR(30) DEFAULT 'nota'"),
+        ("ALTER TABLE notas ADD COLUMN tipo_nota VARCHAR(30) DEFAULT 'nota'"),
+        ("ALTER TABLE notas ADD COLUMN IF NOT EXISTS estado_nota VARCHAR(20) DEFAULT 'abierta'"),
+        ("ALTER TABLE notas ADD COLUMN estado_nota VARCHAR(20) DEFAULT 'abierta'"),
+        ("ALTER TABLE notas ADD COLUMN IF NOT EXISTS prioridad VARCHAR(10) DEFAULT 'normal'"),
+        ("ALTER TABLE notas ADD COLUMN prioridad VARCHAR(10) DEFAULT 'normal'"),
     ]
     for sql in migrations:
         try:

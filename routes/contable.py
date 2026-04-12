@@ -1,13 +1,11 @@
 # routes/contable.py — BLOQUE 5: Contabilidad Completa (v31)
-from flask import render_template, redirect, url_for, flash, request, \
-                  jsonify, send_file, make_response, current_app
-from flask import session as flask_session
-from flask_login import login_required, current_user, login_user, logout_user
+from flask import render_template, redirect, url_for, flash, request, jsonify
+from flask_login import login_required, current_user
 from extensions import db
 from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
-import json, os, re, io, secrets, logging
+import logging
 
 def register(app):
 
@@ -120,7 +118,7 @@ def register(app):
             ventas_mes=ventas_mes, gastos_mes=gastos_mes, compras_mes=compras_mes,
             cxc=cxc)
 
-    # ── contable_asientos: Lista todos los asientos manuales (/contable/asientos)
+    # ── contable_asientos: Lista todos los asientos contables (/contable/asientos)
     @app.route('/contable/asientos')
     @login_required
     @requiere_modulo('finanzas')
@@ -128,6 +126,7 @@ def register(app):
         filtro = request.args.get('filtro', 'todos')
         desde  = request.args.get('desde', '')
         hasta  = request.args.get('hasta', '')
+        vista  = request.args.get('vista', 'generados')  # generados | manuales
 
         q = AsientoContable.query
 
@@ -153,8 +152,15 @@ def register(app):
 
         asientos = q.order_by(AsientoContable.fecha.desc(), AsientoContable.creado_en.desc()).all()
 
-        total_ingresos_list = sum(float(a.haber or 0) for a in asientos if a.clasificacion == 'ingreso')
-        total_egresos_list  = sum(float(a.debe or 0)  for a in asientos if a.clasificacion == 'egreso')
+        # Dividir en generados y manuales
+        TIPOS_GENERADOS = {'compra', 'venta', 'nomina', 'gasto'}
+        if vista == 'manuales':
+            asientos_filtrados = [a for a in asientos if a.tipo not in TIPOS_GENERADOS]
+        else:
+            asientos_filtrados = [a for a in asientos if a.tipo in TIPOS_GENERADOS]
+
+        total_ingresos_list = sum(float(a.haber or 0) for a in asientos_filtrados if a.clasificacion == 'ingreso')
+        total_egresos_list  = sum(float(a.debe or 0)  for a in asientos_filtrados if a.clasificacion == 'egreso')
 
         # Stats del mes actual
         mes_ini = date_type.today().replace(day=1)
@@ -163,7 +169,8 @@ def register(app):
         gastos_mes   = sum(float(a.debe or 0)  for a in asientos_mes if a.clasificacion == 'egreso')
 
         return render_template('contable/asientos.html',
-            asientos=asientos, filtro=filtro, desde=desde, hasta=hasta,
+            asientos=asientos, asientos_filtrados=asientos_filtrados,
+            filtro=filtro, desde=desde, hasta=hasta, vista=vista,
             total_ingresos_list=total_ingresos_list,
             total_egresos_list=total_egresos_list,
             ingresos_mes=ingresos_mes, gastos_mes=gastos_mes,
@@ -195,8 +202,10 @@ def register(app):
             # FK opcionales
             venta_id_raw       = request.form.get('venta_id', '')
             proveedor_id_raw   = request.form.get('proveedor_id', '')
+            oc_id_raw          = request.form.get('orden_compra_id', '')
             venta_id           = int(venta_id_raw) if venta_id_raw.isdigit() else None
             proveedor_id       = int(proveedor_id_raw) if proveedor_id_raw.isdigit() else None
+            orden_compra_id    = int(oc_id_raw) if oc_id_raw.isdigit() else None
 
             # Campos de pago
             nro_transaccion = request.form.get('nro_transaccion', '') or None
@@ -221,6 +230,7 @@ def register(app):
                 debe=debe, haber=haber,
                 clasificacion=clasificacion,
                 venta_id=venta_id, proveedor_id=proveedor_id,
+                orden_compra_id=orden_compra_id,
                 nro_transaccion=nro_transaccion, banco_nombre=banco_nombre,
                 banco_cuenta=banco_cuenta, beneficiario=beneficiario,
                 metodo_pago=metodo_pago, fecha_pago=fecha_pago,
@@ -233,9 +243,11 @@ def register(app):
 
         ventas     = Venta.query.order_by(Venta.creado_en.desc()).limit(100).all()
         proveedores = Proveedor.query.filter_by(activo=True).order_by(Proveedor.nombre).all() if hasattr(Proveedor, 'activo') else Proveedor.query.order_by(Proveedor.nombre).all()
+        ordenes_compra = OrdenCompra.query.filter(OrdenCompra.estado != 'cancelada').order_by(OrdenCompra.creado_en.desc()).limit(50).all()
         return render_template('contable/asiento_form.html',
             obj=None, ventas=ventas, proveedores=proveedores,
-            titulo='Nuevo asiento manual',
+            ordenes_compra=ordenes_compra,
+            titulo='Nuevo asiento contable',
             hoy=date_type.today().isoformat(),
             clasificacion_default=request.args.get('clasificacion', 'egreso'))
 
@@ -301,8 +313,10 @@ def register(app):
 
         ventas     = Venta.query.order_by(Venta.creado_en.desc()).limit(100).all()
         proveedores = Proveedor.query.order_by(Proveedor.nombre).all()
+        ordenes_compra = OrdenCompra.query.filter(OrdenCompra.estado != 'cancelada').order_by(OrdenCompra.creado_en.desc()).limit(50).all()
         return render_template('contable/asiento_form.html',
             obj=asiento, ventas=ventas, proveedores=proveedores,
+            ordenes_compra=ordenes_compra,
             titulo=f'Editar asiento {asiento.numero}',
             hoy=date_type.today().isoformat(),
             clasificacion_default=asiento.clasificacion or 'egreso')
@@ -337,6 +351,120 @@ def register(app):
         db.session.commit()
         flash(f'Asiento {numero} eliminado.', 'info')
         return redirect(url_for('contable_asientos'))
+
+    # ── Helper: procesar pago/cobro en asiento contable
+    def _procesar_pago_asiento(asiento, campo_total):
+        """
+        Procesa la logica comun de confirmar pago/cobro.
+        campo_total: 'debe' para egresos, 'haber' para ingresos.
+        Retorna (monto_aplicado, error_msg) — si error_msg no es None, abortar.
+        """
+        tipo_pago = request.form.get('tipo_pago', 'parcial')
+        monto = float(request.form.get('monto_pago') or 0)
+        metodo = request.form.get('metodo_pago', '')
+        ref = request.form.get('referencia_pago', '')
+
+        total_asiento = float(getattr(asiento, campo_total) or 0)
+        ya_pagado = float(asiento.monto_pagado or 0)
+        restante = total_asiento - ya_pagado
+
+        if tipo_pago == 'total':
+            monto = restante
+
+        if monto <= 0:
+            return 0, 'El monto debe ser mayor a cero.'
+        if monto > restante:
+            monto = restante
+
+        asiento.monto_pagado = ya_pagado + monto
+        asiento.metodo_pago = metodo or asiento.metodo_pago
+        asiento.nro_transaccion = ref or asiento.nro_transaccion
+        asiento.fecha_pago = date_type.today()
+
+        if asiento.monto_pagado >= total_asiento:
+            asiento.estado_pago = 'completo'
+        else:
+            asiento.estado_pago = 'parcial'
+
+        return monto, None
+
+    # ── confirmar_pago: Confirmar pago de egreso vinculado a OC (/contable/asientos/<id>/confirmar-pago)
+    @app.route('/contable/asientos/<int:id>/confirmar-pago', methods=['POST'])
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_confirmar_pago(id):
+        asiento = AsientoContable.query.get_or_404(id)
+        if asiento.estado_pago == 'completo':
+            flash('Este asiento ya esta completamente pagado.', 'warning')
+            return redirect(url_for('contable_asientos', vista='generados'))
+
+        monto, error = _procesar_pago_asiento(asiento, 'debe')
+        if error:
+            flash(error, 'warning')
+            return redirect(url_for('contable_asientos', vista='generados'))
+
+        # Actualizar OC vinculada
+        if asiento.orden_compra_id:
+            oc = db.session.get(OrdenCompra, asiento.orden_compra_id)
+            if oc:
+                oc.monto_pagado = float(oc.monto_pagado or 0) + monto
+                if asiento.estado_pago == 'completo':
+                    oc.estado = 'en_espera_producto'
+                else:
+                    oc.estado = 'anticipo_pagado'
+
+        db.session.commit()
+        flash(f'Pago de {moneda(monto)} confirmado para asiento {asiento.numero}.', 'success')
+        return redirect(url_for('contable_asientos', vista='generados'))
+
+
+    # ── confirmar_ingreso: Confirmar cobro recibido vinculado a venta (/contable/asientos/<id>/confirmar-ingreso)
+    @app.route('/contable/asientos/<int:id>/confirmar-ingreso', methods=['POST'])
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_confirmar_ingreso(id):
+        asiento = AsientoContable.query.get_or_404(id)
+        if asiento.estado_pago == 'completo':
+            flash('Este asiento ya esta completamente cobrado.', 'warning')
+            return redirect(url_for('contable_asientos', vista='generados'))
+
+        monto, error = _procesar_pago_asiento(asiento, 'haber')
+        if error:
+            flash(error, 'warning')
+            return redirect(url_for('contable_asientos', vista='generados'))
+
+        # Actualizar venta vinculada
+        if asiento.venta_id:
+            venta = db.session.get(Venta, asiento.venta_id)
+            if venta:
+                venta.monto_anticipo_recibido = float(venta.monto_anticipo_recibido or 0) + monto
+                venta.monto_pagado_total = float(venta.monto_pagado_total or 0) + monto
+                if asiento.estado_pago == 'completo':
+                    # Si el pago completo cubre el anticipo, avanzar estado
+                    if venta.estado in ('negociacion', 'prospecto'):
+                        venta.estado = 'anticipo_pagado'
+                        # Disparar side effects: reservar stock y generar OC automaticas
+                        try:
+                            from services.inventario import InventarioService
+                            InventarioService.reservar_stock_venta(venta)
+                        except Exception as ex_inv:
+                            logging.warning(f'confirmar_ingreso: reservar_stock error: {ex_inv}')
+
+        db.session.commit()
+        flash(f'Cobro de {moneda(monto)} confirmado para asiento {asiento.numero}.', 'success')
+        return redirect(url_for('contable_asientos', vista='generados'))
+
+
+    # ── PDF caja chica (/contable/asientos/<id>/pdf-caja-chica)
+    @app.route('/contable/asientos/<int:id>/pdf-caja-chica')
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_pdf_caja_chica(id):
+        asiento = AsientoContable.query.get_or_404(id)
+        empresa = ConfigEmpresa.query.first()
+        return render_template('contable/comprobante_caja_chica.html',
+            asiento=asiento, empresa=empresa)
+
 
     # ── contable_comprobante: Generar PDF/comprobante (/contable/asientos/<id>/comprobante)
     @app.route('/contable/asientos/<int:id>/comprobante')

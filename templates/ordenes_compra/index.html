@@ -1,55 +1,59 @@
 {% extends 'base.html' %}
-{% block title %}Órdenes de Compra{% endblock %}{% block page_title %}Órdenes de Compra{% endblock %}
+{% block title %}Ordenes de Compra{% endblock %}{% block page_title %}Ordenes de Compra{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('orden_compra_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva Orden</a>{% endblock %}
 {% block content %}
 <div class="mb-3 d-flex gap-2 flex-wrap">
-  {% for est,lbl in [('','Todas'),('borrador','Borrador'),('enviada','Enviada'),('recibida','Recibida'),('cancelada','Cancelada')] %}
+  {% for est,lbl in [('','Todas'),('borrador','Borrador'),('anticipo_pagado','Anticipo pagado'),('pagado','Pagado'),('en_espera_producto','En espera producto'),('recibida_parcial','Parcial'),('recibida','Recibida'),('cancelada','Cancelada')] %}
   <a href="{{ url_for('ordenes_compra', estado=est) }}" class="btn btn-sm {{ 'btn-primary' if estado_f==est else 'btn-outline-secondary' }}">{{ lbl }}</a>{% endfor %}
 </div>
 <div class="tc"><div class="ch"><i class="bi bi-cart-check me-2"></i>{{ items|length }} orden(es) de compra</div>
 {% if items %}<div class="table-responsive"><table class="table">
-  <thead><tr><th>N°</th><th>Proveedor</th><th>Cotización</th><th>Estado</th><th>Emisión</th><th>Entrega esp.</th><th>Est. pago</th><th>Transportista</th><th>Total</th><th></th></tr></thead>
+  <thead><tr><th>N</th><th>Proveedor</th><th>Estado</th><th>Pago</th><th>Recepcion</th><th>Emision</th><th>Entrega esp.</th><th>Total</th><th></th></tr></thead>
   <tbody>{% for oc in items %}<tr>
-    <td class="fw-semibold" style="color:var(--text)">{{ oc.numero or '—' }}</td>
-    <td>{{ oc.proveedor.empresa or oc.proveedor.nombre if oc.proveedor else '—' }}</td>
-    <td>{% if oc.cotizacion_ref %}<small class="text-muted">{{ oc.cotizacion_ref.numero }}</small>{% else %}—{% endif %}</td>
+    <td class="fw-semibold" style="color:var(--text)">{{ oc.numero or '--' }}</td>
+    <td>{{ oc.proveedor.empresa or oc.proveedor.nombre if oc.proveedor else '--' }}</td>
     <td>
       {% if oc.estado=='borrador' %}<span class="badge bg-secondary">Borrador</span>
-      {% elif oc.estado=='enviada' %}<span class="badge bg-primary">Enviada</span>
+      {% elif oc.estado=='anticipo_pagado' %}<span class="badge bg-info text-dark">Anticipo pagado</span>
+      {% elif oc.estado=='pagado' %}<span class="badge bg-primary">Pagado</span>
+      {% elif oc.estado=='en_espera_producto' %}<span class="badge bg-warning text-dark">En espera producto</span>
+      {% elif oc.estado=='recibida_parcial' %}<span class="badge bg-orange text-dark" style="background:#fd7e14!important">Recibida parcial</span>
       {% elif oc.estado=='recibida' %}<span class="badge bg-success">Recibida</span>
-      {% else %}<span class="badge bg-danger">Cancelada</span>{% endif %}
+      {% elif oc.estado=='cancelada' %}<span class="badge bg-danger">Cancelada</span>
+      {% else %}<span class="badge bg-secondary">{{ oc.estado }}</span>{% endif %}
+      {% if oc.tiene_problema_calidad %}<br><span class="badge bg-danger mt-1"><i class="bi bi-exclamation-triangle me-1"></i>Calidad</span>{% endif %}
     </td>
-    <td><small>{{ oc.fecha_emision.strftime('%d/%m/%Y') if oc.fecha_emision else '—' }}</small></td>
-    <td>{% if oc.fecha_esperada %}<small class="{{ 'text-danger fw-semibold' if oc.fecha_esperada < now.date() and oc.estado != 'recibida' else '' }}">{{ oc.fecha_esperada.strftime('%d/%m/%Y') }}</small>{% else %}—{% endif %}</td>
-    <td><small class="text-muted">{{ oc.fecha_estimada_pago.strftime('%d/%m/%Y') if oc.fecha_estimada_pago else '—' }}</small></td>
-    <td>{% if oc.transportista %}<small><i class="bi bi-truck-front text-success me-1"></i>{{ oc.transportista.empresa or oc.transportista.nombre }}{% if oc.fecha_estimada_recogida %}<div class="text-muted" style="font-size:.72rem">Recogida: {{ oc.fecha_estimada_recogida.strftime('%d/%m/%Y') }}</div>{% endif %}</small>{% else %}<span class="text-muted">—</span>{% endif %}</td>
-    <td class="fw-semibold">$ {{ '{:,.0f}'.format(oc.total).replace(',','.') }}</td>
+    <td>
+      <small class="text-muted">{{ moneda(oc.monto_pagado or 0) }} / {{ moneda(oc.total or 0) }}</small>
+    </td>
+    <td>
+      {% if oc.estado_recepcion=='pendiente' %}<span class="text-muted">Pendiente</span>
+      {% elif oc.estado_recepcion=='parcial' %}<span class="text-warning">Parcial</span>
+      {% elif oc.estado_recepcion=='recibida' %}<span class="text-success">Recibida</span>
+      {% else %}<span class="text-muted">{{ oc.estado_recepcion or 'Pendiente' }}</span>{% endif %}
+    </td>
+    <td><small>{{ oc.fecha_emision.strftime('%d/%m/%Y') if oc.fecha_emision else '--' }}</small></td>
+    <td>{% if oc.fecha_esperada %}<small class="{{ 'text-danger fw-semibold' if oc.fecha_esperada < now.date() and oc.estado not in ('recibida','cancelada') else '' }}">{{ oc.fecha_esperada.strftime('%d/%m/%Y') }}</small>{% else %}--{% endif %}</td>
+    <td class="fw-semibold">{{ moneda(oc.total or 0) }}</td>
     <td><div class="d-flex gap-1 flex-wrap">
-      <a href="{{ url_for('oc_pdf', id=oc.id) }}" class="btn btn-sm btn-outline-secondary" target="_blank" title="Ver / Imprimir PDF"><i class="bi bi-file-earmark-pdf"></i></a>
-      <a href="{{ url_for('orden_compra_editar', id=oc.id) }}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
+      <a href="{{ url_for('oc_pdf', id=oc.id) }}" class="btn btn-sm btn-outline-secondary" target="_blank" title="PDF"><i class="bi bi-file-earmark-pdf"></i></a>
       {% if oc.estado == 'borrador' %}
-      <form method="POST" action="{{ url_for('orden_compra_estado', id=oc.id) }}" class="d-inline">
-        <input type="hidden" name="estado" value="enviada">
-        <button class="btn btn-sm btn-outline-primary" title="Enviar al proveedor"><i class="bi bi-send"></i></button>
-      </form>
-      {% elif oc.estado == 'enviada' %}
-      <form method="POST" action="{{ url_for('orden_compra_estado', id=oc.id) }}" class="d-inline" onsubmit="return confirm('¿Marcar como recibida? Se agendará la entrega en el calendario.')">
-        <input type="hidden" name="estado" value="recibida">
-        <button class="btn btn-sm btn-outline-success" title="Marcar como recibida → agenda entrega en calendario"><i class="bi bi-box-arrow-in-down me-1"></i>Recibida</button>
-      </form>
+      <a href="{{ url_for('orden_compra_editar', id=oc.id) }}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
       {% endif %}
-      {% if oc.estado in ('borrador','enviada') %}
+      {% if oc.estado in ('borrador',) %}
       <form method="POST" action="{{ url_for('orden_compra_estado', id=oc.id) }}" class="d-inline"
-            onsubmit="return confirm('¿Cancelar esta orden de compra?')">
+            onsubmit="return confirm('Cancelar esta orden de compra?')">
         <input type="hidden" name="estado" value="cancelada">
         <button class="btn btn-sm btn-outline-warning" title="Cancelar OC"><i class="bi bi-x-lg"></i></button>
       </form>
       {% endif %}
-      <form method="POST" action="{{ url_for('orden_compra_eliminar', id=oc.id) }}" onsubmit="return confirm('¿Eliminar permanentemente?')">
+      {% if current_user.rol == 'admin' %}
+      <form method="POST" action="{{ url_for('orden_compra_eliminar', id=oc.id) }}" onsubmit="return confirm('Eliminar permanentemente?')">
         <button class="btn btn-sm btn-outline-danger" title="Eliminar"><i class="bi bi-trash"></i></button></form>
+      {% endif %}
     </div></td>
   </tr>{% endfor %}</tbody>
 </table></div>
 {% else %}<div class="text-center text-muted py-5"><i class="bi bi-cart-check" style="font-size:3rem"></i>
-  <p class="mt-3">Sin órdenes de compra.</p><a href="{{ url_for('orden_compra_nueva') }}" class="btn btn-primary">Crear primera</a></div>
+  <p class="mt-3">Sin ordenes de compra.</p><a href="{{ url_for('orden_compra_nueva') }}" class="btn btn-primary">Crear primera</a></div>
 {% endif %}</div>{% endblock %}

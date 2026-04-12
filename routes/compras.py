@@ -1,13 +1,11 @@
 # routes/compras.py — reconstruido desde v27 con CRUD completo
-from flask import render_template, redirect, url_for, flash, request, \
-                  jsonify, send_file, make_response, current_app
-from flask import session as flask_session
-from flask_login import login_required, current_user, login_user, logout_user
+from flask import render_template, redirect, url_for, flash, request, jsonify
+from flask_login import login_required, current_user
 from extensions import db
 from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
-import json, os, re, io, secrets, logging
+import logging
 
 def register(app):
 
@@ -213,6 +211,29 @@ def register(app):
         return redirect(url_for('cotizaciones_proveedor', tipo=tipo))
 
 
+    # ── API: cotizaciones por proveedor (/api/cotizaciones-por-proveedor/<prov_id>)
+    @app.route('/api/cotizaciones-por-proveedor/<int:prov_id>')
+    @login_required
+    @requiere_modulo('ordenes_compra')
+    def api_cotizaciones_por_proveedor(prov_id):
+        """Retorna cotizaciones vigentes de un proveedor para seleccion multiple en OC."""
+        cots = CotizacionProveedor.query.filter(
+            CotizacionProveedor.proveedor_id == prov_id,
+            CotizacionProveedor.estado == 'vigente'
+        ).order_by(CotizacionProveedor.nombre_producto).all()
+        return jsonify([{
+            'id': c.id,
+            'numero': c.numero or '',
+            'nombre_producto': c.nombre_producto,
+            'descripcion': c.descripcion or '',
+            'precio_unitario': c.precio_unitario,
+            'unidades_minimas': c.unidades_minimas,
+            'unidad': c.unidad,
+            'plazo_entrega_dias': c.plazo_entrega_dias or 0,
+            'condicion_pago_tipo': c.condicion_pago_tipo or 'contado',
+        } for c in cots])
+
+
     # ── ordenes_compra (/ordenes-compra)
     @app.route('/ordenes-compra')
     @login_required
@@ -263,7 +284,7 @@ def register(app):
                 proveedor_id=int(request.form.get('proveedor_id')) if request.form.get('proveedor_id') else None,
                 cotizacion_id=cot_id,
                 transportista_id=tra_id,
-                estado=request.form.get('estado','borrador'),
+                estado='borrador',  # siempre inicia borrador, cambia via asientos contables
                 fecha_emision=fecha_emision,
                 fecha_esperada=fecha_esp,
                 fecha_estimada_pago=datetime.strptime(fep,'%Y-%m-%d').date() if fep else None,
@@ -293,13 +314,38 @@ def register(app):
                           fecha_vencimiento=fecha_rec - timedelta(days=2),
                           creado_por=current_user.id, tarea_tipo='contratar_transporte')
                 db.session.add(t)
+            # Auto-crear asiento contable de egreso en borrador
+            try:
+                asiento = AsientoContable(
+                    numero='AC-TEMP',
+                    fecha=oc.fecha_emision or datetime.utcnow().date(),
+                    descripcion=f'Egreso pendiente — OC {oc.numero}',
+                    tipo='compra',
+                    subtipo='orden_compra',
+                    referencia=oc.numero,
+                    debe=float(oc.total or 0),
+                    haber=float(oc.total or 0),
+                    clasificacion='egreso',
+                    estado_asiento='borrador',
+                    estado_pago='pendiente',
+                    orden_compra_id=oc.id,
+                    proveedor_id=oc.proveedor_id,
+                    tercero_nombre=oc.proveedor.empresa if oc.proveedor else None,
+                    creado_por=current_user.id
+                )
+                db.session.add(asiento)
+                db.session.flush()
+                asiento.numero = f'AC-{datetime.utcnow().year}-{asiento.id:04d}'
+            except Exception as ex:
+                logging.warning(f'orden_compra_nueva: auto-asiento error: {ex}')
             db.session.commit()
-            flash(f'Orden de compra {oc.numero} creada.','success')
+            flash(f'Orden de compra {oc.numero} creada con asiento contable de egreso pendiente.','success')
             return redirect(url_for('ordenes_compra'))
         return render_template('ordenes_compra/form.html', obj=None,
                                proveedores_list=provs, transportistas_list=transportistas,
                                cotizaciones_list=cotizaciones_disponibles,
-                               titulo='Nueva Orden de Compra', items_json=[])
+                               titulo='Nueva Orden de Compra', items_json=[],
+                               today=datetime.utcnow().strftime('%Y-%m-%d'))
 
 
     # ── orden_compra_editar (/ordenes-compra/<int:id>/editar)
@@ -329,7 +375,7 @@ def register(app):
             obj.proveedor_id        = int(request.form.get('proveedor_id')) if request.form.get('proveedor_id') else None
             obj.cotizacion_id       = cot_id
             obj.transportista_id    = tra_id
-            obj.estado              = request.form.get('estado', obj.estado)
+            # estado no se cambia desde edicion — solo via asientos contables
             obj.fecha_emision       = fecha_emision
             obj.fecha_esperada      = fecha_esp
             obj.fecha_estimada_pago = datetime.strptime(fep,'%Y-%m-%d').date() if fep else None
@@ -348,7 +394,8 @@ def register(app):
         return render_template('ordenes_compra/form.html', obj=obj,
                                proveedores_list=provs, transportistas_list=transportistas,
                                cotizaciones_list=cotizaciones_disponibles,
-                               titulo='Editar Orden de Compra', items_json=items_json)
+                               titulo='Editar Orden de Compra', items_json=items_json,
+                               today=datetime.utcnow().strftime('%Y-%m-%d'))
 
 
     # ── orden_compra_estado (/ordenes-compra/<int:id>/estado)
@@ -367,7 +414,7 @@ def register(app):
                 precio = float(item.precio_unit or 0)
                 total  = float(item.subtotal or cant * precio)
                 c = CompraMateria(
-                    nombre_item=item.nombre_item or f'Ítem OC {obj.numero}',
+                    nombre_item=item.nombre_item or f'Item OC {obj.numero}',
                     tipo_compra='insumo',
                     proveedor=obj.proveedor.empresa if obj.proveedor else (obj.proveedor_id and str(obj.proveedor_id)) or '',
                     proveedor_id=obj.proveedor_id,
@@ -380,38 +427,16 @@ def register(app):
                     transporte=0,
                     costo_total=total,
                     precio_unitario=precio,
-                    notas=f'Generado automáticamente desde OC {obj.numero}',
+                    notas=f'Generado automaticamente desde OC {obj.numero}',
                     creado_por=current_user.id,
+                    orden_compra_id=obj.id,
+                    orden_compra_item_id=item.id,
+                    estado_recepcion='solicitado',
                 )
                 db.session.add(c)
             if obj.items:
                 flash(f'{len(obj.items)} ítem(s) de la OC {obj.numero} registrados en Compras automáticamente.', 'info')
 
-        # Al marcar como "recibida": calcular fecha de entrega con plazo de cotización y agendar en calendario
-        if obj.estado == 'recibida' and estado_anterior != 'recibida':
-            hoy_recv = datetime.utcnow().date()
-            cot = obj.cotizacion_ref
-            if cot and cot.plazo_entrega_dias and not cot.calendario_integrado:
-                fecha_entrega = hoy_recv + timedelta(days=cot.plazo_entrega_dias)
-                ev = Evento(
-                    titulo=f'Entrega esperada: {cot.nombre_producto} ({obj.numero})',
-                    tipo='recordatorio',
-                    fecha=fecha_entrega,
-                    descripcion=f'OC {obj.numero} recibida el {hoy_recv.strftime("%d/%m/%Y")}. Entrega esperada en {cot.plazo_entrega_dias} días desde recepción. Proveedor: {obj.proveedor.nombre if obj.proveedor else "—"}',
-                    usuario_id=current_user.id
-                )
-                db.session.add(ev)
-                cot.calendario_integrado = True
-            elif obj.fecha_esperada:
-                # Si no hay cotizacion pero hay fecha_esperada, agendar igual
-                ev = Evento(
-                    titulo=f'Entrega esperada OC {obj.numero}',
-                    tipo='recordatorio',
-                    fecha=obj.fecha_esperada,
-                    descripcion=f'Orden de compra {obj.numero} marcada como recibida. Entrega esperada: {obj.fecha_esperada.strftime("%d/%m/%Y")}.',
-                    usuario_id=current_user.id
-                )
-                db.session.add(ev)
         db.session.commit()
         flash(f'Estado actualizado a "{obj.estado}".','success')
         return redirect(url_for('ordenes_compra'))
