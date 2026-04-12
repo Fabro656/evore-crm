@@ -982,22 +982,30 @@ def register(app):
                     cantidad=it['cantidad'], precio_unit=it['precio'], subtotal=it['subtotal'],
                     unidad=it['unidad'], tipo_item=it['tipo'], servicio_id=it['servicio_id'],
                     aplica_iva=it['aplica_iva'], iva_pct=it['iva_pct'], iva_monto=it['iva_monto']))
-            # Actualizar precio del producto y registrar historial
+            # Actualizar precio del producto con precio total (IVA incluido)
             for it in items_data:
                 if it.get('producto_id') and it['tipo'] == 'producto':
                     prod = db.session.get(Producto, it['producto_id'])
-                    if prod and prod.precio != it['precio']:
+                    if not prod:
+                        continue
+                    # Calcular precio con IVA para guardar en producto
+                    if iva_incluido:
+                        precio_con_iva = it['precio']  # ya incluye IVA
+                    else:
+                        precio_con_iva = it['precio'] * (1 + it['iva_pct'] / 100) if it['iva_pct'] > 0 else it['precio']
+                    precio_con_iva = round(precio_con_iva, 2)
+                    if prod.precio != precio_con_iva:
                         db.session.add(HistorialPrecio(
                             producto_id=prod.id,
                             precio_anterior=prod.precio or 0,
-                            precio_nuevo=it['precio'],
+                            precio_nuevo=precio_con_iva,
                             origen=f'cotizacion {numero}',
                             usuario_id=current_user.id
                         ))
-                        prod.precio = it['precio']
+                        prod.precio = precio_con_iva
                         receta = RecetaProducto.query.filter_by(producto_id=prod.id, activo=True).first()
                         if receta:
-                            receta.precio_venta_sugerido = it['precio']
+                            receta.precio_venta_sugerido = precio_con_iva
             _log('crear','cotizacion',cot.id,f'Cotización {numero}: {cot.titulo}'); db.session.commit()
             flash(f'Cotización {numero} creada.','success')
             return redirect(url_for('cotizacion_ver', id=cot.id))
@@ -1122,7 +1130,7 @@ def register(app):
                     cantidad=cant, precio_unit=precio, subtotal=sub,
                     unidad=unidad, tipo_item=tipo, servicio_id=srv_id,
                     aplica_iva=aplica_iva, iva_pct=iva_pct, iva_monto=iva_monto))
-                items_editados.append({'producto_id': prod_id, 'precio': precio, 'tipo': tipo})
+                items_editados.append({'producto_id': prod_id, 'precio': precio, 'tipo': tipo, 'iva_pct': iva_pct})
 
             total = subtotal + iva_total
             pct_anticipo = float(request.form.get('porcentaje_anticipo', 50) or 50)
@@ -1140,19 +1148,27 @@ def register(app):
             for it in items_editados:
                 if it.get('producto_id') and it['tipo'] == 'producto':
                     prod = db.session.get(Producto, it['producto_id'])
-                    if prod and prod.precio != it['precio']:
-                        cambios.append(f'Precio {prod.nombre}: ${prod.precio:,.0f} → ${it["precio"]:,.0f}')
+                    if not prod:
+                        continue
+                    if iva_incluido:
+                        precio_con_iva = it['precio']
+                    else:
+                        iva_pct_item = float(it.get('iva_pct', 0) or 0)
+                        precio_con_iva = it['precio'] * (1 + iva_pct_item / 100) if iva_pct_item > 0 else it['precio']
+                    precio_con_iva = round(precio_con_iva, 2)
+                    if prod.precio != precio_con_iva:
+                        cambios.append(f'Precio {prod.nombre}: ${prod.precio:,.0f} → ${precio_con_iva:,.0f}')
                         db.session.add(HistorialPrecio(
                             producto_id=prod.id,
                             precio_anterior=prod.precio or 0,
-                            precio_nuevo=it['precio'],
+                            precio_nuevo=precio_con_iva,
                             origen=f'cotizacion {obj.numero}',
                             usuario_id=current_user.id
                         ))
-                        prod.precio = it['precio']
+                        prod.precio = precio_con_iva
                         receta = RecetaProducto.query.filter_by(producto_id=prod.id, activo=True).first()
                         if receta:
-                            receta.precio_venta_sugerido = it['precio']
+                            receta.precio_venta_sugerido = precio_con_iva
             if cambios:
                 db.session.add(HistorialCotizacion(
                     cotizacion_id=obj.id,

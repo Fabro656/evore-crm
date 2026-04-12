@@ -126,6 +126,17 @@
     <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addRow()"><i class="bi bi-plus-lg me-1"></i>Agregar ítem</button>
   </div>
   <div class="col-12"><hr class="my-2"></div>
+  {# Tabla resumen de la cotización #}
+  <div class="col-12" id="resumenCot">
+    <div class="table-responsive">
+    <table class="table table-sm mb-3" style="font-size:.85rem" id="tablaResumen">
+      <thead class="table-light">
+        <tr><th>Producto</th><th class="text-center">Cant.</th><th>Unidad</th><th class="text-end">Precio unit.</th><th class="text-end">IVA</th><th class="text-end">Total</th></tr>
+      </thead>
+      <tbody id="resumenBody"></tbody>
+    </table>
+    </div>
+  </div>
   <div class="col-md-6 offset-md-6">
     <div class="d-flex justify-content-between mb-1"><span class="text-muted">Subtotal:</span><span id="lblSub" class="fw-semibold">$ 0</span></div>
     <div class="d-flex justify-content-between mb-1"><span class="text-muted">Total IVA:</span><span id="lblIva" class="fw-semibold">$ 0</span></div>
@@ -266,21 +277,45 @@ function calcRow(el){
 function calcTotal(){
   var sub=0; var iva_tot=0;
   var ivaIncl = isIvaIncluido();
+  var resumenRows = [];
+
   document.querySelectorAll('.item-row').forEach(function(r){
     var c=parseFloat(r.querySelector('.item-cant').value)||0;
     var p=parseFloat(r.querySelector('.item-precio').value)||0;
     var ipct=parseFloat(r.querySelector('.item-iva-pct').value)||0;
+    var nombre=r.querySelector('.item-nombre');
+    var nm=nombre?(nombre.options[nombre.selectedIndex]||{}).text||'':'';
+    if(nm==='— Seleccionar producto —'||nm==='— Seleccionar —') nm='';
+    var unidad=r.querySelector('.item-unidad')?r.querySelector('.item-unidad').value:'';
+
+    var itemBase, itemIva, itemTotal;
     if(ipct>0 && ivaIncl){
-      var itemTotal=c*p;
-      var itemBase=itemTotal/(1+ipct/100);
-      sub+=itemBase;
-      iva_tot+=(itemTotal-itemBase);
+      itemTotal=c*p;
+      itemBase=itemTotal/(1+ipct/100);
+      itemIva=itemTotal-itemBase;
     } else {
-      var itemsub=c*p;
-      sub+=itemsub;
-      iva_tot+=itemsub*ipct/100;
+      itemBase=c*p;
+      itemIva=itemBase*ipct/100;
+      itemTotal=itemBase+itemIva;
+    }
+    sub+=itemBase;
+    iva_tot+=itemIva;
+
+    // Precio unitario con IVA (para mostrar y para el producto)
+    var precioConIva = ipct>0 ? (ivaIncl ? p : p*(1+ipct/100)) : p;
+
+    if(nm && c>0){
+      resumenRows.push({nombre:nm, cant:c, unidad:unidad, precioUnit:precioConIva, iva:itemIva, total:itemTotal});
+    }
+
+    // Actualizar label de la fila
+    if(ipct>0 && ivaIncl){
+      r.querySelector('.item-sub').textContent=fmt(itemTotal)+' (IVA incl.)';
+    } else {
+      r.querySelector('.item-sub').textContent=fmt(itemTotal);
     }
   });
+
   var total=sub+iva_tot;
   var pct=parseFloat(document.getElementById('pctAnticipo').value)||50;
   var anticipo=total*pct/100;
@@ -290,17 +325,22 @@ function calcTotal(){
   document.getElementById('lblPct').textContent=Math.round(pct);
   document.getElementById('lblAnticipo').textContent=fmt(anticipo);
   document.getElementById('lblSaldo').textContent=fmt(total-anticipo);
-  // Actualizar labels de filas
-  document.querySelectorAll('.item-row').forEach(function(r){
-    var c2=parseFloat(r.querySelector('.item-cant').value)||0;
-    var p2=parseFloat(r.querySelector('.item-precio').value)||0;
-    var ipct2=parseFloat(r.querySelector('.item-iva-pct').value)||0;
-    if(ipct2>0 && ivaIncl){
-      r.querySelector('.item-sub').textContent=fmt(c2*p2)+' (IVA incl.)';
-    } else {
-      r.querySelector('.item-sub').textContent=fmt(c2*p2+c2*p2*ipct2/100);
-    }
-  });
+
+  // Tabla resumen
+  var tbody=document.getElementById('resumenBody');
+  if(tbody){
+    var html='';
+    resumenRows.forEach(function(r){
+      html+='<tr><td>'+r.nombre+'</td>'
+        +'<td class="text-center">'+r.cant+'</td>'
+        +'<td>'+r.unidad+'</td>'
+        +'<td class="text-end">'+fmt(r.precioUnit)+'</td>'
+        +'<td class="text-end">'+fmt(r.iva)+'</td>'
+        +'<td class="text-end fw-bold">'+fmt(r.total)+'</td></tr>';
+    });
+    if(!html) html='<tr><td colspan="6" class="text-center text-muted">Agrega productos para ver el resumen</td></tr>';
+    tbody.innerHTML=html;
+  }
 }
 
 function addRow(){
