@@ -519,9 +519,27 @@ def register(app):
     @login_required
     @requiere_modulo('ordenes_compra')
     def orden_compra_estado(id):
-        obj = OrdenCompra.query.get_or_404(id)
+        obj = db.session.get(OrdenCompra, id, with_for_update=True)
+        if not obj:
+            flash('Orden de compra no encontrada.', 'danger')
+            return redirect(url_for('ordenes_compra'))
         estado_anterior = obj.estado
-        obj.estado = request.form.get('estado', obj.estado)
+        nuevo = request.form.get('estado', obj.estado)
+
+        # Validar transiciones permitidas
+        OC_TRANSICIONES = {
+            'borrador': ['enviada', 'cancelada'],
+            'enviada': ['anticipo_pagado', 'cancelada'],
+            'anticipo_pagado': ['en_espera_producto', 'cancelada'],
+            'en_espera_producto': ['recibida', 'cancelada'],
+            'recibida': [],
+            'cancelada': ['borrador'],
+        }
+        permitidos = OC_TRANSICIONES.get(estado_anterior, [])
+        if nuevo not in permitidos and current_user.rol != 'admin':
+            flash(f'No se puede cambiar de "{estado_anterior}" a "{nuevo}". Transiciones validas: {", ".join(permitidos)}', 'warning')
+            return redirect(url_for('ordenes_compra'))
+        obj.estado = nuevo
 
         # Al pasar de borrador → enviada: crear CompraMateria por cada ítem de la orden
         if obj.estado == 'enviada' and estado_anterior == 'borrador':

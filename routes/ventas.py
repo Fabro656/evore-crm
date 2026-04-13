@@ -524,7 +524,10 @@ def register(app):
     @requiere_modulo('ventas')
     def venta_cambiar_estado(id):
         from services.inventario import InventarioService
-        venta = Venta.query.get_or_404(id)
+        venta = db.session.get(Venta, id, with_for_update=True)
+        if not venta:
+            flash('Venta no encontrada.', 'danger')
+            return redirect(url_for('ventas'))
         estado_anterior = venta.estado
         nuevo = request.form.get('estado', '')
         estados_validos = ['prospecto','negociacion','anticipo_pagado','pagado','entregado',
