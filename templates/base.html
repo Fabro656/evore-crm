@@ -1674,15 +1674,23 @@ window.iniciarObContextual = function(){
         if(ic){ var lk=ic.closest('.nav-link'); anchor=lk; lk.style.opacity='1'; lk.style.transform='scale(1.15)'; }
         else { document.querySelectorAll('.sb-nav .nav-link').forEach(function(l){l.style.opacity='1';}); }
       }
-      // Clamp to viewport
+      // Clamp to viewport — always keep tooltip fully visible
       var vw=window.innerWidth, vh=window.innerHeight, tw=Math.min(320,vw-24), pad=12;
+      tip.style.width = tw+'px';
       if(mob || !anchor || !anchor.getBoundingClientRect){
         tip.style.left = Math.max(pad,(vw-tw)/2)+'px'; tip.style.top = '60px';
       } else {
         var r = anchor.getBoundingClientRect();
-        var left = r.right+14, top = Math.max(pad, r.top-10);
+        // Measure actual tip height
+        tip.style.visibility='hidden'; tip.style.display='block';
+        var tipH = tip.offsetHeight || 250;
+        tip.style.visibility=''; tip.style.display='';
+        // Horizontal: prefer right of anchor, fallback left
+        var left = r.right+14;
         if(left+tw+pad > vw) left = Math.max(pad, r.left-tw-14);
-        if(top+220 > vh) top = Math.max(pad, vh-240);
+        // Vertical: center on anchor, clamp to viewport
+        var top = Math.max(pad, r.top + r.height/2 - tipH/2);
+        if(top+tipH+pad > vh) top = Math.max(pad, vh-tipH-pad);
         tip.style.left = left+'px'; tip.style.top = top+'px';
       }
       ctx.style.display='block'; ctx.style.zIndex='9999';
