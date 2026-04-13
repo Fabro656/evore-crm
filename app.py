@@ -1,7 +1,14 @@
 # app.py — Flask app factory + Gunicorn entry point
-import os, logging
-from flask import Flask, jsonify, render_template
+import os, logging, time, secrets
+from collections import defaultdict
+from flask import Flask, jsonify, render_template, request, session, abort
 from extensions import db, login_manager, mail, MAIL_AVAILABLE
+
+# ── In-memory login rate limiter ─────────────────────────────────────────────
+# Stores list of attempt timestamps per IP
+_login_attempts: dict = defaultdict(list)
+_RATE_LIMIT_MAX     = 5    # max attempts
+_RATE_LIMIT_WINDOW  = 60   # seconds
 
 logging.basicConfig(level=logging.INFO)
 
@@ -63,6 +70,31 @@ def create_app():
     from utils import register_app_hooks
     register_app_hooks(app)
 
+    # ── CSRF protection ───────────────────────────────────────────────
+    # Generate a per-session CSRF token available in all templates as {{ csrf_token }}
+    @app.context_processor
+    def _csrf_token_processor():
+        if '_csrf_token' not in session:
+            session['_csrf_token'] = secrets.token_hex(32)
+        return {'csrf_token': session['_csrf_token']}
+
+    # Validate CSRF token on every state-changing POST (skip /api/* — those use
+    # JSON bodies / Bearer tokens, not session-cookie forms)
+    @app.before_request
+    def _csrf_protect():
+        if request.method in ('POST', 'PUT', 'PATCH', 'DELETE'):
+            if request.path.startswith('/api/'):
+                return  # API routes handled separately (token-based)
+            token_session = session.get('_csrf_token')
+            token_form    = (request.form.get('_csrf_token')
+                             or request.headers.get('X-CSRF-Token'))
+            if not token_session or not token_form or token_session != token_form:
+                logging.warning(
+                    f'CSRF validation failed for {request.method} {request.path} '
+                    f'from {request.remote_addr}'
+                )
+                abort(403)
+
     # ── Global error handlers ─────────────────────────────────────────
     @app.errorhandler(404)
     def not_found(e):
@@ -120,9 +152,54 @@ def create_app():
 
     @app.after_request
     def _security_headers(response):
-        response.headers['X-Content-Type-Options']  = 'nosniff'
-        response.headers['X-Frame-Options']          = 'SAMEORIGIN'
-        response.headers['Referrer-Policy']          = 'strict-origin-when-cross-origin'
+        # ── Standard security headers ────────────────────────────────────
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options']         = 'SAMEORIGIN'
+        response.headers['Referrer-Policy']         = 'strict-origin-when-cross-origin'
+        response.headers['Permissions-Policy']      = (
+            'camera=(self), microphone=(), geolocation=()'
+        )
+
+        # ── Content-Security-Policy ──────────────────────────────────────
+        # unsafe-inline needed: Jinja inline styles + onclick handlers throughout templates
+        response.headers['Content-Security-Policy'] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
+            "img-src 'self' data: blob:; "
+            "font-src 'self' cdn.jsdelivr.net; "
+            "connect-src 'self'; "
+            "frame-src 'self'; "
+            "frame-ancestors 'self'"
+        )
+
+        # ── CORS — same-origin only, with method allowance for /api/* ────
+        origin = request.headers.get('Origin', '')
+        own_origin = (
+            os.environ.get('APP_URL', '').rstrip('/')
+            or f"{request.scheme}://{request.host}"
+        )
+        if origin:
+            if origin == own_origin:
+                response.headers['Access-Control-Allow-Origin'] = origin
+                response.headers['Vary'] = 'Origin'
+                if request.path.startswith('/api/'):
+                    response.headers['Access-Control-Allow-Methods'] = (
+                        'GET, POST, PUT, PATCH, DELETE, OPTIONS'
+                    )
+                    response.headers['Access-Control-Allow-Headers'] = (
+                        'Content-Type, Authorization, X-Requested-With'
+                    )
+            else:
+                # Reject cross-origin by not echoing the Origin back
+                response.headers['Access-Control-Allow-Origin'] = 'null'
+
+        # ── Cache-Control: no-store for authenticated pages ───────────────
+        from flask_login import current_user
+        if current_user and current_user.is_authenticated:
+            if 'Cache-Control' not in response.headers:
+                response.headers['Cache-Control'] = 'no-store'
+
         return response
 
     # ── DB migrate on startup ─────────────────────────────────────────

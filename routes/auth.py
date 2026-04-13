@@ -64,8 +64,29 @@ def register(app):
     def login():
         if current_user.is_authenticated: return redirect(url_for('dashboard'))
         if request.method == 'POST':
+            # ── Rate limiting: max 5 attempts per IP per 60 s ────────────
+            from app import _login_attempts, _RATE_LIMIT_MAX, _RATE_LIMIT_WINDOW
+            import time as _time
+            from flask import make_response as _make_response
+            ip = request.headers.get('X-Forwarded-For', request.remote_addr or '').split(',')[0].strip()
+            now = _time.time()
+            # Purge old timestamps outside the window
+            _login_attempts[ip] = [t for t in _login_attempts[ip] if now - t < _RATE_LIMIT_WINDOW]
+            if len(_login_attempts[ip]) >= _RATE_LIMIT_MAX:
+                logging.warning(f'Login rate limit exceeded for IP {ip}')
+                resp = _make_response(
+                    render_template('login.html',
+                                    rate_limited=True,
+                                    rate_limit_msg='Demasiados intentos. Espera 1 minuto e intenta de nuevo.'),
+                    429
+                )
+                resp.headers['Retry-After'] = str(_RATE_LIMIT_WINDOW)
+                return resp
+            # ── Authenticate ─────────────────────────────────────────────
             user = User.query.filter_by(email=request.form.get('email','').strip()).first()
             if user and user.check_password(request.form.get('password','')) and user.activo:
+                # Clear failed attempts on success
+                _login_attempts.pop(ip, None)
                 login_user(user, remember=True)
                 from flask import session as flask_session
                 flask_session.permanent = True
@@ -74,6 +95,8 @@ def register(app):
                 flask_session['sesion_id'] = ses.id
                 flash(f'¡Bienvenido, {user.nombre}!', 'success')
                 return redirect(request.args.get('next') or url_for('dashboard'))
+            # Record failed attempt
+            _login_attempts[ip].append(now)
             flash('Email o contraseña incorrectos.', 'danger')
         return render_template('login.html')
     

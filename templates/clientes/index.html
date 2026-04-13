@@ -14,8 +14,8 @@
     <a href="{{ url_for('clientes') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
   </div>
 </form></div></div>
-<div class="tc"><div class="ch"><i class="bi bi-people-fill me-2"></i>{{ items|length }} cliente(s)</div>
-{% if items %}<div class="table-responsive"><table class="table">
+<div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-people-fill me-2"></i>{{ items|length }} cliente(s)</div>
+{% if items %}<div class="table-responsive" style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface)"><table class="table">
   <thead><tr><th>Empresa</th><th>NIT</th><th>Relación</th><th>Contacto principal</th><th>Alta</th><th></th></tr></thead>
   <tbody>{% for c in items %}<tr>
     <td><a href="{{ url_for('cliente_ver', id=c.id) }}" class="fw-semibold text-decoration-none" style="color:var(--text)">{{ c.empresa or c.nombre }}</a>
@@ -41,4 +41,4 @@
 </table></div>
 {% else %}<div class="text-center text-muted py-5"><i class="bi bi-people" style="font-size:3rem"></i>
   <p class="mt-3">Sin clientes.</p><a href="{{ url_for('cliente_nuevo') }}" class="btn btn-primary">Agregar</a></div>
-{% endif %}</div>{% endblock %}
+{% endif %}{% endblock %}

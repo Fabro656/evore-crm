@@ -1,5 +1,6 @@
 <html lang="es" id="htmlRoot"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="csrf-token" content="{{ csrf_token }}">
 <title>{% block title %}Evore CRM{% endblock %}</title>
 <script>document.documentElement.setAttribute('data-theme',localStorage.getItem('evore_theme')||'light');var l=localStorage.getItem('evore_layout')||'default';if(l==='horizon') document.documentElement.setAttribute('data-layout','horizon');</script>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -1560,21 +1561,45 @@ document.addEventListener('DOMContentLoaded',function(){
 window.iniciarObContextual = function(){
   try {
     var steps = [
-      // Orden identico al sidebar
+      // Siempre visible — no requiere modulo especifico
       {icon:'bi-house-fill', color:'#3B82F6', title:'Home', desc:'Dashboard con KPIs, tickets, ventas, aprobaciones, calendario y notas.'},
+      {% if current_user.is_authenticated and (current_user.rol == 'admin' or 'tareas' in modulos_user) %}
       {icon:'bi-check2-square', color:'#8B5CF6', title:'Tickets', desc:'Seguimiento con prioridades y categorias. Auto-generados por calidad o nomina.'},
+      {% endif %}
+      {% if current_user.is_authenticated and (current_user.rol == 'admin' or 'calendario' in modulos_user) %}
       {icon:'bi-calendar3', color:'#F59E0B', title:'Calendario', desc:'Eventos y recordatorios. Click en dia para crear.'},
+      {% endif %}
+      {% if current_user.is_authenticated and (current_user.rol == 'admin' or 'notas' in modulos_user) %}
       {icon:'bi-sticky-fill', color:'#7C3AED', title:'Notas', desc:'Vinculadas a OC, ventas, proveedores. Tipos: nota, alerta, seguimiento.'},
+      {% endif %}
+      {% if current_user.is_authenticated and (current_user.rol == 'admin' or 'ventas' in modulos_user or 'cotizaciones' in modulos_user) %}
       {icon:'bi-bag-fill', color:'#10B981', title:'Comercial', desc:'Pipeline de ventas. Auto-genera asiento contable y contrato al portal.'},
+      {% endif %}
+      {% if current_user.is_authenticated and (current_user.rol == 'admin' or 'ordenes_compra' in modulos_user) %}
       {icon:'bi-cart-check', color:'#F97316', title:'Compras', desc:'OC multi-cotizacion. Contrato proveedor. Pago via asientos.'},
+      {% endif %}
+      {% if current_user.is_authenticated and (current_user.rol == 'admin' or 'inventario' in modulos_user) %}
       {icon:'bi-box-seam-fill', color:'#6366F1', title:'Inventario', desc:'Stock PT y MP con alertas de minimo. Lotes con trazabilidad FIFO.'},
+      {% endif %}
+      {% if current_user.is_authenticated and (current_user.rol == 'admin' or 'produccion' in modulos_user) %}
       {icon:'bi-gear-fill', color:'#6366F1', title:'Produccion', desc:'Ordenes, Gantt, recepcion MP, control calidad con tickets auto.'},
+      {% endif %}
+      {% if current_user.is_authenticated and (current_user.rol == 'admin' or 'logistica' in modulos_user or 'empaques' in modulos_user) %}
       {icon:'bi-truck-front', color:'#10B981', title:'Logistica', desc:'Simulador envio, calculadora cajas, transportistas, tracking.'},
+      {% endif %}
+      {% if current_user.is_authenticated and (current_user.rol == 'admin' or 'finanzas' in modulos_user) %}
       {icon:'bi-currency-dollar', color:'#059669', title:'Finanzas', desc:'PUC, asientos, reconciliacion bancaria, IVA, retenciones, cierres.'},
+      {% endif %}
+      {% if current_user.is_authenticated and (current_user.rol == 'admin' or 'legal' in modulos_user) %}
       {icon:'bi-shield-check', color:'#0EA5E9', title:'Legal', desc:'9 plantillas colombianas. Firma digital + selfie. Auto-genera contratos.'},
+      {% endif %}
+      {% if current_user.is_authenticated and (current_user.rol == 'admin' or 'nomina' in modulos_user) %}
       {icon:'bi-people-fill', color:'#EC4899', title:'Nomina', desc:'Prorrateo, horas extra, retencion, parametros editables, liquidacion.'},
+      {% endif %}
+      {% if current_user.is_authenticated and (current_user.rol == 'admin' or 'aprobaciones' in modulos_user) %}
       {icon:'bi-clipboard-check', color:'#EF4444', title:'Aprobaciones', desc:'Bloquea OC/ventas hasta aprobar o rechazar.'},
-      // UI - se posicionan sobre elementos especificos
+      {% endif %}
+      // UI - siempre visibles
       {t:'topbar', color:'#64748B', icon:'bi-layout-text-window', title:'Barra superior', desc:'Titulo de pagina, botones de accion, tema claro/oscuro, y fecha actual.'},
       {t:'foot', color:'#64748B', icon:'bi-grid-3x3-gap', title:'Pie del dock', desc:'Tu avatar, notificaciones, Wiki del sistema, y este boton Tutorial.'},
     ];
@@ -1989,27 +2014,39 @@ window.iniciarObContextual = function(){
   // ── Load tabs from server (fallback to sessionStorage)
   function loadTabs(){
     try {
-      var cached = sessionStorage.getItem('evore_ws_tabs');
-      if(cached) WS.tabs = JSON.parse(cached);
-    } catch(e){ WS.tabs = []; }
-    // Async load from server
-    fetch('/api/workspace/tabs').then(function(r){return r.json()}).then(function(d){
-      if(d.tabs && d.tabs.length > 0){
-        WS.tabs = d.tabs;
-        sessionStorage.setItem('evore_ws_tabs', JSON.stringify(WS.tabs));
-        renderTabs();
+      var cached = sessionStorage.getItem('evore_ws_state');
+      if(cached){
+        var state = JSON.parse(cached);
+        WS.tabs = state.tabs || [];
+        WS.activeId = state.activeId || null;
       }
-    }).catch(function(){});
+    } catch(e){ WS.tabs = []; WS.activeId = null; }
+    // Async load from server — only use server data if sessionStorage is empty
+    // to avoid overwriting in-session state on every page navigation
+    if(WS.tabs.length === 0){
+      fetch('/api/workspace/tabs').then(function(r){return r.json()}).then(function(d){
+        if(d.tabs && d.tabs.length > 0){
+          WS.tabs = d.tabs;
+          WS.activeId = d.activeId || null;
+          saveTabs();
+          renderTabs();
+          if(WS.activeId) activateTab(WS.activeId);
+        }
+      }).catch(function(){});
+    }
   }
 
   function saveTabs(){
-    sessionStorage.setItem('evore_ws_tabs', JSON.stringify(WS.tabs));
+    // Always save synchronously to sessionStorage so state survives page navigations
+    try {
+      sessionStorage.setItem('evore_ws_state', JSON.stringify({tabs: WS.tabs, activeId: WS.activeId}));
+    } catch(e){}
     // Debounce server save
     clearTimeout(WS.saveTimer);
     WS.saveTimer = setTimeout(function(){
       fetch('/api/workspace/tabs', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({tabs: WS.tabs})
+        body: JSON.stringify({tabs: WS.tabs, activeId: WS.activeId})
       }).catch(function(){});
     }, 1000);
   }
@@ -2038,15 +2075,15 @@ window.iniciarObContextual = function(){
     iframe.src = tab.url + (tab.url.includes('?') ? '&' : '?') + '_embed=1';
     iframe.style.display = 'none';
     WS.iframeContainer.appendChild(iframe);
-    // Listen for navigation inside iframe
+    // Listen for navigation inside iframe — update title only, never close the tab
     iframe.addEventListener('load', function(){
       try {
-        var iTitle = iframe.contentDocument.title;
+        var iTitle = iframe.contentDocument && iframe.contentDocument.title;
         if(iTitle && iTitle !== 'Evore CRM'){
           var t = WS.tabs.find(function(x){return x.id===tab.id});
           if(t){ t.title = iTitle.substring(0,30); renderTabs(); saveTabs(); }
         }
-      }catch(e){}
+      }catch(e){/* cross-origin or load error — ignore, keep tab alive */}
     });
   }
 
@@ -2066,6 +2103,7 @@ window.iniciarObContextual = function(){
     }
     if(active) active.style.display = 'block';
     renderTabs();
+    saveTabs(); // persist activeId so it survives page navigation
     // Update sidebar active state
     updateSidebarActive(tabId);
   }
@@ -2099,6 +2137,7 @@ window.iniciarObContextual = function(){
     // Hide all iframes
     WS.iframeContainer.querySelectorAll('iframe').forEach(function(f){f.style.display='none'});
     renderTabs();
+    saveTabs();
   }
 
   function updateSidebarActive(tabId){
@@ -2199,10 +2238,21 @@ window.iniciarObContextual = function(){
 
   // ── Init
   loadTabs();
-  // Restore tab bar (but DON'T load iframes until clicked — lazy loading)
+  // Restore tab bar on DOMContentLoaded (sync sessionStorage path is already done by loadTabs)
   if(WS.tabs.length > 0){
     renderTabs();
+    // Restore the previously active tab (lazy — creates iframe on first activate)
+    if(WS.activeId && WS.tabs.find(function(t){return t.id===WS.activeId})){
+      activateTab(WS.activeId);
+    }
   }
+
+  // Save state before page unloads so sessionStorage is always up-to-date
+  window.addEventListener('beforeunload', function(){
+    try {
+      sessionStorage.setItem('evore_ws_state', JSON.stringify({tabs: WS.tabs, activeId: WS.activeId}));
+    } catch(e){}
+  });
 
   // Expose API
   window.wsOpenTab = openTab;
@@ -2225,5 +2275,42 @@ window.iniciarObContextual = function(){
 #wsIframeContainer{overflow:hidden;flex:1}
 #wsIframeContainer iframe{width:100%;height:100%;border:none;position:absolute;top:0;left:0;right:0;bottom:0}
 </style>
+<script>
+// ── CSRF: auto-inject hidden token into every POST form ─────────────────
+(function(){
+  var t=document.querySelector('meta[name="csrf-token"]');
+  if(!t) return;
+  var tok=t.getAttribute('content');
+  if(!tok) return;
+  document.querySelectorAll('form[method="post"],form[method="POST"]').forEach(function(f){
+    if(!f.querySelector('input[name="_csrf_token"]')){
+      var h=document.createElement('input');
+      h.type='hidden'; h.name='_csrf_token'; h.value=tok;
+      f.appendChild(h);
+    }
+  });
+  // Also send token header in non-GET fetch/XHR requests
+  var origFetch=window.fetch;
+  window.fetch=function(url,opts){
+    opts=opts||{};
+    if(opts.method && opts.method.toUpperCase()!=='GET'){
+      opts.headers=Object.assign({'X-CSRF-Token':tok},opts.headers||{});
+    }
+    return origFetch(url,opts);
+  };
+  var origOpen=XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open=function(method){
+    this._csrf_method=method;
+    return origOpen.apply(this,arguments);
+  };
+  var origSend=XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.send=function(){
+    if(this._csrf_method && this._csrf_method.toUpperCase()!=='GET'){
+      try{this.setRequestHeader('X-CSRF-Token',tok);}catch(e){}
+    }
+    return origSend.apply(this,arguments);
+  };
+})();
+</script>
 
 </body></html>

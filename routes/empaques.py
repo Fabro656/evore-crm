@@ -1,11 +1,11 @@
 # routes/empaques.py — Módulo Empaques Secundarios v30
-from flask import render_template, redirect, url_for, flash, request, jsonify, current_app
+from flask import render_template, redirect, url_for, flash, request, jsonify, current_app, session as flask_session
 from flask_login import login_required, current_user
 from extensions import db
 from models import *
 from utils import *
 from datetime import datetime
-import math
+import math, json
 
 def register(app):
 
@@ -45,6 +45,27 @@ def register(app):
                                cotizaciones_envio=cotizaciones_envio,
                                ventas_envio=ventas_envio,
                                empaques=empaques)
+
+
+    # ── calculadora_guardar (/logistica/calculadora/guardar)
+    @app.route('/logistica/calculadora/guardar', methods=['POST'])
+    @login_required
+    def calculadora_guardar():
+        """Guarda el resultado de la calculadora de envio en la sesion del usuario."""
+        try:
+            data = request.get_json(force=True) or {}
+            # Guardar lista de cotizaciones en sesion (max 20)
+            historial = flask_session.get('cotizaciones_envio_guardadas', [])
+            nuevo_id = (max((c.get('id', 0) for c in historial), default=0) + 1)
+            data['id'] = nuevo_id
+            data['usuario'] = current_user.nombre if hasattr(current_user, 'nombre') else str(current_user.id)
+            historial.insert(0, data)
+            # Mantener solo las ultimas 20
+            flask_session['cotizaciones_envio_guardadas'] = historial[:20]
+            flask_session.modified = True
+            return jsonify({'ok': True, 'id': nuevo_id})
+        except Exception as e:
+            return jsonify({'ok': False, 'error': str(e)}), 500
 
 
     # ── empaques (/empaques)

@@ -11,7 +11,7 @@
 {% if items %}
 <div class="table-responsive" style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface)">
 <table class="table">
-  <thead><tr><th>Numero</th><th>Titulo</th><th>Productos</th><th>Cliente</th><th>Total</th><th>Estado</th><th>Valida hasta</th><th></th></tr></thead>
+  <thead><tr><th>Numero</th><th>Titulo</th><th>Productos</th><th class="text-end">Cantidad</th><th>Dias entrega</th><th>Anticipo %</th><th>Cliente</th><th>Total</th><th>Estado</th><th>Valida hasta</th><th></th></tr></thead>
   <tbody>{% for c in items %}<tr {% if c.estado=='vencida' %}style="background-color:rgba(255,0,0,.05)"{% endif %}>
     <td><a href="{{ url_for('cotizacion_ver', id=c.id) }}" class="fw-semibold text-decoration-none" style="color:var(--ac)">{{ c.numero or '—' }}</a></td>
     <td style="color:var(--text)">{{ c.titulo }}</td>
@@ -21,6 +21,9 @@
       {% endfor %}
       {% if c.items|length > 3 %}<small class="text-muted">+{{ c.items|length - 3 }} mas</small>{% endif %}
     </td>
+    <td class="text-end fw-semibold" style="font-size:.85rem">{{ c.items|sum(attribute='cantidad')|int if c.items else 0 }}</td>
+    <td style="font-size:.85rem">{% if c.dias_entrega %}<span class="text-muted">{{ c.dias_entrega }}d</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+    <td style="font-size:.85rem">{% if c.porcentaje_anticipo %}<span class="b b-borrador">{{ c.porcentaje_anticipo|int }}%</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
     <td><small class="text-muted">{{ c.cliente.empresa or c.cliente.nombre if c.cliente else '—' }}</small></td>
     <td class="fw-semibold">{{ moneda(c.total) }}</td>
     <td><span class="b {% if c.estado=='borrador' %}b-borrador{% elif c.estado=='enviada' %}b-negociacion{% elif c.estado=='aprobada' %}b-activo{% elif c.estado=='confirmacion_orden' %}b-aceptada_cliente{% elif c.estado=='vencida' %}b-rechazada{% else %}b-pendiente{% endif %}">

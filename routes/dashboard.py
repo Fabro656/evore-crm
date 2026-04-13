@@ -18,15 +18,23 @@ def register(app):
         if request.method == 'POST':
             data = request.get_json(silent=True) or {}
             tabs = data.get('tabs', [])
-            current_user.workspace_tabs = json.dumps(tabs)
+            active_id = data.get('activeId', None)
+            current_user.workspace_tabs = json.dumps({'tabs': tabs, 'activeId': active_id})
             db.session.commit()
             return jsonify({'ok': True})
-        # GET
+        # GET — handle both old format (plain list) and new format ({tabs, activeId})
         try:
-            tabs = json.loads(current_user.workspace_tabs or '[]')
+            raw = json.loads(current_user.workspace_tabs or '[]')
+            if isinstance(raw, list):
+                tabs = raw
+                active_id = None
+            else:
+                tabs = raw.get('tabs', [])
+                active_id = raw.get('activeId', None)
         except Exception:
             tabs = []
-        return jsonify({'tabs': tabs})
+            active_id = None
+        return jsonify({'tabs': tabs, 'activeId': active_id})
 
 
     # ── dashboard (/)
