@@ -93,14 +93,14 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .sb-foot .notif-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;font-size:.9rem}
 
 /* ── Dock flyout panel (hold to open) ────────── */
-.dock-panel{position:fixed;left:68px;width:260px;max-height:75vh;background:rgba(15,23,42,.94);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:16px;border:1px solid rgba(255,255,255,.08);box-shadow:0 20px 60px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.05) inset;z-index:1060;display:none;overflow:hidden;color:#fff;animation:dockIn .18s ease}
+.dock-panel{position:fixed;left:68px;width:260px;max-height:calc(100vh - 24px);background:rgba(15,23,42,.94);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:16px;border:1px solid rgba(255,255,255,.08);box-shadow:0 20px 60px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.05) inset;z-index:1060;display:none;overflow:hidden;color:#fff;animation:dockIn .18s ease}
 @keyframes dockIn{from{opacity:0;transform:translateX(-8px) scale(.95)}to{opacity:1;transform:none}}
 .dock-panel-head{padding:12px 14px 10px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.06);text-decoration:none;color:#fff;transition:background .12s;cursor:pointer}
 .dock-panel-head:hover{background:rgba(255,255,255,.06);color:#fff}
 .dock-panel-head i{font-size:1.05rem;color:var(--sb-active)}
 .dock-panel-head span{font-size:.82rem;font-weight:700;letter-spacing:.3px}
 .dock-panel-head .dp-arrow{margin-left:auto;font-size:.7rem;opacity:.4}
-.dock-panel-body{padding:6px;max-height:calc(75vh - 50px);overflow-y:auto}
+.dock-panel-body{padding:6px;max-height:calc(100vh - 100px);overflow-y:auto;-webkit-overflow-scrolling:touch}
 .dock-panel-link{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:10px;color:rgba(255,255,255,.75);font-size:.83rem;text-decoration:none;transition:all .12s}
 .dock-panel-link:hover{background:rgba(255,255,255,.08);color:#fff}
 .dock-panel-link.dp-active{background:rgba(91,175,250,.15);color:var(--sb-active)}
@@ -806,12 +806,55 @@ img,svg{max-width:100%;height:auto}
     if(!panel) return;
     var sb = document.getElementById('sb');
     var isExpanded = sb && sb.classList.contains('sb-expanded');
-    panel.style.left = isExpanded ? '244px' : '68px';
-    var rect = icon.getBoundingClientRect();
-    var panelH = panel.offsetHeight || 200;
-    var top = Math.max(8, Math.min(rect.top - 10, window.innerHeight - panelH - 16));
-    panel.style.top = top + 'px';
+    var isMob = window.innerWidth <= 768;
+    var vh = window.innerHeight;
+    var pad = 12;
+
+    // Mostrar off-screen para medir alto real
+    panel.style.visibility = 'hidden';
     panel.style.display = 'block';
+    var panelH = panel.offsetHeight;
+    panel.style.visibility = '';
+
+    if (isMob) {
+      // Mobile: centrado horizontal, desde abajo
+      panel.style.left = pad + 'px';
+      panel.style.right = pad + 'px';
+      panel.style.width = 'auto';
+      var maxH = vh - 2 * pad;
+      if (panelH > maxH) {
+        panel.style.maxHeight = maxH + 'px';
+      }
+      panel.style.top = Math.max(pad, vh - panelH - pad) + 'px';
+    } else {
+      // Desktop: al lado del dock
+      panel.style.left = (isExpanded ? 244 : 68) + 'px';
+      panel.style.removeProperty('right');
+      panel.style.removeProperty('width');
+      var rect = icon.getBoundingClientRect();
+      var iconCenterY = rect.top + rect.height / 2;
+
+      // Calcular max-height disponible
+      var maxAvailable = vh - 2 * pad;
+      if (panelH > maxAvailable) {
+        panel.style.maxHeight = maxAvailable + 'px';
+        panelH = maxAvailable;
+      }
+
+      // Intentar centrar verticalmente respecto al icono
+      var top = iconCenterY - panelH / 2;
+
+      // Clamp: no salir por arriba ni por abajo
+      if (top + panelH > vh - pad) {
+        top = vh - panelH - pad;
+      }
+      if (top < pad) {
+        top = pad;
+      }
+
+      panel.style.top = top + 'px';
+    }
+
     document.getElementById('dock-overlay').style.display = 'block';
   };
 
