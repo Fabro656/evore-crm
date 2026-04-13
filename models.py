@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date as date_type
 import json, secrets, os, logging
 
-__all__ = ['User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'MovimientoBancario', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'MovimientoInventario', 'Notificacion', 'Empleado', 'HoraExtra', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'HistorialPrecio', 'HistorialCotizacion', 'load_user', '_migrate', 'init_db']
+__all__ = ['User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'MovimientoBancario', 'NotaContable', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'MovimientoInventario', 'Notificacion', 'Empleado', 'HoraExtra', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'HistorialPrecio', 'HistorialCotizacion', 'load_user', '_migrate', 'init_db']
 
 
 class User(UserMixin, db.Model):
@@ -525,6 +525,28 @@ class MovimientoBancario(db.Model):
     asiento_id  = db.Column(db.Integer, db.ForeignKey('asientos_contables.id'), nullable=True)
     creado_en   = db.Column(db.DateTime, default=datetime.utcnow)
     asiento     = db.relationship('AsientoContable', foreign_keys=[asiento_id])
+
+class NotaContable(db.Model):
+    """Nota credito o debito — correccion parcial/total de una factura."""
+    __tablename__ = 'notas_contables'
+    id              = db.Column(db.Integer, primary_key=True)
+    numero          = db.Column(db.String(20))  # NC-YYYY-NNN o ND-YYYY-NNN
+    tipo            = db.Column(db.String(10), nullable=False)  # credito, debito
+    fecha           = db.Column(db.Date, nullable=False)
+    venta_id        = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=True)
+    asiento_original_id = db.Column(db.Integer, db.ForeignKey('asientos_contables.id'), nullable=True)
+    asiento_nota_id = db.Column(db.Integer, db.ForeignKey('asientos_contables.id'), nullable=True)
+    monto           = db.Column(db.Float, nullable=False)
+    motivo          = db.Column(db.String(300), nullable=False)
+    descripcion     = db.Column(db.Text)
+    estado          = db.Column(db.String(20), default='emitida')  # emitida, anulada
+    tercero_nit     = db.Column(db.String(30))
+    tercero_nombre  = db.Column(db.String(200))
+    creado_por      = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
+    venta           = db.relationship('Venta', foreign_keys=[venta_id])
+    asiento_original = db.relationship('AsientoContable', foreign_keys=[asiento_original_id])
+    asiento_nota    = db.relationship('AsientoContable', foreign_keys=[asiento_nota_id])
 
 class LineaAsiento(db.Model):
     """Línea de un asiento contable — partida doble con cuenta PUC."""

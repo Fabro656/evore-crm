@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% block title %}Notas Crédito / Débito{% endblock %}
+{% block page_title %}Notas Crédito / Débito{% endblock %}
+
+{% block topbar_actions %}
+<div class="d-flex gap-2 flex-wrap">
+  <a href="{{ url_for('contable_nota_nueva', tipo='credito') }}" class="btn btn-sm btn-outline-success">
+    <i class="bi bi-file-earmark-minus me-1"></i>Nueva Nota Crédito
+  </a>
+  <a href="{{ url_for('contable_nota_nueva', tipo='debito') }}" class="btn btn-sm btn-outline-primary">
+    <i class="bi bi-file-earmark-plus me-1"></i>Nueva Nota Débito
+  </a>
+  <a href="{{ url_for('contable_index') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Dashboard
+  </a>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{# ── Stats ── #}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="tc text-center py-3">
+      <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Total notas</div>
+      <div class="fw-bold mt-1" style="font-size:1.25rem;color:var(--ac)">{{ notas|length }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="tc text-center py-3">
+      <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Notas crédito</div>
+      <div class="fw-bold mt-1" style="font-size:1.25rem;color:var(--red)">{{ moneda(total_credito) }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="tc text-center py-3">
+      <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Notas débito</div>
+      <div class="fw-bold mt-1" style="font-size:1.25rem;color:var(--green)">{{ moneda(total_debito) }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="tc text-center py-3">
+      <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Neto</div>
+      <div class="fw-bold mt-1" style="font-size:1.25rem;color:{{ 'var(--green)' if total_debito >= total_credito else 'var(--red)' }}">
+        {{ moneda(total_debito - total_credito) }}
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── Filtros ── #}
+<div class="tc mb-3">
+  <form method="GET" class="row g-2 align-items-end" style="padding:1rem 1.2rem">
+    <div class="col-auto">
+      <label class="form-label mb-1" style="font-size:.82rem">Tipo</label>
+      <select name="tipo" class="form-select form-select-sm">
+        <option value=""        {% if tipo==''        %}selected{% endif %}>Todos</option>
+        <option value="credito" {% if tipo=='credito' %}selected{% endif %}>Nota Crédito</option>
+        <option value="debito"  {% if tipo=='debito'  %}selected{% endif %}>Nota Débito</option>
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label mb-1" style="font-size:.82rem">Desde</label>
+      <input type="date" name="desde" class="form-control form-control-sm" value="{{ desde }}">
+    </div>
+    <div class="col-auto">
+      <label class="form-label mb-1" style="font-size:.82rem">Hasta</label>
+      <input type="date" name="hasta" class="form-control form-control-sm" value="{{ hasta }}">
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-sm btn-primary">
+        <i class="bi bi-search me-1"></i>Filtrar
+      </button>
+      <a href="{{ url_for('contable_notas') }}" class="btn btn-sm btn-outline-secondary ms-1">Limpiar</a>
+    </div>
+  </form>
+</div>
+
+{# ── Tabla ── #}
+<div class="tc">
+  <div class="ch"><i class="bi bi-file-earmark-text me-2"></i>Listado de notas</div>
+  {% if notas %}
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Número</th>
+          <th>Fecha</th>
+          <th>Tipo</th>
+          <th>Tercero</th>
+          <th>Motivo</th>
+          <th class="text-end">Monto</th>
+          <th>Venta</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for n in notas %}
+        <tr>
+          <td class="fw-semibold" style="font-size:.88rem">{{ n.numero }}</td>
+          <td style="font-size:.85rem">{{ n.fecha.strftime('%d/%m/%Y') if n.fecha else '—' }}</td>
+          <td>
+            {% if n.tipo == 'credito' %}
+              <span class="b" style="background:#FFEBE6;color:#BF2600;font-size:.78rem;padding:2px 8px;border-radius:10px">
+                <i class="bi bi-dash-circle me-1"></i>Crédito
+              </span>
+            {% else %}
+              <span class="b" style="background:#E3FCEF;color:#006644;font-size:.78rem;padding:2px 8px;border-radius:10px">
+                <i class="bi bi-plus-circle me-1"></i>Débito
+              </span>
+            {% endif %}
+          </td>
+          <td style="font-size:.85rem">
+            {% if n.tercero_nombre %}
+              <div>{{ n.tercero_nombre }}</div>
+              {% if n.tercero_nit %}<div style="color:var(--text2);font-size:.78rem">NIT {{ n.tercero_nit }}</div>{% endif %}
+            {% else %}
+              <span style="color:var(--text2)">—</span>
+            {% endif %}
+          </td>
+          <td style="font-size:.85rem;max-width:180px">
+            <span title="{{ n.motivo }}">{{ n.motivo[:60] }}{% if n.motivo|length > 60 %}…{% endif %}</span>
+          </td>
+          <td class="text-end fw-semibold" style="font-size:.9rem">{{ moneda(n.monto) }}</td>
+          <td style="font-size:.82rem">
+            {% if n.venta %}
+              <a href="{{ url_for('venta_detalle', id=n.venta_id) }}" style="color:var(--ac)">
+                {{ n.venta.numero or ('#' ~ n.venta_id) }}
+              </a>
+            {% else %}
+              <span style="color:var(--text2)">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if n.estado == 'emitida' %}
+              <span class="b" style="background:#EAE6FF;color:#403294;font-size:.78rem;padding:2px 8px;border-radius:10px">Emitida</span>
+            {% elif n.estado == 'anulada' %}
+              <span class="b" style="background:#F4F5F7;color:#5E6C84;font-size:.78rem;padding:2px 8px;border-radius:10px">Anulada</span>
+            {% else %}
+              <span class="b" style="font-size:.78rem;padding:2px 8px;border-radius:10px">{{ n.estado }}</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('contable_nota_pdf', id=n.id) }}" class="btn btn-xs btn-outline-secondary" target="_blank" title="Ver PDF">
+              <i class="bi bi-printer"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-5" style="color:var(--text2)">
+    <i class="bi bi-file-earmark-text" style="font-size:2.5rem;opacity:.3"></i>
+    <div class="mt-2">No hay notas registradas{% if tipo or desde or hasta %} con los filtros seleccionados{% endif %}.</div>
+    <a href="{{ url_for('contable_nota_nueva') }}" class="btn btn-sm btn-primary mt-3">
+      <i class="bi bi-plus-lg me-1"></i>Crear primera nota
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

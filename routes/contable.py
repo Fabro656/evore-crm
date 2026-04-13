@@ -1290,3 +1290,367 @@ def register(app):
             total_haber=total_haber,
             saldo_final=saldo_final,
             filtros={'tercero': tercero, 'desde': desde, 'hasta': hasta})
+
+    # ── contable_flujo_caja: Reporte de flujo de caja (/contable/flujo-caja)
+    @app.route('/contable/flujo-caja')
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_flujo_caja():
+        import calendar as cal_mod
+        hoy = date_type.today()
+
+        # Rango de fechas: por defecto primer y último día del mes actual
+        _, ultimo_dia = cal_mod.monthrange(hoy.year, hoy.month)
+        desde_default = hoy.replace(day=1).strftime('%Y-%m-%d')
+        hasta_default = hoy.replace(day=ultimo_dia).strftime('%Y-%m-%d')
+
+        desde_str = request.args.get('desde', desde_default)
+        hasta_str = request.args.get('hasta', hasta_default)
+
+        try:
+            desde = datetime.strptime(desde_str, '%Y-%m-%d').date()
+        except Exception:
+            desde = hoy.replace(day=1)
+            desde_str = desde.strftime('%Y-%m-%d')
+
+        try:
+            hasta = datetime.strptime(hasta_str, '%Y-%m-%d').date()
+        except Exception:
+            hasta = hoy.replace(day=ultimo_dia)
+            hasta_str = hasta.strftime('%Y-%m-%d')
+
+        # Consultar asientos en el rango
+        try:
+            asientos = AsientoContable.query.filter(
+                AsientoContable.fecha >= desde,
+                AsientoContable.fecha <= hasta
+            ).order_by(AsientoContable.fecha).all()
+        except Exception:
+            db.session.rollback()
+            asientos = []
+
+        # Totales globales
+        total_ingresos = sum(float(a.haber or 0) for a in asientos if a.clasificacion == 'ingreso')
+        total_egresos  = sum(float(a.debe  or 0) for a in asientos if a.clasificacion == 'egreso')
+        saldo_neto     = total_ingresos - total_egresos
+
+        # Etiquetas legibles por tipo de asiento
+        TIPOS_ETIQUETA = {
+            'venta':            'Ventas',
+            'compra':           'Compras',
+            'nomina':           'Nómina',
+            'gasto':            'Gastos operativos',
+            'gasto_caja_chica': 'Caja chica',
+            'ingreso_externo':  'Ingresos externos',
+            'inversion_socio':  'Aportaciones de capital',
+            'manual':           'Asientos manuales',
+        }
+
+        # Construir resumen por tipo
+        tipos_resumen = {}
+        for a in asientos:
+            tipo = a.tipo or 'manual'
+            if tipo not in tipos_resumen:
+                tipos_resumen[tipo] = {
+                    'etiqueta': TIPOS_ETIQUETA.get(tipo, tipo.replace('_', ' ').title()),
+                    'cantidad': 0,
+                    'ingresos': 0.0,
+                    'egresos':  0.0,
+                }
+            tipos_resumen[tipo]['cantidad'] += 1
+            if a.clasificacion == 'ingreso':
+                tipos_resumen[tipo]['ingresos'] += float(a.haber or 0)
+            elif a.clasificacion == 'egreso':
+                tipos_resumen[tipo]['egresos'] += float(a.debe or 0)
+
+        # Calcular neto por tipo y ordenar
+        for k in tipos_resumen:
+            tipos_resumen[k]['neto'] = tipos_resumen[k]['ingresos'] - tipos_resumen[k]['egresos']
+
+        filas_tipo = sorted(tipos_resumen.values(),
+                            key=lambda x: (-x['ingresos'], x['egresos']))
+
+        return render_template('contable/flujo_caja.html',
+            desde=desde, hasta=hasta,
+            desde_str=desde_str, hasta_str=hasta_str,
+            total_ingresos=total_ingresos,
+            total_egresos=total_egresos,
+            saldo_neto=saldo_neto,
+            filas_tipo=filas_tipo,
+            total_asientos=len(asientos),
+        )
+
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # CERTIFICADO DE RETENCIÓN EN LA FUENTE (Art. 381 ET)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    @app.route('/contable/certificado-retencion')
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_certificado_retencion():
+        """Formulario para seleccionar proveedor y año y generar el certificado."""
+        proveedores = Proveedor.query.filter_by(activo=True).order_by(Proveedor.nombre).all()
+        anios = list(range(2024, date_type.today().year + 1))
+        return render_template('contable/certificado_retencion.html',
+            proveedores=proveedores,
+            anios=anios,
+            proveedor_sel=None,
+            datos=None)
+
+
+    @app.route('/contable/certificado-retencion/generar')
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_certificado_retencion_generar():
+        """Genera el certificado de retención en la fuente imprimible para un proveedor y año."""
+        proveedor_id = request.args.get('proveedor_id', '')
+        anio_str = request.args.get('anio', str(date_type.today().year))
+        try:
+            anio = int(anio_str)
+        except ValueError:
+            anio = date_type.today().year
+        try:
+            proveedor_id_int = int(proveedor_id)
+        except (ValueError, TypeError):
+            flash('Proveedor no válido.', 'danger')
+            return redirect(url_for('contable_certificado_retencion'))
+
+        proveedor = Proveedor.query.get_or_404(proveedor_id_int)
+        empresa = ConfigEmpresa.query.first()
+
+        # Rango del año completo
+        fecha_ini = date_type(anio, 1, 1)
+        fecha_fin = date_type(anio, 12, 31)
+
+        # Asientos contables del proveedor en el año (sin anulados)
+        asientos = AsientoContable.query.filter(
+            AsientoContable.proveedor_id == proveedor_id_int,
+            AsientoContable.fecha >= fecha_ini,
+            AsientoContable.fecha <= fecha_fin,
+            AsientoContable.estado_asiento != 'anulado'
+        ).order_by(AsientoContable.fecha).all()
+
+        # Constantes tributarias 2025 (DUR 1625/2016)
+        TASA_RETEFUENTE = 0.025   # 2.5% — Art. 392 ET compras
+        TASA_RETEIVA    = 0.15    # 15% del IVA — Art. 437-1 ET
+        TASA_RETEICA    = 0.00414 # 4.14 x mil industria y comercio (promedio)
+
+        # Calcular base gravable por mes
+        meses_labels = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                        'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+        por_mes = []
+        total_base = 0.0
+        total_retefuente = 0.0
+        total_reteiva = 0.0
+        total_reteica = 0.0
+
+        for mes_num in range(1, 13):
+            asientos_mes = [a for a in asientos if a.fecha.month == mes_num]
+            base_mes = sum(float(a.debe or 0) for a in asientos_mes)
+            # IVA estimado: subtipo 'iva' o calcular como 19% de base
+            iva_mes = sum(
+                float(a.haber or 0) for a in asientos_mes
+                if (a.subtipo or '').lower() in ('iva', 'reteiva')
+            )
+            if iva_mes == 0 and base_mes > 0:
+                iva_mes = base_mes * 0.19  # IVA 19% estimado
+
+            retefuente = round(base_mes * TASA_RETEFUENTE, 0)
+            reteiva = round(iva_mes * TASA_RETEIVA, 0)
+            reteica = round(base_mes * TASA_RETEICA, 0) if base_mes > 0 else 0
+
+            total_base += base_mes
+            total_retefuente += retefuente
+            total_reteiva += reteiva
+            total_reteica += reteica
+
+            if base_mes > 0 or len(asientos_mes) > 0:
+                por_mes.append({
+                    'mes': meses_labels[mes_num - 1],
+                    'n_asientos': len(asientos_mes),
+                    'base': base_mes,
+                    'retefuente': retefuente,
+                    'reteiva': reteiva,
+                    'reteica': reteica,
+                    'total_retenido': retefuente + reteiva + reteica,
+                })
+
+        datos = {
+            'anio': anio,
+            'proveedor': proveedor,
+            'empresa': empresa,
+            'por_mes': por_mes,
+            'total_base': total_base,
+            'total_retefuente': total_retefuente,
+            'total_reteiva': total_reteiva,
+            'total_reteica': total_reteica,
+            'total_retenciones': total_retefuente + total_reteiva + total_reteica,
+            'tasa_retefuente': TASA_RETEFUENTE * 100,
+            'tasa_reteiva': TASA_RETEIVA * 100,
+            'tasa_reteica': TASA_RETEICA * 1000,
+            'n_asientos': len(asientos),
+            'fecha_expedicion': date_type.today(),
+        }
+
+        return render_template('contable/certificado_retencion.html',
+            proveedores=Proveedor.query.filter_by(activo=True).order_by(Proveedor.nombre).all(),
+            anios=list(range(2024, date_type.today().year + 1)),
+            proveedor_sel=proveedor,
+            datos=datos)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # NOTAS CRÉDITO / DÉBITO  (v41)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    # ── contable_notas: Lista todas las notas crédito/débito
+    @app.route('/contable/notas')
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_notas():
+        tipo  = request.args.get('tipo', '')
+        desde = request.args.get('desde', '')
+        hasta = request.args.get('hasta', '')
+
+        q = NotaContable.query
+
+        if tipo in ('credito', 'debito'):
+            q = q.filter(NotaContable.tipo == tipo)
+        if desde:
+            try:
+                q = q.filter(NotaContable.fecha >= datetime.strptime(desde, '%Y-%m-%d').date())
+            except Exception:
+                pass
+        if hasta:
+            try:
+                q = q.filter(NotaContable.fecha <= datetime.strptime(hasta, '%Y-%m-%d').date())
+            except Exception:
+                pass
+
+        notas = q.order_by(NotaContable.fecha.desc(), NotaContable.id.desc()).all()
+        total_credito = sum(float(n.monto or 0) for n in notas if n.tipo == 'credito')
+        total_debito  = sum(float(n.monto or 0) for n in notas if n.tipo == 'debito')
+
+        return render_template('contable/notas.html',
+            notas=notas, tipo=tipo, desde=desde, hasta=hasta,
+            total_credito=total_credito, total_debito=total_debito)
+
+    # ── contable_nota_nueva: Crear nueva nota crédito/débito
+    @app.route('/contable/notas/nueva', methods=['GET', 'POST'])
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_nota_nueva():
+        if request.method == 'POST':
+            tipo           = request.form.get('tipo', 'credito')
+            monto_raw      = request.form.get('monto', '0') or '0'
+            monto          = float(monto_raw.replace(',', '.'))
+            motivo         = request.form.get('motivo', '').strip()
+            descripcion    = request.form.get('descripcion', '').strip()
+            tercero_nit    = request.form.get('tercero_nit', '').strip() or None
+            tercero_nombre = request.form.get('tercero_nombre', '').strip() or None
+            fecha_str      = request.form.get('fecha', '')
+            venta_id_raw   = request.form.get('venta_id', '')
+
+            try:
+                fecha_obj = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+            except Exception:
+                fecha_obj = date_type.today()
+
+            venta_id = int(venta_id_raw) if venta_id_raw.isdigit() else None
+
+            # ── Auto-número NC-YYYY-NNN / ND-YYYY-NNN
+            prefijo   = 'NC' if tipo == 'credito' else 'ND'
+            ultimo_nc = NotaContable.query.order_by(NotaContable.id.desc()).first()
+            seq       = (ultimo_nc.id + 1) if ultimo_nc else 1
+            numero    = f'{prefijo}-{fecha_obj.year}-{seq:04d}'
+
+            # ── Crear la nota
+            nota = NotaContable(
+                numero=numero,
+                tipo=tipo,
+                fecha=fecha_obj,
+                venta_id=venta_id,
+                monto=monto,
+                motivo=motivo,
+                descripcion=descripcion,
+                estado='emitida',
+                tercero_nit=tercero_nit,
+                tercero_nombre=tercero_nombre,
+                creado_por=current_user.id,
+            )
+            db.session.add(nota)
+            db.session.flush()  # obtener nota.id antes del asiento
+
+            # ── Crear asiento contable inverso (partida doble simplificada)
+            # Crédito → reduce ingreso: Debe 4135 (devol. ventas) / Haber 1305 (reduce CxC)
+            # Débito  → aumenta cargo:  Debe 1305 (aumenta CxC)   / Haber 4135
+            if tipo == 'credito':
+                cuenta_debe_val  = '4135 - Devoluciones en ventas'
+                cuenta_haber_val = '1305 - Clientes (cuentas por cobrar)'
+                clasif    = 'egreso'
+                debe_val  = monto
+                haber_val = 0.0
+            else:
+                cuenta_debe_val  = '1305 - Clientes (cuentas por cobrar)'
+                cuenta_haber_val = '4135 - Ingresos por ventas'
+                clasif    = 'ingreso'
+                debe_val  = 0.0
+                haber_val = monto
+
+            ultimo_ac = AsientoContable.query.order_by(AsientoContable.id.desc()).first()
+            n_ac      = (ultimo_ac.id + 1) if ultimo_ac else 1
+            numero_ac = f'AC-{fecha_obj.year}-{n_ac:04d}'
+
+            asiento = AsientoContable(
+                numero=numero_ac,
+                fecha=fecha_obj,
+                descripcion=f'{prefijo} {numero}: {motivo[:100]}',
+                tipo='nota_credito' if tipo == 'credito' else 'nota_debito',
+                tipo_documento='nota_contable',
+                clasificacion=clasif,
+                debe=debe_val,
+                haber=haber_val,
+                cuenta_debe=cuenta_debe_val,
+                cuenta_haber=cuenta_haber_val,
+                venta_id=venta_id,
+                tercero_nit=tercero_nit,
+                tercero_nombre=tercero_nombre,
+                estado_asiento='aprobado',
+                creado_por=current_user.id,
+            )
+            db.session.add(asiento)
+            db.session.flush()
+
+            nota.asiento_nota_id = asiento.id
+
+            # ── Ajustar venta si se indicó
+            if venta_id:
+                venta = Venta.query.get(venta_id)
+                if venta:
+                    monto_pagado_actual = float(venta.monto_pagado_total or 0)
+                    if tipo == 'credito':
+                        venta.monto_pagado_total = max(0.0, monto_pagado_actual - monto)
+                    else:
+                        venta.monto_pagado_total = monto_pagado_actual + monto
+
+            db.session.commit()
+            flash(f'Nota {numero} creada correctamente.', 'success')
+            return redirect(url_for('contable_notas'))
+
+        ventas = Venta.query.filter(
+            Venta.estado.in_(['anticipo_pagado', 'pagado', 'entregado', 'completado'])
+        ).order_by(Venta.creado_en.desc()).limit(200).all()
+
+        return render_template('contable/nota_form.html',
+            ventas=ventas,
+            hoy=date_type.today().isoformat(),
+            tipo_default=request.args.get('tipo', 'credito'))
+
+    # ── contable_nota_pdf: Vista imprimible de una nota
+    @app.route('/contable/notas/<int:id>/pdf')
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_nota_pdf(id):
+        nota    = NotaContable.query.get_or_404(id)
+        empresa = ConfigEmpresa.query.first()
+        return render_template('contable/nota_pdf.html', nota=nota, empresa=empresa)

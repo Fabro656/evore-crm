@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ nota.numero }} — {{ empresa.nombre if empresa else 'Evore' }}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 11pt;
+      color: #1a1f36;
+      background: #f0f2f5;
+    }
+    .no-print {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; gap: 8px; padding: 10px 16px;
+      background: #fff; border-bottom: 1px solid #e0e3ea;
+      box-shadow: 0 2px 4px rgba(0,0,0,.06);
+    }
+    .btn {
+      padding: 8px 18px; border: none; border-radius: 4px; cursor: pointer;
+      font-size: 13px; font-weight: 600; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: -apple-system, sans-serif;
+    }
+    .btn-primary   { background: #0052CC; color: #fff; }
+    .btn-primary:hover { background: #0039A6; }
+    .btn-secondary { background: #F4F5F7; color: #172B4D; border: 1px solid #DFE1E6; }
+    .btn-secondary:hover { background: #EBECF0; }
+    .page {
+      max-width: 700px; margin: 28px auto 60px;
+      background: #fff; padding: 40px 48px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.12);
+    }
+    /* Header */
+    .header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      border-bottom: 3px solid #1a1f36; padding-bottom: 16px; margin-bottom: 22px;
+    }
+    .empresa-nombre {
+      font-size: 18pt; font-weight: 800; letter-spacing: -0.5px; color: #1a1f36;
+    }
+    .empresa-datos { font-size: 9pt; color: #5E6C84; margin-top: 4px; line-height: 1.5; }
+    .doc-titulo { text-align: right; }
+    .doc-titulo h1 {
+      font-size: 22pt; font-weight: 800; letter-spacing: -1px; margin-bottom: 4px;
+      color: {% if nota.tipo == 'credito' %}#BF2600{% else %}#006644{% endif %};
+    }
+    .doc-numero { font-size: 10pt; color: #6B778C; }
+    /* Info grid */
+    .info-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 22px;
+    }
+    .info-box {
+      background: #f8f9fe; border-radius: 6px; padding: 12px 14px;
+    }
+    .info-box h4 {
+      font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.8px;
+      color: #6B778C; margin-bottom: 6px; font-weight: 700;
+      font-family: -apple-system, 'Helvetica Neue', sans-serif;
+    }
+    .info-box p { font-size: 10pt; color: #1a1f36; line-height: 1.5; margin: 0; }
+    /* Tabla */
+    table { width: 100%; border-collapse: collapse; margin: 18px 0; }
+    th {
+      background: #1a1f36; color: #fff; font-size: 9pt;
+      padding: 8px 10px; text-align: left; font-weight: 600;
+      letter-spacing: 0.4px; text-transform: uppercase;
+      font-family: -apple-system, 'Helvetica Neue', sans-serif;
+    }
+    td { padding: 9px 10px; font-size: 10pt; border-bottom: 1px solid #e8ecf5; }
+    tr:last-child td { border-bottom: none; }
+    .monto-row td {
+      background: #f8f9fe; font-weight: 700; font-size: 13pt; border-top: 2px solid #1a1f36;
+    }
+    .text-right { text-align: right; }
+    /* Asiento */
+    .asiento-box {
+      background: #f0f2f5; border-radius: 6px; padding: 14px 16px; margin: 18px 0;
+      font-family: -apple-system, 'Helvetica Neue', sans-serif; font-size: 9.5pt;
+    }
+    .asiento-box h4 {
+      font-size: 8pt; text-transform: uppercase; letter-spacing: 0.8px;
+      color: #6B778C; margin-bottom: 8px; font-weight: 700;
+    }
+    .asiento-row { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+    .asiento-cuenta { color: #1a1f36; }
+    .asiento-monto  { font-weight: 600; white-space: nowrap; }
+    .asiento-debe   { color: #BF2600; }
+    .asiento-haber  { color: #006644; }
+    /* Footer */
+    .footer {
+      margin-top: 40px; padding-top: 14px;
+      border-top: 1px solid #e0e3ea;
+      display: flex; justify-content: space-between; align-items: flex-end;
+      font-size: 8.5pt; color: #6B778C;
+      font-family: -apple-system, 'Helvetica Neue', sans-serif;
+    }
+    .firma-area {
+      text-align: center; width: 180px;
+    }
+    .firma-linea {
+      border-top: 1px solid #1a1f36; margin-top: 36px; padding-top: 6px; font-size: 8.5pt;
+    }
+    /* Print */
+    @media print {
+      body { background: #fff; }
+      .no-print { display: none !important; }
+      .page { margin: 0; padding: 20mm 16mm; box-shadow: none; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="no-print">
+  <button class="btn btn-primary" onclick="window.print()">
+    <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+      <path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/>
+      <path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4V3zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2H5zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1z"/>
+    </svg>
+    Imprimir
+  </button>
+  <a href="{{ url_for('contable_notas') }}" class="btn btn-secondary">
+    ← Volver al listado
+  </a>
+</div>
+
+<div class="page">
+
+  {# ── Encabezado ── #}
+  <div class="header">
+    <div>
+      <div class="empresa-nombre">{{ empresa.nombre if empresa else 'Evore' }}</div>
+      <div class="empresa-datos">
+        {% if empresa %}
+          {% if empresa.nit %}NIT: {{ empresa.nit }}<br>{% endif %}
+          {% if empresa.direccion %}{{ empresa.direccion }}<br>{% endif %}
+          {% if empresa.ciudad %}{{ empresa.ciudad }}{% if empresa.pais %}, {{ empresa.pais }}{% endif %}<br>{% endif %}
+          {% if empresa.telefono %}Tel: {{ empresa.telefono }}{% endif %}
+        {% endif %}
+      </div>
+    </div>
+    <div class="doc-titulo">
+      <h1>NOTA {{ 'CRÉDITO' if nota.tipo == 'credito' else 'DÉBITO' }}</h1>
+      <div class="doc-numero">{{ nota.numero }}</div>
+      <div class="doc-numero" style="margin-top:4px">
+        Fecha: {{ nota.fecha.strftime('%d de %B de %Y') if nota.fecha else '—' }}
+      </div>
+      <div style="margin-top:6px">
+        {% if nota.estado == 'emitida' %}
+          <span style="background:#EAE6FF;color:#403294;font-size:8.5pt;padding:3px 10px;border-radius:10px;font-family:sans-serif;font-weight:600">EMITIDA</span>
+        {% elif nota.estado == 'anulada' %}
+          <span style="background:#F4F5F7;color:#5E6C84;font-size:8.5pt;padding:3px 10px;border-radius:10px;font-family:sans-serif;font-weight:600">ANULADA</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# ── Info grid ── #}
+  <div class="info-grid">
+    <div class="info-box">
+      <h4>Tercero</h4>
+      <p>
+        {% if nota.tercero_nombre %}
+          <strong>{{ nota.tercero_nombre }}</strong><br>
+          {% if nota.tercero_nit %}NIT / C.C.: {{ nota.tercero_nit }}{% endif %}
+        {% elif nota.venta and nota.venta.cliente %}
+          <strong>{{ nota.venta.cliente.nombre }}</strong><br>
+          {% if nota.venta.cliente.nit %}NIT: {{ nota.venta.cliente.nit }}{% endif %}
+        {% else %}
+          —
+        {% endif %}
+      </p>
+    </div>
+    <div class="info-box">
+      <h4>Documento de referencia</h4>
+      <p>
+        {% if nota.venta %}
+          Venta: {{ nota.venta.numero or ('#' ~ nota.venta_id) }}<br>
+          {% if nota.asiento_original %}Asiento orig.: {{ nota.asiento_original.numero }}{% endif %}
+        {% else %}
+          Sin referencia
+        {% endif %}
+        {% if nota.asiento_nota %}
+          <br>Asiento nota: {{ nota.asiento_nota.numero }}
+        {% endif %}
+      </p>
+    </div>
+  </div>
+
+  {# ── Tabla de conceptos ── #}
+  <table>
+    <thead>
+      <tr>
+        <th>Concepto</th>
+        <th>Descripción</th>
+        <th class="text-right">Valor</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>{{ nota.motivo }}</td>
+        <td>{{ nota.descripcion or '—' }}</td>
+        <td class="text-right">
+          {% set monto_fmt = nota.monto | moneda %}
+          {{ monto_fmt }}
+        </td>
+      </tr>
+      <tr class="monto-row">
+        <td colspan="2">
+          {{ 'TOTAL NOTA CRÉDITO' if nota.tipo == 'credito' else 'TOTAL NOTA DÉBITO' }}
+        </td>
+        <td class="text-right">{{ nota.monto | moneda }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  {# ── Detalle asiento contable ── #}
+  {% if nota.asiento_nota %}
+  <div class="asiento-box">
+    <h4>Asiento contable generado — {{ nota.asiento_nota.numero }}</h4>
+    <div class="asiento-row">
+      <span class="asiento-cuenta">
+        <strong>Débito:</strong>
+        {% if nota.tipo == 'credito' %}4135 — Devoluciones en ventas{% else %}1305 — Clientes (cuentas por cobrar){% endif %}
+      </span>
+      <span class="asiento-monto asiento-debe">{{ nota.monto | moneda }}</span>
+    </div>
+    <div class="asiento-row">
+      <span class="asiento-cuenta">
+        <strong>Crédito:</strong>
+        {% if nota.tipo == 'credito' %}1305 — Clientes (cuentas por cobrar){% else %}4135 — Ingresos por ventas{% endif %}
+      </span>
+      <span class="asiento-monto asiento-haber">{{ nota.monto | moneda }}</span>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Texto legal ── #}
+  <div style="margin-top:18px;font-size:9pt;color:#6B778C;line-height:1.6;font-style:italic">
+    {% if nota.tipo == 'credito' %}
+      Este documento constituye una nota crédito que reduce el valor de la factura referenciada,
+      conforme al artículo 53 del Decreto 1165 de 2019 y la Resolución DIAN sobre documentos equivalentes.
+    {% else %}
+      Este documento constituye una nota débito que modifica al alza el valor de la factura referenciada,
+      conforme a la normativa tributaria vigente de la DIAN.
+    {% endif %}
+  </div>
+
+  {# ── Footer / Firmas ── #}
+  <div class="footer">
+    <div>
+      <div>Generado el {{ nota.creado_en.strftime('%d/%m/%Y %H:%M') if nota.creado_en else '—' }}</div>
+      <div>{{ empresa.nombre if empresa else 'Evore CRM' }}</div>
+    </div>
+    <div class="firma-area">
+      <div class="firma-linea">Autorizado por</div>
+    </div>
+    <div class="firma-area">
+      <div class="firma-linea">Recibido por</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

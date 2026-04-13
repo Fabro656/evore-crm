@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+{% block title %}Certificado de Retención — Art. 381 ET{% endblock %}
+{% block page_title %}Certificado de Retención en la Fuente{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('contable_index') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Contabilidad</a>
+{% if datos %}
+<button onclick="window.print()" class="btn btn-sm btn-primary no-print"><i class="bi bi-printer me-1"></i>Imprimir / PDF</button>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+{# ─── Formulario de selección (oculto al imprimir) ─────────────────────── #}
+<div class="no-print mb-4" style="max-width:700px">
+  <div class="tc">
+    <div class="ch"><i class="bi bi-file-earmark-text me-2"></i>Generar certificado (Art. 381 ET)</div>
+    <div class="cb">
+      <form method="GET" action="{{ url_for('contable_certificado_retencion_generar') }}" class="row g-2 align-items-end">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Proveedor</label>
+          <select name="proveedor_id" class="form-select form-select-sm" required>
+            <option value="">— Seleccionar proveedor —</option>
+            {% for p in proveedores %}
+            <option value="{{ p.id }}" {% if proveedor_sel and proveedor_sel.id == p.id %}selected{% endif %}>
+              {{ p.nombre }}{% if p.empresa %} — {{ p.empresa }}{% endif %}
+              {% if p.nit %} (NIT: {{ p.nit }}){% endif %}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Año gravable</label>
+          <select name="anio" class="form-select form-select-sm">
+            {% for a in anios %}
+            <option value="{{ a }}" {% if datos and datos.anio == a %}selected{% endif %}>{{ a }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <button type="submit" class="btn btn-sm btn-primary w-100">
+            <i class="bi bi-receipt-cutoff me-1"></i>Generar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if not datos %}
+  <div class="alert alert-info mt-3 py-2" style="font-size:.85rem">
+    <strong>Art. 381 ET:</strong> Los agentes de retención deben expedir anualmente este certificado
+    a las personas o entidades a quienes se les practicó retención en la fuente.
+    Plazo máximo: 15 de marzo del año siguiente. (<em>DUR 1625/2016, Art. 1.2.4.1.24</em>)
+  </div>
+  {% endif %}
+</div>
+
+{# ─── Certificado imprimible ───────────────────────────────────────────── #}
+{% if datos %}
+<style>
+  @media print {
+    .no-print { display: none !important; }
+    body { font-family: Georgia, 'Times New Roman', serif; font-size: 11pt; color: #000; }
+    .cert-container { width: 100%; max-width: 100%; box-shadow: none !important; border: 1px solid #000 !important; }
+  }
+  .cert-container {
+    max-width: 700px;
+    margin: 0 auto;
+    background: #fff;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 12px rgba(0,0,0,.12);
+    padding: 32px 36px;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 11pt;
+    color: #111;
+  }
+  .cert-header { border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 18px; }
+  .cert-empresa { font-size: 16pt; font-weight: bold; text-transform: uppercase; }
+  .cert-titulo { text-align: center; font-size: 13pt; font-weight: bold; text-transform: uppercase;
+                 letter-spacing: 1px; margin: 16px 0; border-top: 1px solid #999; border-bottom: 1px solid #999;
+                 padding: 6px 0; }
+  .cert-table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 10pt; }
+  .cert-table th { background: #f0f0f0; border: 1px solid #999; padding: 5px 8px; text-align: center;
+                   font-weight: bold; font-size: 9pt; text-transform: uppercase; }
+  .cert-table td { border: 1px solid #bbb; padding: 5px 8px; }
+  .cert-table .monto { text-align: right; font-variant-numeric: tabular-nums; }
+  .cert-table .total-row { background: #e8e8e8; font-weight: bold; }
+  .cert-firmas { display: flex; justify-content: space-between; margin-top: 50px; }
+  .cert-firma { width: 44%; text-align: center; border-top: 1px solid #333; padding-top: 6px; font-size: 9pt; }
+  .cert-legal { font-size: 8.5pt; color: #555; margin-top: 18px; border-top: 1px dashed #bbb; padding-top: 10px; }
+  .info-row td { padding: 4px 6px; }
+</style>
+
+<div class="cert-container" id="certificado">
+
+  {# Encabezado empresa #}
+  <div class="cert-header">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start">
+      <div>
+        <div class="cert-empresa">{{ datos.empresa.nombre if datos.empresa else 'Empresa' }}</div>
+        {% if datos.empresa %}
+          {% if datos.empresa.nit %}<div>NIT: <strong>{{ datos.empresa.nit }}</strong></div>{% endif %}
+          {% if datos.empresa.direccion %}<div>{{ datos.empresa.direccion }}</div>{% endif %}
+          {% if datos.empresa.ciudad %}<div>{{ datos.empresa.ciudad }}</div>{% endif %}
+          {% if datos.empresa.telefono %}<div>Tel: {{ datos.empresa.telefono }}</div>{% endif %}
+          {% if datos.empresa.regimen_tributario %}
+          <div>Régimen: {{ datos.empresa.regimen_tributario }}</div>{% endif %}
+        {% endif %}
+      </div>
+      <div style="text-align:right; font-size:9pt; color:#555">
+        <div>Fecha expedición:</div>
+        <div><strong>{{ datos.fecha_expedicion.strftime('%d de %B de %Y') }}</strong></div>
+        <div style="margin-top:8px">Año gravable: <strong>{{ datos.anio }}</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cert-titulo">Certificado de Retención en la Fuente<br>
+    <span style="font-size:9pt;font-weight:normal">Art. 381 Estatuto Tributario — DUR 1625/2016</span>
+  </div>
+
+  {# Datos del retenido #}
+  <p style="margin:10px 0 4px"><strong>El suscrito agente de retención certifica que al beneficiario:</strong></p>
+  <table class="cert-table" style="margin-bottom:16px">
+    <tr class="info-row">
+      <td style="width:30%"><strong>Razón social / Nombre:</strong></td>
+      <td>{{ datos.proveedor.nombre }}{% if datos.proveedor.empresa %} — {{ datos.proveedor.empresa }}{% endif %}</td>
+    </tr>
+    <tr class="info-row">
+      <td><strong>NIT / Cédula:</strong></td>
+      <td>{{ datos.proveedor.nit or 'No registrado' }}</td>
+    </tr>
+    <tr class="info-row">
+      <td><strong>Dirección:</strong></td>
+      <td>{{ datos.proveedor.direccion or 'No registrada' }}</td>
+    </tr>
+    <tr class="info-row">
+      <td><strong>Categoría:</strong></td>
+      <td>{{ datos.proveedor.categoria or 'Proveedor' }}</td>
+    </tr>
+  </table>
+
+  <p style="margin:0 0 8px">
+    Se le practicaron las siguientes <strong>retenciones en la fuente</strong> durante el año gravable
+    <strong>{{ datos.anio }}</strong>, sobre pagos o abonos en cuenta:
+  </p>
+
+  {# Tabla por meses #}
+  {% if datos.por_mes %}
+  <table class="cert-table">
+    <thead>
+      <tr>
+        <th>Mes</th>
+        <th class="monto">Base Gravable</th>
+        <th class="monto">Retención Fuente<br><span style="font-weight:normal;font-size:8pt">{{ datos.tasa_retefuente }}% — Art. 392 ET</span></th>
+        <th class="monto">ReteIVA<br><span style="font-weight:normal;font-size:8pt">{{ datos.tasa_reteiva }}% del IVA</span></th>
+        <th class="monto">ReteICA<br><span style="font-weight:normal;font-size:8pt">{{ "%.2f"|format(datos.tasa_reteica) }} x mil</span></th>
+        <th class="monto">Total Retenido</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for fila in datos.por_mes %}
+      <tr>
+        <td>{{ fila.mes }}</td>
+        <td class="monto">$ {{ '{:,.0f}'.format(fila.base) }}</td>
+        <td class="monto">$ {{ '{:,.0f}'.format(fila.retefuente) }}</td>
+        <td class="monto">$ {{ '{:,.0f}'.format(fila.reteiva) }}</td>
+        <td class="monto">$ {{ '{:,.0f}'.format(fila.reteica) }}</td>
+        <td class="monto"><strong>$ {{ '{:,.0f}'.format(fila.total_retenido) }}</strong></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr class="total-row">
+        <td><strong>TOTALES AÑO {{ datos.anio }}</strong></td>
+        <td class="monto">$ {{ '{:,.0f}'.format(datos.total_base) }}</td>
+        <td class="monto">$ {{ '{:,.0f}'.format(datos.total_retefuente) }}</td>
+        <td class="monto">$ {{ '{:,.0f}'.format(datos.total_reteiva) }}</td>
+        <td class="monto">$ {{ '{:,.0f}'.format(datos.total_reteica) }}</td>
+        <td class="monto"><strong>$ {{ '{:,.0f}'.format(datos.total_retenciones) }}</strong></td>
+      </tr>
+    </tfoot>
+  </table>
+  {% else %}
+  <div style="background:#f9f9f9;border:1px solid #ddd;padding:14px;text-align:center;color:#666;margin:14px 0">
+    No se registraron operaciones con este proveedor durante el año {{ datos.anio }}.
+  </div>
+  {% endif %}
+
+  {# Concepto de retención #}
+  <table class="cert-table" style="margin-top:10px">
+    <tr>
+      <td style="width:40%"><strong>Concepto de retención:</strong></td>
+      <td>Compras y servicios — Tarifa 2.5% (Art. 392 ET)</td>
+    </tr>
+    <tr>
+      <td><strong>Cuenta PUC Retención Fuente:</strong></td>
+      <td>236540 — Retenciones sobre compras</td>
+    </tr>
+    <tr>
+      <td><strong>Cuenta PUC ReteIVA:</strong></td>
+      <td>236701 — Impuesto sobre las ventas retenido</td>
+    </tr>
+    <tr>
+      <td><strong>Total transacciones:</strong></td>
+      <td>{{ datos.n_asientos }} asiento(s) contable(s)</td>
+    </tr>
+  </table>
+
+  {# Firmas #}
+  <div class="cert-firmas">
+    <div class="cert-firma">
+      {% if datos.empresa and datos.empresa.representante_legal %}
+      <div>{{ datos.empresa.representante_legal }}</div>
+      <div>{{ datos.empresa.representante_cargo or 'Representante Legal' }}</div>
+      {% if datos.empresa.representante_cedula %}
+      <div>C.C. {{ datos.empresa.representante_cedula }}</div>{% endif %}
+      {% else %}
+      <div>Representante Legal</div>
+      {% endif %}
+      <div style="color:#777;font-size:8pt">Firma y sello agente retenedor</div>
+    </div>
+    <div class="cert-firma">
+      {% if datos.empresa and datos.empresa.contador_nombre %}
+      <div>{{ datos.empresa.contador_nombre }}</div>
+      <div>Contador Público</div>
+      {% if datos.empresa.contador_tarjeta %}
+      <div>T.P. {{ datos.empresa.contador_tarjeta }}</div>{% endif %}
+      {% else %}
+      <div>Contador Público</div>
+      {% endif %}
+      <div style="color:#777;font-size:8pt">Firma y tarjeta profesional</div>
+    </div>
+  </div>
+
+  {# Pie legal #}
+  <div class="cert-legal">
+    <strong>Base legal:</strong> Art. 381 del Estatuto Tributario Colombiano — Certificados por retenciones en la fuente distintas de las originadas en relaciones laborales.
+    DUR 1625/2016, Art. 1.2.4.1.24. La expedición de este certificado es obligatoria para todos los agentes de retención.
+    Las tarifas aplicadas corresponden a: Retención en la fuente sobre compras Art. 392 ET (2.5%);
+    ReteIVA Art. 437-1 ET (15% del IVA facturado); ReteICA según tarifas municipales vigentes.
+    <br><em>Este certificado fue generado electrónicamente por {{ datos.empresa.nombre if datos.empresa else 'la empresa' }} el {{ datos.fecha_expedicion.strftime('%d/%m/%Y') }}.</em>
+  </div>
+
+</div>{# /cert-container #}
+{% endif %}
+{% endblock %}

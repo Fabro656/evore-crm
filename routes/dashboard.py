@@ -52,7 +52,7 @@ def register(app):
         except Exception:
             impuestos_estimados, detalle_imp_dash = 0, []
         saldo_neto = ingresos - total_egresos_global - impuestos_estimados
-        # Auto-alertas de stock bajo (crear ticket si no existe)
+        # Auto-alertas de stock bajo (crear ticket y notificación si no existe)
         try:
             prods_bajo = Producto.query.filter(Producto.activo==True, Producto.stock<=Producto.stock_minimo).all()
             for pb in prods_bajo[:5]:  # max 5 alertas
@@ -66,6 +66,21 @@ def register(app):
             if prods_bajo: db.session.commit()
         except Exception: pass
 
+        # Notificaciones de stock bajo en el panel de campana
+        try:
+            _verificar_stock_minimo()
+        except Exception: pass
+
+        # Productos bajo mínimo para el banner detallado del dashboard
+        try:
+            alertas_stock = Producto.query.filter(
+                Producto.activo == True,
+                Producto.stock_minimo > 0,
+                Producto.stock < Producto.stock_minimo
+            ).order_by(Producto.nombre).all()
+        except Exception:
+            alertas_stock = []
+
         return render_template('dashboard.html',
             total_clientes       = Cliente.query.filter_by(estado='activo').count(),
             ventas_completadas       = Venta.query.filter_by(estado='completado').count(),
@@ -78,6 +93,7 @@ def register(app):
             saldo_neto           = saldo_neto,
             saldo_pendiente      = saldo_pend,
             productos_bajo_stock = Producto.query.filter(Producto.activo==True, Producto.stock<=Producto.stock_minimo).count(),
+            alertas_stock        = alertas_stock,
             tareas_recientes     = Tarea.query.filter(Tarea.estado!='completada').order_by(Tarea.creado_en.desc()).limit(5).all(),
             ventas_recientes     = Venta.query.order_by(Venta.creado_en.desc()).limit(6).all(),
             actividades_recientes= Actividad.query.order_by(Actividad.creado_en.desc()).limit(8).all(),

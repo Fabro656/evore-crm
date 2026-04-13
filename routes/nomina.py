@@ -576,3 +576,182 @@ def register(app):
         flash('Registro eliminado.', 'info')
         return redirect(url_for('horas_extra', periodo=periodo))
 
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # ARCHIVO PILA (Res. 2388/2016 — Planilla Integrada Liquidación Aportes)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    @app.route('/nomina/pila')
+    @login_required
+    @requiere_modulo('nomina')
+    def nomina_pila():
+        """Página de generación de archivo PILA para el periodo seleccionado."""
+        import calendar as cal_mod
+        periodo = request.args.get('periodo', date_type.today().strftime('%Y-%m'))
+        try:
+            anio, mes = int(periodo.split('-')[0]), int(periodo.split('-')[1])
+        except Exception:
+            anio, mes = date_type.today().year, date_type.today().month
+            periodo = date_type.today().strftime('%Y-%m')
+
+        dias_del_mes = cal_mod.monthrange(anio, mes)[1]
+        empleados = Empleado.query.filter_by(estado='activo').order_by(Empleado.apellido, Empleado.nombre).all()
+
+        # Vista previa: calcular aportes para cada empleado
+        preview = []
+        for emp in empleados:
+            try:
+                calc = _calcular_nomina(emp, dias_mes=dias_del_mes, dias_trabajados=dias_del_mes)
+                ibc = float(emp.salario_base or 0)
+                preview.append({
+                    'empleado': emp,
+                    'ibc': ibc,
+                    'dias': dias_del_mes,
+                    'salud_emp': calc.get('deduccion_salud', 0),
+                    'salud_empr': calc.get('aporte_salud_empr', 0),
+                    'pension_emp': calc.get('deduccion_pension', 0),
+                    'pension_empr': calc.get('aporte_pension_empr', 0),
+                    'arl': calc.get('aporte_arl', 0),
+                    'caja': calc.get('aporte_caja', 0),
+                    'sena': calc.get('aporte_sena', 0),
+                    'icbf': calc.get('aporte_icbf', 0),
+                    'total_empresa': calc.get('costo_total_empresa', 0),
+                })
+            except Exception as ex_p:
+                logging.warning(f'nomina_pila preview({emp.id}): {ex_p}')
+                preview.append({
+                    'empleado': emp,
+                    'ibc': float(emp.salario_base or 0),
+                    'dias': dias_del_mes,
+                    'salud_emp': 0, 'salud_empr': 0,
+                    'pension_emp': 0, 'pension_empr': 0,
+                    'arl': 0, 'caja': 0, 'sena': 0, 'icbf': 0,
+                    'total_empresa': 0,
+                })
+
+        empresa = ConfigEmpresa.query.first()
+        return render_template('nomina/pila.html',
+            periodo=periodo, anio=anio, mes=mes,
+            empleados=empleados, preview=preview,
+            empresa=empresa, dias_del_mes=dias_del_mes)
+
+
+    @app.route('/nomina/pila/generar')
+    @login_required
+    @requiere_modulo('nomina')
+    def nomina_pila_generar():
+        """Genera y descarga el archivo TXT en formato PILA simplificado (Res. 2388/2016)."""
+        import calendar as cal_mod
+        from flask import make_response
+        periodo = request.args.get('periodo', date_type.today().strftime('%Y-%m'))
+        try:
+            anio, mes = int(periodo.split('-')[0]), int(periodo.split('-')[1])
+        except Exception:
+            anio, mes = date_type.today().year, date_type.today().month
+            periodo = date_type.today().strftime('%Y-%m')
+
+        dias_del_mes = cal_mod.monthrange(anio, mes)[1]
+        empresa = ConfigEmpresa.query.first()
+        nit_empresa = (empresa.nit or '000000000').replace('-', '').replace('.', '') if empresa else '000000000'
+        razon_social = (empresa.nombre or 'EMPRESA').upper() if empresa else 'EMPRESA'
+
+        empleados = Empleado.query.filter_by(estado='activo').order_by(Empleado.apellido, Empleado.nombre).all()
+
+        lineas = []
+
+        # Registro tipo 01 — Encabezado (Header)
+        # Formato: tipo|NIT|razon_social|periodo|tipo_planilla|total_empleados|fecha_generacion
+        fecha_gen = date_type.today().strftime('%Y%m%d')
+        header = (
+            f'01'
+            f'|{nit_empresa}'
+            f'|{razon_social[:60]}'
+            f'|{periodo}'
+            f'|E'  # E = empleador
+            f'|{len(empleados)}'
+            f'|{fecha_gen}'
+        )
+        lineas.append(header)
+
+        total_salud_emp   = 0.0
+        total_salud_empr  = 0.0
+        total_pension_emp = 0.0
+        total_pension_empr= 0.0
+        total_arl         = 0.0
+        total_caja        = 0.0
+        total_sena        = 0.0
+        total_icbf        = 0.0
+
+        # Registro tipo 02 — Detalle por empleado
+        # Formato: tipo|cedula|nombre_completo|tipo_doc|IBC|dias|salud_emp|salud_empr|pension_emp|pension_empr|arl|caja|sena|icbf
+        for seq, emp in enumerate(empleados, start=1):
+            try:
+                calc = _calcular_nomina(emp, dias_mes=dias_del_mes, dias_trabajados=dias_del_mes)
+            except Exception as ex_g:
+                logging.warning(f'nomina_pila_generar({emp.id}): {ex_g}')
+                calc = {}
+
+            cedula       = (emp.cedula or '').strip()
+            nombre       = f'{(emp.nombre or "").strip()} {(emp.apellido or "").strip()}'.strip().upper()
+            ibc          = int(float(emp.salario_base or 0))
+            dias         = dias_del_mes
+            salud_emp    = int(calc.get('deduccion_salud', 0))
+            salud_empr   = int(calc.get('aporte_salud_empr', 0))
+            pension_emp  = int(calc.get('deduccion_pension', 0))
+            pension_empr = int(calc.get('aporte_pension_empr', 0))
+            arl          = int(calc.get('aporte_arl', 0))
+            caja         = int(calc.get('aporte_caja', 0))
+            sena         = int(calc.get('aporte_sena', 0))
+            icbf         = int(calc.get('aporte_icbf', 0))
+
+            total_salud_emp   += salud_emp
+            total_salud_empr  += salud_empr
+            total_pension_emp += pension_emp
+            total_pension_empr+= pension_empr
+            total_arl         += arl
+            total_caja        += caja
+            total_sena        += sena
+            total_icbf        += icbf
+
+            detalle = (
+                f'02'
+                f'|{cedula}'
+                f'|{nombre[:60]}'
+                f'|CC'  # Cédula de ciudadanía (tipo doc más común)
+                f'|{ibc}'
+                f'|{dias}'
+                f'|{salud_emp}'
+                f'|{salud_empr}'
+                f'|{pension_emp}'
+                f'|{pension_empr}'
+                f'|{arl}'
+                f'|{caja}'
+                f'|{sena}'
+                f'|{icbf}'
+            )
+            lineas.append(detalle)
+
+        # Registro tipo 03 — Totales
+        totales = (
+            f'03'
+            f'|{len(empleados)}'
+            f'|{int(total_salud_emp)}'
+            f'|{int(total_salud_empr)}'
+            f'|{int(total_pension_emp)}'
+            f'|{int(total_pension_empr)}'
+            f'|{int(total_arl)}'
+            f'|{int(total_caja)}'
+            f'|{int(total_sena)}'
+            f'|{int(total_icbf)}'
+            f'|{int(total_salud_emp + total_salud_empr + total_pension_emp + total_pension_empr + total_arl + total_caja + total_sena + total_icbf)}'
+        )
+        lineas.append(totales)
+
+        contenido = '\r\n'.join(lineas) + '\r\n'
+        filename = f'PILA_{nit_empresa}_{periodo.replace("-", "")}.txt'
+
+        resp = make_response(contenido)
+        resp.headers['Content-Type'] = 'text/plain; charset=utf-8'
+        resp.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return resp
+

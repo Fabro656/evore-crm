@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% block title %}Archivo PILA — {{ periodo }}{% endblock %}
+{% block page_title %}Archivo PILA — Planilla Integrada de Liquidación de Aportes{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('nomina_index') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Nómina</a>
+{% if preview %}
+<a href="{{ url_for('nomina_pila_generar', periodo=periodo) }}" class="btn btn-sm btn-success">
+  <i class="bi bi-download me-1"></i>Descargar TXT PILA
+</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div style="max-width:960px">
+
+  {# ─── Selector de periodo ─────────────────────────────────────────── #}
+  <div class="tc mb-4">
+    <div class="ch"><i class="bi bi-calendar3 me-2"></i>Seleccionar periodo</div>
+    <div class="cb">
+      <form method="GET" class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Periodo (mes)</label>
+          <input type="month" name="periodo" class="form-control form-control-sm"
+                 value="{{ periodo }}" min="2020-01" max="2030-12">
+        </div>
+        <div class="col-md-3">
+          <button type="submit" class="btn btn-sm btn-outline-primary w-100">
+            <i class="bi bi-search me-1"></i>Consultar
+          </button>
+        </div>
+        <div class="col-md-5">
+          <a href="{{ url_for('nomina_pila_generar', periodo=periodo) }}"
+             class="btn btn-sm btn-success w-100">
+            <i class="bi bi-filetype-txt me-1"></i>Generar y Descargar PILA.txt
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {# ─── Info normativa ──────────────────────────────────────────────── #}
+  <div class="alert alert-info py-2 mb-3" style="font-size:.83rem">
+    <strong>Res. 2388/2016 — Formato PILA:</strong> Planilla Integrada de Liquidación de Aportes al Sistema General
+    de Seguridad Social y parafiscales. El archivo generado usa separador <code>|</code> (pipe) con tres tipos de
+    registro: <strong>01</strong> encabezado empresa, <strong>02</strong> detalle por empleado,
+    <strong>03</strong> totales. Periodo: <strong>{{ periodo }}</strong> — {{ dias_del_mes }} días.
+  </div>
+
+  {# ─── Resumen de totales ──────────────────────────────────────────── #}
+  {% if preview %}
+  {% set total_salud_emp   = preview | sum(attribute='salud_emp') %}
+  {% set total_salud_empr  = preview | sum(attribute='salud_empr') %}
+  {% set total_pension_emp = preview | sum(attribute='pension_emp') %}
+  {% set total_pension_empr= preview | sum(attribute='pension_empr') %}
+  {% set total_arl         = preview | sum(attribute='arl') %}
+  {% set total_caja        = preview | sum(attribute='caja') %}
+  {% set total_sena        = preview | sum(attribute='sena') %}
+  {% set total_icbf        = preview | sum(attribute='icbf') %}
+  {% set total_empresa     = preview | sum(attribute='total_empresa') %}
+
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+      <div class="sc text-center" style="border-top:3px solid var(--primary)">
+        <div class="fw-bold" style="font-size:1.2rem;color:var(--primary)">{{ preview|length }}</div>
+        <small class="text-muted">Empleados activos</small>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="sc text-center" style="border-top:3px solid var(--blue)">
+        <div class="fw-bold" style="font-size:1.1rem;color:var(--blue)">{{ moneda(total_salud_emp + total_salud_empr) }}</div>
+        <small class="text-muted">Total Salud</small>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="sc text-center" style="border-top:3px solid var(--green)">
+        <div class="fw-bold" style="font-size:1.1rem;color:var(--green)">{{ moneda(total_pension_emp + total_pension_empr) }}</div>
+        <small class="text-muted">Total Pensión</small>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="sc text-center" style="border-top:3px solid var(--orange)">
+        <div class="fw-bold" style="font-size:1.1rem;color:var(--orange)">{{ moneda(total_empresa) }}</div>
+        <small class="text-muted">Costo total empresa</small>
+      </div>
+    </div>
+  </div>
+
+  {# ─── Tabla de vista previa ───────────────────────────────────────── #}
+  <div class="tc">
+    <div class="ch d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-table me-2"></i>Vista previa — {{ preview|length }} empleado(s)</span>
+      <small class="text-muted fw-normal">Periodo: {{ periodo }} — {{ dias_del_mes }} días</small>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0" style="font-size:.82rem">
+        <thead>
+          <tr>
+            <th>Empleado</th>
+            <th>Cédula</th>
+            <th class="text-end">IBC</th>
+            <th class="text-end">Días</th>
+            <th class="text-end" title="Salud empleado + empleador">Salud<br><small class="fw-normal text-muted">Emp/Empr</small></th>
+            <th class="text-end" title="Pensión empleado + empleador">Pensión<br><small class="fw-normal text-muted">Emp/Empr</small></th>
+            <th class="text-end">ARL</th>
+            <th class="text-end">Caja</th>
+            <th class="text-end">SENA</th>
+            <th class="text-end">ICBF</th>
+            <th class="text-end">Total<br>Empresa</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in preview %}
+          <tr>
+            <td>
+              <a href="{{ url_for('empleado_ver', id=row.empleado.id) }}" class="text-decoration-none">
+                {{ row.empleado.nombre }} {{ row.empleado.apellido }}
+              </a>
+              {% if row.empleado.cargo %}<br><small class="text-muted">{{ row.empleado.cargo }}</small>{% endif %}
+            </td>
+            <td>{{ row.empleado.cedula or '—' }}</td>
+            <td class="text-end">{{ moneda0(row.ibc) }}</td>
+            <td class="text-end">{{ row.dias }}</td>
+            <td class="text-end">
+              <span title="Empleado">{{ moneda0(row.salud_emp) }}</span>
+              <br><small class="text-muted" title="Empleador">+ {{ moneda0(row.salud_empr) }}</small>
+            </td>
+            <td class="text-end">
+              <span title="Empleado">{{ moneda0(row.pension_emp) }}</span>
+              <br><small class="text-muted" title="Empleador">+ {{ moneda0(row.pension_empr) }}</small>
+            </td>
+            <td class="text-end">{{ moneda0(row.arl) }}</td>
+            <td class="text-end">{{ moneda0(row.caja) }}</td>
+            <td class="text-end">{{ moneda0(row.sena) }}</td>
+            <td class="text-end">{{ moneda0(row.icbf) }}</td>
+            <td class="text-end fw-semibold">{{ moneda0(row.total_empresa) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr class="fw-bold" style="background:var(--surface2)">
+            <td colspan="2">TOTALES</td>
+            <td class="text-end">—</td>
+            <td class="text-end">—</td>
+            <td class="text-end">
+              {{ moneda0(total_salud_emp) }}<br>
+              <small class="text-muted">+ {{ moneda0(total_salud_empr) }}</small>
+            </td>
+            <td class="text-end">
+              {{ moneda0(total_pension_emp) }}<br>
+              <small class="text-muted">+ {{ moneda0(total_pension_empr) }}</small>
+            </td>
+            <td class="text-end">{{ moneda0(total_arl) }}</td>
+            <td class="text-end">{{ moneda0(total_caja) }}</td>
+            <td class="text-end">{{ moneda0(total_sena) }}</td>
+            <td class="text-end">{{ moneda0(total_icbf) }}</td>
+            <td class="text-end">{{ moneda0(total_empresa) }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  {# ─── Vista previa del formato TXT ───────────────────────────────── #}
+  <div class="tc mt-3">
+    <div class="ch"><i class="bi bi-file-code me-2"></i>Estructura del archivo TXT (primeras filas)</div>
+    <div class="cb">
+      <pre style="font-size:.78rem;background:var(--surface2);padding:12px;border-radius:6px;overflow-x:auto;margin:0"><code>{% set emp0 = preview[0] if preview else none %}01|{{ empresa.nit if empresa and empresa.nit else '000000000' }}|{{ (empresa.nombre if empresa else 'EMPRESA')|upper }}|{{ periodo }}|E|{{ preview|length }}|{{ now.strftime('%Y%m%d') if now else '20260101' }}
+{% if emp0 %}02|{{ emp0.empleado.cedula or '' }}|{{ emp0.empleado.nombre|upper }} {{ emp0.empleado.apellido|upper }}|CC|{{ emp0.ibc|int }}|{{ dias_del_mes }}|{{ emp0.salud_emp|int }}|{{ emp0.salud_empr|int }}|{{ emp0.pension_emp|int }}|{{ emp0.pension_empr|int }}|{{ emp0.arl|int }}|{{ emp0.caja|int }}|{{ emp0.sena|int }}|{{ emp0.icbf|int }}{% endif %}
+... (una línea 02 por empleado)
+03|{{ preview|length }}|{{ total_salud_emp|int }}|{{ total_salud_empr|int }}|{{ total_pension_emp|int }}|{{ total_pension_empr|int }}|{{ total_arl|int }}|{{ total_caja|int }}|{{ total_sena|int }}|{{ total_icbf|int }}|{{ (total_salud_emp+total_salud_empr+total_pension_emp+total_pension_empr+total_arl+total_caja+total_sena+total_icbf)|int }}</code></pre>
+      <p class="text-muted mt-2 mb-0" style="font-size:.8rem">
+        <i class="bi bi-info-circle me-1"></i>
+        Columnas tipo 02: tipo | cédula | nombre | tipo_doc | IBC | días |
+        salud_emp | salud_empr | pension_emp | pension_empr | ARL | caja | SENA | ICBF
+      </p>
+    </div>
+  </div>
+
+  {% else %}
+  <div class="alert alert-secondary">
+    <i class="bi bi-people me-1"></i>No hay empleados activos para generar el archivo PILA.
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

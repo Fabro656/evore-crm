@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% block title %}Nueva Nota Crédito/Débito{% endblock %}
+{% block page_title %}Nueva Nota Crédito/Débito{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+<div class="col-lg-7">
+<div class="tc">
+  <div class="ch"><i class="bi bi-file-earmark-plus me-2"></i>Nueva Nota Crédito / Débito</div>
+  <div style="padding:1.4rem">
+
+  <form method="POST" id="formNota">
+
+    {# ── Tipo: Crédito / Débito ── #}
+    <div class="mb-4">
+      <label class="form-label fw-semibold mb-2">Tipo de nota <span class="text-danger">*</span></label>
+      <div class="d-flex gap-2">
+        <input type="radio" class="btn-check" name="tipo" id="opt_credito" value="credito"
+               {% if tipo_default != 'debito' %}checked{% endif %} onchange="actualizarTipo()">
+        <label class="btn btn-outline-danger" for="opt_credito">
+          <i class="bi bi-dash-circle me-1"></i>Nota Crédito
+          <small class="d-block" style="font-size:.72rem;font-weight:400;opacity:.75">Reduce el valor de una venta</small>
+        </label>
+
+        <input type="radio" class="btn-check" name="tipo" id="opt_debito" value="debito"
+               {% if tipo_default == 'debito' %}checked{% endif %} onchange="actualizarTipo()">
+        <label class="btn btn-outline-success" for="opt_debito">
+          <i class="bi bi-plus-circle me-1"></i>Nota Débito
+          <small class="d-block" style="font-size:.72rem;font-weight:400;opacity:.75">Aumenta el valor de una venta</small>
+        </label>
+      </div>
+    </div>
+
+    {# ── Fecha ── #}
+    <div class="mb-3">
+      <label class="form-label fw-semibold" for="fecha">Fecha <span class="text-danger">*</span></label>
+      <input type="date" name="fecha" id="fecha" class="form-control" value="{{ hoy }}" required>
+    </div>
+
+    {# ── Venta relacionada ── #}
+    <div class="mb-3">
+      <label class="form-label fw-semibold" for="venta_id">Venta relacionada <span style="color:var(--text2);font-weight:400">(opcional)</span></label>
+      <select name="venta_id" id="venta_id" class="form-select">
+        <option value="">— Sin venta asociada —</option>
+        {% for v in ventas %}
+        <option value="{{ v.id }}">
+          {{ v.numero or ('#' ~ v.id) }}
+          {% if v.cliente %} — {{ v.cliente.nombre }}{% endif %}
+          — {{ moneda(v.total or 0) }}
+        </option>
+        {% endfor %}
+      </select>
+      <div class="form-text">Selecciona si esta nota corrige una venta específica.</div>
+    </div>
+
+    {# ── Monto ── #}
+    <div class="mb-3">
+      <label class="form-label fw-semibold" for="monto">Monto <span class="text-danger">*</span></label>
+      <div class="input-group">
+        <span class="input-group-text">$</span>
+        <input type="number" name="monto" id="monto" class="form-control"
+               step="0.01" min="0.01" placeholder="0.00" required>
+      </div>
+    </div>
+
+    {# ── Motivo ── #}
+    <div class="mb-3">
+      <label class="form-label fw-semibold" for="motivo">Motivo <span class="text-danger">*</span></label>
+      <input type="text" name="motivo" id="motivo" class="form-control"
+             maxlength="300" placeholder="Ej: Devolución parcial de mercancía" required>
+    </div>
+
+    {# ── Descripción ── #}
+    <div class="mb-3">
+      <label class="form-label fw-semibold" for="descripcion">Descripción adicional</label>
+      <textarea name="descripcion" id="descripcion" class="form-control" rows="3"
+                placeholder="Detalles adicionales del ajuste..."></textarea>
+    </div>
+
+    {# ── Tercero ── #}
+    <div class="row g-2 mb-3">
+      <div class="col-sm-4">
+        <label class="form-label fw-semibold" for="tercero_nit">NIT / C.C. tercero</label>
+        <input type="text" name="tercero_nit" id="tercero_nit" class="form-control form-control-sm"
+               maxlength="30" placeholder="900123456-7">
+      </div>
+      <div class="col-sm-8">
+        <label class="form-label fw-semibold" for="tercero_nombre">Nombre del tercero</label>
+        <input type="text" name="tercero_nombre" id="tercero_nombre" class="form-control form-control-sm"
+               maxlength="200" placeholder="Razón social o nombre completo">
+      </div>
+    </div>
+
+    {# ── Aviso asiento automático ── #}
+    <div id="avisoAsiento" class="alert alert-info py-2" style="font-size:.85rem">
+      <i class="bi bi-info-circle me-1"></i>
+      <span id="textoAviso">Se creará un asiento automático: <strong>Debe 4135</strong> (Devoluciones en ventas) / <strong>Haber 1305</strong> (Clientes CxC).</span>
+    </div>
+
+    {# ── Botones ── #}
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-lg me-1"></i>Crear nota
+      </button>
+      <a href="{{ url_for('contable_notas') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-x me-1"></i>Cancelar
+      </a>
+    </div>
+
+  </form>
+  </div>
+</div>
+</div>
+
+{# ── Panel lateral de ayuda ── #}
+<div class="col-lg-5">
+  <div class="tc">
+    <div class="ch"><i class="bi bi-question-circle me-2"></i>Guía rápida</div>
+    <div style="padding:1.2rem;font-size:.88rem;line-height:1.6">
+      <p class="fw-semibold mb-2">Nota Crédito</p>
+      <ul style="padding-left:1.2rem;color:var(--text2)">
+        <li>Reduce el valor de una venta ya emitida.</li>
+        <li>Casos: devolución de mercancía, descuento posterior, error en precio.</li>
+        <li>Asiento: Debe 4135 / Haber 1305.</li>
+        <li>Si se asocia a una venta, reduce el <code>monto_pagado_total</code>.</li>
+      </ul>
+      <hr style="border-color:var(--br)">
+      <p class="fw-semibold mb-2">Nota Débito</p>
+      <ul style="padding-left:1.2rem;color:var(--text2)">
+        <li>Aumenta el valor de una venta ya emitida.</li>
+        <li>Casos: cargo adicional por flete, ajuste por diferencia de precio.</li>
+        <li>Asiento: Debe 1305 / Haber 4135.</li>
+        <li>Si se asocia a una venta, aumenta el <code>monto_pagado_total</code>.</li>
+      </ul>
+      <hr style="border-color:var(--br)">
+      <p style="color:var(--text2)">El número se genera automáticamente:<br>
+        <code>NC-YYYY-NNN</code> para crédito<br>
+        <code>ND-YYYY-NNN</code> para débito
+      </p>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+function actualizarTipo() {
+  const credito = document.getElementById('opt_credito').checked;
+  const aviso   = document.getElementById('textoAviso');
+  if (credito) {
+    aviso.innerHTML = 'Se creará un asiento automático: <strong>Debe 4135</strong> (Devoluciones en ventas) / <strong>Haber 1305</strong> (Clientes CxC). Si hay venta, se reducirá el monto pagado.';
+  } else {
+    aviso.innerHTML = 'Se creará un asiento automático: <strong>Debe 1305</strong> (Clientes CxC) / <strong>Haber 4135</strong> (Ingresos por ventas). Si hay venta, se aumentará el monto pagado.';
+  }
+}
+document.addEventListener('DOMContentLoaded', actualizarTipo);
+</script>
+{% endblock %}

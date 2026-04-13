@@ -149,7 +149,20 @@
 </div>
 
 {# ── Alerta stock bajo ─────────────────────────────── #}
-{% if productos_bajo_stock > 0 %}
+{% if alertas_stock %}
+<div class="alert alert-warning mb-3 py-2" style="font-size:.87rem">
+  <div class="d-flex align-items-center gap-2 mb-2">
+    <i class="bi bi-exclamation-triangle-fill fs-5 text-warning"></i>
+    <strong>{{ alertas_stock|length }} producto(s) por debajo del stock mínimo</strong>
+    <a href="{{ url_for('inventario') }}" class="btn btn-sm btn-warning ms-auto">Ver inventario</a>
+  </div>
+  <ul class="mb-0 ps-3" style="font-size:.82rem">
+    {% for p in alertas_stock %}
+    <li><strong>{{ p.nombre }}</strong>: stock {{ p.stock }} / mínimo {{ p.stock_minimo }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% elif productos_bajo_stock > 0 %}
 <div class="alert alert-warning d-flex align-items-center gap-2 mb-3 py-2" style="font-size:.87rem">
   <i class="bi bi-exclamation-triangle-fill fs-5"></i>
   <span><strong>{{ productos_bajo_stock }} producto(s)</strong> con stock bajo o agotado.</span>
