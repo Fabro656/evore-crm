@@ -173,7 +173,7 @@ def register(app):
         empaque = EmpaqueSecundario.query.get_or_404(id)
         productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
 
-        if empaque.aprobado and current_user.rol != 'admin':
+        if empaque.aprobado and _get_rol_activo(current_user) != 'admin':
             flash('No se pueden editar empaques aprobados. Contacta al administrador.', 'warning')
             return redirect(url_for('empaques'))
 
@@ -482,7 +482,7 @@ def register(app):
         empaque = EmpaqueSecundario.query.get_or_404(id)
 
         # Solo admin puede eliminar empaques aprobados
-        if empaque.aprobado and current_user.rol != 'admin':
+        if empaque.aprobado and _get_rol_activo(current_user) != 'admin':
             flash('Solo administradores pueden eliminar empaques aprobados.', 'danger')
             return redirect(url_for('empaques'))
 

@@ -128,7 +128,7 @@ def register(app):
         estado_f=request.args.get('estado',''); prioridad_f=request.args.get('prioridad','')
         try:
             q=Tarea.query
-            if current_user.rol != 'admin':
+            if _get_rol_activo(current_user) != 'admin':
                 q = q.filter(
                     db.or_(
                         Tarea.asignado_a == current_user.id,
@@ -293,7 +293,7 @@ def register(app):
     @requiere_modulo('tareas')
     def tarea_eliminar(id):
         obj = Tarea.query.get_or_404(id)
-        if current_user.rol != 'admin' and obj.creado_por != current_user.id:
+        if _get_rol_activo(current_user) != 'admin' and obj.creado_por != current_user.id:
             flash('Solo puedes eliminar tickets que tú creaste.', 'danger')
             return redirect(url_for('tareas'))
         try:

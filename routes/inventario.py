@@ -73,7 +73,7 @@ def register(app):
     @app.route('/inventario/<int:id>/eliminar', methods=['POST'])
     @login_required
     def producto_eliminar(id):
-        if current_user.rol != 'admin':
+        if _get_rol_activo(current_user) != 'admin':
             flash('Solo administradores pueden eliminar registros.', 'danger')
             return redirect(request.referrer or url_for('dashboard'))
         obj=Producto.query.get_or_404(id); obj.activo=False; db.session.commit()
@@ -174,7 +174,8 @@ def register(app):
                         total_unidades += cant
                         if costo_s:
                             prod.costo = float(costo_s)   # actualiza último costo
-                except: pass
+                except Exception as _e:
+                    logging.warning(f'inventario ingreso parse cantidad/costo: {_e}')
     
             if total_unidades <= 0:
                 flash('Ingresa al menos una cantidad válida.','danger')

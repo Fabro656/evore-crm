@@ -324,7 +324,7 @@ def register(app):
             db.session.commit()
 
             # Si admin editó asiento ajeno → notificar al creador via Tarea
-            if current_user.rol == 'admin' and asiento.creado_por and asiento.creado_por != current_user.id:
+            if _get_rol_activo(current_user) == 'admin' and asiento.creado_por and asiento.creado_por != current_user.id:
                 try:
                     tarea_notif = Tarea(
                         titulo=f'El admin editó tu asiento {asiento.numero}',
@@ -379,7 +379,7 @@ def register(app):
     def contable_asiento_eliminar(id):
         asiento = AsientoContable.query.get_or_404(id)
         numero = asiento.numero
-        if current_user.rol != 'admin':
+        if _get_rol_activo(current_user) != 'admin':
             flash('Solo administradores pueden eliminar asientos.', 'danger')
             return redirect(url_for('contable_asientos'))
         db.session.delete(asiento)
@@ -570,7 +570,7 @@ def register(app):
     @requiere_modulo('finanzas')
     def contable_puc_nuevo():
         """Agregar cuenta auxiliar al PUC."""
-        if current_user.rol not in ('admin', 'director_financiero', 'contador'):
+        if _get_rol_activo(current_user) not in ('admin', 'director_financiero', 'contador'):
             flash('Solo contadores o directores pueden agregar cuentas.', 'danger')
             return redirect(url_for('contable_puc'))
         if request.method == 'POST':
@@ -815,7 +815,7 @@ def register(app):
     @requiere_modulo('finanzas')
     def contable_cierre_periodo():
         """Cierre contable mensual — marca asientos como cerrados y genera resumen."""
-        if current_user.rol not in ('admin', 'director_financiero', 'contador'):
+        if _get_rol_activo(current_user) not in ('admin', 'director_financiero', 'contador'):
             flash('Solo admin, director financiero o contador pueden cerrar periodos.', 'danger')
             return redirect(url_for('contable_index'))
 

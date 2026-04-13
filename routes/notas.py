@@ -146,7 +146,7 @@ def register(app):
     @login_required
     @requiere_modulo('notas')
     def nota_eliminar(id):
-        if current_user.rol != 'admin':
+        if _get_rol_activo(current_user) != 'admin':
             flash('Solo administradores pueden eliminar registros.', 'danger')
             return redirect(request.referrer or url_for('dashboard'))
         obj=Nota.query.get_or_404(id); db.session.delete(obj); db.session.commit()

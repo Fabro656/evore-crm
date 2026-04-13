@@ -180,7 +180,7 @@
             {% if not es_ingreso and a.orden_compra_id and a.estado_pago != 'completo' %}
             <div class="dropdown d-inline-block">
               <button class="btn btn-xs btn-success dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-check-circle me-1"></i>Pago</button>
-              <div class="dropdown-menu p-2" style="min-width:220px" onclick="event.stopPropagation()">
+              <div class="dropdown-menu p-2" style="min-width:min(180px, calc(100vw - 40px))" onclick="event.stopPropagation()">
                 <form method="POST" action="{{ url_for('contable_confirmar_pago', id=a.id) }}{% if request.args.get('_embed')=='1' %}?_embed=1{% endif %}">
                   <small class="fw-bold d-block mb-1">{{ a.numero }} — {{ moneda(a.debe or 0) }}</small>
                   <div class="mb-1"><select name="tipo_pago" class="form-select form-select-sm" onchange="this.closest('form').querySelector('[name=monto_pago]').style.display=this.value==='total'?'none':''">
@@ -195,7 +195,7 @@
             {% if es_ingreso and a.venta_id and a.estado_pago != 'completo' %}
             <div class="dropdown d-inline-block">
               <button class="btn btn-xs btn-success dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-check-circle me-1"></i>Cobro</button>
-              <div class="dropdown-menu p-2" style="min-width:220px" onclick="event.stopPropagation()">
+              <div class="dropdown-menu p-2" style="min-width:min(180px, calc(100vw - 40px))" onclick="event.stopPropagation()">
                 <form method="POST" action="{{ url_for('contable_confirmar_ingreso', id=a.id) }}{% if request.args.get('_embed')=='1' %}?_embed=1{% endif %}">
                   <small class="fw-bold d-block mb-1">{{ a.numero }} — {{ moneda(a.haber or 0) }}</small>
                   <div class="mb-1"><select name="tipo_pago" class="form-select form-select-sm" onchange="this.closest('form').querySelector('[name=monto_pago]').style.display=this.value==='total'?'none':''">

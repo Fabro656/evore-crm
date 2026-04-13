@@ -143,7 +143,7 @@ def register(app):
     @requiere_modulo('ventas')
     def servicios_eliminar(id):
         """Eliminar un servicio (solo admin)."""
-        if current_user.rol != 'admin':
+        if _get_rol_activo(current_user) != 'admin':
             flash('Solo administradores pueden eliminar servicios.', 'danger')
             return redirect(url_for('servicios'))
 

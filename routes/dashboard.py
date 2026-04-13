@@ -46,7 +46,8 @@ def register(app):
                               creado_por=current_user.id, asignado_a=current_user.id)
                     db.session.add(t)
             if prods_bajo: db.session.commit()
-        except Exception: pass
+        except Exception as _e:
+            logging.warning(f'dashboard stock alerts: {_e}')
 
         # Productos bajo mínimo para el banner detallado del dashboard
         try:

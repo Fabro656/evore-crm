@@ -28,7 +28,8 @@ def register(app):
                 results.append({'type':'Cliente','icon':'people-fill','color':'#0052CC',
                     'label': c.empresa or c.nombre, 'sub': c.nit or '',
                     'url': '/clientes/'+str(c.id)})
-        except: pass
+        except Exception as _e:
+            logging.warning(f'search clientes: {_e}')
         try:
             for p in Proveedor.query.filter(
                 db.or_(Proveedor.nombre.ilike(like), Proveedor.empresa.ilike(like), Proveedor.nit.ilike(like))
@@ -36,7 +37,8 @@ def register(app):
                 results.append({'type':'Proveedor','icon':'truck','color':'#00875A',
                     'label': p.empresa or p.nombre, 'sub': p.nit or '',
                     'url': '/proveedores/'+str(p.id)})
-        except: pass
+        except Exception as _e:
+            logging.warning(f'search proveedores: {_e}')
         try:
             for pr in Producto.query.filter(
                 db.or_(Producto.nombre.ilike(like), Producto.sku.ilike(like))
@@ -44,7 +46,8 @@ def register(app):
                 results.append({'type':'Producto','icon':'box-seam-fill','color':'#FF8B00',
                     'label': pr.nombre, 'sub': pr.sku or '',
                     'url': '/inventario'})
-        except: pass
+        except Exception as _e:
+            logging.warning(f'search productos: {_e}')
         try:
             for v in Venta.query.filter(
                 db.or_(Venta.titulo.ilike(like), Venta.numero.ilike(like))
@@ -52,13 +55,15 @@ def register(app):
                 results.append({'type':'Venta','icon':'graph-up-arrow','color':'#36B37E',
                     'label': v.titulo or v.numero or f'Venta #{v.id}', 'sub': v.estado or '',
                     'url': '/ventas/'+str(v.id)})
-        except: pass
+        except Exception as _e:
+            logging.warning(f'search ventas: {_e}')
         try:
             for oc in OrdenCompra.query.filter(OrdenCompra.numero.ilike(like)).limit(3).all():
                 results.append({'type':'OC','icon':'cart-check','color':'#6554C0',
                     'label': oc.numero or f'OC #{oc.id}', 'sub': oc.estado or '',
                     'url': '/ordenes_compra/'+str(oc.id)})
-        except: pass
+        except Exception as _e:
+            logging.warning(f'search ordenes_compra: {_e}')
         return jsonify({'results': results, 'q': q})
 
     @app.route('/health')

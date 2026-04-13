@@ -89,7 +89,7 @@
         <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.78rem">
           <i class="bi bi-three-dots me-1"></i>Acciones
         </button>
-        <ul class="dropdown-menu dropdown-menu-end" style="font-size:.83rem;min-width:180px">
+        <ul class="dropdown-menu dropdown-menu-end" style="font-size:.83rem;min-width:min(180px, calc(100vw - 40px))">
           <li><a class="dropdown-item" href="{{ url_for('venta_ver', id=v.id) }}"><i class="bi bi-eye me-2 text-primary"></i>Ver detalle</a></li>
           <li><a class="dropdown-item" href="{{ url_for('venta_editar', id=v.id) }}"><i class="bi bi-pencil me-2 text-secondary"></i>Editar</a></li>
           <li><a class="dropdown-item" href="{{ url_for('venta_factura', id=v.id) }}" target="_blank"><i class="bi bi-file-earmark-text me-2 text-secondary"></i>Ver factura</a></li>

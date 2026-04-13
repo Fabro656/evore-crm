@@ -504,7 +504,8 @@ def register(app):
         current = {}
         if empresa and empresa.nomina_params:
             try: current = _json.loads(empresa.nomina_params)
-            except: pass
+            except Exception as _e:
+                logging.warning(f'nomina params JSON parse: {_e}')
         if request.method == 'POST':
             params = {}
             for key in ['min_wage', 'transport_subsidy']:
