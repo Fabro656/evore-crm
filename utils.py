@@ -271,6 +271,7 @@ from models import (
     MateriaPrima, RecetaProducto, OrdenProduccion, ReservaProduccion,
     OrdenCompraItem, Tarea, TareaAsignado,
     GastoOperativo, Actividad, Notificacion, ReglaTributaria,
+    Aprobacion,
 )
 
 def _format_currency(value, decimals=None):
@@ -364,6 +365,17 @@ def inject_globals():
     # Multi-rol
     rol_activo = _get_rol_activo(current_user) if current_user.is_authenticated else 'usuario'
     roles_disponibles = _get_roles_usuario(current_user) if current_user.is_authenticated else []
+    # Quick counts for sidebar badges
+    _tareas_pend = 0
+    _aprob_pend = 0
+    if current_user.is_authenticated:
+        try:
+            _tareas_pend = Tarea.query.filter(Tarea.estado != 'completada', Tarea.asignado_a == current_user.id).count()
+        except: pass
+        try:
+            if _get_rol_activo(current_user) in ('admin','director_financiero','director_operativo'):
+                _aprob_pend = Aprobacion.query.filter_by(estado='pendiente').count()
+        except: pass
     return {'now': datetime.utcnow(), 'modulos_user': modulos, 'notif_count': notif_count,
             'empresa_cliente_nombre': empresa_cliente_nombre, 'empresa_proveedor_nombre': empresa_proveedor_nombre,
             'onboarding': onboarding_data,
@@ -371,6 +383,7 @@ def inject_globals():
             'roles_disponibles': roles_disponibles,
             'rol_labels': _ROL_LABELS,
             'rol_icons': _ROL_ICONS,
+            'tareas_pend': _tareas_pend, 'aprob_pend': _aprob_pend,
             'company_name': COMPANY['name'], 'company_config': COMPANY,
             'nit_label': COMPANY.get('nit_label', 'NIT'),
             'currency_code': COMPANY.get('currency_code', 'COP')}

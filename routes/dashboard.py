@@ -59,32 +59,6 @@ def register(app):
         except Exception:
             alertas_stock = []
 
-        # ── Alertas de seguimiento comercial ──
-        hace_7d  = hoy - timedelta(days=7)
-        hace_14d = hoy - timedelta(days=14)
-        hace_30d = hoy - timedelta(days=30)
-        try:
-            cots_sin_respuesta = Cotizacion.query.filter(
-                Cotizacion.estado == 'enviada',
-                Cotizacion.fecha_emision <= hace_7d
-            ).order_by(Cotizacion.fecha_emision).limit(10).all()
-        except Exception:
-            cots_sin_respuesta = []
-        try:
-            ventas_estancadas = Venta.query.filter(
-                Venta.estado == 'negociacion',
-                Venta.creado_en <= datetime.combine(hace_14d, datetime.min.time())
-            ).order_by(Venta.creado_en).limit(10).all()
-        except Exception:
-            ventas_estancadas = []
-        try:
-            entregas_pendientes = Venta.query.filter(
-                Venta.estado.in_(['pagado']),
-                Venta.creado_en <= datetime.combine(hace_30d, datetime.min.time())
-            ).order_by(Venta.creado_en).limit(10).all()
-        except Exception:
-            entregas_pendientes = []
-
         # ── Top 5 Clientes por CLV (Customer Lifetime Value) ──
         try:
             top_clientes_clv = db.session.query(
@@ -165,14 +139,74 @@ def register(app):
             notas_recientes      = _notas_rec,
             eventos_hoy          = _eventos_hoy,
             eventos_proximos     = _eventos_prox,
-            cots_sin_respuesta   = cots_sin_respuesta,
-            ventas_estancadas    = ventas_estancadas,
-            entregas_pendientes  = entregas_pendientes,
-            hoy_date             = hoy,
             top_clientes_clv     = top_clientes_clv,
             productos_rentabilidad = productos_rentabilidad,
         )
     
+
+    # ── API: lazy-loaded dashboard data ──
+    @app.route('/api/dashboard/lazy')
+    @login_required
+    def dashboard_lazy():
+        """Returns heavy dashboard data as JSON for lazy loading."""
+        try:
+            hoy = date_type.today()
+            hace_7d = hoy - timedelta(days=7)
+            hace_14d = hoy - timedelta(days=14)
+            hace_30d = hoy - timedelta(days=30)
+
+            data = {}
+
+            # Cotizaciones sin respuesta (> 7 dias)
+            try:
+                cots = Cotizacion.query.filter(
+                    Cotizacion.estado == 'enviada',
+                    Cotizacion.fecha_emision <= hace_7d
+                ).order_by(Cotizacion.fecha_emision).limit(10).all()
+                data['cots_sin_respuesta'] = [{
+                    'id': c.id,
+                    'numero': c.numero or '',
+                    'titulo': c.titulo or '',
+                    'dias': (hoy - c.fecha_emision).days if c.fecha_emision else 0,
+                    'cliente': (c.cliente.empresa or c.cliente.nombre) if c.cliente else ''
+                } for c in cots]
+            except Exception:
+                data['cots_sin_respuesta'] = []
+
+            # Ventas estancadas en negociacion (> 14 dias)
+            try:
+                vest = Venta.query.filter(
+                    Venta.estado == 'negociacion',
+                    Venta.creado_en <= datetime.combine(hace_14d, datetime.min.time())
+                ).order_by(Venta.creado_en).limit(10).all()
+                data['ventas_estancadas'] = [{
+                    'id': v.id,
+                    'titulo': v.titulo or v.numero or '',
+                    'dias': (hoy - v.creado_en.date()).days if v.creado_en else 0,
+                    'cliente': (v.cliente.empresa or v.cliente.nombre) if v.cliente else ''
+                } for v in vest]
+            except Exception:
+                data['ventas_estancadas'] = []
+
+            # Entregas pendientes (> 30 dias)
+            try:
+                epend = Venta.query.filter(
+                    Venta.estado.in_(['pagado']),
+                    Venta.creado_en <= datetime.combine(hace_30d, datetime.min.time())
+                ).order_by(Venta.creado_en).limit(10).all()
+                data['entregas_pendientes'] = [{
+                    'id': v.id,
+                    'titulo': v.titulo or v.numero or '',
+                    'dias': (hoy - v.creado_en.date()).days if v.creado_en else 0,
+                    'cliente': (v.cliente.empresa or v.cliente.nombre) if v.cliente else ''
+                } for v in epend]
+            except Exception:
+                data['entregas_pendientes'] = []
+
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
 
     # ── wiki (/wiki)
     @app.route('/wiki')

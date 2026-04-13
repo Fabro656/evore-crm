@@ -475,6 +475,15 @@ html[data-theme="dark"] .diag-verde{background:rgba(59,168,96,.12);color:#80D9A0
   #aiFab{bottom:80px!important;right:20px!important;width:46px!important;height:46px!important;font-size:1.1rem!important}
   #aiPanel{width:calc(100vw - 24px)!important;right:12px!important;bottom:135px!important;height:480px!important}
 }
+/* ── Mobile card layout for tables ── */
+@media(max-width:576px){
+  .table-cards thead{display:none}
+  .table-cards tbody tr{display:block;border:1px solid var(--border);border-radius:8px;padding:.75rem;margin-bottom:.5rem;background:var(--surface)}
+  .table-cards tbody td{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border:none;font-size:.85rem}
+  .table-cards tbody td::before{content:attr(data-label);font-weight:600;font-size:.75rem;color:var(--text2);text-transform:uppercase;margin-right:8px;flex-shrink:0}
+  .table-cards tbody td:first-child{font-weight:700;font-size:.9rem;border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:4px}
+  .table-cards tbody td:last-child{justify-content:flex-end;padding-top:6px;border-top:1px solid var(--border);margin-top:4px}
+}
 img,svg{max-width:100%;height:auto}
 .logo-area svg{max-height:40px!important}
 </style>{% endraw %}
@@ -560,7 +569,7 @@ img,svg{max-width:100%;height:auto}
     {% set m=modulos_user %}
     {# ── DOCK: cada icono es un modulo. Click = navega, Hold = panel con subfunciones ── #}
     <a href="#" class="nav-link dock-group {% if request.endpoint=='dashboard' %}active{% endif %}" data-tip="Home" data-dock-panel="home"><i class="bi bi-house-fill"></i><span>Home</span></a>
-    {% if 'tareas' in m %}<a href="#" class="nav-link dock-group {% if 'tarea' in request.endpoint %}active{% endif %}" data-tip="Tickets" data-dock-panel="tickets"><i class="bi bi-check2-square"></i><span>Tickets</span></a>{% endif %}
+    {% if 'tareas' in m %}<a href="#" class="nav-link dock-group {% if 'tarea' in request.endpoint %}active{% endif %}" data-tip="Tickets" data-dock-panel="tickets" style="position:relative"><i class="bi bi-check2-square"></i>{% if tareas_pend %}<span style="position:absolute;top:2px;right:2px;background:var(--red);color:#fff;font-size:.55rem;padding:1px 4px;border-radius:8px;line-height:1.2">{{ tareas_pend }}</span>{% endif %}<span>Tickets</span></a>{% endif %}
     {% if 'calendario' in m %}<a href="#" class="nav-link dock-group {% if request.endpoint=='calendario' or 'evento' in request.endpoint %}active{% endif %}" data-tip="Calendario" data-dock-panel="calendario"><i class="bi bi-calendar3"></i><span>Calendario</span></a>{% endif %}
     {% if 'notas' in m %}<a href="#" class="nav-link dock-group {% if 'nota' in request.endpoint %}active{% endif %}" data-tip="Notas" data-dock-panel="notas"><i class="bi bi-sticky-fill"></i><span>Notas</span></a>{% endif %}
     <div class="dock-div"></div>
@@ -601,7 +610,7 @@ img,svg{max-width:100%;height:auto}
     <div class="dock-div"></div>
     {# ── Aprobaciones ── #}
     {% if rol_activo in ('admin','director_financiero','director_operativo') %}
-    <a href="#" class="nav-link dock-group {% if 'aprobacion' in request.endpoint %}active{% endif %}" data-tip="Aprobaciones" data-dock-panel="aprobaciones"><i class="bi bi-clipboard-check"></i><span>Aprobaciones</span></a>
+    <a href="#" class="nav-link dock-group {% if 'aprobacion' in request.endpoint %}active{% endif %}" data-tip="Aprobaciones" data-dock-panel="aprobaciones" style="position:relative"><i class="bi bi-clipboard-check"></i>{% if aprob_pend %}<span style="position:absolute;top:2px;right:2px;background:var(--orange);color:#fff;font-size:.55rem;padding:1px 4px;border-radius:8px;line-height:1.2">{{ aprob_pend }}</span>{% endif %}<span>Aprobaciones</span></a>
     {% endif %}
     {# ── Wiki + Buscador ── #}
     <a href="{{ url_for('wiki') }}" class="nav-link {% if request.endpoint=='wiki' %}active{% endif %}" data-tip="Wiki" data-dock-panel="wiki_page"><i class="bi bi-book"></i><span>Wiki</span></a>

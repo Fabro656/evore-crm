@@ -35,7 +35,7 @@
      style="text-decoration:none;cursor:pointer;padding:4px 12px">{{ lbl }}</a>{% endfor %}
 </div>
 <div class="mb-2" style="font-size:.82rem;color:var(--text2)">{{ items|length }} venta{{ 's' if items|length != 1 else '' }}</div>
-{% if items %}<div class="table-responsive" style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface)"><table class="table">
+{% if items %}<div class="table-responsive" style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface)"><table class="table table-cards">
   <thead><tr>
     <th>N°</th>
     <th>Título</th>
@@ -47,15 +47,15 @@
     <th style="width:1px"></th>
   </tr></thead>
   <tbody>{% for v in items %}<tr>
-    <td><span class="text-muted fw-semibold" style="font-size:.78rem">{{ v.numero or '—' }}</span></td>
-    <td>
+    <td data-label="N°"><span class="text-muted fw-semibold" style="font-size:.78rem">{{ v.numero or '—' }}</span></td>
+    <td data-label="Título">
       <div class="fw-semibold" style="color:var(--text)">{{ v.titulo }}</div>
       {% if v.cliente %}<div class="d-md-none" style="font-size:.75rem;color:var(--text2)">{{ v.cliente.empresa or v.cliente.nombre }}</div>{% endif %}
     </td>
-    <td class="hide-mobile">{% if v.cliente %}<a href="{{ url_for('cliente_ver', id=v.cliente.id) }}" class="text-decoration-none" style="color:var(--ac)">{{ v.cliente.empresa or v.cliente.nombre }}</a>{% else %}<span class="text-muted">—</span>{% endif %}</td>
-    <td class="hide-mobile fw-semibold">$ {{ '{:,.0f}'.format(v.total).replace(',','.') }}</td>
-    <td class="hide-mobile {{ 'fw-semibold' if v.saldo > 0 else '' }}" style="{{ 'color:#DE350B' if v.saldo > 0 else 'color:var(--text2)' }}">$ {{ '{:,.0f}'.format(v.saldo).replace(',','.') }}</td>
-    <td>
+    <td data-label="Cliente" class="hide-mobile">{% if v.cliente %}<a href="{{ url_for('cliente_ver', id=v.cliente.id) }}" class="text-decoration-none" style="color:var(--ac)">{{ v.cliente.empresa or v.cliente.nombre }}</a>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+    <td data-label="Total" class="hide-mobile fw-semibold">$ {{ '{:,.0f}'.format(v.total).replace(',','.') }}</td>
+    <td data-label="Saldo" class="hide-mobile {{ 'fw-semibold' if v.saldo > 0 else '' }}" style="{{ 'color:#DE350B' if v.saldo > 0 else 'color:var(--text2)' }}">$ {{ '{:,.0f}'.format(v.saldo).replace(',','.') }}</td>
+    <td data-label="Estado">
       {# Inline status dropdown #}
       <form method="POST" action="{{ url_for('venta_cambiar_estado', id=v.id) }}" style="display:inline" onchange="this.submit()">
         <select name="estado" class="status-select b-{{ v.estado }}" title="Cambiar estado"

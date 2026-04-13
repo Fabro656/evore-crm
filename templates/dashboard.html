@@ -217,68 +217,50 @@
 </div>
 {% endif %}
 
-{# ── Alertas de seguimiento comercial ──────────────── #}
-{% if r in ('admin','director_operativo','director_financiero','contador','vendedor','sales_manager') and (cots_sin_respuesta or ventas_estancadas or entregas_pendientes) %}
-<div class="tc mb-3">
-  <div class="ch" style="cursor:pointer" onclick="this.parentElement.querySelector('.seguimiento-body').classList.toggle('d-none')">
-    <span><i class="bi bi-bell-fill me-2" style="color:var(--orange)"></i>Alertas de seguimiento
-      <span class="badge bg-danger ms-1">{{ (cots_sin_respuesta|length) + (ventas_estancadas|length) + (entregas_pendientes|length) }}</span>
-    </span>
-    <i class="bi bi-chevron-down" style="font-size:.8rem;color:var(--text2)"></i>
-  </div>
-  <div class="seguimiento-body">
-    {% if cots_sin_respuesta %}
-    <div style="padding:.5rem .75rem;border-bottom:1px solid var(--border)">
-      <small class="fw-bold text-uppercase" style="color:var(--orange);font-size:.68rem;letter-spacing:1px"><i class="bi bi-file-earmark-text me-1"></i>Cotizaciones sin respuesta (&gt; 7 dias)</small>
+{# ── Alertas de seguimiento (lazy loaded) ── #}
+{% if r in ('admin','director_operativo','director_financiero','contador','vendedor','sales_manager') %}
+<div id="seguimientoSection">
+  <div class="tc mb-3">
+    <div class="ch"><i class="bi bi-bell-fill me-2" style="color:var(--orange)"></i>Alertas de seguimiento</div>
+    <div style="padding:1rem">
+      <div class="skeleton" style="height:16px;width:60%;margin-bottom:10px"></div>
+      <div class="skeleton" style="height:14px;width:80%;margin-bottom:8px"></div>
+      <div class="skeleton" style="height:14px;width:70%"></div>
     </div>
-    {% for c in cots_sin_respuesta %}
-    <div style="padding:.4rem .75rem;border-bottom:1px solid var(--border);font-size:.82rem" class="d-flex align-items-center justify-content-between">
-      <div>
-        <a href="{{ url_for('cotizacion_ver', id=c.id) }}" class="fw-semibold text-decoration-none" style="color:var(--text)">{{ c.titulo }}</a>
-        <div><small class="text-muted">{{ c.cliente.empresa or c.cliente.nombre if c.cliente else 'Sin cliente' }}</small></div>
-      </div>
-      <div class="text-end">
-        <span class="badge" style="background:var(--orange);font-size:.7rem">{{ (hoy_date - c.fecha_emision).days }} dias</span>
-      </div>
-    </div>
-    {% endfor %}
-    {% endif %}
-
-    {% if ventas_estancadas %}
-    <div style="padding:.5rem .75rem;border-bottom:1px solid var(--border)">
-      <small class="fw-bold text-uppercase" style="color:var(--yellow);font-size:.68rem;letter-spacing:1px"><i class="bi bi-graph-up me-1"></i>Ventas en negociacion estancadas (&gt; 14 dias)</small>
-    </div>
-    {% for v in ventas_estancadas %}
-    <div style="padding:.4rem .75rem;border-bottom:1px solid var(--border);font-size:.82rem" class="d-flex align-items-center justify-content-between">
-      <div>
-        <a href="{{ url_for('venta_ver', id=v.id) }}" class="fw-semibold text-decoration-none" style="color:var(--text)">{{ v.titulo }}</a>
-        <div><small class="text-muted">{{ v.cliente.empresa or v.cliente.nombre if v.cliente else 'Sin cliente' }}</small></div>
-      </div>
-      <div class="text-end">
-        <span class="badge" style="background:var(--yellow);color:#333;font-size:.7rem">{{ (hoy_date - v.creado_en.date()).days }} dias</span>
-      </div>
-    </div>
-    {% endfor %}
-    {% endif %}
-
-    {% if entregas_pendientes %}
-    <div style="padding:.5rem .75rem;border-bottom:1px solid var(--border)">
-      <small class="fw-bold text-uppercase" style="color:var(--red);font-size:.68rem;letter-spacing:1px"><i class="bi bi-truck me-1"></i>Entregas pendientes (&gt; 30 dias)</small>
-    </div>
-    {% for v in entregas_pendientes %}
-    <div style="padding:.4rem .75rem;border-bottom:1px solid var(--border);font-size:.82rem" class="d-flex align-items-center justify-content-between">
-      <div>
-        <a href="{{ url_for('venta_ver', id=v.id) }}" class="fw-semibold text-decoration-none" style="color:var(--text)">{{ v.titulo }}</a>
-        <div><small class="text-muted">{{ v.cliente.empresa or v.cliente.nombre if v.cliente else 'Sin cliente' }}</small></div>
-      </div>
-      <div class="text-end">
-        <span class="badge" style="background:var(--red);font-size:.7rem">{{ (hoy_date - v.creado_en.date()).days }} dias</span>
-      </div>
-    </div>
-    {% endfor %}
-    {% endif %}
   </div>
 </div>
+<script>
+fetch('/api/dashboard/lazy').then(function(r){return r.json()}).then(function(d){
+  var sec = document.getElementById('seguimientoSection');
+  if(!sec) return;
+  var cots = d.cots_sin_respuesta||[];
+  var vest = d.ventas_estancadas||[];
+  var epend = d.entregas_pendientes||[];
+  var total = cots.length + vest.length + epend.length;
+  if(!total){ sec.innerHTML=''; return; }
+  var html = '<div class="tc mb-3"><div class="ch" style="cursor:pointer" onclick="this.parentElement.querySelector(\'.seg-body\').classList.toggle(\'d-none\')"><span><i class="bi bi-bell-fill me-2" style="color:var(--orange)"></i>Alertas de seguimiento <span class="badge bg-danger ms-1">'+total+'</span></span><i class="bi bi-chevron-down" style="font-size:.8rem;color:var(--text2)"></i></div><div class="seg-body">';
+  if(cots.length){
+    html += '<div style="padding:.5rem .75rem;border-bottom:1px solid var(--border)"><small class="fw-bold text-uppercase" style="color:var(--orange);font-size:.68rem;letter-spacing:1px"><i class="bi bi-file-earmark-text me-1"></i>Cotizaciones sin respuesta (&gt; 7 dias)</small></div>';
+    cots.forEach(function(c){
+      html += '<div style="padding:.4rem .75rem;border-bottom:1px solid var(--border);font-size:.82rem" class="d-flex align-items-center justify-content-between"><div><a href="/cotizaciones/'+c.id+'" class="fw-semibold text-decoration-none" style="color:var(--text)">'+(c.titulo||c.numero)+'</a><div><small class="text-muted">'+c.cliente+'</small></div></div><div class="text-end"><span class="badge" style="background:var(--orange);font-size:.7rem">'+c.dias+' dias</span></div></div>';
+    });
+  }
+  if(vest.length){
+    html += '<div style="padding:.5rem .75rem;border-bottom:1px solid var(--border)"><small class="fw-bold text-uppercase" style="color:var(--yellow);font-size:.68rem;letter-spacing:1px"><i class="bi bi-graph-up me-1"></i>Ventas en negociacion estancadas (&gt; 14 dias)</small></div>';
+    vest.forEach(function(v){
+      html += '<div style="padding:.4rem .75rem;border-bottom:1px solid var(--border);font-size:.82rem" class="d-flex align-items-center justify-content-between"><div><a href="/ventas/'+v.id+'" class="fw-semibold text-decoration-none" style="color:var(--text)">'+v.titulo+'</a><div><small class="text-muted">'+v.cliente+'</small></div></div><div class="text-end"><span class="badge" style="background:var(--yellow);color:#333;font-size:.7rem">'+v.dias+' dias</span></div></div>';
+    });
+  }
+  if(epend.length){
+    html += '<div style="padding:.5rem .75rem;border-bottom:1px solid var(--border)"><small class="fw-bold text-uppercase" style="color:var(--red);font-size:.68rem;letter-spacing:1px"><i class="bi bi-truck me-1"></i>Entregas pendientes (&gt; 30 dias)</small></div>';
+    epend.forEach(function(v){
+      html += '<div style="padding:.4rem .75rem;border-bottom:1px solid var(--border);font-size:.82rem" class="d-flex align-items-center justify-content-between"><div><a href="/ventas/'+v.id+'" class="fw-semibold text-decoration-none" style="color:var(--text)">'+v.titulo+'</a><div><small class="text-muted">'+v.cliente+'</small></div></div><div class="text-end"><span class="badge" style="background:var(--red);font-size:.7rem">'+v.dias+' dias</span></div></div>';
+    });
+  }
+  html += '</div></div>';
+  sec.innerHTML = html;
+}).catch(function(){ var s=document.getElementById('seguimientoSection'); if(s) s.innerHTML=''; });
+</script>
 {% endif %}
 
 {# ── CLV + Rentabilidad ─────────────────────────────── #}
@@ -309,7 +291,7 @@
       </table>
       </div>
       {% else %}
-      <div style="padding:1.5rem;text-align:center;color:var(--text2);font-size:.85rem"><i class="bi bi-trophy me-1"></i>Sin datos de clientes</div>
+      <div style="padding:1.5rem;text-align:center;color:var(--text2);font-size:.85rem"><i class="bi bi-trophy me-1"></i>Sin ventas completadas aun. <a href="{{ url_for('ventas') }}">Ir a ventas</a></div>
       {% endif %}
     </div>
   </div>
@@ -342,7 +324,7 @@
       </table>
       </div>
       {% else %}
-      <div style="padding:1.5rem;text-align:center;color:var(--text2);font-size:.85rem"><i class="bi bi-bar-chart me-1"></i>Sin datos de rentabilidad</div>
+      <div style="padding:1.5rem;text-align:center;color:var(--text2);font-size:.85rem"><i class="bi bi-bar-chart me-1"></i>Sin recetas con costos. <a href="{{ url_for('recetas') }}">Crear receta</a></div>
       {% endif %}
     </div>
   </div>

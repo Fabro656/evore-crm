@@ -20,7 +20,7 @@
 <div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-people-fill me-2"></i>{{ items|length }} cliente(s)</div>
 {% if items %}
 <div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%">
-<table class="table" style="width:100%;min-width:700px;margin:0">
+<table class="table table-cards" style="width:100%;min-width:700px;margin:0">
   <thead><tr>
     <th style="min-width:200px">Empresa</th>
     <th style="min-width:100px">NIT</th>
@@ -30,12 +30,12 @@
     <th style="width:100px"></th>
   </tr></thead>
   <tbody>{% for c in items %}<tr>
-    <td><a href="{{ url_for('cliente_ver', id=c.id) }}" class="fw-semibold text-decoration-none" style="color:var(--text)">{{ c.empresa or c.nombre }}</a>
+    <td data-label="Empresa"><a href="{{ url_for('cliente_ver', id=c.id) }}" class="fw-semibold text-decoration-none" style="color:var(--text)">{{ c.empresa or c.nombre }}</a>
       {% if c.empresa and c.nombre != c.empresa %}<div><small class="text-muted">{{ c.nombre }}</small></div>{% endif %}</td>
-    <td><small class="text-muted">{{ c.nit or '—' }}</small></td>
-    <td><span class="b b-{{ c.estado_relacion }}">{{ c.estado_relacion.replace('_',' ').title() }}</span></td>
-    <td>{% if c.contactos %}<small>{{ c.contactos[0].nombre }}{% if c.contactos[0].cargo %} · {{ c.contactos[0].cargo }}{% endif %}{% if c.contactos[0].email %}<br><span class="text-muted">{{ c.contactos[0].email }}</span>{% endif %}</small>{% else %}—{% endif %}</td>
-    <td><small class="text-muted">{{ c.creado_en.strftime('%d/%m/%Y') }}</small></td>
+    <td data-label="NIT"><small class="text-muted">{{ c.nit or '—' }}</small></td>
+    <td data-label="Relación"><span class="b b-{{ c.estado_relacion }}">{{ c.estado_relacion.replace('_',' ').title() }}</span></td>
+    <td data-label="Contacto">{% if c.contactos %}<small>{{ c.contactos[0].nombre }}{% if c.contactos[0].cargo %} · {{ c.contactos[0].cargo }}{% endif %}{% if c.contactos[0].email %}<br><span class="text-muted">{{ c.contactos[0].email }}</span>{% endif %}</small>{% else %}—{% endif %}</td>
+    <td data-label="Alta"><small class="text-muted">{{ c.creado_en.strftime('%d/%m/%Y') }}</small></td>
     <td><div class="d-flex gap-1 justify-content-end">
       <a href="{{ url_for('cliente_ver', id=c.id) }}" class="btn btn-sm btn-outline-primary" style="font-size:.72rem;padding:2px 8px" title="Ver"><i class="bi bi-eye"></i></a>
       <a href="{{ url_for('cliente_editar', id=c.id) }}" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;padding:2px 8px" title="Editar"><i class="bi bi-pencil"></i></a>
