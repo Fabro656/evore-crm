@@ -234,6 +234,72 @@
 </div>
 {% endif %}
 
+{# ── CLV + Rentabilidad ─────────────────────────────── #}
+<div class="row g-3 mb-3">
+  <div class="col-md-6">
+    <div class="tc">
+      <div class="ch">
+        <span><i class="bi bi-trophy-fill me-2" style="color:#f39c12"></i>Top Clientes (CLV)</span>
+      </div>
+      {% if top_clientes_clv %}
+      <div class="table-responsive">
+      <table class="table">
+        <thead><tr>
+          <th style="font-size:.75rem;text-transform:uppercase;color:var(--text2)">Empresa</th>
+          <th style="font-size:.75rem;text-transform:uppercase;color:var(--text2);text-align:right">Total ventas</th>
+          <th style="font-size:.75rem;text-transform:uppercase;color:var(--text2);text-align:center"># Ordenes</th>
+        </tr></thead>
+        <tbody>
+        {% for c in top_clientes_clv %}
+        <tr>
+          <td style="font-size:.85rem">{{ c.empresa or c.nombre }}</td>
+          <td class="valor-cop" data-cop="{{ c.total_revenue }}" style="font-size:.85rem;text-align:right;white-space:nowrap">$ {{ '{:,.0f}'.format(c.total_revenue).replace(',','.') }}</td>
+          <td style="font-size:.85rem;text-align:center">{{ c.order_count }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      {% else %}
+      <div style="padding:1.5rem;text-align:center;color:var(--text2);font-size:.85rem"><i class="bi bi-trophy me-1"></i>Sin datos de clientes</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="tc">
+      <div class="ch">
+        <span><i class="bi bi-bar-chart-fill me-2" style="color:#2dce89"></i>Rentabilidad por Producto</span>
+      </div>
+      {% if productos_rentabilidad %}
+      <div class="table-responsive">
+      <table class="table">
+        <thead><tr>
+          <th style="font-size:.75rem;text-transform:uppercase;color:var(--text2)">Producto</th>
+          <th style="font-size:.75rem;text-transform:uppercase;color:var(--text2);text-align:right">Costo</th>
+          <th style="font-size:.75rem;text-transform:uppercase;color:var(--text2);text-align:right">Precio</th>
+          <th style="font-size:.75rem;text-transform:uppercase;color:var(--text2);text-align:right">Margen %</th>
+        </tr></thead>
+        <tbody>
+        {% for p in productos_rentabilidad %}
+        <tr>
+          <td style="font-size:.85rem">{{ p.nombre }}</td>
+          <td style="font-size:.85rem;text-align:right;white-space:nowrap">$ {{ '{:,.0f}'.format(p.costo).replace(',','.') }}</td>
+          <td style="font-size:.85rem;text-align:right;white-space:nowrap">$ {{ '{:,.0f}'.format(p.precio).replace(',','.') }}</td>
+          <td style="font-size:.85rem;text-align:right;white-space:nowrap">
+            <span style="color:{% if p.margen_pct > 30 %}#2dce89{% elif p.margen_pct >= 15 %}#f39c12{% else %}#f5365c{% endif %};font-weight:600">{{ p.margen_pct }}%</span>
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      {% else %}
+      <div style="padding:1.5rem;text-align:center;color:var(--text2);font-size:.85rem"><i class="bi bi-bar-chart me-1"></i>Sin datos de rentabilidad</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
 {# ── Tareas + Ventas ───────────────────────────────── #}
 <div class="row g-3 mb-3">
   <div class="col-lg-6">

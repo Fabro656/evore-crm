@@ -89,6 +89,45 @@ def register(app):
         except Exception:
             entregas_pendientes = []
 
+        # ── Top 5 Clientes por CLV (Customer Lifetime Value) ──
+        try:
+            top_clientes_clv = db.session.query(
+                Cliente.id, Cliente.empresa, Cliente.nombre,
+                db.func.sum(Venta.total).label('total_revenue'),
+                db.func.count(Venta.id).label('order_count')
+            ).join(Venta, Venta.cliente_id == Cliente.id).filter(
+                Venta.estado.in_(['completado', 'pagado', 'entregado'])
+            ).group_by(Cliente.id).order_by(db.func.sum(Venta.total).desc()).limit(5).all()
+        except Exception:
+            db.session.rollback()
+            top_clientes_clv = []
+
+        # ── Top 10 Productos por rentabilidad (margen %) ──
+        try:
+            _recetas_raw = RecetaProducto.query.join(Producto, RecetaProducto.producto_id == Producto.id).filter(
+                RecetaProducto.precio_venta_sugerido > 0,
+                RecetaProducto.costo_calculado > 0
+            ).with_entities(
+                Producto.nombre,
+                RecetaProducto.costo_calculado,
+                RecetaProducto.precio_venta_sugerido
+            ).all()
+            productos_rentabilidad = []
+            for r in _recetas_raw:
+                margen = r.precio_venta_sugerido - r.costo_calculado
+                margen_pct = (margen / r.precio_venta_sugerido) * 100
+                productos_rentabilidad.append({
+                    'nombre': r.nombre,
+                    'costo': r.costo_calculado,
+                    'precio': r.precio_venta_sugerido,
+                    'margen_pct': round(margen_pct, 1)
+                })
+            productos_rentabilidad.sort(key=lambda x: x['margen_pct'], reverse=True)
+            productos_rentabilidad = productos_rentabilidad[:10]
+        except Exception:
+            db.session.rollback()
+            productos_rentabilidad = []
+
         return render_template('dashboard.html',
             total_clientes       = Cliente.query.filter_by(estado='activo').count(),
             ventas_completadas       = Venta.query.filter_by(estado='completado').count(),
@@ -113,6 +152,8 @@ def register(app):
             ventas_estancadas    = ventas_estancadas,
             entregas_pendientes  = entregas_pendientes,
             hoy_date             = hoy,
+            top_clientes_clv     = top_clientes_clv,
+            productos_rentabilidad = productos_rentabilidad,
         )
     
 

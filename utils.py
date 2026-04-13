@@ -321,6 +321,11 @@ def inject_globals():
     empresa_cliente_nombre = None
     empresa_proveedor_nombre = None
     if current_user.is_authenticated:
+        # Validate session role: clear if user no longer has it
+        if 'rol_activo' in session:
+            _roles_validos = _get_roles_usuario(current_user)
+            if session['rol_activo'] not in _roles_validos:
+                session.pop('rol_activo', None)
         try:
             notif_count = Notificacion.query.filter_by(
                 usuario_id=current_user.id, leida=False).count()

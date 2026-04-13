@@ -1,0 +1,2 @@
+- [Regla cobro cajas](project_empaque_regla_caja.md) — Cajas se cobran completas aunque vayan incompletas (math.ceil)
+- [No auto-eliminar datos](feedback_no_auto_delete.md) — NUNCA agregar limpieza automática de recetas/stock/cotizaciones en init_db

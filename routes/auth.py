@@ -115,6 +115,7 @@ def register(app):
                 delta = ses.logout_at - ses.login_at
                 ses.duracion_min = round(delta.total_seconds()/60, 1)
                 db.session.commit()
+        flask_session.pop('rol_activo', None)
         logout_user(); flash('Sesión cerrada.', 'info'); return redirect(url_for('login'))
     
 

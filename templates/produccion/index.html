@@ -83,4 +83,34 @@
     <a href="{{ url_for('gantt') }}" class="btn btn-sm btn-outline-primary ms-auto">Ver Gantt</a>
   </div></div>
 </div>
+{% if proveedores_score %}
+<div class="row g-3 mt-2">
+  <div class="col-12"><div class="tc">
+    <div class="ch d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-clipboard2-pulse me-2 text-info"></i>Scorecard de Proveedores</span>
+    </div>
+    <table class="table">
+      <thead><tr>
+        <th>Proveedor</th><th class="text-center">Total OCs</th>
+        <th class="text-center">Recibidas</th><th class="text-center">Problemas calidad</th>
+        <th class="text-center">Score</th>
+      </tr></thead>
+      <tbody>
+      {% for p in proveedores_score %}
+        {% set score = ((p.recibidas - p.problemas) / p.total_oc * 100)|round(0)|int if p.total_oc else 0 %}
+        <tr>
+          <td><div class="fw-semibold" style="font-size:.88rem;color:var(--text)">{{ p.empresa or p.nombre }}</div></td>
+          <td class="text-center">{{ p.total_oc }}</td>
+          <td class="text-center">{{ p.recibidas }}</td>
+          <td class="text-center">{% if p.problemas %}<span class="text-danger fw-semibold">{{ p.problemas }}</span>{% else %}0{% endif %}</td>
+          <td class="text-center">
+            <span class="badge {% if score >= 80 %}bg-success{% elif score >= 50 %}bg-warning text-dark{% else %}bg-danger{% endif %}" style="font-size:.85rem">{{ score }}%</span>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div></div>
+</div>
+{% endif %}
 {% endblock %}

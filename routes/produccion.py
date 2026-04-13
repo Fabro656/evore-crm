@@ -5,6 +5,7 @@ from extensions import db
 from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
+from sqlalchemy import func, case
 import logging
 
 def register(app):
@@ -22,10 +23,24 @@ def register(app):
         ordenes_activas = OrdenCompra.query.filter(OrdenCompra.estado.in_(['borrador','enviada','en_transito'])).count()
         compras_recientes = CompraMateria.query.order_by(CompraMateria.fecha.desc()).limit(5).all()
         granel_recientes  = CotizacionGranel.query.order_by(CotizacionGranel.creado_en.desc()).limit(5).all()
+        # Supplier quality scorecard
+        try:
+            proveedores_score = db.session.query(
+                Proveedor.id, Proveedor.empresa, Proveedor.nombre,
+                func.count(OrdenCompra.id).label('total_oc'),
+                func.sum(case((OrdenCompra.tiene_problema_calidad == True, 1), else_=0)).label('problemas'),
+                func.sum(case((OrdenCompra.estado == 'recibida', 1), else_=0)).label('recibidas'),
+            ).join(OrdenCompra, OrdenCompra.proveedor_id == Proveedor.id
+            ).group_by(Proveedor.id, Proveedor.empresa, Proveedor.nombre
+            ).having(func.count(OrdenCompra.id) >= 1
+            ).order_by(func.count(OrdenCompra.id).desc()).limit(10).all()
+        except Exception:
+            proveedores_score = []
         return render_template('produccion/index.html',
             total_compras=total_compras, compras_mes=compras_mes,
             cotizaciones_vigentes=cotizaciones_vigentes, ordenes_activas=ordenes_activas,
-            compras_recientes=compras_recientes, granel_recientes=granel_recientes)
+            compras_recientes=compras_recientes, granel_recientes=granel_recientes,
+            proveedores_score=proveedores_score)
     
 
     # ── compras (/produccion/compras)
