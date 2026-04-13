@@ -66,24 +66,6 @@ def register(app):
         """Railway healthcheck — must respond fast without DB queries."""
         return 'OK', 200
 
-    @app.route('/sw.js')
-    def service_worker():
-        """Serve SW from root scope so it can intercept all routes."""
-        resp = make_response(send_file('static/sw.js', mimetype='application/javascript', max_age=0))
-        resp.headers['Service-Worker-Allowed'] = '/'
-        resp.headers['Cache-Control'] = 'no-cache'
-        return resp
-
-    @app.route('/offline')
-    def offline_page():
-        return '''<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sin conexion — Evore CRM</title>
-<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,-apple-system,sans-serif;background:#0F172A;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;text-align:center}
-.c{max-width:400px;padding:2rem}.icon{font-size:4rem;margin-bottom:1.5rem}h1{font-size:1.5rem;margin-bottom:.5rem}p{color:#9CA3B4;margin-bottom:1.5rem;font-size:.95rem}
-button{padding:10px 28px;background:#0176D3;color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer}button:hover{background:#0156A3}</style></head>
-<body><div class="c"><div class="icon">&#x1F4F6;</div><h1>Evore CRM</h1><p>No hay conexion a internet. Verifica tu red e intenta de nuevo.</p>
-<button onclick="location.reload()">Reintentar</button></div></body></html>''', 200
-
     @app.route('/debug-check')
     @login_required
     def debug_check():
