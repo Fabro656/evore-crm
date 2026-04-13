@@ -39,8 +39,10 @@
     <a href="{{ url_for('gastos') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
   </div>
 </form></div></div>
-<div class="tc"><div class="ch"><i class="bi bi-receipt me-2"></i>{{ items|length }} gasto(s)</div>
-{% if items %}<div class="table-responsive"><table class="table">
+<div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-receipt me-2"></i>{{ items|length }} gasto(s)</div>
+{% if items %}
+<div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%">
+<table class="table" style="width:100%;min-width:750px;margin:0">
   <thead><tr><th>Fecha</th><th>Tipo</th><th>Descripcion</th><th>Monto</th><th>Pago</th><th></th></tr></thead>
   <tbody>{% for g in items %}{% if not g.es_plantilla %}<tr>
     <td><small>{{ g.fecha.strftime('%d/%m/%Y') }}</small></td>
@@ -72,7 +74,8 @@
       </div>
     </td>
   </tr>{% endif %}{% endfor %}</tbody>
-</table></div>
+</table>
+</div>
 {% else %}<div class="text-center text-muted py-5"><i class="bi bi-receipt" style="font-size:3rem"></i>
   <p class="mt-3">Sin gastos.</p><a href="{{ url_for('gasto_nuevo') }}" class="btn btn-primary">Agregar primero</a></div>
-{% endif %}</div>{% endblock %}
+{% endif %}{% endblock %}

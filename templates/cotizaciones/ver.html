@@ -37,8 +37,10 @@
     </div></div>
   </div>
 </div>
-<div class="tc mb-3"><div class="ch">Ítems</div>
-<div class="table-responsive"><table class="table">
+<div class="mb-3">
+<div class="mb-2" style="font-size:.82rem;color:var(--text2);font-weight:600"><i class="bi bi-list-ul me-2"></i>Items</div>
+<div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%">
+<table class="table" style="width:100%;min-width:600px;margin:0">
   <thead><tr><th>#</th><th>Descripción</th><th class="text-end">Cant.</th><th class="text-end">Precio unit.</th><th class="text-end">Subtotal</th></tr></thead>
   <tbody>{% for it in obj.items %}
   <tr>
@@ -48,7 +50,8 @@
     <td class="text-end">$ {{ '{:,.0f}'.format(it.precio_unit).replace(',','.') }}</td>
     <td class="text-end fw-semibold">$ {{ '{:,.0f}'.format(it.subtotal).replace(',','.') }}</td>
   </tr>{% endfor %}</tbody>
-</table></div></div>
+</table>
+</div></div>
 <div class="tc"><div class="ch">Cambiar estado</div><div class="p-3">
   <div class="d-flex flex-wrap gap-2">
     {% for e,lbl in [('borrador','Borrador'),('enviada','Enviada al cliente'),('aprobada','Aprobada'),('confirmacion_orden','Orden confirmada')] %}

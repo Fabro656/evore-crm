@@ -8,8 +8,10 @@
   <span class="text-muted mx-1">|</span>
   <a href="{{ url_for('tareas', prioridad='alta') }}" class="btn btn-sm {{ 'btn-danger' if prioridad_f=='alta' else 'btn-outline-secondary' }}">Alta prioridad</a>
 </div>
-<div class="tc"><div class="ch"><i class="bi bi-check2-square me-2"></i>{{ items|length }} ticket(s)</div>
-{% if items %}<div class="table-responsive"><table class="table">
+<div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-check2-square me-2"></i>{{ items|length }} ticket(s)</div>
+{% if items %}
+<div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%">
+<table class="table" style="width:100%;min-width:750px;margin:0">
   <thead><tr><th>Ticket</th><th>Prioridad</th><th>Estado</th><th>Asignada a</th><th>Vence</th><th></th></tr></thead>
   <tbody>{% for t in items %}<tr {% if t.estado=='completada' %}style="opacity:.6"{% endif %}>
     <td><a href="{{ url_for('tarea_ver', id=t.id) }}" class="fw-semibold text-decoration-none {% if t.estado=='completada' %}text-decoration-line-through{% endif %}" style="color:var(--text)">{{ t.titulo }}</a>
@@ -41,7 +43,8 @@
       </ul>
     </div></td>
   </tr>{% endfor %}</tbody>
-</table></div>
+</table>
+</div>
 {% else %}<div class="text-center text-muted py-5"><i class="bi bi-check2-all" style="font-size:3rem"></i>
   <p class="mt-3">Sin tickets.</p><a href="{{ url_for('tarea_nueva') }}" class="btn btn-primary">Crear primera</a></div>
-{% endif %}</div>{% endblock %}
+{% endif %}{% endblock %}

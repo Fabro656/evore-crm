@@ -9,8 +9,10 @@
   {% for est,lbl in [('','Todas'),('borrador','Borrador'),('anticipo_pagado','Anticipo pagado'),('pagado','Pagado'),('en_espera_producto','En espera producto'),('recibida_parcial','Parcial'),('recibida','Recibida'),('cancelada','Cancelada')] %}
   <a href="{{ url_for('ordenes_compra', estado=est) }}" class="btn btn-sm {{ 'btn-primary' if estado_f==est else 'btn-outline-secondary' }}">{{ lbl }}</a>{% endfor %}
 </div>
-<div class="tc"><div class="ch"><i class="bi bi-cart-check me-2"></i>{{ items|length }} orden(es) de compra</div>
-{% if items %}<div class="table-responsive"><table class="table">
+<div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-cart-check me-2"></i>{{ items|length }} orden(es) de compra</div>
+{% if items %}
+<div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%">
+<table class="table" style="width:100%;min-width:900px;margin:0">
   <thead><tr><th>N</th><th>Proveedor</th><th>Estado</th><th>Pago</th><th>Recepcion</th><th>Emision</th><th>Entrega esp.</th><th>Total</th><th></th></tr></thead>
   <tbody>{% for oc in items %}<tr>
     <td class="fw-semibold" style="color:var(--text)">{{ oc.numero or '--' }}</td>
@@ -67,7 +69,8 @@
       </ul>
     </div></td>
   </tr>{% endfor %}</tbody>
-</table></div>
+</table>
+</div>
 {% else %}<div class="text-center text-muted py-5"><i class="bi bi-cart-check" style="font-size:3rem"></i>
   <p class="mt-3">Sin ordenes de compra.</p><a href="{{ url_for('orden_compra_nueva') }}" class="btn btn-primary">Crear primera</a></div>
-{% endif %}</div>{% endblock %}
+{% endif %}{% endblock %}
