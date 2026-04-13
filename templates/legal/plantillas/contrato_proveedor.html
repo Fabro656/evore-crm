@@ -1,0 +1,46 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Contrato de Suministro</title>
+<style>
+body{font-family:Georgia,serif;font-size:12pt;color:#1a1a1a;max-width:700px;margin:40px auto;line-height:1.8;padding:0 20px}
+h1{text-align:center;font-size:14pt;text-transform:uppercase;letter-spacing:2px;margin-bottom:30px}
+.clausula{margin:15px 0;text-align:justify}
+.clausula strong{display:block;margin-bottom:5px}
+.firma{display:flex;justify-content:space-between;margin-top:60px}
+.firma div{width:45%;text-align:center;border-top:1px solid #333;padding-top:8px;font-size:10pt}
+.no-print{position:fixed;top:10px;right:10px}
+@media print{.no-print{display:none}}
+</style></head><body>
+<button class="no-print" onclick="window.print()" style="background:#0176D3;color:#fff;border:none;padding:8px 16px;border-radius:5px;cursor:pointer">Imprimir</button>
+
+<h1>Contrato de Suministro</h1>
+
+<p>En la ciudad de <strong>{{ ciudad }}</strong>, a los <strong>{{ fecha }}</strong>, entre <strong>{{ empresa_nombre }}</strong> (NIT {{ empresa_nit }}), representada por <strong>{{ empresa_representante }}</strong>, en adelante EL COMPRADOR, y <strong>{{ tercero_empresa or tercero_nombre }}</strong> ({{ 'NIT ' + tercero_nit if tercero_nit else 'C.C. ' + tercero_cedula }}), representada por <strong>{{ tercero_nombre }}</strong>, en adelante EL PROVEEDOR, se celebra el presente contrato de suministro:</p>
+
+<div class="clausula"><strong>PRIMERA — OBJETO:</strong>
+EL PROVEEDOR se obliga a suministrar a EL COMPRADOR los siguientes bienes y/o servicios: {{ objeto or '[DESCRIPCION DE MATERIALES/SERVICIOS]' }}. Las especificaciones tecnicas, cantidades y condiciones de entrega se estableceran en cada orden de compra emitida por EL COMPRADOR.</div>
+
+<div class="clausula"><strong>SEGUNDA — PRECIO Y FORMA DE PAGO:</strong>
+Los precios seran los convenidos en las cotizaciones vigentes al momento de cada orden de compra. El pago se realizara {{ valor or 'dentro de los 30 dias siguientes a la recepcion del material y la factura correspondiente' }}. EL COMPRADOR aplicara las retenciones de ley (retencion en la fuente, ICA) segun corresponda.</div>
+
+<div class="clausula"><strong>TERCERA — PLAZO DE ENTREGA:</strong>
+EL PROVEEDOR se compromete a entregar los bienes en los plazos establecidos en cada orden de compra. El incumplimiento reiterado (mas de 3 entregas tardias) dara lugar a la terminacion unilateral del contrato por parte de EL COMPRADOR.</div>
+
+<div class="clausula"><strong>CUARTA — CALIDAD:</strong>
+Los bienes suministrados deberan cumplir con las especificaciones tecnicas acordadas. EL COMPRADOR podra rechazar materiales que no cumplan con los estandares de calidad, debiendo EL PROVEEDOR reemplazarlos sin costo adicional dentro de los 5 dias habiles siguientes.</div>
+
+<div class="clausula"><strong>QUINTA — VIGENCIA:</strong>
+El presente contrato tendra una vigencia de <strong>{{ vigencia }}</strong>, contados a partir de su firma, prorrogable automaticamente por periodos iguales salvo aviso de terminacion con 30 dias de anticipacion.</div>
+
+<div class="clausula"><strong>SEXTA — CONFIDENCIALIDAD:</strong>
+Las partes se comprometen a mantener la confidencialidad de toda informacion tecnica, comercial o financiera a la que tengan acceso con ocasion del presente contrato.</div>
+
+<div class="clausula"><strong>SEPTIMA — RESPONSABILIDAD:</strong>
+EL PROVEEDOR sera responsable de los danos causados por defectos en los bienes suministrados, conforme a las normas de responsabilidad civil y la Ley 1480 de 2011 (Estatuto del Consumidor).</div>
+
+<div class="clausula"><strong>OCTAVA — TERMINACION:</strong>
+Este contrato podra terminarse por: a) Mutuo acuerdo; b) Incumplimiento de cualquiera de las partes; c) Fuerza mayor o caso fortuito; d) Decision unilateral con preaviso de 30 dias.</div>
+
+<div class="firma">
+  <div><strong>{{ empresa_representante or empresa_nombre }}</strong><br>EL COMPRADOR<br>NIT: {{ empresa_nit }}</div>
+  <div><strong>{{ tercero_nombre }}</strong><br>EL PROVEEDOR<br>{{ 'NIT: ' + tercero_nit if tercero_nit else 'C.C. ' + tercero_cedula }}</div>
+</div>
+</body></html>

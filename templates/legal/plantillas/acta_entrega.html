@@ -1,0 +1,60 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Acta de Entrega de Producto Terminado</title>
+<style>
+body{font-family:Georgia,serif;font-size:12pt;color:#1a1a1a;max-width:700px;margin:40px auto;line-height:1.8;padding:0 20px}
+h1{text-align:center;font-size:14pt;text-transform:uppercase;letter-spacing:2px;margin-bottom:30px}
+table{width:100%;border-collapse:collapse;margin:20px 0}
+table th,table td{border:1px solid #333;padding:8px 12px;text-align:left;font-size:11pt}
+table th{background:#f0f0f0;font-weight:bold}
+table td{vertical-align:top}
+.clausula{margin:15px 0;text-align:justify}
+.clausula strong{display:block;margin-bottom:5px}
+.firma{display:flex;justify-content:space-between;margin-top:60px}
+.firma div{width:45%;text-align:center;border-top:1px solid #333;padding-top:8px;font-size:10pt}
+.no-print{position:fixed;top:10px;right:10px}
+@media print{.no-print{display:none}}
+</style></head><body>
+<button class="no-print" onclick="window.print()" style="background:#0176D3;color:#fff;border:none;padding:8px 16px;border-radius:5px;cursor:pointer">Imprimir / Descargar</button>
+
+<h1>Acta de Entrega de Producto Terminado</h1>
+
+<p>En la ciudad de <strong>{{ ciudad }}</strong>, a los <strong>{{ fecha }}</strong>, se procede a realizar la entrega formal de los productos terminados entre:</p>
+
+<p><strong>QUIEN ENTREGA:</strong> <strong>{{ empresa_nombre }}</strong>, identificada con NIT <strong>{{ empresa_nit }}</strong>, representada por <strong>{{ empresa_representante }}</strong>, con domicilio en <strong>{{ empresa_direccion or 'la ciudad' }}</strong>.</p>
+
+<p><strong>QUIEN RECIBE:</strong> <strong>{{ tercero_nombre }}</strong>{% if tercero_empresa %}, actuando en representacion de <strong>{{ tercero_empresa }}</strong>, identificada con NIT <strong>{{ tercero_nit }}</strong>{% endif %}, {{ identificado_identificada }} con cedula de ciudadania No. <strong>{{ tercero_cedula }}</strong>, con domicilio en <strong>{{ tercero_direccion or 'la ciudad' }}</strong>.</p>
+
+<div class="clausula"><strong>PRODUCTOS ENTREGADOS:</strong></div>
+
+<table>
+<thead>
+<tr><th style="width:5%">No.</th><th style="width:30%">Producto</th><th style="width:10%">Cantidad</th><th style="width:15%">Unidad</th><th style="width:40%">Descripcion / Observaciones</th></tr>
+</thead>
+<tbody>
+{% if items %}
+{% for item in items %}
+<tr><td>{{ loop.index }}</td><td>{{ item.producto }}</td><td>{{ item.cantidad }}</td><td>{{ item.unidad }}</td><td>{{ item.descripcion }}</td></tr>
+{% endfor %}
+{% else %}
+<tr><td>1</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>2</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>3</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>4</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>5</td><td></td><td></td><td></td><td></td></tr>
+{% endif %}
+</tbody>
+</table>
+
+<div class="clausula"><strong>OBSERVACIONES:</strong>
+<p>{{ objeto or '____________________________________________________________________________________________________________________________' }}</p></div>
+
+<div class="clausula"><strong>ESTADO DE LOS PRODUCTOS:</strong>
+QUIEN RECIBE declara que ha verificado los productos entregados y los recibe en buen estado, de conformidad con las especificaciones y cantidades acordadas. Cualquier reclamacion por defectos ocultos o no evidentes al momento de la entrega debera formularse por escrito dentro de los cinco (5) dias habiles siguientes a la fecha de la presente acta.</div>
+
+<div class="clausula"><strong>CONSTANCIA:</strong>
+La presente acta se firma en dos (2) ejemplares del mismo tenor, uno para cada parte, como constancia de la entrega y recibo a satisfaccion de los productos descritos.</div>
+
+<div class="firma">
+  <div><strong>{{ empresa_representante or empresa_nombre }}</strong><br>QUIEN ENTREGA<br>NIT: {{ empresa_nit }}</div>
+  <div><strong>{{ tercero_nombre }}</strong><br>QUIEN RECIBE<br>{% if tercero_nit %}NIT: {{ tercero_nit }}{% else %}C.C. {{ tercero_cedula }}{% endif %}</div>
+</div>
+</body></html>

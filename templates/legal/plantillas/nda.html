@@ -1,0 +1,47 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Acuerdo de Confidencialidad</title>
+<style>
+body{font-family:Georgia,serif;font-size:12pt;color:#1a1a1a;max-width:700px;margin:40px auto;line-height:1.8;padding:0 20px}
+h1{text-align:center;font-size:14pt;text-transform:uppercase;letter-spacing:2px;margin-bottom:30px}
+.clausula{margin:15px 0;text-align:justify}
+.clausula strong{display:block;margin-bottom:5px}
+.firma{display:flex;justify-content:space-between;margin-top:60px}
+.firma div{width:45%;text-align:center;border-top:1px solid #333;padding-top:8px;font-size:10pt}
+.no-print{position:fixed;top:10px;right:10px}
+@media print{.no-print{display:none}}
+</style></head><body>
+<button class="no-print" onclick="window.print()" style="background:#0176D3;color:#fff;border:none;padding:8px 16px;border-radius:5px;cursor:pointer">Imprimir</button>
+
+<h1>Acuerdo de Confidencialidad</h1>
+<p style="text-align:center;font-size:10pt;color:#666">(Non-Disclosure Agreement — NDA)</p>
+
+<p>En la ciudad de <strong>{{ ciudad }}</strong>, a los <strong>{{ fecha }}</strong>, entre:</p>
+
+<p><strong>PARTE REVELADORA:</strong> <strong>{{ empresa_nombre }}</strong>, identificada con NIT <strong>{{ empresa_nit }}</strong>, representada por <strong>{{ empresa_representante }}</strong>, con domicilio en {{ empresa_direccion or ciudad }}.</p>
+
+<p><strong>PARTE RECEPTORA:</strong> {{ El_La }} {{ senor_senora }} <strong>{{ tercero_nombre }}</strong>, {{ identificado_identificada }} con {{ 'NIT' if tercero_nit else 'C.C.' }} No. <strong>{{ tercero_nit or tercero_cedula }}</strong>{% if tercero_empresa %}, actuando en representacion de <strong>{{ tercero_empresa }}</strong>{% endif %}.</p>
+
+<p>Las partes acuerdan las siguientes clausulas:</p>
+
+<div class="clausula"><strong>PRIMERA — DEFINICION DE INFORMACION CONFIDENCIAL:</strong>
+Se entiende por Informacion Confidencial toda informacion tecnica, comercial, financiera, administrativa, formulas, procesos de produccion, recetas, listas de clientes, precios, estrategias de mercado, y cualquier otra informacion de naturaleza reservada que la Parte Reveladora comparta con la Parte Receptora.</div>
+
+<div class="clausula"><strong>SEGUNDA — OBLIGACIONES DE LA PARTE RECEPTORA:</strong>
+La Parte Receptora se compromete a: a) No divulgar la Informacion Confidencial a terceros sin autorizacion previa y escrita; b) Utilizar la informacion exclusivamente para los fines del {{ objeto or 'objeto del acuerdo' }}; c) Adoptar las medidas de seguridad necesarias para proteger la informacion; d) Devolver o destruir toda la informacion al termino del acuerdo.</div>
+
+<div class="clausula"><strong>TERCERA — EXCEPCIONES:</strong>
+No se considerara Informacion Confidencial aquella que: a) Sea de dominio publico; b) La Parte Receptora poseia antes del acuerdo; c) Sea recibida de un tercero sin restriccion; d) Sea requerida por autoridad competente.</div>
+
+<div class="clausula"><strong>CUARTA — VIGENCIA:</strong>
+Este acuerdo tendra una vigencia de <strong>{{ vigencia }}</strong> contados a partir de la fecha de firma, y las obligaciones de confidencialidad subsistiran por un periodo adicional de dos (2) anos despues de su terminacion.</div>
+
+<div class="clausula"><strong>QUINTA — PENALIDAD:</strong>
+El incumplimiento de este acuerdo dara lugar a una indemnizacion equivalente a {{ valor or 'los perjuicios causados' }}, sin perjuicio de las acciones legales que procedan conforme a la legislacion colombiana, incluyendo las disposiciones del articulo 16 de la Ley 256 de 1996 (competencia desleal).</div>
+
+<div class="clausula"><strong>SEXTA — LEY APLICABLE:</strong>
+Este acuerdo se rige por las leyes de la Republica de Colombia. Para cualquier controversia, las partes se someten a los jueces y tribunales de {{ ciudad }}.</div>
+
+<div class="firma">
+  <div><strong>{{ empresa_representante or empresa_nombre }}</strong><br>PARTE REVELADORA<br>NIT: {{ empresa_nit }}</div>
+  <div><strong>{{ tercero_nombre }}</strong><br>PARTE RECEPTORA<br>{{ tercero_nit or ('C.C. ' + tercero_cedula) }}</div>
+</div>
+</body></html>

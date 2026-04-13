@@ -1,23 +1,19 @@
 <html lang="es" data-theme="light">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{% block title %}Portal{% endblock %} — EVORE</title>
+<title>{% block title %}Portal{% endblock %} — {{ company_name or 'Evore' }}</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-<script>
-(function(){
-  var t=localStorage.getItem('evore_theme')||'light';
-  document.documentElement.setAttribute('data-theme',t);
-})();
-</script>
+<script>document.documentElement.setAttribute('data-theme',localStorage.getItem('evore_theme')||'light');</script>
 <style>
 :root{
   --ac:#0176D3;--ac2:#0047A1;--ac-rgb:1,118,211;
   --bg:#F3F5F9;--surface:#FFFFFF;--surface2:#EEF2F8;
   --border:#D5DFF0;--text:#1A2536;--text2:#5A6A85;
   --topbar-bg:#FFFFFF;--topbar-border:#E2E8F0;--input-bg:#FFFFFF;
-  --shadow:0 1px 4px rgba(0,0,0,.06);--radius:8px;
+  --shadow:0 1px 4px rgba(0,0,0,.06);--radius:10px;
   --green:#2E844A;--red:#C23934;--orange:#DD7A01;
+  --sb:#1A1F2E;
 }
 html[data-theme="dark"]{
   --ac:#1589EE;--ac2:#0E6BBD;--ac-rgb:21,137,238;
@@ -26,117 +22,131 @@ html[data-theme="dark"]{
   --topbar-bg:#1E1E1E;--topbar-border:#323232;--input-bg:#262626;
   --shadow:0 1px 4px rgba(0,0,0,.35);
   --green:#3BA860;--red:#E05555;--orange:#E09000;
+  --sb:#141414;
 }
 *{box-sizing:border-box}
-body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px;color:var(--text);transition:background-color .2s ease,color .2s ease;margin:0}
-.portal-topbar{background:var(--topbar-bg);border-bottom:1px solid var(--topbar-border);padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 3px rgba(0,0,0,.07);transition:background-color .2s ease,border-color .2s ease}
-.portal-brand{font-weight:800;font-size:1.1rem;color:var(--ac);letter-spacing:-0.5px;display:flex;align-items:center;gap:.5rem}
-.portal-user{display:flex;align-items:center;gap:.75rem}
-.portal-content{padding:1.5rem;max-width:1200px;margin:0 auto}
-.tc{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;transition:background-color .2s ease,border-color .2s ease}
-.ch{background:var(--surface);border-bottom:1px solid var(--border);padding:.75rem 1.25rem;font-weight:600;color:var(--text);font-size:.88rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px;color:var(--text);margin:0;display:flex;min-height:100vh}
+
+/* Portal sidebar */
+.portal-sb{width:220px;background:var(--sb);color:#9CA3B4;display:flex;flex-direction:column;flex-shrink:0}
+.portal-sb-brand{padding:1rem;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:.5rem}
+.portal-sb-brand span{font-weight:800;font-size:1rem;color:#fff;letter-spacing:-.3px}
+.portal-sb-brand small{font-size:.6rem;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px}
+.portal-sb nav{padding:.5rem;flex:1}
+.portal-sb .nav-link{color:#9CA3B4;padding:.5rem .75rem;border-radius:8px;font-size:.84rem;font-weight:500;display:flex;align-items:center;gap:.5rem;text-decoration:none;transition:all .12s;margin-bottom:2px}
+.portal-sb .nav-link:hover{background:rgba(255,255,255,.08);color:#fff}
+.portal-sb .nav-link.active{background:rgba(91,175,250,.15);color:#5BAFFA;font-weight:600}
+.portal-sb .nav-link i{font-size:.95rem;width:18px;opacity:.7}
+.portal-sb-foot{padding:.75rem;border-top:1px solid rgba(255,255,255,.08);margin-top:auto}
+.portal-sb-foot .user-info{display:flex;align-items:center;gap:.5rem}
+.portal-sb-foot .user-name{color:#fff;font-size:.82rem;font-weight:600}
+.portal-sb-foot .user-role{color:#5BAFFA;font-size:.65rem;background:rgba(91,175,250,.15);padding:1px 6px;border-radius:3px}
+
+/* Main content */
+.portal-main{flex:1;display:flex;flex-direction:column;min-width:0}
+.portal-topbar{background:var(--topbar-bg);border-bottom:1px solid var(--topbar-border);padding:.6rem 1.25rem;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+.portal-content{padding:1.25rem;flex:1;max-width:1100px;width:100%}
+
+/* Components */
+.tc{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;transition:all .15s}
+.tc:hover{box-shadow:0 4px 12px rgba(0,0,0,.08)}
+.ch{background:var(--surface);border-bottom:1px solid var(--border);padding:.75rem 1.25rem;font-weight:600;color:var(--text);font-size:.88rem;display:flex;align-items:center;justify-content:space-between}
+.sc{background:var(--surface);border-radius:var(--radius);padding:1rem;border:1px solid var(--border);text-align:center}
 .table{margin:0;width:100%}
 .table th{font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);border-bottom:2px solid var(--border);padding:.55rem 1rem;white-space:nowrap;background:var(--surface2)}
 .table td{padding:.55rem 1rem;vertical-align:middle;border-bottom:1px solid var(--border);color:var(--text);font-size:.85rem}
-.table>:not(caption)>*>*{background-color:transparent;color:var(--text);border-color:var(--border)}
-html[data-theme="dark"] .table>:not(caption)>*>*{background-color:var(--surface);color:var(--text);border-color:var(--border)}
-html[data-theme="dark"] .table tbody tr:hover>*{background-color:var(--surface2)!important}
 .table tbody tr:last-child td{border-bottom:none}
 .table tbody tr:hover{background:var(--surface2)}
-.table-responsive{overflow-x:auto}
 .b{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:.72rem;font-weight:600;letter-spacing:.2px;white-space:nowrap}
 .b-pendiente{background:#FFF8E6;color:#7A4A00;border:1px solid #FADDAA}
-.b-aprobada,.b-completado,.b-activo,.b-cliente_activo{background:#EDFBF0;color:#1A6B3C;border:1px solid #BEEFD3}
+.b-aprobada,.b-completado,.b-activo,.b-cliente_activo,.b-pagado{background:#EDFBF0;color:#1A6B3C;border:1px solid #BEEFD3}
 .b-rechazada,.b-cancelado{background:#FFF0EE;color:#8A1A1A;border:1px solid #FFCCC7}
-.b-en_revision,.b-en-revision,.b-borrador,.b-negociacion{background:#EBF4FF;color:#0A3D7A;border:1px solid #B3D4F5}
-.b-aceptada_cliente{background:#EDFBF0;color:#1A6B3C;border:1px solid #BEEFD3}
+.b-borrador,.b-negociacion,.b-anticipo_pagado,.b-en_revision{background:#EBF4FF;color:#0A3D7A;border:1px solid #B3D4F5}
 .b-prospecto{background:#F0EEFF;color:#4A1D96;border:1px solid #C4B5FD}
+.b-aceptada_cliente{background:#EDFBF0;color:#1A6B3C;border:1px solid #BEEFD3}
 .b-vip{background:#FFF8E6;color:#7A4A00;border:1px solid #FADDAA}
-.b-anticipo_pagado{background:#EBF4FF;color:#0A3D7A;border:1px solid #B3D4F5}
-.empty-state{text-align:center;padding:3rem 1rem;color:var(--text2)}
-.empty-state i{font-size:2.5rem;display:block;margin-bottom:.75rem;opacity:.4}
-html[data-theme="dark"] .tc,.html[data-theme="dark"] .ch{background:var(--surface);border-color:var(--border)}
-html[data-theme="dark"] .form-control,html[data-theme="dark"] .form-select{background:var(--input-bg);border-color:var(--border);color:var(--text)}
-html[data-theme="dark"] .modal-content{background:var(--surface);color:var(--text);border-color:var(--border)}
-html[data-theme="dark"] .modal-header{border-color:var(--border)}
-html[data-theme="dark"] .text-muted{color:var(--text2)!important}
-html[data-theme="dark"] .nav-tabs .nav-link{color:var(--text2);border-color:transparent}
-html[data-theme="dark"] .nav-tabs .nav-link.active{color:var(--ac);border-color:var(--border) var(--border) var(--surface);background:var(--surface)}
-html[data-theme="dark"] .nav-tabs{border-color:var(--border)}
-html[data-theme="dark"] .tab-content{background:var(--surface)}
-html[data-theme="dark"] input::placeholder,html[data-theme="dark"] textarea::placeholder{color:var(--text2)}
-html[data-theme="dark"] .btn-outline-secondary{border-color:var(--border);color:var(--text2)}
-html[data-theme="dark"] .btn-outline-secondary:hover{background:var(--surface2)}
-html[data-theme="dark"] .dropdown-menu{background:var(--surface);border-color:var(--border);color:var(--text)}
-html[data-theme="dark"] .dropdown-item{color:var(--text)}
-html[data-theme="dark"] .dropdown-item:hover{background:var(--surface2)}
-.form-control,.form-select{border:2px solid var(--border);border-radius:4px;padding:.48rem .75rem;font-size:.88rem;background:var(--input-bg);color:var(--text);transition:border-color .12s,background-color .2s,color .2s}
-.form-control:focus,.form-select:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(37,99,235,.15);outline:none}
-.form-label{font-weight:600;font-size:.82rem;color:var(--text);margin-bottom:.3rem;display:block}
-.alert{padding:.75rem 1rem;border-radius:var(--radius);margin-bottom:1rem;display:flex;align-items:flex-start;gap:.5rem;font-size:.85rem}
+.empty-state{text-align:center;padding:2.5rem 1rem;color:var(--text2)}
+.empty-state i{font-size:2.5rem;display:block;margin-bottom:.75rem;opacity:.35}
+.form-control,.form-select{border:1.5px solid var(--border);border-radius:6px;padding:.48rem .75rem;font-size:.88rem;background:var(--input-bg);color:var(--text);transition:border-color .12s}
+.form-control:focus,.form-select:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(var(--ac-rgb),.15);outline:none}
+.form-label{font-weight:600;font-size:.82rem;color:var(--text);margin-bottom:.3rem}
+.alert{padding:.75rem 1rem;border-radius:var(--radius);margin-bottom:1rem;font-size:.85rem}
 .alert-success{background:#EDFBF0;color:#1A6B3C;border:1px solid #BEEFD3}
 .alert-warning{background:#FFF8E6;color:#7A4A00;border:1px solid #FADDAA}
 .alert-danger{background:#FFF0EE;color:#8A1A1A;border:1px solid #FFCCC7}
 .alert-info{background:#EBF4FF;color:#0A3D7A;border:1px solid #B3D4F5}
+html[data-theme="dark"] .tc{background:var(--surface);border-color:var(--border)}
+html[data-theme="dark"] .form-control,html[data-theme="dark"] .form-select{background:var(--input-bg);border-color:var(--border);color:var(--text)}
 html[data-theme="dark"] .alert-success{background:rgba(59,168,96,.12);color:#80D9A0;border-color:rgba(59,168,96,.25)}
 html[data-theme="dark"] .alert-warning{background:rgba(224,144,0,.12);color:#FFCA60;border-color:rgba(224,144,0,.25)}
 html[data-theme="dark"] .alert-danger{background:rgba(224,85,85,.12);color:#FFAAAA;border-color:rgba(224,85,85,.25)}
 html[data-theme="dark"] .alert-info{background:rgba(21,137,238,.12);color:#90C8F5;border-color:rgba(21,137,238,.25)}
-@media(max-width:768px){.portal-content{padding:.85rem .75rem}.portal-topbar{padding:.6rem 1rem}}
+@media(max-width:768px){.portal-sb{display:none}.portal-content{padding:.85rem}}
 </style>
 </head>
 <body>
 {% if session.get('admin_real_id') %}
-<div style="background:#FF8B00;color:#fff;padding:.55rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;font-size:.84rem;font-weight:600">
-  <span><i class="bi bi-eye-fill me-2"></i>Viendo como: <strong>{{ current_user.nombre }}</strong> ({{ current_user.rol }})</span>
+<div style="background:#FF8B00;color:#fff;padding:.5rem 1.25rem;display:flex;align-items:center;justify-content:space-between;font-size:.84rem;font-weight:600;position:fixed;top:0;left:0;right:0;z-index:100">
+  <span><i class="bi bi-eye-fill me-2"></i>Viendo como: {{ current_user.nombre }} ({{ current_user.rol }})</span>
   <form method="POST" action="{{ url_for('admin_volver') }}" style="margin:0">
-    <button type="submit" class="btn btn-sm" style="background:#fff;color:#FF8B00;border:none;font-weight:700;padding:4px 12px;border-radius:4px">
-      <i class="bi bi-arrow-left-circle me-1"></i>Volver a Admin
-    </button>
+    <button type="submit" class="btn btn-sm" style="background:#fff;color:#FF8B00;border:none;font-weight:700;padding:4px 12px;border-radius:4px"><i class="bi bi-arrow-left-circle me-1"></i>Volver</button>
   </form>
 </div>
+<div style="height:40px"></div>
 {% endif %}
-<div class="portal-topbar">
-  <div class="portal-brand">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 341.94 261.01" height="28" style="display:block">
-      <path fill="var(--ac)" d="M239.09,111.71C234.61,109,225,105.23,225,105.23s-1.42-.5-1.34-.9c.21-1.2,2.76-1.54,9.63-10.7,7.11-9.49,8.6-13.94,9.94-17.84,1.14-3.3,2.38-11,1.72-11.79s-9.12-1.35-16.48.3c-7.06,1.58-11.1,3.47-11.5,3-.64-.71.95-6.23,1.11-11.33.17-5.28.32-6.75-.41-11.49-.61-4-1.47-7.57-2.65-7.91s-5,.82-7,1.69A81.41,81.41,0,0,0,198.41,44c-2.91,2-6.52,5.48-7.55,5.69s-2.79-6-6.9-13.15a86,86,0,0,0-5.69-9.09c-1.74-2.45-4.91-7-7.28-7h0c-2.38,0-5.54,4.59-7.28,7A84.29,84.29,0,0,0,158,36.52c-4.12,7.13-5.76,13.38-6.9,13.15s-4.73-3.8-7.64-5.8a79.94,79.94,0,0,0-9.56-5.58c-2-.87-5.81-2-7-1.69s-2,3.94-2.65,7.91c-.73,4.74-.58,6.21-.41,11.49.16,5.1,1.74,10.62,1.11,11.33-.4.44-4.44-1.45-11.5-3C106.08,62.65,97.72,63.08,97,64s.57,8.49,1.71,11.79c1.35,3.9,2.83,8.35,10,17.84,6.87,9.16,9.41,9.5,9.63,10.7.07.4-1.35.9-1.35.9s-9.57,3.72-14.06,6.48C99.17,114,95,117.34,95,119.08c0,2.11,3.54,4.62,8.14,7.67s15.36,7.83,26.75,6.75c12.82-1.22,20.68-7.21,21.76-6.74.49.21.11,5.24,5.16,10.44,4.43,4.56,10.58,10,14.15,10s9.72-5.42,14.15-10c5-5.2,4.67-10.23,5.16-10.44,1.07-.47,8.93,5.52,21.76,6.74,11.39,1.08,22.07-3.65,26.74-6.75s8.17-5.56,8.15-7.67C246.93,117.34,242.76,114,239.09,111.71Z"/>
-    </svg>
-    EVORE
+
+{# ── Sidebar del portal ── #}
+<div class="portal-sb">
+  <div class="portal-sb-brand">
+    <i class="bi bi-grid-1x2-fill" style="color:var(--ac);font-size:1.1rem"></i>
+    <div><span>{{ company_name or 'Evore' }}</span><br><small>{% if current_user.rol == 'cliente' %}Portal Cliente{% elif current_user.rol == 'proveedor' %}Portal Proveedor{% else %}Portal{% endif %}</small></div>
   </div>
-  <div class="portal-user">
-    <span style="font-size:.83rem;color:var(--text2)" class="d-none d-md-inline">
-      {{ current_user.nombre }}
-    </span>
-    <button onclick="toggleTheme()" class="btn btn-sm" style="background:none;border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:.25rem .5rem" title="Cambiar tema">
-      <i class="bi bi-sun-fill" id="themeIcon" style="font-size:.85rem"></i>
-    </button>
-    <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-danger" style="font-size:.8rem;padding:4px 10px">
-      <i class="bi bi-box-arrow-right me-1"></i>Salir
-    </a>
+  <nav>
+    {% if current_user.rol == 'cliente' %}
+    <a href="{{ url_for('portal_cliente') }}" class="nav-link {% if request.endpoint=='portal_cliente' %}active{% endif %}"><i class="bi bi-house-fill"></i>Inicio</a>
+    <a href="{{ url_for('portal_pre_cotizacion_nueva') }}" class="nav-link {% if request.endpoint=='portal_pre_cotizacion_nueva' %}active{% endif %}"><i class="bi bi-file-earmark-plus"></i>Nueva solicitud</a>
+    <a href="{{ url_for('portal_ticket_nuevo') }}" class="nav-link {% if request.endpoint=='portal_ticket_nuevo' %}active{% endif %}"><i class="bi bi-chat-left-text"></i>Enviar mensaje</a>
+    {% elif current_user.rol == 'proveedor' %}
+    <a href="{{ url_for('portal_proveedor') }}" class="nav-link {% if request.endpoint=='portal_proveedor' %}active{% endif %}"><i class="bi bi-house-fill"></i>Inicio</a>
+    <a href="{{ url_for('portal_prov_ticket') }}" class="nav-link {% if request.endpoint=='portal_prov_ticket' %}active{% endif %}"><i class="bi bi-chat-left-text"></i>Enviar mensaje</a>
+    {% endif %}
+  </nav>
+  <div class="portal-sb-foot">
+    <div class="user-info">
+      <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold" style="width:32px;height:32px;font-size:.8rem;flex-shrink:0">{{ current_user.nombre[0].upper() }}</div>
+      <div>
+        <div class="user-name">{{ current_user.nombre }}</div>
+        <span class="user-role">{{ current_user.rol }}</span>
+      </div>
+    </div>
   </div>
 </div>
-<div class="portal-content">
-  {% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}{% for cat, msg in messages %}
-  <div class="alert alert-{{ cat }} alert-dismissible fade show" role="alert">
-    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert" style="margin-left:auto;background:none;border:none;font-size:1.1rem;cursor:pointer;opacity:.6">×</button>
+
+{# ── Main ── #}
+<div class="portal-main">
+  <div class="portal-topbar">
+    <h1 style="font-size:1rem;font-weight:600;margin:0;color:var(--text)">{% block page_title %}{% endblock %}</h1>
+    <div class="d-flex align-items-center gap-2">
+      {% block topbar_actions %}{% endblock %}
+      <button onclick="toggleTheme()" class="btn btn-sm" style="background:none;border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:.25rem .5rem" title="Tema"><i class="bi bi-sun-fill" id="themeIcon" style="font-size:.85rem"></i></button>
+      <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-danger" style="font-size:.8rem;padding:4px 10px"><i class="bi bi-box-arrow-right me-1"></i>Salir</a>
+    </div>
   </div>
-  {% endfor %}{% endif %}{% endwith %}
-  {% block content %}{% endblock %}
+  <div class="portal-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}">{{ msg }}</div>
+    {% endfor %}{% endif %}{% endwith %}
+    {% block content %}{% endblock %}
+  </div>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 (function(){
   var t=localStorage.getItem('evore_theme')||'light';
-  document.documentElement.setAttribute('data-theme',t);
-  function updateIcon(){var el=document.getElementById('themeIcon');if(el){el.className=t==='dark'?'bi bi-sun-fill':'bi bi-moon-fill';}}
-  window.toggleTheme=function(){
-    t=document.documentElement.getAttribute('data-theme');
-    var next=t==='dark'?'light':'dark';
-    document.documentElement.setAttribute('data-theme',next);
-    localStorage.setItem('evore_theme',next);
-    t=next;updateIcon();
-  };
+  function updateIcon(){var el=document.getElementById('themeIcon');if(el)el.className=t==='dark'?'bi bi-sun-fill':'bi bi-moon-fill';}
+  window.toggleTheme=function(){t=t==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',t);localStorage.setItem('evore_theme',t);updateIcon();};
   updateIcon();
 })();
 </script>

@@ -1,0 +1,88 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Autorizacion de Tratamiento de Datos Personales</title>
+<style>
+body{font-family:Georgia,serif;font-size:12pt;color:#1a1a1a;max-width:700px;margin:40px auto;line-height:1.8;padding:0 20px}
+h1{text-align:center;font-size:14pt;text-transform:uppercase;letter-spacing:2px;margin-bottom:30px}
+.clausula{margin:15px 0;text-align:justify}
+.clausula strong{display:block;margin-bottom:5px}
+ul{margin:10px 0 10px 20px}
+li{margin-bottom:5px}
+.checkbox{margin:25px 0;padding:15px;border:1px solid #333;background:#fafafa}
+.checkbox label{cursor:pointer;font-weight:bold}
+.firma{display:flex;justify-content:space-between;margin-top:60px}
+.firma div{width:45%;text-align:center;border-top:1px solid #333;padding-top:8px;font-size:10pt}
+.no-print{position:fixed;top:10px;right:10px}
+@media print{.no-print{display:none}}
+</style></head><body>
+<button class="no-print" onclick="window.print()" style="background:#0176D3;color:#fff;border:none;padding:8px 16px;border-radius:5px;cursor:pointer">Imprimir / Descargar</button>
+
+<h1>Autorizacion de Tratamiento de Datos Personales</h1>
+
+<p>En cumplimiento de lo dispuesto en la <strong>Ley 1581 de 2012</strong>, el <strong>Decreto Reglamentario 1377 de 2013</strong> y demas normas concordantes sobre proteccion de datos personales, <strong>{{ empresa_nombre }}</strong>, identificada con NIT <strong>{{ empresa_nit }}</strong>, con domicilio en <strong>{{ empresa_direccion or 'la ciudad' }}</strong>, en calidad de Responsable del Tratamiento de datos personales, solicita a {{ el_la }} {{ senor_senora }} <strong>{{ tercero_nombre }}</strong>, {{ identificado_identificada }} con cedula de ciudadania No. <strong>{{ tercero_cedula }}</strong>, la autorizacion para el tratamiento de sus datos personales conforme a lo siguiente:</p>
+
+<div class="clausula"><strong>1. FINALIDAD DEL TRATAMIENTO:</strong>
+Los datos personales recolectados seran utilizados para las siguientes finalidades:
+<ul>
+<li>Gestion de la relacion comercial, laboral o contractual segun corresponda.</li>
+<li>Elaboracion y ejecucion de contratos, ordenes de compra y documentos relacionados.</li>
+<li>Gestion de procesos de facturacion, cobranza y pagos.</li>
+<li>Cumplimiento de obligaciones legales, contables y tributarias.</li>
+<li>Comunicacion de informacion relevante sobre productos, servicios y novedades de la empresa.</li>
+<li>Gestion de procesos de seleccion, vinculacion, capacitacion y administracion de personal.</li>
+<li>Control de acceso a las instalaciones de la empresa.</li>
+<li>Atencion de consultas, peticiones, quejas y reclamos.</li>
+</ul></div>
+
+<div class="clausula"><strong>2. TIPOS DE DATOS RECOLECTADOS:</strong>
+<ul>
+<li><strong>Datos de identificacion:</strong> nombre completo, numero de cedula, lugar y fecha de expedicion, fecha de nacimiento, genero, estado civil, nacionalidad.</li>
+<li><strong>Datos de contacto:</strong> direccion de residencia, telefono fijo, telefono celular, correo electronico.</li>
+<li><strong>Datos laborales:</strong> cargo, area, salario, historial laboral, referencias laborales.</li>
+<li><strong>Datos financieros:</strong> datos bancarios para efectos de pagos, informacion tributaria (RUT).</li>
+<li><strong>Datos de seguridad social:</strong> afiliacion a EPS, AFP, ARL, caja de compensacion.</li>
+<li><strong>Datos sensibles (cuando aplique):</strong> datos biometricos, estado de salud (unicamente con fines de seguridad social y salud ocupacional).</li>
+</ul></div>
+
+<div class="clausula"><strong>3. DERECHOS DEL TITULAR (DERECHOS ARCO):</strong>
+De conformidad con la Ley 1581 de 2012, {{ el_la }} titular de los datos personales tiene derecho a:
+<ul>
+<li><strong>Acceso:</strong> Conocer, consultar y obtener copia de sus datos personales que reposen en las bases de datos de {{ empresa_nombre }}.</li>
+<li><strong>Rectificacion:</strong> Solicitar la actualizacion o correccion de sus datos personales cuando estos sean inexactos, incompletos o desactualizados.</li>
+<li><strong>Cancelacion:</strong> Solicitar la supresion de sus datos personales cuando considere que no estan siendo tratados conforme a los principios y deberes constitucionales y legales.</li>
+<li><strong>Oposicion:</strong> Oponerse al tratamiento de sus datos personales, salvo en los casos en que dicho derecho no proceda por disposicion legal.</li>
+<li><strong>Revocatoria:</strong> Revocar la autorizacion otorgada para el tratamiento de sus datos personales.</li>
+<li><strong>Portabilidad:</strong> Solicitar la entrega de sus datos personales en un formato estructurado y de uso comun.</li>
+</ul>
+Para ejercer estos derechos, {{ el_la }} titular podra dirigir su solicitud al correo electronico o a la direccion fisica de {{ empresa_nombre }}.</div>
+
+<div class="clausula"><strong>4. MEDIDAS DE SEGURIDAD:</strong>
+{{ empresa_nombre }} implementa medidas tecnicas, humanas y administrativas adecuadas para proteger los datos personales contra acceso no autorizado, perdida, alteracion, destruccion o uso indebido, incluyendo:
+<ul>
+<li>Control de acceso a sistemas de informacion con autenticacion de usuarios.</li>
+<li>Respaldos periodicos de bases de datos.</li>
+<li>Protocolos de confidencialidad para empleados y contratistas.</li>
+<li>Cifrado de datos sensibles en transmision y almacenamiento.</li>
+</ul></div>
+
+<div class="clausula"><strong>5. TRANSFERENCIA Y TRANSMISION DE DATOS:</strong>
+{{ empresa_nombre }} podra compartir los datos personales con terceros (entidades gubernamentales, entidades financieras, aseguradoras, proveedores de servicios tecnologicos) unicamente cuando sea necesario para las finalidades descritas o por mandato legal. En todo caso, se garantizara que dichos terceros adopten niveles de proteccion adecuados.</div>
+
+<div class="clausula"><strong>6. VIGENCIA:</strong>
+Los datos personales seran tratados durante el tiempo que sea necesario para cumplir con las finalidades descritas y durante el periodo que sea requerido por las disposiciones legales aplicables. Una vez cumplidas las finalidades, los datos seran eliminados conforme a los procedimientos internos de {{ empresa_nombre }}.</div>
+
+<div class="checkbox">
+<p>&#9634; <label>AUTORIZO:</label> De manera libre, expresa, voluntaria, previa e informada, autorizo a <strong>{{ empresa_nombre }}</strong> para que recolecte, almacene, use, circule, suprima y, en general, realice el tratamiento de mis datos personales conforme a las finalidades y condiciones descritas en el presente documento.</p>
+
+<p>&#9634; <label>DATOS SENSIBLES:</label> Autorizo de manera expresa el tratamiento de mis datos sensibles para las finalidades relacionadas con seguridad social y salud ocupacional.</p>
+
+<p>&#9634; <label>COMUNICACIONES:</label> Autorizo el envio de comunicaciones comerciales e informativas a traves de los medios de contacto suministrados.</p>
+</div>
+
+<p>Declaro que he sido informado(a) de manera previa y expresa sobre el tratamiento al cual seran sometidos mis datos personales, las finalidades del mismo, mis derechos como titular y los mecanismos para ejercerlos.</p>
+
+<p>Se firma en la ciudad de <strong>{{ ciudad }}</strong>, a los <strong>{{ fecha }}</strong>.</p>
+
+<div class="firma">
+  <div><strong>{{ tercero_nombre }}</strong><br>TITULAR DE LOS DATOS<br>C.C. {{ tercero_cedula }}</div>
+  <div><strong>{{ empresa_representante or empresa_nombre }}</strong><br>RESPONSABLE DEL TRATAMIENTO<br>NIT: {{ empresa_nit }}</div>
+</div>
+</body></html>

@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% block title %}Generar Documento Legal{% endblock %}
+{% block page_title %}Generar Documento Legal{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('legal_index') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Documentos</a>
+{% endblock %}
+
+{% block content %}
+<div class="fc" style="max-width:800px">
+  <form method="POST" target="_blank">
+    <div class="row g-3">
+
+      <div class="col-md-6">
+        <label class="form-label fw-bold">Tipo de documento</label>
+        <select name="plantilla" class="form-select" required onchange="toggleCampos()">
+          <option value="">-- Seleccionar --</option>
+          <optgroup label="Contratos laborales">
+            <option value="contrato_indefinido">Contrato de trabajo a termino indefinido</option>
+            <option value="contrato_fijo">Contrato de trabajo a termino fijo</option>
+            <option value="contrato_prestacion">Contrato de prestacion de servicios</option>
+          </optgroup>
+          <optgroup label="Acuerdos comerciales">
+            <option value="nda">Acuerdo de confidencialidad (NDA)</option>
+            <option value="contrato_proveedor">Contrato de suministro con proveedor</option>
+            <option value="contrato_cliente">Contrato de fabricacion con cliente</option>
+          </optgroup>
+          <optgroup label="Documentos internos">
+            <option value="acta_entrega">Acta de entrega de producto</option>
+            <option value="carta_terminacion">Carta de terminacion de contrato</option>
+            <option value="autorizacion_datos">Autorizacion de tratamiento de datos</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label fw-bold">Genero del tercero</label>
+        <select name="genero" class="form-select">
+          <option value="M">Masculino</option>
+          <option value="F">Femenino</option>
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label fw-bold">Ciudad</label>
+        <input type="text" name="ciudad" class="form-control" value="Bogota">
+      </div>
+
+      <div class="col-12"><hr><label class="form-label fw-bold">Datos del tercero</label></div>
+
+      <div class="col-md-3">
+        <label class="form-label">Cargar desde</label>
+        <select id="cargarDesde" class="form-select form-select-sm" onchange="cargarDatos()">
+          <option value="">-- Manual --</option>
+          <optgroup label="Empleados">
+            {% for e in empleados_list %}<option value="emp_{{ e.id }}" data-nombre="{{ e.nombre }} {{ e.apellido }}" data-cedula="{{ e.cedula or '' }}" data-cargo="{{ e.cargo or '' }}" data-salario="{{ e.salario_base or 0 }}">{{ e.nombre }} {{ e.apellido }}</option>{% endfor %}
+          </optgroup>
+          <optgroup label="Clientes">
+            {% for c in clientes_list %}<option value="cli_{{ c.id }}" data-nombre="{{ c.nombre }}" data-cedula="{{ c.nit or '' }}" data-empresa="{{ c.empresa or '' }}" data-direccion="{{ c.direccion or '' }}">{{ c.empresa or c.nombre }}</option>{% endfor %}
+          </optgroup>
+          <optgroup label="Proveedores">
+            {% for p in proveedores_list %}<option value="prov_{{ p.id }}" data-nombre="{{ p.nombre }}" data-cedula="{{ p.nit or '' }}" data-empresa="{{ p.empresa or '' }}" data-direccion="{{ p.direccion or '' }}">{{ p.empresa or p.nombre }}</option>{% endfor %}
+          </optgroup>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Nombre completo</label>
+        <input type="text" name="tercero_nombre" id="tNombre" class="form-control form-control-sm" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Cedula / NIT</label>
+        <input type="text" name="tercero_cedula" id="tCedula" class="form-control form-control-sm">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Direccion</label>
+        <input type="text" name="tercero_direccion" id="tDireccion" class="form-control form-control-sm">
+      </div>
+
+      <div class="col-md-4" id="secEmpresa">
+        <label class="form-label">Empresa del tercero</label>
+        <input type="text" name="tercero_empresa" id="tEmpresa" class="form-control form-control-sm">
+      </div>
+      <div class="col-md-4" id="secNit">
+        <label class="form-label">NIT empresa</label>
+        <input type="text" name="tercero_nit" id="tNit" class="form-control form-control-sm">
+      </div>
+
+      <div class="col-md-4" id="secCargo">
+        <label class="form-label">Cargo</label>
+        <input type="text" name="tercero_cargo" id="tCargo" class="form-control form-control-sm">
+      </div>
+      <div class="col-md-4" id="secSalario">
+        <label class="form-label">Salario mensual</label>
+        <input type="number" name="tercero_salario" id="tSalario" class="form-control form-control-sm" step="1" min="0">
+      </div>
+
+      <div class="col-12"><hr></div>
+      <div class="col-md-6">
+        <label class="form-label">Objeto del contrato / descripcion</label>
+        <textarea name="objeto" class="form-control form-control-sm" rows="3" placeholder="Descripcion del objeto del contrato o acuerdo..."></textarea>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Vigencia</label>
+        <input type="text" name="vigencia" class="form-control form-control-sm" value="12 meses">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Valor (si aplica)</label>
+        <input type="text" name="valor" class="form-control form-control-sm" placeholder="$0">
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label">Representante legal</label>
+        <input type="text" name="representante" class="form-control form-control-sm" value="{{ empresa.nombre if empresa else '' }}">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Fecha del documento</label>
+        <input type="date" name="fecha" class="form-control form-control-sm" value="{{ now.strftime('%Y-%m-%d') if now else '' }}">
+      </div>
+    </div>
+
+    <div class="mt-4">
+      <button type="submit" class="btn btn-primary"><i class="bi bi-file-earmark-text me-1"></i>Generar documento</button>
+    </div>
+  </form>
+</div>
+
+<script>
+function cargarDatos(){
+  var sel = document.getElementById('cargarDesde');
+  var opt = sel.options[sel.selectedIndex];
+  if(!opt || !opt.value) return;
+  document.getElementById('tNombre').value = opt.dataset.nombre || '';
+  document.getElementById('tCedula').value = opt.dataset.cedula || '';
+  document.getElementById('tDireccion').value = opt.dataset.direccion || '';
+  if(opt.dataset.empresa) document.getElementById('tEmpresa').value = opt.dataset.empresa;
+  if(opt.dataset.cargo) document.getElementById('tCargo').value = opt.dataset.cargo;
+  if(opt.dataset.salario) document.getElementById('tSalario').value = opt.dataset.salario;
+}
+function toggleCampos(){
+  var plantilla = document.querySelector('[name="plantilla"]').value;
+  var esLaboral = plantilla.includes('contrato_indefinido') || plantilla.includes('contrato_fijo') || plantilla.includes('carta_terminacion');
+  document.getElementById('secCargo').style.display = esLaboral ? '' : 'none';
+  document.getElementById('secSalario').style.display = esLaboral ? '' : 'none';
+}
+</script>
+{% endblock %}

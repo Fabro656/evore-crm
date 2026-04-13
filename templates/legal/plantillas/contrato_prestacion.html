@@ -1,0 +1,57 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Contrato de Prestacion de Servicios</title>
+<style>
+body{font-family:Georgia,serif;font-size:12pt;color:#1a1a1a;max-width:700px;margin:40px auto;line-height:1.8;padding:0 20px}
+h1{text-align:center;font-size:14pt;text-transform:uppercase;letter-spacing:2px;margin-bottom:30px}
+.clausula{margin:15px 0;text-align:justify}
+.clausula strong{display:block;margin-bottom:5px}
+.firma{display:flex;justify-content:space-between;margin-top:60px}
+.firma div{width:45%;text-align:center;border-top:1px solid #333;padding-top:8px;font-size:10pt}
+.no-print{position:fixed;top:10px;right:10px}
+@media print{.no-print{display:none}}
+</style></head><body>
+<button class="no-print" onclick="window.print()" style="background:#0176D3;color:#fff;border:none;padding:8px 16px;border-radius:5px;cursor:pointer">Imprimir / Descargar</button>
+
+<h1>Contrato de Prestacion de Servicios</h1>
+
+<p>En la ciudad de <strong>{{ ciudad }}</strong>, a los <strong>{{ fecha }}</strong>, entre <strong>{{ empresa_nombre }}</strong>, identificada con NIT <strong>{{ empresa_nit }}</strong>, representada legalmente por <strong>{{ empresa_representante }}</strong>, con domicilio en <strong>{{ empresa_direccion or 'la ciudad' }}</strong>, en adelante EL CONTRATANTE, y {{ el_la }} {{ senor_senora }} <strong>{{ tercero_nombre }}</strong>, {{ identificado_identificada }} con cedula de ciudadania No. <strong>{{ tercero_cedula }}</strong>, {{ domiciliado_domiciliada }} en <strong>{{ tercero_direccion or 'la ciudad' }}</strong>, en adelante {{ El_La }} CONTRATISTA, se celebra el presente contrato de prestacion de servicios, el cual se rige por las siguientes clausulas y por las normas del Codigo Civil y Codigo de Comercio aplicables:</p>
+
+<div class="clausula"><strong>PRIMERA — NATURALEZA DEL CONTRATO:</strong>
+El presente contrato es de naturaleza civil y se celebra en los terminos del articulo 34 del Codigo Sustantivo del Trabajo. En consecuencia, <strong>no genera relacion laboral</strong> alguna entre las partes, ni el pago de prestaciones sociales, ni la obligacion de subordinacion de {{ el_la }} CONTRATISTA respecto del CONTRATANTE.</div>
+
+<div class="clausula"><strong>SEGUNDA — OBJETO:</strong>
+{{ El_La }} CONTRATISTA se compromete a prestar al CONTRATANTE los siguientes servicios: <strong>{{ objeto or '[DESCRIPCION DEL SERVICIO]' }}</strong>.</div>
+
+<div class="clausula"><strong>TERCERA — VALOR Y FORMA DE PAGO:</strong>
+El CONTRATANTE pagara {{ al_a_la }} CONTRATISTA por los servicios prestados la suma de <strong>{{ valor or tercero_salario or '[VALOR]' }}</strong> pesos colombianos (COP). El pago se realizara previa presentacion del informe de actividades y de la cuenta de cobro correspondiente, junto con la constancia de pago de aportes al Sistema de Seguridad Social Integral (salud, pension y ARL) por parte de {{ el_la }} CONTRATISTA.</div>
+
+<div class="clausula"><strong>CUARTA — DURACION:</strong>
+El presente contrato tendra una duracion de <strong>{{ vigencia or '[DURACION]' }}</strong>, contados a partir del <strong>{{ fecha }}</strong>.</div>
+
+<div class="clausula"><strong>QUINTA — AUTONOMIA E INDEPENDENCIA:</strong>
+{{ El_La }} CONTRATISTA ejecutara el objeto del presente contrato con plena autonomia tecnica, administrativa y financiera. Dispondra de sus propios medios, herramientas y equipos para la ejecucion del servicio. No estara sujeto {{ al_a_la }} cumplimiento de horarios ni de jornada laboral impuesta por el CONTRATANTE. La forma, los medios y el tiempo de ejecucion del servicio seran determinados libremente por {{ el_la }} CONTRATISTA, siempre que se cumplan los resultados pactados.</div>
+
+<div class="clausula"><strong>SEXTA — SEGURIDAD SOCIAL:</strong>
+{{ El_La }} CONTRATISTA, en calidad de trabajador independiente, se obliga a realizar por su cuenta y riesgo el pago de los aportes al Sistema de Seguridad Social Integral (EPS, pension y ARL) sobre una base de cotizacion no inferior al 40% del valor mensual del contrato, de conformidad con la legislacion vigente. {{ El_La }} CONTRATISTA debera acreditar el pago de dichos aportes como requisito previo para el desembolso de cada pago.</div>
+
+<div class="clausula"><strong>SEPTIMA — OBLIGACIONES DE {{ El_La|upper }} CONTRATISTA:</strong>
+{{ El_La }} CONTRATISTA se obliga a: a) Ejecutar el objeto del contrato de manera eficiente y oportuna; b) Presentar informes de avance cuando el CONTRATANTE lo requiera; c) Mantener reserva sobre toda la informacion confidencial del CONTRATANTE; d) Cumplir con las normas y estandares de calidad aplicables; e) Responder por los danos que cause al CONTRATANTE o a terceros con ocasion de la ejecucion del contrato.</div>
+
+<div class="clausula"><strong>OCTAVA — OBLIGACIONES DEL CONTRATANTE:</strong>
+El CONTRATANTE se obliga a: a) Pagar los honorarios pactados en los terminos y condiciones establecidos; b) Suministrar la informacion necesaria para la ejecucion del contrato; c) Recibir los servicios prestados de conformidad con lo pactado.</div>
+
+<div class="clausula"><strong>NOVENA — TERMINACION:</strong>
+El presente contrato terminara por: a) Cumplimiento del plazo pactado; b) Cumplimiento del objeto; c) Mutuo acuerdo de las partes; d) Incumplimiento de las obligaciones por cualquiera de las partes, previa notificacion escrita con quince (15) dias de anticipacion.</div>
+
+<div class="clausula"><strong>DECIMA — CONFIDENCIALIDAD:</strong>
+{{ El_La }} CONTRATISTA se compromete a mantener estricta reserva sobre toda la informacion confidencial, secretos comerciales, formulas, procesos de produccion, datos de clientes y demas informacion privilegiada a la que tenga acceso con ocasion del contrato. Esta obligacion se extiende por un periodo de dos (2) anos despues de la terminacion del contrato.</div>
+
+<div class="clausula"><strong>DECIMA PRIMERA — CESION:</strong>
+{{ El_La }} CONTRATISTA no podra ceder total ni parcialmente el presente contrato sin la autorizacion previa y escrita del CONTRATANTE.</div>
+
+<p style="margin-top:30px">En senal de aceptacion, las partes firman el presente contrato en dos (2) ejemplares del mismo tenor, en la ciudad y fecha indicadas.</p>
+
+<div class="firma">
+  <div><strong>{{ empresa_representante or empresa_nombre }}</strong><br>CONTRATANTE<br>NIT: {{ empresa_nit }}</div>
+  <div><strong>{{ tercero_nombre }}</strong><br>CONTRATISTA<br>C.C. {{ tercero_cedula }}</div>
+</div>
+</body></html>

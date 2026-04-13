@@ -1,0 +1,51 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Contrato Indefinido</title>
+<style>
+body{font-family:Georgia,serif;font-size:12pt;color:#1a1a1a;max-width:700px;margin:40px auto;line-height:1.8;padding:0 20px}
+h1{text-align:center;font-size:14pt;text-transform:uppercase;letter-spacing:2px;margin-bottom:30px}
+.clausula{margin:15px 0;text-align:justify}
+.clausula strong{display:block;margin-bottom:5px}
+.firma{display:flex;justify-content:space-between;margin-top:60px}
+.firma div{width:45%;text-align:center;border-top:1px solid #333;padding-top:8px;font-size:10pt}
+.no-print{position:fixed;top:10px;right:10px}
+@media print{.no-print{display:none}}
+</style></head><body>
+<button class="no-print" onclick="window.print()" style="background:#0176D3;color:#fff;border:none;padding:8px 16px;border-radius:5px;cursor:pointer">Imprimir / Descargar</button>
+
+<h1>Contrato Individual de Trabajo a Termino Indefinido</h1>
+
+<p>En la ciudad de <strong>{{ ciudad }}</strong>, a los <strong>{{ fecha }}</strong>, entre <strong>{{ empresa_nombre }}</strong>, identificada con NIT <strong>{{ empresa_nit }}</strong>, representada legalmente por <strong>{{ empresa_representante }}</strong>, en adelante {{ El_La }} EMPLEADOR, y {{ el_la }} {{ senor_senora }} <strong>{{ tercero_nombre }}</strong>, {{ identificado_identificada }} con cedula de ciudadania No. <strong>{{ tercero_cedula }}</strong>, {{ domiciliado_domiciliada }} en <strong>{{ tercero_direccion or 'la ciudad' }}</strong>, en adelante {{ El_La }} {{ trabajador_trabajadora|upper }}, se celebra el presente contrato individual de trabajo, regido por las siguientes clausulas y en lo no previsto en el, por el Codigo Sustantivo del Trabajo:</p>
+
+<div class="clausula"><strong>PRIMERA — OBJETO:</strong>
+{{ El_La }} {{ trabajador_trabajadora }} se obliga a prestar sus servicios personales {{ al_a_la }} EMPLEADOR, desempenando el cargo de <strong>{{ tercero_cargo or '[CARGO]' }}</strong>, y a ejecutar las labores inherentes a dicho cargo, asi como las que le sean asignadas por el EMPLEADOR.</div>
+
+<div class="clausula"><strong>SEGUNDA — REMUNERACION:</strong>
+{{ El_La }} EMPLEADOR pagara {{ al_a_la }} {{ trabajador_trabajadora }} como remuneracion, un salario mensual de <strong>{{ tercero_salario or '[SALARIO]' }}</strong> pesos colombianos (COP), pagadero en periodos quincenales. Este salario incluye la remuneracion de los descansos dominicales y festivos de que tratan los capitulos I y II del titulo VII del Codigo Sustantivo del Trabajo.</div>
+
+<div class="clausula"><strong>TERCERA — DURACION:</strong>
+El presente contrato es a <strong>termino indefinido</strong> y tendra vigencia mientras subsistan las causas que le dieron origen y la materia del trabajo.</div>
+
+<div class="clausula"><strong>CUARTA — PERIODO DE PRUEBA:</strong>
+Las partes acuerdan un periodo de prueba de dos (2) meses, contados a partir de la fecha de inicio de labores, de conformidad con el articulo 78 del Codigo Sustantivo del Trabajo.</div>
+
+<div class="clausula"><strong>QUINTA — JORNADA DE TRABAJO:</strong>
+{{ El_La }} {{ trabajador_trabajadora }} se obliga a laborar la jornada maxima legal de cuarenta y siete (47) horas semanales, en los horarios que establezca {{ el_la }} EMPLEADOR, pudiendo hacer ajustes cuando lo estime conveniente.</div>
+
+<div class="clausula"><strong>SEXTA — OBLIGACIONES DEL TRABAJADOR:</strong>
+{{ El_La }} {{ trabajador_trabajadora }} se obliga a: a) Prestar el servicio personalmente; b) Observar las normas de disciplina y orden; c) Guardar reserva sobre los asuntos relacionados con su trabajo; d) Procurar el cuidado de los bienes del empleador; e) Comunicar oportunamente cualquier irregularidad.</div>
+
+<div class="clausula"><strong>SEPTIMA — OBLIGACIONES DEL EMPLEADOR:</strong>
+{{ El_La }} EMPLEADOR se obliga a: a) Pagar la remuneracion pactada; b) Afiliar {{ al_a_la }} {{ trabajador_trabajadora }} al Sistema de Seguridad Social (EPS, AFP, ARL); c) Suministrar los elementos necesarios para el trabajo; d) Pagar las prestaciones sociales de ley (cesantias, intereses sobre cesantias, prima de servicios, vacaciones).</div>
+
+<div class="clausula"><strong>OCTAVA — TERMINACION:</strong>
+Son justas causas de terminacion unilateral del contrato, las enumeradas en los articulos 62 y 63 del Codigo Sustantivo del Trabajo.</div>
+
+<div class="clausula"><strong>NOVENA — CLAUSULA DE CONFIDENCIALIDAD:</strong>
+{{ El_La }} {{ trabajador_trabajadora }} se compromete a mantener estricta reserva sobre toda la informacion confidencial, secretos comerciales, formulas, procesos de produccion y demas informacion privilegiada a la que tenga acceso con ocasion del contrato.</div>
+
+<p style="margin-top:30px">En senal de aceptacion, las partes firman el presente contrato en dos (2) ejemplares del mismo tenor, en la ciudad y fecha indicadas.</p>
+
+<div class="firma">
+  <div><strong>{{ empresa_representante or empresa_nombre }}</strong><br>EMPLEADOR<br>NIT: {{ empresa_nit }}</div>
+  <div><strong>{{ tercero_nombre }}</strong><br>{{ trabajador_trabajadora|upper }}<br>C.C. {{ tercero_cedula }}</div>
+</div>
+</body></html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Contrato de Fabricacion para Terceros</title>
+<style>
+body{font-family:Georgia,serif;font-size:12pt;color:#1a1a1a;max-width:700px;margin:40px auto;line-height:1.8;padding:0 20px}
+h1{text-align:center;font-size:14pt;text-transform:uppercase;letter-spacing:2px;margin-bottom:30px}
+.clausula{margin:15px 0;text-align:justify}
+.clausula strong{display:block;margin-bottom:5px}
+.firma{display:flex;justify-content:space-between;margin-top:60px}
+.firma div{width:45%;text-align:center;border-top:1px solid #333;padding-top:8px;font-size:10pt}
+.no-print{position:fixed;top:10px;right:10px}
+@media print{.no-print{display:none}}
+</style></head><body>
+<button class="no-print" onclick="window.print()" style="background:#0176D3;color:#fff;border:none;padding:8px 16px;border-radius:5px;cursor:pointer">Imprimir / Descargar</button>
+
+<h1>Contrato de Fabricacion / Maquila para Terceros</h1>
+
+<p>En la ciudad de <strong>{{ ciudad }}</strong>, a los <strong>{{ fecha }}</strong>, entre:</p>
+
+<p><strong>EL FABRICANTE:</strong> <strong>{{ empresa_nombre }}</strong>, identificada con NIT <strong>{{ empresa_nit }}</strong>, representada legalmente por <strong>{{ empresa_representante }}</strong>, con domicilio en <strong>{{ empresa_direccion or 'la ciudad' }}</strong>.</p>
+
+<p><strong>EL CLIENTE:</strong> <strong>{{ tercero_nombre }}</strong>{% if tercero_empresa %}, actuando en representacion de <strong>{{ tercero_empresa }}</strong>, identificada con NIT <strong>{{ tercero_nit }}</strong>{% endif %}, {{ identificado_identificada }} con cedula de ciudadania No. <strong>{{ tercero_cedula }}</strong>, con domicilio en <strong>{{ tercero_direccion or 'la ciudad' }}</strong>.</p>
+
+<p>Las partes celebran el presente contrato de fabricacion/maquila, el cual se rige por las siguientes clausulas:</p>
+
+<div class="clausula"><strong>PRIMERA — OBJETO:</strong>
+EL FABRICANTE se compromete a fabricar para EL CLIENTE los siguientes productos: <strong>{{ objeto or '[DESCRIPCION DE LOS PRODUCTOS A FABRICAR]' }}</strong>, de acuerdo con las especificaciones tecnicas, disenos, planos y/o muestras suministradas por EL CLIENTE.</div>
+
+<div class="clausula"><strong>SEGUNDA — ESPECIFICACIONES Y CALIDAD:</strong>
+Los productos seran fabricados conforme a las especificaciones tecnicas acordadas entre las partes, las cuales se detallan en el Anexo Tecnico que forma parte integral del presente contrato. EL FABRICANTE se obliga a cumplir con los estandares de calidad definidos y a permitir las inspecciones de calidad que EL CLIENTE considere necesarias durante el proceso de produccion.</div>
+
+<div class="clausula"><strong>TERCERA — VALOR Y FORMA DE PAGO:</strong>
+El valor total del presente contrato es de <strong>{{ valor or '[VALOR]' }}</strong> pesos colombianos (COP), mas el Impuesto al Valor Agregado (IVA) aplicable. La forma de pago sera la siguiente: a) Un anticipo del cincuenta por ciento (50%) a la firma del contrato; b) El saldo restante contra entrega del producto terminado a satisfaccion de EL CLIENTE.</div>
+
+<div class="clausula"><strong>CUARTA — PLAZO DE ENTREGA:</strong>
+EL FABRICANTE se obliga a entregar los productos terminados en un plazo de <strong>{{ vigencia or '[PLAZO]' }}</strong>, contados a partir de la fecha de recibo del anticipo y de las especificaciones tecnicas completas. Los retrasos imputables a EL FABRICANTE generaran una penalidad del uno por ciento (1%) del valor del contrato por cada dia de retraso, sin superar el diez por ciento (10%) del valor total.</div>
+
+<div class="clausula"><strong>QUINTA — MATERIAS PRIMAS E INSUMOS:</strong>
+EL FABRICANTE utilizara materias primas e insumos de primera calidad, conforme a las especificaciones acordadas. Cuando EL CLIENTE suministre materia prima, EL FABRICANTE se obliga a custodiarla, usarla exclusivamente para el objeto del contrato y devolver los sobrantes al finalizar la fabricacion.</div>
+
+<div class="clausula"><strong>SEXTA — PROPIEDAD INTELECTUAL:</strong>
+Los disenos, planos, formulas, especificaciones tecnicas y cualquier propiedad intelectual suministrada por EL CLIENTE son y seguiran siendo de propiedad exclusiva de EL CLIENTE. EL FABRICANTE no podra reproducirlos, utilizarlos para terceros ni divulgarlos. Los productos fabricados y cualquier desarrollo o mejora realizada sobre los disenos de EL CLIENTE seran igualmente de propiedad de este ultimo.</div>
+
+<div class="clausula"><strong>SEPTIMA — CONFIDENCIALIDAD:</strong>
+EL FABRICANTE se obliga a mantener estricta reserva sobre toda la informacion tecnica, comercial y de cualquier otra naturaleza que reciba de EL CLIENTE con ocasion del presente contrato. Esta obligacion se extiende a sus empleados, subcontratistas y cualquier persona que participe en la ejecucion del contrato. La obligacion de confidencialidad se mantendra vigente por un periodo de tres (3) anos despues de terminado el contrato.</div>
+
+<div class="clausula"><strong>OCTAVA — GARANTIA:</strong>
+EL FABRICANTE garantiza que los productos entregados estaran libres de defectos de fabricacion por un periodo de seis (6) meses contados a partir de la fecha de entrega. En caso de defectos atribuibles al proceso de fabricacion, EL FABRICANTE se obliga a reponer o reparar los productos sin costo adicional para EL CLIENTE.</div>
+
+<div class="clausula"><strong>NOVENA — RECEPCION Y ACEPTACION:</strong>
+EL CLIENTE dispondra de cinco (5) dias habiles a partir de la entrega para inspeccionar los productos y formular reclamaciones por defectos o incumplimiento de especificaciones. Si no se formulan reclamaciones dentro de este plazo, se entendera que los productos fueron recibidos a satisfaccion.</div>
+
+<div class="clausula"><strong>DECIMA — TERMINACION:</strong>
+El presente contrato terminara por: a) Cumplimiento del objeto; b) Mutuo acuerdo; c) Incumplimiento de cualquiera de las partes, previa notificacion escrita con quince (15) dias de anticipacion; d) Fuerza mayor o caso fortuito que imposibilite la fabricacion. En caso de terminacion anticipada, las partes liquidaran las obligaciones pendientes y EL FABRICANTE devolvera los insumos y materiales de propiedad de EL CLIENTE.</div>
+
+<div class="clausula"><strong>DECIMA PRIMERA — EXCLUSIVIDAD:</strong>
+EL FABRICANTE se compromete a no fabricar productos identicos o sustancialmente similares a los objeto del presente contrato para terceros durante la vigencia del mismo y por seis (6) meses adicionales, salvo autorizacion escrita de EL CLIENTE.</div>
+
+<p style="margin-top:30px">En senal de aceptacion, las partes firman el presente contrato en dos (2) ejemplares del mismo tenor, en la ciudad y fecha indicadas.</p>
+
+<div class="firma">
+  <div><strong>{{ empresa_representante or empresa_nombre }}</strong><br>EL FABRICANTE<br>NIT: {{ empresa_nit }}</div>
+  <div><strong>{{ tercero_nombre }}</strong><br>EL CLIENTE<br>{% if tercero_nit %}NIT: {{ tercero_nit }}{% else %}C.C. {{ tercero_cedula }}{% endif %}</div>
+</div>
+</body></html>

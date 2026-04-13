@@ -1,0 +1,68 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Carta de Terminacion de Contrato Laboral</title>
+<style>
+body{font-family:Georgia,serif;font-size:12pt;color:#1a1a1a;max-width:700px;margin:40px auto;line-height:1.8;padding:0 20px}
+h1{text-align:center;font-size:14pt;text-transform:uppercase;letter-spacing:2px;margin-bottom:30px}
+.clausula{margin:15px 0;text-align:justify}
+.clausula strong{display:block;margin-bottom:5px}
+.firma{display:flex;justify-content:space-between;margin-top:60px}
+.firma div{width:45%;text-align:center;border-top:1px solid #333;padding-top:8px;font-size:10pt}
+.no-print{position:fixed;top:10px;right:10px}
+@media print{.no-print{display:none}}
+</style></head><body>
+<button class="no-print" onclick="window.print()" style="background:#0176D3;color:#fff;border:none;padding:8px 16px;border-radius:5px;cursor:pointer">Imprimir / Descargar</button>
+
+<h1>Carta de Terminacion de Contrato Laboral</h1>
+
+<p style="text-align:right"><strong>{{ ciudad }}</strong>, {{ fecha }}</p>
+
+<p>{{ Senor_Senora }}<br>
+<strong>{{ tercero_nombre }}</strong><br>
+C.C. {{ tercero_cedula }}<br>
+{{ tercero_direccion or 'La ciudad' }}</p>
+
+<p>Asunto: <strong>Terminacion de contrato laboral</strong></p>
+
+<p>Respetado(a) {{ senor_senora }} {{ tercero_nombre }}:</p>
+
+{% if motivo == 'renuncia' %}
+<p>Por medio de la presente, acusamos recibo de su carta de renuncia voluntaria al cargo de <strong>{{ tercero_cargo or '[CARGO]' }}</strong> que venia desempenando en <strong>{{ empresa_nombre }}</strong>. En consecuencia, comunicamos que su contrato laboral se da por terminado a partir de la fecha de la presente comunicacion, de conformidad con el numeral (b) del articulo 61 del Codigo Sustantivo del Trabajo.</p>
+
+{% elif motivo == 'despido_justa' %}
+<p>Por medio de la presente, le comunicamos la decision de dar por terminado su contrato laboral con <strong>{{ empresa_nombre }}</strong>, donde se desempenaba como <strong>{{ tercero_cargo or '[CARGO]' }}</strong>, con justa causa, de conformidad con lo establecido en el articulo 62 del Codigo Sustantivo del Trabajo.</p>
+
+<div class="clausula"><strong>MOTIVO DE LA TERMINACION:</strong>
+{{ objeto or '[DESCRIPCION DETALLADA DE LA JUSTA CAUSA Y LOS HECHOS QUE LA CONSTITUYEN]' }}</div>
+
+<p>Le informamos que previo a esta decision, se le brindo la oportunidad de ejercer su derecho de defensa, conforme al procedimiento disciplinario establecido.</p>
+
+{% elif motivo == 'despido_sin_justa' %}
+<p>Por medio de la presente, le comunicamos la decision de dar por terminado su contrato laboral con <strong>{{ empresa_nombre }}</strong>, donde se desempenaba como <strong>{{ tercero_cargo or '[CARGO]' }}</strong>, sin justa causa, a partir de la fecha de la presente comunicacion.</p>
+
+<p>De conformidad con el articulo 64 del Codigo Sustantivo del Trabajo, {{ empresa_nombre }} reconocera y pagara la indemnizacion correspondiente por terminacion sin justa causa, la cual sera liquidada junto con las demas acreencias laborales.</p>
+
+{% else %}
+<p>Por medio de la presente, le comunicamos la decision de dar por terminado su contrato laboral con <strong>{{ empresa_nombre }}</strong>, donde se desempenaba como <strong>{{ tercero_cargo or '[CARGO]' }}</strong>, a partir de la fecha de la presente comunicacion.</p>
+
+<div class="clausula"><strong>MOTIVO DE LA TERMINACION:</strong>
+{{ objeto or '[DESCRIPCION DEL MOTIVO]' }}</div>
+{% endif %}
+
+<div class="clausula"><strong>LIQUIDACION DE PRESTACIONES SOCIALES:</strong>
+{{ empresa_nombre }} procedera a liquidar y pagar todas las prestaciones sociales a que haya lugar de conformidad con la ley, incluyendo: salarios pendientes, vacaciones, prima de servicios proporcional, cesantias, intereses sobre cesantias y demas conceptos a que tenga derecho. La liquidacion definitiva sera puesta a su disposicion dentro de los quince (15) dias habiles siguientes a la fecha efectiva de terminacion.</div>
+
+<div class="clausula"><strong>SEGURIDAD SOCIAL:</strong>
+Se le informa que los aportes a seguridad social (EPS, AFP y ARL) seran pagados hasta la fecha efectiva de terminacion del contrato. A partir de dicha fecha, {{ el_la }} {{ senor_senora }} {{ tercero_nombre }} debera proceder con su afiliacion como independiente o a traves de un nuevo empleador.</div>
+
+<div class="clausula"><strong>DEVOLUCION DE BIENES:</strong>
+Le solicitamos que a la fecha efectiva de terminacion del contrato, proceda con la devolucion de todos los bienes, equipos, herramientas, documentos, tarjetas de acceso, uniformes y demas elementos de propiedad de la empresa que le hayan sido entregados para el ejercicio de sus funciones.</div>
+
+<div class="clausula"><strong>CERTIFICACION LABORAL:</strong>
+{{ empresa_nombre }} expedira la certificacion laboral correspondiente, indicando el cargo desempenado, el periodo laborado y el salario devengado, de conformidad con el articulo 57 del Codigo Sustantivo del Trabajo.</div>
+
+<p style="margin-top:30px">Atentamente,</p>
+
+<div class="firma">
+  <div><strong>{{ empresa_representante or empresa_nombre }}</strong><br>Representante Legal<br>{{ empresa_nombre }}<br>NIT: {{ empresa_nit }}</div>
+  <div><strong>{{ tercero_nombre }}</strong><br>Recibido por {{ el_la }} {{ trabajador_trabajadora }}<br>C.C. {{ tercero_cedula }}<br>Fecha: ___________________</div>
+</div>
+</body></html>

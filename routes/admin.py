@@ -400,17 +400,13 @@ def register(app):
                 proveedores_list = Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa, Proveedor.nombre).all()
                 return render_template('admin/usuario_form.html', obj=u, titulo='Editar Usuario',
                                        clientes_list=clientes_list, proveedores_list=proveedores_list)
-            # Roles de portal: vincular empresa
+            # Roles de portal: vincular empresa (solo modificar si el rol coincide)
             if u.rol == 'cliente':
                 cli_id = request.form.get('cliente_id')
-                u.cliente_id = int(cli_id) if cli_id else None
-            else:
-                u.cliente_id = None
+                u.cliente_id = int(cli_id) if cli_id else u.cliente_id
             if u.rol == 'proveedor':
                 prov_id = request.form.get('proveedor_id')
-                u.proveedor_id = int(prov_id) if prov_id else None
-            else:
-                u.proveedor_id = None
+                u.proveedor_id = int(prov_id) if prov_id else u.proveedor_id
             # Guardar módulos personalizados
             modulos_sel = request.form.getlist('modulos')
             u.modulos_permitidos = json.dumps(modulos_sel) if modulos_sel else '[]'
@@ -421,6 +417,60 @@ def register(app):
         return render_template('admin/usuario_form.html', obj=u, titulo='Editar Usuario',
                                clientes_list=clientes_list, proveedores_list=proveedores_list)
     
+
+    # ── legal_generar (/legal/generar) — Generador de documentos legales
+    @app.route('/legal/generar', methods=['GET', 'POST'])
+    @login_required
+    @requiere_modulo('legal')
+    def legal_generar():
+        """Generador de documentos legales con plantillas colombianas."""
+        empresa = ConfigEmpresa.query.first()
+        clientes_list = Cliente.query.filter_by(estado='activo').order_by(Cliente.empresa).all()
+        proveedores_list = Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all()
+        empleados_list = Empleado.query.filter_by(estado='activo').order_by(Empleado.nombre).all()
+
+        if request.method == 'POST':
+            plantilla = request.form.get('plantilla', '')
+            genero = request.form.get('genero', 'M')  # M o F
+            datos = {
+                'empresa': empresa,
+                'empresa_nombre': empresa.nombre if empresa else 'Empresa',
+                'empresa_nit': empresa.nit if empresa else '',
+                'empresa_direccion': empresa.direccion if empresa else '',
+                'empresa_representante': empresa.representante_legal if hasattr(empresa, 'representante_legal') and empresa else (request.form.get('representante', '')),
+                'fecha': request.form.get('fecha', datetime.utcnow().strftime('%d de %B de %Y')),
+                'ciudad': request.form.get('ciudad', 'Bogota'),
+                'genero': genero,
+                # Pronombres segun genero
+                'el_la': 'la' if genero == 'F' else 'el',
+                'El_La': 'La' if genero == 'F' else 'El',
+                'del_de_la': 'de la' if genero == 'F' else 'del',
+                'al_a_la': 'a la' if genero == 'F' else 'al',
+                'senor_senora': 'senora' if genero == 'F' else 'senor',
+                'Senor_Senora': 'Senora' if genero == 'F' else 'Senor',
+                'identificado_identificada': 'identificada' if genero == 'F' else 'identificado',
+                'domiciliado_domiciliada': 'domiciliada' if genero == 'F' else 'domiciliado',
+                'llamado_llamada': 'llamada' if genero == 'F' else 'llamado',
+                'contratado_contratada': 'contratada' if genero == 'F' else 'contratado',
+                'trabajador_trabajadora': 'trabajadora' if genero == 'F' else 'trabajador',
+                # Datos del tercero
+                'tercero_nombre': request.form.get('tercero_nombre', ''),
+                'tercero_cedula': request.form.get('tercero_cedula', ''),
+                'tercero_direccion': request.form.get('tercero_direccion', ''),
+                'tercero_cargo': request.form.get('tercero_cargo', ''),
+                'tercero_salario': request.form.get('tercero_salario', ''),
+                'tercero_empresa': request.form.get('tercero_empresa', ''),
+                'tercero_nit': request.form.get('tercero_nit', ''),
+                'objeto': request.form.get('objeto', ''),
+                'vigencia': request.form.get('vigencia', '12 meses'),
+                'valor': request.form.get('valor', ''),
+            }
+            return render_template(f'legal/plantillas/{plantilla}.html', **datos)
+
+        return render_template('legal/generar.html',
+            empresa=empresa, clientes_list=clientes_list,
+            proveedores_list=proveedores_list, empleados_list=empleados_list)
+
 
     # ── legal_index (/legal)
     @app.route('/legal')
