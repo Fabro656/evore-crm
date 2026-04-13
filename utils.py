@@ -647,39 +647,6 @@ def _crear_notificacion(usuario_id, tipo, titulo, mensaje, url=None):
         db.session.rollback()
         print(f'Notificacion error: {e}')
 
-def _verificar_stock_minimo():
-    """Revisa productos bajo stock mínimo y crea Notificacion a admins si no existe una sin leer."""
-    try:
-        from models import Producto, Notificacion, User
-        prods_bajo = Producto.query.filter(
-            Producto.activo == True,
-            Producto.stock_minimo > 0,
-            Producto.stock < Producto.stock_minimo
-        ).all()
-        if not prods_bajo:
-            return
-        admins = User.query.filter_by(rol='admin', activo=True).all()
-        for prod in prods_bajo:
-            titulo_noti = f'Stock bajo: {prod.nombre}'
-            for admin in admins:
-                ya_existe = Notificacion.query.filter_by(
-                    usuario_id=admin.id,
-                    titulo=titulo_noti,
-                    leida=False
-                ).first()
-                if not ya_existe:
-                    n = Notificacion(
-                        usuario_id=admin.id,
-                        tipo='alerta',
-                        titulo=titulo_noti,
-                        mensaje=f'El producto "{prod.nombre}" tiene stock {prod.stock} unidades, por debajo del mínimo configurado de {prod.stock_minimo}.',
-                        url='/inventario'
-                    )
-                    db.session.add(n)
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        print(f'_verificar_stock_minimo error: {e}')
 
 def _calcular_nomina_co(empleado):
     """Colombian payroll calculation. Returns a dict with all payroll items."""

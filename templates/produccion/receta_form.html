@@ -4,7 +4,7 @@
 {% block content %}
 <form method="POST" id="recetaForm">
 <div class="row g-3 mb-4">
-  <div class="col-md-6">
+  <div class="col-12 col-md-6">
     <label class="form-label">Producto terminado <span class="req">*</span></label>
     <div class="input-group">
       <select name="producto_id" id="productoSel" class="form-select" onchange="onProdChange(this)">
@@ -31,7 +31,7 @@
     <small style="color:var(--text2)">Definido por director financiero</small>
   </div>
   {% if costo_actual %}
-  <div class="col-md-9">
+  <div class="col-12 col-md-9">
     <div class="sc" style="padding:.7rem 1rem;margin-top:1.4rem">
       <div class="d-flex gap-3 flex-wrap" style="font-size:.85rem">
         <div><strong>Costo produccion:</strong> <span style="color:var(--ac)">${{ '{:,.0f}'.format(costo_actual.costo_unitario) }}/und</span></div>
