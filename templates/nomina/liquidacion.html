@@ -1,65 +1,139 @@
 {% extends 'base.html' %}
-{% block title %}Liquidación - {{ empleado.nombre }}{% endblock %}
-{% block page_title %}Liquidación de contrato{% endblock %}
+{% block title %}Liquidacion - {{ empleado.nombre }}{% endblock %}
+{% block page_title %}Liquidacion de contrato{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('empleado_ver', id=empleado.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>
+{% endblock %}
 {% block content %}
-<div class="fc" style="max-width:800px">
-  <div style="border:1px solid #ddd;padding:2rem;border-radius:8px;background:#fff">
-    <div style="text-align:center;margin-bottom:2rem">
-      <h3 style="margin:0;font-weight:700">LIQUIDACIÓN DE CONTRATO</h3>
-      <p style="margin:0.5rem 0 0;color:var(--text2);font-size:.9rem">{{ empleado.nombre }} {{ empleado.apellido }}</p>
+<style>
+@media print {
+  .topbar,.sb-foot,#sb,.no-print,.notif-dd,#diagBtn,#aiBtn,#obCtx{display:none!important}
+  #main{margin-left:0!important}
+  .liq-actions{display:none!important}
+  .liq-doc{border:none!important;box-shadow:none!important;max-width:100%!important;padding:1.5rem!important}
+  body{font-size:11pt;color:#000;background:#fff}
+}
+</style>
+
+{# ── Barra de acciones (no se imprime) ── #}
+<div class="liq-actions mb-3 d-flex gap-2 flex-wrap align-items-center">
+  <button onclick="window.print()" class="btn btn-outline-primary btn-sm"><i class="bi bi-printer me-1"></i>Imprimir / PDF</button>
+  {% if empleado.estado == 'activo' %}
+  <form method="POST" action="{{ url_for('empleado_retirar', id=empleado.id) }}" class="d-inline"
+        onsubmit="return confirm('CONFIRMAR {{ motivo_label|upper }}: {{ empleado.nombre }} {{ empleado.apellido }}.\n\nSe registrara la liquidacion por {{ (liq.total|cop) }} como gasto y asiento contable.\n\nEsta accion NO se puede deshacer.')">
+    <input type="hidden" name="motivo" value="{{ motivo }}">
+    <input type="hidden" name="fecha_retiro" value="{{ liq.fecha_retiro.strftime('%Y-%m-%d') }}">
+    <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-check-circle me-1"></i>Confirmar {{ motivo_label }} y registrar liquidacion</button>
+  </form>
+  {% else %}
+  <span class="badge bg-secondary" style="font-size:.82rem"><i class="bi bi-check me-1"></i>Liquidacion ya ejecutada — empleado {{ empleado.estado }}</span>
+  {% endif %}
+</div>
+
+{# ── Documento de liquidacion (imprimible) ── #}
+<div class="liq-doc" style="max-width:800px;border:1px solid var(--border);border-radius:8px;background:#fff;padding:2rem;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+  {# Encabezado empresa #}
+  <div style="text-align:center;margin-bottom:1.5rem;border-bottom:2px solid #333;padding-bottom:1rem">
+    {% if config_empresa %}
+    <div style="font-weight:700;font-size:1.1rem">{{ config_empresa.nombre or 'EMPRESA' }}</div>
+    <div style="font-size:.82rem;color:#666">NIT: {{ config_empresa.nit or '—' }} | {{ config_empresa.direccion or '' }}</div>
+    {% endif %}
+    <h4 style="margin:1rem 0 0;font-weight:700;letter-spacing:1px">LIQUIDACION DE CONTRATO DE TRABAJO</h4>
+    <div style="font-size:.85rem;color:#666;margin-top:.3rem">
+      {% if motivo == 'renuncia' %}Terminacion por renuncia voluntaria
+      {% elif motivo == 'despido_justa' %}Terminacion por despido con justa causa
+      {% elif motivo == 'despido_sin_justa' %}Terminacion por despido sin justa causa (Art. 64 CST)
+      {% else %}{{ motivo }}{% endif %}
     </div>
-    <table style="width:100%;font-size:.95rem;margin-bottom:2rem">
-      <tr style="border-bottom:1px solid #ddd">
-        <td style="padding:8px">Empleado:</td>
-        <td style="padding:8px"><strong>{{ empleado.nombre }} {{ empleado.apellido }}</strong></td>
+  </div>
+
+  {# Datos del empleado #}
+  <table style="width:100%;font-size:.9rem;margin-bottom:1.5rem">
+    <tr>
+      <td style="padding:6px 8px;width:35%;color:#666">Empleado:</td>
+      <td style="padding:6px 8px;font-weight:600">{{ empleado.nombre }} {{ empleado.apellido }}</td>
+    </tr>
+    <tr style="background:#f8f9fa">
+      <td style="padding:6px 8px;color:#666">Cedula:</td>
+      <td style="padding:6px 8px">{{ empleado.cedula or '—' }}</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 8px;color:#666">Cargo:</td>
+      <td style="padding:6px 8px">{{ empleado.cargo or '—' }}</td>
+    </tr>
+    <tr style="background:#f8f9fa">
+      <td style="padding:6px 8px;color:#666">Salario mensual:</td>
+      <td style="padding:6px 8px;font-weight:600">{{ (empleado.salario|cop) }}</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 8px;color:#666">Fecha de ingreso:</td>
+      <td style="padding:6px 8px">{{ liq.fecha_ingreso.strftime('%d/%m/%Y') if liq.fecha_ingreso else '—' }}</td>
+    </tr>
+    <tr style="background:#f8f9fa">
+      <td style="padding:6px 8px;color:#666">Fecha de retiro:</td>
+      <td style="padding:6px 8px;font-weight:600">{{ liq.fecha_retiro.strftime('%d/%m/%Y') }}</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 8px;color:#666">Tiempo laborado:</td>
+      <td style="padding:6px 8px;font-weight:600">{{ liq.dias_trabajados }} dias ({{ liq.anios }} anos)</td>
+    </tr>
+  </table>
+
+  {# Tabla de conceptos #}
+  <table style="width:100%;font-size:.9rem;border-collapse:collapse;margin-bottom:1.5rem">
+    <thead>
+      <tr style="background:#333;color:#fff">
+        <th style="padding:10px 8px;text-align:left">Concepto</th>
+        <th style="padding:10px 8px;text-align:right;width:180px">Valor</th>
       </tr>
-      <tr style="border-bottom:1px solid #ddd">
-        <td style="padding:8px">Cédula:</td>
-        <td style="padding:8px">{{ empleado.cedula or '—' }}</td>
+    </thead>
+    <tbody>
+      <tr style="border-bottom:1px solid #eee">
+        <td style="padding:8px">Cesantias (Art. 249 CST)</td>
+        <td style="padding:8px;text-align:right">{{ (liq.cesantias|cop) }}</td>
       </tr>
-      <tr style="border-bottom:1px solid #ddd">
-        <td style="padding:8px">Fecha de ingreso:</td>
-        <td style="padding:8px">{{ liq.fecha_ingreso.strftime('%d de %B de %Y') if liq.fecha_ingreso else '—' }}</td>
+      <tr style="border-bottom:1px solid #eee;background:#f8f9fa">
+        <td style="padding:8px">Intereses sobre cesantias (12% anual, Ley 52/1975)</td>
+        <td style="padding:8px;text-align:right">{{ (liq.int_cesantias|cop) }}</td>
       </tr>
-      <tr style="border-bottom:2px solid var(--ac)">
-        <td style="padding:8px">Fecha de retiro:</td>
-        <td style="padding:8px"><strong>{{ liq.fecha_retiro.strftime('%d de %B de %Y') }}</strong></td>
+      <tr style="border-bottom:1px solid #eee">
+        <td style="padding:8px">Prima de servicios (Art. 306 CST)</td>
+        <td style="padding:8px;text-align:right">{{ (liq.prima|cop) }}</td>
       </tr>
-      <tr><td style="padding:8px">Tiempo trabajado:</td>
-        <td style="padding:8px"><strong>{{ liq.dias_trabajados }} días ({{ liq.anios }} años)</strong></td>
+      <tr style="border-bottom:1px solid #eee;background:#f8f9fa">
+        <td style="padding:8px">Vacaciones pendientes (Art. 186 CST)</td>
+        <td style="padding:8px;text-align:right">{{ (liq.vacaciones|cop) }}</td>
       </tr>
-    </table>
-    <table style="width:100%;font-size:.95rem;margin-bottom:2rem;border:1px solid #ddd">
-      <thead style="background:#f5f5f5">
-        <tr><th style="padding:8px;border-bottom:1px solid #ddd;text-align:left">Concepto</th>
-          <th style="padding:8px;border-bottom:1px solid #ddd;text-align:right">Valor</th></tr>
-      </thead>
-      <tbody>
-        <tr style="border-bottom:1px solid #eee"><td style="padding:8px">Cesantías</td>
-          <td style="padding:8px;text-align:right">{{ (liq.cesantias|cop) }}</td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="padding:8px">Intereses sobre cesantías (12% anual)</td>
-          <td style="padding:8px;text-align:right">{{ (liq.int_cesantias|cop) }}</td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="padding:8px">Prima de servicios</td>
-          <td style="padding:8px;text-align:right">{{ (liq.prima|cop) }}</td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="padding:8px">Vacaciones pendientes</td>
-          <td style="padding:8px;text-align:right">{{ (liq.vacaciones|cop) }}</td></tr>
-        {% if liq.indemnizacion > 0 %}
-        <tr style="border-bottom:2px solid var(--red);background:#ffe6e6"><td style="padding:8px"><strong>Indemnización</strong></td>
-          <td style="padding:8px;text-align:right"><strong style="color:var(--red)">{{ (liq.indemnizacion|cop) }}</strong></td></tr>
-        {% endif %}
-        <tr style="background:#f0f7ff;border-top:2px solid var(--ac)"><td style="padding:12px"><strong>TOTAL A PAGAR</strong></td>
-          <td style="padding:12px;text-align:right"><strong style="font-size:1.2rem;color:var(--ac)">{{ (liq.total|cop) }}</strong></td></tr>
-      </tbody>
-    </table>
-    <div style="border-top:1px solid #ddd;padding-top:2rem;margin-top:2rem">
-      <p style="font-size:.85rem;color:#666">Empresa: ____________________________  &nbsp;&nbsp; Empleado: ____________________________</p>
-      <p style="font-size:.85rem;color:#666">Firma                                                                      Firma</p>
-      <p style="font-size:.85rem;color:#666">Fecha: ____________________________  &nbsp;&nbsp; Fecha: ____________________________</p>
+      {% if liq.indemnizacion > 0 %}
+      <tr style="border-bottom:2px solid #dc3545;background:#fff0f0">
+        <td style="padding:8px"><strong>Indemnizacion por despido sin justa causa (Art. 64 CST)</strong></td>
+        <td style="padding:8px;text-align:right"><strong style="color:#dc3545">{{ (liq.indemnizacion|cop) }}</strong></td>
+      </tr>
+      {% endif %}
+      <tr style="background:#e8f4fd;border-top:3px solid #0d6efd">
+        <td style="padding:12px 8px"><strong style="font-size:1rem">TOTAL A PAGAR</strong></td>
+        <td style="padding:12px 8px;text-align:right"><strong style="font-size:1.15rem;color:#0d6efd">{{ (liq.total|cop) }}</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  {# Firmas #}
+  <div style="margin-top:3rem;display:grid;grid-template-columns:1fr 1fr;gap:2rem">
+    <div style="text-align:center">
+      <div style="border-top:1px solid #333;padding-top:8px;margin-top:60px">
+        <div style="font-size:.85rem;font-weight:600">Representante legal</div>
+        <div style="font-size:.8rem;color:#666">Empresa</div>
+      </div>
     </div>
-    <div style="margin-top:2rem;display:flex;gap:1rem">
-      <button onclick="window.print()" class="btn btn-primary"><i class="bi bi-printer me-1"></i>Imprimir</button>
-      <a href="{{ url_for('nomina_index') }}" class="btn btn-outline-secondary">Volver</a>
+    <div style="text-align:center">
+      <div style="border-top:1px solid #333;padding-top:8px;margin-top:60px">
+        <div style="font-size:.85rem;font-weight:600">{{ empleado.nombre }} {{ empleado.apellido }}</div>
+        <div style="font-size:.8rem;color:#666">C.C. {{ empleado.cedula or '—' }}</div>
+      </div>
     </div>
+  </div>
+  <div style="text-align:center;margin-top:1.5rem;font-size:.8rem;color:#999">
+    Documento generado el {{ now.strftime('%d/%m/%Y a las %H:%M') if now else '' }}
   </div>
 </div>
 {% endblock %}

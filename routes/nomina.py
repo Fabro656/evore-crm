@@ -404,7 +404,10 @@ def register(app):
         if not liq:
             flash('No se puede calcular liquidación sin fecha de ingreso.','danger')
             return redirect(url_for('empleado_ver', id=id))
-        return render_template('nomina/liquidacion.html', empleado=empleado, liq=liq)
+        motivo_label = {'renuncia':'Renuncia','despido_justa':'Despido justificado','despido_sin_justa':'Despido sin justa causa'}.get(motivo, motivo)
+        config_empresa = ConfigEmpresa.query.first()
+        return render_template('nomina/liquidacion.html', empleado=empleado, liq=liq,
+                               motivo=motivo, motivo_label=motivo_label, config_empresa=config_empresa)
     
 
     # ── empleado_retirar (/nomina/<int:id>/retirar)
