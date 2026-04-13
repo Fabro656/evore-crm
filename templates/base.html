@@ -1051,12 +1051,10 @@ function toggleSidebar(){
           <li><div style="padding:.3rem 1rem .1rem;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Cambiar rol</div></li>
           {% for r in roles_disponibles %}
           {% if r != rol_activo %}
-          <li><form method="POST" action="{{ url_for('cambiar_rol') }}" class="m-0">
-            <input type="hidden" name="rol" value="{{ r }}">
-            <button type="submit" class="dropdown-item d-flex align-items-center gap-2" style="font-size:.83rem;padding:.4rem 1rem">
+          <li><a href="#" class="dropdown-item d-flex align-items-center gap-2" style="font-size:.83rem;padding:.4rem 1rem"
+                 onclick="event.preventDefault();var f=document.createElement('form');f.method='POST';f.action='{{ url_for("cambiar_rol") }}';var r=document.createElement('input');r.type='hidden';r.name='rol';r.value='{{ r }}';f.appendChild(r);var c=document.createElement('input');c.type='hidden';c.name='_csrf_token';c.value=document.querySelector('meta[name=csrf-token]').content;f.appendChild(c);document.body.appendChild(f);f.submit();">
               <i class="bi {{ rol_icons.get(r, 'bi-person') }}" style="color:var(--ac);font-size:.9rem"></i>{{ rol_labels.get(r, r) }}
-            </button>
-          </form></li>
+          </a></li>
           {% endif %}
           {% endfor %}
           {% endif %}
