@@ -1540,145 +1540,81 @@ document.addEventListener('DOMContentLoaded',function(){
 @media(max-width:768px){#obCtxTip::before{display:none}}
 </style>
 <script>
-try {
-var OB_STEPS = [
-    // Dock icons
-    {icon:'bi-house-fill', color:'#3B82F6', title:'Home — Centro de control', desc:'Tu dashboard principal con KPIs, tickets pendientes, ventas recientes, aprobaciones, calendario del dia y notas. Todo lo importante en un vistazo.'},
-    {icon:'bi-check2-square', color:'#8B5CF6', title:'Tickets', desc:'Crea y gestiona tickets con prioridades, asignacion multiple, categorias (calidad, logistica, pago). Se crean automaticamente por problemas de calidad o nomina pendiente.'},
-    {icon:'bi-calendar3', color:'#F59E0B', title:'Calendario', desc:'Eventos, citas y recordatorios con vista mensual. Navega por mes y ano. Haz click en cualquier dia para crear un evento.'},
-    {icon:'bi-bag-fill', color:'#10B981', title:'Comercial — Clientes, Ventas, Cotizaciones', desc:'Pipeline: Prospecto → Negociacion → Anticipo → Pagado → Entregado. Al crear venta se genera asiento contable y contrato para el portal del cliente.'},
-    {icon:'bi-cart-check', color:'#F97316', title:'Compras — Proveedores y OC', desc:'Selecciona proveedor, elige cotizaciones, crea OC. Se genera contrato para firma del proveedor. El pago se confirma desde Asientos Contables.'},
-    {icon:'bi-gear-fill', color:'#6366F1', title:'Produccion', desc:'Ordenes de produccion, Gantt por venta, recepcion de material desde OC. Si hay problema de calidad, se crean tickets automaticos.'},
-    {icon:'bi-currency-dollar', color:'#059669', title:'Finanzas', desc:'Asientos generados (OC/ventas) y manuales (caja chica). PUC colombiano. Confirma pagos aqui. Reconciliacion bancaria con CSV. IVA, retenciones, cierres.'},
-    {icon:'bi-people-fill', color:'#EC4899', title:'Nomina', desc:'Cierra nomina con prorrateo por dias. Parametros editables (SMLMV, aportes). Al retirar, liquidacion inmediata con cesantias, prima, vacaciones.'},
-    {icon:'bi-clipboard-check', color:'#EF4444', title:'Aprobaciones', desc:'OC, ventas, cotizaciones y asientos pueden requerir aprobacion. El proceso se BLOQUEA hasta aprobar o rechazar.'},
-    {icon:'bi-shield-check', color:'#0EA5E9', title:'Legal', desc:'9 plantillas legales colombianas. Firma digital con selfie. Contratos se envian al portal para firma del cliente/proveedor.'},
-    // UI elements
-    {target:'topbar', color:'#64748B', icon:'bi-layout-text-window', title:'Barra superior', desc:'Titulo de pagina, botones de accion, tema claro/oscuro, perfil y fecha.'},
-    {target:'perfil', color:'#64748B', icon:'bi-person-circle', title:'Menu de perfil', desc:'Click en tu avatar para ver: perfil, actividad, tutorial y cerrar sesion.'},
-    {target:'dock-foot', color:'#64748B', icon:'bi-grid-3x3-gap', title:'Pie del dock', desc:'Avatar, notificaciones, Wiki del sistema y boton Tutorial para repetir esta guia.'},
-  ];
-  var obIdx = 0;
-  var obActive = false;
-
-  window.iniciarObContextual = function(){
-    if(OB_STEPS.length === 0) return;
-    obIdx = 0;
-    obActive = true;
+/* ── Onboarding Tutorial ── */
+window.iniciarObContextual = function(){
+  try {
+    var steps = [
+      {icon:'bi-house-fill', color:'#3B82F6', title:'Home', desc:'Dashboard con KPIs, tickets, ventas, aprobaciones, calendario y notas.'},
+      {icon:'bi-check2-square', color:'#8B5CF6', title:'Tickets', desc:'Seguimiento con prioridades y categorias. Auto-generados por calidad o nomina.'},
+      {icon:'bi-calendar3', color:'#F59E0B', title:'Calendario', desc:'Eventos y recordatorios. Click en dia para crear.'},
+      {icon:'bi-bag-fill', color:'#10B981', title:'Comercial', desc:'Pipeline de ventas. Auto-genera asiento contable y contrato al portal.'},
+      {icon:'bi-cart-check', color:'#F97316', title:'Compras', desc:'OC multi-cotizacion. Contrato proveedor. Pago via asientos.'},
+      {icon:'bi-gear-fill', color:'#6366F1', title:'Produccion', desc:'Ordenes, Gantt, recepcion MP, control calidad con tickets auto.'},
+      {icon:'bi-currency-dollar', color:'#059669', title:'Finanzas', desc:'PUC, asientos, reconciliacion bancaria, IVA, retenciones, cierres.'},
+      {icon:'bi-people-fill', color:'#EC4899', title:'Nomina', desc:'Prorrateo, horas extra, retencion, parametros editables, liquidacion.'},
+      {icon:'bi-clipboard-check', color:'#EF4444', title:'Aprobaciones', desc:'Bloquea OC/ventas hasta aprobar o rechazar.'},
+      {icon:'bi-shield-check', color:'#0EA5E9', title:'Legal', desc:'9 plantillas colombianas. Firma digital + selfie. Auto-genera contratos.'},
+      {t:'topbar', color:'#64748B', icon:'bi-layout-text-window', title:'Barra superior', desc:'Acciones del modulo, tema, perfil, fecha.'},
+      {t:'perfil', color:'#64748B', icon:'bi-person-circle', title:'Perfil', desc:'Perfil, actividad, tutorial, cerrar sesion.'},
+      {t:'foot', color:'#64748B', icon:'bi-grid-3x3-gap', title:'Pie del dock', desc:'Notificaciones, Wiki, Tutorial.'},
+    ];
+    var idx = 0;
     var ctx = document.getElementById('obCtx');
-    ctx.style.display = 'block';
-    ctx.style.position = 'relative';
-    ctx.style.zIndex = '9999';
-    mostrarPasoOb();
-  };
-
-  var isMobileOb = window.innerWidth <= 768;
-
-  function clampTip(tip, anchorRect) {
-    // Ensure tooltip stays within viewport
-    var tw = 320, pad = 10;
-    var vw = window.innerWidth, vh = window.innerHeight;
-
-    if (isMobileOb || !anchorRect || (anchorRect.right === 0 && anchorRect.top === 0)) {
-      // Mobile or no anchor: center horizontally, position at top third
-      tip.style.left = Math.max(pad, (vw - tw) / 2) + 'px';
-      tip.style.top = Math.min(vh * 0.15, 80) + 'px';
-      tip.style.removeProperty('right');
-      return;
-    }
-
-    // Desktop: position to the right of anchor
-    var left = anchorRect.right + 14;
-    var top = Math.max(pad, anchorRect.top - 10);
-
-    // If overflows right, position to the left of anchor
-    if (left + tw + pad > vw) {
-      left = Math.max(pad, anchorRect.left - tw - 14);
-    }
-    // If overflows bottom
-    if (top + 250 > vh) {
-      top = Math.max(pad, vh - 280);
-    }
-
-    tip.style.left = left + 'px';
-    tip.style.top = top + 'px';
-  }
-
-  function mostrarPasoOb(){
-    if(obIdx >= OB_STEPS.length){ obCtxSkip(); return; }
-    var step = OB_STEPS[obIdx];
-    document.getElementById('obCtxStep').textContent = 'Paso ' + (obIdx+1) + ' de ' + OB_STEPS.length;
-    document.getElementById('obCtxTitle').textContent = step.title;
-    document.getElementById('obCtxDesc').textContent = step.desc;
-    document.getElementById('obCtxBtn').textContent = obIdx === OB_STEPS.length - 1 ? 'Listo!' : 'Siguiente';
-    // Render icon illustration
-    var illust = document.getElementById('obCtxIllust');
-    var iconBox = document.getElementById('obCtxIconBox');
-    var iconEl = document.getElementById('obCtxIcon');
-    if(step.icon && step.color){
-      illust.style.display='';
-      iconBox.style.background=step.color+'22';
-      iconBox.style.color=step.color;
-      iconEl.className=step.icon;
-    } else { illust.style.display='none'; }
     var tip = document.getElementById('obCtxTip');
-    // Reset highlight
-    document.querySelectorAll('.sb-nav .nav-link').forEach(function(l){l.style.opacity='.3'});
+    var overlay = document.getElementById('obCtxOverlay');
+    if(!ctx || !tip) return;
 
-    var anchorRect = null;
-
-    if(step.target === 'topbar'){
-      var tb = document.querySelector('.topbar');
-      if(tb) anchorRect = tb.getBoundingClientRect();
-      document.querySelectorAll('.sb-nav .nav-link').forEach(function(l){l.style.opacity='1'});
-    } else if(step.target === 'perfil'){
-      var pf = document.querySelector('.topbar .dropdown');
-      if(pf) anchorRect = pf.getBoundingClientRect();
-      document.querySelectorAll('.sb-nav .nav-link').forEach(function(l){l.style.opacity='1'});
-    } else if(step.target === 'dock-foot'){
-      var ft = document.querySelector('.sb-foot');
-      if(ft) anchorRect = ft.getBoundingClientRect();
-      document.querySelectorAll('.sb-nav .nav-link').forEach(function(l){l.style.opacity='1'});
-    } else if(step.target === 'busqueda'){
-      var bs = document.querySelector('.nav-link[data-tip="Buscador"]');
-      if(bs){ anchorRect = bs.getBoundingClientRect(); bs.style.opacity='1'; bs.style.transform='scale(1.3)'; }
-    } else {
-      // Dock icon by class
-      var icon = document.querySelector('.sb-nav .nav-link i.' + step.icon);
-      if(icon){
-        var link = icon.closest('.nav-link');
-        anchorRect = link.getBoundingClientRect();
-        link.style.opacity = '1';
-        link.style.transform = 'scale(1.3)';
-      } else {
-        document.querySelectorAll('.sb-nav .nav-link').forEach(function(l){l.style.opacity='1'});
+    function show(){
+      if(idx >= steps.length){ hide(); return; }
+      var s = steps[idx];
+      var mob = window.innerWidth <= 768;
+      document.getElementById('obCtxStep').textContent = (idx+1)+'/'+steps.length;
+      document.getElementById('obCtxTitle').textContent = s.title;
+      document.getElementById('obCtxDesc').textContent = s.desc;
+      document.getElementById('obCtxBtn').textContent = idx === steps.length-1 ? 'Listo!' : 'Siguiente';
+      var il = document.getElementById('obCtxIllust');
+      var ib = document.getElementById('obCtxIconBox');
+      var ie = document.getElementById('obCtxIcon');
+      if(il && ib && ie && s.icon && s.color){
+        il.style.display=''; ib.style.background=s.color+'22'; ib.style.color=s.color; ie.className=s.icon;
+      } else if(il){ il.style.display='none'; }
+      // Reset icons
+      document.querySelectorAll('.sb-nav .nav-link').forEach(function(l){l.style.opacity='.3';l.style.transform='';});
+      // Position
+      var anchor = null;
+      if(s.t === 'topbar'){ anchor = document.querySelector('.topbar'); document.querySelectorAll('.sb-nav .nav-link').forEach(function(l){l.style.opacity='1';}); }
+      else if(s.t === 'perfil'){ anchor = document.querySelector('.topbar .dropdown'); document.querySelectorAll('.sb-nav .nav-link').forEach(function(l){l.style.opacity='1';}); }
+      else if(s.t === 'foot'){ anchor = document.querySelector('.sb-foot'); document.querySelectorAll('.sb-nav .nav-link').forEach(function(l){l.style.opacity='1';}); }
+      else {
+        var ic = document.querySelector('.sb-nav .nav-link i.'+s.icon);
+        if(ic){ var lk=ic.closest('.nav-link'); anchor=lk; lk.style.opacity='1'; lk.style.transform='scale(1.15)'; }
+        else { document.querySelectorAll('.sb-nav .nav-link').forEach(function(l){l.style.opacity='1';}); }
       }
+      // Clamp to viewport
+      var vw=window.innerWidth, vh=window.innerHeight, tw=Math.min(320,vw-24), pad=12;
+      if(mob || !anchor || !anchor.getBoundingClientRect){
+        tip.style.left = Math.max(pad,(vw-tw)/2)+'px'; tip.style.top = '60px';
+      } else {
+        var r = anchor.getBoundingClientRect();
+        var left = r.right+14, top = Math.max(pad, r.top-10);
+        if(left+tw+pad > vw) left = Math.max(pad, r.left-tw-14);
+        if(top+220 > vh) top = Math.max(pad, vh-240);
+        tip.style.left = left+'px'; tip.style.top = top+'px';
+      }
+      ctx.style.display='block'; ctx.style.zIndex='9999';
     }
-
-    clampTip(tip, anchorRect);
-  }
-
-  window.obCtxNext = function(){
-    // Reset previous icon
-    document.querySelectorAll('.sb-nav .nav-link').forEach(function(l){l.style.opacity='';l.style.transform=''});
-    obIdx++;
-    if(obIdx >= OB_STEPS.length){
-      obCtxSkip();
-      return;
+    function next(){ document.querySelectorAll('.sb-nav .nav-link').forEach(function(l){l.style.opacity='';l.style.transform='';}); idx++; show(); }
+    function hide(){
+      ctx.style.display='none'; ctx.style.zIndex='';
+      document.querySelectorAll('.sb-nav .nav-link').forEach(function(l){l.style.opacity='';l.style.transform='';});
+      fetch('/onboarding/dismiss',{method:'POST',headers:{'Content-Type':'application/json'}}).catch(function(){});
     }
-    mostrarPasoOb();
-  };
-
-  window.obCtxSkip = function(){
-    obActive = false;
-    var ctx = document.getElementById('obCtx');
-    ctx.style.display = 'none';
-    ctx.style.zIndex = '';
-    document.querySelectorAll('.sb-nav .nav-link').forEach(function(l){l.style.opacity='';l.style.transform=''});
-    // Mark as seen
-    fetch('/onboarding/dismiss',{method:'POST',headers:{'Content-Type':'application/json'}}).catch(function(){});
-  };
-} catch(_obErr) { console.error('Onboarding init error:', _obErr); }
+    window.obCtxNext = next;
+    window.obCtxSkip = hide;
+    overlay.onclick = next;
+    show();
+  } catch(e){ console.error('Onboarding error:',e); }
+};
 </script>
 
 <!-- Quick Actions Modal -->
@@ -1777,8 +1713,7 @@ var OB_STEPS = [
 <!-- ══════════════════════════════════════════════════
      EVORE AI ASSISTANT PANEL (hidden in demo mode)
      ══════════════════════════════════════════════════ -->
-{% set is_demo_mode = session.get('is_demo', False) %}
-{% if not is_demo_mode %}
+{% if current_user.is_authenticated %}
 <div id="aiPanel" style="position:fixed;bottom:150px;right:24px;width:380px;height:540px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.18);z-index:2000;display:flex;flex-direction:column;overflow:hidden">
   <!-- Header -->
   <div style="background:var(--sb);padding:.85rem 1.1rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
