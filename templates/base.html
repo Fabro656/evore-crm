@@ -1540,8 +1540,7 @@ document.addEventListener('DOMContentLoaded',function(){
 @media(max-width:768px){#obCtxTip::before{display:none}}
 </style>
 <script>
-(function(){
-  var OB_STEPS = [
+var OB_STEPS = [
     // Dock icons
     {icon:'bi-house-fill', color:'#3B82F6', title:'Home — Centro de control', desc:'Tu dashboard principal con KPIs, tickets pendientes, ventas recientes, aprobaciones, calendario del dia y notas. Todo lo importante en un vistazo.'},
     {icon:'bi-check2-square', color:'#8B5CF6', title:'Tickets', desc:'Crea y gestiona tickets con prioridades, asignacion multiple, categorias (calidad, logistica, pago). Se crean automaticamente por problemas de calidad o nomina pendiente.'},
@@ -1678,7 +1677,6 @@ document.addEventListener('DOMContentLoaded',function(){
     // Mark as seen
     fetch('/onboarding/dismiss',{method:'POST',headers:{'Content-Type':'application/json'}}).catch(function(){});
   };
-})();
 </script>
 
 <!-- Quick Actions Modal -->

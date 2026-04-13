@@ -9,7 +9,7 @@
 <div class="row g-3">
 <div class="col-lg-6">
 <div class="fc">
-  <form method="POST" target="_blank" id="legalForm">
+  <form method="POST" id="legalForm" onsubmit="if(document.getElementById('accionForm').value==='preview')this.target='_blank';else this.target='_self';">
     <div class="row g-3">
 
       <div class="col-md-6">
@@ -150,8 +150,29 @@
       <small class="text-muted">Se incluira con texto "Firmado digitalmente en Evore CRM".</small>
     </div>
 
-    <div class="mt-4">
-      <button type="submit" class="btn btn-primary" onclick="document.getElementById('firmaData').value=document.getElementById('signPad').toDataURL()"><i class="bi bi-file-earmark-text me-1"></i>Generar documento</button>
+    <input type="hidden" name="accion" id="accionForm" value="preview">
+    <input type="hidden" name="cargar_desde_id" id="cargarDesdeId" value="">
+    <input type="hidden" name="selfie_data" id="selfieData">
+
+    <div class="col-12 mt-2">
+      <label class="form-label">Selfie de verificacion (opcional)</label>
+      <div style="display:flex;gap:8px;align-items:start">
+        <div style="border:2px dashed var(--border);border-radius:8px;width:160px;height:120px;overflow:hidden;position:relative;background:#000;flex-shrink:0">
+          <video id="selfieVid" autoplay playsinline style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:none"></video>
+          <img id="selfiePrev" style="width:100%;height:100%;object-fit:cover;display:none">
+          <div id="selfieMsg" style="color:#fff;font-size:.7rem;text-align:center;padding-top:40px">Click para activar camara</div>
+        </div>
+        <div>
+          <button type="button" class="btn btn-xs btn-outline-secondary mb-1" onclick="activarCamara()"><i class="bi bi-camera me-1"></i>Camara</button><br>
+          <button type="button" class="btn btn-xs btn-outline-primary mb-1" onclick="tomarSelfie()" id="btnTomarSelfie" style="display:none"><i class="bi bi-camera-fill me-1"></i>Tomar</button>
+          <button type="button" class="btn btn-xs btn-outline-secondary" onclick="resetSelfie()" id="btnResetSelfie" style="display:none"><i class="bi bi-arrow-counterclockwise"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-4 d-flex gap-2">
+      <button type="submit" class="btn btn-outline-primary" onclick="prepararSubmit('preview')"><i class="bi bi-eye me-1"></i>Vista previa</button>
+      <button type="submit" class="btn btn-success" onclick="prepararSubmit('guardar')"><i class="bi bi-save me-1"></i>Guardar y enviar a portal</button>
     </div>
   </form>
 </div>
@@ -181,6 +202,71 @@ function cargarDatos(){
   if(opt.dataset.empresa) document.getElementById('tEmpresa').value = opt.dataset.empresa;
   if(opt.dataset.cargo) document.getElementById('tCargo').value = opt.dataset.cargo;
   if(opt.dataset.salario) document.getElementById('tSalario').value = opt.dataset.salario;
+  document.getElementById('cargarDesdeId').value = opt.value;
+}
+function prepararSubmit(accion){
+  document.getElementById('accionForm').value = accion;
+  document.getElementById('firmaData').value = document.getElementById('signPad').toDataURL();
+  if(accion === 'guardar'){
+    var sel = document.getElementById('cargarDesde');
+    var val = sel.value;
+    if(!val || (!val.startsWith('cli_') && !val.startsWith('prov_') && !val.startsWith('emp_'))){
+      if(!confirm('No seleccionaste una contraparte del sistema. El documento se guardara sin vinculo a portal. Continuar?')) return false;
+    }
+    document.getElementById('cargarDesdeId').value = val;
+  }
+}
+// Selfie
+var selfieStream = null;
+function activarCamara(){
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:320},height:{ideal:240}}})
+    .then(function(s){
+      selfieStream = s;
+      var v = document.getElementById('selfieVid');
+      v.srcObject = s; v.style.display='block';
+      document.getElementById('selfieMsg').style.display='none';
+      document.getElementById('btnTomarSelfie').style.display='';
+    }).catch(function(){ document.getElementById('selfieMsg').textContent='Sin acceso a camara'; });
+}
+function tomarSelfie(){
+  var v = document.getElementById('selfieVid');
+  var c = document.createElement('canvas');
+  c.width=320; c.height=240;
+  var ctx = c.getContext('2d');
+  ctx.translate(c.width,0); ctx.scale(-1,1);
+  ctx.drawImage(v,0,0,c.width,c.height);
+  var data = c.toDataURL('image/jpeg',0.5);
+  document.getElementById('selfieData').value = data;
+  document.getElementById('selfiePrev').src = data;
+  document.getElementById('selfiePrev').style.display='block';
+  v.style.display='none';
+  document.getElementById('btnTomarSelfie').style.display='none';
+  document.getElementById('btnResetSelfie').style.display='';
+  if(selfieStream){selfieStream.getTracks().forEach(function(t){t.stop()});selfieStream=null;}
+}
+function resetSelfie(){
+  document.getElementById('selfiePrev').style.display='none';
+  document.getElementById('selfieData').value='';
+  document.getElementById('btnResetSelfie').style.display='none';
+  activarCamara();
+}
+// Filtrar opciones del dropdown segun tipo de plantilla
+function filtrarContrapartes(){
+  var p = document.querySelector('[name="plantilla"]').value;
+  var sel = document.getElementById('cargarDesde');
+  var groups = sel.querySelectorAll('optgroup');
+  groups.forEach(function(g){
+    var label = g.label.toLowerCase();
+    if(p.includes('proveedor') || p.includes('nda')){
+      g.style.display = (label.includes('proveedor') || label.includes('cliente')) ? '' : 'none';
+    } else if(p.includes('cliente') || p.includes('acta')){
+      g.style.display = label.includes('cliente') ? '' : 'none';
+    } else if(p.includes('indefinido') || p.includes('fijo') || p.includes('prestacion') || p.includes('terminacion') || p.includes('datos')){
+      g.style.display = label.includes('empleado') ? '' : 'none';
+    } else {
+      g.style.display = '';
+    }
+  });
 }
 // Signature pad
 var signCanvas=document.getElementById('signPad');
@@ -225,8 +311,9 @@ function toggleCampos(){
   var label = document.querySelector('label[for="cargarDesde"]');
   if(esLaboral && label) label.textContent = 'Cargar empleado';
   else if(p.includes('proveedor') && label) label.textContent = 'Cargar proveedor';
-  else if(p.includes('cliente') || p.includes('acta') && label) label.textContent = 'Cargar cliente';
+  else if((p.includes('cliente') || p.includes('acta')) && label) label.textContent = 'Cargar cliente';
   else if(label) label.textContent = 'Cargar desde';
+  filtrarContrapartes();
   actualizarPreview();
 }
 

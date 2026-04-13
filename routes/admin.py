@@ -465,7 +465,13 @@ def register(app):
 
         if request.method == 'POST':
             plantilla = request.form.get('plantilla', '')
-            genero = request.form.get('genero', 'M')  # M o F
+            genero = request.form.get('genero', 'M')
+            accion = request.form.get('accion', 'preview')  # preview | guardar
+            firma_data = request.form.get('firma_data', '')
+            selfie_data = request.form.get('selfie_data', '')
+            firmante_nombre = request.form.get('firmante_nombre', '') or (getattr(empresa, 'representante_legal', '') or '')
+            firmante_cedula = request.form.get('firmante_cedula', '') or (getattr(empresa, 'representante_cedula', '') or '')
+            firmante_cargo = request.form.get('firmante_cargo', '') or 'Representante Legal'
             datos = {
                 'empresa': empresa,
                 'empresa_nombre': empresa.nombre if empresa else 'Empresa',
@@ -484,7 +490,6 @@ def register(app):
                 'fecha': request.form.get('fecha', datetime.utcnow().strftime('%d de %B de %Y')),
                 'ciudad': request.form.get('ciudad', 'Bogota'),
                 'genero': genero,
-                # Pronombres segun genero
                 'el_la': 'la' if genero == 'F' else 'el',
                 'El_La': 'La' if genero == 'F' else 'El',
                 'del_de_la': 'de la' if genero == 'F' else 'del',
@@ -496,7 +501,6 @@ def register(app):
                 'llamado_llamada': 'llamada' if genero == 'F' else 'llamado',
                 'contratado_contratada': 'contratada' if genero == 'F' else 'contratado',
                 'trabajador_trabajadora': 'trabajadora' if genero == 'F' else 'trabajador',
-                # Datos del tercero
                 'tercero_nombre': request.form.get('tercero_nombre', ''),
                 'tercero_cedula': request.form.get('tercero_cedula', ''),
                 'tercero_direccion': request.form.get('tercero_direccion', ''),
@@ -507,11 +511,78 @@ def register(app):
                 'objeto': request.form.get('objeto', ''),
                 'vigencia': request.form.get('vigencia', '12 meses'),
                 'valor': request.form.get('valor', ''),
-                'firma_data': request.form.get('firma_data', ''),
-                'firmante_nombre': request.form.get('firmante_nombre', '') or (getattr(empresa, 'representante_legal', '') or ''),
-                'firmante_cedula': request.form.get('firmante_cedula', '') or (getattr(empresa, 'representante_cedula', '') or ''),
-                'firmante_cargo': request.form.get('firmante_cargo', '') or 'Representante Legal',
+                'firma_data': firma_data,
+                'selfie_empresa': selfie_data,
+                'firmante_nombre': firmante_nombre,
+                'firmante_cedula': firmante_cedula,
+                'firmante_cargo': firmante_cargo,
             }
+
+            if accion == 'guardar':
+                # Determinar contraparte
+                cargar_desde = request.form.get('cargar_desde_id', '')
+                cliente_id = proveedor_id = None
+                tipo_entidad = None
+                if cargar_desde.startswith('cli_'):
+                    cliente_id = int(cargar_desde.replace('cli_', ''))
+                    tipo_entidad = 'cliente'
+                elif cargar_desde.startswith('prov_'):
+                    proveedor_id = int(cargar_desde.replace('prov_', ''))
+                    tipo_entidad = 'proveedor'
+                # Renderizar HTML del contrato
+                contenido = render_template(f'legal/plantillas/{plantilla}.html', **datos)
+                # Mapear plantilla a tipo
+                tipo_map = {
+                    'contrato_indefinido': 'contrato', 'contrato_fijo': 'contrato',
+                    'contrato_prestacion': 'contrato', 'contrato_proveedor': 'contrato',
+                    'contrato_cliente': 'contrato', 'nda': 'contrato',
+                    'acta_entrega': 'certificado', 'carta_terminacion': 'otro',
+                    'autorizacion_datos': 'otro',
+                }
+                tercero = request.form.get('tercero_nombre', '') or request.form.get('tercero_empresa', '')
+                doc = DocumentoLegal(
+                    tipo=tipo_map.get(plantilla, 'contrato'),
+                    titulo=f'{plantilla.replace("_"," ").title()} — {tercero}',
+                    entidad=empresa.nombre if empresa else '',
+                    descripcion=request.form.get('objeto', '')[:200],
+                    estado='en_tramite',
+                    fecha_emision=datetime.utcnow().date(),
+                    cliente_id=cliente_id,
+                    proveedor_id=proveedor_id,
+                    tipo_entidad=tipo_entidad,
+                    requiere_firma_portal=bool(cliente_id or proveedor_id),
+                    contenido_html=contenido,
+                    activo=True,
+                    creado_por=current_user.id
+                )
+                # Firma empresa
+                if firma_data and len(firma_data) > 100:
+                    doc.firma_empresa_data = firma_data
+                    doc.firma_empresa_por = firmante_nombre
+                    doc.firma_empresa_en = datetime.utcnow()
+                if selfie_data and len(selfie_data) > 100:
+                    doc.selfie_empresa_data = selfie_data
+                db.session.add(doc)
+                db.session.flush()
+                doc.numero = f'DOC-{datetime.utcnow().year}-{doc.id:04d}'
+                # Notificar contraparte en portal
+                if cliente_id:
+                    user_cli = User.query.filter_by(cliente_id=cliente_id, rol='cliente', activo=True).first()
+                    if user_cli:
+                        _crear_notificacion(user_cli.id, 'info', 'Nuevo documento para firmar',
+                            f'{doc.titulo} — revisa tu portal de documentos legales.',
+                            url_for('portal_cliente_docs'))
+                elif proveedor_id:
+                    user_prov = User.query.filter_by(proveedor_id=proveedor_id, rol='proveedor', activo=True).first()
+                    if user_prov:
+                        _crear_notificacion(user_prov.id, 'info', 'Nuevo documento para firmar',
+                            f'{doc.titulo} — revisa tu portal de documentos legales.',
+                            url_for('portal_prov_docs'))
+                db.session.commit()
+                flash(f'Documento "{doc.titulo}" guardado y enviado al portal para firma.', 'success')
+                return redirect(url_for('legal_index'))
+
+            # Preview: solo renderizar
             return render_template(f'legal/plantillas/{plantilla}.html', **datos)
 
         return render_template('legal/generar.html',
