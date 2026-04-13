@@ -1,7 +1,10 @@
-// Evore CRM — Service Worker (passthrough, only cleans old caches)
+// Evore CRM — Self-destructing SW: unregisters itself and clears all caches
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => {
-  // Delete ALL caches from any previous SW version
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(
+    caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k))))
+      .then(() => self.registration.unregister())
+      .then(() => self.clients.matchAll())
+      .then(clients => clients.forEach(c => c.navigate(c.url)))
+  );
 });
-// No fetch handler — let everything go to network naturally

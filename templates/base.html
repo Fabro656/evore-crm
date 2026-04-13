@@ -2043,7 +2043,13 @@ window.iniciarObContextual = function(){
 </script>
 
 <script>
-if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(function(){});}
+// Unregister any existing service workers and clear all caches
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(function(regs){
+    regs.forEach(function(r){r.unregister();});
+  });
+  if(window.caches){caches.keys().then(function(ks){ks.forEach(function(k){caches.delete(k);});});}
+}
 var _deferredInstall=null;
 window.addEventListener('beforeinstallprompt',function(e){
   e.preventDefault(); _deferredInstall=e;
