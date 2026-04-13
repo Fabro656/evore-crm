@@ -17,6 +17,7 @@ class User(UserMixin, db.Model):
     rol                 = db.Column(db.String(20), default='usuario')
     activo              = db.Column(db.Boolean, default=True)
     modulos_permitidos  = db.Column(db.Text, default='[]')   # JSON list
+    roles_asignados     = db.Column(db.Text, default='[]')   # JSON list: roles multiples asignados
     creado_en           = db.Column(db.DateTime, default=datetime.utcnow)
     onboarding_dismissed = db.Column(db.Boolean, default=False)
     onboarding_step      = db.Column(db.Integer, default=0)
@@ -1558,7 +1559,10 @@ def _migrate(conn):
         ("ALTER TABLE empleados ADD COLUMN contacto_emergencia_telefono VARCHAR(30)"),
         ("ALTER TABLE empleados ADD COLUMN IF NOT EXISTS contacto_emergencia_parentesco VARCHAR(50)"),
         ("ALTER TABLE empleados ADD COLUMN contacto_emergencia_parentesco VARCHAR(50)"),
-        # v42b — Empleado: EPS, caja de compensacion, fondo de pensiones
+        # v42b — User: roles multiples asignados
+        ("ALTER TABLE users ADD COLUMN IF NOT EXISTS roles_asignados TEXT DEFAULT '[]'"),
+        ("ALTER TABLE users ADD COLUMN roles_asignados TEXT DEFAULT '[]'"),
+        # v42c — Empleado: EPS, caja de compensacion, fondo de pensiones
         ("ALTER TABLE empleados ADD COLUMN IF NOT EXISTS eps VARCHAR(100)"),
         ("ALTER TABLE empleados ADD COLUMN eps VARCHAR(100)"),
         ("ALTER TABLE empleados ADD COLUMN IF NOT EXISTS caja_compensacion VARCHAR(100)"),

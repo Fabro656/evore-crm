@@ -15,7 +15,7 @@ def register(app):
     @app.route('/portal')
     @login_required
     def portal_cliente():
-        if current_user.rol != 'cliente':
+        if _get_rol_activo(current_user) != 'cliente':
             return redirect(url_for('dashboard'))
         cliente = db.session.get(Cliente, current_user.cliente_id) if current_user.cliente_id else None
         if not cliente:
@@ -64,7 +64,7 @@ def register(app):
     @app.route('/portal/venta/<int:id>/factura')
     @login_required
     def portal_cliente_factura(id):
-        if current_user.rol != 'cliente': return redirect(url_for('dashboard'))
+        if _get_rol_activo(current_user) != 'cliente': return redirect(url_for('dashboard'))
         venta = Venta.query.get_or_404(id)
         if venta.cliente_id != current_user.cliente_id:
             flash('No tienes acceso a esta venta.', 'danger')
@@ -77,7 +77,7 @@ def register(app):
     @app.route('/portal/venta/<int:id>/remision')
     @login_required
     def portal_cliente_remision(id):
-        if current_user.rol != 'cliente': return redirect(url_for('dashboard'))
+        if _get_rol_activo(current_user) != 'cliente': return redirect(url_for('dashboard'))
         venta = Venta.query.get_or_404(id)
         if venta.cliente_id != current_user.cliente_id:
             flash('No tienes acceso a esta venta.', 'danger')
@@ -93,7 +93,7 @@ def register(app):
     @app.route('/portal/documentos')
     @login_required
     def portal_cliente_docs():
-        if current_user.rol != 'cliente': return redirect(url_for('dashboard'))
+        if _get_rol_activo(current_user) != 'cliente': return redirect(url_for('dashboard'))
         cliente = db.session.get(Cliente, current_user.cliente_id) if current_user.cliente_id else None
         if not cliente: return redirect(url_for('portal_cliente'))
         docs = DocumentoLegal.query.filter(
@@ -108,7 +108,7 @@ def register(app):
     @login_required
     def portal_cliente_marcar_pago(id):
         """Cliente marca que ya envió el pago/anticipo de una venta."""
-        if current_user.rol != 'cliente':
+        if _get_rol_activo(current_user) != 'cliente':
             flash('Acceso denegado.', 'danger')
             return redirect(url_for('dashboard'))
         if not current_user.cliente_id:
@@ -170,7 +170,7 @@ def register(app):
     @app.route('/portal/mensaje/nuevo', methods=['POST'])
     @login_required
     def portal_mensaje_nuevo():
-        if current_user.rol != 'cliente':
+        if _get_rol_activo(current_user) != 'cliente':
             return redirect(url_for('dashboard'))
         cliente = db.session.get(Cliente, current_user.cliente_id) if current_user.cliente_id else None
         if not cliente:
@@ -205,7 +205,7 @@ def register(app):
     @app.route('/portal/pre-cotizacion/nueva', methods=['GET','POST'])
     @login_required
     def portal_pre_cotizacion_nueva():
-        if current_user.rol != 'cliente':
+        if _get_rol_activo(current_user) != 'cliente':
             return redirect(url_for('dashboard'))
         cliente = db.session.get(Cliente, current_user.cliente_id) if current_user.cliente_id else None
         if not cliente:
@@ -260,7 +260,7 @@ def register(app):
     @app.route('/portal/ticket/nuevo', methods=['GET','POST'])
     @login_required
     def portal_ticket_nuevo():
-        if current_user.rol != 'cliente':
+        if _get_rol_activo(current_user) != 'cliente':
             return redirect(url_for('dashboard'))
         cliente = db.session.get(Cliente, current_user.cliente_id) if current_user.cliente_id else None
         if not cliente:
@@ -290,7 +290,7 @@ def register(app):
     @app.route('/portal/manager/pre-cotizacion/<int:id>', methods=['GET','POST'])
     @login_required
     def portal_manager_revisar(id):
-        if current_user.rol not in ['admin','sales_manager','vendedor']:
+        if _get_rol_activo(current_user) not in ['admin','sales_manager','vendedor']:
             flash('Sin permisos.','danger'); return redirect(url_for('dashboard'))
         pc = PreCotizacion.query.get_or_404(id)
         if request.method == 'POST':
@@ -329,7 +329,7 @@ def register(app):
     @app.route('/portal/pre-cotizacion/<int:id>/aceptar', methods=['POST'])
     @login_required
     def portal_precot_aceptar(id):
-        if current_user.rol != 'cliente':
+        if _get_rol_activo(current_user) != 'cliente':
             return redirect(url_for('dashboard'))
         pc = PreCotizacion.query.get_or_404(id)
         if pc.cliente_user_id != current_user.id:
@@ -351,7 +351,7 @@ def register(app):
     @login_required
     def portal_precot_convertir(id):
         """Convierte una pre-cotización aceptada en cotización formal."""
-        if current_user.rol not in ['admin', 'sales_manager', 'vendedor']:
+        if _get_rol_activo(current_user) not in ['admin', 'sales_manager', 'vendedor']:
             flash('Sin permisos.', 'danger')
             return redirect(url_for('dashboard'))
         pc = PreCotizacion.query.get_or_404(id)
@@ -424,7 +424,7 @@ def register(app):
     @app.route('/portal-proveedor')
     @login_required
     def portal_proveedor():
-        if current_user.rol != 'proveedor':
+        if _get_rol_activo(current_user) != 'proveedor':
             return redirect(url_for('dashboard'))
         prov = db.session.get(Proveedor, current_user.proveedor_id) if current_user.proveedor_id else None
         if not prov:
@@ -443,12 +443,12 @@ def register(app):
         """Cliente o proveedor firma digitalmente un documento legal."""
         doc = DocumentoLegal.query.get_or_404(id)
         # Verificar permisos
-        if current_user.rol == 'cliente':
+        if _get_rol_activo(current_user) == 'cliente':
             cliente = db.session.get(Cliente, current_user.cliente_id) if current_user.cliente_id else None
             if not cliente or (doc.cliente_id != cliente.id and doc.tipo_entidad != 'empresa'):
                 flash('Sin permisos para firmar.', 'danger')
                 return redirect(url_for('portal_cliente_docs'))
-        elif current_user.rol == 'proveedor':
+        elif _get_rol_activo(current_user) == 'proveedor':
             prov = db.session.get(Proveedor, current_user.proveedor_id) if current_user.proveedor_id else None
             if not prov or (doc.proveedor_id != prov.id and doc.tipo_entidad != 'empresa'):
                 flash('Sin permisos para firmar.', 'danger')
@@ -459,7 +459,7 @@ def register(app):
         firma_data = request.form.get('firma_data', '')
         if not firma_data or len(firma_data) < 100:
             flash('Firma inválida. Dibuja tu firma en el recuadro.', 'warning')
-            if current_user.rol == 'cliente':
+            if _get_rol_activo(current_user) == 'cliente':
                 return redirect(url_for('portal_cliente_docs'))
             return redirect(url_for('portal_prov_docs'))
 
@@ -484,7 +484,7 @@ def register(app):
         db.session.commit()
 
         flash('Documento firmado exitosamente.', 'success')
-        if current_user.rol == 'cliente':
+        if _get_rol_activo(current_user) == 'cliente':
             return redirect(url_for('portal_cliente_docs'))
         return redirect(url_for('portal_prov_docs'))
 
@@ -494,7 +494,7 @@ def register(app):
     @login_required
     def portal_prov_oc_pdf(id):
         """Proveedor descarga PDF de su OC."""
-        if current_user.rol != 'proveedor': return redirect(url_for('dashboard'))
+        if _get_rol_activo(current_user) != 'proveedor': return redirect(url_for('dashboard'))
         oc = OrdenCompra.query.get_or_404(id)
         if oc.proveedor_id != current_user.proveedor_id:
             flash('No tienes acceso a esta OC.', 'danger')
@@ -507,7 +507,7 @@ def register(app):
     @app.route('/portal-proveedor/documentos')
     @login_required
     def portal_prov_docs():
-        if current_user.rol != 'proveedor': return redirect(url_for('dashboard'))
+        if _get_rol_activo(current_user) != 'proveedor': return redirect(url_for('dashboard'))
         prov = db.session.get(Proveedor, current_user.proveedor_id) if current_user.proveedor_id else None
         if not prov: return redirect(url_for('portal_proveedor'))
         docs = DocumentoLegal.query.filter(
@@ -521,7 +521,7 @@ def register(app):
     @app.route('/portal-proveedor/confirmar-oc/<int:id>', methods=['POST'])
     @login_required
     def portal_prov_confirmar_oc(id):
-        if current_user.rol != 'proveedor':
+        if _get_rol_activo(current_user) != 'proveedor':
             return redirect(url_for('dashboard'))
         oc = OrdenCompra.query.get_or_404(id)
         prov = db.session.get(Proveedor, current_user.proveedor_id)
@@ -549,7 +549,7 @@ def register(app):
     @app.route('/portal-proveedor/ticket/nuevo', methods=['GET','POST'])
     @login_required
     def portal_prov_ticket():
-        if current_user.rol != 'proveedor':
+        if _get_rol_activo(current_user) != 'proveedor':
             return redirect(url_for('dashboard'))
         prov = db.session.get(Proveedor, current_user.proveedor_id) if current_user.proveedor_id else None
         if not prov:
@@ -581,7 +581,7 @@ def register(app):
     @login_required
     def portal_prov_anticipo_oc(id):
         """Portal del proveedor: confirma que el anticipo fue recibido — sincroniza con AsientoContable."""
-        if current_user.rol != 'proveedor':
+        if _get_rol_activo(current_user) != 'proveedor':
             return redirect(url_for('dashboard'))
         oc = OrdenCompra.query.get_or_404(id)
         prov = db.session.get(Proveedor, current_user.proveedor_id)

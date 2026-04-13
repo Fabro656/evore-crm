@@ -17,7 +17,7 @@ def register(app):
         Admin/director_financiero se auto-aprueban.
         Retorna (necesita_aprobacion: bool, aprobacion_obj o None)"""
         roles_auto = ('admin', 'director_financiero')
-        if current_user.rol in roles_auto:
+        if _get_rol_activo(current_user) in roles_auto:
             return False, None
 
         a = Aprobacion(
@@ -96,7 +96,7 @@ def register(app):
     @app.route('/aprobaciones')
     @login_required
     def aprobaciones_pendientes():
-        if current_user.rol not in ('admin', 'director_financiero', 'director_operativo'):
+        if _get_rol_activo(current_user) not in ('admin', 'director_financiero', 'director_operativo'):
             flash('Sin permisos para ver aprobaciones.', 'danger')
             return redirect(url_for('dashboard'))
         pendientes = Aprobacion.query.filter_by(estado='pendiente').order_by(Aprobacion.creado_en.desc()).all()
@@ -120,7 +120,7 @@ def register(app):
     @app.route('/aprobaciones/<int:id>/aprobar', methods=['POST'])
     @login_required
     def aprobacion_aprobar(id):
-        if current_user.rol not in ('admin', 'director_financiero', 'director_operativo'):
+        if _get_rol_activo(current_user) not in ('admin', 'director_financiero', 'director_operativo'):
             flash('Solo admin, director financiero u operativo pueden aprobar.', 'danger')
             return redirect(url_for('aprobaciones_pendientes'))
         a = Aprobacion.query.get_or_404(id)
@@ -150,7 +150,7 @@ def register(app):
     @app.route('/aprobaciones/<int:id>/revision', methods=['POST'])
     @login_required
     def aprobacion_revision(id):
-        if current_user.rol not in ('admin', 'director_financiero'):
+        if _get_rol_activo(current_user) not in ('admin', 'director_financiero'):
             flash('Sin permisos.', 'danger')
             return redirect(url_for('aprobaciones_pendientes'))
         a = Aprobacion.query.get_or_404(id)
@@ -178,7 +178,7 @@ def register(app):
     @app.route('/aprobaciones/<int:id>/rechazar', methods=['POST'])
     @login_required
     def aprobacion_rechazar(id):
-        if current_user.rol not in ('admin', 'director_financiero'):
+        if _get_rol_activo(current_user) not in ('admin', 'director_financiero'):
             flash('Sin permisos.', 'danger')
             return redirect(url_for('aprobaciones_pendientes'))
         a = Aprobacion.query.get_or_404(id)
@@ -255,4 +255,4 @@ def register(app):
     @login_required
     def api_aprobacion_requerida():
         roles_auto = ('admin', 'director_financiero')
-        return jsonify({'requiere': current_user.rol not in roles_auto, 'rol': current_user.rol})
+        return jsonify({'requiere': _get_rol_activo(current_user) not in roles_auto, 'rol': _get_rol_activo(current_user)})

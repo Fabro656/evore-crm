@@ -271,9 +271,11 @@ def register(app):
             else:
                 modulos_sel = request.form.getlist('modulos')
                 rol = request.form.get('rol','usuario')
+                roles_extra = request.form.getlist('roles_extra')
                 u = User(nombre=request.form['nombre'], email=request.form['email'],
                          rol=rol,
-                         modulos_permitidos=json.dumps(modulos_sel) if modulos_sel else '[]')
+                         modulos_permitidos=json.dumps(modulos_sel) if modulos_sel else '[]',
+                         roles_asignados=json.dumps(roles_extra) if roles_extra else '[]')
                 if rol == 'cliente':
                     cli_id = request.form.get('cliente_id')
                     u.cliente_id = int(cli_id) if cli_id else None
@@ -419,9 +421,11 @@ def register(app):
             if u.rol == 'proveedor':
                 prov_id = request.form.get('proveedor_id')
                 u.proveedor_id = int(prov_id) if prov_id else u.proveedor_id
-            # Guardar módulos personalizados
+            # Guardar módulos personalizados y roles extra
             modulos_sel = request.form.getlist('modulos')
             u.modulos_permitidos = json.dumps(modulos_sel) if modulos_sel else '[]'
+            roles_extra = request.form.getlist('roles_extra')
+            u.roles_asignados = json.dumps(roles_extra) if roles_extra else '[]'
             db.session.commit()
             _log('editar', 'usuario', u.id, f'Usuario editado: {u.nombre} ({u.email}), rol={u.rol}')
             db.session.commit()

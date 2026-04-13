@@ -105,7 +105,7 @@ def register(app):
             tareas_recientes     = Tarea.query.filter(Tarea.estado!='completada').order_by(Tarea.creado_en.desc()).limit(5).all(),
             ventas_recientes     = Venta.query.order_by(Venta.creado_en.desc()).limit(6).all(),
             actividades_recientes= Actividad.query.order_by(Actividad.creado_en.desc()).limit(8).all(),
-            aprobaciones_pendientes = Aprobacion.query.filter_by(estado='pendiente').order_by(Aprobacion.creado_en.desc()).limit(5).all() if current_user.rol in ('admin','director_financiero','director_operativo') else [],
+            aprobaciones_pendientes = Aprobacion.query.filter_by(estado='pendiente').order_by(Aprobacion.creado_en.desc()).limit(5).all() if _get_rol_activo(current_user) in ('admin','director_financiero','director_operativo') else [],
             notas_recientes      = Nota.query.order_by(Nota.actualizado_en.desc()).limit(4).all(),
             eventos_hoy          = Evento.query.filter(Evento.fecha==hoy).order_by(Evento.hora_inicio).all(),
             eventos_proximos     = Evento.query.filter(Evento.fecha>hoy, Evento.fecha<=hoy+timedelta(days=7)).order_by(Evento.fecha).limit(5).all(),
@@ -131,10 +131,10 @@ def register(app):
         hoy = date_type.today()
         # Compute uid ONCE at the beginning
         uid = request.args.get('user_id', type=int, default=current_user.id)
-        if uid != current_user.id and current_user.rol != 'admin':
+        if uid != current_user.id and _get_rol_activo(current_user) != 'admin':
             uid = current_user.id
         target_user = db.session.get(User, uid) if uid != current_user.id else current_user
-        usuarios_lista = User.query.filter_by(activo=True).all() if current_user.rol == 'admin' else []
+        usuarios_lista = User.query.filter_by(activo=True).all() if _get_rol_activo(current_user) == 'admin' else []
     
         # Last 6 months of activity
         meses = []
@@ -160,7 +160,7 @@ def register(app):
                 Actividad.entidad=='cliente',
                 Actividad.tipo=='crear',
                 Actividad.creado_en>=inicio, Actividad.creado_en<fin
-            ).count() if current_user.rol in ['admin','vendedor','sales_manager'] else 0
+            ).count() if _get_rol_activo(current_user) in ['admin','vendedor','sales_manager'] else 0
             tiempo = db.session.query(db.func.sum(UserSesion.duracion_min)).filter(
                 UserSesion.user_id==uid,
                 UserSesion.login_at>=inicio, UserSesion.login_at<fin
@@ -449,7 +449,7 @@ def register(app):
     @app.route('/actividad')
     @login_required
     def actividad():
-        if current_user.rol != 'admin':
+        if _get_rol_activo(current_user) != 'admin':
             items = Actividad.query.filter_by(usuario_id=current_user.id).order_by(Actividad.creado_en.desc()).limit(150).all()
         else:
             items = Actividad.query.order_by(Actividad.creado_en.desc()).limit(300).all()

@@ -22,7 +22,8 @@ __all__ = [
     '_oc_save_items', '_prods_json', '_save_items', '_save_asignados',
     '_inv_form_ctx', '_save_compra', '_make_xlsx',
     '_procesar_orden_produccion', '_procesar_venta_produccion',
-    '_modulos_user', 'register_app_hooks', '_registrar_movimiento', '_actualizar_score_proveedor',
+    '_modulos_user', '_get_roles_usuario', '_get_rol_activo', '_ROL_LABELS',
+    'register_app_hooks', '_registrar_movimiento', '_actualizar_score_proveedor',
     '_calcular_costo_receta', '_precio_minimo_venta',
     'ONBOARDING_STEPS',
 ]
@@ -86,6 +87,60 @@ _MODULOS_ROL = {
     'cliente':       ['portal_cliente'],
     'proveedor':     ['portal_proveedor'],
 }
+
+# ── Multi-rol: labels y helpers ────────────────────────────────────
+_ROL_LABELS = {
+    'admin': 'Administrador',
+    'director_financiero': 'Director Financiero',
+    'director_operativo': 'Director Operativo',
+    'vendedor': 'Vendedor',
+    'sales_manager': 'Sales Manager',
+    'produccion': 'Produccion',
+    'contador': 'Contador',
+    'tester': 'Tester',
+    'usuario': 'Usuario',
+    'cliente': 'Portal Cliente',
+    'proveedor': 'Portal Proveedor',
+}
+_ROL_ICONS = {
+    'admin': 'bi-shield-lock-fill',
+    'director_financiero': 'bi-currency-dollar',
+    'director_operativo': 'bi-gear-wide-connected',
+    'vendedor': 'bi-bag-fill',
+    'sales_manager': 'bi-star-fill',
+    'produccion': 'bi-gear-fill',
+    'contador': 'bi-calculator',
+    'tester': 'bi-bug-fill',
+    'usuario': 'bi-person',
+    'cliente': 'bi-building',
+    'proveedor': 'bi-truck',
+}
+
+def _get_roles_usuario(user):
+    """Retorna lista de roles disponibles para el usuario."""
+    if not user or not user.is_authenticated:
+        return []
+    roles = set()
+    roles.add(user.rol)  # rol principal siempre incluido
+    try:
+        asignados = json.loads(user.roles_asignados or '[]')
+        if isinstance(asignados, list):
+            roles.update(asignados)
+    except Exception:
+        pass
+    # admin siempre tiene acceso a todo
+    if 'admin' in roles:
+        return list(_ROL_LABELS.keys())
+    return sorted(roles, key=lambda r: list(_ROL_LABELS.keys()).index(r) if r in _ROL_LABELS else 99)
+
+def _get_rol_activo(user):
+    """Retorna el rol activo actual desde session, o el rol principal."""
+    if not user or not user.is_authenticated:
+        return 'usuario'
+    rol_session = session.get('rol_activo')
+    if rol_session and rol_session in _get_roles_usuario(user):
+        return rol_session
+    return user.rol
 
 # ── Onboarding por rol ─────────────────────────────────────────────
 ONBOARDING_STEPS = {
@@ -252,7 +307,8 @@ def requiere_modulo(modulo):
         def wrapped(*a, **kw):
             if not current_user.is_authenticated:
                 return redirect(url_for('login'))
-            if current_user.rol == 'admin' or modulo in _modulos_user(current_user):
+            rol_activo = _get_rol_activo(current_user)
+            if rol_activo == 'admin' or modulo in _modulos_user(current_user):
                 return f(*a, **kw)
             flash('No tienes acceso a este módulo.', 'danger')
             return redirect(url_for('dashboard'))
@@ -269,13 +325,14 @@ def inject_globals():
             notif_count = Notificacion.query.filter_by(
                 usuario_id=current_user.id, leida=False).count()
         except: pass
-        if current_user.rol == 'cliente':
+        _rol_act = _get_rol_activo(current_user)
+        if _rol_act == 'cliente':
             try:
                 if current_user.cliente_id:
                     cli = db.session.get(Cliente, current_user.cliente_id)
                     if cli: empresa_cliente_nombre = cli.empresa or cli.nombre
             except Exception: pass
-        if current_user.rol == 'proveedor':
+        if _rol_act == 'proveedor':
             try:
                 prov_id = getattr(current_user, 'proveedor_id', None)
                 if prov_id:
@@ -285,7 +342,7 @@ def inject_globals():
     # Onboarding por rol
     onboarding_data = None
     if current_user.is_authenticated and not getattr(current_user, 'onboarding_dismissed', False):
-        rol = current_user.rol
+        rol = _get_rol_activo(current_user)
         steps = ONBOARDING_STEPS.get(rol, [])
         if steps:
             try:
@@ -299,9 +356,16 @@ def inject_globals():
                     'done': len(steps) - len(pending),
                     'current': pending[0] if pending else None
                 }
+    # Multi-rol
+    rol_activo = _get_rol_activo(current_user) if current_user.is_authenticated else 'usuario'
+    roles_disponibles = _get_roles_usuario(current_user) if current_user.is_authenticated else []
     return {'now': datetime.utcnow(), 'modulos_user': modulos, 'notif_count': notif_count,
             'empresa_cliente_nombre': empresa_cliente_nombre, 'empresa_proveedor_nombre': empresa_proveedor_nombre,
             'onboarding': onboarding_data,
+            'rol_activo': rol_activo,
+            'roles_disponibles': roles_disponibles,
+            'rol_labels': _ROL_LABELS,
+            'rol_icons': _ROL_ICONS,
             'company_name': COMPANY['name'], 'company_config': COMPANY,
             'nit_label': COMPANY.get('nit_label', 'NIT'),
             'currency_code': COMPANY.get('currency_code', 'COP')}
@@ -1539,7 +1603,12 @@ def _procesar_venta_produccion(venta):
 
 def _modulos_user(user):
     if not user or not user.is_authenticated: return []
-    if user.rol == 'admin': return _MODULOS_TODOS
+    rol_activo = _get_rol_activo(user)
+    if rol_activo == 'admin': return _MODULOS_TODOS
+    # Si el rol activo es diferente al principal, usar modulos del rol activo
+    if rol_activo != user.rol:
+        return _MODULOS_ROL.get(rol_activo, ['tareas','notas'])
+    # Rol principal: intentar custom modules primero
     try:
         custom = json.loads(user.modulos_permitidos or '[]')
         if custom: return custom

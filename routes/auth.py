@@ -93,6 +93,8 @@ def register(app):
                 flask_session['show_onboarding_once'] = True
                 ses = UserSesion(user_id=user.id); db.session.add(ses); db.session.commit()
                 flask_session['sesion_id'] = ses.id
+                # Multi-rol: setear rol activo al principal
+                flask_session['rol_activo'] = user.rol
                 flash(f'¡Bienvenido, {user.nombre}!', 'success')
                 return redirect(request.args.get('next') or url_for('dashboard'))
             # Record failed attempt
@@ -115,6 +117,19 @@ def register(app):
                 db.session.commit()
         logout_user(); flash('Sesión cerrada.', 'info'); return redirect(url_for('login'))
     
+
+    # ── cambiar_rol (/cambiar-rol) — multi-rol switcher
+    @app.route('/cambiar-rol', methods=['POST'])
+    @login_required
+    def cambiar_rol():
+        nuevo_rol = request.form.get('rol', '')
+        roles_disponibles = _get_roles_usuario(current_user)
+        if nuevo_rol not in roles_disponibles:
+            flash('No tienes acceso a ese rol.', 'danger')
+            return redirect(url_for('dashboard'))
+        flask_session['rol_activo'] = nuevo_rol
+        flash(f'Cambiaste al rol: {_ROL_LABELS.get(nuevo_rol, nuevo_rol)}', 'info')
+        return redirect(url_for('dashboard'))
 
     # ── onboarding_dismiss (/onboarding/dismiss)
     @app.route('/onboarding/dismiss', methods=['POST'])

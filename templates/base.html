@@ -568,30 +568,30 @@ img,svg{max-width:100%;height:auto}
     {% endif %}
     <div class="dock-div"></div>
     {# ── Finanzas ── #}
-    {% if 'finanzas' in m or current_user.rol in ('admin','director_financiero','contador') %}
+    {% if 'finanzas' in m or rol_activo in ('admin','director_financiero','contador') %}
     <a href="{{ url_for('contable_index') }}" class="nav-link dock-group {% if 'contable' in request.endpoint or 'gasto' in request.endpoint or 'reporte' in request.endpoint %}active{% endif %}" data-tip="Finanzas"
        data-dock-panel="finanzas"><i class="bi bi-currency-dollar"></i><span>Finanzas</span></a>
     {% endif %}
     {# ── Legal ── #}
-    {% if 'legal' in m or current_user.rol in ('admin','director_financiero','director_operativo') %}
+    {% if 'legal' in m or rol_activo in ('admin','director_financiero','director_operativo') %}
     <a href="#" class="nav-link dock-group {% if 'legal' in request.endpoint %}active{% endif %}" data-tip="Legal" data-dock-panel="legal"><i class="bi bi-shield-check"></i><span>Legal</span></a>
     {% endif %}
     {# ── Nomina ── #}
     {% if 'nomina' in m %}<a href="#" class="nav-link dock-group {% if 'nomina' in request.endpoint or 'empleado' in request.endpoint %}active{% endif %}" data-tip="Nomina" data-dock-panel="nomina"><i class="bi bi-people-fill"></i><span>Nomina</span></a>{% endif %}
     <div class="dock-div"></div>
     {# ── Aprobaciones ── #}
-    {% if current_user.rol in ('admin','director_financiero','director_operativo') %}
+    {% if rol_activo in ('admin','director_financiero','director_operativo') %}
     <a href="#" class="nav-link dock-group {% if 'aprobacion' in request.endpoint %}active{% endif %}" data-tip="Aprobaciones" data-dock-panel="aprobaciones"><i class="bi bi-clipboard-check"></i><span>Aprobaciones</span></a>
     {% endif %}
     {# ── Wiki + Buscador ── #}
     <a href="{{ url_for('wiki') }}" class="nav-link {% if request.endpoint=='wiki' %}active{% endif %}" data-tip="Wiki" data-dock-panel="wiki_page"><i class="bi bi-book"></i><span>Wiki</span></a>
     <a href="{{ url_for('buscador') }}" class="nav-link {% if request.endpoint=='buscador' %}active{% endif %}" data-tip="Buscador" data-dock-panel="buscador"><i class="bi bi-search"></i><span>Buscador</span></a>
     {# ── Admin ── #}
-    {% if current_user.rol in ('admin','director_financiero') %}
+    {% if rol_activo in ('admin','director_financiero') %}
     <a href="#" class="nav-link dock-group" data-tip="Admin" data-dock-panel="admin"><i class="bi bi-shield-lock-fill"></i><span>Admin</span></a>
     {% endif %}
 
-    {% if current_user.rol == 'proveedor' %}
+    {% if rol_activo == 'proveedor' %}
     <div class="dock-div"></div>
     <a href="{{ url_for('portal_proveedor') }}" class="nav-link {% if request.endpoint=='portal_proveedor' %}active{% endif %}" data-tip="Mi Portal"><i class="bi bi-house-fill"></i><span>Portal</span></a>
     {% endif %}
@@ -602,7 +602,7 @@ img,svg{max-width:100%;height:auto}
         <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold"
              style="width:31px;height:31px;font-size:.8rem;flex-shrink:0">{{ current_user.nombre[0].upper() }}</div>
         <div class="ui"><div class="u-name">{{ current_user.nombre }}</div>
-          <span class="u-rol">{{ current_user.rol }}</span></div>
+          <span class="u-rol">{{ rol_activo }}</span></div>
       </div>
       <div class="d-flex flex-column gap-1 align-items-center">
         <button class="notif-btn" id="notifBtn" onclick="toggleNotif(event)" title="Notificaciones">
@@ -750,7 +750,7 @@ img,svg{max-width:100%;height:auto}
     <a href="{{ url_for('impuestos') }}" class="dock-panel-link"><i class="bi bi-sliders"></i>Reglas tributarias</a>
   </div>
 </div>
-{% if current_user.rol in ('admin','director_financiero') %}
+{% if rol_activo in ('admin','director_financiero') %}
 <div class="dock-panel" id="dp-admin">
   <a class="dock-panel-head" href="{{ url_for('admin_usuarios') }}"><i class="bi bi-shield-lock-fill"></i><span>Administracion</span><i class="bi bi-arrow-right dp-arrow"></i></a>
   <div class="dock-panel-body">
@@ -1002,7 +1002,7 @@ function toggleSidebar(){
 <div id="main">
   {% if session.get('admin_real_id') %}
   <div style="background:#FF8B00;color:#fff;padding:.55rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;font-size:.84rem;font-weight:600;position:sticky;top:0;z-index:200">
-    <span><i class="bi bi-eye-fill me-2"></i>Viendo como: <strong>{{ current_user.nombre }}</strong> ({{ current_user.rol }})</span>
+    <span><i class="bi bi-eye-fill me-2"></i>Viendo como: <strong>{{ current_user.nombre }}</strong> ({{ rol_activo }})</span>
     <form method="POST" action="{{ url_for('admin_volver') }}" style="margin:0">
       <button type="submit" class="btn btn-sm" style="background:#fff;color:#FF8B00;border:none;font-weight:700;padding:4px 12px;border-radius:4px">
         <i class="bi bi-arrow-left-circle me-1"></i>Volver a Admin
@@ -1040,8 +1040,22 @@ function toggleSidebar(){
           <li><div style="padding:.6rem 1rem .3rem">
             <div style="font-weight:700;font-size:.85rem;color:var(--text)">{{ current_user.nombre }}</div>
             <div style="font-size:.75rem;color:var(--text2)">{{ current_user.email }}</div>
-            <span class="b b-negociacion mt-1 d-inline-block">{{ current_user.rol }}</span>
+            <span class="b b-negociacion mt-1 d-inline-block"><i class="bi {{ rol_icons.get(rol_activo, 'bi-person') }} me-1"></i>{{ rol_labels.get(rol_activo, rol_activo) }}</span>
           </div></li>
+          {% if roles_disponibles|length > 1 %}
+          <li><hr class="dropdown-divider my-1"></li>
+          <li><div style="padding:.3rem 1rem .1rem;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Cambiar rol</div></li>
+          {% for r in roles_disponibles %}
+          {% if r != rol_activo %}
+          <li><form method="POST" action="{{ url_for('cambiar_rol') }}" class="m-0">
+            <input type="hidden" name="rol" value="{{ r }}">
+            <button type="submit" class="dropdown-item d-flex align-items-center gap-2" style="font-size:.83rem;padding:.4rem 1rem">
+              <i class="bi {{ rol_icons.get(r, 'bi-person') }}" style="color:var(--ac);font-size:.9rem"></i>{{ rol_labels.get(r, r) }}
+            </button>
+          </form></li>
+          {% endif %}
+          {% endfor %}
+          {% endif %}
           <li><hr class="dropdown-divider my-1"></li>
           <li><a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('perfil') }}" style="font-size:.85rem;padding:.5rem 1rem"><i class="bi bi-person-gear" style="color:#0052CC"></i>Mi perfil</a></li>
           <li><a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('mi_actividad') }}" style="font-size:.85rem;padding:.5rem 1rem"><i class="bi bi-bar-chart-fill" style="color:#00875A"></i>Mi actividad</a></li>
@@ -1557,40 +1571,40 @@ window.iniciarObContextual = function(){
     var steps = [
       // Siempre visible — no requiere modulo especifico
       {icon:'bi-house-fill', color:'#3B82F6', title:'Home', desc:'Dashboard con KPIs, tickets, ventas, aprobaciones, calendario y notas.'},
-      {% if current_user.is_authenticated and (current_user.rol == 'admin' or 'tareas' in modulos_user) %}
+      {% if current_user.is_authenticated and (rol_activo == 'admin' or 'tareas' in modulos_user) %}
       {icon:'bi-check2-square', color:'#8B5CF6', title:'Tickets', desc:'Seguimiento con prioridades y categorias. Auto-generados por calidad o nomina.'},
       {% endif %}
-      {% if current_user.is_authenticated and (current_user.rol == 'admin' or 'calendario' in modulos_user) %}
+      {% if current_user.is_authenticated and (rol_activo == 'admin' or 'calendario' in modulos_user) %}
       {icon:'bi-calendar3', color:'#F59E0B', title:'Calendario', desc:'Eventos y recordatorios. Click en dia para crear.'},
       {% endif %}
-      {% if current_user.is_authenticated and (current_user.rol == 'admin' or 'notas' in modulos_user) %}
+      {% if current_user.is_authenticated and (rol_activo == 'admin' or 'notas' in modulos_user) %}
       {icon:'bi-sticky-fill', color:'#7C3AED', title:'Notas', desc:'Vinculadas a OC, ventas, proveedores. Tipos: nota, alerta, seguimiento.'},
       {% endif %}
-      {% if current_user.is_authenticated and (current_user.rol == 'admin' or 'ventas' in modulos_user or 'cotizaciones' in modulos_user) %}
+      {% if current_user.is_authenticated and (rol_activo == 'admin' or 'ventas' in modulos_user or 'cotizaciones' in modulos_user) %}
       {icon:'bi-bag-fill', color:'#10B981', title:'Comercial', desc:'Pipeline de ventas. Auto-genera asiento contable y contrato al portal.'},
       {% endif %}
-      {% if current_user.is_authenticated and (current_user.rol == 'admin' or 'ordenes_compra' in modulos_user) %}
+      {% if current_user.is_authenticated and (rol_activo == 'admin' or 'ordenes_compra' in modulos_user) %}
       {icon:'bi-cart-check', color:'#F97316', title:'Compras', desc:'OC multi-cotizacion. Contrato proveedor. Pago via asientos.'},
       {% endif %}
-      {% if current_user.is_authenticated and (current_user.rol == 'admin' or 'inventario' in modulos_user) %}
+      {% if current_user.is_authenticated and (rol_activo == 'admin' or 'inventario' in modulos_user) %}
       {icon:'bi-box-seam-fill', color:'#6366F1', title:'Inventario', desc:'Stock PT y MP con alertas de minimo. Lotes con trazabilidad FIFO.'},
       {% endif %}
-      {% if current_user.is_authenticated and (current_user.rol == 'admin' or 'produccion' in modulos_user) %}
+      {% if current_user.is_authenticated and (rol_activo == 'admin' or 'produccion' in modulos_user) %}
       {icon:'bi-gear-fill', color:'#6366F1', title:'Produccion', desc:'Ordenes, Gantt, recepcion MP, control calidad con tickets auto.'},
       {% endif %}
-      {% if current_user.is_authenticated and (current_user.rol == 'admin' or 'logistica' in modulos_user or 'empaques' in modulos_user) %}
+      {% if current_user.is_authenticated and (rol_activo == 'admin' or 'logistica' in modulos_user or 'empaques' in modulos_user) %}
       {icon:'bi-truck-front', color:'#10B981', title:'Logistica', desc:'Simulador envio, calculadora cajas, transportistas, tracking.'},
       {% endif %}
-      {% if current_user.is_authenticated and (current_user.rol == 'admin' or 'finanzas' in modulos_user) %}
+      {% if current_user.is_authenticated and (rol_activo == 'admin' or 'finanzas' in modulos_user) %}
       {icon:'bi-currency-dollar', color:'#059669', title:'Finanzas', desc:'PUC, asientos, reconciliacion bancaria, IVA, retenciones, cierres.'},
       {% endif %}
-      {% if current_user.is_authenticated and (current_user.rol == 'admin' or 'legal' in modulos_user) %}
+      {% if current_user.is_authenticated and (rol_activo == 'admin' or 'legal' in modulos_user) %}
       {icon:'bi-shield-check', color:'#0EA5E9', title:'Legal', desc:'9 plantillas colombianas. Firma digital + selfie. Auto-genera contratos.'},
       {% endif %}
-      {% if current_user.is_authenticated and (current_user.rol == 'admin' or 'nomina' in modulos_user) %}
+      {% if current_user.is_authenticated and (rol_activo == 'admin' or 'nomina' in modulos_user) %}
       {icon:'bi-people-fill', color:'#EC4899', title:'Nomina', desc:'Prorrateo, horas extra, retencion, parametros editables, liquidacion.'},
       {% endif %}
-      {% if current_user.is_authenticated and (current_user.rol == 'admin' or 'aprobaciones' in modulos_user) %}
+      {% if current_user.is_authenticated and (rol_activo == 'admin' or 'aprobaciones' in modulos_user) %}
       {icon:'bi-clipboard-check', color:'#EF4444', title:'Aprobaciones', desc:'Bloquea OC/ventas hasta aprobar o rechazar.'},
       {% endif %}
       // UI - siempre visibles
