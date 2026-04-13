@@ -822,8 +822,50 @@ def register(app):
                 logging.warning(f'venta_cambiar_estado: auto-comision error: {ex}')
 
         db.session.commit()
+
+        # ── Undo: guardar estado anterior en sesión y mostrar toast con enlace ──
+        flask_session['undo_venta'] = {
+            'id': venta.id,
+            'estado_anterior': estado_anterior,
+            'ts': datetime.utcnow().isoformat()
+        }
+        flash(
+            f'Estado actualizado a "{nuevo}". '
+            f'<a href="#" onclick="event.preventDefault();var f=document.createElement(\'form\');'
+            f'f.method=\'POST\';f.action=\'/ventas/{venta.id}/deshacer-estado\';'
+            f'var c=document.createElement(\'input\');c.type=\'hidden\';c.name=\'_csrf_token\';'
+            f'c.value=document.querySelector(\'meta[name=csrf-token]\').content;'
+            f'f.appendChild(c);document.body.appendChild(f);f.submit();" '
+            f'style="color:#fff;text-decoration:underline;font-weight:700">Deshacer</a>',
+            'success'
+        )
         return redirect(url_for('ventas'))
 
+
+    # ── venta_deshacer_estado (/ventas/<int:id>/deshacer-estado)
+    @app.route('/ventas/<int:id>/deshacer-estado', methods=['POST'])
+    @login_required
+    @requiere_modulo('ventas')
+    def venta_deshacer_estado(id):
+        undo = flask_session.pop('undo_venta', None)
+        if not undo or undo['id'] != id:
+            flash('No hay accion para deshacer.', 'warning')
+            return redirect(url_for('ventas'))
+        # Expirar undo despues de 30 segundos
+        from datetime import datetime as _dt
+        try:
+            ts = _dt.fromisoformat(undo['ts'])
+            if (_dt.utcnow() - ts).total_seconds() > 30:
+                flash('El tiempo para deshacer ha expirado.', 'warning')
+                return redirect(url_for('ventas'))
+        except Exception:
+            pass
+        venta = Venta.query.get_or_404(id)
+        venta.estado = undo['estado_anterior']
+        _log('editar', 'venta', id, f'Estado revertido a {undo["estado_anterior"]} (undo)')
+        db.session.commit()
+        flash(f'Estado revertido a "{undo["estado_anterior"]}".', 'info')
+        return redirect(url_for('ventas'))
 
     # ── venta_remision (/ventas/<int:id>/remision)
     @app.route('/ventas/<int:id>/remision')

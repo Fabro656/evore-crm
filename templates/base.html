@@ -132,6 +132,14 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 @keyframes toastIn{from{transform:translateX(100px);opacity:0}to{transform:translateX(0);opacity:1}}
 
+/* ── Skeleton loading ────────────────────────────── */
+.skeleton{background:linear-gradient(90deg,var(--surface2) 25%,var(--surface) 50%,var(--surface2) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;min-height:20px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.skeleton-row{display:flex;gap:12px;margin-bottom:12px}
+.skeleton-row .skeleton{flex:1;height:16px}
+.skeleton-card{padding:1rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)}
+.skeleton-card .skeleton{margin-bottom:10px}
+
 /* ── Stat Cards ──────────────────────────────────── */
 .sc{background:var(--surface);border-radius:var(--radius);padding:1.1rem 1.25rem;box-shadow:var(--shadow);transition:box-shadow .15s,background-color .2s,border-color .2s;height:100%;border:1px solid var(--border)}
 .sc:hover{box-shadow:var(--shadow-md)}
@@ -1093,11 +1101,11 @@ function toggleSidebar(){
     {% for cat, msg in messages %}
     <div class="toast-msg" style="background:{% if cat=='success' %}var(--green){% elif cat=='danger' %}var(--red){% elif cat=='warning' %}var(--orange){% else %}var(--ac){% endif %};color:#fff;padding:12px 20px;border-radius:10px;font-size:.85rem;box-shadow:0 8px 24px rgba(0,0,0,.15);animation:toastIn .3s ease;max-width:360px;display:flex;align-items:center;gap:8px">
       <i class="bi {% if cat=='success' %}bi-check-circle-fill{% elif cat=='danger' %}bi-x-circle-fill{% elif cat=='warning' %}bi-exclamation-triangle-fill{% else %}bi-info-circle-fill{% endif %}"></i>
-      <span>{{ msg }}</span>
+      <span>{{ msg|safe }}</span>
     </div>
     {% endfor %}
     </div>
-    <script>setTimeout(function(){var c=document.getElementById('toastContainer');if(c){c.style.transition='opacity .5s';c.style.opacity='0';setTimeout(function(){c.remove()},500);}},4000);</script>
+    <script>setTimeout(function(){var c=document.getElementById('toastContainer');if(c){c.style.transition='opacity .5s';c.style.opacity='0';setTimeout(function(){c.remove()},500);}},8000);</script>
     {% endif %}
     {% endwith %}
     {% block content %}{% endblock %}
@@ -2113,4 +2121,39 @@ function pwaDismiss(){document.getElementById('pwaBar').style.display='none';loc
 <button onclick="pwaInstall()" style="padding:5px 16px;background:#fff;color:#0176D3;border:none;border-radius:6px;font-weight:700;font-size:.82rem;cursor:pointer">Instalar</button>
 <button onclick="pwaDismiss()" style="padding:5px 10px;background:transparent;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.3);border-radius:6px;font-size:.82rem;cursor:pointer">No</button>
 </span></div></div>
+<script>
+// ── Global keyboard shortcuts ──
+document.addEventListener('keydown', function(e) {
+  // Don't trigger in inputs/textareas
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT' || e.target.isContentEditable) return;
+  // Ctrl/Cmd + K = global search (already exists as diagBtn)
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    var searchBtn = document.getElementById('diagBtn');
+    if (searchBtn) searchBtn.click();
+    return;
+  }
+  // Single key shortcuts (no modifier)
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  switch(e.key) {
+    case 'g': // Go home
+      if(!e.shiftKey) window.location.href = '/';
+      break;
+    case '?': // Show shortcuts help
+      var helpHtml = '<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center" onclick="this.remove()">'
+        + '<div style="background:var(--surface);border-radius:12px;padding:2rem;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3)" onclick="event.stopPropagation()">'
+        + '<h5 style="margin:0 0 1rem"><i class="bi bi-keyboard me-2"></i>Atajos de teclado</h5>'
+        + '<table style="width:100%;font-size:.85rem"><tbody>'
+        + '<tr><td style="padding:4px 8px"><kbd style="background:var(--surface2);padding:2px 8px;border-radius:4px;font-size:.8rem">Ctrl+K</kbd></td><td>Busqueda global</td></tr>'
+        + '<tr><td style="padding:4px 8px"><kbd style="background:var(--surface2);padding:2px 8px;border-radius:4px;font-size:.8rem">G</kbd></td><td>Ir al dashboard</td></tr>'
+        + '<tr><td style="padding:4px 8px"><kbd style="background:var(--surface2);padding:2px 8px;border-radius:4px;font-size:.8rem">?</kbd></td><td>Mostrar atajos</td></tr>'
+        + '<tr><td style="padding:4px 8px"><kbd style="background:var(--surface2);padding:2px 8px;border-radius:4px;font-size:.8rem">Esc</kbd></td><td>Cerrar panel/modal</td></tr>'
+        + '</tbody></table>'
+        + '<div style="margin-top:1rem;text-align:right"><button onclick="this.closest(\'[style]\').remove()" class="btn btn-sm btn-outline-secondary">Cerrar</button></div>'
+        + '</div></div>';
+      document.body.insertAdjacentHTML('beforeend', helpHtml);
+      break;
+  }
+});
+</script>
 </body></html>
