@@ -7,6 +7,7 @@ from extensions import db
 from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
+from sqlalchemy import func
 import json, os, re, io, secrets, logging
 
 def register(app):
@@ -40,7 +41,32 @@ def register(app):
                                  Cliente.empresa.ilike(f'%{busqueda}%'),
                                  Cliente.nit.ilike(f'%{busqueda}%')))
         if estado_rel_f: q = q.filter_by(estado_relacion=estado_rel_f)
-        return render_template('clientes/index.html', items=q.order_by(Cliente.empresa, Cliente.nombre).all(),
+        tier_f = request.args.get('tier','')
+        if tier_f: q = q.filter_by(tier=tier_f)
+        items = q.order_by(Cliente.empresa, Cliente.nombre).all()
+
+        # Auto-update client tiers based on total revenue
+        try:
+            tier_data = db.session.query(
+                Venta.cliente_id,
+                func.sum(Venta.total).label('total_rev')
+            ).filter(Venta.estado.in_(['completado','pagado','entregado'])
+            ).group_by(Venta.cliente_id).all()
+
+            tier_map = {r.cliente_id: r.total_rev for r in tier_data}
+            changed = False
+            for c in items:
+                rev = tier_map.get(c.id, 0)
+                new_tier = 'gold' if rev >= 50_000_000 else 'silver' if rev >= 20_000_000 else 'bronze' if rev >= 5_000_000 else 'standard'
+                if c.tier != new_tier:
+                    c.tier = new_tier
+                    changed = True
+            if changed:
+                db.session.commit()
+        except Exception:
+            pass
+
+        return render_template('clientes/index.html', items=items,
                                busqueda=busqueda, estado_rel_f=estado_rel_f)
     
 

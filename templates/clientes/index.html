@@ -7,6 +7,11 @@
 {% block content %}
 <div class="tc mb-3"><div class="p-3"><form method="GET" class="row g-2 align-items-end">
   <div class="col-sm-4"><input type="text" name="buscar" class="form-control form-control-sm" placeholder="Nombre, empresa, NIT..." value="{{ busqueda }}"></div>
+  <div class="col-sm-2"><select name="tier" class="form-select form-select-sm">
+    <option value="">Todos los tiers</option>
+    {% for t in ['gold','silver','bronze','standard'] %}
+    <option value="{{ t }}" {% if request.args.get('tier')==t %}selected{% endif %}>{{ t|capitalize }}</option>{% endfor %}
+  </select></div>
   <div class="col-sm-3"><select name="estado_rel" class="form-select form-select-sm">
     <option value="">Todas las relaciones</option>
     {% for er in ['prospecto','negociacion','cliente_activo','vip','inactivo','perdido'] %}
@@ -24,6 +29,7 @@
   <thead><tr>
     <th style="min-width:200px">Empresa</th>
     <th style="min-width:100px">NIT</th>
+    <th style="min-width:80px">Tier</th>
     <th style="min-width:120px">Relacion</th>
     <th style="min-width:180px">Contacto principal</th>
     <th style="min-width:90px">Alta</th>
@@ -33,6 +39,12 @@
     <td data-label="Empresa"><a href="{{ url_for('cliente_ver', id=c.id) }}" class="fw-semibold text-decoration-none" style="color:var(--text)">{{ c.empresa or c.nombre }}</a>
       {% if c.empresa and c.nombre != c.empresa %}<div><small class="text-muted">{{ c.nombre }}</small></div>{% endif %}</td>
     <td data-label="NIT"><small class="text-muted">{{ c.nit or '—' }}</small></td>
+    <td data-label="Tier">
+      {% if c.tier == 'gold' %}<span class="badge" style="background:#FFD700;color:#333">Gold</span>
+      {% elif c.tier == 'silver' %}<span class="badge" style="background:#C0C0C0;color:#333">Silver</span>
+      {% elif c.tier == 'bronze' %}<span class="badge" style="background:#CD7F32;color:#fff">Bronze</span>
+      {% else %}<span class="badge bg-light text-dark border">Standard</span>{% endif %}
+    </td>
     <td data-label="Relación"><span class="b b-{{ c.estado_relacion }}">{{ c.estado_relacion.replace('_',' ').title() }}</span></td>
     <td data-label="Contacto">{% if c.contactos %}<small>{{ c.contactos[0].nombre }}{% if c.contactos[0].cargo %} · {{ c.contactos[0].cargo }}{% endif %}{% if c.contactos[0].email %}<br><span class="text-muted">{{ c.contactos[0].email }}</span>{% endif %}</small>{% else %}—{% endif %}</td>
     <td data-label="Alta"><small class="text-muted">{{ c.creado_en.strftime('%d/%m/%Y') }}</small></td>

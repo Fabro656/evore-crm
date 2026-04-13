@@ -62,6 +62,12 @@ class Cliente(db.Model):
     transportista_preferido_id = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
     contrato_id      = db.Column(db.Integer, db.ForeignKey('documentos_legales.id'), nullable=True)
     es_demo          = db.Column(db.Boolean, default=False)
+    tier             = db.Column(db.String(20), default='standard')  # standard, bronze, silver, gold
+    # DIAN — facturación electrónica (schema prep)
+    tipo_documento       = db.Column(db.String(10), default='NIT')          # NIT, CC, CE, PP, TI
+    digito_verificacion  = db.Column(db.String(1))
+    regimen_fiscal       = db.Column(db.String(50))                         # Responsable IVA, No responsable, etc.
+    municipio_dane       = db.Column(db.String(10))                         # DANE municipality code
     contactos       = db.relationship('ContactoCliente', backref='cliente_rel', lazy=True, cascade='all, delete-orphan')
     ventas          = db.relationship('Venta', backref='cliente', lazy=True)
     sales_manager    = db.relationship('User', foreign_keys=[sales_manager_id])
@@ -192,6 +198,12 @@ class Venta(db.Model):
     entregado_en        = db.Column(db.DateTime, nullable=True)   # v12.2
     cotizacion_id       = db.Column(db.Integer, db.ForeignKey('cotizaciones.id'), nullable=True)  # v32
     es_demo             = db.Column(db.Boolean, default=False)
+    # DIAN — facturación electrónica (schema prep)
+    numero_factura      = db.Column(db.String(30))                          # DIAN authorized consecutive
+    cufe                = db.Column(db.String(200))                         # Codigo Unico de Factura Electronica
+    estado_dian         = db.Column(db.String(20))                          # pendiente, enviada, validada, rechazada
+    xml_factura         = db.Column(db.Text)                                # XML UBL 2.1 signed
+    medio_pago          = db.Column(db.String(10), default='10')            # DIAN code: 10=efectivo, 31=transferencia, 42=consignacion
     items               = db.relationship('VentaProducto', backref='venta', lazy=True, cascade='all, delete-orphan')
     ordenes_produccion  = db.relationship('OrdenProduccion', foreign_keys='OrdenProduccion.venta_id', lazy=True, back_populates='venta')
     cotizacion_origen   = db.relationship('Cotizacion', foreign_keys='Venta.cotizacion_id')
@@ -293,6 +305,8 @@ class Producto(db.Model):
     creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
     costo_receta    = db.Column(db.Float, default=0)  # Auto-calculated from recipe + MP costs
     es_demo         = db.Column(db.Boolean, default=False)
+    # DIAN — facturación electrónica (schema prep)
+    codigo_unspsc       = db.Column(db.String(20))                          # UNSPSC product code for DIAN
     venta_items     = db.relationship('VentaProducto', backref='producto', lazy=True)
 
 class HistorialPrecio(db.Model):
@@ -669,6 +683,15 @@ class ConfigEmpresa(db.Model):
     revisor_tarjeta = db.Column(db.String(50), nullable=True)
     # v40 — Parametros nomina editables (JSON override sobre company_config defaults)
     nomina_params = db.Column(db.Text, nullable=True)  # JSON: {"min_wage": 1423500, ...}
+    # DIAN — facturación electrónica (schema prep)
+    resolucion_facturacion = db.Column(db.String(50))                       # DIAN resolution number
+    prefijo_factura      = db.Column(db.String(10))                         # Invoice prefix (e.g., "FE")
+    rango_desde          = db.Column(db.Integer)                            # Authorized range start
+    rango_hasta          = db.Column(db.Integer)                            # Authorized range end
+    consecutivo_actual   = db.Column(db.Integer, default=0)
+    ambiente_dian        = db.Column(db.String(20), default='habilitacion') # habilitacion, produccion
+    software_id_dian     = db.Column(db.String(100))
+    pin_dian             = db.Column(db.String(10))
 
 class Evento(db.Model):
     __tablename__ = 'eventos'
@@ -1569,6 +1592,50 @@ def _migrate(conn):
         ("ALTER TABLE empleados ADD COLUMN caja_compensacion VARCHAR(100)"),
         ("ALTER TABLE empleados ADD COLUMN IF NOT EXISTS fondo_pensiones VARCHAR(100)"),
         ("ALTER TABLE empleados ADD COLUMN fondo_pensiones VARCHAR(100)"),
+        # Client tier segmentation
+        ("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS tier VARCHAR(20) DEFAULT 'standard'"),
+        ("ALTER TABLE clientes ADD COLUMN tier VARCHAR(20) DEFAULT 'standard'"),
+        # DIAN — facturación electrónica (schema prep)
+        # Venta: campos factura electrónica
+        ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS numero_factura VARCHAR(30)"),
+        ("ALTER TABLE ventas ADD COLUMN numero_factura VARCHAR(30)"),
+        ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS cufe VARCHAR(200)"),
+        ("ALTER TABLE ventas ADD COLUMN cufe VARCHAR(200)"),
+        ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS estado_dian VARCHAR(20)"),
+        ("ALTER TABLE ventas ADD COLUMN estado_dian VARCHAR(20)"),
+        ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS xml_factura TEXT"),
+        ("ALTER TABLE ventas ADD COLUMN xml_factura TEXT"),
+        ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS medio_pago VARCHAR(10) DEFAULT '10'"),
+        ("ALTER TABLE ventas ADD COLUMN medio_pago VARCHAR(10) DEFAULT '10'"),
+        # Cliente: datos tributarios DIAN
+        ("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS tipo_documento VARCHAR(10) DEFAULT 'NIT'"),
+        ("ALTER TABLE clientes ADD COLUMN tipo_documento VARCHAR(10) DEFAULT 'NIT'"),
+        ("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS digito_verificacion VARCHAR(1)"),
+        ("ALTER TABLE clientes ADD COLUMN digito_verificacion VARCHAR(1)"),
+        ("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS regimen_fiscal VARCHAR(50)"),
+        ("ALTER TABLE clientes ADD COLUMN regimen_fiscal VARCHAR(50)"),
+        ("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS municipio_dane VARCHAR(10)"),
+        ("ALTER TABLE clientes ADD COLUMN municipio_dane VARCHAR(10)"),
+        # ConfigEmpresa: resolución de facturación DIAN
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS resolucion_facturacion VARCHAR(50)"),
+        ("ALTER TABLE config_empresa ADD COLUMN resolucion_facturacion VARCHAR(50)"),
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS prefijo_factura VARCHAR(10)"),
+        ("ALTER TABLE config_empresa ADD COLUMN prefijo_factura VARCHAR(10)"),
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS rango_desde INTEGER"),
+        ("ALTER TABLE config_empresa ADD COLUMN rango_desde INTEGER"),
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS rango_hasta INTEGER"),
+        ("ALTER TABLE config_empresa ADD COLUMN rango_hasta INTEGER"),
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS consecutivo_actual INTEGER DEFAULT 0"),
+        ("ALTER TABLE config_empresa ADD COLUMN consecutivo_actual INTEGER DEFAULT 0"),
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS ambiente_dian VARCHAR(20) DEFAULT 'habilitacion'"),
+        ("ALTER TABLE config_empresa ADD COLUMN ambiente_dian VARCHAR(20) DEFAULT 'habilitacion'"),
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS software_id_dian VARCHAR(100)"),
+        ("ALTER TABLE config_empresa ADD COLUMN software_id_dian VARCHAR(100)"),
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS pin_dian VARCHAR(10)"),
+        ("ALTER TABLE config_empresa ADD COLUMN pin_dian VARCHAR(10)"),
+        # Producto: código UNSPSC para DIAN
+        ("ALTER TABLE productos ADD COLUMN IF NOT EXISTS codigo_unspsc VARCHAR(20)"),
+        ("ALTER TABLE productos ADD COLUMN codigo_unspsc VARCHAR(20)"),
     ]
     for sql in migrations:
         try:

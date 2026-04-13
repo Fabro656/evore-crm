@@ -1668,3 +1668,92 @@ def register(app):
         nota    = NotaContable.query.get_or_404(id)
         empresa = ConfigEmpresa.query.first()
         return render_template('contable/nota_pdf.html', nota=nota, empresa=empresa)
+
+    # ── contable_flujo_caja_proyectado: Forecast 3 meses
+    @app.route('/contable/flujo-caja-proyectado')
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_flujo_caja_proyectado():
+        from sqlalchemy import func
+        hoy = date_type.today()
+
+        meses = []
+        for i in range(3):
+            # Current month + i months
+            if hoy.month + i <= 12:
+                mes_start = hoy.replace(month=hoy.month + i, day=1)
+            else:
+                mes_start = hoy.replace(year=hoy.year + 1, month=(hoy.month + i - 12), day=1)
+
+            if mes_start.month == 12:
+                mes_end = mes_start.replace(year=mes_start.year + 1, month=1, day=1)
+            else:
+                mes_end = mes_start.replace(month=mes_start.month + 1, day=1)
+
+            # Cuentas por cobrar: ventas con saldo > 0
+            try:
+                cxc = db.session.query(func.sum(Venta.total - Venta.monto_pagado_total)).filter(
+                    Venta.estado.in_(['anticipo_pagado', 'pagado', 'entregado']),
+                ).scalar() or 0
+            except Exception:
+                cxc = 0
+
+            # Cuentas por pagar: OC pendientes
+            try:
+                cxp = db.session.query(func.sum(OrdenCompra.total - OrdenCompra.monto_pagado)).filter(
+                    OrdenCompra.estado.in_(['anticipo_pagado', 'en_espera_producto', 'enviada']),
+                ).scalar() or 0
+            except Exception:
+                cxp = 0
+
+            # Gastos pendientes
+            try:
+                gastos_pend = db.session.query(func.sum(GastoOperativo.monto)).filter(
+                    GastoOperativo.estado_pago == 'pendiente'
+                ).scalar() or 0
+            except Exception:
+                gastos_pend = 0
+
+            # Ingresos del mes (ventas completadas/pagadas)
+            try:
+                ingresos_mes = db.session.query(func.sum(Venta.total)).filter(
+                    Venta.estado.in_(['completado', 'pagado']),
+                    Venta.creado_en >= mes_start,
+                    Venta.creado_en < mes_end
+                ).scalar() or 0
+            except Exception:
+                ingresos_mes = 0
+
+            # Egresos del mes
+            try:
+                egresos_mes = db.session.query(func.sum(GastoOperativo.monto)).filter(
+                    GastoOperativo.fecha >= mes_start,
+                    GastoOperativo.fecha < mes_end
+                ).scalar() or 0
+            except Exception:
+                egresos_mes = 0
+
+            meses.append({
+                'label': mes_start.strftime('%B %Y').capitalize(),
+                'mes_start': mes_start,
+                'cxc': round(cxc, 0) if i == 0 else 0,
+                'cxp': round(cxp, 0) if i == 0 else 0,
+                'gastos_pend': round(gastos_pend, 0) if i == 0 else 0,
+                'ingresos': round(ingresos_mes, 0),
+                'egresos': round(egresos_mes, 0),
+                'flujo_neto': round(ingresos_mes - egresos_mes, 0),
+            })
+
+        # Saldo actual estimado
+        try:
+            total_ingresos = db.session.query(func.sum(Venta.total)).filter(
+                Venta.estado.in_(['completado', 'pagado', 'entregado'])
+            ).scalar() or 0
+            total_egresos = (db.session.query(func.sum(GastoOperativo.monto)).scalar() or 0) + \
+                            (db.session.query(func.sum(OrdenCompra.monto_pagado)).scalar() or 0)
+            saldo_actual = round(total_ingresos - total_egresos, 0)
+        except Exception:
+            saldo_actual = 0
+
+        return render_template('contable/flujo_proyectado.html',
+                               meses=meses, saldo_actual=saldo_actual)
