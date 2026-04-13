@@ -259,6 +259,9 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .empty-state i{font-size:2.5rem;margin-bottom:.75rem;display:block;opacity:.35}
 .empty-state p{margin-bottom:1rem;font-size:.9rem}
 
+/* ── Notification pulse animation ── */
+@keyframes notifPulse{0%{transform:scale(1)}50%{transform:scale(1.3)}100%{transform:scale(1)}}
+.notif-pulse{animation:notifPulse .4s ease}
 /* ── Notifications ───────────────────────────────── */
 .notif-btn{position:relative;background:none;border:none;color:rgba(255,255,255,.6);font-size:1.05rem;padding:.3rem .45rem;border-radius:3px;cursor:pointer;transition:color .15s}
 .notif-btn:hover{color:#fff;background:rgba(255,255,255,.1)}
@@ -562,7 +565,7 @@ img,svg{max-width:100%;height:auto}
     {% if current_user.is_authenticated %}
       {% if company_config and 'evore' in (company_config.get('name','') or '').lower() %}
       <a href="/" style="text-decoration:none;display:none;overflow:hidden">
-        <img src="{{ url_for('static', filename='img/evore-horizontal.svg') }}" alt="Evore" style="filter:brightness(0) invert(1);opacity:.92;display:block;max-width:140px;height:auto">
+        <img src="{{ url_for('static', filename='img/evore-horizontal.svg') }}" alt="Evore CRM logo" style="filter:brightness(0) invert(1);opacity:.92;display:block;max-width:140px;height:auto">
       </a>
       {% else %}
       <a href="/" style="text-decoration:none;color:#fff;display:none;align-items:center;gap:.5rem;overflow:hidden">
@@ -575,61 +578,61 @@ img,svg{max-width:100%;height:auto}
   <div class="sb-nav" style="overflow-y:auto;flex:1">
     {% set m=modulos_user %}
     {# ── DOCK: cada icono es un modulo. Click = navega, Hold = panel con subfunciones ── #}
-    <a href="#" class="nav-link dock-group {% if request.endpoint=='dashboard' %}active" aria-current="page{% endif %}" data-tip="Home" data-dock-panel="home"><i class="bi bi-house-fill"></i><span>Home</span></a>
-    {% if 'tareas' in m %}<a href="#" class="nav-link dock-group {% if 'tarea' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Tickets" data-dock-panel="tickets" style="position:relative"><i class="bi bi-check2-square"></i>{% if tareas_pend %}<span style="position:absolute;top:2px;right:2px;background:var(--red);color:#fff;font-size:.55rem;padding:1px 4px;border-radius:8px;line-height:1.2">{{ tareas_pend }}</span>{% endif %}<span>Tickets</span></a>{% endif %}
-    {% if 'calendario' in m %}<a href="#" class="nav-link dock-group {% if request.endpoint=='calendario' or 'evento' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Calendario" data-dock-panel="calendario"><i class="bi bi-calendar3"></i><span>Calendario</span></a>{% endif %}
-    {% if 'notas' in m %}<a href="#" class="nav-link dock-group {% if 'nota' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Notas" data-dock-panel="notas"><i class="bi bi-sticky-fill"></i><span>Notas</span></a>{% endif %}
+    <a href="#" class="nav-link dock-group {% if request.endpoint=='dashboard' %}active" aria-current="page{% endif %}" data-tip="Home" aria-label="Home" data-dock-panel="home"><i class="bi bi-house-fill"></i><span>Home</span></a>
+    {% if 'tareas' in m %}<a href="#" class="nav-link dock-group {% if 'tarea' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Tickets" aria-label="Tickets" data-dock-panel="tickets" style="position:relative"><i class="bi bi-check2-square"></i>{% if tareas_pend %}<span style="position:absolute;top:2px;right:2px;background:var(--red);color:#fff;font-size:.55rem;padding:1px 4px;border-radius:8px;line-height:1.2">{{ tareas_pend }}</span>{% endif %}<span>Tickets</span></a>{% endif %}
+    {% if 'calendario' in m %}<a href="#" class="nav-link dock-group {% if request.endpoint=='calendario' or 'evento' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Calendario" aria-label="Calendario" data-dock-panel="calendario"><i class="bi bi-calendar3"></i><span>Calendario</span></a>{% endif %}
+    {% if 'notas' in m %}<a href="#" class="nav-link dock-group {% if 'nota' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Notas" aria-label="Notas" data-dock-panel="notas"><i class="bi bi-sticky-fill"></i><span>Notas</span></a>{% endif %}
     <div class="dock-div"></div>
     {# ── Comercial ── #}
     {% if 'clientes' in m or 'ventas' in m or 'cotizaciones' in m %}
-    <a href="{{ url_for('ventas') }}" class="nav-link dock-group {% if 'venta' in request.endpoint or 'cliente' in request.endpoint or 'cotizacion' in request.endpoint or 'receta' in request.endpoint or 'servicio' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Comercial"
+    <a href="{{ url_for('ventas') }}" class="nav-link dock-group {% if 'venta' in request.endpoint or 'cliente' in request.endpoint or 'cotizacion' in request.endpoint or 'receta' in request.endpoint or 'servicio' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Comercial" aria-label="Comercial"
        data-dock-panel="comercial"><i class="bi bi-bag-fill"></i><span>Comercial</span></a>
     {% endif %}
     {# ── Proveedores y Compras ── #}
     {% if 'clientes' in m or 'ordenes_compra' in m or 'produccion' in m %}
-    <a href="{{ url_for('ordenes_compra') }}" class="nav-link dock-group {% if 'proveedor' in request.endpoint or 'orden_compra' in request.endpoint or 'cotizacion_proveedor' in request.endpoint or request.endpoint in ('compras','compra_nueva','compra_editar') %}active{% endif %}" data-tip="Compras"
+    <a href="{{ url_for('ordenes_compra') }}" class="nav-link dock-group {% if 'proveedor' in request.endpoint or 'orden_compra' in request.endpoint or 'cotizacion_proveedor' in request.endpoint or request.endpoint in ('compras','compra_nueva','compra_editar') %}active" aria-current="page{% endif %}" data-tip="Compras" aria-label="Compras"
        data-dock-panel="compras"><i class="bi bi-cart-check"></i><span>Compras</span></a>
     {% endif %}
     <div class="dock-div"></div>
     {# ── Operaciones ── #}
     {% if 'inventario' in m or 'produccion' in m %}
-    {% if 'inventario' in m %}<a href="#" class="nav-link dock-group {% if 'inventario' in request.endpoint or 'producto' in request.endpoint %}active{% endif %}" data-tip="Inventario" data-dock-panel="inventario"><i class="bi bi-box-seam-fill"></i><span>Inventario</span></a>{% endif %}
-    {% if 'produccion' in m %}<a href="{{ url_for('produccion_index') }}" class="nav-link dock-group {% if 'produccion' in request.endpoint or 'materia' in request.endpoint or 'reserva' in request.endpoint or request.endpoint=='gantt' or request.endpoint=='ordenes_produccion' %}active{% endif %}" data-tip="Produccion"
+    {% if 'inventario' in m %}<a href="#" class="nav-link dock-group {% if 'inventario' in request.endpoint or 'producto' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Inventario" aria-label="Inventario" data-dock-panel="inventario"><i class="bi bi-box-seam-fill"></i><span>Inventario</span></a>{% endif %}
+    {% if 'produccion' in m %}<a href="{{ url_for('produccion_index') }}" class="nav-link dock-group {% if 'produccion' in request.endpoint or 'materia' in request.endpoint or 'reserva' in request.endpoint or request.endpoint=='gantt' or request.endpoint=='ordenes_produccion' %}active" aria-current="page{% endif %}" data-tip="Produccion" aria-label="Produccion"
        data-dock-panel="produccion"><i class="bi bi-gear-fill"></i><span>Produccion</span></a>{% endif %}
     {% endif %}
     {# ── Logistica ── #}
     {% if 'inventario' in m or 'produccion' in m or 'clientes' in m %}
-    <a href="{{ url_for('proveedores', tipo_f='transportista') }}" class="nav-link dock-group {% if (request.endpoint=='proveedores' and request.args.get('tipo_f')=='transportista') or 'empaque' in request.endpoint %}active{% endif %}" data-tip="Logistica"
+    <a href="{{ url_for('proveedores', tipo_f='transportista') }}" class="nav-link dock-group {% if (request.endpoint=='proveedores' and request.args.get('tipo_f')=='transportista') or 'empaque' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Logistica" aria-label="Logistica"
        data-dock-panel="logistica"><i class="bi bi-truck-front-fill"></i><span>Logistica</span></a>
     {% endif %}
     <div class="dock-div"></div>
     {# ── Finanzas ── #}
     {% if 'finanzas' in m or rol_activo in ('admin','director_financiero','contador') %}
-    <a href="{{ url_for('contable_index') }}" class="nav-link dock-group {% if 'contable' in request.endpoint or 'gasto' in request.endpoint or 'reporte' in request.endpoint %}active{% endif %}" data-tip="Finanzas"
+    <a href="{{ url_for('contable_index') }}" class="nav-link dock-group {% if 'contable' in request.endpoint or 'gasto' in request.endpoint or 'reporte' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Finanzas" aria-label="Finanzas"
        data-dock-panel="finanzas"><i class="bi bi-currency-dollar"></i><span>Finanzas</span></a>
     {% endif %}
     {# ── Legal ── #}
     {% if 'legal' in m or rol_activo in ('admin','director_financiero','director_operativo') %}
-    <a href="#" class="nav-link dock-group {% if 'legal' in request.endpoint %}active{% endif %}" data-tip="Legal" data-dock-panel="legal"><i class="bi bi-shield-check"></i><span>Legal</span></a>
+    <a href="#" class="nav-link dock-group {% if 'legal' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Legal" aria-label="Legal" data-dock-panel="legal"><i class="bi bi-shield-check"></i><span>Legal</span></a>
     {% endif %}
     {# ── Nomina ── #}
-    {% if 'nomina' in m %}<a href="#" class="nav-link dock-group {% if 'nomina' in request.endpoint or 'empleado' in request.endpoint %}active{% endif %}" data-tip="Nomina" data-dock-panel="nomina"><i class="bi bi-people-fill"></i><span>Nomina</span></a>{% endif %}
+    {% if 'nomina' in m %}<a href="#" class="nav-link dock-group {% if 'nomina' in request.endpoint or 'empleado' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Nomina" aria-label="Nomina" data-dock-panel="nomina"><i class="bi bi-people-fill"></i><span>Nomina</span></a>{% endif %}
     <div class="dock-div"></div>
     {# ── Aprobaciones ── #}
     {% if rol_activo in ('admin','director_financiero','director_operativo') %}
-    <a href="#" class="nav-link dock-group {% if 'aprobacion' in request.endpoint %}active{% endif %}" data-tip="Aprobaciones" data-dock-panel="aprobaciones" style="position:relative"><i class="bi bi-clipboard-check"></i>{% if aprob_pend %}<span style="position:absolute;top:2px;right:2px;background:var(--orange);color:#fff;font-size:.55rem;padding:1px 4px;border-radius:8px;line-height:1.2">{{ aprob_pend }}</span>{% endif %}<span>Aprobaciones</span></a>
+    <a href="#" class="nav-link dock-group {% if 'aprobacion' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Aprobaciones" aria-label="Aprobaciones" data-dock-panel="aprobaciones" style="position:relative"><i class="bi bi-clipboard-check"></i>{% if aprob_pend %}<span style="position:absolute;top:2px;right:2px;background:var(--orange);color:#fff;font-size:.55rem;padding:1px 4px;border-radius:8px;line-height:1.2">{{ aprob_pend }}</span>{% endif %}<span>Aprobaciones</span></a>
     {% endif %}
     {# ── Wiki + Buscador ── #}
-    <a href="{{ url_for('wiki') }}" class="nav-link {% if request.endpoint=='wiki' %}active{% endif %}" data-tip="Wiki" data-dock-panel="wiki_page"><i class="bi bi-book"></i><span>Wiki</span></a>
-    <a href="{{ url_for('buscador') }}" class="nav-link {% if request.endpoint=='buscador' %}active{% endif %}" data-tip="Buscador" data-dock-panel="buscador"><i class="bi bi-search"></i><span>Buscador</span></a>
+    <a href="{{ url_for('wiki') }}" class="nav-link {% if request.endpoint=='wiki' %}active" aria-current="page{% endif %}" data-tip="Wiki" aria-label="Wiki" data-dock-panel="wiki_page"><i class="bi bi-book"></i><span>Wiki</span></a>
+    <a href="{{ url_for('buscador') }}" class="nav-link {% if request.endpoint=='buscador' %}active" aria-current="page{% endif %}" data-tip="Buscador" aria-label="Buscador" data-dock-panel="buscador"><i class="bi bi-search"></i><span>Buscador</span></a>
     {# ── Admin ── #}
     {% if rol_activo in ('admin','director_financiero') %}
-    <a href="#" class="nav-link dock-group" data-tip="Admin" data-dock-panel="admin"><i class="bi bi-shield-lock-fill"></i><span>Admin</span></a>
+    <a href="#" class="nav-link dock-group" data-tip="Admin" aria-label="Admin" data-dock-panel="admin"><i class="bi bi-shield-lock-fill"></i><span>Admin</span></a>
     {% endif %}
 
     {% if rol_activo == 'proveedor' %}
     <div class="dock-div"></div>
-    <a href="{{ url_for('portal_proveedor') }}" class="nav-link {% if request.endpoint=='portal_proveedor' %}active{% endif %}" data-tip="Mi Portal"><i class="bi bi-house-fill"></i><span>Portal</span></a>
+    <a href="{{ url_for('portal_proveedor') }}" class="nav-link {% if request.endpoint=='portal_proveedor' %}active" aria-current="page{% endif %}" data-tip="Mi Portal" aria-label="Mi Portal"><i class="bi bi-house-fill"></i><span>Portal</span></a>
     {% endif %}
   </div>
   <div class="sb-foot">
@@ -1114,7 +1117,7 @@ function toggleSidebar(){
     {% block breadcrumb %}{% endblock %}
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-    <div id="toastContainer" style="position:fixed;top:80px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px">
+    <div id="toastContainer" aria-live="polite" aria-atomic="true" role="status" style="position:fixed;top:80px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px">
     {% for cat, msg in messages %}
     <div class="toast-msg" style="background:{% if cat=='success' %}var(--green){% elif cat=='danger' %}var(--red){% elif cat=='warning' %}var(--orange){% else %}var(--ac){% endif %};color:#fff;padding:12px 20px;border-radius:10px;font-size:.85rem;box-shadow:0 8px 24px rgba(0,0,0,.15);animation:toastIn .3s ease;max-width:360px;display:flex;align-items:center;gap:8px">
       <i class="bi {% if cat=='success' %}bi-check-circle-fill{% elif cat=='danger' %}bi-x-circle-fill{% elif cat=='warning' %}bi-exclamation-triangle-fill{% else %}bi-info-circle-fill{% endif %}"></i>
@@ -1145,10 +1148,10 @@ function toggleSidebar(){
 <!-- Search overlay -->
 <div id="searchOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);backdrop-filter:blur(3px)" onclick="if(event.target===this)cerrarBuscador()">
   <div style="max-width:580px;margin:80px auto 0;padding:0 1rem">
-    <div style="background:var(--surface);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;border:1px solid var(--border)">
+    <div role="search" aria-label="Buscador global" style="background:var(--surface);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;border:1px solid var(--border)">
       <div style="padding:.85rem 1rem;display:flex;align-items:center;gap:.75rem;border-bottom:1px solid var(--border)">
-        <i class="bi bi-search" style="color:var(--text2);font-size:1.05rem;flex-shrink:0"></i>
-        <input type="text" id="searchInput" placeholder="Buscar clientes, ventas, productos, proveedores..."
+        <i class="bi bi-search" style="color:var(--text2);font-size:1.05rem;flex-shrink:0" aria-hidden="true"></i>
+        <input type="text" id="searchInput" aria-label="Buscar en todo el sistema" placeholder="Buscar clientes, ventas, productos, proveedores..."
                style="border:none;outline:none;flex:1;font-size:.95rem;background:transparent;color:var(--text)"
                oninput="doBuscar(this.value)" onkeydown="handleSearchKey(event)">
         <kbd style="font-size:.7rem;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;flex-shrink:0">ESC</kbd>
@@ -2187,5 +2190,42 @@ document.addEventListener('keydown', function(e) {
       break;
   }
 });
+</script>
+<script>
+// ── Live notification badge polling (every 30s) ──
+(function(){
+  var btn = document.getElementById('notifBtn');
+  if(!btn) return;
+  var badge = btn.querySelector('.notif-badge');
+  var lastCount = badge ? (parseInt(badge.textContent) || 0) : 0;
+
+  function ensureBadge(){
+    if(!badge){
+      badge = document.createElement('span');
+      badge.className = 'notif-badge';
+      badge.style.display = 'none';
+      btn.appendChild(badge);
+    }
+  }
+
+  function poll(){
+    fetch('/api/notif-count').then(function(r){ return r.json(); }).then(function(d){
+      var c = d.count || 0;
+      ensureBadge();
+      if(c > 0){
+        badge.textContent = c < 10 ? c : '9+';
+        badge.style.display = '';
+      } else {
+        badge.style.display = 'none';
+      }
+      if(c > lastCount && c > 0){
+        badge.classList.add('notif-pulse');
+        setTimeout(function(){ badge.classList.remove('notif-pulse'); }, 500);
+      }
+      lastCount = c;
+    }).catch(function(){});
+  }
+  setInterval(poll, 30000);
+})();
 </script>
 </body></html>

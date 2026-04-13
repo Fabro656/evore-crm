@@ -380,7 +380,7 @@ fetch('/api/dashboard/lazy').then(function(r){return r.json()}).then(function(d)
             <small class="text-muted">{{ v.cliente.empresa or v.cliente.nombre if v.cliente else '—' }}</small>
           </td>
           <td class="hide-mobile fw-semibold valor-cop" data-cop="{{ v.total }}" style="white-space:nowrap">$ {{ '{:,.0f}'.format(v.total).replace(',','.') }}</td>
-          <td style="white-space:nowrap"><span class="b b-{{ v.estado }}">{{ v.estado.replace('_',' ').title() }}</span></td>
+          <td style="white-space:nowrap"><span class="b b-{{ v.estado }}" title="Estado: {{ v.estado.replace('_',' ').title() }}">{{ v.estado.replace('_',' ').title() }}</span></td>
         </tr>{% endfor %}</tbody>
       </table>
       </div>

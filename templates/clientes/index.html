@@ -45,7 +45,7 @@
       {% elif c.tier == 'bronze' %}<span class="badge" style="background:#CD7F32;color:#fff">Bronze</span>
       {% else %}<span class="badge bg-light text-dark border">Standard</span>{% endif %}
     </td>
-    <td data-label="Relación"><span class="b b-{{ c.estado_relacion }}">{{ c.estado_relacion.replace('_',' ').title() }}</span></td>
+    <td data-label="Relación"><span class="b b-{{ c.estado_relacion }}" title="Estado: {{ c.estado_relacion.replace('_',' ').title() }}">{{ c.estado_relacion.replace('_',' ').title() }}</span></td>
     <td data-label="Contacto">{% if c.contactos %}<small>{{ c.contactos[0].nombre }}{% if c.contactos[0].cargo %} · {{ c.contactos[0].cargo }}{% endif %}{% if c.contactos[0].email %}<br><span class="text-muted">{{ c.contactos[0].email }}</span>{% endif %}</small>{% else %}—{% endif %}</td>
     <td data-label="Alta"><small class="text-muted">{{ c.creado_en.strftime('%d/%m/%Y') }}</small></td>
     <td><div class="d-flex gap-1 justify-content-end">

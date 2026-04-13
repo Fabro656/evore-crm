@@ -36,11 +36,33 @@ def register(app):
             ).order_by(func.count(OrdenCompra.id).desc()).limit(10).all()
         except Exception:
             proveedores_score = []
+        # Capacity planning: operator workload
+        try:
+            operarios_carga = db.session.query(
+                Empleado.id, Empleado.nombre, Empleado.apellido,
+                func.count(OrdenProduccion.id).label('ordenes_activas'),
+                func.sum(OrdenProduccion.cantidad_producir).label('unidades_total')
+            ).outerjoin(OrdenProduccion, db.and_(
+                OrdenProduccion.operario_id == Empleado.id,
+                OrdenProduccion.estado.in_(['pendiente', 'en_produccion'])
+            )).filter(
+                Empleado.estado == 'activo',
+                db.or_(
+                    Empleado.cargo.ilike('%producci%'),
+                    Empleado.cargo.ilike('%operari%'),
+                    Empleado.cargo.ilike('%planta%'),
+                    OrdenProduccion.operario_id != None
+                )
+            ).group_by(Empleado.id, Empleado.nombre, Empleado.apellido
+            ).order_by(func.count(OrdenProduccion.id).desc()
+            ).limit(15).all()
+        except Exception:
+            operarios_carga = []
         return render_template('produccion/index.html',
             total_compras=total_compras, compras_mes=compras_mes,
             cotizaciones_vigentes=cotizaciones_vigentes, ordenes_activas=ordenes_activas,
             compras_recientes=compras_recientes, granel_recientes=granel_recientes,
-            proveedores_score=proveedores_score)
+            proveedores_score=proveedores_score, operarios_carga=operarios_carga)
     
 
     # ── compras (/produccion/compras)

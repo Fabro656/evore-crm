@@ -83,6 +83,29 @@
     <a href="{{ url_for('gantt') }}" class="btn btn-sm btn-outline-primary ms-auto">Ver Gantt</a>
   </div></div>
 </div>
+{% if operarios_carga %}
+<div class="row g-3 mt-2">
+  <div class="col-12">
+  <div class="mb-3" style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);padding:0">
+    <div style="padding:.75rem 1rem;font-size:.85rem;font-weight:700;border-bottom:1px solid var(--border)">
+      <i class="bi bi-people-fill me-2" style="color:var(--ac)"></i>Carga de Operarios
+    </div>
+    <div style="padding:.75rem 1rem">
+      {% for op in operarios_carga %}
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <div style="width:140px;font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ op.nombre }} {{ op.apellido }}</div>
+        <div style="flex:1;background:var(--surface2);border-radius:4px;height:20px;overflow:hidden">
+          {% set pct = [op.ordenes_activas * 20, 100]|min %}
+          <div style="width:{{ pct }}%;height:100%;background:{% if pct >= 80 %}var(--red){% elif pct >= 50 %}var(--orange){% else %}var(--green){% endif %};border-radius:4px;transition:width .3s"></div>
+        </div>
+        <div style="font-size:.75rem;color:var(--text2);white-space:nowrap">{{ op.ordenes_activas }} orden{{ 'es' if op.ordenes_activas != 1 else '' }} · {{ op.unidades_total or 0 }} uds</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  </div>
+</div>
+{% endif %}
 {% if proveedores_score %}
 <div class="row g-3 mt-2">
   <div class="col-12"><div class="tc">

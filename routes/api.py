@@ -212,3 +212,31 @@ def register(app):
         except Exception as e:
             ok.append({'msg': 'Materias primas (módulo nuevo)', 'detalle': ''})
         return jsonify({'critico': critico, 'atencion': atencion, 'ok': ok})
+
+    @app.route('/api/notif-count')
+    @login_required
+    def api_notif_count():
+        """Lightweight endpoint for notification badge polling."""
+        try:
+            count = Notificacion.query.filter_by(usuario_id=current_user.id, leida=False).count()
+            return jsonify({'count': count})
+        except Exception:
+            return jsonify({'count': 0})
+
+    @app.route('/api/docs')
+    @login_required
+    def api_docs():
+        """API documentation page."""
+        endpoints = [
+            {'method': 'GET', 'path': '/api/buscar?q=texto', 'desc': 'Busqueda global: clientes, proveedores, productos, ventas, OC, empleados, cotizaciones', 'auth': 'Session'},
+            {'method': 'GET', 'path': '/api/notif-count', 'desc': 'Conteo de notificaciones no leidas del usuario actual', 'auth': 'Session'},
+            {'method': 'GET', 'path': '/api/dashboard/lazy', 'desc': 'Alertas de seguimiento (cotizaciones, ventas estancadas, entregas pendientes)', 'auth': 'Session'},
+            {'method': 'GET', 'path': '/api/transportistas/capacidad', 'desc': 'Capacidad de transportistas filtrada por peso/volumen', 'auth': 'Session'},
+            {'method': 'GET', 'path': '/api/producto/<id>/precio-minimo', 'desc': 'Precio minimo de venta sugerido para un producto', 'auth': 'Session'},
+            {'method': 'GET', 'path': '/api/producto/<id>/historial-precios', 'desc': 'Historial de cambios de precio de un producto', 'auth': 'Session'},
+            {'method': 'POST', 'path': '/api/ai/chat', 'desc': 'Chat con asistente AI (OpenAI/Anthropic/Ollama)', 'auth': 'Session'},
+            {'method': 'GET', 'path': '/health', 'desc': 'Health check para Railway deployment', 'auth': 'None'},
+            {'method': 'POST', 'path': '/cambiar-rol', 'desc': 'Cambiar rol activo del usuario (multi-rol)', 'auth': 'Session + CSRF'},
+            {'method': 'POST', 'path': '/onboarding/complete-step', 'desc': 'Marcar paso de onboarding como completado', 'auth': 'Session'},
+        ]
+        return render_template('api_docs.html', endpoints=endpoints)

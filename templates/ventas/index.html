@@ -58,7 +58,7 @@
     <td data-label="Estado">
       {# Inline status dropdown #}
       <form method="POST" action="{{ url_for('venta_cambiar_estado', id=v.id) }}" style="display:inline" onchange="this.submit()">
-        <select name="estado" class="status-select b-{{ v.estado }}" title="Cambiar estado"
+        <select name="estado" class="status-select b-{{ v.estado }}" title="Cambiar estado" aria-label="Estado de la venta {{ v.numero or v.id }}"
                 onchange="this.className='status-select b-'+this.value">
           {% for est,lbl in [('prospecto','Prospecto'),('negociacion','Negociación'),('anticipo_pagado','Anticipo Pagado'),('pagado','Pagado'),('cancelado','Cancelado'),('completado','Completado (legado)'),('perdido','Perdido (legado)')] %}
           <option value="{{ est }}" {% if v.estado==est %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
