@@ -2,21 +2,21 @@
 {% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('cotizaciones') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
 {% block content %}<div class="fc" style="max-width:100%"><form method="POST"><div class="row g-3">
-  <div class="col-12 col-md-8"><label class="form-label">Título de la cotización *</label>
-    <input type="text" name="titulo" class="form-control" placeholder="Ej: Diseño y producción de catálogo Q2 2026" value="{{ obj.titulo if obj else '' }}" required></div>
+  <div class="col-12 col-md-8"><label class="form-label">Título de la cotización <span class="req">*</span></label>
+    <input type="text" name="titulo" class="form-control" aria-label="Titulo de la cotizacion" placeholder="Ej: Diseño y producción de catálogo Q2 2026" value="{{ obj.titulo if obj else '' }}" required></div>
   <div class="col-12 col-md-4"><label class="form-label">Cliente</label>
-    <select name="cliente_id" class="form-select">
+    <select name="cliente_id" class="form-select" aria-label="Seleccionar cliente">
       <option value="">— Sin cliente —</option>
       {% for c in clientes_list %}<option value="{{ c.id }}" {% if obj and obj.cliente_id==c.id %}selected{% endif %}>{{ c.empresa or c.nombre }}</option>{% endfor %}
     </select></div>
   <div class="col-12 col-md-3"><label class="form-label">Fecha de emisión</label>
-    <input type="date" name="fecha_emision" class="form-control" value="{{ obj.fecha_emision.strftime('%Y-%m-%d') if obj else today }}"></div>
+    <input type="date" name="fecha_emision" class="form-control" aria-label="Fecha de emision" value="{{ obj.fecha_emision.strftime('%Y-%m-%d') if obj else today }}"></div>
   <div class="col-12 col-md-3"><label class="form-label">Válida hasta</label>
     <input type="date" name="fecha_validez" class="form-control" value="{{ obj.fecha_validez.strftime('%Y-%m-%d') if obj and obj.fecha_validez else '' }}"></div>
   <div class="col-12 col-md-3"><label class="form-label">Días de entrega estimados</label>
     <input type="number" name="dias_entrega" class="form-control" min="1" value="{{ obj.dias_entrega if obj else '30' }}"></div>
   <div class="col-12 col-md-3"><label class="form-label">% Anticipo</label>
-    <div class="input-group"><input type="number" name="porcentaje_anticipo" id="pctAnticipo" class="form-control" min="0" max="100" step="1" value="{{ obj.porcentaje_anticipo|int if obj else '50' }}"><span class="input-group-text">%</span></div></div>
+    <div class="input-group"><input type="number" name="porcentaje_anticipo" id="pctAnticipo" class="form-control" aria-label="Porcentaje de anticipo" min="0" max="100" step="1" value="{{ obj.porcentaje_anticipo|int if obj else '50' }}"><span class="input-group-text">%</span></div></div>
 
   <div class="col-12" style="background:var(--surface2);border-radius:8px;padding:1rem;border-left:3px solid var(--ac)">
     <div class="row g-2">

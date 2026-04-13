@@ -154,7 +154,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 /* ── Form Card ───────────────────────────────────── */
 .fc{background:var(--surface);border-radius:var(--radius);padding:1.5rem 1.75rem;border:1px solid var(--border);max-width:860px;transition:background-color .2s,border-color .2s}
 .form-label{font-weight:600;font-size:.82rem;color:var(--text);margin-bottom:.3rem}
-.form-label .req{color:var(--red);margin-left:2px}
+.form-label .req{color:var(--red);margin-left:2px;font-weight:700}
 .form-text{font-size:.76rem;color:var(--text2);margin-top:.2rem}
 .form-control,.form-select{border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:.48rem .75rem;font-size:.88rem;transition:border-color var(--transition-fast),box-shadow var(--transition-fast),background-color .2s,color .2s;background:var(--input-bg);color:var(--text)}
 .form-control:focus,.form-select:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(var(--ac-rgb),.2);outline:none}
@@ -470,6 +470,7 @@ img,svg{max-width:100%;height:auto}
 .logo-area svg{max-height:40px!important}
 </style>{% endraw %}
 </head><body class="{% if request.args.get('_embed') == '1' %}embed-mode{% endif %}">
+<a href="#main" class="visually-hidden-focusable" style="position:absolute;top:-100px;z-index:9999;background:var(--ac);color:#fff;padding:8px 16px;border-radius:0 0 8px 8px;transition:top .2s" onfocus="this.style.top='0'" onblur="this.style.top='-100px'">Ir al contenido</a>
 <script>
 // Auto-detect: si estamos en un iframe pero sin _embed=1, redirigir con el parametro
 (function(){
@@ -528,7 +529,7 @@ img,svg{max-width:100%;height:auto}
 })();
 </script>
 {% endif %}
-<nav id="sb">
+<nav id="sb" role="navigation" aria-label="Menu principal">
   <div class="sb-brand">
     <button id="sb-expand" onclick="toggleSidebar()" title="Expandir menu">
       <i class="bi bi-list" id="sb-expand-icon"></i>
@@ -724,10 +725,8 @@ img,svg{max-width:100%;height:auto}
     <a href="{{ url_for('produccion_index') }}" class="dock-panel-link"><i class="bi bi-gear"></i>Dashboard</a>
     <a href="{{ url_for('ordenes_produccion') }}" class="dock-panel-link"><i class="bi bi-list-check"></i>Ordenes</a>
     <a href="{{ url_for('recetas') }}" class="dock-panel-link"><i class="bi bi-journal-bookmark"></i>Recetas / BOM</a>
-    <a href="{{ url_for('materias') }}" class="dock-panel-link"><i class="bi bi-droplet-half"></i>Materias primas</a>
     <a href="{{ url_for('gantt') }}" class="dock-panel-link"><i class="bi bi-bar-chart-steps"></i>Gantt</a>
     <a href="{{ url_for('compras') }}" class="dock-panel-link"><i class="bi bi-box-arrow-in-down"></i>Recepcion MP</a>
-    {% if 'inventario' in m %}<a href="{{ url_for('inventario_ingresos') }}" class="dock-panel-link"><i class="bi bi-plus-square"></i>Multi-Ingreso</a>{% endif %}
   </div>
 </div>
 <div class="dock-panel" id="dp-logistica">
@@ -1009,7 +1008,7 @@ function toggleSidebar(){
 })();
 </script>
 <div id="sb-overlay" onclick="closeSB()"></div>
-<div id="main">
+<div id="main" role="main">
   {% if session.get('admin_real_id') %}
   <div style="background:#FF8B00;color:#fff;padding:.55rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;font-size:.84rem;font-weight:600;position:sticky;top:0;z-index:200">
     <span><i class="bi bi-eye-fill me-2"></i>Viendo como: <strong>{{ current_user.nombre }}</strong> ({{ rol_activo }})</span>
@@ -1026,7 +1025,7 @@ function toggleSidebar(){
     <a href="/demo/salir" style="color:#fff;text-decoration:underline;font-weight:700;margin-left:8px">Salir del demo</a>
   </div>
   {% endif %}
-  <div class="topbar">
+  <div class="topbar" role="banner">
     <!-- Hamburger for mobile -->
     <button id="sb-tog" onclick="openSB()" aria-label="Menú"><i class="bi bi-list"></i></button>
     <h1 class="pg-title">{% block page_title %}{% endblock %}</h1>
@@ -1041,6 +1040,17 @@ function toggleSidebar(){
 <button class="btn btn-sm d-none d-md-inline-flex" style="background:none;border:1px solid var(--border);color:var(--text2);padding:4px 10px;font-size:.78rem" onclick="if(window.iniciarObContextual){iniciarObContextual()}else{alert('Recarga la pagina')}" title="Ver tutorial">
         <i class="bi bi-question-circle me-1"></i>Ayuda
       </button>
+      {% if roles_disponibles|length > 1 %}
+      <div class="d-none d-md-flex align-items-center gap-1" style="margin-right:4px">
+        {% for r in roles_disponibles %}
+        <a href="#" onclick="event.preventDefault();var f=document.createElement('form');f.method='POST';f.action='{{ url_for('cambiar_rol') }}';var ri=document.createElement('input');ri.type='hidden';ri.name='rol';ri.value='{{ r }}';f.appendChild(ri);var c=document.createElement('input');c.type='hidden';c.name='_csrf_token';c.value=document.querySelector('meta[name=csrf-token]').content;f.appendChild(c);document.body.appendChild(f);f.submit();"
+           class="btn btn-sm {% if r == rol_activo %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+           style="font-size:.7rem;padding:2px 10px;border-radius:20px;min-height:auto;line-height:1.4">
+          {{ rol_labels.get(r, r)[:12] }}
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
       <div class="dropdown">
         <button class="btn btn-sm dropdown-toggle d-flex align-items-center gap-2" style="background:none;border:1px solid var(--border);padding:5px 10px;border-radius:20px;color:var(--text)" data-bs-toggle="dropdown">
           <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold" style="width:26px;height:26px;font-size:.72rem;flex-shrink:0"><i class="bi {{ rol_icons.get(rol_activo, 'bi-person') }}" style="font-size:.7rem"></i></div>

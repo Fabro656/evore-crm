@@ -8,12 +8,12 @@
   <div class="row g-3 mb-2">
     <div class="col-md-8">
       <label class="form-label">Título <span class="req">*</span></label>
-      <input type="text" name="titulo" class="form-control" value="{{ obj.titulo if obj else '' }}" required placeholder="Ej: Uniformes Colegio ABC — Pedido junio 2025">
+      <input type="text" name="titulo" class="form-control" aria-label="Titulo del negocio" value="{{ obj.titulo if obj else '' }}" required placeholder="Ej: Uniformes Colegio ABC — Pedido junio 2025">
       <div class="form-text">Nombre interno del negocio. Ayuda a identificarlo rápidamente en la lista.</div>
     </div>
     <div class="col-md-4">
       <label class="form-label">Cliente</label>
-      <select name="cliente_id" id="clienteSel" class="form-select" onchange="cargarCotizaciones(this.value)">
+      <select name="cliente_id" id="clienteSel" class="form-select" aria-label="Seleccionar cliente" onchange="cargarCotizaciones(this.value)">
         <option value="">— Sin cliente —</option>
         {% for c in clientes_list %}<option value="{{ c.id }}" {% if (obj and obj.cliente_id==c.id) or (pre_cliente_id and pre_cliente_id==c.id) %}selected{% endif %}>{{ c.empresa or c.nombre }}</option>{% endfor %}
       </select>
@@ -22,7 +22,7 @@
     {% if not obj %}
     <div class="col-md-6">
       <label class="form-label"><i class="bi bi-file-text me-1"></i>Cotización de origen</label>
-      <select name="cotizacion_id" id="cotizacionSel" class="form-select">
+      <select name="cotizacion_id" id="cotizacionSel" class="form-select" aria-label="Cotizacion de origen">
         <option value="">— Sin cotización vinculada —</option>
         {% for c in cots_disponibles|default([]) %}
         <option value="{{ c.id }}"
@@ -64,7 +64,7 @@
   <div class="row g-3 mb-2">
     <div class="col-md-3">
       <label class="form-label">Estado</label>
-      <select name="estado" id="estadoSel" class="form-select" onchange="toggleAnticipoField()">
+      <select name="estado" id="estadoSel" class="form-select" aria-label="Estado del negocio" onchange="toggleAnticipoField()">
         {% for est,lbl in [('prospecto','Prospecto'),('negociacion','Negociación'),('anticipo_pagado','Anticipo Pagado'),('pagado','Pagado'),('cancelado','Cancelado')] %}
         <option value="{{ est }}" {% if obj and obj.estado==est %}selected{% elif not obj and est=='prospecto' %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
       </select>

@@ -10,11 +10,11 @@
           <h5 style="margin-bottom:1rem"><i class="bi bi-person me-2"></i>Datos personales</h5>
           <div class="row g-2">
             <div class="col-6"><label class="form-label">Nombre <span class="req">*</span></label>
-              <input type="text" name="nombre" class="form-control" value="{{ empleado.nombre if empleado else '' }}" required></div>
+              <input type="text" name="nombre" class="form-control" aria-label="Nombre del empleado" value="{{ empleado.nombre if empleado else '' }}" required></div>
             <div class="col-6"><label class="form-label">Apellido <span class="req">*</span></label>
-              <input type="text" name="apellido" class="form-control" value="{{ empleado.apellido if empleado else '' }}" required></div>
+              <input type="text" name="apellido" class="form-control" aria-label="Apellido del empleado" value="{{ empleado.apellido if empleado else '' }}" required></div>
             <div class="col-6"><label class="form-label">Cédula</label>
-              <input type="text" name="cedula" class="form-control" value="{{ empleado.cedula if empleado else '' }}" placeholder="1234567890"></div>
+              <input type="text" name="cedula" class="form-control" aria-label="Numero de cedula" value="{{ empleado.cedula if empleado else '' }}" placeholder="1234567890"></div>
             <div class="col-6"><label class="form-label">Email</label>
               <input type="email" name="email" class="form-control" value="{{ empleado.email if empleado else '' }}"></div>
             <div class="col-6"><label class="form-label">Telefono</label>
@@ -48,7 +48,7 @@
           <h5 style="margin-bottom:1rem"><i class="bi bi-briefcase me-2"></i>Información laboral</h5>
           <div class="row g-2">
             <div class="col-6"><label class="form-label">Cargo <span class="req">*</span></label>
-              <input type="text" name="cargo" class="form-control" value="{{ empleado.cargo if empleado else '' }}" required></div>
+              <input type="text" name="cargo" class="form-control" aria-label="Cargo del empleado" value="{{ empleado.cargo if empleado else '' }}" required></div>
             <div class="col-6"><label class="form-label">Departamento</label>
               <input type="text" name="departamento" class="form-control" value="{{ empleado.departamento if empleado else '' }}"></div>
             <div class="col-6"><label class="form-label">Tipo de contrato</label>

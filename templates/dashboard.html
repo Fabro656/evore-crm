@@ -70,31 +70,31 @@
     </div>
   </div>
   <div class="col-6 col-lg-3">
-    <div class="sc sc-accent" style="border-top-color:#2dce89">
+    <div class="sc sc-accent" style="border-top-color:var(--green)">
       <div class="d-flex justify-content-between align-items-start">
         <div><div class="sv">{{ ventas_completadas }}</div><div class="sl">Ventas ganadas</div></div>
-        <div class="si" style="background:var(--surface2)"><i class="bi bi-graph-up-arrow" style="color:#2dce89"></i></div>
+        <div class="si" style="background:var(--surface2)"><i class="bi bi-graph-up-arrow" style="color:var(--green)"></i></div>
       </div>
-      <div class="mt-2"><a href="{{ url_for('ventas') }}" style="font-size:.75rem;color:#2dce89;text-decoration:none">Ver ventas →</a></div>
+      <div class="mt-2"><a href="{{ url_for('ventas') }}" style="font-size:.75rem;color:var(--green);text-decoration:none">Ver ventas →</a></div>
     </div>
   </div>
   <div class="col-6 col-lg-3">
-    <div class="sc sc-accent" style="border-top-color:#fb6340">
+    <div class="sc sc-accent" style="border-top-color:var(--orange)">
       <div class="d-flex justify-content-between align-items-start">
         <div><div class="sv">{{ tareas_pendientes }}</div><div class="sl">Tareas pendientes</div></div>
-        <div class="si" style="background:var(--surface2)"><i class="bi bi-check2-square" style="color:#fb6340"></i></div>
+        <div class="si" style="background:var(--surface2)"><i class="bi bi-check2-square" style="color:var(--orange)"></i></div>
       </div>
-      <div class="mt-2"><a href="{{ url_for('tareas') }}" style="font-size:.75rem;color:#fb6340;text-decoration:none">Ver tareas →</a></div>
+      <div class="mt-2"><a href="{{ url_for('tareas') }}" style="font-size:.75rem;color:var(--orange);text-decoration:none">Ver tareas →</a></div>
     </div>
   </div>
   <div class="col-6 col-lg-3">
-    <div class="sc sc-accent" style="border-top-color:#f39c12">
+    <div class="sc sc-accent" style="border-top-color:var(--orange)">
       <div class="d-flex justify-content-between align-items-start">
         <div><div class="sv valor-cop" data-cop="{{ saldo_pendiente }}">$ {{ '{:,.0f}'.format(saldo_pendiente).replace(',','.') }}</div>
           <div class="sl">Por cobrar</div></div>
-        <div class="si" style="background:var(--surface2)"><i class="bi bi-hourglass-split" style="color:#f39c12"></i></div>
+        <div class="si" style="background:var(--surface2)"><i class="bi bi-hourglass-split" style="color:var(--orange)"></i></div>
       </div>
-      <div class="mt-2"><a href="{{ url_for('ventas') }}" style="font-size:.75rem;color:#f39c12;text-decoration:none">Ver pendientes →</a></div>
+      <div class="mt-2"><a href="{{ url_for('ventas') }}" style="font-size:.75rem;color:var(--orange);text-decoration:none">Ver pendientes →</a></div>
     </div>
   </div>
 </div>
@@ -104,43 +104,43 @@
   <div class="col-6 col-lg-3">
     <div class="sc">
       <div class="d-flex justify-content-between align-items-start">
-        <div><div class="sv valor-cop" data-cop="{{ ingresos_totales }}" style="color:#2dce89">$ {{ '{:,.0f}'.format(ingresos_totales).replace(',','.') }}</div>
+        <div><div class="sv valor-cop" data-cop="{{ ingresos_totales }}" style="color:var(--green)">$ {{ '{:,.0f}'.format(ingresos_totales).replace(',','.') }}</div>
           <div class="sl">Ingresos totales</div></div>
-        <div class="si" style="background:var(--surface2)"><i class="bi bi-currency-dollar" style="color:#2dce89"></i></div>
+        <div class="si" style="background:var(--surface2)"><i class="bi bi-currency-dollar" style="color:var(--green)"></i></div>
       </div>
     </div>
   </div>
   <div class="col-6 col-lg-3">
     <div class="sc">
       <div class="d-flex justify-content-between align-items-start">
-        <div><div class="sv valor-cop" data-cop="{{ gastos_totales }}" style="color:#f5365c">$ {{ '{:,.0f}'.format(gastos_totales).replace(',','.') }}</div>
+        <div><div class="sv valor-cop" data-cop="{{ gastos_totales }}" style="color:var(--red)">$ {{ '{:,.0f}'.format(gastos_totales).replace(',','.') }}</div>
           <div class="sl">Gastos + compras</div></div>
-        <div class="si" style="background:var(--surface2)"><i class="bi bi-receipt" style="color:#f5365c"></i></div>
+        <div class="si" style="background:var(--surface2)"><i class="bi bi-receipt" style="color:var(--red)"></i></div>
       </div>
     </div>
   </div>
   <div class="col-6 col-lg-3">
     <div class="sc">
       <div class="d-flex justify-content-between align-items-start">
-        <div><div class="sv valor-cop" data-cop="{{ impuestos_estimados }}" style="color:#e83e8c">$ {{ '{:,.0f}'.format(impuestos_estimados).replace(',','.') }}</div>
+        <div><div class="sv valor-cop" data-cop="{{ impuestos_estimados }}" style="color:var(--red)">$ {{ '{:,.0f}'.format(impuestos_estimados).replace(',','.') }}</div>
           <div class="sl">Impuestos estimados</div></div>
-        <div class="si" style="background:var(--surface2)"><i class="bi bi-percent" style="color:#e83e8c"></i></div>
+        <div class="si" style="background:var(--surface2)"><i class="bi bi-percent" style="color:var(--red)"></i></div>
       </div>
       {% if impuestos_estimados == 0 %}
-      <div class="mt-1"><a href="{{ url_for('impuestos') }}" style="font-size:.73rem;color:#e83e8c">Configurar reglas →</a></div>
+      <div class="mt-1"><a href="{{ url_for('impuestos') }}" style="font-size:.73rem;color:var(--red)">Configurar reglas →</a></div>
       {% endif %}
     </div>
   </div>
   <div class="col-6 col-lg-3">
-    <div class="sc" style="border:2px solid {{ '#2dce89' if saldo_neto >= 0 else '#f5365c' }}">
+    <div class="sc" style="border:2px solid {{ 'var(--green)' if saldo_neto >= 0 else 'var(--red)' }}">
       <div class="d-flex justify-content-between align-items-start">
         <div>
-          <div class="sv valor-cop" data-cop="{{ saldo_neto }}" style="color:{{ '#2dce89' if saldo_neto >= 0 else '#f5365c' }}">$ {{ '{:,.0f}'.format(saldo_neto).replace(',','.') }}</div>
+          <div class="sv valor-cop" data-cop="{{ saldo_neto }}" style="color:{{ 'var(--green)' if saldo_neto >= 0 else 'var(--red)' }}">$ {{ '{:,.0f}'.format(saldo_neto).replace(',','.') }}</div>
           <div class="sl" style="font-weight:700">Saldo neto real</div>
           <div style="font-size:.7rem;color:var(--text2);margin-top:2px">Ingresos − gastos − impuestos</div>
         </div>
-        <div class="si" style="background:{{ '#e8fff3' if saldo_neto >= 0 else '#ffeaea' }}">
-          <i class="bi bi-cash-stack" style="color:{{ '#2dce89' if saldo_neto >= 0 else '#f5365c' }}"></i>
+        <div class="si" style="background:{{ 'var(--surface2)' if saldo_neto >= 0 else 'var(--surface2)' }}">
+          <i class="bi bi-cash-stack" style="color:{{ 'var(--green)' if saldo_neto >= 0 else 'var(--red)' }}"></i>
         </div>
       </div>
       <div class="mt-2"><a href="{{ url_for('contable_index') }}" style="font-size:.73rem;color:var(--ac);text-decoration:none">Ver desglose →</a></div>
@@ -174,7 +174,7 @@
 {% if cots_sin_respuesta or ventas_estancadas or entregas_pendientes %}
 <div class="tc mb-3">
   <div class="ch" style="cursor:pointer" onclick="this.parentElement.querySelector('.seguimiento-body').classList.toggle('d-none')">
-    <span><i class="bi bi-bell-fill me-2" style="color:#fb6340"></i>Alertas de seguimiento
+    <span><i class="bi bi-bell-fill me-2" style="color:var(--orange)"></i>Alertas de seguimiento
       <span class="badge bg-danger ms-1">{{ (cots_sin_respuesta|length) + (ventas_estancadas|length) + (entregas_pendientes|length) }}</span>
     </span>
     <i class="bi bi-chevron-down" style="font-size:.8rem;color:var(--text2)"></i>
@@ -182,7 +182,7 @@
   <div class="seguimiento-body">
     {% if cots_sin_respuesta %}
     <div style="padding:.5rem .75rem;border-bottom:1px solid var(--border)">
-      <small class="fw-bold text-uppercase" style="color:#e67e22;font-size:.68rem;letter-spacing:1px"><i class="bi bi-file-earmark-text me-1"></i>Cotizaciones sin respuesta (&gt; 7 dias)</small>
+      <small class="fw-bold text-uppercase" style="color:var(--orange);font-size:.68rem;letter-spacing:1px"><i class="bi bi-file-earmark-text me-1"></i>Cotizaciones sin respuesta (&gt; 7 dias)</small>
     </div>
     {% for c in cots_sin_respuesta %}
     <div style="padding:.4rem .75rem;border-bottom:1px solid var(--border);font-size:.82rem" class="d-flex align-items-center justify-content-between">
@@ -191,7 +191,7 @@
         <div><small class="text-muted">{{ c.cliente.empresa or c.cliente.nombre if c.cliente else 'Sin cliente' }}</small></div>
       </div>
       <div class="text-end">
-        <span class="badge" style="background:#e67e22;font-size:.7rem">{{ (hoy_date - c.fecha_emision).days }} dias</span>
+        <span class="badge" style="background:var(--orange);font-size:.7rem">{{ (hoy_date - c.fecha_emision).days }} dias</span>
       </div>
     </div>
     {% endfor %}
@@ -199,7 +199,7 @@
 
     {% if ventas_estancadas %}
     <div style="padding:.5rem .75rem;border-bottom:1px solid var(--border)">
-      <small class="fw-bold text-uppercase" style="color:#f1c40f;font-size:.68rem;letter-spacing:1px"><i class="bi bi-graph-up me-1"></i>Ventas en negociacion estancadas (&gt; 14 dias)</small>
+      <small class="fw-bold text-uppercase" style="color:var(--yellow);font-size:.68rem;letter-spacing:1px"><i class="bi bi-graph-up me-1"></i>Ventas en negociacion estancadas (&gt; 14 dias)</small>
     </div>
     {% for v in ventas_estancadas %}
     <div style="padding:.4rem .75rem;border-bottom:1px solid var(--border);font-size:.82rem" class="d-flex align-items-center justify-content-between">
@@ -208,7 +208,7 @@
         <div><small class="text-muted">{{ v.cliente.empresa or v.cliente.nombre if v.cliente else 'Sin cliente' }}</small></div>
       </div>
       <div class="text-end">
-        <span class="badge" style="background:#f1c40f;color:#333;font-size:.7rem">{{ (hoy_date - v.creado_en.date()).days }} dias</span>
+        <span class="badge" style="background:var(--yellow);color:#333;font-size:.7rem">{{ (hoy_date - v.creado_en.date()).days }} dias</span>
       </div>
     </div>
     {% endfor %}
@@ -216,7 +216,7 @@
 
     {% if entregas_pendientes %}
     <div style="padding:.5rem .75rem;border-bottom:1px solid var(--border)">
-      <small class="fw-bold text-uppercase" style="color:#e74c3c;font-size:.68rem;letter-spacing:1px"><i class="bi bi-truck me-1"></i>Entregas pendientes (&gt; 30 dias)</small>
+      <small class="fw-bold text-uppercase" style="color:var(--red);font-size:.68rem;letter-spacing:1px"><i class="bi bi-truck me-1"></i>Entregas pendientes (&gt; 30 dias)</small>
     </div>
     {% for v in entregas_pendientes %}
     <div style="padding:.4rem .75rem;border-bottom:1px solid var(--border);font-size:.82rem" class="d-flex align-items-center justify-content-between">
@@ -225,7 +225,7 @@
         <div><small class="text-muted">{{ v.cliente.empresa or v.cliente.nombre if v.cliente else 'Sin cliente' }}</small></div>
       </div>
       <div class="text-end">
-        <span class="badge" style="background:#e74c3c;font-size:.7rem">{{ (hoy_date - v.creado_en.date()).days }} dias</span>
+        <span class="badge" style="background:var(--red);font-size:.7rem">{{ (hoy_date - v.creado_en.date()).days }} dias</span>
       </div>
     </div>
     {% endfor %}
@@ -239,7 +239,7 @@
   <div class="col-12 col-md-6">
     <div class="tc">
       <div class="ch">
-        <span><i class="bi bi-trophy-fill me-2" style="color:#f39c12"></i>Top Clientes (CLV)</span>
+        <span><i class="bi bi-trophy-fill me-2" style="color:var(--orange)"></i>Top Clientes (CLV)</span>
       </div>
       {% if top_clientes_clv %}
       <div class="table-responsive">
@@ -268,7 +268,7 @@
   <div class="col-12 col-md-6">
     <div class="tc">
       <div class="ch">
-        <span><i class="bi bi-bar-chart-fill me-2" style="color:#2dce89"></i>Rentabilidad por Producto</span>
+        <span><i class="bi bi-bar-chart-fill me-2" style="color:var(--green)"></i>Rentabilidad por Producto</span>
       </div>
       {% if productos_rentabilidad %}
       <div class="table-responsive">
@@ -286,7 +286,7 @@
           <td style="font-size:.85rem;text-align:right;white-space:nowrap">$ {{ '{:,.0f}'.format(p.costo).replace(',','.') }}</td>
           <td style="font-size:.85rem;text-align:right;white-space:nowrap">$ {{ '{:,.0f}'.format(p.precio).replace(',','.') }}</td>
           <td style="font-size:.85rem;text-align:right;white-space:nowrap">
-            <span style="color:{% if p.margen_pct > 30 %}#2dce89{% elif p.margen_pct >= 15 %}#f39c12{% else %}#f5365c{% endif %};font-weight:600">{{ p.margen_pct }}%</span>
+            <span style="color:{% if p.margen_pct > 30 %}var(--green){% elif p.margen_pct >= 15 %}var(--orange){% else %}var(--red){% endif %};font-weight:600">{{ p.margen_pct }}%</span>
           </td>
         </tr>
         {% endfor %}
