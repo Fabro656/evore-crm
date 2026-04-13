@@ -2,7 +2,7 @@
 {% block title %}Wiki — {{ company_name }}{% endblock %}
 {% block page_title %}Wiki del Sistema{% endblock %}
 {% block topbar_actions %}
-<button onclick="window.print()" class="btn btn-sm btn-outline-secondary"><i class="bi bi-download me-1"></i>Descargar / Imprimir</button>
+<button onclick="window.print()" class="btn btn-sm btn-outline-secondary"><i class="bi bi-download me-1"></i>Imprimir</button>
 {% endblock %}
 
 {% block content %}
@@ -15,10 +15,9 @@
 .wiki-card{background:var(--surface2);border-radius:10px;padding:1rem;border:1px solid var(--border)}
 .wiki-card h4{font-size:.85rem;font-weight:700;margin-bottom:.4rem;display:flex;align-items:center;gap:.4rem}
 .wiki-card p{font-size:.8rem;color:var(--text2);margin:0;line-height:1.5}
-/* Flow diagram */
 .flow-container{overflow-x:auto;padding:1rem 0}
 .flow-row{display:flex;align-items:center;justify-content:center;gap:.5rem;margin:.75rem 0;flex-wrap:wrap}
-.flow-box{background:var(--surface2);border:2px solid var(--border);border-radius:10px;padding:.6rem 1rem;font-size:.8rem;font-weight:600;text-align:center;min-width:120px;position:relative;color:var(--text)}
+.flow-box{background:var(--surface2);border:2px solid var(--border);border-radius:10px;padding:.6rem 1rem;font-size:.8rem;font-weight:600;text-align:center;min-width:120px;color:var(--text)}
 .flow-box.accent{border-color:var(--ac);background:rgba(var(--ac-rgb),.08)}
 .flow-box.green{border-color:var(--green);background:rgba(46,132,74,.08)}
 .flow-box.orange{border-color:var(--orange);background:rgba(221,122,1,.08)}
@@ -26,61 +25,68 @@
 .flow-box small{display:block;font-weight:400;color:var(--text2);font-size:.7rem;margin-top:2px}
 .flow-arrow{color:var(--text2);font-size:1.2rem;flex-shrink:0}
 .flow-arrow-down{text-align:center;color:var(--text2);font-size:1rem;margin:.25rem 0}
-.flow-label{font-size:.68rem;color:var(--text2);text-align:center;font-style:italic}
+.flow-label{font-size:.68rem;color:var(--text2);text-align:center;font-style:italic;margin-top:.25rem}
+.wiki-table{width:100%;font-size:.82rem;border-collapse:collapse;margin:.75rem 0}
+.wiki-table th{background:var(--surface2);padding:.5rem .75rem;text-align:left;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);border-bottom:2px solid var(--border)}
+.wiki-table td{padding:.45rem .75rem;border-bottom:1px solid var(--border);color:var(--text)}
 @media print{
   .topbar,.sb-foot,#sb,.no-print,.notif-dd,#diagBtn,#aiBtn,#wsTabBar,#obCtx{display:none!important}
   #main{margin-left:0!important}
   .wiki-section{break-inside:avoid;border:1px solid #ddd}
   body{font-size:11pt;color:#000;background:#fff}
 }
+@media(max-width:768px){.wiki-grid{grid-template-columns:1fr}}
 </style>
 
 <div style="max-width:960px;margin:0 auto">
 
-{# ── Intro ── #}
+{# ══════════════════════════ INTRO ══════════════════════════ #}
 <div class="wiki-section">
   <div class="wiki-h2"><i class="bi bi-book" style="color:var(--ac)"></i>Que es {{ company_name }}?</div>
-  <p class="wiki-p">{{ company_name }} es un sistema ERP/CRM disenado para empresas manufactureras. Integra ventas, produccion, inventario, contabilidad, nomina y logistica en una sola plataforma.</p>
+  <p class="wiki-p">{{ company_name }} es un sistema ERP/CRM para empresas manufactureras que producen para terceros. Integra <strong>21 modulos</strong>: ventas, produccion, inventario, compras, contabilidad (PUC colombiano), nomina, legal, logistica, portales de cliente/proveedor, y mas.</p>
+  <p class="wiki-p"><strong>Numeros:</strong> 245 rutas, 50 tablas, 119 templates, firmado digitalmente con selfie, reconciliacion bancaria, horas extra, y export CSV.</p>
 </div>
 
-{# ── Diagrama de flujo principal ── #}
+{# ══════════════════════════ FLUJO COMERCIAL ══════════════════════════ #}
 <div class="wiki-section">
-  <div class="wiki-h2"><i class="bi bi-diagram-3" style="color:var(--green)"></i>Flujo general del sistema</div>
+  <div class="wiki-h2"><i class="bi bi-diagram-3" style="color:var(--green)"></i>Flujos del sistema</div>
 
-  <div class="wiki-h3">1. Flujo comercial</div>
+  <div class="wiki-h3">1. Flujo comercial (ventas)</div>
   <div class="flow-container">
     <div class="flow-row">
       <div class="flow-box accent"><i class="bi bi-people-fill"></i><br>Cliente<small>Registro + contactos</small></div>
       <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
-      <div class="flow-box accent"><i class="bi bi-file-earmark-text"></i><br>Cotizacion<small>Propuesta con precios</small></div>
+      <div class="flow-box accent"><i class="bi bi-file-earmark-text"></i><br>Cotizacion<small>Propuesta + PDF</small></div>
       <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
-      <div class="flow-box green"><i class="bi bi-bag-check"></i><br>Venta<small>Prospecto → Anticipo → Pagado</small></div>
+      <div class="flow-box green"><i class="bi bi-bag-check"></i><br>Venta<small>Genera asiento + contrato</small></div>
       <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
-      <div class="flow-box green"><i class="bi bi-truck"></i><br>Envio<small>Transportista + remision</small></div>
+      <div class="flow-box orange"><i class="bi bi-cash-coin"></i><br>Anticipo<small>Contable confirma</small></div>
+      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="flow-box green"><i class="bi bi-truck"></i><br>Envio<small>Guia + tracking</small></div>
     </div>
-    <div class="flow-label">Al crear venta se genera asiento contable de ingreso automaticamente</div>
+    <div class="flow-label">Al crear venta: asiento contable ingreso + contrato cliente en portal para firma digital</div>
   </div>
 
   <div class="wiki-h3">2. Flujo de compras</div>
   <div class="flow-container">
     <div class="flow-row">
-      <div class="flow-box"><i class="bi bi-truck"></i><br>Proveedor<small>Datos + cotizaciones</small></div>
-      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
-      <div class="flow-box"><i class="bi bi-file-earmark-check"></i><br>Cotizacion Prov.<small>Precio + plazo</small></div>
+      <div class="flow-box"><i class="bi bi-truck"></i><br>Proveedor<small>Cotizaciones vigentes</small></div>
       <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
       <div class="flow-box accent"><i class="bi bi-cart-check"></i><br>Orden de Compra<small>Multi-cotizacion</small></div>
       <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
-      <div class="flow-box orange"><i class="bi bi-journal"></i><br>Asiento Egreso<small>Auto-generado</small></div>
+      <div class="flow-box orange"><i class="bi bi-journal"></i><br>Asiento Egreso<small>+ Contrato proveedor</small></div>
+      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="flow-box green"><i class="bi bi-cash"></i><br>Pago Confirmado<small>Proveedor ve en portal</small></div>
     </div>
     <div class="flow-arrow-down"><i class="bi bi-arrow-down"></i></div>
     <div class="flow-row">
-      <div class="flow-box orange"><i class="bi bi-cash"></i><br>Confirmar Pago<small>Parcial o total</small></div>
+      <div class="flow-box orange"><i class="bi bi-hand-thumbs-up"></i><br>Proveedor confirma<small>Anticipo recibido</small></div>
       <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
-      <div class="flow-box green"><i class="bi bi-box-arrow-in-down"></i><br>Recepcion MP<small>En produccion</small></div>
+      <div class="flow-box green"><i class="bi bi-box-arrow-in-down"></i><br>Recepcion MP<small>Stock + lote</small></div>
       <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
-      <div class="flow-box green"><i class="bi bi-check-circle"></i><br>OC Recibida<small>Stock actualizado</small></div>
+      <div class="flow-box green"><i class="bi bi-check-circle"></i><br>OC Completa<small>Score proveedor</small></div>
     </div>
-    <div class="flow-label">El estado de la OC cambia desde Asientos Contables, no manualmente</div>
+    <div class="flow-label">OC genera asiento contable + contrato proveedor. Pago y recepcion controlan el flujo.</div>
   </div>
 
   <div class="wiki-h3">3. Flujo de produccion</div>
@@ -88,137 +94,340 @@
     <div class="flow-row">
       <div class="flow-box"><i class="bi bi-clipboard2-data"></i><br>Receta / BOM<small>Formula del producto</small></div>
       <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
-      <div class="flow-box accent"><i class="bi bi-gear"></i><br>Orden Produccion<small>Reserva materiales</small></div>
+      <div class="flow-box accent"><i class="bi bi-gear"></i><br>Orden Produccion<small>Reserva MP (FIFO)</small></div>
       <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
-      <div class="flow-box green"><i class="bi bi-box-seam"></i><br>Producto Terminado<small>Stock disponible</small></div>
+      <div class="flow-box green"><i class="bi bi-box-seam"></i><br>Producto Terminado<small>Stock + lote</small></div>
     </div>
-    <div class="flow-label">Si faltan materias primas, se crean ordenes de compra automaticamente</div>
+    <div class="flow-label">Si faltan MP, se crean OC automaticas. Gantt muestra timeline por venta. Problema de calidad genera tickets.</div>
   </div>
 
-  <div class="wiki-h3">4. Flujo financiero</div>
+  <div class="wiki-h3">4. Flujo contable</div>
   <div class="flow-container">
     <div class="flow-row">
-      <div class="flow-box accent"><i class="bi bi-journal-bookmark"></i><br>Asientos Generados<small>Desde OC y Ventas</small></div>
+      <div class="flow-box accent"><i class="bi bi-journal-bookmark"></i><br>Asientos Generados<small>OC / Ventas / Nomina</small></div>
       <div class="flow-arrow"><i class="bi bi-plus-lg"></i></div>
-      <div class="flow-box"><i class="bi bi-journal-plus"></i><br>Asientos Manuales<small>Caja chica, gastos</small></div>
+      <div class="flow-box"><i class="bi bi-journal-plus"></i><br>Asientos Manuales<small>Caja chica / Gastos</small></div>
       <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
-      <div class="flow-box green"><i class="bi bi-calculator"></i><br>Contabilidad<small>PUC + Balances</small></div>
+      <div class="flow-box green"><i class="bi bi-calculator"></i><br>PUC + Balances<small>Partida doble</small></div>
     </div>
-    <div class="flow-label">Los pagos se confirman desde asientos — cambian el estado de OC y ventas</div>
+    <div class="flow-arrow-down"><i class="bi bi-arrow-down"></i></div>
+    <div class="flow-row">
+      <div class="flow-box"><i class="bi bi-bank"></i><br>Reconciliacion<small>Upload CSV banco</small></div>
+      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="flow-box green"><i class="bi bi-file-earmark-bar-graph"></i><br>Reportes<small>IVA, retenciones, cierre</small></div>
+      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="flow-box"><i class="bi bi-person-lines-fill"></i><br>Libro Auxiliar<small>Por tercero + saldo</small></div>
+    </div>
+    <div class="flow-label">Confirmar pago/ingreso en asientos cambia estado de OC y ventas automaticamente</div>
   </div>
 
-  <div class="wiki-h3">5. Flujo de aprobaciones</div>
+  <div class="wiki-h3">5. Flujo de pagos bidireccional</div>
   <div class="flow-container">
     <div class="flow-row">
-      <div class="flow-box"><i class="bi bi-send"></i><br>Solicitar<small>OC, venta, cotizacion</small></div>
+      <div class="flow-box accent"><i class="bi bi-building"></i><br>Nosotros<small>Confirmar pago OC</small></div>
       <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
-      <div class="flow-box orange"><i class="bi bi-lock"></i><br>Bloqueado<small>Espera aprobacion</small></div>
+      <div class="flow-box orange"><i class="bi bi-send"></i><br>Anticipo Enviado<small>Proveedor lo ve</small></div>
       <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
-      <div class="flow-box green"><i class="bi bi-check-circle"></i><br>Aprobado<small>Continua el flujo</small></div>
+      <div class="flow-box green"><i class="bi bi-check2-circle"></i><br>Proveedor Confirma<small>Notifica al equipo</small></div>
     </div>
-    <div class="flow-row" style="margin-top:.25rem">
-      <div class="flow-box" style="visibility:hidden;min-width:120px"></div>
-      <div class="flow-arrow" style="visibility:hidden"></div>
-      <div class="flow-box" style="border:none;background:none;min-width:120px"></div>
+    <div class="flow-row" style="margin-top:.5rem">
+      <div class="flow-box accent"><i class="bi bi-person"></i><br>Cliente<small>Reporta pago en portal</small></div>
       <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
-      <div class="flow-box red"><i class="bi bi-x-circle"></i><br>Rechazado<small>Cancela la entidad</small></div>
+      <div class="flow-box orange"><i class="bi bi-hourglass"></i><br>Pago Reportado<small>Badge en asientos</small></div>
+      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="flow-box green"><i class="bi bi-check2-circle"></i><br>Confirmamos<small>Venta avanza</small></div>
     </div>
+    <div class="flow-label">Los pagos son bidireccionales — proveedor y cliente confirman desde su portal</div>
+  </div>
+
+  <div class="wiki-h3">6. Flujo de documentos legales</div>
+  <div class="flow-container">
+    <div class="flow-row">
+      <div class="flow-box accent"><i class="bi bi-file-earmark-plus"></i><br>Auto-generar<small>Al crear OC o venta</small></div>
+      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="flow-box orange"><i class="bi bi-pen"></i><br>Firma empresa<small>+ selfie opcional</small></div>
+      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="flow-box"><i class="bi bi-phone"></i><br>Portal firma<small>Firma + selfie camara</small></div>
+      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="flow-box green"><i class="bi bi-shield-check"></i><br>Doc firmado<small>Descargable con fotos</small></div>
+    </div>
+    <div class="flow-label">9 plantillas legales colombianas. Firma digital + selfie con validez legal (Ley 527/1999)</div>
   </div>
 </div>
 
-{# ── Herramientas del sistema ── #}
+{# ══════════════════════════ MODULOS ══════════════════════════ #}
 <div class="wiki-section">
-  <div class="wiki-h2"><i class="bi bi-tools" style="color:var(--orange)"></i>Herramientas del sistema</div>
+  <div class="wiki-h2"><i class="bi bi-tools" style="color:var(--orange)"></i>Modulos del sistema (21)</div>
 
   <div class="wiki-grid">
     <div class="wiki-card">
-      <h4><i class="bi bi-house-fill" style="color:var(--ac)"></i>Home</h4>
-      <p>Dashboard con KPIs, tickets pendientes, ventas recientes, aprobaciones, calendario y notas. Centro de control del dia a dia.</p>
+      <h4><i class="bi bi-house-fill" style="color:#3B82F6"></i>Home</h4>
+      <p>Dashboard con KPIs, tickets pendientes, ventas recientes, aprobaciones, calendario del dia y notas.</p>
     </div>
     <div class="wiki-card">
-      <h4><i class="bi bi-check2-square" style="color:var(--orange)"></i>Tickets</h4>
-      <p>Sistema de seguimiento de tareas con prioridades, asignacion multiple, categorias (calidad, logistica, pago) y notificaciones informativas.</p>
+      <h4><i class="bi bi-check2-square" style="color:#8B5CF6"></i>Tickets</h4>
+      <p>Seguimiento con prioridades, asignacion multiple, categorias (calidad, logistica, pago). Auto-generados por problemas de calidad o nomina pendiente.</p>
     </div>
     <div class="wiki-card">
-      <h4><i class="bi bi-calendar3" style="color:var(--ac)"></i>Calendario</h4>
-      <p>Eventos, citas y recordatorios con vista mensual. Navegacion por mes/ano. Los eventos se crean haciendo click en un dia.</p>
+      <h4><i class="bi bi-calendar3" style="color:#F59E0B"></i>Calendario</h4>
+      <p>Eventos y recordatorios. Vista mensual con navegacion. Click en dia para crear evento.</p>
     </div>
     <div class="wiki-card">
       <h4><i class="bi bi-sticky-fill" style="color:#7C3AED"></i>Notas</h4>
-      <p>Notas vinculadas a OC, ventas y proveedores. Tipos: nota, alerta, seguimiento, resolucion. Con estado abierta/resuelta.</p>
+      <p>Vinculadas a OC, ventas, proveedores. Tipos: nota, alerta, seguimiento, resolucion. Estado abierta/resuelta.</p>
     </div>
     <div class="wiki-card">
-      <h4><i class="bi bi-people-fill" style="color:var(--ac)"></i>Clientes</h4>
-      <p>Directorio de clientes con contactos, informacion bancaria, historial de ventas y cotizaciones.</p>
+      <h4><i class="bi bi-people-fill" style="color:#10B981"></i>Clientes</h4>
+      <p>Directorio con contactos multiples, NIT, estado de relacion, sales manager asignado. Export CSV.</p>
     </div>
     <div class="wiki-card">
-      <h4><i class="bi bi-graph-up-arrow" style="color:var(--green)"></i>Ventas</h4>
-      <p>Pipeline: Prospecto → Negociacion → Anticipo → Pagado → Entregado. Anticipo solo se confirma desde Asientos Contables. Incluye envio con transportista y remision.</p>
+      <h4><i class="bi bi-bag-fill" style="color:#10B981"></i>Ventas</h4>
+      <p>Pipeline completo: prospecto → completado. Auto-genera asiento + contrato + OC para MP faltante. Envio con guia y tracking. Export CSV.</p>
     </div>
     <div class="wiki-card">
-      <h4><i class="bi bi-file-earmark-text-fill" style="color:var(--orange)"></i>Cotizaciones</h4>
-      <p>Propuestas comerciales con calculo de IVA, exportacion PDF y conversion directa a venta.</p>
+      <h4><i class="bi bi-file-earmark-text" style="color:#F59E0B"></i>Cotizaciones</h4>
+      <p>Propuestas con IVA automatico. PDF descargable. Conversion directa a venta. Historial de versiones.</p>
     </div>
     <div class="wiki-card">
-      <h4><i class="bi bi-cart-check" style="color:var(--ac)"></i>Ordenes de Compra</h4>
-      <p>Seleccion de proveedor → multiples cotizaciones → items automaticos. Estado controlado por asientos contables. Genera registro en produccion.</p>
+      <h4><i class="bi bi-cart-check" style="color:#F97316"></i>Ordenes de Compra</h4>
+      <p>Multi-cotizacion, proveedor validado, auto-asiento egreso, auto-contrato. Estado controlado por contabilidad. Comparativo de cotizaciones.</p>
     </div>
     <div class="wiki-card">
-      <h4><i class="bi bi-gear-fill" style="color:var(--text2)"></i>Produccion</h4>
-      <p>Recetas/BOM, ordenes de produccion, diagrama Gantt, recepcion de material desde OC, reporte de problemas de calidad con tickets automaticos.</p>
+      <h4><i class="bi bi-truck" style="color:#F97316"></i>Proveedores</h4>
+      <p>Directorio con NIT, cotizaciones vigentes, evaluacion automatica (calidad, entrega, precio). Soft-delete.</p>
     </div>
     <div class="wiki-card">
-      <h4><i class="bi bi-box-seam-fill" style="color:var(--green)"></i>Inventario</h4>
-      <p>Stock de productos terminados con alertas de minimo, lotes con trazabilidad FIFO y vencimiento, multi-ingreso.</p>
+      <h4><i class="bi bi-gear-fill" style="color:#6366F1"></i>Produccion</h4>
+      <p>Recetas/BOM con rendimiento. Ordenes con reserva FIFO + lotes con vencimiento. Gantt por venta. Recepcion MP + control calidad con tickets auto.</p>
     </div>
     <div class="wiki-card">
-      <h4><i class="bi bi-calculator" style="color:var(--ac)"></i>Contabilidad</h4>
-      <p>PUC colombiano, asientos generados (desde OC/ventas) y manuales (caja chica), balance de prueba, balance general, estado de resultados.</p>
+      <h4><i class="bi bi-box-seam" style="color:#6366F1"></i>Inventario</h4>
+      <p>Stock PT y MP con alertas de minimo. Lotes con trazabilidad. Multi-ingreso. Movimientos auditables. Export CSV.</p>
     </div>
     <div class="wiki-card">
-      <h4><i class="bi bi-people-fill" style="color:var(--orange)"></i>Nomina</h4>
-      <p>Nomina colombiana con prorrateo por dias, retiro (renuncia/despido) con liquidacion inmediata registrada en gastos. Ticket auto si no se cierra a tiempo.</p>
+      <h4><i class="bi bi-currency-dollar" style="color:#059669"></i>Contabilidad</h4>
+      <p>PUC colombiano (102 cuentas). Partida doble. Asientos generados + manuales. Balance de prueba/general. Estado de resultados. IVA generado vs descontable. Retenciones. Cierre de periodo. Libro auxiliar por tercero. Reconciliacion bancaria CSV.</p>
     </div>
     <div class="wiki-card">
-      <h4><i class="bi bi-truck-front-fill" style="color:var(--green)"></i>Logistica</h4>
-      <p>Simulador de envio con calculo de costos FTL vs paqueteria, comparativa de vehiculos, transportistas compatibles, vinculo a cotizaciones/ventas.</p>
+      <h4><i class="bi bi-people-fill" style="color:#EC4899"></i>Nomina</h4>
+      <p>Cierre mensual con prorrateo. Horas extra (4 tipos, Art. 168-170 CST). Retencion fuente Art. 383 ET. Liquidacion inmediata al despedir. Parametros editables. Recibo PDF. Export CSV.</p>
     </div>
     <div class="wiki-card">
-      <h4><i class="bi bi-shield-check" style="color:var(--red)"></i>Legal</h4>
-      <p>Documentos legales (permisos, INVIMA, NSO, contratos) con alertas de vencimiento y busqueda.</p>
+      <h4><i class="bi bi-shield-check" style="color:#0EA5E9"></i>Legal</h4>
+      <p>9 plantillas colombianas (contratos laborales, comerciales, NDA, acta entrega, autorizacion datos). Generador con auto-llenado desde entidades. Firma digital + selfie. Auto-generacion al crear negocio.</p>
     </div>
     <div class="wiki-card">
-      <h4><i class="bi bi-clipboard-check" style="color:var(--orange)"></i>Aprobaciones</h4>
-      <p>OC, ventas, cotizaciones y asientos pueden requerir aprobacion. Bloquea el proceso hasta aprobar, revisar o rechazar.</p>
+      <h4><i class="bi bi-truck-front" style="color:#10B981"></i>Logistica</h4>
+      <p>Simulador de envio (FTL vs paqueteria). Calculadora de cajas. Transportistas. Tracking con guia. Empaques secundarios.</p>
     </div>
     <div class="wiki-card">
-      <h4><i class="bi bi-robot" style="color:var(--ac)"></i>Asistente IA</h4>
-      <p>Consulta ventas, inventario, costos. Crea tickets, notas, clientes, ventas y OC por chat. No puede crear asientos, usuarios ni aprobar.</p>
+      <h4><i class="bi bi-clipboard-check" style="color:#EF4444"></i>Aprobaciones</h4>
+      <p>OC, ventas, cotizaciones, asientos. Bloquea hasta aprobar/rechazar. Admin y Director Financiero se auto-aprueban.</p>
+    </div>
+    <div class="wiki-card">
+      <h4><i class="bi bi-receipt" style="color:#059669"></i>Gastos</h4>
+      <p>Gastos operativos con tipo, recurrencia, estado de pago. Caja chica con comprobante PDF imprimible.</p>
+    </div>
+    <div class="wiki-card">
+      <h4><i class="bi bi-tags" style="color:#F59E0B"></i>Servicios</h4>
+      <p>Catalogo de servicios con costo interno y precio venta. Se agregan como items en cotizaciones y ventas.</p>
+    </div>
+    <div class="wiki-card">
+      <h4><i class="bi bi-shop" style="color:#3B82F6"></i>Portal Cliente</h4>
+      <p>Dashboard, compras, cotizaciones, mensajes, documentos legales con firma digital + selfie, reportar pagos enviados, tracking de envio.</p>
+    </div>
+    <div class="wiki-card">
+      <h4><i class="bi bi-shop-window" style="color:#F97316"></i>Portal Proveedor</h4>
+      <p>Dashboard, OC con PDF, confirmar OC, confirmar anticipo recibido, documentos legales con firma, enviar mensajes.</p>
+    </div>
+    <div class="wiki-card">
+      <h4><i class="bi bi-robot" style="color:#8B5CF6"></i>Asistente IA</h4>
+      <p>Consulta datos del CRM. Crea tickets, notas, clientes, ventas y OC por chat. OpenAI → Anthropic → Ollama (fallback).</p>
     </div>
   </div>
 </div>
 
-{# ── Roles y permisos ── #}
+{# ══════════════════════════ ROLES ══════════════════════════ #}
 <div class="wiki-section">
   <div class="wiki-h2"><i class="bi bi-shield-lock" style="color:var(--red)"></i>Roles y permisos</div>
-  <div class="wiki-grid">
-    <div class="wiki-card"><h4><i class="bi bi-shield-fill" style="color:var(--red)"></i>Admin</h4><p>Acceso total. Crea usuarios, configura empresa, aprueba solicitudes.</p></div>
-    <div class="wiki-card"><h4><i class="bi bi-speedometer2" style="color:var(--ac)"></i>Director Financiero</h4><p>Ve todo. Aprueba gastos y compras. Auto-aprobacion.</p></div>
-    <div class="wiki-card"><h4><i class="bi bi-gear" style="color:var(--orange)"></i>Director Operativo</h4><p>Produccion, compras, inventario, proveedores. Puede aprobar.</p></div>
-    <div class="wiki-card"><h4><i class="bi bi-handshake" style="color:var(--green)"></i>Vendedor</h4><p>Clientes, ventas, cotizaciones, tickets.</p></div>
-    <div class="wiki-card"><h4><i class="bi bi-gear-wide-connected" style="color:var(--text2)"></i>Produccion</h4><p>Inventario, produccion, recetas, ordenes de compra.</p></div>
-    <div class="wiki-card"><h4><i class="bi bi-calculator" style="color:var(--ac)"></i>Contador</h4><p>Gastos, reportes, finanzas, nomina.</p></div>
+  <table class="wiki-table">
+    <thead>
+      <tr><th>Rol</th><th>Acceso</th><th>Puede aprobar</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Admin</strong></td><td>Todo el sistema. Crea usuarios, configura empresa.</td><td>Si (auto)</td></tr>
+      <tr><td><strong>Director Financiero</strong></td><td>Contabilidad, nomina, gastos, aprobaciones, reportes</td><td>Si (auto)</td></tr>
+      <tr><td><strong>Director Operativo</strong></td><td>Produccion, compras, inventario, proveedores, aprobaciones</td><td>Si</td></tr>
+      <tr><td><strong>Sales Manager</strong></td><td>Clientes, ventas, cotizaciones, portal cliente</td><td>No</td></tr>
+      <tr><td><strong>Vendedor</strong></td><td>Clientes, ventas, cotizaciones, tickets</td><td>No</td></tr>
+      <tr><td><strong>Produccion</strong></td><td>Inventario, produccion, recetas, empaques</td><td>No</td></tr>
+      <tr><td><strong>Contador</strong></td><td>Contabilidad, nomina, gastos, reportes</td><td>No</td></tr>
+      <tr><td><strong>Tester</strong></td><td>Todo (modo lectura + pruebas)</td><td>No</td></tr>
+      <tr><td><strong>Cliente</strong></td><td>Portal cliente unicamente</td><td>No</td></tr>
+      <tr><td><strong>Proveedor</strong></td><td>Portal proveedor unicamente</td><td>No</td></tr>
+    </tbody>
+  </table>
+</div>
+
+{# ══════════════════════════ ESTADOS ══════════════════════════ #}
+<div class="wiki-section">
+  <div class="wiki-h2"><i class="bi bi-signpost-split" style="color:var(--ac)"></i>Estados y transiciones</div>
+
+  <div class="wiki-h3">Venta</div>
+  <div class="flow-container">
+    <div class="flow-row">
+      <div class="flow-box">Prospecto</div>
+      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="flow-box accent">Negociacion</div>
+      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="flow-box green">Anticipo pagado<small>Solo via contable</small></div>
+      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="flow-box green">Pagado</div>
+      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="flow-box green">Entregado</div>
+      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="flow-box green">Completado</div>
+    </div>
+  </div>
+
+  <div class="wiki-h3">Orden de compra</div>
+  <div class="flow-container">
+    <div class="flow-row">
+      <div class="flow-box">Borrador</div>
+      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="flow-box accent">Anticipo pagado<small>Via contable</small></div>
+      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="flow-box orange">En espera<small>Producto</small></div>
+      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="flow-box green">Recibida<small>Parcial o total</small></div>
+    </div>
+  </div>
+
+  <div class="wiki-h3">Asiento contable</div>
+  <div class="flow-container">
+    <div class="flow-row">
+      <div class="flow-box">Borrador</div>
+      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="flow-box orange">Pago parcial</div>
+      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="flow-box green">Completo<small>Auto-aprobado</small></div>
+    </div>
   </div>
 </div>
 
-{# ── Atajos ── #}
+{# ══════════════════════════ AUTOMATIZACIONES ══════════════════════════ #}
 <div class="wiki-section">
-  <div class="wiki-h2"><i class="bi bi-lightning" style="color:var(--orange)"></i>Atajos y tips</div>
+  <div class="wiki-h2"><i class="bi bi-lightning" style="color:var(--orange)"></i>Automatizaciones</div>
+  <table class="wiki-table">
+    <thead><tr><th>Evento</th><th>Accion automatica</th></tr></thead>
+    <tbody>
+      <tr><td>Crear venta</td><td>Asiento contable ingreso + contrato cliente en portal</td></tr>
+      <tr><td>Crear OC</td><td>Asiento contable egreso + contrato proveedor en portal + tarea transportista</td></tr>
+      <tr><td>Confirmar pago OC</td><td>OC cambia estado + proveedor ve "anticipo enviado"</td></tr>
+      <tr><td>Proveedor confirma anticipo</td><td>Nota en asiento + notificacion al equipo</td></tr>
+      <tr><td>Cliente reporta pago</td><td>PagoVenta + badge "cliente reporto pago" en asiento + notificacion</td></tr>
+      <tr><td>Confirmar ingreso venta</td><td>Venta → anticipo_pagado + reservar stock + OC auto para MP faltante</td></tr>
+      <tr><td>Recepcion de material</td><td>Stock MP + lote + MovimientoInventario auditado</td></tr>
+      <tr><td>Problema de calidad</td><td>2 tickets auto (compras + ventas) + score proveedor baja</td></tr>
+      <tr><td>Despido/retiro empleado</td><td>Liquidacion + GastoOperativo + AsientoContable inmediato</td></tr>
+      <tr><td>Nomina sin cerrar dia 5</td><td>Ticket automatico al administrador</td></tr>
+      <tr><td>Documento firmado en portal</td><td>Notificacion al admin + badge "firmado" en registro</td></tr>
+      <tr><td>Upload CSV banco</td><td>Auto-match por monto (+-$1) y fecha (+-3 dias)</td></tr>
+    </tbody>
+  </table>
+</div>
+
+{# ══════════════════════════ CONTABILIDAD ══════════════════════════ #}
+<div class="wiki-section">
+  <div class="wiki-h2"><i class="bi bi-calculator" style="color:var(--green)"></i>Contabilidad colombiana</div>
+  <p class="wiki-p">El sistema usa el <strong>Plan Unico de Cuentas (PUC)</strong> con 102 cuentas configuradas segun el Decreto 2650/1993. Partida doble con LineaAsiento vinculadas a CuentaPUC.</p>
+
+  <div class="wiki-h3">Cuentas PUC principales</div>
+  <table class="wiki-table">
+    <thead><tr><th>Codigo</th><th>Cuenta</th><th>Uso</th></tr></thead>
+    <tbody>
+      <tr><td>1305</td><td>Clientes</td><td>Cuentas por cobrar (ventas)</td></tr>
+      <tr><td>1405</td><td>Inventarios MP</td><td>Compras de materia prima</td></tr>
+      <tr><td>1110</td><td>Bancos</td><td>Pagos y cobros</td></tr>
+      <tr><td>220505</td><td>Proveedores nacionales</td><td>Cuentas por pagar (OC)</td></tr>
+      <tr><td>4135</td><td>Comercio por mayor/menor</td><td>Ingresos por ventas</td></tr>
+      <tr><td>5105</td><td>Gastos de personal</td><td>Nomina</td></tr>
+    </tbody>
+  </table>
+
+  <div class="wiki-h3">Reportes disponibles</div>
+  <div class="wiki-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">
+    <div class="wiki-card"><h4><i class="bi bi-table"></i>Balance de Prueba</h4><p>Sumas y saldos por cuenta</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-bank2"></i>Balance General</h4><p>Activos = Pasivos + Patrimonio</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-graph-up-arrow"></i>Estado de Resultados</h4><p>Ingresos - Gastos = Utilidad</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-percent"></i>IVA</h4><p>Generado vs descontable</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-scissors"></i>Retenciones</h4><p>En la fuente por tercero</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-person-lines-fill"></i>Libro Auxiliar</h4><p>Por tercero con saldo</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-bank"></i>Reconciliacion</h4><p>CSV banco vs asientos</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-file-earmark-pdf"></i>Caja Chica</h4><p>Comprobante PDF</p></div>
+  </div>
+</div>
+
+{# ══════════════════════════ NOMINA ══════════════════════════ #}
+<div class="wiki-section">
+  <div class="wiki-h2"><i class="bi bi-people-fill" style="color:#EC4899"></i>Nomina colombiana</div>
+  <table class="wiki-table">
+    <thead><tr><th>Concepto</th><th>Base legal</th><th>Calculo</th></tr></thead>
+    <tbody>
+      <tr><td>Salud empleado</td><td>Ley 100/1993</td><td>4% del salario</td></tr>
+      <tr><td>Pension empleado</td><td>Ley 100/1993</td><td>4% del salario</td></tr>
+      <tr><td>Salud empleador</td><td>Ley 100/1993</td><td>8.5% del salario</td></tr>
+      <tr><td>Pension empleador</td><td>Ley 100/1993</td><td>12% del salario</td></tr>
+      <tr><td>ARL</td><td>Decreto 1295/1994</td><td>0.522% - 6.96% segun nivel</td></tr>
+      <tr><td>Caja compensacion</td><td>Ley 21/1982</td><td>4%</td></tr>
+      <tr><td>SENA</td><td>Ley 21/1982</td><td>2%</td></tr>
+      <tr><td>ICBF</td><td>Ley 89/1988</td><td>3%</td></tr>
+      <tr><td>Cesantias</td><td>Ley 50/1990</td><td>1 salario/ano (8.33%)</td></tr>
+      <tr><td>Intereses cesantias</td><td>Ley 52/1975</td><td>12% anual sobre cesantias</td></tr>
+      <tr><td>Prima de servicios</td><td>Art. 306 CST</td><td>1 salario/ano (8.33%)</td></tr>
+      <tr><td>Vacaciones</td><td>Art. 186 CST</td><td>15 dias/ano (4.17%)</td></tr>
+      <tr><td>Retencion fuente</td><td>Art. 383 ET</td><td>Tabla UVT progresiva</td></tr>
+      <tr><td>Fondo solidaridad</td><td>Ley 797/2003</td><td>1% si > 4 SMLMV</td></tr>
+      <tr><td>Hora extra diurna</td><td>Art. 168 CST</td><td>+25%</td></tr>
+      <tr><td>Hora extra nocturna</td><td>Art. 168 CST</td><td>+75%</td></tr>
+      <tr><td>Dominical/festivo diurna</td><td>Art. 171 CST</td><td>+100%</td></tr>
+      <tr><td>Dominical/festivo nocturna</td><td>Art. 171 CST</td><td>+150%</td></tr>
+    </tbody>
+  </table>
+  <p class="wiki-p"><strong>Parametros editables:</strong> SMLMV, auxilio transporte, y todas las tasas se pueden modificar desde Nomina → Parametros sin tocar codigo.</p>
+</div>
+
+{# ══════════════════════════ LEGAL ══════════════════════════ #}
+<div class="wiki-section">
+  <div class="wiki-h2"><i class="bi bi-shield-check" style="color:#0EA5E9"></i>Documentos legales</div>
+  <div class="wiki-h3">9 plantillas colombianas</div>
+  <table class="wiki-table">
+    <thead><tr><th>Plantilla</th><th>Clausulas</th><th>Leyes principales</th></tr></thead>
+    <tbody>
+      <tr><td>Contrato indefinido</td><td>11</td><td>CST Art. 23/47/62/77/78, Ley 100/1993, Ley 2101/2021</td></tr>
+      <tr><td>Contrato fijo</td><td>12</td><td>CST Art. 46/78, Ley 2101/2021, Ley 100/1993</td></tr>
+      <tr><td>Prestacion servicios</td><td>18</td><td>CST Art. 34, C.Co Art. 884, Ley 1563/2012</td></tr>
+      <tr><td>Contrato cliente (maquila)</td><td>22</td><td>C.Civil Art. 1592/1604, C.Co Art. 884, Ley 1480/2011</td></tr>
+      <tr><td>Contrato proveedor</td><td>12</td><td>C.Co Art. 968-980, Decreto 358/2020, Ley 1563/2012</td></tr>
+      <tr><td>NDA</td><td>10</td><td>Ley 256/1996, Decision 486 CAN, C.Civil Art. 1600</td></tr>
+      <tr><td>Acta de entrega</td><td>11</td><td>Ley comercial general</td></tr>
+      <tr><td>Carta terminacion</td><td>6</td><td>CST Art. 57/61/62/64</td></tr>
+      <tr><td>Autorizacion datos</td><td>6</td><td>Ley 1581/2012, Decreto 1377/2013</td></tr>
+    </tbody>
+  </table>
+  <p class="wiki-p"><strong>Firma digital:</strong> Canvas para dibujar firma + captura de selfie con camara frontal. Comprimido JPEG ~50KB. Validez legal segun Ley 527/1999 y Decreto 2364/2012. Se sugiere firmar desde movil.</p>
+</div>
+
+{# ══════════════════════════ ATAJOS ══════════════════════════ #}
+<div class="wiki-section">
+  <div class="wiki-h2"><i class="bi bi-keyboard" style="color:var(--orange)"></i>Atajos y tips</div>
   <div class="wiki-grid">
-    <div class="wiki-card"><h4><i class="bi bi-menu-button-wide"></i>Dock</h4><p>Hover en iconos muestra nombre. Click abre submenu. Boton hamburguesa expande el menu completo.</p></div>
-    <div class="wiki-card"><h4><i class="bi bi-window-stack"></i>Pestanas</h4><p>Click en submenu abre pestanas. Puedes tener multiples modulos abiertos simultaneamente.</p></div>
-    <div class="wiki-card"><h4><i class="bi bi-search"></i>Buscador</h4><p>Busca en todo el CRM: clientes, ventas, productos, OC, documentos.</p></div>
-    <div class="wiki-card"><h4><i class="bi bi-sun"></i>Tema</h4><p>Alterna entre modo claro y oscuro desde el topbar.</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-menu-button-wide"></i>Dock</h4><p>Hover muestra nombre. Click abre modulo. Mantener click abre submenu con accesos directos.</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-window-stack"></i>Pestanas</h4><p>Click en submenu abre pestanas. Multiples modulos abiertos simultaneamente como pestanas de navegador.</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-search"></i>Buscador</h4><p>Icono lupa en el dock. Busca en todo: clientes, ventas, productos, OC, documentos, empleados.</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-sun"></i>Tema</h4><p>Boton sol/luna en topbar. Cambia entre modo claro y oscuro. Se propaga a pestanas abiertas.</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-download"></i>Export CSV</h4><p>Boton "Exportar" en ventas, clientes, produccion, asientos y empleados. Descarga archivo CSV.</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-phone"></i>Movil</h4><p>Boton hamburguesa abre menu lateral. Portal tiene barra de navegacion inferior. Firma de documentos optimizada para touch.</p></div>
   </div>
 </div>
 
