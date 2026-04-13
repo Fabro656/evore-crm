@@ -1,26 +1,22 @@
-// Evore CRM — Service Worker v1
-const CACHE_NAME = 'evore-v1';
+// Evore CRM — Service Worker v2
+const CACHE_NAME = 'evore-v2';
 const OFFLINE_URL = '/offline';
 
-// Assets to precache on install
 const PRECACHE = [
+  '/offline',
   '/static/img/evore-horizontal.svg',
   '/static/img/evore-vertical.svg',
-  'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css',
-  'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css',
-  'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js',
+  '/static/img/icon-192.png',
 ];
 
-// Install: precache shell assets
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(PRECACHE).catch(() => {});
-    }).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(PRECACHE).catch(() => {}))
+      .then(() => self.skipWaiting())
   );
 });
 
-// Activate: clean old caches
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
@@ -29,44 +25,68 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Fetch: network-first for HTML, cache-first for static assets
 self.addEventListener('fetch', event => {
+  // Only handle GET
+  if (event.request.method !== 'GET') return;
+
   const url = new URL(event.request.url);
 
-  // Skip non-GET and API calls
-  if (event.request.method !== 'GET') return;
+  // Skip API, auth endpoints, and CSRF-dependent routes
   if (url.pathname.startsWith('/api/')) return;
+  if (url.pathname === '/cambiar-rol') return;
 
-  // Static assets: cache-first
-  if (url.pathname.startsWith('/static/') || url.hostname === 'cdn.jsdelivr.net') {
+  // CDN assets: cache-first
+  if (url.hostname === 'cdn.jsdelivr.net') {
     event.respondWith(
       caches.match(event.request).then(cached => {
         if (cached) return cached;
-        return fetch(event.request).then(response => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        return fetch(event.request).then(resp => {
+          if (resp.ok) {
+            const clone = resp.clone();
+            caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
           }
-          return response;
-        });
+          return resp;
+        }).catch(() => caches.match(event.request));
       })
     );
     return;
   }
 
-  // HTML pages: network-first with offline fallback
-  if (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html')) {
+  // Static assets: cache-first
+  if (url.pathname.startsWith('/static/')) {
     event.respondWith(
-      fetch(event.request).catch(() => {
-        return caches.match(OFFLINE_URL) || new Response(
-          '<html><body style="font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;background:#0F172A;color:#fff;flex-direction:column">' +
-          '<h1 style="font-size:2rem;margin-bottom:1rem">Evore CRM</h1>' +
-          '<p style="color:#9CA3B4">Sin conexion. Verifica tu internet e intenta de nuevo.</p>' +
-          '<button onclick="location.reload()" style="margin-top:1rem;padding:8px 24px;background:#0176D3;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:1rem">Reintentar</button>' +
-          '</body></html>',
-          { headers: { 'Content-Type': 'text/html' } }
-        );
+      caches.match(event.request).then(cached => {
+        if (cached) return cached;
+        return fetch(event.request).then(resp => {
+          if (resp.ok) {
+            const clone = resp.clone();
+            caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+          }
+          return resp;
+        }).catch(() => new Response('', { status: 408 }));
       })
+    );
+    return;
+  }
+
+  // HTML pages: network-first, offline fallback
+  if (event.request.headers.get('accept') &&
+      event.request.headers.get('accept').includes('text/html')) {
+    event.respondWith(
+      fetch(event.request)
+        .then(resp => {
+          // Cache successful HTML responses for faster back-navigation
+          if (resp.ok && !url.pathname.includes('logout')) {
+            const clone = resp.clone();
+            caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+          }
+          return resp;
+        })
+        .catch(() => {
+          // Try cached version first, then offline page
+          return caches.match(event.request)
+            .then(cached => cached || caches.match(OFFLINE_URL));
+        })
     );
     return;
   }

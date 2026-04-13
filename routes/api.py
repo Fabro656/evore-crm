@@ -66,6 +66,14 @@ def register(app):
         """Railway healthcheck — must respond fast without DB queries."""
         return 'OK', 200
 
+    @app.route('/sw.js')
+    def service_worker():
+        """Serve SW from root scope so it can intercept all routes."""
+        resp = make_response(send_file('static/sw.js', mimetype='application/javascript', max_age=0))
+        resp.headers['Service-Worker-Allowed'] = '/'
+        resp.headers['Cache-Control'] = 'no-cache'
+        return resp
+
     @app.route('/offline')
     def offline_page():
         return '''<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
