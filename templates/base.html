@@ -1569,13 +1569,8 @@ function cerrarOnboarding(){
 /* Initialize step 0 on page load */
 document.addEventListener('DOMContentLoaded',function(){ try{ goStep(0); }catch(e){} });
 </script>
-{% if session.pop('show_onboarding_once', False) and not current_user.onboarding_dismissed %}
-<script>
-document.addEventListener('DOMContentLoaded',function(){
-  setTimeout(function(){ if(window.iniciarObContextual) iniciarObContextual(); },1200);
-});
-</script>
-{% endif %}
+{# Onboarding auto-launch desactivado — el checklist interactivo del dashboard es el onboarding principal #}
+{% if session.pop('show_onboarding_once', False) %}{% endif %}
 
 {# ── Onboarding contextual: tooltips junto a iconos del dock ── #}
 <div id="obCtx" style="display:none">
