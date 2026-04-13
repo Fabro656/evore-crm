@@ -890,12 +890,12 @@ def register(app):
                 sp.rollback()
 
         try:
-            # ── Nivel 6: líneas contables y asociaciones ──
+            # ── Nivel 7: líneas contables y asociaciones ──
             _safe_delete('DELETE FROM lineas_asiento')
             _safe_delete('DELETE FROM tarea_asignados')
             _safe_delete('DELETE FROM tarea_comentarios')
             _safe_delete('DELETE FROM pagos_venta')
-            # ── Nivel 5: ítems de documentos ──
+            # ── Nivel 6: ítems de documentos ──
             _safe_delete('DELETE FROM reservas_produccion')
             _safe_delete('DELETE FROM cotizacion_items')
             _safe_delete('DELETE FROM pre_cotizacion_items')
@@ -904,7 +904,17 @@ def register(app):
             _safe_delete('DELETE FROM materia_prima_productos')
             _safe_delete('DELETE FROM receta_items')
             _safe_delete('DELETE FROM marcas_producto')
-            # ── Nivel 4: entidades dependientes ──
+            _safe_delete('DELETE FROM historial_precios')
+            _safe_delete('DELETE FROM historial_cotizaciones')
+            # ── Nivel 5: entidades dependientes de empleados ──
+            _safe_delete('DELETE FROM horas_extra')
+            _safe_delete('DELETE FROM vacaciones_tomadas')
+            _safe_delete('DELETE FROM incapacidades')
+            # ── Nivel 4: entidades dependientes de asientos/contable ──
+            _safe_delete('DELETE FROM movimientos_bancarios')
+            _safe_delete('DELETE FROM notas_contables')
+            _safe_delete('DELETE FROM movimientos_inventario')
+            _safe_delete('DELETE FROM comisiones')
             _safe_delete('DELETE FROM ordenes_produccion')
             _safe_delete('DELETE FROM lotes_materia_prima')
             _safe_delete('DELETE FROM lotes_producto')
@@ -913,6 +923,7 @@ def register(app):
             _safe_delete('DELETE FROM cotizaciones_granel')
             _safe_delete('DELETE FROM empaques_secundarios')
             _safe_delete('DELETE FROM aprobaciones')
+            _safe_delete('DELETE FROM requisiciones')
             _safe_delete('DELETE FROM asientos_contables')
             _safe_delete('DELETE FROM tareas')
             _safe_delete('DELETE FROM eventos')
@@ -939,7 +950,7 @@ def register(app):
             # ── Nivel 1: sesiones (limpiar todo) ──
             _safe_delete('DELETE FROM user_sesiones')
             # ── Resetear usuarios (mantener cuentas, limpiar estado) ──
-            _safe_delete('UPDATE users SET onboarding_dismissed = 0, onboarding_step = 0, onboarding_role_config = \'{}\'')
+            _safe_delete("UPDATE users SET cliente_id = NULL, proveedor_id = NULL, onboarding_dismissed = 0, onboarding_step = 0, onboarding_role_config = '{}'")
             db.session.commit()
             logging.warning(f'RESET TOTAL ejecutado por user_id={current_user.id} ({current_user.email})')
             flash('Reset completo. Todos los datos borrados, usuarios conservados en cero.', 'success')

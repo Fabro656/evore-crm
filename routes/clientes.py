@@ -166,6 +166,27 @@ def register(app):
         if current_user.rol != 'admin':
             flash('Solo administradores pueden eliminar registros.', 'danger')
             return redirect(request.referrer or url_for('dashboard'))
-        obj=Cliente.query.get_or_404(id); db.session.delete(obj); db.session.commit()
-        flash('Cliente eliminado.','info'); return redirect(url_for('clientes'))
+        obj = Cliente.query.get_or_404(id)
+        nombre = obj.empresa or obj.nombre
+        try:
+            # Desvincular entidades que referencian este cliente (nullificar FK)
+            Venta.query.filter_by(cliente_id=id).update({'cliente_id': None})
+            Cotizacion.query.filter_by(cliente_id=id).update({'cliente_id': None})
+            Nota.query.filter_by(cliente_id=id).update({'cliente_id': None})
+            DocumentoLegal.query.filter_by(cliente_id=id).update({'cliente_id': None})
+            User.query.filter_by(cliente_id=id).update({'cliente_id': None})
+            PreCotizacion.query.filter_by(cliente_id=id).delete()
+            Comision.query.filter(Comision.venta_id.in_(
+                db.session.query(Venta.id).filter_by(cliente_id=id)
+            )).delete(synchronize_session=False)
+            # Contactos se borran por cascade (delete-orphan)
+            db.session.delete(obj)
+            _log('eliminar', 'cliente', id, f'Cliente eliminado: {nombre}')
+            db.session.commit()
+            flash(f'Cliente "{nombre}" eliminado.', 'info')
+        except Exception as e:
+            db.session.rollback()
+            logging.error(f'Error eliminando cliente {id}: {e}')
+            flash(f'Error al eliminar: {e}', 'danger')
+        return redirect(url_for('clientes'))
     

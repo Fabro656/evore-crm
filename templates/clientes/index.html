@@ -1,6 +1,9 @@
 {% extends 'base.html' %}
 {% block title %}Clientes{% endblock %}{% block page_title %}Clientes{% endblock %}
-{% block topbar_actions %}<a href="{{ url_for('cliente_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo</a>{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('clientes_export_csv') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i>CSV</a>
+<a href="{{ url_for('cliente_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo</a>
+{% endblock %}
 {% block content %}
 <div class="tc mb-3"><div class="p-3"><form method="GET" class="row g-2 align-items-end">
   <div class="col-sm-4"><input type="text" name="buscar" class="form-control form-control-sm" placeholder="Nombre, empresa, NIT..." value="{{ busqueda }}"></div>
@@ -15,30 +18,34 @@
   </div>
 </form></div></div>
 <div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-people-fill me-2"></i>{{ items|length }} cliente(s)</div>
-{% if items %}<div class="table-responsive" style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface)"><table class="table">
-  <thead><tr><th>Empresa</th><th>NIT</th><th>Relación</th><th>Contacto principal</th><th>Alta</th><th></th></tr></thead>
+{% if items %}
+<div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%">
+<table class="table" style="width:100%;min-width:700px;margin:0">
+  <thead><tr>
+    <th style="min-width:200px">Empresa</th>
+    <th style="min-width:100px">NIT</th>
+    <th style="min-width:120px">Relacion</th>
+    <th style="min-width:180px">Contacto principal</th>
+    <th style="min-width:90px">Alta</th>
+    <th style="width:100px"></th>
+  </tr></thead>
   <tbody>{% for c in items %}<tr>
     <td><a href="{{ url_for('cliente_ver', id=c.id) }}" class="fw-semibold text-decoration-none" style="color:var(--text)">{{ c.empresa or c.nombre }}</a>
-      {% if c.empresa %}<div><small class="text-muted">{{ c.nombre }}</small></div>{% endif %}</td>
+      {% if c.empresa and c.nombre != c.empresa %}<div><small class="text-muted">{{ c.nombre }}</small></div>{% endif %}</td>
     <td><small class="text-muted">{{ c.nit or '—' }}</small></td>
     <td><span class="b b-{{ c.estado_relacion }}">{{ c.estado_relacion.replace('_',' ').title() }}</span></td>
-    <td>{% if c.contactos %}<small>{{ c.contactos[0].nombre }}{% if c.contactos[0].cargo %} · {{ c.contactos[0].cargo }}{% endif %}</small>{% else %}—{% endif %}</td>
+    <td>{% if c.contactos %}<small>{{ c.contactos[0].nombre }}{% if c.contactos[0].cargo %} · {{ c.contactos[0].cargo }}{% endif %}{% if c.contactos[0].email %}<br><span class="text-muted">{{ c.contactos[0].email }}</span>{% endif %}</small>{% else %}—{% endif %}</td>
     <td><small class="text-muted">{{ c.creado_en.strftime('%d/%m/%Y') }}</small></td>
-    <td><div class="dropdown">
-      <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.78rem">
-        <i class="bi bi-three-dots me-1"></i>Acciones
-      </button>
-      <ul class="dropdown-menu dropdown-menu-end" style="font-size:.83rem;min-width:180px">
-        <li><a class="dropdown-item" href="{{ url_for('cliente_ver', id=c.id) }}"><i class="bi bi-eye me-2 text-primary"></i>Ver</a></li>
-        <li><a class="dropdown-item" href="{{ url_for('cliente_editar', id=c.id) }}"><i class="bi bi-pencil me-2 text-secondary"></i>Editar</a></li>
-        <li><hr class="dropdown-divider"></li>
-        <li><form method="POST" action="{{ url_for('cliente_eliminar', id=c.id) }}" onsubmit="return confirm('¿Eliminar?')" class="px-0 m-0">
-          <button class="dropdown-item text-danger" type="submit"><i class="bi bi-trash me-2"></i>Eliminar</button>
-        </form></li>
-      </ul>
+    <td><div class="d-flex gap-1 justify-content-end">
+      <a href="{{ url_for('cliente_ver', id=c.id) }}" class="btn btn-sm btn-outline-primary" style="font-size:.72rem;padding:2px 8px" title="Ver"><i class="bi bi-eye"></i></a>
+      <a href="{{ url_for('cliente_editar', id=c.id) }}" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;padding:2px 8px" title="Editar"><i class="bi bi-pencil"></i></a>
+      <form method="POST" action="{{ url_for('cliente_eliminar', id=c.id) }}" onsubmit="return confirm('¿Eliminar cliente {{ c.empresa or c.nombre }}? Se desvincularan ventas, cotizaciones y documentos asociados.')" class="m-0">
+        <button class="btn btn-sm btn-outline-danger" type="submit" style="font-size:.72rem;padding:2px 8px" title="Eliminar"><i class="bi bi-trash"></i></button>
+      </form>
     </div></td>
   </tr>{% endfor %}</tbody>
-</table></div>
+</table>
+</div>
 {% else %}<div class="text-center text-muted py-5"><i class="bi bi-people" style="font-size:3rem"></i>
   <p class="mt-3">Sin clientes.</p><a href="{{ url_for('cliente_nuevo') }}" class="btn btn-primary">Agregar</a></div>
 {% endif %}{% endblock %}
