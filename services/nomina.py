@@ -37,7 +37,23 @@ class NominaService:
         elif salario_completo > 4 * SMLMV_2025:
             fondo_solidaridad = round(salario * 0.01)
 
-        total_deducciones = deduccion_salud + deduccion_pension + fondo_solidaridad
+        # Retencion en la fuente por renta (Art. 383 ET)
+        UVT_2025 = 49799
+        retencion_fuente = 0
+        if salario_completo > 0:
+            # Base gravable: salario - aportes obligatorios (salud+pension)
+            base_gravable = salario_completo - deduccion_salud - deduccion_pension
+            base_uvt = base_gravable / UVT_2025
+            # Tabla retencion (Art. 383 ET simplificada)
+            if base_uvt > 360:
+                retencion_fuente = round((base_gravable - 360*UVT_2025) * 0.33 + 69.21*UVT_2025)
+            elif base_uvt > 150:
+                retencion_fuente = round((base_gravable - 150*UVT_2025) * 0.28)
+            elif base_uvt > 95:
+                retencion_fuente = round((base_gravable - 95*UVT_2025) * 0.19)
+            retencion_fuente = round(max(0, retencion_fuente) * factor)
+
+        total_deducciones = deduccion_salud + deduccion_pension + fondo_solidaridad + retencion_fuente
         salario_neto = salario + aux_transporte - total_deducciones
 
         aporte_salud_empr   = round(salario * TASA_SALUD_EMPR)
@@ -68,6 +84,7 @@ class NominaService:
             'deduccion_salud': deduccion_salud,
             'deduccion_pension': deduccion_pension,
             'fondo_solidaridad': fondo_solidaridad,
+            'retencion_fuente': retencion_fuente,
             'total_deducciones': total_deducciones,
             'salario_neto': salario_neto,
             'aporte_salud_empr': aporte_salud_empr,

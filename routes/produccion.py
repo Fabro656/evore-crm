@@ -121,7 +121,13 @@ def register(app):
             try:
                 mp = db.session.get(MateriaPrima, obj.materia_id)
                 if mp:
-                    mp.stock_disponible = float(mp.stock_disponible or 0) + cant_recibida
+                    stock_antes = float(mp.stock_disponible or 0)
+                    mp.stock_disponible = stock_antes + cant_recibida
+                    _registrar_movimiento(
+                        materia_prima_id=mp.id, tipo='ingreso', cantidad=cant_recibida,
+                        stock_anterior=stock_antes, stock_posterior=mp.stock_disponible,
+                        referencia=f'Recepcion OC {obj.orden_compra.numero if obj.orden_compra else "manual"}',
+                        usuario_id=current_user.id)
                     # Crear lote de trazabilidad
                     lote = LoteMateriaPrima(
                         materia_prima_id=mp.id,
@@ -136,6 +142,10 @@ def register(app):
                     db.session.add(lote)
             except Exception as ex:
                 logging.warning(f'compra_recibir: auto-stock error: {ex}')
+
+        # Actualizar score del proveedor
+        if obj.proveedor_id:
+            _actualizar_score_proveedor(obj.proveedor_id)
 
         db.session.commit()
         flash(f'Recepcion de "{obj.nombre_item}" registrada. Stock actualizado.', 'success')
@@ -220,6 +230,10 @@ def register(app):
                         # Marcar en la venta que hay un problema
                         # Reabrir la OC para que se solicite reemplazo
                         oc.estado = 'en_espera_producto'  # reabrir
+
+        # Actualizar score proveedor (penalizar calidad)
+        if oc and oc.proveedor_id:
+            _actualizar_score_proveedor(oc.proveedor_id)
 
         db.session.commit()
         msg = f'Problema de calidad reportado para "{obj.nombre_item}". Tickets creados.'

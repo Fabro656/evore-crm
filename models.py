@@ -132,7 +132,14 @@ class Proveedor(db.Model):
     capacidad_vehiculo_kg = db.Column(db.Float, default=0)  # Max kg for transport
     capacidad_vehiculo_m3 = db.Column(db.Float, default=0)  # Max volume for transport
     tipo_vehiculo = db.Column(db.String(50))  # camion, furgon, van, moto
-    envia_material = db.Column(db.Boolean, default=True)  # Does this supplier deliver to us?
+    envia_material = db.Column(db.Boolean, default=True)
+    # Evaluacion de proveedor
+    score_calidad   = db.Column(db.Float, default=5.0)   # 1-10
+    score_entrega   = db.Column(db.Float, default=5.0)   # 1-10
+    score_precio    = db.Column(db.Float, default=5.0)   # 1-10
+    total_oc        = db.Column(db.Integer, default=0)    # OC totales
+    total_rechazos  = db.Column(db.Integer, default=0)    # rechazos calidad
+    deleted_at      = db.Column(db.DateTime, nullable=True)  # soft delete
     creado_en  = db.Column(db.DateTime, default=datetime.utcnow)
     es_demo    = db.Column(db.Boolean, default=False)
 
@@ -513,6 +520,21 @@ class ReglaTributaria(db.Model):
     proveedor_nombre = db.Column(db.String(200))
     activo           = db.Column(db.Boolean, default=True)
     creado_en        = db.Column(db.DateTime, default=datetime.utcnow)
+
+class MovimientoInventario(db.Model):
+    """Audit trail de todos los movimientos de stock."""
+    __tablename__ = 'movimientos_inventario'
+    id              = db.Column(db.Integer, primary_key=True)
+    producto_id     = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=True)
+    materia_prima_id= db.Column(db.Integer, db.ForeignKey('materias_primas.id'), nullable=True)
+    tipo            = db.Column(db.String(30), nullable=False)  # ingreso, egreso, reserva, liberacion, ajuste
+    cantidad        = db.Column(db.Float, default=0)
+    stock_anterior  = db.Column(db.Float, default=0)
+    stock_posterior = db.Column(db.Float, default=0)
+    referencia      = db.Column(db.String(200))  # "Venta VNT-2026-001", "OC OC-2026-003"
+    usuario_id      = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 class GastoOperativo(db.Model):
     __tablename__ = 'gastos_operativos'
@@ -1274,6 +1296,22 @@ def _migrate(conn):
         ("ALTER TABLE aprobaciones ADD COLUMN cotizacion_id INTEGER REFERENCES cotizaciones(id)"),
         ("ALTER TABLE aprobaciones ADD COLUMN IF NOT EXISTS asiento_id INTEGER REFERENCES asientos_contables(id)"),
         ("ALTER TABLE aprobaciones ADD COLUMN asiento_id INTEGER REFERENCES asientos_contables(id)"),
+        # v39 — MovimientoInventario table
+        ("CREATE TABLE IF NOT EXISTS movimientos_inventario (id SERIAL PRIMARY KEY, producto_id INTEGER REFERENCES productos(id), materia_prima_id INTEGER REFERENCES materias_primas(id), tipo VARCHAR(30) NOT NULL, cantidad FLOAT DEFAULT 0, stock_anterior FLOAT DEFAULT 0, stock_posterior FLOAT DEFAULT 0, referencia VARCHAR(200), usuario_id INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
+        ("CREATE TABLE IF NOT EXISTS movimientos_inventario (id INTEGER PRIMARY KEY AUTOINCREMENT, producto_id INTEGER REFERENCES productos(id), materia_prima_id INTEGER REFERENCES materias_primas(id), tipo VARCHAR(30) NOT NULL, cantidad FLOAT DEFAULT 0, stock_anterior FLOAT DEFAULT 0, stock_posterior FLOAT DEFAULT 0, referencia VARCHAR(200), usuario_id INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"),
+        # v39 — Proveedor evaluacion + soft delete
+        ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS score_calidad FLOAT DEFAULT 5.0"),
+        ("ALTER TABLE proveedores ADD COLUMN score_calidad FLOAT DEFAULT 5.0"),
+        ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS score_entrega FLOAT DEFAULT 5.0"),
+        ("ALTER TABLE proveedores ADD COLUMN score_entrega FLOAT DEFAULT 5.0"),
+        ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS score_precio FLOAT DEFAULT 5.0"),
+        ("ALTER TABLE proveedores ADD COLUMN score_precio FLOAT DEFAULT 5.0"),
+        ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS total_oc INTEGER DEFAULT 0"),
+        ("ALTER TABLE proveedores ADD COLUMN total_oc INTEGER DEFAULT 0"),
+        ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS total_rechazos INTEGER DEFAULT 0"),
+        ("ALTER TABLE proveedores ADD COLUMN total_rechazos INTEGER DEFAULT 0"),
+        ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP"),
+        ("ALTER TABLE proveedores ADD COLUMN deleted_at TIMESTAMP"),
         # v38 — Venta: transportista y enviado
         ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS transportista_id INTEGER REFERENCES proveedores(id)"),
         ("ALTER TABLE ventas ADD COLUMN transportista_id INTEGER REFERENCES proveedores(id)"),

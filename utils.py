@@ -22,7 +22,7 @@ __all__ = [
     '_oc_save_items', '_prods_json', '_save_items', '_save_asignados',
     '_inv_form_ctx', '_save_compra', '_make_xlsx',
     '_procesar_orden_produccion', '_procesar_venta_produccion',
-    '_modulos_user', 'register_app_hooks',
+    '_modulos_user', 'register_app_hooks', '_registrar_movimiento', '_actualizar_score_proveedor',
     '_calcular_costo_receta', '_precio_minimo_venta',
     'ONBOARDING_STEPS',
 ]
@@ -313,6 +313,46 @@ _PUC_MAP = {
     'Proveedores nacionales': '220505 Nacionales',
     'Gastos Nomina': '510506 Sueldos',
 }
+
+def _registrar_movimiento(producto_id=None, materia_prima_id=None, tipo='ajuste',
+                          cantidad=0, stock_anterior=0, stock_posterior=0, referencia='', usuario_id=None):
+    """Registra un movimiento de inventario en el audit trail."""
+    try:
+        from models import MovimientoInventario
+        mov = MovimientoInventario(
+            producto_id=producto_id, materia_prima_id=materia_prima_id,
+            tipo=tipo, cantidad=cantidad,
+            stock_anterior=stock_anterior, stock_posterior=stock_posterior,
+            referencia=referencia, usuario_id=usuario_id
+        )
+        db.session.add(mov)
+    except Exception as e:
+        import logging
+        logging.warning(f'_registrar_movimiento error: {e}')
+
+
+def _actualizar_score_proveedor(proveedor_id):
+    """Recalcula score del proveedor basado en historial de OC."""
+    try:
+        from models import Proveedor, OrdenCompra
+        prov = db.session.get(Proveedor, proveedor_id)
+        if not prov: return
+        ocs = OrdenCompra.query.filter_by(proveedor_id=proveedor_id).all()
+        prov.total_oc = len(ocs)
+        # Score entrega: % de OC recibidas a tiempo
+        recibidas = [oc for oc in ocs if oc.estado == 'recibida']
+        if recibidas:
+            a_tiempo = sum(1 for oc in recibidas if oc.fecha_esperada and oc.fecha_emision and
+                          (oc.fecha_esperada >= oc.fecha_emision))
+            prov.score_entrega = round(min(10, (a_tiempo / len(recibidas)) * 10), 1)
+        # Score calidad: penalizar por rechazos
+        rechazos = sum(1 for oc in ocs if oc.tiene_problema_calidad)
+        prov.total_rechazos = rechazos
+        if ocs:
+            prov.score_calidad = round(max(1, 10 - (rechazos / len(ocs)) * 10), 1)
+    except Exception:
+        pass
+
 
 def _resolver_puc(cuenta_texto):
     """Resuelve texto de cuenta a codigo PUC si existe mapeo."""

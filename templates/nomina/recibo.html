@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Recibo de Pago — {{ empleado.nombre }} {{ empleado.apellido }}</title>
+  <style>
+    @page { size: letter; margin: 2cm; }
+    @media print { .no-print { display: none !important; } }
+    body { font-family: Arial, sans-serif; font-size: 11px; color: #333; }
+    .header { display: flex; justify-content: space-between; border-bottom: 2px solid #333; padding-bottom: 8px; margin-bottom: 12px; }
+    .empresa { font-size: 16px; font-weight: bold; }
+    .titulo { text-align: center; font-size: 14px; font-weight: bold; margin: 10px 0; text-transform: uppercase; letter-spacing: 1px; }
+    table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+    td, th { padding: 5px 8px; border: 1px solid #ccc; }
+    th { background: #f5f5f5; text-align: left; font-size: 10px; text-transform: uppercase; }
+    .section-title { background: #1a1f36; color: #fff; padding: 5px 10px; font-weight: bold; font-size: 11px; }
+    .total-row { background: #f0f4ff; font-weight: bold; }
+    .monto { text-align: right; }
+    .firmas { display: flex; justify-content: space-between; margin-top: 40px; }
+    .firma { width: 40%; text-align: center; border-top: 1px solid #333; padding-top: 5px; font-size: 10px; }
+    .btn-print { position: fixed; top: 10px; right: 10px; background: #0176D3; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <button class="btn-print no-print" onclick="window.print()">Imprimir</button>
+
+  <div class="header">
+    <div>
+      <div class="empresa">{{ empresa.nombre if empresa else 'Empresa' }}</div>
+      {% if empresa and empresa.nit %}<div>NIT: {{ empresa.nit }}</div>{% endif %}
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:10px;color:#666">COMPROBANTE DE NOMINA</div>
+      <div>Periodo: {{ periodo }}</div>
+    </div>
+  </div>
+
+  <table>
+    <tr><td style="width:25%"><strong>Empleado:</strong></td><td>{{ empleado.nombre }} {{ empleado.apellido }}</td>
+        <td style="width:25%"><strong>Cedula:</strong></td><td>{{ empleado.cedula or 'N/D' }}</td></tr>
+    <tr><td><strong>Cargo:</strong></td><td>{{ empleado.cargo or 'N/D' }}</td>
+        <td><strong>Departamento:</strong></td><td>{{ empleado.departamento or 'N/D' }}</td></tr>
+    <tr><td><strong>Tipo contrato:</strong></td><td>{{ empleado.tipo_contrato }}</td>
+        <td><strong>Fecha ingreso:</strong></td><td>{{ empleado.fecha_ingreso.strftime('%d/%m/%Y') if empleado.fecha_ingreso else 'N/D' }}</td></tr>
+    <tr><td><strong>Dias trabajados:</strong></td><td>{{ calc.dias_trabajados }} de {{ calc.dias_mes }}</td>
+        <td><strong>Nivel ARL:</strong></td><td>{{ empleado.nivel_riesgo_arl }}</td></tr>
+  </table>
+
+  <div class="section-title">DEVENGADOS</div>
+  <table>
+    <tr><th>Concepto</th><th class="monto">Valor</th></tr>
+    <tr><td>Salario basico ({{ calc.dias_trabajados }} dias)</td><td class="monto">$ {{ '{:,.0f}'.format(calc.salario) }}</td></tr>
+    <tr><td>Auxilio de transporte</td><td class="monto">$ {{ '{:,.0f}'.format(calc.aux_transporte) }}</td></tr>
+    <tr class="total-row"><td><strong>TOTAL DEVENGADO</strong></td><td class="monto"><strong>$ {{ '{:,.0f}'.format(calc.salario + calc.aux_transporte) }}</strong></td></tr>
+  </table>
+
+  <div class="section-title">DEDUCCIONES</div>
+  <table>
+    <tr><th>Concepto</th><th class="monto">Valor</th></tr>
+    <tr><td>Salud (4%)</td><td class="monto">$ {{ '{:,.0f}'.format(calc.deduccion_salud) }}</td></tr>
+    <tr><td>Pension (4%)</td><td class="monto">$ {{ '{:,.0f}'.format(calc.deduccion_pension) }}</td></tr>
+    {% if calc.fondo_solidaridad > 0 %}<tr><td>Fondo solidaridad</td><td class="monto">$ {{ '{:,.0f}'.format(calc.fondo_solidaridad) }}</td></tr>{% endif %}
+    {% if calc.retencion_fuente > 0 %}<tr><td>Retencion en la fuente</td><td class="monto">$ {{ '{:,.0f}'.format(calc.retencion_fuente) }}</td></tr>{% endif %}
+    <tr class="total-row"><td><strong>TOTAL DEDUCCIONES</strong></td><td class="monto"><strong>$ {{ '{:,.0f}'.format(calc.total_deducciones) }}</strong></td></tr>
+  </table>
+
+  <table style="margin-top:12px">
+    <tr style="background:#e8f5e9;font-size:14px"><td><strong>NETO A PAGAR</strong></td><td class="monto" style="font-size:16px"><strong>$ {{ '{:,.0f}'.format(calc.salario_neto) }}</strong></td></tr>
+  </table>
+
+  <div class="section-title" style="margin-top:12px">APORTES EMPRESA (no afectan neto)</div>
+  <table>
+    <tr><td>Salud empleador (8.5%)</td><td class="monto">$ {{ '{:,.0f}'.format(calc.aporte_salud_empr) }}</td></tr>
+    <tr><td>Pension empleador (12%)</td><td class="monto">$ {{ '{:,.0f}'.format(calc.aporte_pension_empr) }}</td></tr>
+    <tr><td>ARL</td><td class="monto">$ {{ '{:,.0f}'.format(calc.aporte_arl) }}</td></tr>
+    <tr><td>Caja compensacion (4%)</td><td class="monto">$ {{ '{:,.0f}'.format(calc.aporte_caja) }}</td></tr>
+    <tr><td>SENA (2%)</td><td class="monto">$ {{ '{:,.0f}'.format(calc.aporte_sena) }}</td></tr>
+    <tr><td>ICBF (3%)</td><td class="monto">$ {{ '{:,.0f}'.format(calc.aporte_icbf) }}</td></tr>
+    <tr class="total-row"><td><strong>COSTO TOTAL EMPRESA</strong></td><td class="monto"><strong>$ {{ '{:,.0f}'.format(calc.costo_total_empresa) }}</strong></td></tr>
+  </table>
+
+  <div class="firmas">
+    <div class="firma">Firma empleador</div>
+    <div class="firma">Firma empleado</div>
+  </div>
+</body>
+</html>

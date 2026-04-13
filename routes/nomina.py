@@ -291,6 +291,35 @@ def register(app):
         return render_template('nomina/ver.html', empleado=empleado, calc=calc)
     
 
+    # ── empleado_recibo (/nomina/<int:id>/recibo)
+    @app.route('/nomina/<int:id>/recibo')
+    @login_required
+    @requiere_modulo('nomina')
+    def empleado_recibo(id):
+        empleado = Empleado.query.get_or_404(id)
+        import calendar
+        periodo = request.args.get('periodo', date_type.today().strftime('%Y-%m'))
+        try:
+            year, month = int(periodo.split('-')[0]), int(periodo.split('-')[1])
+            dias_del_mes = calendar.monthrange(year, month)[1]
+        except Exception:
+            year, month = date_type.today().year, date_type.today().month
+            dias_del_mes = 30
+        primer_dia = date_type(year, month, 1)
+        ultimo_dia = date_type(year, month, dias_del_mes)
+        inicio = max(empleado.fecha_ingreso or primer_dia, primer_dia)
+        if empleado.estado in ('retirado','despedido') and empleado.fecha_retiro and empleado.fecha_retiro <= ultimo_dia:
+            fin = empleado.fecha_retiro
+        else:
+            fin = ultimo_dia
+        dias_trabajados = max((fin - inicio).days + 1, 0)
+        dias_trabajados = min(dias_trabajados, dias_del_mes)
+        calc = _calcular_nomina(empleado, dias_mes=dias_del_mes, dias_trabajados=dias_trabajados)
+        empresa = ConfigEmpresa.query.first()
+        return render_template('nomina/recibo.html', empleado=empleado, calc=calc,
+                               empresa=empresa, periodo=periodo)
+
+
     # ── empleado_editar (/nomina/<int:id>/editar)
     @app.route('/nomina/<int:id>/editar', methods=['GET','POST'])
     @login_required
