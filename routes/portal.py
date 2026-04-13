@@ -82,7 +82,11 @@ def register(app):
     def portal_cliente_marcar_pago(id):
         """Cliente marca que ya envió el pago/anticipo de una venta."""
         if current_user.rol != 'cliente':
+            flash('Acceso denegado.', 'danger')
             return redirect(url_for('dashboard'))
+        if not current_user.cliente_id:
+            flash('Tu cuenta no esta vinculada a una empresa.', 'danger')
+            return redirect(url_for('portal_cliente'))
         venta = Venta.query.get_or_404(id)
         if venta.cliente_id != current_user.cliente_id:
             flash('Sin permisos.', 'danger')
@@ -91,9 +95,17 @@ def register(app):
             monto = float(request.form.get('monto_pago') or 0)
             metodo = request.form.get('metodo_pago', 'transferencia')
             referencia = request.form.get('referencia_pago', '')
+            total_venta = float(venta.total or 0)
+            ya_pagado = float(venta.monto_pagado_total or 0)
+            max_permitido = max(0, total_venta - ya_pagado)
             if monto <= 0:
                 flash('Indica el monto del pago.', 'warning')
                 return redirect(url_for('portal_cliente'))
+            if monto > max_permitido:
+                monto = max_permitido
+                if monto <= 0:
+                    flash('Esta venta ya esta completamente pagada.', 'info')
+                    return redirect(url_for('portal_cliente'))
             venta.estado_cliente_pago = 'enviado'
             # Registrar pago pendiente de confirmación
             pago = PagoVenta(

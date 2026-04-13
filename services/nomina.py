@@ -38,11 +38,15 @@ class NominaService:
             fondo_solidaridad = round(salario * 0.01)
 
         # Retencion en la fuente por renta (Art. 383 ET)
+        # Se calcula sobre salario COMPLETO mensual (no prorrateado) para determinar
+        # el rango, luego se proratea el resultado al final.
         UVT_2025 = 49799
         retencion_fuente = 0
         if salario_completo > 0:
-            # Base gravable: salario - aportes obligatorios (salud+pension)
-            base_gravable = salario_completo - deduccion_salud - deduccion_pension
+            # Deducciones sobre salario completo (para base gravable consistente)
+            ded_salud_completa = round(salario_completo * TASA_SALUD_EMP)
+            ded_pension_completa = round(salario_completo * TASA_PENSION_EMP)
+            base_gravable = salario_completo - ded_salud_completa - ded_pension_completa
             base_uvt = base_gravable / UVT_2025
             # Tabla retencion (Art. 383 ET simplificada)
             if base_uvt > 360:
@@ -51,6 +55,7 @@ class NominaService:
                 retencion_fuente = round((base_gravable - 150*UVT_2025) * 0.28)
             elif base_uvt > 95:
                 retencion_fuente = round((base_gravable - 95*UVT_2025) * 0.19)
+            # Prorratear por dias trabajados
             retencion_fuente = round(max(0, retencion_fuente) * factor)
 
         total_deducciones = deduccion_salud + deduccion_pension + fondo_solidaridad + retencion_fuente

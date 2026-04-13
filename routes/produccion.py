@@ -92,13 +92,21 @@ def register(app):
         """Registrar recepcion total o parcial de material."""
         obj = CompraMateria.query.get_or_404(id)
         tipo = request.form.get('tipo_recepcion', 'total')
+        cant_total_item = float(obj.cantidad or 0)
         if tipo == 'total':
             obj.estado_recepcion = 'recibido'
-            obj.cantidad_recibida = obj.cantidad
+            obj.cantidad_recibida = cant_total_item
         else:
             cant = float(request.form.get('cantidad_recibida') or 0)
+            if cant <= 0:
+                flash('La cantidad debe ser mayor a cero.', 'warning')
+                return redirect(url_for('compras'))
             obj.cantidad_recibida = float(obj.cantidad_recibida or 0) + cant
-            if obj.cantidad_recibida >= obj.cantidad:
+            # Cap: no puede recibir mas de lo pedido
+            if cant_total_item > 0:
+                obj.cantidad_recibida = min(obj.cantidad_recibida, cant_total_item)
+            # Determinar estado: recibido si cantidad_recibida >= cantidad pedida
+            if cant_total_item > 0 and obj.cantidad_recibida >= cant_total_item:
                 obj.estado_recepcion = 'recibido'
             else:
                 obj.estado_recepcion = 'parcial'
@@ -106,14 +114,23 @@ def register(app):
         if obj.orden_compra_id:
             oc = db.session.get(OrdenCompra, obj.orden_compra_id)
             if oc:
-                # Verificar si todos los items de esta OC estan recibidos
                 compras_oc = CompraMateria.query.filter_by(orden_compra_id=oc.id).all()
-                todos_recibidos = all(c.estado_recepcion == 'recibido' for c in compras_oc)
-                alguno_parcial = any(c.estado_recepcion in ('parcial', 'recibido') for c in compras_oc)
-                if todos_recibidos:
+                # Re-evaluar cada item: si cantidad_recibida >= cantidad, es recibido
+                for c in compras_oc:
+                    cant_c = float(c.cantidad or 0)
+                    rec_c = float(c.cantidad_recibida or 0)
+                    if cant_c > 0 and rec_c >= cant_c and c.estado_recepcion != 'recibido':
+                        c.estado_recepcion = 'recibido'
+                todos_recibidos = all(
+                    c.estado_recepcion == 'recibido'
+                    for c in compras_oc
+                    if c.estado_recepcion != 'solicitado' or float(c.cantidad or 0) > 0
+                )
+                alguno_recibido = any(c.estado_recepcion in ('parcial', 'recibido') for c in compras_oc)
+                if todos_recibidos and alguno_recibido:
                     oc.estado_recepcion = 'recibida'
                     oc.estado = 'recibida'
-                elif alguno_parcial:
+                elif alguno_recibido:
                     oc.estado_recepcion = 'parcial'
                     if oc.estado in ('en_espera_producto', 'pagado', 'anticipo_pagado'):
                         oc.estado = 'recibida_parcial'

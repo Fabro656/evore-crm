@@ -364,32 +364,47 @@ def register(app):
         Procesa la logica comun de confirmar pago/cobro.
         campo_total: 'debe' para egresos, 'haber' para ingresos.
         Retorna (monto_aplicado, error_msg) — si error_msg no es None, abortar.
+        Usa SELECT FOR UPDATE (PostgreSQL) para prevenir race conditions.
         """
+        # Re-leer con lock para prevenir doble pago concurrente
+        asiento = db.session.get(AsientoContable, asiento.id, with_for_update=True)
+        if not asiento:
+            return 0, 'Asiento no encontrado.'
+        if asiento.estado_pago == 'completo':
+            return 0, 'Este asiento ya esta completamente pagado.'
+
         tipo_pago = request.form.get('tipo_pago', 'parcial')
         monto = float(request.form.get('monto_pago') or 0)
         metodo = request.form.get('metodo_pago', '')
         ref = request.form.get('referencia_pago', '')
 
         total_asiento = float(getattr(asiento, campo_total) or 0)
+        if total_asiento <= 0:
+            return 0, 'El asiento no tiene monto registrado.'
         ya_pagado = float(asiento.monto_pagado or 0)
-        restante = total_asiento - ya_pagado
+        restante = max(0, total_asiento - ya_pagado)
+
+        if restante <= 0:
+            return 0, 'No hay saldo pendiente en este asiento.'
 
         if tipo_pago == 'total':
             monto = restante
 
         if monto <= 0:
             return 0, 'El monto debe ser mayor a cero.'
-        if monto > restante:
-            monto = restante
+        # Cap: nunca exceder el restante
+        monto = min(monto, restante)
 
-        asiento.monto_pagado = ya_pagado + monto
+        nuevo_pagado = ya_pagado + monto
+        # Cap final: nunca exceder total
+        asiento.monto_pagado = min(nuevo_pagado, total_asiento)
         asiento.metodo_pago = metodo or asiento.metodo_pago
         asiento.nro_transaccion = ref or asiento.nro_transaccion
         asiento.fecha_pago = date_type.today()
 
         if asiento.monto_pagado >= total_asiento:
             asiento.estado_pago = 'completo'
-            asiento.estado_asiento = 'aprobado'  # auto-aprobar al completar pago
+            asiento.estado_asiento = 'aprobado'
         else:
             asiento.estado_pago = 'parcial'
 
@@ -410,11 +425,12 @@ def register(app):
             flash(error, 'warning')
             return redirect(url_for('contable_asientos', vista='generados'))
 
-        # Actualizar OC vinculada
+        # Actualizar OC vinculada (con cap al total)
         if asiento.orden_compra_id:
             oc = db.session.get(OrdenCompra, asiento.orden_compra_id)
             if oc:
-                oc.monto_pagado = float(oc.monto_pagado or 0) + monto
+                nuevo_pagado_oc = min(float(oc.monto_pagado or 0) + monto, float(oc.total or 0))
+                oc.monto_pagado = nuevo_pagado_oc
                 if asiento.estado_pago == 'completo':
                     oc.estado = 'en_espera_producto'
                     oc.estado_proveedor = 'anticipo_enviado'
@@ -445,15 +461,15 @@ def register(app):
             flash(error, 'warning')
             return redirect(url_for('contable_asientos', vista='generados'))
 
-        # Actualizar venta vinculada
+        # Actualizar venta vinculada (con cap al total)
         if asiento.venta_id:
             venta = db.session.get(Venta, asiento.venta_id)
             if venta:
-                venta.monto_anticipo_recibido = float(venta.monto_anticipo_recibido or 0) + monto
-                venta.monto_pagado_total = float(venta.monto_pagado_total or 0) + monto
+                total_venta = float(venta.total or 0)
+                venta.monto_anticipo_recibido = min(float(venta.monto_anticipo_recibido or 0) + monto, total_venta)
+                venta.monto_pagado_total = min(float(venta.monto_pagado_total or 0) + monto, total_venta)
                 venta.estado_cliente_pago = 'recibido'
                 if asiento.estado_pago == 'completo':
-                    # Si el pago completo cubre el anticipo, avanzar estado
                     if venta.estado in ('negociacion', 'prospecto'):
                         venta.estado = 'anticipo_pagado'
                         # Disparar side effects: reservar stock y generar OC automaticas

@@ -429,8 +429,8 @@ class DocumentoLegal(db.Model):
     archivo_url       = db.Column(db.String(500))
     notas             = db.Column(db.Text)
     activo            = db.Column(db.Boolean, default=True)
-    cliente_id        = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=True)
-    proveedor_id      = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
+    cliente_id        = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=True, index=True)
+    proveedor_id      = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True, index=True)
     producto_id       = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=True)
     tipo_entidad      = db.Column(db.String(30), nullable=True)  # cliente, proveedor, producto, empresa
     es_demo           = db.Column(db.Boolean, default=False)
@@ -485,9 +485,9 @@ class AsientoContable(db.Model):
     tercero_nombre   = db.Column(db.String(200), nullable=True)
     periodo          = db.Column(db.String(7), nullable=True)  # "2026-04" para cierre mensual
     notas            = db.Column(db.Text)
-    venta_id         = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=True)
-    orden_compra_id  = db.Column(db.Integer, db.ForeignKey('ordenes_compra.id'), nullable=True)
-    proveedor_id     = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
+    venta_id         = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=True, index=True)
+    orden_compra_id  = db.Column(db.Integer, db.ForeignKey('ordenes_compra.id'), nullable=True, index=True)
+    proveedor_id     = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True, index=True)
     gasto_id         = db.Column(db.Integer, db.ForeignKey('gastos_operativos.id'), nullable=True)
     clasificacion    = db.Column(db.String(10), default='egreso')    # ingreso | egreso
     nro_transaccion  = db.Column(db.String(100), nullable=True)

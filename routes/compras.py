@@ -20,15 +20,23 @@ def register(app):
         items = []
         for i, nom in enumerate(nombres):
             if not nom.strip(): continue
-            cant   = float(cants[i])   if i < len(cants)   else 1
-            precio = float(precios[i]) if i < len(precios) else 0
-            if cant <= 0: continue  # skip invalid items
+            try:
+                cant = float(cants[i]) if i < len(cants) else 1
+            except (ValueError, IndexError):
+                cant = 0
+            try:
+                precio = float(precios[i]) if i < len(precios) else 0
+            except (ValueError, IndexError):
+                precio = 0
+            if cant <= 0: continue
+            if precio < 0: precio = 0  # No permitir precios negativos
             cot_id = int(cot_ids[i]) if i < len(cot_ids) and cot_ids[i].strip() else None
+            subtotal = round(cant * precio, 2)
             items.append(OrdenCompraItem(
                 orden_id=oc_id, nombre_item=nom.strip(),
                 descripcion=descs[i] if i < len(descs) else '',
                 cantidad=cant, unidad=units[i] if i < len(units) else 'unidades',
-                precio_unit=precio, subtotal=cant*precio, cotizacion_id=cot_id))
+                precio_unit=precio, subtotal=subtotal, cotizacion_id=cot_id))
         return items
 
 
@@ -267,6 +275,15 @@ def register(app):
         transportistas = Proveedor.query.filter(Proveedor.activo==True, Proveedor.tipo.in_(['transportista','ambos'])).order_by(Proveedor.nombre).all()
         cotizaciones_disponibles = CotizacionProveedor.query.filter_by(estado='vigente').order_by(CotizacionProveedor.nombre_producto).all()
         if request.method == 'POST':
+            # Validar proveedor existe y esta activo
+            prov_id_raw = request.form.get('proveedor_id', '').strip()
+            if not prov_id_raw:
+                flash('Debes seleccionar un proveedor.', 'danger')
+                return redirect(url_for('orden_compra_nueva'))
+            prov_check = db.session.get(Proveedor, int(prov_id_raw))
+            if not prov_check or not prov_check.activo:
+                flash('El proveedor seleccionado no existe o no esta activo.', 'danger')
+                return redirect(url_for('orden_compra_nueva'))
             total_oc = float(request.form.get('total_calc') or 0)
             if total_oc <= 0:
                 flash('No se puede crear una orden de compra con valor cero.', 'danger')
@@ -308,7 +325,12 @@ def register(app):
                 except: seq = 1
             else: seq = 1
             oc.numero = f'OC-{hoy.year}-{seq:03d}'
-            for it in _oc_save_items(oc.id): db.session.add(it)
+            saved_items = _oc_save_items(oc.id)
+            if not saved_items:
+                db.session.rollback()
+                flash('La OC debe tener al menos un item con cantidad y precio validos.', 'danger')
+                return redirect(url_for('orden_compra_nueva'))
+            for it in saved_items: db.session.add(it)
             # Auto-tarea para transportista
             if tra_id and fer:
                 tra = db.session.get(Proveedor, tra_id)

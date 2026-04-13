@@ -126,10 +126,25 @@ def register(app):
             flash('Formato de mes invalido.', 'danger')
             return redirect(url_for('nomina_index'))
 
-        # Check si ya se cerro
+        # Check si ya se cerro (con lock para prevenir doble ejecucion)
         desc_check = f'Nomina mensual {mes}'
-        if GastoOperativo.query.filter(GastoOperativo.descripcion == desc_check, GastoOperativo.tipo == 'Nomina').first():
+        existente = GastoOperativo.query.filter(
+            GastoOperativo.descripcion == desc_check, GastoOperativo.tipo == 'Nomina'
+        ).first()
+        if existente:
             flash(f'La nomina de {mes} ya fue cerrada anteriormente.', 'warning')
+            return redirect(url_for('nomina_index'))
+        # Crear placeholder inmediato para prevenir doble ejecucion concurrente
+        placeholder = GastoOperativo(
+            fecha=fecha_gasto, tipo='Nomina', descripcion=desc_check,
+            monto=0, creado_por=current_user.id
+        )
+        db.session.add(placeholder)
+        try:
+            db.session.flush()  # Si otro request ya creo el placeholder, flush falla en unique check
+        except Exception:
+            db.session.rollback()
+            flash(f'La nomina de {mes} esta siendo procesada por otro usuario.', 'warning')
             return redirect(url_for('nomina_index'))
 
         # Incluir activos + retirados/despedidos en este mes (trabajaron parte del mes)
@@ -205,16 +220,11 @@ def register(app):
 
         n_empleados = len(empleados)
 
-        g = GastoOperativo(
-            fecha=fecha_gasto,
-            tipo='Nomina',
-            descripcion=desc_check,
-            monto=round(total_costo, 0),
-            recurrencia='unico',
-            notas=f'{n_empleados} empleados. Neto: ${total_neto:,.0f}. Detalle: {"; ".join(detalle_empleados[:10])}',
-            creado_por=current_user.id
-        )
-        db.session.add(g)
+        # Actualizar el placeholder creado al inicio (previene duplicados)
+        g = placeholder
+        g.monto = round(total_costo, 0)
+        g.recurrencia = 'unico'
+        g.notas = f'{n_empleados} empleados. Neto: ${total_neto:,.0f}. Detalle: {"; ".join(detalle_empleados[:10])}'
         db.session.flush()
         _crear_asiento_auto(
             tipo='gasto', subtipo='nomina_mensual',
