@@ -119,7 +119,11 @@
                 <td><strong>{{ moneda(v.total or 0) }}</strong></td>
                 <td>
                   {% if v.monto_pagado_total and v.monto_pagado_total >= v.total %}
-                    <span class="b b-completado">Pagado total</span>
+                    <span class="b b-completado"><i class="bi bi-check-circle me-1"></i>Pagado total</span>
+                  {% elif (v.estado_cliente_pago or '') == 'recibido' %}
+                    <span class="b b-completado"><i class="bi bi-check-circle me-1"></i>Pago recibido {{ moneda(v.monto_pagado_total or 0) }}</span>
+                  {% elif (v.estado_cliente_pago or '') == 'enviado' %}
+                    <span class="b b-anticipo_pagado"><i class="bi bi-hourglass-split me-1"></i>Pago enviado — confirmando</span>
                   {% elif v.monto_pagado_total and v.monto_pagado_total > 0 %}
                     <span class="b b-anticipo_pagado">Parcial {{ moneda(v.monto_pagado_total) }}</span>
                   {% else %}
@@ -139,10 +143,13 @@
                   {% endif %}
                 </td>
                 <td>
-                  <div class="d-flex gap-1">
+                  <div class="d-flex gap-1 flex-wrap">
                     <a href="{{ url_for('portal_cliente_factura', id=v.id) }}" class="btn btn-xs btn-outline-secondary" target="_blank" title="Factura"><i class="bi bi-file-earmark-text"></i></a>
                     {% if v.estado in ('anticipo_pagado','pagado','entregado','completado') %}
                     <a href="{{ url_for('portal_cliente_remision', id=v.id) }}" class="btn btn-xs btn-outline-primary" target="_blank" title="Remision"><i class="bi bi-receipt"></i></a>
+                    {% endif %}
+                    {% if v.estado in ('negociacion','prospecto') and (v.estado_cliente_pago or 'pendiente') == 'pendiente' %}
+                    <button type="button" class="btn btn-xs btn-success" onclick="mostrarFormPago({{ v.id }}, {{ v.monto_anticipo or v.total or 0 }})" title="Reportar pago"><i class="bi bi-cash-coin me-1"></i>Pagar</button>
                     {% endif %}
                   </div>
                 </td>
@@ -233,4 +240,48 @@
     </div>
   </div>
 </div>
+
+<!-- Modal reportar pago -->
+<div id="modalPago" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:1050;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:var(--radius);padding:1.5rem;max-width:420px;width:90%;box-shadow:0 8px 24px rgba(0,0,0,.2)">
+    <h6 class="fw-bold mb-3"><i class="bi bi-cash-coin me-2"></i>Reportar pago enviado</h6>
+    <form id="formPago" method="POST">
+      <div class="mb-2">
+        <label class="form-label">Monto enviado</label>
+        <input type="number" step="0.01" name="monto_pago" id="montoPagoInput" class="form-control" required>
+      </div>
+      <div class="mb-2">
+        <label class="form-label">Metodo de pago</label>
+        <select name="metodo_pago" class="form-select">
+          <option value="transferencia">Transferencia bancaria</option>
+          <option value="efectivo">Efectivo</option>
+          <option value="cheque">Cheque</option>
+          <option value="tarjeta">Tarjeta</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Referencia / comprobante</label>
+        <input type="text" name="referencia_pago" class="form-control" placeholder="Nro. transaccion, comprobante...">
+      </div>
+      <div class="d-flex gap-2 justify-content-end">
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="cerrarModalPago()">Cancelar</button>
+        <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-send me-1"></i>Reportar pago</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function mostrarFormPago(ventaId, montoSugerido) {
+  var m = document.getElementById('modalPago');
+  m.style.display = 'flex';
+  document.getElementById('formPago').action = '/portal/venta/' + ventaId + '/marcar-pago';
+  document.getElementById('montoPagoInput').value = montoSugerido > 0 ? montoSugerido : '';
+}
+function cerrarModalPago() { document.getElementById('modalPago').style.display = 'none'; }
+document.getElementById('modalPago').addEventListener('click', function(e) { if (e.target === this) cerrarModalPago(); });
+</script>
 {% endblock %}

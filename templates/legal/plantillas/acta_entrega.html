@@ -1,33 +1,52 @@
 <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Acta de Entrega de Producto Terminado</title>
 <style>
 body{font-family:Georgia,serif;font-size:12pt;color:#1a1a1a;max-width:700px;margin:40px auto;line-height:1.8;padding:0 20px}
-h1{text-align:center;font-size:14pt;text-transform:uppercase;letter-spacing:2px;margin-bottom:30px}
+h1{text-align:center;font-size:14pt;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px}
+h2{text-align:center;font-size:10pt;font-weight:normal;color:#555;margin-top:0;margin-bottom:30px;letter-spacing:1px}
 table{width:100%;border-collapse:collapse;margin:20px 0}
 table th,table td{border:1px solid #333;padding:8px 12px;text-align:left;font-size:11pt}
 table th{background:#f0f0f0;font-weight:bold}
 table td{vertical-align:top}
 .clausula{margin:15px 0;text-align:justify}
 .clausula strong{display:block;margin-bottom:5px}
-.firma{display:flex;justify-content:space-between;margin-top:60px}
-.firma div{width:45%;text-align:center;border-top:1px solid #333;padding-top:8px;font-size:10pt}
+.clausula ul{margin:6px 0 6px 20px;padding:0}
+.clausula ul li{margin-bottom:4px}
+.firma-bloque{margin-top:60px}
+.firma-fila{display:flex;justify-content:space-between;gap:20px;margin-bottom:30px}
+.firma-caja{width:45%;text-align:center}
+.firma-caja .linea{border-top:1px solid #333;padding-top:8px;font-size:10pt;margin-top:8px}
+.selfie-caja{width:100%;text-align:center;margin-top:20px;font-size:10pt}
+.selfie-caja img{max-width:160px;max-height:160px;border:1px solid #ccc;display:block;margin:0 auto 6px;border-radius:4px}
 .no-print{position:fixed;top:10px;right:10px}
 @media print{.no-print{display:none}}
 </style></head><body>
 <button class="no-print" onclick="window.print()" style="background:#0176D3;color:#fff;border:none;padding:8px 16px;border-radius:5px;cursor:pointer">Imprimir / Descargar</button>
 
 <h1>Acta de Entrega de Producto Terminado</h1>
+<h2>Documento de transferencia y recibo a satisfaccion</h2>
 
-<p>En la ciudad de <strong>{{ ciudad }}</strong>, a los <strong>{{ fecha }}</strong>, se procede a realizar la entrega formal de los productos terminados entre:</p>
+<p>En la ciudad de <strong>{{ ciudad }}</strong>, a los <strong>{{ fecha }}</strong>, se suscribe la presente acta entre:</p>
 
-<p><strong>QUIEN ENTREGA:</strong> <strong>{{ empresa_nombre }}</strong>, identificada con NIT <strong>{{ empresa_nit }}</strong>, representada por <strong>{{ empresa_representante }}</strong>, con domicilio en <strong>{{ empresa_direccion or 'la ciudad' }}</strong>.</p>
+<p><strong>QUIEN ENTREGA:</strong> <strong>{{ empresa_nombre }}</strong>, identificada con NIT <strong>{{ empresa_nit }}</strong>, representada por <strong>{{ empresa_representante }}</strong>, con domicilio en <strong>{{ empresa_direccion or 'la ciudad' }}</strong>. En adelante <em>EL PROVEEDOR</em>.</p>
 
-<p><strong>QUIEN RECIBE:</strong> <strong>{{ tercero_nombre }}</strong>{% if tercero_empresa %}, actuando en representacion de <strong>{{ tercero_empresa }}</strong>, identificada con NIT <strong>{{ tercero_nit }}</strong>{% endif %}, {{ identificado_identificada }} con cedula de ciudadania No. <strong>{{ tercero_cedula }}</strong>, con domicilio en <strong>{{ tercero_direccion or 'la ciudad' }}</strong>.</p>
+<p><strong>QUIEN RECIBE:</strong> <strong>{{ tercero_nombre }}</strong>{% if tercero_empresa %}, actuando en representacion de <strong>{{ tercero_empresa }}</strong>, identificada con NIT <strong>{{ tercero_nit }}</strong>{% endif %}, {{ identificado_identificada }} con cedula de ciudadania No. <strong>{{ tercero_cedula }}</strong>, con domicilio en <strong>{{ tercero_direccion or 'la ciudad' }}</strong>. En adelante <em>EL RECEPTOR</em>.</p>
 
-<div class="clausula"><strong>PRODUCTOS ENTREGADOS:</strong></div>
+<div class="clausula"><strong>PRIMERA — CONDICIONES DE ENTREGA:</strong>
+Los productos relacionados en la presente acta son entregados en el siguiente lugar y bajo las condiciones que se indican:
+<ul>
+  <li><strong>Lugar de entrega:</strong> {{ tercero_direccion or ciudad }}, ciudad de {{ ciudad }}.</li>
+  <li><strong>Fecha y hora de entrega:</strong> {{ fecha }}.</li>
+  <li><strong>Responsable de la entrega por EL PROVEEDOR:</strong> {{ firmante_nombre or empresa_representante }}{% if firmante_cargo %}, {{ firmante_cargo }}{% endif %}.</li>
+  <li><strong>Responsable de la recepcion por EL RECEPTOR:</strong> {{ tercero_nombre }}{% if tercero_empresa %}, en representacion de {{ tercero_empresa }}{% endif %}.</li>
+  <li><strong>Modalidad:</strong> Entrega en sitio acordado por las partes, transporte a cargo de EL PROVEEDOR hasta el punto de entrega pactado.</li>
+</ul></div>
+
+<div class="clausula"><strong>SEGUNDA — PRODUCTOS ENTREGADOS:</strong>
+A continuacion se relacionan los productos objeto de la presente acta:</div>
 
 <table>
 <thead>
-<tr><th style="width:5%">No.</th><th style="width:30%">Producto</th><th style="width:10%">Cantidad</th><th style="width:15%">Unidad</th><th style="width:40%">Descripcion / Observaciones</th></tr>
+<tr><th style="width:5%">No.</th><th style="width:30%">Producto</th><th style="width:10%">Cant.</th><th style="width:12%">Unidad</th><th style="width:43%">Descripcion / Especificaciones</th></tr>
 </thead>
 <tbody>
 {% if items %}
@@ -44,19 +63,96 @@ table td{vertical-align:top}
 </tbody>
 </table>
 
-<div class="clausula"><strong>OBSERVACIONES:</strong>
-<p>{{ objeto or '____________________________________________________________________________________________________________________________' }}</p></div>
+<div class="clausula"><strong>TERCERA — VALOR ENTREGADO:</strong>
+El valor total de los productos entregados en virtud de la presente acta asciende a la suma de <strong>{{ valor or '[VALOR EN PESOS COLOMBIANOS]' }}</strong> pesos colombianos (COP), incluido el Impuesto al Valor Agregado (IVA) a la tarifa correspondiente, segun lo pactado entre las partes en el pedido u orden de compra de referencia.</div>
 
-<div class="clausula"><strong>ESTADO DE LOS PRODUCTOS:</strong>
-QUIEN RECIBE declara que ha verificado los productos entregados y los recibe en buen estado, de conformidad con las especificaciones y cantidades acordadas. Cualquier reclamacion por defectos ocultos o no evidentes al momento de la entrega debera formularse por escrito dentro de los cinco (5) dias habiles siguientes a la fecha de la presente acta.</div>
+<div class="clausula"><strong>CUARTA — FACTURACION:</strong>
+EL PROVEEDOR ha expedido o expedira la factura electronica de venta con validacion previa de la DIAN correspondiente a los productos aqui relacionados. La factura electronica se entregara al RECEPTOR en formato PDF o CUFE a traves del medio electronico acordado. Las partes aceptan que la presente acta y la factura electronica asociada constituyen soporte documental suficiente de la operacion comercial para efectos tributarios, contables y legales.</div>
 
-<div class="clausula"><strong>CONSTANCIA:</strong>
-La presente acta se firma en dos (2) ejemplares del mismo tenor, uno para cada parte, como constancia de la entrega y recibo a satisfaccion de los productos descritos.</div>
+<div class="clausula"><strong>QUINTA — CONFORMIDAD CON ESPECIFICACIONES TECNICAS:</strong>
+EL RECEPTOR declara que ha verificado que los productos entregados corresponden a las especificaciones tecnicas, disenos, referencias, medidas, colores, acabados y demas condiciones pactadas en el contrato principal y/o pedido u orden de compra de referencia. La firma de la presente acta constituye aceptacion plena de que los productos fueron fabricados y entregados conforme a dichas especificaciones, sin perjuicio del plazo de reclamacion por defectos ocultos establecido en la clausula septima.</div>
 
-<div class="firma">
-  <div>
-    {% if firma_data and firma_data != 'data:,' %}<img src="{{ firma_data }}" style="max-width:180px;max-height:60px;display:block;margin:0 auto 5px"><small style="color:#666;font-size:8pt">Firmado digitalmente en Evore CRM</small><br>{% endif %}
-    <strong>{{ empresa_representante or empresa_nombre }}</strong><br>QUIEN ENTREGA<br>NIT: {{ empresa_nit }}</div>
-  <div><strong>{{ tercero_nombre }}</strong><br>QUIEN RECIBE<br>{% if tercero_nit %}NIT: {{ tercero_nit }}{% else %}C.C. {{ tercero_cedula }}{% endif %}</div>
+<div class="clausula"><strong>SEXTA — RESPONSABILIDAD Y TRANSFERENCIA DE RIESGO:</strong>
+El riesgo de perdida, deterioro o dano fortuito de los productos se transfiere a EL RECEPTOR desde el momento de la firma de la presente acta. A partir de dicho momento:
+<ul>
+  <li>EL PROVEEDOR queda exonerado de responsabilidad por danos o perdidas sobrevinientes no atribuibles a defectos de fabricacion.</li>
+  <li>EL RECEPTOR asume la custodia, almacenamiento y manejo adecuado de los productos entregados.</li>
+  <li>Los danos ocasionados durante el transporte posterior a la entrega son responsabilidad de EL RECEPTOR o del transportador por el contratado.</li>
+  <li>En caso de transporte a cargo de EL PROVEEDOR hasta el sitio de entrega pactado, la responsabilidad de EL PROVEEDOR cesa con la firma del acta por EL RECEPTOR o su delegado autorizado.</li>
+</ul></div>
+
+<div class="clausula"><strong>SEPTIMA — RECLAMACIONES POR DEFECTOS:</strong>
+EL RECEPTOR podra formular reclamaciones por defectos de los productos bajo las siguientes condiciones y plazos, todos improrrogables salvo acuerdo escrito:
+<ul>
+  <li><strong>Defectos visibles o aparentes:</strong> Dentro de los cinco (5) dias habiles siguientes a la fecha de la presente acta. Vencido este plazo sin reclamacion escrita, se entendera que los productos fueron recibidos en perfectas condiciones externas.</li>
+  <li><strong>Defectos ocultos o no aparentes:</strong> Dentro de los treinta (30) dias calendario siguientes a la fecha de entrega, siempre que el defecto no sea imputable al uso indebido, almacenamiento inadecuado o modificaciones realizadas por EL RECEPTOR.</li>
+</ul>
+Toda reclamacion debera presentarse por escrito, con descripcion detallada del defecto, registro fotografico y numero de la presente acta. La recepcion de la reclamacion no implica aceptacion de responsabilidad por parte de EL PROVEEDOR hasta la verificacion tecnica correspondiente.</div>
+
+<div class="clausula"><strong>OCTAVA — GARANTIA POST-ENTREGA:</strong>
+EL PROVEEDOR otorga garantia sobre los productos entregados en los siguientes terminos:
+<ul>
+  <li><strong>Periodo:</strong> Seis (6) meses contados a partir de la fecha de la presente acta, o el periodo superior que las partes hayan pactado expresamente por escrito.</li>
+  <li><strong>Cobertura:</strong> Defectos de fabricacion, fallas en materiales utilizados por EL PROVEEDOR y no conformidades atribuibles al proceso productivo.</li>
+  <li><strong>Exclusiones:</strong> La garantia no cubre: (i) danos por mal uso, negligencia o accidente imputable a EL RECEPTOR o terceros; (ii) deterioro normal por uso; (iii) modificaciones o reparaciones realizadas sin autorizacion escrita de EL PROVEEDOR; (iv) danos causados por agentes externos como humedad excesiva, exposicion quimica, impactos fisicos o condiciones de almacenamiento inadecuadas; (v) defectos informados despues de vencidos los plazos de reclamacion de la clausula septima.</li>
+  <li><strong>Remedio:</strong> A eleccion de EL PROVEEDOR: reposicion del producto defectuoso, reparacion sin costo o nota credito, dentro de los quince (15) dias habiles siguientes a la aceptacion de la reclamacion.</li>
+</ul></div>
+
+<div class="clausula"><strong>NOVENA — PENALIDADES POR RETRASO:</strong>
+En caso de que la presente entrega se efectue con posterioridad a la fecha maxima pactada en el contrato principal o pedido de referencia, seran aplicables las penalidades por mora convenidas en dicho instrumento, sin perjuicio de la plena validez de esta acta como constancia de entrega efectiva. EL PROVEEDOR declara que la entrega se realiza en la fecha indicada en el encabezado del presente documento, la cual determinara el computo de eventuales penalidades a cargo de EL PROVEEDOR o la exoneracion de las mismas.</div>
+
+<div class="clausula"><strong>DECIMA — ACUERDO DE SALDO Y FINIQUITO:</strong>
+Con la entrega documentada en la presente acta y supeditado al pago integro del valor indicado en la clausula tercera:
+<ul>
+  <li>Si el pago total ya fue recibido por EL PROVEEDOR, las partes declaran que no existe saldo pendiente por concepto del pedido u orden asociada, y que la presente acta constituye finiquito parcial de las obligaciones de entrega del contrato.</li>
+  <li>Si existe saldo pendiente de pago, EL RECEPTOR se obliga a cancelarlo conforme a las condiciones de pago pactadas, siendo la presente acta constancia de que EL PROVEEDOR cumplio su obligacion de entrega y el saldo se torna exigible de pleno derecho.</li>
+</ul>
+Las partes declaran que no tienen reclamaciones adicionales entre si distintas a las que pudieran derivarse de los plazos de garantia y reclamaciones establecidos en las clausulas anteriores.</div>
+
+<div class="clausula"><strong>DECIMA PRIMERA — CONSTANCIA:</strong>
+La presente acta se firma en dos (2) ejemplares del mismo tenor y valor, uno para cada parte, como constancia de la entrega y recibo a satisfaccion de los productos descritos. La firma manuscrita o digital de cada parte tiene igual valor probatorio.</div>
+
+{% if objeto %}
+<div class="clausula"><strong>OBSERVACIONES GENERALES:</strong>
+<p>{{ objeto }}</p></div>
+{% endif %}
+
+<div class="firma-bloque">
+  <div class="firma-fila">
+    <div class="firma-caja">
+      {% if firma_data and firma_data != 'data:,' %}
+      <img src="{{ firma_data }}" style="max-width:200px;max-height:70px;display:block;margin:0 auto 4px">
+      <small style="color:#666;font-size:8pt">Firmado digitalmente en Evore CRM</small><br>
+      {% else %}
+      <div style="height:70px"></div>
+      {% endif %}
+      <div class="linea">
+        <strong>{{ firmante_nombre or empresa_representante or empresa_nombre }}</strong><br>
+        {{ firmante_cargo or 'Representante Legal' }}<br>
+        {% if firmante_cedula %}C.C. {{ firmante_cedula }}<br>{% endif %}
+        <strong>QUIEN ENTREGA</strong><br>
+        {{ empresa_nombre }}<br>
+        NIT: {{ empresa_nit }}
+      </div>
+    </div>
+    <div class="firma-caja">
+      <div style="height:70px"></div>
+      <div class="linea">
+        <strong>{{ tercero_nombre }}</strong><br>
+        {% if tercero_cargo %}{{ tercero_cargo }}<br>{% endif %}
+        {% if tercero_cedula %}C.C. {{ tercero_cedula }}<br>{% endif %}
+        <strong>QUIEN RECIBE</strong><br>
+        {% if tercero_empresa %}{{ tercero_empresa }}<br>{% endif %}
+        {% if tercero_nit %}NIT: {{ tercero_nit }}{% endif %}
+      </div>
+    </div>
+  </div>
+  {% if firma_data and firma_data != 'data:,' %}
+  <div class="selfie-caja">
+    <p style="font-size:9pt;color:#555;margin-bottom:4px">Verificacion de identidad — selfie del firmante al momento de la firma digital</p>
+    <img src="{{ firma_data }}" alt="Selfie verificacion identidad" onerror="this.style.display='none'">
+    <small style="color:#888;font-size:8pt;display:block">{{ firmante_nombre or tercero_nombre }} &mdash; {{ fecha }}</small>
+  </div>
+  {% endif %}
 </div>
 </body></html>

@@ -701,8 +701,15 @@ def register(app):
                 notas=request.form.get('notas',''),
                 producto_id=int(prod_id) if prod_id else None,
                 tipo_entidad='producto' if prod_id else None,
+                requiere_firma_portal=request.form.get('requiere_firma_portal') == '1',
                 activo=True, creado_por=current_user.id
             )
+            # Firma empresa
+            firma_emp = request.form.get('firma_empresa_data', '')
+            if firma_emp and len(firma_emp) > 100:
+                d.firma_empresa_data = firma_emp
+                d.firma_empresa_por = request.form.get('firma_empresa_por', current_user.nombre)
+                d.firma_empresa_en = datetime.utcnow()
             db.session.add(d); db.session.commit()
             flash('Documento legal creado.','success')
             return redirect(url_for('legal_index'))
@@ -729,6 +736,13 @@ def register(app):
             obj.recordatorio_dias=int(request.form.get('recordatorio_dias') or 30)
             obj.archivo_url=request.form.get('archivo_url','')
             obj.notas=request.form.get('notas','')
+            obj.requiere_firma_portal = request.form.get('requiere_firma_portal') == '1'
+            # Firma empresa
+            firma_emp = request.form.get('firma_empresa_data', '')
+            if firma_emp and len(firma_emp) > 100:
+                obj.firma_empresa_data = firma_emp
+                obj.firma_empresa_por = request.form.get('firma_empresa_por', current_user.nombre)
+                obj.firma_empresa_en = datetime.utcnow()
             db.session.commit()
             flash('Documento actualizado.','success')
             return redirect(url_for('legal_index'))

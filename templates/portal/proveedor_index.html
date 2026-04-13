@@ -58,10 +58,12 @@
         <td>{{ oc.items|length }} item(s)</td>
         <td class="fw-semibold">{{ moneda(oc.total or 0) }}</td>
         <td>
-          {% if oc.estado in ('en_espera_producto','recibida','recibida_parcial','pagado') %}
+          {% if oc.estado_proveedor == 'anticipo_recibido' %}
+            <span class="b b-completado"><i class="bi bi-check-circle me-1"></i>Anticipo recibido</span>
+          {% elif oc.estado_proveedor == 'anticipo_enviado' or oc.estado in ('anticipo_pagado','en_espera_producto','pagado') %}
+            <span class="b b-anticipo_pagado"><i class="bi bi-send me-1"></i>Anticipo enviado {{ moneda(oc.monto_pagado or 0) }}</span>
+          {% elif oc.estado in ('recibida','recibida_parcial') %}
             <span class="b b-completado">Pagado</span>
-          {% elif oc.estado == 'anticipo_pagado' %}
-            <span class="b b-anticipo_pagado">Anticipo {{ moneda(oc.monto_pagado or 0) }}</span>
           {% else %}
             <span class="b b-pendiente">Pendiente</span>
           {% endif %}
@@ -69,12 +71,18 @@
         <td><span class="b b-{{ oc.estado or 'pendiente' }}">{{ (oc.estado or 'pendiente').replace('_',' ').title() }}</span></td>
         <td><small class="text-muted">{{ oc.fecha_esperada.strftime('%d/%m/%Y') if oc.fecha_esperada else '--' }}</small></td>
         <td>
-          <div class="d-flex gap-1">
+          <div class="d-flex gap-1 flex-wrap">
             <a href="{{ url_for('portal_prov_oc_pdf', id=oc.id) }}" class="btn btn-xs btn-outline-secondary" target="_blank" title="PDF"><i class="bi bi-file-earmark-pdf"></i></a>
             {% if oc.estado_proveedor == 'pendiente' %}
             <form method="POST" action="{{ url_for('portal_prov_confirmar_oc', id=oc.id) }}" class="d-inline">
-              <button type="submit" class="btn btn-xs btn-success" onclick="return confirm('Confirmar esta OC?')"><i class="bi bi-check-lg"></i></button>
+              <button type="submit" class="btn btn-xs btn-success" onclick="return confirm('Confirmar esta OC?')"><i class="bi bi-check-lg me-1"></i>Confirmar</button>
             </form>
+            {% elif oc.estado_proveedor == 'anticipo_enviado' %}
+            <form method="POST" action="{{ url_for('portal_prov_anticipo_oc', id=oc.id) }}" class="d-inline">
+              <button type="submit" class="btn btn-xs btn-primary" onclick="return confirm('Confirmar que recibiste el anticipo de {{ moneda(oc.monto_pagado or 0) }}?')"><i class="bi bi-check2-circle me-1"></i>Confirmar recibido</button>
+            </form>
+            {% elif oc.estado_proveedor == 'anticipo_recibido' %}
+            <small class="text-success"><i class="bi bi-check-circle"></i> Confirmado</small>
             {% endif %}
           </div>
         </td>

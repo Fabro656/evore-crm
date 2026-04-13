@@ -105,9 +105,11 @@ html[data-theme="dark"] .alert-info{background:rgba(21,137,238,.12);color:#90C8F
     {% if current_user.rol == 'cliente' %}
     <a href="{{ url_for('portal_cliente') }}" class="nav-link {% if request.endpoint=='portal_cliente' %}active{% endif %}"><i class="bi bi-house-fill"></i>Inicio</a>
     <a href="{{ url_for('portal_pre_cotizacion_nueva') }}" class="nav-link {% if request.endpoint=='portal_pre_cotizacion_nueva' %}active{% endif %}"><i class="bi bi-file-earmark-plus"></i>Nueva solicitud</a>
+    <a href="{{ url_for('portal_cliente_docs') }}" class="nav-link {% if request.endpoint=='portal_cliente_docs' %}active{% endif %}"><i class="bi bi-file-earmark-ruled"></i>Documentos legales</a>
     <a href="{{ url_for('portal_ticket_nuevo') }}" class="nav-link {% if request.endpoint=='portal_ticket_nuevo' %}active{% endif %}"><i class="bi bi-chat-left-text"></i>Enviar mensaje</a>
     {% elif current_user.rol == 'proveedor' %}
     <a href="{{ url_for('portal_proveedor') }}" class="nav-link {% if request.endpoint=='portal_proveedor' %}active{% endif %}"><i class="bi bi-house-fill"></i>Inicio</a>
+    <a href="{{ url_for('portal_prov_docs') }}" class="nav-link {% if request.endpoint=='portal_prov_docs' %}active{% endif %}"><i class="bi bi-file-earmark-ruled"></i>Documentos legales</a>
     <a href="{{ url_for('portal_prov_ticket') }}" class="nav-link {% if request.endpoint=='portal_prov_ticket' %}active{% endif %}"><i class="bi bi-chat-left-text"></i>Enviar mensaje</a>
     {% endif %}
   </nav>

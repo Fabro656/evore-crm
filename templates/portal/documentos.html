@@ -1,0 +1,333 @@
+{% extends 'portal_base.html' %}
+{% block title %}Documentos Legales{% endblock %}
+{% block page_title %}Documentos Legales{% endblock %}
+
+{% block content %}
+<div class="alert alert-info py-2 mb-3" style="font-size:.82rem">
+  <i class="bi bi-info-circle me-1"></i>Aqui encontraras los contratos, acuerdos y documentos legales relacionados con tu empresa. Los documentos con firma digital tienen validez legal.
+</div>
+
+{% if docs %}
+{# Separar en pendientes de firma y firmados #}
+{% set pendientes = docs|selectattr('requiere_firma_portal')|rejectattr('firma_portal_data')|list %}
+{% set firmados = docs|selectattr('firma_portal_data')|list %}
+{% set otros = docs|rejectattr('requiere_firma_portal')|rejectattr('firma_portal_data')|list %}
+
+{% if pendientes %}
+<div class="tc mb-3">
+  <div class="ch" style="background:#FFF8E6;color:#7A4A00"><i class="bi bi-pen me-2"></i>Pendientes de tu firma ({{ pendientes|length }})</div>
+  <div class="row g-3 p-3">
+    {% for doc in pendientes %}
+    <div class="col-md-6">
+      <div style="padding:1rem;border:2px solid var(--orange);border-radius:var(--radius);background:var(--surface)">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div>
+            <span class="b b-pendiente">Pendiente firma</span>
+            <span class="b" style="background:var(--surface2);color:var(--text2);margin-left:4px">{{ doc.tipo.replace('_',' ').title() }}</span>
+          </div>
+          {% if doc.fecha_vencimiento %}
+          <small class="text-muted">Vence: {{ doc.fecha_vencimiento.strftime('%d/%m/%Y') }}</small>
+          {% endif %}
+        </div>
+        <h6 class="fw-bold mb-1">{{ doc.titulo }}</h6>
+        {% if doc.numero %}<small class="text-muted d-block mb-1">N: {{ doc.numero }}</small>{% endif %}
+        {% if doc.descripcion %}<p style="font-size:.82rem;color:var(--text2);margin-bottom:.5rem">{{ doc.descripcion[:150] }}</p>{% endif %}
+        {% if doc.firma_empresa_data %}
+        <div class="mb-2" style="font-size:.78rem;color:var(--green)">
+          <i class="bi bi-check-circle me-1"></i>Firmado por empresa: {{ doc.firma_empresa_por or 'Representante' }} — {{ doc.firma_empresa_en.strftime('%d/%m/%Y') if doc.firma_empresa_en else '' }}
+        </div>
+        {% endif %}
+        <div class="d-flex gap-1 mt-2">
+          {% if doc.archivo_url %}
+          <a href="{{ doc.archivo_url }}" target="_blank" class="btn btn-xs btn-outline-secondary"><i class="bi bi-eye me-1"></i>Ver documento</a>
+          {% endif %}
+          <button type="button" class="btn btn-xs btn-warning" onclick="abrirFirma({{ doc.id }}, '{{ doc.titulo|e }}')"><i class="bi bi-pen me-1"></i>Firmar</button>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if firmados %}
+<div class="tc mb-3">
+  <div class="ch" style="background:#EDFBF0;color:#1A6B3C"><i class="bi bi-check-circle me-2"></i>Documentos firmados ({{ firmados|length }})</div>
+  <div class="row g-3 p-3">
+    {% for doc in firmados %}
+    <div class="col-md-6">
+      <div style="padding:1rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div>
+            <span class="b b-completado"><i class="bi bi-check-circle me-1"></i>Firmado</span>
+            <span class="b" style="background:var(--surface2);color:var(--text2);margin-left:4px">{{ doc.tipo.replace('_',' ').title() }}</span>
+          </div>
+          {% if doc.fecha_vencimiento %}
+          <small class="text-muted">Vence: {{ doc.fecha_vencimiento.strftime('%d/%m/%Y') }}</small>
+          {% endif %}
+        </div>
+        <h6 class="fw-bold mb-1">{{ doc.titulo }}</h6>
+        {% if doc.numero %}<small class="text-muted d-block mb-1">N: {{ doc.numero }}</small>{% endif %}
+        <div style="font-size:.78rem;color:var(--text2);margin-bottom:.5rem">
+          {% if doc.firma_empresa_por %}<div><i class="bi bi-building me-1"></i>Empresa: {{ doc.firma_empresa_por }} — {{ doc.firma_empresa_en.strftime('%d/%m/%Y') if doc.firma_empresa_en else '' }}</div>{% endif %}
+          <div><i class="bi bi-person me-1"></i>{{ doc.firma_portal_por }} — {{ doc.firma_portal_en.strftime('%d/%m/%Y %H:%M') if doc.firma_portal_en else '' }}</div>
+        </div>
+        <div class="d-flex gap-1 mt-2">
+          {% if doc.archivo_url %}
+          <a href="{{ doc.archivo_url }}" target="_blank" class="btn btn-xs btn-outline-secondary"><i class="bi bi-download me-1"></i>Descargar</a>
+          {% endif %}
+          <button type="button" class="btn btn-xs btn-outline-success" onclick="verFirma('{{ doc.firma_portal_data|e }}')"><i class="bi bi-pen me-1"></i>Ver firma</button>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if otros %}
+<div class="tc mb-3">
+  <div class="ch"><i class="bi bi-file-earmark-ruled me-2"></i>Otros documentos ({{ otros|length }})</div>
+  <div class="row g-3 p-3">
+    {% for doc in otros %}
+    <div class="col-md-6">
+      <div style="padding:1rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div>
+            <span class="b b-{{ doc.estado }}">{{ doc.estado.title() }}</span>
+            <span class="b" style="background:var(--surface2);color:var(--text2);margin-left:4px">{{ doc.tipo.replace('_',' ').title() }}</span>
+          </div>
+          {% if doc.fecha_vencimiento %}
+          <small class="text-muted">Vence: {{ doc.fecha_vencimiento.strftime('%d/%m/%Y') }}</small>
+          {% endif %}
+        </div>
+        <h6 class="fw-bold mb-1">{{ doc.titulo }}</h6>
+        {% if doc.numero %}<small class="text-muted d-block mb-1">N: {{ doc.numero }}</small>{% endif %}
+        {% if doc.descripcion %}<p style="font-size:.82rem;color:var(--text2);margin-bottom:.5rem">{{ doc.descripcion[:100] }}</p>{% endif %}
+        {% if doc.entidad %}<small class="text-muted"><i class="bi bi-building me-1"></i>{{ doc.entidad }}</small>{% endif %}
+        <div class="mt-2 d-flex gap-1">
+          {% if doc.archivo_url %}
+          <a href="{{ doc.archivo_url }}" target="_blank" class="btn btn-xs btn-outline-primary"><i class="bi bi-download me-1"></i>Descargar</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+  <i class="bi bi-file-earmark-ruled"></i>
+  <p>No hay documentos legales disponibles.</p>
+</div>
+{% endif %}
+
+<!-- Modal firma digital con selfie -->
+<div id="modalFirma" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:1050;align-items:center;justify-content:center;overflow-y:auto">
+  <div style="background:var(--surface);border-radius:var(--radius);padding:1.5rem;max-width:540px;width:95%;box-shadow:0 8px 24px rgba(0,0,0,.3);margin:1rem auto">
+    <h6 class="fw-bold mb-1"><i class="bi bi-pen me-2"></i>Firma digital con verificacion de identidad</h6>
+    <p id="firmaDocTitulo" style="font-size:.82rem;color:var(--text2);margin-bottom:.5rem"></p>
+
+    <!-- Aviso movil -->
+    <div class="alert alert-warning py-2 mb-2" style="font-size:.78rem" id="avisoMovil">
+      <i class="bi bi-phone me-1"></i><strong>Recomendacion:</strong> Para mejor experiencia, firma este documento desde tu <strong>telefono movil</strong>. Necesitaras la camara frontal para una foto de verificacion.
+    </div>
+
+    <!-- Paso 1: Firma -->
+    <div id="pasoFirma">
+      <label class="form-label" style="font-size:.82rem"><strong>Paso 1:</strong> Dibuja tu firma</label>
+      <div style="border:2px dashed var(--border);border-radius:8px;margin-bottom:.5rem;background:#fff">
+        <canvas id="firmaCanvas" width="470" height="160" style="width:100%;cursor:crosshair;display:block;border-radius:6px"></canvas>
+      </div>
+      <div class="d-flex justify-content-between mb-3">
+        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="limpiarCanvas()"><i class="bi bi-eraser me-1"></i>Limpiar</button>
+        <button type="button" class="btn btn-xs btn-primary" id="btnSiguienteSelfie" onclick="pasarASelfie()"><i class="bi bi-camera me-1"></i>Siguiente: foto de verificacion</button>
+      </div>
+    </div>
+
+    <!-- Paso 2: Selfie -->
+    <div id="pasoSelfie" style="display:none">
+      <label class="form-label" style="font-size:.82rem"><strong>Paso 2:</strong> Foto de verificacion de identidad</label>
+      <p style="font-size:.72rem;color:var(--text2);margin-bottom:.5rem"><i class="bi bi-shield-check me-1"></i>Se tomara una foto con tu camara frontal como constancia de quien firma. La foto quedara adjunta al documento firmado.</p>
+
+      <div id="selfieContainer" style="border:2px dashed var(--border);border-radius:8px;overflow:hidden;margin-bottom:.5rem;background:#000;min-height:200px;position:relative">
+        <video id="selfieVideo" autoplay playsinline style="width:100%;display:block;transform:scaleX(-1)"></video>
+        <canvas id="selfieSnapshot" style="display:none;width:100%"></canvas>
+        <img id="selfiePreview" style="display:none;width:100%;border-radius:6px" alt="Selfie">
+        <div id="selfieLoading" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;text-align:center">
+          <i class="bi bi-camera" style="font-size:2rem;display:block;margin-bottom:.5rem"></i>
+          <span style="font-size:.82rem">Activando camara...</span>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-between mb-2">
+        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="volverAFirma()"><i class="bi bi-arrow-left me-1"></i>Volver a firma</button>
+        <div class="d-flex gap-1">
+          <button type="button" class="btn btn-xs btn-warning" id="btnCapturar" onclick="capturarSelfie()"><i class="bi bi-camera-fill me-1"></i>Tomar foto</button>
+          <button type="button" class="btn btn-xs btn-outline-secondary" id="btnRetomar" onclick="retomarSelfie()" style="display:none"><i class="bi bi-arrow-counterclockwise me-1"></i>Retomar</button>
+        </div>
+      </div>
+    </div>
+
+    <p style="font-size:.7rem;color:var(--text2);margin-bottom:.5rem;border-top:1px solid var(--border);padding-top:.5rem"><i class="bi bi-info-circle me-1"></i>Esta firma electronica tiene validez legal segun la <strong>Ley 527 de 1999</strong> (Comercio Electronico), el <strong>Decreto 2364 de 2012</strong> (Firma Electronica) y la <strong>Ley 1564 de 2012</strong> (Codigo General del Proceso Art. 247). La foto de verificacion constituye evidencia de identidad del firmante.</p>
+
+    <form id="formFirma" method="POST">
+      <input type="hidden" name="firma_data" id="firmaDataInput">
+      <input type="hidden" name="selfie_data" id="selfieDataInput">
+      <div class="d-flex gap-2 justify-content-end">
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="cerrarFirma()">Cancelar</button>
+        <button type="submit" class="btn btn-sm btn-success" id="btnConfirmarFirma" disabled><i class="bi bi-check-circle me-1"></i>Confirmar firma y foto</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal ver firma -->
+<div id="modalVerFirma" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:1050;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:var(--radius);padding:1.5rem;max-width:420px;width:90%;text-align:center">
+    <h6 class="fw-bold mb-2">Firma digital</h6>
+    <img id="firmaImg" style="max-width:100%;border:1px solid var(--border);border-radius:8px;margin-bottom:1rem" alt="Firma">
+    <div><button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('modalVerFirma').style.display='none'">Cerrar</button></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  var canvas = document.getElementById('firmaCanvas');
+  if(!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var drawing = false, hasDrawn = false, hasSelfie = false;
+  var stream = null;
+
+  // Detect mobile
+  var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if(!isMobile) { var av = document.getElementById('avisoMovil'); if(av) av.style.display='none'; }
+
+  function getPos(e) {
+    var r = canvas.getBoundingClientRect();
+    var t = e.touches ? e.touches[0] : e;
+    return { x: (t.clientX - r.left) * (canvas.width / r.width), y: (t.clientY - r.top) * (canvas.height / r.height) };
+  }
+  function startDraw(e) { e.preventDefault(); drawing = true; hasDrawn = true; var p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }
+  function draw(e) { if(!drawing) return; e.preventDefault(); var p = getPos(e); ctx.lineTo(p.x, p.y); ctx.strokeStyle = '#1A2536'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.stroke(); }
+  function stopDraw() { drawing = false; }
+
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', stopDraw);
+  canvas.addEventListener('mouseleave', stopDraw);
+  canvas.addEventListener('touchstart', startDraw, {passive:false});
+  canvas.addEventListener('touchmove', draw, {passive:false});
+  canvas.addEventListener('touchend', stopDraw);
+
+  window.limpiarCanvas = function() { ctx.clearRect(0, 0, canvas.width, canvas.height); hasDrawn = false; checkReady(); };
+
+  window.abrirFirma = function(docId, titulo) {
+    limpiarCanvas(); hasSelfie = false; checkReady();
+    document.getElementById('pasoFirma').style.display = '';
+    document.getElementById('pasoSelfie').style.display = 'none';
+    document.getElementById('selfiePreview').style.display = 'none';
+    document.getElementById('selfieDataInput').value = '';
+    document.getElementById('modalFirma').style.display = 'flex';
+    document.getElementById('firmaDocTitulo').textContent = titulo;
+    document.getElementById('formFirma').action = '/portal/documentos/' + docId + '/firmar';
+  };
+
+  window.cerrarFirma = function() {
+    document.getElementById('modalFirma').style.display = 'none';
+    stopCamera();
+  };
+
+  window.pasarASelfie = function() {
+    if(!hasDrawn) { alert('Primero dibuja tu firma.'); return; }
+    document.getElementById('pasoFirma').style.display = 'none';
+    document.getElementById('pasoSelfie').style.display = '';
+    startCamera();
+  };
+
+  window.volverAFirma = function() {
+    stopCamera();
+    document.getElementById('pasoSelfie').style.display = 'none';
+    document.getElementById('pasoFirma').style.display = '';
+  };
+
+  function startCamera() {
+    var video = document.getElementById('selfieVideo');
+    var loading = document.getElementById('selfieLoading');
+    video.style.display = 'none';
+    loading.style.display = '';
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 360 } } })
+      .then(function(s) {
+        stream = s;
+        video.srcObject = s;
+        video.style.display = 'block';
+        loading.style.display = 'none';
+      })
+      .catch(function(err) {
+        loading.innerHTML = '<i class="bi bi-exclamation-triangle" style="font-size:2rem;display:block;margin-bottom:.5rem"></i><span style="font-size:.82rem">No se pudo acceder a la camara.<br>Puedes continuar sin foto.</span>';
+        // Allow without selfie
+        hasSelfie = true; checkReady();
+      });
+  }
+
+  function stopCamera() {
+    if(stream) { stream.getTracks().forEach(function(t) { t.stop(); }); stream = null; }
+  }
+
+  window.capturarSelfie = function() {
+    var video = document.getElementById('selfieVideo');
+    var snapCanvas = document.getElementById('selfieSnapshot');
+    var preview = document.getElementById('selfiePreview');
+    // Capture at reduced quality for minimal storage
+    snapCanvas.width = 320;
+    snapCanvas.height = Math.round(video.videoHeight * (320 / video.videoWidth)) || 240;
+    var sctx = snapCanvas.getContext('2d');
+    sctx.translate(snapCanvas.width, 0);
+    sctx.scale(-1, 1); // mirror
+    sctx.drawImage(video, 0, 0, snapCanvas.width, snapCanvas.height);
+    // Compress to JPEG ~50KB
+    var dataUrl = snapCanvas.toDataURL('image/jpeg', 0.5);
+    document.getElementById('selfieDataInput').value = dataUrl;
+    preview.src = dataUrl;
+    preview.style.display = 'block';
+    video.style.display = 'none';
+    document.getElementById('btnCapturar').style.display = 'none';
+    document.getElementById('btnRetomar').style.display = '';
+    stopCamera();
+    hasSelfie = true;
+    checkReady();
+  };
+
+  window.retomarSelfie = function() {
+    hasSelfie = false; checkReady();
+    document.getElementById('selfiePreview').style.display = 'none';
+    document.getElementById('btnCapturar').style.display = '';
+    document.getElementById('btnRetomar').style.display = 'none';
+    document.getElementById('selfieDataInput').value = '';
+    startCamera();
+  };
+
+  function checkReady() {
+    var btn = document.getElementById('btnConfirmarFirma');
+    btn.disabled = !(hasDrawn && hasSelfie);
+  }
+
+  document.getElementById('modalFirma').addEventListener('click', function(e) { if(e.target === this) cerrarFirma(); });
+
+  document.getElementById('formFirma').addEventListener('submit', function(e) {
+    if(!hasDrawn) { e.preventDefault(); alert('Dibuja tu firma.'); return; }
+    document.getElementById('firmaDataInput').value = canvas.toDataURL('image/png');
+  });
+
+  window.verFirma = function(data) {
+    document.getElementById('firmaImg').src = data;
+    document.getElementById('modalVerFirma').style.display = 'flex';
+  };
+  document.getElementById('modalVerFirma').addEventListener('click', function(e) { if(e.target === this) this.style.display='none'; });
+})();
+</script>
+{% endblock %}

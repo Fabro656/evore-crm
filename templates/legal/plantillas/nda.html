@@ -59,8 +59,10 @@ a) El presente acuerdo constituye la totalidad del entendimiento entre las parte
 
 <div class="firma">
   <div>
-    {% if firma_data and firma_data != 'data:,' %}<img src="{{ firma_data }}" style="max-width:180px;max-height:60px;display:block;margin:0 auto 5px"><small style="color:#666;font-size:8pt">Firmado digitalmente en Evore CRM</small><br>{% endif %}
+    {% if firma_data and firma_data != 'data:,' %}<img src="{{ firma_data }}" style="max-width:180px;max-height:60px;display:block;margin:0 auto 5px">{% if selfie_empresa is defined and selfie_empresa %}<img src="{{ selfie_empresa }}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;margin:5px auto;display:block;border:2px solid #333">{% endif %}<small style="color:#666;font-size:8pt">Firmado digitalmente en Evore CRM</small><br>{% endif %}
     <strong>{{ empresa_representante or empresa_nombre }}</strong><br>PARTE REVELADORA<br>NIT: {{ empresa_nit }}{% if empresa_representante_cedula %}<br>C.C. {{ empresa_representante_cedula }}{% endif %}</div>
-  <div><strong>{{ tercero_nombre }}</strong><br>PARTE RECEPTORA<br>{{ tercero_nit or ('C.C. ' + tercero_cedula) }}</div>
+  <div>
+    {% if firma_portal is defined and firma_portal and firma_portal != 'data:,' %}<img src="{{ firma_portal }}" style="max-width:180px;max-height:60px;display:block;margin:0 auto 5px">{% if selfie_portal is defined and selfie_portal %}<img src="{{ selfie_portal }}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;margin:5px auto;display:block;border:2px solid #333">{% endif %}<small style="color:#666;font-size:8pt">Firmado digitalmente en Evore CRM</small><br>{% endif %}
+    <strong>{{ tercero_nombre }}</strong><br>PARTE RECEPTORA<br>{{ tercero_nit or ('C.C. ' + tercero_cedula) }}</div>
 </div>
 </body></html>

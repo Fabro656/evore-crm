@@ -40,10 +40,62 @@
     <input type="url" name="archivo_url" class="form-control" placeholder="https://..." value="{{ obj.archivo_url if obj else '' }}"></div>
   <div class="col-12"><label class="form-label">Notas</label>
     <textarea name="notas" class="form-control" rows="2">{{ obj.notas if obj else '' }}</textarea></div>
+  <div class="col-md-6">
+    <div class="form-check mt-2">
+      <input class="form-check-input" type="checkbox" name="requiere_firma_portal" value="1" id="chkFirmaPortal" {% if obj and obj.requiere_firma_portal %}checked{% endif %}>
+      <label class="form-check-label" for="chkFirmaPortal"><strong>Requiere firma del cliente/proveedor en portal</strong></label>
+    </div>
+    <small class="text-muted">Si se activa, el documento aparecera como "pendiente de firma" en el portal del cliente o proveedor vinculado.</small>
+  </div>
+  <div class="col-md-6">
+    {% if obj and obj.firma_empresa_data %}
+    <div class="alert alert-success py-2 mb-0" style="font-size:.82rem">
+      <i class="bi bi-check-circle me-1"></i>Firmado por empresa: <strong>{{ obj.firma_empresa_por }}</strong> — {{ obj.firma_empresa_en.strftime('%d/%m/%Y %H:%M') if obj.firma_empresa_en else '' }}
+    </div>
+    {% else %}
+    <label class="form-label">Firma de la empresa</label>
+    <div style="border:2px dashed var(--border);border-radius:8px;background:#fff;position:relative">
+      <canvas id="firmaEmpresaCanvas" width="400" height="120" style="width:100%;cursor:crosshair;display:block;border-radius:6px"></canvas>
+    </div>
+    <input type="hidden" name="firma_empresa_data" id="firmaEmpresaData">
+    <input type="hidden" name="firma_empresa_por" value="{{ current_user.nombre }}">
+    <div class="d-flex gap-2 mt-1">
+      <button type="button" class="btn btn-xs btn-outline-secondary" onclick="limpiarFirmaEmpresa()">Limpiar</button>
+    </div>
+    {% endif %}
+  </div>
+  {% if obj and obj.firma_portal_data %}
+  <div class="col-12">
+    <div class="alert alert-info py-2" style="font-size:.82rem">
+      <i class="bi bi-pen me-1"></i>Firmado en portal por: <strong>{{ obj.firma_portal_por }}</strong> — {{ obj.firma_portal_en.strftime('%d/%m/%Y %H:%M') if obj.firma_portal_en else '' }}
+      <img src="{{ obj.firma_portal_data }}" style="max-width:200px;border:1px solid var(--border);border-radius:4px;margin-left:1rem" alt="Firma portal">
+    </div>
+  </div>
+  {% endif %}
 </div>
 <div class="d-flex gap-2 mt-4">
-  <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear Documento' }}</button>
+  <button type="submit" class="btn btn-primary" onclick="capturarFirmaEmpresa()"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear Documento' }}</button>
   <a href="{{ url_for('legal_index') }}" class="btn btn-outline-secondary">Cancelar</a>
-</div></form></div>{% endblock %}
+</div></form></div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function(){
+  var c = document.getElementById('firmaEmpresaCanvas');
+  if (!c) return;
+  var ctx = c.getContext('2d'), drawing = false, hasDrawn = false;
+  function gp(e) { var r=c.getBoundingClientRect(),t=e.touches?e.touches[0]:e; return {x:(t.clientX-r.left)*(c.width/r.width),y:(t.clientY-r.top)*(c.height/r.height)}; }
+  c.addEventListener('mousedown',function(e){e.preventDefault();drawing=true;hasDrawn=true;var p=gp(e);ctx.beginPath();ctx.moveTo(p.x,p.y);});
+  c.addEventListener('mousemove',function(e){if(!drawing)return;var p=gp(e);ctx.lineTo(p.x,p.y);ctx.strokeStyle='#1A2536';ctx.lineWidth=2;ctx.lineCap='round';ctx.stroke();});
+  c.addEventListener('mouseup',function(){drawing=false;});
+  c.addEventListener('mouseleave',function(){drawing=false;});
+  c.addEventListener('touchstart',function(e){e.preventDefault();drawing=true;hasDrawn=true;var p=gp(e);ctx.beginPath();ctx.moveTo(p.x,p.y);},{passive:false});
+  c.addEventListener('touchmove',function(e){if(!drawing)return;e.preventDefault();var p=gp(e);ctx.lineTo(p.x,p.y);ctx.strokeStyle='#1A2536';ctx.lineWidth=2;ctx.lineCap='round';ctx.stroke();},{passive:false});
+  c.addEventListener('touchend',function(){drawing=false;});
+  window.limpiarFirmaEmpresa = function(){ ctx.clearRect(0,0,c.width,c.height); hasDrawn=false; };
+  window.capturarFirmaEmpresa = function(){ if(hasDrawn) document.getElementById('firmaEmpresaData').value = c.toDataURL('image/png'); };
+})();
+</script>
+{% endblock %}
 
 # ── CONTABLE TEMPLATES ─────────────────────────────────────────

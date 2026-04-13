@@ -159,6 +159,12 @@
           {% else %}
             <span class="badge bg-secondary">Pendiente</span>
           {% endif %}
+          {% if a.venta and (a.venta.estado_cliente_pago or '') == 'enviado' %}
+          <br><span class="badge bg-info text-dark" style="font-size:.65rem"><i class="bi bi-exclamation-circle me-1"></i>Cliente reporto pago</span>
+          {% endif %}
+          {% if a.orden_compra and (a.orden_compra.estado_proveedor or '') == 'anticipo_recibido' %}
+          <br><span class="badge bg-info text-dark" style="font-size:.65rem"><i class="bi bi-check2 me-1"></i>Proveedor confirmo</span>
+          {% endif %}
         </td>
 
         <td>

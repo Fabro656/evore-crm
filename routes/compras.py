@@ -345,6 +345,38 @@ def register(app):
                 asiento.numero = f'AC-{datetime.utcnow().year}-{asiento.id:04d}'
             except Exception as ex:
                 logging.warning(f'orden_compra_nueva: auto-asiento error: {ex}')
+            # Auto-crear contrato proveedor para firma en portal
+            try:
+                if oc.proveedor_id:
+                    empresa = ConfigEmpresa.query.first()
+                    prov = db.session.get(Proveedor, oc.proveedor_id)
+                    doc = DocumentoLegal(
+                        tipo='contrato',
+                        titulo=f'Contrato de suministro — {oc.numero}',
+                        numero=f'CTP-{oc.numero or oc.id}',
+                        entidad=empresa.nombre if empresa else 'Empresa',
+                        descripcion=f'Contrato de suministro vinculado a la OC {oc.numero}. Incluye condiciones de entrega, calidad y forma de pago.',
+                        estado='en_tramite',
+                        fecha_emision=datetime.utcnow().date(),
+                        proveedor_id=oc.proveedor_id,
+                        tipo_entidad='proveedor',
+                        requiere_firma_portal=True,
+                        activo=True,
+                        creado_por=current_user.id
+                    )
+                    if empresa and getattr(empresa, 'representante_legal', ''):
+                        doc.firma_empresa_por = empresa.representante_legal
+                    db.session.add(doc)
+                    # Notificar proveedor
+                    from models import User as UserModel
+                    user_prov = UserModel.query.filter_by(proveedor_id=oc.proveedor_id, rol='proveedor', activo=True).first()
+                    if user_prov:
+                        _crear_notificacion(user_prov.id, 'info',
+                            'Nuevo contrato para firmar',
+                            f'Tienes un contrato pendiente de firma: Contrato de suministro — {oc.numero}',
+                            url_for('portal_prov_docs'))
+            except Exception as ex:
+                logging.warning(f'orden_compra_nueva: auto-doc error: {ex}')
             db.session.commit()
             flash(f'Orden de compra {oc.numero} creada con asiento contable de egreso pendiente.','success')
             return redirect(url_for('ordenes_compra'))

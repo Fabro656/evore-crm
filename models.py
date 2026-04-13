@@ -86,7 +86,7 @@ class OrdenCompra(db.Model):
     notas                   = db.Column(db.Text)
     creado_por              = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en               = db.Column(db.DateTime, default=datetime.utcnow)
-    estado_proveedor        = db.Column(db.String(30), default='pendiente')  # pendiente, confirmada
+    estado_proveedor        = db.Column(db.String(30), default='pendiente')  # pendiente, confirmada, anticipo_enviado, anticipo_recibido
     confirmado_en           = db.Column(db.DateTime, nullable=True)
     confirmado_por          = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     es_demo                 = db.Column(db.Boolean, default=False)
@@ -176,6 +176,7 @@ class Venta(db.Model):
     pendiente_aprobacion = db.Column(db.Boolean, default=False)  # v37 bloqueo por aprobacion
     transportista_id    = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)  # v38
     enviado_en          = db.Column(db.DateTime, nullable=True)  # v38
+    estado_cliente_pago = db.Column(db.String(30), default='pendiente')  # pendiente, enviado, recibido
     estado              = db.Column(db.String(30), default='prospecto')
     fecha_anticipo      = db.Column(db.Date)
     dias_entrega        = db.Column(db.Integer, default=30)
@@ -435,6 +436,17 @@ class DocumentoLegal(db.Model):
     es_demo           = db.Column(db.Boolean, default=False)
     creado_por        = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en         = db.Column(db.DateTime, default=datetime.utcnow)
+    # v40 — firma digital portal
+    firma_empresa_data = db.Column(db.Text, nullable=True)  # firma base64 de la empresa
+    firma_empresa_por  = db.Column(db.String(200), nullable=True)
+    firma_empresa_en   = db.Column(db.DateTime, nullable=True)
+    firma_portal_data  = db.Column(db.Text, nullable=True)  # firma base64 del cliente/proveedor
+    firma_portal_por   = db.Column(db.String(200), nullable=True)
+    firma_portal_en    = db.Column(db.DateTime, nullable=True)
+    selfie_empresa_data = db.Column(db.Text, nullable=True)  # selfie base64 del firmante empresa
+    selfie_portal_data = db.Column(db.Text, nullable=True)  # selfie base64 del firmante portal
+    requiere_firma_portal = db.Column(db.Boolean, default=False)
+    contenido_html     = db.Column(db.Text, nullable=True)  # HTML del contrato generado
     producto          = db.relationship('Producto', foreign_keys=[producto_id])
 
 class CuentaPUC(db.Model):
@@ -1363,6 +1375,30 @@ def _migrate(conn):
         ("ALTER TABLE ordenes_compra ADD COLUMN pendiente_aprobacion BOOLEAN DEFAULT FALSE"),
         ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS pendiente_aprobacion BOOLEAN DEFAULT FALSE"),
         ("ALTER TABLE ventas ADD COLUMN pendiente_aprobacion BOOLEAN DEFAULT FALSE"),
+        # v40 — Bidirectional payment tracking
+        ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS estado_cliente_pago VARCHAR(30) DEFAULT 'pendiente'"),
+        ("ALTER TABLE ventas ADD COLUMN estado_cliente_pago VARCHAR(30) DEFAULT 'pendiente'"),
+        # v40 — DocumentoLegal: firma digital portal
+        ("ALTER TABLE documentos_legales ADD COLUMN IF NOT EXISTS firma_empresa_data TEXT"),
+        ("ALTER TABLE documentos_legales ADD COLUMN firma_empresa_data TEXT"),
+        ("ALTER TABLE documentos_legales ADD COLUMN IF NOT EXISTS firma_empresa_por VARCHAR(200)"),
+        ("ALTER TABLE documentos_legales ADD COLUMN firma_empresa_por VARCHAR(200)"),
+        ("ALTER TABLE documentos_legales ADD COLUMN IF NOT EXISTS firma_empresa_en TIMESTAMP"),
+        ("ALTER TABLE documentos_legales ADD COLUMN firma_empresa_en TIMESTAMP"),
+        ("ALTER TABLE documentos_legales ADD COLUMN IF NOT EXISTS firma_portal_data TEXT"),
+        ("ALTER TABLE documentos_legales ADD COLUMN firma_portal_data TEXT"),
+        ("ALTER TABLE documentos_legales ADD COLUMN IF NOT EXISTS firma_portal_por VARCHAR(200)"),
+        ("ALTER TABLE documentos_legales ADD COLUMN firma_portal_por VARCHAR(200)"),
+        ("ALTER TABLE documentos_legales ADD COLUMN IF NOT EXISTS firma_portal_en TIMESTAMP"),
+        ("ALTER TABLE documentos_legales ADD COLUMN firma_portal_en TIMESTAMP"),
+        ("ALTER TABLE documentos_legales ADD COLUMN IF NOT EXISTS requiere_firma_portal BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE documentos_legales ADD COLUMN requiere_firma_portal BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE documentos_legales ADD COLUMN IF NOT EXISTS selfie_empresa_data TEXT"),
+        ("ALTER TABLE documentos_legales ADD COLUMN selfie_empresa_data TEXT"),
+        ("ALTER TABLE documentos_legales ADD COLUMN IF NOT EXISTS selfie_portal_data TEXT"),
+        ("ALTER TABLE documentos_legales ADD COLUMN selfie_portal_data TEXT"),
+        ("ALTER TABLE documentos_legales ADD COLUMN IF NOT EXISTS contenido_html TEXT"),
+        ("ALTER TABLE documentos_legales ADD COLUMN contenido_html TEXT"),
     ]
     for sql in migrations:
         try:

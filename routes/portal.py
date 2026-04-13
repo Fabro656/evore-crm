@@ -62,6 +62,71 @@ def register(app):
                                empaques_detalle=empaques_detalle, transportista=transportista)
 
 
+    # ── portal_cliente_docs (/portal/documentos)
+    @app.route('/portal/documentos')
+    @login_required
+    def portal_cliente_docs():
+        if current_user.rol != 'cliente': return redirect(url_for('dashboard'))
+        cliente = db.session.get(Cliente, current_user.cliente_id) if current_user.cliente_id else None
+        if not cliente: return redirect(url_for('portal_cliente'))
+        docs = DocumentoLegal.query.filter(
+            DocumentoLegal.activo == True,
+            db.or_(DocumentoLegal.cliente_id == cliente.id, DocumentoLegal.tipo_entidad == 'empresa')
+        ).order_by(DocumentoLegal.creado_en.desc()).all()
+        return render_template('portal/documentos.html', docs=docs, entidad=cliente, tipo='cliente')
+
+
+    # ── portal_cliente_marcar_pago (/portal/venta/<id>/marcar-pago)
+    @app.route('/portal/venta/<int:id>/marcar-pago', methods=['POST'])
+    @login_required
+    def portal_cliente_marcar_pago(id):
+        """Cliente marca que ya envió el pago/anticipo de una venta."""
+        if current_user.rol != 'cliente':
+            return redirect(url_for('dashboard'))
+        venta = Venta.query.get_or_404(id)
+        if venta.cliente_id != current_user.cliente_id:
+            flash('Sin permisos.', 'danger')
+            return redirect(url_for('portal_cliente'))
+        try:
+            monto = float(request.form.get('monto_pago') or 0)
+            metodo = request.form.get('metodo_pago', 'transferencia')
+            referencia = request.form.get('referencia_pago', '')
+            if monto <= 0:
+                flash('Indica el monto del pago.', 'warning')
+                return redirect(url_for('portal_cliente'))
+            venta.estado_cliente_pago = 'enviado'
+            # Registrar pago pendiente de confirmación
+            pago = PagoVenta(
+                venta_id=venta.id,
+                monto=monto,
+                tipo='anticipo' if monto < float(venta.total or 0) else 'saldo',
+                metodo_pago=metodo,
+                referencia=referencia,
+                fecha=datetime.utcnow().date(),
+                notas=f'Reportado por cliente via portal. Pendiente confirmación.',
+                creado_por=current_user.id
+            )
+            db.session.add(pago)
+            # Notificar al equipo contable/ventas
+            cliente = db.session.get(Cliente, current_user.cliente_id)
+            nombre_cli = cliente.empresa or cliente.nombre if cliente else 'Cliente'
+            destinatarios = User.query.filter(
+                User.rol.in_(['admin', 'contador', 'vendedor']), User.activo == True
+            ).all()
+            for u in destinatarios[:3]:
+                _crear_notificacion(u.id, 'info',
+                    f'{nombre_cli} reportó pago de {moneda(monto)}',
+                    f'Venta {venta.numero or venta.id} — {metodo} ref: {referencia}. Confirmar recepción en Asientos Contables.',
+                    url=url_for('contable_asientos', vista='generados'))
+            db.session.commit()
+            flash(f'Pago de {moneda(monto)} reportado. Será confirmado por el equipo.', 'success')
+        except Exception as e:
+            logging.warning(f'portal_cliente_marcar_pago error: {e}')
+            db.session.rollback()
+            flash('Error al reportar el pago.', 'danger')
+        return redirect(url_for('portal_cliente'))
+
+
     # ── portal_mensaje_nuevo (/portal/mensaje/nuevo)
     @app.route('/portal/mensaje/nuevo', methods=['POST'])
     @login_required
@@ -332,6 +397,59 @@ def register(app):
                                ordenes=ordenes, cotizaciones=cotizaciones)
     
 
+    # ── portal_firmar_documento (/portal/documentos/<id>/firmar)
+    @app.route('/portal/documentos/<int:id>/firmar', methods=['POST'])
+    @login_required
+    def portal_firmar_documento(id):
+        """Cliente o proveedor firma digitalmente un documento legal."""
+        doc = DocumentoLegal.query.get_or_404(id)
+        # Verificar permisos
+        if current_user.rol == 'cliente':
+            cliente = db.session.get(Cliente, current_user.cliente_id) if current_user.cliente_id else None
+            if not cliente or (doc.cliente_id != cliente.id and doc.tipo_entidad != 'empresa'):
+                flash('Sin permisos para firmar.', 'danger')
+                return redirect(url_for('portal_cliente_docs'))
+        elif current_user.rol == 'proveedor':
+            prov = db.session.get(Proveedor, current_user.proveedor_id) if current_user.proveedor_id else None
+            if not prov or (doc.proveedor_id != prov.id and doc.tipo_entidad != 'empresa'):
+                flash('Sin permisos para firmar.', 'danger')
+                return redirect(url_for('portal_prov_docs'))
+        else:
+            return redirect(url_for('dashboard'))
+
+        firma_data = request.form.get('firma_data', '')
+        if not firma_data or len(firma_data) < 100:
+            flash('Firma inválida. Dibuja tu firma en el recuadro.', 'warning')
+            if current_user.rol == 'cliente':
+                return redirect(url_for('portal_cliente_docs'))
+            return redirect(url_for('portal_prov_docs'))
+
+        doc.firma_portal_data = firma_data
+        doc.firma_portal_por = current_user.nombre
+        doc.firma_portal_en = datetime.utcnow()
+        # Selfie de verificacion
+        selfie_data = request.form.get('selfie_data', '')
+        if selfie_data and len(selfie_data) > 100:
+            doc.selfie_portal_data = selfie_data
+        if doc.firma_empresa_data:
+            doc.estado = 'vigente'  # Ambas partes firmaron
+        db.session.commit()
+
+        # Notificar al admin
+        admins = User.query.filter(User.rol.in_(['admin', 'vendedor']), User.activo == True).all()
+        for a in admins[:2]:
+            _crear_notificacion(a.id, 'info',
+                f'Documento firmado por {current_user.nombre}',
+                f'"{doc.titulo}" fue firmado digitalmente.',
+                url=url_for('legal_index'))
+        db.session.commit()
+
+        flash('Documento firmado exitosamente.', 'success')
+        if current_user.rol == 'cliente':
+            return redirect(url_for('portal_cliente_docs'))
+        return redirect(url_for('portal_prov_docs'))
+
+
     # ── portal_prov_oc_pdf (/portal-proveedor/oc/<int:id>/pdf)
     @app.route('/portal-proveedor/oc/<int:id>/pdf')
     @login_required
@@ -344,6 +462,20 @@ def register(app):
             return redirect(url_for('portal_proveedor'))
         empresa = ConfigEmpresa.query.first()
         return render_template('ordenes_compra/pdf.html', oc=oc, empresa=empresa)
+
+
+    # ── portal_prov_docs (/portal-proveedor/documentos)
+    @app.route('/portal-proveedor/documentos')
+    @login_required
+    def portal_prov_docs():
+        if current_user.rol != 'proveedor': return redirect(url_for('dashboard'))
+        prov = db.session.get(Proveedor, current_user.proveedor_id) if current_user.proveedor_id else None
+        if not prov: return redirect(url_for('portal_proveedor'))
+        docs = DocumentoLegal.query.filter(
+            DocumentoLegal.activo == True,
+            db.or_(DocumentoLegal.proveedor_id == prov.id, DocumentoLegal.tipo_entidad == 'empresa')
+        ).order_by(DocumentoLegal.creado_en.desc()).all()
+        return render_template('portal/documentos.html', docs=docs, entidad=prov, tipo='proveedor')
 
 
     # ── portal_prov_confirmar_oc (/portal-proveedor/confirmar-oc/<int:id>)
@@ -409,7 +541,7 @@ def register(app):
     @app.route('/portal-proveedor/oc/<int:id>/anticipo', methods=['POST'])
     @login_required
     def portal_prov_anticipo_oc(id):
-        """Portal del proveedor: registra que el anticipo fue recibido."""
+        """Portal del proveedor: confirma que el anticipo fue recibido — sincroniza con AsientoContable."""
         if current_user.rol != 'proveedor':
             return redirect(url_for('dashboard'))
         oc = OrdenCompra.query.get_or_404(id)
@@ -418,20 +550,30 @@ def register(app):
             flash('Sin permisos.', 'danger')
             return redirect(url_for('portal_proveedor'))
 
-        fecha_real = request.form.get('fecha_anticipo_real')
-        if fecha_real:
-            try:
-                oc.fecha_anticipo_real = datetime.strptime(fecha_real, '%Y-%m-%d').date()
-                oc.estado_proveedor = 'anticipo_recibido'
-                # Recalcular fecha esperada si existe cotización
-                if oc.cotizacion_id:
-                    cotprov = CotizacionProveedor.query.get(oc.cotizacion_id)
-                    if cotprov and cotprov.plazo_entrega_dias:
-                        oc.fecha_esperada = oc.fecha_anticipo_real + timedelta(days=cotprov.plazo_entrega_dias)
-                db.session.commit()
-                flash('Anticipo registrado. Fecha de entrega actualizada.', 'success')
-            except Exception as e:
-                logging.warning(f'portal_prov_anticipo_oc error: {e}')
-                flash('Error al registrar el anticipo.', 'danger')
+        try:
+            oc.fecha_anticipo_real = datetime.utcnow().date()
+            oc.estado_proveedor = 'anticipo_recibido'
+            # Recalcular fecha esperada si existe cotización
+            if oc.cotizacion_id:
+                cotprov = CotizacionProveedor.query.get(oc.cotizacion_id)
+                if cotprov and cotprov.plazo_entrega_dias:
+                    oc.fecha_esperada = oc.fecha_anticipo_real + timedelta(days=cotprov.plazo_entrega_dias)
+            # Sincronizar con AsientoContable vinculado
+            asiento = AsientoContable.query.filter_by(orden_compra_id=oc.id).first()
+            if asiento and asiento.estado_pago in ('parcial', 'completo'):
+                asiento.notas = (asiento.notas or '') + f'\nProveedor confirmó recepción de anticipo el {datetime.utcnow().strftime("%d/%m/%Y %H:%M")}.'
+            # Notificar al equipo
+            admins = User.query.filter(User.rol.in_(['admin', 'vendedor', 'contador']), User.activo == True).all()
+            for a in admins[:3]:
+                _crear_notificacion(a.id, 'info',
+                    f'{prov.nombre} confirmó anticipo recibido',
+                    f'OC {oc.numero or oc.id} — anticipo de {moneda(oc.monto_pagado or 0)} confirmado por proveedor.',
+                    url=url_for('orden_compra_editar', id=oc.id))
+            db.session.commit()
+            flash('Anticipo confirmado como recibido. Fecha de entrega actualizada.', 'success')
+        except Exception as e:
+            logging.warning(f'portal_prov_anticipo_oc error: {e}')
+            db.session.rollback()
+            flash('Error al confirmar el anticipo.', 'danger')
         return redirect(url_for('portal_proveedor'))
 

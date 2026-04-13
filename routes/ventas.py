@@ -533,6 +533,47 @@ def register(app):
         if nuevo == 'anticipo_pagado' and estado_anterior not in {'anticipo_pagado', 'pagado', 'completado'}:
             InventarioService.reservar_stock_venta(venta)
 
+            # ── Bloque 2b2: Auto-crear contrato legal para el cliente ──
+            try:
+                if venta.cliente_id:
+                    existing_doc = DocumentoLegal.query.filter_by(
+                        cliente_id=venta.cliente_id, tipo='contrato', activo=True,
+                        requiere_firma_portal=True
+                    ).filter(DocumentoLegal.firma_portal_data == None).first()
+                    if not existing_doc:
+                        empresa = ConfigEmpresa.query.first()
+                        cli = db.session.get(Cliente, venta.cliente_id)
+                        doc = DocumentoLegal(
+                            tipo='contrato',
+                            titulo=f'Contrato de fabricacion — {venta.numero or venta.titulo}',
+                            numero=f'CTR-{venta.numero or venta.id}',
+                            entidad=empresa.nombre if empresa else 'Empresa',
+                            descripcion=f'Contrato de fabricacion para terceros vinculado a la venta {venta.numero}. Incluye especificaciones de producto, plazos de entrega y condiciones de pago.',
+                            estado='en_tramite',
+                            fecha_emision=datetime.utcnow().date(),
+                            cliente_id=venta.cliente_id,
+                            tipo_entidad='cliente',
+                            requiere_firma_portal=True,
+                            activo=True,
+                            creado_por=current_user.id
+                        )
+                        # Auto-firma empresa si hay representante legal configurado
+                        if empresa and getattr(empresa, 'representante_legal', ''):
+                            doc.firma_empresa_por = empresa.representante_legal
+                        db.session.add(doc)
+                        db.session.flush()
+                        # Notificar al cliente si tiene usuario portal
+                        from models import User as UserModel
+                        user_cli = UserModel.query.filter_by(cliente_id=venta.cliente_id, rol='cliente', activo=True).first()
+                        if user_cli:
+                            _crear_notificacion(user_cli.id, 'info',
+                                'Nuevo contrato para firmar',
+                                f'Tienes un contrato pendiente de firma en tu portal: {doc.titulo}',
+                                url_for('portal_cliente_docs'))
+                        flash('Contrato generado y enviado al portal del cliente para firma.', 'info')
+            except Exception as ex:
+                logging.warning(f'venta_cambiar_estado: auto-doc error: {ex}')
+
             # ── Bloque 2c: Generar OC automáticas para MP faltante ──
             try:
                 from datetime import date as _d

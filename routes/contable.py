@@ -417,8 +417,10 @@ def register(app):
                 oc.monto_pagado = float(oc.monto_pagado or 0) + monto
                 if asiento.estado_pago == 'completo':
                     oc.estado = 'en_espera_producto'
+                    oc.estado_proveedor = 'anticipo_enviado'
                 else:
                     oc.estado = 'anticipo_pagado'
+                    oc.estado_proveedor = 'anticipo_enviado'
 
         db.session.commit()
         flash(f'Pago de {moneda(monto)} confirmado para asiento {asiento.numero}.', 'success')
@@ -449,6 +451,7 @@ def register(app):
             if venta:
                 venta.monto_anticipo_recibido = float(venta.monto_anticipo_recibido or 0) + monto
                 venta.monto_pagado_total = float(venta.monto_pagado_total or 0) + monto
+                venta.estado_cliente_pago = 'recibido'
                 if asiento.estado_pago == 'completo':
                     # Si el pago completo cubre el anticipo, avanzar estado
                     if venta.estado in ('negociacion', 'prospecto'):

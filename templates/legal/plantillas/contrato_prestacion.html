@@ -1,59 +1,152 @@
 <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Contrato de Prestacion de Servicios</title>
 <style>
 body{font-family:Georgia,serif;font-size:12pt;color:#1a1a1a;max-width:700px;margin:40px auto;line-height:1.8;padding:0 20px}
-h1{text-align:center;font-size:14pt;text-transform:uppercase;letter-spacing:2px;margin-bottom:30px}
-.clausula{margin:15px 0;text-align:justify}
+h1{text-align:center;font-size:14pt;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px}
+h2{text-align:center;font-size:10pt;font-weight:normal;color:#555;margin-bottom:30px}
+.clausula{margin:18px 0;text-align:justify}
 .clausula strong{display:block;margin-bottom:5px}
-.firma{display:flex;justify-content:space-between;margin-top:60px}
-.firma div{width:45%;text-align:center;border-top:1px solid #333;padding-top:8px;font-size:10pt}
+.paragrafo{margin-top:8px;padding-left:16px;font-style:italic}
+.firma-wrap{display:flex;justify-content:space-between;margin-top:60px;flex-wrap:wrap;gap:20px}
+.firma-box{width:45%;min-width:200px;text-align:center;border-top:1px solid #333;padding-top:8px;font-size:10pt}
+.firma-box img{display:block;margin:0 auto 4px;max-width:180px;max-height:60px}
+.firma-box .selfie{display:block;margin:8px auto 4px;max-width:80px;max-height:80px;border-radius:4px;border:1px solid #ccc}
+.firma-box small{color:#666;font-size:8pt}
+.testigos{display:flex;justify-content:space-between;margin-top:50px;flex-wrap:wrap;gap:20px}
+.testigos div{width:45%;min-width:180px;text-align:center;border-top:1px solid #999;padding-top:8px;font-size:9pt;color:#555}
 .no-print{position:fixed;top:10px;right:10px}
 @media print{.no-print{display:none}}
 </style></head><body>
 <button class="no-print" onclick="window.print()" style="background:#0176D3;color:#fff;border:none;padding:8px 16px;border-radius:5px;cursor:pointer">Imprimir / Descargar</button>
 
 <h1>Contrato de Prestacion de Servicios</h1>
+<h2>(Articulo 34 C.S.T. &mdash; Codigo Civil colombiano &mdash; Ley 1150 de 2007)</h2>
 
-<p>En la ciudad de <strong>{{ ciudad }}</strong>, a los <strong>{{ fecha }}</strong>, entre <strong>{{ empresa_nombre }}</strong>, identificada con NIT <strong>{{ empresa_nit }}</strong>, representada legalmente por <strong>{{ empresa_representante }}</strong>, con domicilio en <strong>{{ empresa_direccion or 'la ciudad' }}</strong>, en adelante EL CONTRATANTE, y {{ el_la }} {{ senor_senora }} <strong>{{ tercero_nombre }}</strong>, {{ identificado_identificada }} con cedula de ciudadania No. <strong>{{ tercero_cedula }}</strong>, {{ domiciliado_domiciliada }} en <strong>{{ tercero_direccion or 'la ciudad' }}</strong>, en adelante {{ El_La }} CONTRATISTA, se celebra el presente contrato de prestacion de servicios, el cual se rige por las siguientes clausulas y por las normas del Codigo Civil y Codigo de Comercio aplicables:</p>
+<p>En la ciudad de <strong>{{ empresa_ciudad or ciudad }}</strong>, a los <strong>{{ fecha }}</strong>, entre:</p>
 
-<div class="clausula"><strong>PRIMERA — NATURALEZA DEL CONTRATO:</strong>
-El presente contrato es de naturaleza civil y se celebra en los terminos del articulo 34 del Codigo Sustantivo del Trabajo. En consecuencia, <strong>no genera relacion laboral</strong> alguna entre las partes, ni el pago de prestaciones sociales, ni la obligacion de subordinacion de {{ el_la }} CONTRATISTA respecto del CONTRATANTE.</div>
+<p><strong>EL CONTRATANTE:</strong> <strong>{{ empresa_nombre }}</strong>, identificada con NIT <strong>{{ empresa_nit }}</strong>{% if empresa_tipo_sociedad %}, {{ empresa_tipo_sociedad }}{% endif %}, representada legalmente por <strong>{{ empresa_representante }}</strong>{% if empresa_representante_cedula %}, {{ identificado_identificada }} con cedula de ciudadania No. <strong>{{ empresa_representante_cedula }}</strong>{% endif %}{% if empresa_representante_cargo %}, en calidad de <strong>{{ empresa_representante_cargo }}</strong>{% endif %}, con domicilio en <strong>{{ empresa_direccion or empresa_ciudad or ciudad }}</strong>, en adelante EL CONTRATANTE;</p>
 
-<div class="clausula"><strong>SEGUNDA — OBJETO:</strong>
-{{ El_La }} CONTRATISTA se compromete a prestar al CONTRATANTE los siguientes servicios: <strong>{{ objeto or '[DESCRIPCION DEL SERVICIO]' }}</strong>.</div>
+<p><strong>{{ El_La|upper }} CONTRATISTA:</strong> {{ El_La }} {{ senor_senora }} <strong>{{ tercero_nombre }}</strong>, {{ identificado_identificada }} con cedula de ciudadania No. <strong>{{ tercero_cedula }}</strong>{% if tercero_cargo %}, en calidad de <strong>{{ tercero_cargo }}</strong>{% endif %}, {{ domiciliado_domiciliada }} en <strong>{{ tercero_direccion or (empresa_ciudad or ciudad) }}</strong>, en adelante {{ El_La|upper }} CONTRATISTA;</p>
 
-<div class="clausula"><strong>TERCERA — VALOR Y FORMA DE PAGO:</strong>
-El CONTRATANTE pagara {{ al_a_la }} CONTRATISTA por los servicios prestados la suma de <strong>{{ valor or tercero_salario or '[VALOR]' }}</strong> pesos colombianos (COP). El pago se realizara previa presentacion del informe de actividades y de la cuenta de cobro correspondiente, junto con la constancia de pago de aportes al Sistema de Seguridad Social Integral (salud, pension y ARL) por parte de {{ el_la }} CONTRATISTA.</div>
+<p>Las partes, de comun acuerdo, celebran el presente contrato de prestacion de servicios, regido por las disposiciones del Codigo Civil y demas normas concordantes, conforme a las siguientes clausulas:</p>
 
-<div class="clausula"><strong>CUARTA — DURACION:</strong>
-El presente contrato tendra una duracion de <strong>{{ vigencia or '[DURACION]' }}</strong>, contados a partir del <strong>{{ fecha }}</strong>.</div>
+<div class="clausula"><strong>PRIMERA &mdash; EXCLUSION DE RELACION LABORAL:</strong>
+El presente contrato es de naturaleza civil y comercial, celebrado al amparo del articulo 34 del Codigo Sustantivo del Trabajo. <strong>No genera relacion laboral alguna</strong> entre las partes, ni subordinacion, ni pago de prestaciones sociales (cesantias, intereses sobre cesantias, primas, vacaciones), ni auxilio de transporte, ni indemnizaciones de caracter laboral. {{ El_La|upper }} CONTRATISTA actua con plena autonomia e independencia tecnica, administrativa y financiera. Cualquier reclamacion de naturaleza laboral formulada por {{ el_la }} CONTRATISTA o por trabajadores vinculados por este sera de su exclusiva responsabilidad.
+<p class="paragrafo"><strong>PARAGRAFO &mdash; SEGURIDAD SOCIAL:</strong> {{ El_La|upper }} CONTRATISTA, en calidad de trabajador independiente, se obliga a cotizar al Sistema de Seguridad Social Integral (salud, pension y ARL) sobre una base no inferior al cuarenta por ciento (40%) del valor mensualizado del contrato, de conformidad con el articulo 135 de la Ley 1753 de 2015 y normas concordantes. La acreditacion del pago es requisito previo e indispensable para cada desembolso de honorarios.</p></div>
 
-<div class="clausula"><strong>QUINTA — AUTONOMIA E INDEPENDENCIA:</strong>
-{{ El_La }} CONTRATISTA ejecutara el objeto del presente contrato con plena autonomia tecnica, administrativa y financiera. Dispondra de sus propios medios, herramientas y equipos para la ejecucion del servicio. No estara sujeto {{ al_a_la }} cumplimiento de horarios ni de jornada laboral impuesta por el CONTRATANTE. La forma, los medios y el tiempo de ejecucion del servicio seran determinados libremente por {{ el_la }} CONTRATISTA, siempre que se cumplan los resultados pactados.</div>
+<div class="clausula"><strong>SEGUNDA &mdash; OBJETO:</strong>
+{{ El_La|upper }} CONTRATISTA se obliga a prestar {{ al_a_la }} CONTRATANTE, de manera independiente y con sus propios medios, los siguientes servicios profesionales: <strong>{{ objeto or '[DESCRIPCION DETALLADA DEL SERVICIO O ENTREGABLES]' }}</strong>. La ejecucion del objeto implica la entrega de los productos o resultados que las partes acuerden por escrito como entregables del contrato.</div>
 
-<div class="clausula"><strong>SEXTA — SEGURIDAD SOCIAL:</strong>
-{{ El_La }} CONTRATISTA, en calidad de trabajador independiente, se obliga a realizar por su cuenta y riesgo el pago de los aportes al Sistema de Seguridad Social Integral (EPS, pension y ARL) sobre una base de cotizacion no inferior al 40% del valor mensual del contrato, de conformidad con la legislacion vigente. {{ El_La }} CONTRATISTA debera acreditar el pago de dichos aportes como requisito previo para el desembolso de cada pago.</div>
+<div class="clausula"><strong>TERCERA &mdash; VALOR Y MODO DE PAGO:</strong>
+El valor total de los honorarios pactados es de <strong>{{ valor or tercero_salario or '[VALOR TOTAL]' }}</strong> pesos colombianos (COP), distribuidos y pagados de la siguiente manera:
+<br><br>
+a) <strong>Anticipo:</strong> El treinta por ciento (30%) del valor total, equivalente a pesos colombianos correspondientes a dicho porcentaje, sera desembolsado dentro de los cinco (5) dias habiles siguientes a la firma del presente contrato y a la presentacion de la factura de anticipo.
+<br><br>
+b) <strong>Saldo contra entregables:</strong> El setenta por ciento (70%) restante sera pagado dentro de los quince (15) dias calendario siguientes a la entrega a satisfaccion del objeto contratado, previa aprobacion escrita por parte del CONTRATANTE y presentacion de la factura electronica correspondiente.
+<br><br>
+c) <strong>Plazos de pago:</strong> EL CONTRATANTE realizara los pagos unicamente previa presentacion de factura electronica valida (Decreto DIAN 358/2020), informe de actividades y constancia de pago de aportes al Sistema de Seguridad Social.
+<p class="paragrafo"><strong>PARAGRAFO &mdash; INTERESES DE MORA:</strong> El incumplimiento en el pago en las fechas acordadas causara intereses de mora a la tasa maxima legal vigente certificada por la Superintendencia Financiera de Colombia, liquidados dia a dia sobre el saldo insoluto, de conformidad con el articulo 884 del Codigo de Comercio.</p></div>
 
-<div class="clausula"><strong>SEPTIMA — OBLIGACIONES DE {{ El_La|upper }} CONTRATISTA:</strong>
-{{ El_La }} CONTRATISTA se obliga a: a) Ejecutar el objeto del contrato de manera eficiente y oportuna; b) Presentar informes de avance cuando el CONTRATANTE lo requiera; c) Mantener reserva sobre toda la informacion confidencial del CONTRATANTE; d) Cumplir con las normas y estandares de calidad aplicables; e) Responder por los danos que cause al CONTRATANTE o a terceros con ocasion de la ejecucion del contrato.</div>
+<div class="clausula"><strong>CUARTA &mdash; RETENCIONES TRIBUTARIAS:</strong>
+De conformidad con el Estatuto Tributario y sus normas reglamentarias, EL CONTRATANTE actuara como agente retenedor y aplicara, segun corresponda, las siguientes retenciones sobre cada pago:
+<br><br>
+a) <strong>Retencion en la fuente (Retefuente):</strong> Sobre honorarios y servicios, a la tarifa vigente segun el concepto de pago conforme al articulo 392 del Estatuto Tributario (tarifa general del diez por ciento (10%) para honorarios de personas naturales no declarantes, o la tarifa que corresponda segun el nivel de pagos acumulados en el ano).
+<br><br>
+b) <strong>IVA y Reteiva:</strong> Si {{ el_la }} CONTRATISTA es responsable del Impuesto sobre las Ventas, facturara el IVA a la tarifa del diecinueve por ciento (19%) o la tarifa especial que aplique. EL CONTRATANTE practicara la retencion de IVA (Reteiva) del quince por ciento (15%) del valor del IVA facturado, en caso de ser Gran Contribuyente o estar designado como agente retenedor de IVA.
+<br><br>
+c) <strong>Retencion de Industria y Comercio (ReteICA):</strong> Se aplicara la tarifa del municipio donde se ejecute la actividad, de acuerdo con el Codigo de Actividad Economica correspondiente.
+<p class="paragrafo"><strong>PARAGRAFO:</strong> Los certificados de retencion seran expedidos por EL CONTRATANTE dentro de los plazos legales. {{ El_La|upper }} CONTRATISTA es responsable de sus obligaciones tributarias como independiente.</p></div>
 
-<div class="clausula"><strong>OCTAVA — OBLIGACIONES DEL CONTRATANTE:</strong>
-El CONTRATANTE se obliga a: a) Pagar los honorarios pactados en los terminos y condiciones establecidos; b) Suministrar la informacion necesaria para la ejecucion del contrato; c) Recibir los servicios prestados de conformidad con lo pactado.</div>
+<div class="clausula"><strong>QUINTA &mdash; DURACION:</strong>
+El presente contrato tendra una duracion de <strong>{{ vigencia or '[DURACION]' }}</strong>, contados a partir de la fecha de su suscripcion. El contrato podra prorrogarse por mutuo acuerdo escrito de las partes antes de su vencimiento, sin que la prorroga implique en ningun caso reconocimiento de relacion laboral.</div>
 
-<div class="clausula"><strong>NOVENA — TERMINACION:</strong>
-El presente contrato terminara por: a) Cumplimiento del plazo pactado; b) Cumplimiento del objeto; c) Mutuo acuerdo de las partes; d) Incumplimiento de las obligaciones por cualquiera de las partes, previa notificacion escrita con quince (15) dias de anticipacion.</div>
+<div class="clausula"><strong>SEXTA &mdash; AUTONOMIA E INDEPENDENCIA:</strong>
+{{ El_La|upper }} CONTRATISTA ejecutara el objeto del presente contrato con plena autonomia tecnica, administrativa y financiera, sin estar sometido {{ al_a_la }} cumplimiento de horarios ni jornadas impuestas por EL CONTRATANTE. Dispondra de sus propios medios, herramientas y personal. La forma, los medios y el tiempo de ejecucion seran determinados libremente por {{ el_la }} CONTRATISTA, siempre que se cumplan los resultados y plazos pactados.</div>
 
-<div class="clausula"><strong>DECIMA — CONFIDENCIALIDAD:</strong>
-{{ El_La }} CONTRATISTA se compromete a mantener estricta reserva sobre toda la informacion confidencial, secretos comerciales, formulas, procesos de produccion, datos de clientes y demas informacion privilegiada a la que tenga acceso con ocasion del contrato. Esta obligacion se extiende por un periodo de dos (2) anos despues de la terminacion del contrato.</div>
+<div class="clausula"><strong>SEPTIMA &mdash; PROPIEDAD INTELECTUAL:</strong>
+De conformidad con el articulo 20 de la Ley 23 de 1982 (modificado por la Ley 1450 de 2011) y los articulos 181 y siguientes de la Decision 351 de la Comunidad Andina, todos los trabajos, obras, desarrollos, disenos, codigos, informes, contenidos y demas creaciones intelectuales producidos por {{ el_la }} CONTRATISTA en cumplimiento del objeto de este contrato, seran considerados obras por encargo y <strong>los derechos patrimoniales de autor seran cedidos en su totalidad a EL CONTRATANTE</strong> desde el momento de su creacion y sin necesidad de formalidad adicional. {{ El_La|upper }} CONTRATISTA conserva unicamente los derechos morales inalienables consagrados en el articulo 30 de la Ley 23 de 1982.
+<p class="paragrafo"><strong>PARAGRAFO:</strong> {{ El_La|upper }} CONTRATISTA garantiza que las obras entregadas son de su autoria o que cuenta con las autorizaciones necesarias, y que no infringen derechos de terceros. Responde por saneamiento en caso contrario.</p></div>
 
-<div class="clausula"><strong>DECIMA PRIMERA — CESION:</strong>
-{{ El_La }} CONTRATISTA no podra ceder total ni parcialmente el presente contrato sin la autorizacion previa y escrita del CONTRATANTE.</div>
+<div class="clausula"><strong>OCTAVA &mdash; OBLIGACIONES DE {{ El_La|upper }} CONTRATISTA:</strong>
+{{ El_La|upper }} CONTRATISTA se obliga a: a) Ejecutar el objeto de manera eficiente, diligente y oportuna; b) Entregar los entregables en los plazos acordados; c) Presentar informes de avance cuando EL CONTRATANTE lo requiera; d) Mantener reserva sobre toda la informacion confidencial del CONTRATANTE (obligacion que se extiende dos (2) anos despues de la terminacion del contrato); e) Responder por los danos que cause al CONTRATANTE o a terceros con ocasion de la ejecucion; f) No subcontratar total ni parcialmente el objeto sin autorizacion escrita previa de EL CONTRATANTE; g) Acreditar el pago de aportes a seguridad social antes de cada cobro.</div>
 
-<p style="margin-top:30px">En senal de aceptacion, las partes firman el presente contrato en dos (2) ejemplares del mismo tenor, en la ciudad y fecha indicadas.</p>
+<div class="clausula"><strong>NOVENA &mdash; OBLIGACIONES DEL CONTRATANTE:</strong>
+EL CONTRATANTE se obliga a: a) Pagar los honorarios pactados en los terminos y condiciones establecidos; b) Suministrar oportunamente la informacion y accesos necesarios para la ejecucion del contrato; c) Recibir los servicios y entregables de conformidad con lo pactado; d) Expedir los certificados de retencion en los plazos legales.</div>
 
-<div class="firma">
+<div class="clausula"><strong>DECIMA &mdash; INDEMNIDAD:</strong>
+{{ El_La|upper }} CONTRATISTA se obliga a mantener indemne a EL CONTRATANTE frente a cualquier reclamacion, demanda, proceso judicial o administrativo, multa, sancion o condena que terceros, incluyendo empleados o subcontratistas de {{ el_la }} CONTRATISTA, formulen en contra del CONTRATANTE con ocasion de la ejecucion del presente contrato, en especial reclamaciones de naturaleza laboral, de seguridad social, tributaria o de responsabilidad civil. EL CONTRATANTE podra repetir contra {{ el_la }} CONTRATISTA por las sumas que se vea obligado a pagar por tales conceptos.</div>
+
+<div class="clausula"><strong>UNDECIMA &mdash; RESPONSABILIDAD POR DANOS:</strong>
+{{ El_La|upper }} CONTRATISTA responde por los danos directos causados {{ al_a_la }} CONTRATANTE o a terceros derivados del incumplimiento o ejecucion defectuosa del contrato, conforme a las normas del Codigo Civil colombiano. La responsabilidad de {{ el_la }} CONTRATISTA por danos directos se limita al valor total de los honorarios pactados en este contrato, salvo que medie dolo o culpa grave. EL CONTRATANTE no sera responsable frente a terceros por los actos u omisiones de {{ el_la }} CONTRATISTA.</div>
+
+<div class="clausula"><strong>DUODECIMA &mdash; PENALIDADES POR INCUMPLIMIENTO DE PLAZOS:</strong>
+El incumplimiento en la entrega de los entregables en los plazos pactados dara lugar a una penalidad equivalente al uno por ciento (1%) del valor total del contrato por cada semana calendario de retraso, hasta un maximo del diez por ciento (10%) del valor total del contrato. Dicha penalidad sera deducida del saldo de honorarios pendiente de pago. La aplicacion de la penalidad no exime {{ al_a_la }} CONTRATISTA de cumplir con el objeto del contrato ni de indemnizar los perjuicios adicionales que superen dicho limite.
+<p class="paragrafo"><strong>PARAGRAFO:</strong> No se aplicara penalidad cuando el incumplimiento sea atribuible a EL CONTRATANTE por no suministrar informacion o accesos oportunos, lo cual debera ser comunicado por escrito dentro de los tres (3) dias habiles siguientes al evento.</p></div>
+
+<div class="clausula"><strong>DECIMA TERCERA &mdash; FUERZA MAYOR Y CASO FORTUITO:</strong>
+De conformidad con los articulos 64 y 1604 del Codigo Civil colombiano, ninguna de las partes sera responsable por el incumplimiento de sus obligaciones cuando este sea consecuencia de un evento de fuerza mayor o caso fortuito, entendido como el imprevisto al que no es posible resistir. La parte afectada debera notificar a la otra por escrito dentro de los cinco (5) dias habiles siguientes al evento, describiendo su naturaleza y duracion estimada. Si el evento se prolonga por mas de treinta (30) dias calendario, cualquiera de las partes podra dar por terminado el contrato sin indemnizacion, mediante comunicacion escrita.</div>
+
+<div class="clausula"><strong>DECIMA CUARTA &mdash; TERMINACION:</strong>
+El presente contrato terminara por: a) Cumplimiento del plazo o del objeto; b) Mutuo acuerdo de las partes mediante documento escrito; c) Incumplimiento grave de cualquiera de las obligaciones pactadas, previa notificacion escrita con quince (15) dias habiles para subsanar; d) Fuerza mayor o caso fortuito que imposibilite su ejecucion por mas de treinta (30) dias; e) Liquidacion, disolucion o proceso de insolvencia de cualquiera de las partes; f) Decision unilateral de EL CONTRATANTE con preaviso de treinta (30) dias calendario, caso en el cual pagara los honorarios proporcionales al avance del objeto ejecutado hasta la fecha de terminacion.</div>
+
+<div class="clausula"><strong>DECIMA QUINTA &mdash; CESION:</strong>
+{{ El_La|upper }} CONTRATISTA no podra ceder, subarrendar ni subcontratar total ni parcialmente el presente contrato sin la autorizacion previa y escrita de EL CONTRATANTE. EL CONTRATANTE podra ceder el contrato a una empresa vinculada o a quien adquiera su actividad, con notificacion escrita {{ al_a_la }} CONTRATISTA.</div>
+
+<div class="clausula"><strong>DECIMA SEXTA &mdash; RESOLUCION DE CONFLICTOS:</strong>
+Toda controversia o diferencia derivada del presente contrato o relacionada con su ejecucion, interpretacion, incumplimiento, terminacion o liquidacion, sera resuelta por las partes de la siguiente manera:
+<br><br>
+a) <strong>Negociacion directa:</strong> Las partes intentaran resolver la controversia mediante negociacion directa durante un termino de treinta (30) dias calendario contados desde la comunicacion escrita de la inconformidad.
+<br><br>
+b) <strong>Arbitraje:</strong> Si transcurrido dicho plazo no se llegare a acuerdo, la controversia sera sometida a un tribunal de arbitraje del Centro de Arbitraje y Conciliacion de la Camara de Comercio de <strong>{{ empresa_ciudad or ciudad }}</strong>, integrado por un (1) arbitro designado de comun acuerdo o, en su defecto, por la Camara de Comercio correspondiente. El arbitraje sera en derecho, en lengua espanola, y se regira por la Ley 1563 de 2012 y el reglamento del Centro de Arbitraje.
+<p class="paragrafo"><strong>PARAGRAFO:</strong> Las medidas cautelares urgentes podran solicitarse ante cualquier juez competente sin que ello implique renuncia al arbitraje pactado.</p></div>
+
+<div class="clausula"><strong>DECIMA SEPTIMA &mdash; DOMICILIO CONTRACTUAL Y JURISDICCION:</strong>
+Para todos los efectos legales, las partes fijan como domicilio contractual la ciudad de <strong>{{ empresa_ciudad or ciudad }}</strong>, Republica de Colombia. Sin perjuicio del arbitraje pactado en la clausula anterior, para los asuntos no sometidos a arbitraje, las partes se someten a la jurisdiccion de los jueces civiles del Circuito de dicha ciudad, renunciando expresamente a cualquier fuero que pudiera corresponderles por razon de su domicilio.</div>
+
+<div class="clausula"><strong>DECIMA OCTAVA &mdash; INTEGRACION Y MODIFICACIONES:</strong>
+El presente contrato, junto con sus anexos, constituye el acuerdo integral entre las partes respecto del objeto contratado y reemplaza cualquier negociacion, comunicacion o acuerdo anterior sobre la misma materia. Toda modificacion debera constar por escrito y estar firmada por ambas partes para ser valida. Las comunicaciones formales entre las partes se realizaran por correo electronico a las direcciones registradas o por escrito con acuse de recibo.</div>
+
+<p style="margin-top:30px">En senal de aceptacion, las partes firman el presente contrato en dos (2) ejemplares del mismo tenor y valor, en la ciudad de <strong>{{ empresa_ciudad or ciudad }}</strong>, a los <strong>{{ fecha }}</strong>.</p>
+
+<div class="firma-wrap">
+  <div class="firma-box">
+    {% if firma_data is defined and firma_data and firma_data != 'data:,' %}
+    <img src="{{ firma_data }}" alt="Firma contratante">
+    <small>Firmado digitalmente en Evore CRM</small><br>
+    {% endif %}
+    <strong>{{ firmante_nombre or empresa_representante or empresa_nombre }}</strong><br>
+    EL CONTRATANTE<br>
+    {% if firmante_cargo is defined and firmante_cargo %}{{ firmante_cargo }}<br>{% endif %}
+    NIT: {{ empresa_nit }}<br>
+    {% if firmante_cedula is defined and firmante_cedula %}C.C. {{ firmante_cedula }}{% endif %}
+  </div>
+  <div class="firma-box">
+    {% if firma_contratista is defined and firma_contratista and firma_contratista != 'data:,' %}
+    <img src="{{ firma_contratista }}" alt="Firma contratista">
+    <small>Firmado digitalmente en Evore CRM</small><br>
+    {% endif %}
+    {% if selfie_data is defined and selfie_data and selfie_data != 'data:,' %}
+    <img src="{{ selfie_data }}" class="selfie" alt="Foto contratista">
+    {% endif %}
+    <strong>{{ tercero_nombre }}</strong><br>
+    {{ El_La|upper }} CONTRATISTA<br>
+    {% if tercero_cargo is defined and tercero_cargo %}{{ tercero_cargo }}<br>{% endif %}
+    C.C. {{ tercero_cedula }}<br>
+    {% if tercero_direccion is defined and tercero_direccion %}<small>{{ tercero_direccion }}</small>{% endif %}
+  </div>
+</div>
+
+<div class="testigos">
   <div>
-    {% if firma_data and firma_data != 'data:,' %}<img src="{{ firma_data }}" style="max-width:180px;max-height:60px;display:block;margin:0 auto 5px"><small style="color:#666;font-size:8pt">Firmado digitalmente en Evore CRM</small><br>{% endif %}
-    <strong>{{ empresa_representante or empresa_nombre }}</strong><br>CONTRATANTE<br>NIT: {{ empresa_nit }}</div>
-  <div><strong>{{ tercero_nombre }}</strong><br>CONTRATISTA<br>C.C. {{ tercero_cedula }}</div>
+    <strong>TESTIGO 1</strong><br>
+    Nombre: ___________________________<br>
+    C.C.: ___________________________<br>
+    Firma: ___________________________
+  </div>
+  <div>
+    <strong>TESTIGO 2</strong><br>
+    Nombre: ___________________________<br>
+    C.C.: ___________________________<br>
+    Firma: ___________________________
+  </div>
 </div>
 </body></html>
