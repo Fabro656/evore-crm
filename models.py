@@ -985,6 +985,10 @@ class Empleado(db.Model):
     fecha_retiro        = db.Column(db.Date, nullable=True)
     motivo_retiro       = db.Column(db.String(30), nullable=True)  # renuncia, despido_justa, despido_sin_justa, mutuo_acuerdo
     notas               = db.Column(db.Text)
+    tipo_sangre         = db.Column(db.String(10))
+    contacto_emergencia_nombre   = db.Column(db.String(120))
+    contacto_emergencia_telefono = db.Column(db.String(30))
+    contacto_emergencia_parentesco = db.Column(db.String(50))
     creado_por          = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en           = db.Column(db.DateTime, default=datetime.utcnow)
     es_demo             = db.Column(db.Boolean, default=False)
@@ -1542,6 +1546,15 @@ def _migrate(conn):
         ("ALTER TABLE documentos_legales ADD COLUMN selfie_portal_data TEXT"),
         ("ALTER TABLE documentos_legales ADD COLUMN IF NOT EXISTS contenido_html TEXT"),
         ("ALTER TABLE documentos_legales ADD COLUMN contenido_html TEXT"),
+        # v42 — Empleado: tipo de sangre y contacto de emergencia
+        ("ALTER TABLE empleados ADD COLUMN IF NOT EXISTS tipo_sangre VARCHAR(10)"),
+        ("ALTER TABLE empleados ADD COLUMN tipo_sangre VARCHAR(10)"),
+        ("ALTER TABLE empleados ADD COLUMN IF NOT EXISTS contacto_emergencia_nombre VARCHAR(120)"),
+        ("ALTER TABLE empleados ADD COLUMN contacto_emergencia_nombre VARCHAR(120)"),
+        ("ALTER TABLE empleados ADD COLUMN IF NOT EXISTS contacto_emergencia_telefono VARCHAR(30)"),
+        ("ALTER TABLE empleados ADD COLUMN contacto_emergencia_telefono VARCHAR(30)"),
+        ("ALTER TABLE empleados ADD COLUMN IF NOT EXISTS contacto_emergencia_parentesco VARCHAR(50)"),
+        ("ALTER TABLE empleados ADD COLUMN contacto_emergencia_parentesco VARCHAR(50)"),
     ]
     for sql in migrations:
         try:

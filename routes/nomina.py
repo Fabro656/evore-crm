@@ -307,6 +307,10 @@ def register(app):
                     estado='activo',
                     fecha_ingreso=fecha_ingreso,
                     notas=request.form.get('notas','').strip(),
+                    tipo_sangre=request.form.get('tipo_sangre','').strip() or None,
+                    contacto_emergencia_nombre=request.form.get('contacto_emergencia_nombre','').strip() or None,
+                    contacto_emergencia_telefono=request.form.get('contacto_emergencia_telefono','').strip() or None,
+                    contacto_emergencia_parentesco=request.form.get('contacto_emergencia_parentesco','').strip() or None,
                     creado_por=current_user.id
                 )
                 if not e.nombre or not e.apellido:
@@ -382,6 +386,10 @@ def register(app):
                 empleado.auxilio_transporte=request.form.get('auxilio_transporte')=='on'
                 empleado.nivel_riesgo_arl=int(request.form.get('nivel_riesgo_arl',1))
                 empleado.notas=request.form.get('notas','')
+                empleado.tipo_sangre=request.form.get('tipo_sangre','').strip() or None
+                empleado.contacto_emergencia_nombre=request.form.get('contacto_emergencia_nombre','').strip() or None
+                empleado.contacto_emergencia_telefono=request.form.get('contacto_emergencia_telefono','').strip() or None
+                empleado.contacto_emergencia_parentesco=request.form.get('contacto_emergencia_parentesco','').strip() or None
                 if request.form.get('fecha_ingreso'):
                     empleado.fecha_ingreso=datetime.strptime(request.form.get('fecha_ingreso',''), '%Y-%m-%d').date()
                 db.session.commit()

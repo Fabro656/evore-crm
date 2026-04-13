@@ -32,7 +32,19 @@
           <div><label style="color:var(--text2);font-size:.85rem">Estado</label><div><span class="b" style="background:{% if empleado.estado=='activo' %}var(--green){% elif empleado.estado=='despedido' %}var(--red){% elif empleado.estado=='inactivo' %}var(--orange){% else %}#6D42C8{% endif %}">{{ empleado.estado }}</span></div></div>
           <div><label style="color:var(--text2);font-size:.85rem">Fecha ingreso</label><div style="font-weight:600">{{ empleado.fecha_ingreso.strftime('%d/%m/%Y') if empleado.fecha_ingreso else 'No disponible' }}</div></div>
           <div><label style="color:var(--text2);font-size:.85rem">Nivel ARL</label><div style="font-weight:600">{{ empleado.nivel_riesgo_arl or 'No disponible' }}</div></div>
+          <div><label style="color:var(--text2);font-size:.85rem">Tipo de sangre</label><div style="font-weight:600">{{ empleado.tipo_sangre or '—' }}</div></div>
           <div><label style="color:var(--text2);font-size:.85rem">Notas</label><div style="font-weight:600">{{ empleado.notas or 'No disponible' }}</div></div>
+        </div>
+        {% if empleado.contacto_emergencia_nombre %}
+        <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)">
+          <h6 style="font-size:.85rem;color:var(--text2);margin-bottom:.5rem"><i class="bi bi-telephone-forward me-1"></i>Contacto de emergencia</h6>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;font-size:.9rem">
+            <div><strong>{{ empleado.contacto_emergencia_nombre }}</strong></div>
+            <div>{{ empleado.contacto_emergencia_telefono or '—' }}</div>
+            <div><span class="badge bg-light text-dark border">{{ empleado.contacto_emergencia_parentesco or '—' }}</span></div>
+          </div>
+        </div>
+        {% endif %}
         </div>
       </div>
     </div>

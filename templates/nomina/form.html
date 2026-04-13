@@ -17,8 +17,31 @@
               <input type="text" name="cedula" class="form-control" value="{{ empleado.cedula if empleado else '' }}" placeholder="1234567890"></div>
             <div class="col-6"><label class="form-label">Email</label>
               <input type="email" name="email" class="form-control" value="{{ empleado.email if empleado else '' }}"></div>
-            <div class="col-6"><label class="form-label">Teléfono</label>
+            <div class="col-6"><label class="form-label">Telefono</label>
               <input type="tel" name="telefono" class="form-control" value="{{ empleado.telefono if empleado else '' }}"></div>
+            <div class="col-6"><label class="form-label">Tipo de sangre</label>
+              <select name="tipo_sangre" class="form-select">
+                <option value="">— Seleccionar —</option>
+                {% for ts in ['O+','O-','A+','A-','B+','B-','AB+','AB-'] %}
+                <option value="{{ ts }}" {% if empleado and empleado.tipo_sangre==ts %}selected{% endif %}>{{ ts }}</option>
+                {% endfor %}
+              </select></div>
+          </div>
+        </div>
+        <div class="form-section">
+          <h5 style="margin-bottom:1rem"><i class="bi bi-telephone-forward me-2"></i>Contacto de emergencia</h5>
+          <div class="row g-2">
+            <div class="col-6"><label class="form-label">Nombre completo</label>
+              <input type="text" name="contacto_emergencia_nombre" class="form-control" value="{{ empleado.contacto_emergencia_nombre if empleado else '' }}" placeholder="Nombre del contacto"></div>
+            <div class="col-6"><label class="form-label">Telefono</label>
+              <input type="tel" name="contacto_emergencia_telefono" class="form-control" value="{{ empleado.contacto_emergencia_telefono if empleado else '' }}" placeholder="Telefono de emergencia"></div>
+            <div class="col-6"><label class="form-label">Parentesco</label>
+              <select name="contacto_emergencia_parentesco" class="form-select">
+                <option value="">— Seleccionar —</option>
+                {% for p in ['Esposo(a)','Padre','Madre','Hijo(a)','Hermano(a)','Otro'] %}
+                <option value="{{ p }}" {% if empleado and empleado.contacto_emergencia_parentesco==p %}selected{% endif %}>{{ p }}</option>
+                {% endfor %}
+              </select></div>
           </div>
         </div>
         <div class="form-section">
