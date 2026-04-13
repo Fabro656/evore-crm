@@ -34,7 +34,7 @@
         </select>
       </div>
 
-      <div class="col-md-3">
+      <div class="col-md-3" id="secGenero">
         <label class="form-label fw-bold">Genero del tercero</label>
         <select name="genero" class="form-select">
           <option value="M">Masculino</option>
@@ -47,7 +47,7 @@
         <input type="text" name="ciudad" class="form-control" value="Bogota">
       </div>
 
-      <div class="col-12"><hr><label class="form-label fw-bold">Datos del tercero</label></div>
+      <div class="col-12" id="secTercero" style="display:none"><hr><label class="form-label fw-bold">Datos del tercero</label></div>
 
       <div class="col-md-3">
         <label class="form-label">Cargar desde</label>
@@ -72,7 +72,7 @@
         <label class="form-label">Cedula / NIT</label>
         <input type="text" name="tercero_cedula" id="tCedula" class="form-control form-control-sm">
       </div>
-      <div class="col-md-3">
+      <div class="col-md-3" id="secDireccion">
         <label class="form-label">Direccion</label>
         <input type="text" name="tercero_direccion" id="tDireccion" class="form-control form-control-sm">
       </div>
@@ -95,16 +95,16 @@
         <input type="number" name="tercero_salario" id="tSalario" class="form-control form-control-sm" step="1" min="0">
       </div>
 
-      <div class="col-12"><hr></div>
-      <div class="col-md-6">
+      <div class="col-12" id="secContrato" style="display:none"><hr></div>
+      <div class="col-md-6" id="secObjeto" style="display:none">
         <label class="form-label">Objeto del contrato / descripcion</label>
         <textarea name="objeto" class="form-control form-control-sm" rows="3" placeholder="Descripcion del objeto del contrato o acuerdo..."></textarea>
       </div>
-      <div class="col-md-3">
+      <div class="col-md-3" id="secVigencia" style="display:none">
         <label class="form-label">Vigencia</label>
         <input type="text" name="vigencia" class="form-control form-control-sm" value="12 meses">
       </div>
-      <div class="col-md-3">
+      <div class="col-md-3" id="secValor" style="display:none">
         <label class="form-label">Valor (si aplica)</label>
         <input type="text" name="valor" class="form-control form-control-sm" placeholder="$0">
       </div>
@@ -119,7 +119,7 @@
       </div>
     </div>
 
-    <div class="col-12"><hr><label class="form-label fw-bold">Firma del documento</label></div>
+    <div class="col-12" id="secFirma" style="display:none"><hr><label class="form-label fw-bold">Firma del documento</label></div>
     <div class="col-md-3">
       <label class="form-label">Quien firma por la empresa</label>
       <select name="firmante_tipo" class="form-select form-select-sm" onchange="cargarFirmante()">
@@ -141,13 +141,21 @@
       <input type="text" name="firmante_cargo" id="firmCargo" class="form-control form-control-sm" value="{{ empresa.representante_cargo if empresa and empresa.representante_cargo else 'Representante Legal' }}">
     </div>
     <div class="col-md-6">
-      <label class="form-label">Firma digital (opcional)</label>
-      <div style="border:2px dashed var(--border);border-radius:8px;background:var(--surface2);position:relative">
+      <label class="form-label">Firma digital</label>
+      <div class="d-flex gap-2 mb-1">
+        <button type="button" class="btn btn-xs btn-outline-primary" onclick="modoFirma('dibujar')" id="btnFirmaDibujar"><i class="bi bi-pen me-1"></i>Dibujar firma</button>
+        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="modoFirma('cargar')" id="btnFirmaCargar"><i class="bi bi-upload me-1"></i>Cargar imagen</button>
+      </div>
+      <div id="firmaCanvasWrap" style="border:2px dashed var(--border);border-radius:8px;background:var(--surface2);position:relative">
         <canvas id="signPad" width="400" height="120" style="width:100%;cursor:crosshair;display:block"></canvas>
         <button type="button" onclick="clearSign()" class="btn btn-xs btn-outline-secondary" style="position:absolute;top:4px;right:4px;font-size:.7rem">Limpiar</button>
       </div>
+      <div id="firmaUploadWrap" style="display:none">
+        <input type="file" accept="image/*" id="firmaFileInput" class="form-control form-control-sm" onchange="cargarFirmaArchivo(this)">
+        <img id="firmaPreviewImg" style="max-width:200px;max-height:80px;margin-top:4px;display:none;border:1px solid var(--border);border-radius:4px">
+      </div>
       <input type="hidden" name="firma_data" id="firmaData">
-      <small class="text-muted">Se incluira con texto "Firmado digitalmente en Evore CRM".</small>
+      <small class="text-muted">Dibuja o carga tu firma. Se incluira en el documento.</small>
     </div>
 
     <input type="hidden" name="accion" id="accionForm" value="preview">
@@ -192,6 +200,43 @@
 </div>{# end row #}
 
 <script>
+function modoFirma(modo){
+  var canvas = document.getElementById('firmaCanvasWrap');
+  var upload = document.getElementById('firmaUploadWrap');
+  var btnD = document.getElementById('btnFirmaDibujar');
+  var btnC = document.getElementById('btnFirmaCargar');
+  if(modo === 'cargar'){
+    canvas.style.display='none'; upload.style.display='';
+    btnC.classList.replace('btn-outline-secondary','btn-outline-primary');
+    btnD.classList.replace('btn-outline-primary','btn-outline-secondary');
+  } else {
+    canvas.style.display=''; upload.style.display='none';
+    btnD.classList.replace('btn-outline-secondary','btn-outline-primary');
+    btnC.classList.replace('btn-outline-primary','btn-outline-secondary');
+  }
+}
+function cargarFirmaArchivo(input){
+  if(!input.files || !input.files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var img = new Image();
+    img.onload = function(){
+      var c = document.createElement('canvas');
+      c.width = 400; c.height = 120;
+      var ctx = c.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0,0,400,120);
+      var scale = Math.min(380/img.width, 110/img.height);
+      var w = img.width*scale, h = img.height*scale;
+      ctx.drawImage(img, (400-w)/2, (120-h)/2, w, h);
+      var data = c.toDataURL('image/png');
+      document.getElementById('firmaData').value = data;
+      document.getElementById('firmaPreviewImg').src = data;
+      document.getElementById('firmaPreviewImg').style.display = 'block';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(input.files[0]);
+}
 function cargarDatos(){
   var sel = document.getElementById('cargarDesde');
   var opt = sel.options[sel.selectedIndex];
@@ -206,7 +251,10 @@ function cargarDatos(){
 }
 function prepararSubmit(accion){
   document.getElementById('accionForm').value = accion;
-  document.getElementById('firmaData').value = document.getElementById('signPad').toDataURL();
+  // Si la firma viene del canvas (no del upload), capturarla
+  if(document.getElementById('firmaCanvasWrap').style.display !== 'none'){
+    document.getElementById('firmaData').value = document.getElementById('signPad').toDataURL();
+  }
   if(accion === 'guardar'){
     var sel = document.getElementById('cargarDesde');
     var val = sel.value;
@@ -301,18 +349,36 @@ function cargarFirmante(){
 
 function toggleCampos(){
   var p = document.querySelector('[name="plantilla"]').value;
-  var esLaboral = p.includes('contrato_indefinido') || p.includes('contrato_fijo') || p.includes('carta_terminacion') || p.includes('contrato_prestacion');
-  var esComercial = p.includes('contrato_proveedor') || p.includes('contrato_cliente') || p.includes('nda');
-  document.getElementById('secCargo').style.display = esLaboral ? '' : 'none';
-  document.getElementById('secSalario').style.display = (esLaboral && !p.includes('carta_terminacion')) ? '' : 'none';
-  document.getElementById('secEmpresa').style.display = esComercial ? '' : 'none';
-  document.getElementById('secNit').style.display = esComercial ? '' : 'none';
-  // Auto-seleccionar fuente de datos
+  // Mapa de campos requeridos por plantilla
+  var cfg = {
+    'contrato_indefinido': {cargo:1, salario:1, genero:1, direccion:1, label:'Cargar empleado'},
+    'contrato_fijo':       {cargo:1, salario:1, genero:1, direccion:1, vigencia:1, label:'Cargar empleado'},
+    'contrato_prestacion': {genero:1, direccion:1, objeto:1, vigencia:1, valor:1, label:'Cargar empleado'},
+    'carta_terminacion':   {cargo:1, genero:1, direccion:1, objeto:1, label:'Cargar empleado'},
+    'autorizacion_datos':  {genero:1, label:'Cargar persona'},
+    'nda':                 {empresa:1, nit:1, genero:1, objeto:1, vigencia:1, valor:1, label:'Cargar contraparte'},
+    'contrato_proveedor':  {empresa:1, nit:1, direccion:1, objeto:1, vigencia:1, valor:1, label:'Cargar proveedor'},
+    'contrato_cliente':    {empresa:1, nit:1, direccion:1, objeto:1, vigencia:1, valor:1, label:'Cargar cliente'},
+    'acta_entrega':        {empresa:1, nit:1, direccion:1, objeto:1, valor:1, label:'Cargar cliente'},
+  };
+  var c = cfg[p] || {};
+  // Mostrar/ocultar cada seccion
+  document.getElementById('secCargo').style.display = c.cargo ? '' : 'none';
+  document.getElementById('secSalario').style.display = c.salario ? '' : 'none';
+  document.getElementById('secEmpresa').style.display = c.empresa ? '' : 'none';
+  document.getElementById('secNit').style.display = c.nit ? '' : 'none';
+  document.getElementById('secGenero').style.display = c.genero ? '' : 'none';
+  document.getElementById('secDireccion').style.display = c.direccion ? '' : 'none';
+  document.getElementById('secObjeto').style.display = c.objeto ? '' : 'none';
+  document.getElementById('secVigencia').style.display = c.vigencia ? '' : 'none';
+  document.getElementById('secValor').style.display = c.valor ? '' : 'none';
+  // Label del dropdown
   var label = document.querySelector('label[for="cargarDesde"]');
-  if(esLaboral && label) label.textContent = 'Cargar empleado';
-  else if(p.includes('proveedor') && label) label.textContent = 'Cargar proveedor';
-  else if((p.includes('cliente') || p.includes('acta')) && label) label.textContent = 'Cargar cliente';
-  else if(label) label.textContent = 'Cargar desde';
+  if(label) label.textContent = c.label || 'Cargar desde';
+  // Mostrar/ocultar secciones completas
+  document.getElementById('secTercero').style.display = p ? '' : 'none';
+  document.getElementById('secContrato').style.display = p ? '' : 'none';
+  document.getElementById('secFirma').style.display = p ? '' : 'none';
   filtrarContrapartes();
   actualizarPreview();
 }
