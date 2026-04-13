@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
 {% block title %}Proveedores{% endblock %}{% block page_title %}Proveedores y Transportistas{% endblock %}
-{% block topbar_actions %}<a href="{{ url_for('proveedor_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo</a>{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('proveedor_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo</a>
+{% endblock %}
 {% block content %}
 <div class="tc mb-3"><div class="p-3"><form method="GET" class="row g-2 align-items-end">
   <div class="col-sm-4"><input type="text" name="buscar" class="form-control form-control-sm" placeholder="Nombre, empresa, NIT..." value="{{ busqueda }}"></div>
@@ -22,12 +24,22 @@
   <div class="col-auto"><div class="fc px-3 py-2 d-flex gap-2 align-items-center"><i class="bi bi-truck text-primary"></i><span class="fw-semibold">{{ n_prov }}</span><small class="text-muted">proveedores</small></div></div>
   <div class="col-auto"><div class="fc px-3 py-2 d-flex gap-2 align-items-center"><i class="bi bi-truck-front text-success"></i><span class="fw-semibold">{{ n_trans }}</span><small class="text-muted">transportistas</small></div></div>
 </div>
-<div class="tc"><div class="ch"><i class="bi bi-truck me-2"></i>{{ items|length }} registro(s)</div>
-{% if items %}<div class="table-responsive"><table class="table">
-  <thead><tr><th>Empresa / Nombre</th><th>Tipo</th><th>NIT</th><th>Categoría</th><th>Email</th><th>Teléfono</th><th></th></tr></thead>
+<div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-truck me-2"></i>{{ items|length }} registro(s)</div>
+{% if items %}
+<div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%">
+<table class="table" style="width:100%;min-width:800px;margin:0">
+  <thead><tr>
+    <th style="min-width:200px">Empresa / Nombre</th>
+    <th style="min-width:110px">Tipo</th>
+    <th style="min-width:100px">NIT</th>
+    <th style="min-width:100px">Categoria</th>
+    <th style="min-width:150px">Email</th>
+    <th style="min-width:110px">Telefono</th>
+    <th style="width:100px"></th>
+  </tr></thead>
   <tbody>{% for p in items %}<tr>
     <td><span class="fw-semibold" style="color:var(--text)">{{ p.empresa or p.nombre }}</span>
-      {% if p.empresa %}<div><small class="text-muted">{{ p.nombre }}</small></div>{% endif %}</td>
+      {% if p.empresa and p.nombre != p.empresa %}<div><small class="text-muted">{{ p.nombre }}</small></div>{% endif %}</td>
     <td>
       {% if p.tipo == 'transportista' %}<span class="badge bg-success">Transportista</span>
       {% elif p.tipo == 'ambos' %}<span class="badge bg-primary">Prov. + Transp.</span>
@@ -37,20 +49,15 @@
     <td><small>{{ p.categoria or '—' }}</small></td>
     <td><small>{{ p.email or '—' }}</small></td>
     <td><small>{{ p.telefono or '—' }}</small></td>
-    <td><div class="dropdown">
-      <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.78rem">
-        <i class="bi bi-three-dots me-1"></i>Acciones
-      </button>
-      <ul class="dropdown-menu dropdown-menu-end" style="font-size:.83rem;min-width:180px">
-        <li><a class="dropdown-item" href="{{ url_for('proveedor_editar', id=p.id) }}"><i class="bi bi-pencil me-2 text-secondary"></i>Editar</a></li>
-        <li><hr class="dropdown-divider"></li>
-        <li><form method="POST" action="{{ url_for('proveedor_eliminar', id=p.id) }}" onsubmit="return confirm('¿Eliminar?')" class="px-0 m-0">
-          <button class="dropdown-item text-danger" type="submit"><i class="bi bi-trash me-2"></i>Eliminar</button>
-        </form></li>
-      </ul>
+    <td><div class="d-flex gap-1 justify-content-end">
+      <a href="{{ url_for('proveedor_editar', id=p.id) }}" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;padding:2px 8px" title="Editar"><i class="bi bi-pencil"></i></a>
+      <form method="POST" action="{{ url_for('proveedor_eliminar', id=p.id) }}" onsubmit="return confirm('¿Eliminar {{ p.empresa or p.nombre }}?')" class="m-0">
+        <button class="btn btn-sm btn-outline-danger" type="submit" style="font-size:.72rem;padding:2px 8px" title="Eliminar"><i class="bi bi-trash"></i></button>
+      </form>
     </div></td>
   </tr>{% endfor %}</tbody>
-</table></div>
+</table>
+</div>
 {% else %}<div class="text-center text-muted py-5"><i class="bi bi-truck" style="font-size:3rem"></i>
   <p class="mt-3">Sin registros.</p><a href="{{ url_for('proveedor_nuevo') }}" class="btn btn-primary">Agregar</a></div>
-{% endif %}</div>{% endblock %}
+{% endif %}{% endblock %}
