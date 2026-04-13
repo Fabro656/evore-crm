@@ -52,6 +52,7 @@ def register(app):
     # ── compra_nueva (/produccion/compras/nueva)
     @app.route('/produccion/compras/nueva', methods=['GET','POST'])
     @login_required
+    @requiere_modulo('produccion')
     def compra_nueva():
         if request.method == 'POST':
             c = CompraMateria(creado_por=current_user.id)
@@ -69,6 +70,7 @@ def register(app):
     # ── compra_editar (/produccion/compras/<int:id>/editar)
     @app.route('/produccion/compras/<int:id>/editar', methods=['GET','POST'])
     @login_required
+    @requiere_modulo('produccion')
     def compra_editar(id):
         obj=CompraMateria.query.get_or_404(id)
         if request.method == 'POST':

@@ -77,7 +77,7 @@ _MODULOS_ROL = {
     'director_operativo':  ['clientes','ventas','cotizaciones','tareas','calendario','notas',
                             'inventario','produccion','proveedores','ordenes_compra',
                             'cotizaciones_proveedor','empaques','servicios','nomina','reportes',
-                            'logistica','aprobaciones'],
+                            'logistica','aprobaciones','gastos','finanzas'],
     'vendedor':   ['clientes','ventas','cotizaciones','tareas','calendario','notas','nomina','servicios'],
     'produccion': ['inventario','produccion','gastos','notas','calendario','tareas','ordenes_compra','empaques','logistica'],
     'contador':   ['gastos','reportes','produccion','notas','nomina','finanzas','tareas'],
@@ -379,6 +379,26 @@ def _crear_asiento_auto(tipo, subtipo, descripcion, monto, cuenta_debe, cuenta_h
         db.session.add(asiento)
         db.session.flush()
         asiento.numero = f'AC-{datetime.utcnow().year}-{asiento.id:04d}'
+
+        # Crear LineaAsiento para que aparezca en balances PUC
+        try:
+            from models import LineaAsiento, CuentaPUC
+            cuenta_debe_resolved = _resolver_puc(cuenta_debe)
+            cuenta_haber_resolved = _resolver_puc(cuenta_haber)
+            # Buscar CuentaPUC por codigo (primeros 6 digitos)
+            codigo_debe = cuenta_debe_resolved.split(' ')[0] if cuenta_debe_resolved else ''
+            codigo_haber = cuenta_haber_resolved.split(' ')[0] if cuenta_haber_resolved else ''
+            puc_debe = CuentaPUC.query.filter(CuentaPUC.codigo == codigo_debe, CuentaPUC.activo == True).first()
+            puc_haber = CuentaPUC.query.filter(CuentaPUC.codigo == codigo_haber, CuentaPUC.activo == True).first()
+            if puc_debe:
+                db.session.add(LineaAsiento(asiento_id=asiento.id, cuenta_puc_id=puc_debe.id,
+                    descripcion=descripcion[:300], debe=float(monto), haber=0))
+            if puc_haber:
+                db.session.add(LineaAsiento(asiento_id=asiento.id, cuenta_puc_id=puc_haber.id,
+                    descripcion=descripcion[:300], debe=0, haber=float(monto)))
+        except Exception as le:
+            logging.warning(f'_crear_asiento_auto LineaAsiento error: {le}')
+
         return asiento
     except Exception as e:
         logging.warning(f'_crear_asiento_auto error: {e}')

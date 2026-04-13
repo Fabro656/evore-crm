@@ -22,6 +22,7 @@ def register(app):
     # ── impuesto_nuevo (/finanzas/impuestos/nuevo)
     @app.route('/finanzas/impuestos/nuevo', methods=['GET','POST'])
     @login_required
+    @requiere_modulo('finanzas')
     def impuesto_nuevo():
         if request.method == 'POST':
             db.session.add(ReglaTributaria(
@@ -39,6 +40,7 @@ def register(app):
     # ── impuesto_editar (/finanzas/impuestos/<int:id>/editar)
     @app.route('/finanzas/impuestos/<int:id>/editar', methods=['GET','POST'])
     @login_required
+    @requiere_modulo('finanzas')
     def impuesto_editar(id):
         obj=ReglaTributaria.query.get_or_404(id)
         if request.method == 'POST':
@@ -56,6 +58,7 @@ def register(app):
     # ── impuesto_eliminar (/finanzas/impuestos/<int:id>/eliminar)
     @app.route('/finanzas/impuestos/<int:id>/eliminar', methods=['POST'])
     @login_required
+    @requiere_modulo('finanzas')
     def impuesto_eliminar(id):
         obj=ReglaTributaria.query.get_or_404(id); db.session.delete(obj); db.session.commit()
         flash('Regla eliminada.','info'); return redirect(url_for('impuestos'))
@@ -503,6 +506,7 @@ def register(app):
     # ── legal_nuevo (/legal/nuevo)
     @app.route('/legal/nuevo', methods=['GET','POST'])
     @login_required
+    @requiere_modulo('legal')
     def legal_nuevo():
         productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
         if request.method == 'POST':
@@ -534,6 +538,7 @@ def register(app):
     # ── legal_editar (/legal/<int:id>/editar)
     @app.route('/legal/<int:id>/editar', methods=['GET','POST'])
     @login_required
+    @requiere_modulo('legal')
     def legal_editar(id):
         obj = DocumentoLegal.query.get_or_404(id)
         if request.method == 'POST':
@@ -560,6 +565,7 @@ def register(app):
     # ── legal_eliminar (/legal/<int:id>/eliminar)
     @app.route('/legal/<int:id>/eliminar', methods=['POST'])
     @login_required
+    @requiere_modulo('legal')
     def legal_eliminar(id):
         obj = DocumentoLegal.query.get_or_404(id)
         obj.activo = False; db.session.commit()

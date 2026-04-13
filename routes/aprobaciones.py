@@ -120,8 +120,8 @@ def register(app):
     @app.route('/aprobaciones/<int:id>/aprobar', methods=['POST'])
     @login_required
     def aprobacion_aprobar(id):
-        if current_user.rol not in ('admin', 'director_financiero'):
-            flash('Solo admin o director financiero pueden aprobar.', 'danger')
+        if current_user.rol not in ('admin', 'director_financiero', 'director_operativo'):
+            flash('Solo admin, director financiero u operativo pueden aprobar.', 'danger')
             return redirect(url_for('aprobaciones_pendientes'))
         a = Aprobacion.query.get_or_404(id)
         if a.estado not in ('pendiente', 'revision'):

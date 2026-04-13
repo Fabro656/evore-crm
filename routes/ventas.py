@@ -485,8 +485,8 @@ def register(app):
         venta = Venta.query.get_or_404(id)
         estado_anterior = venta.estado
         nuevo = request.form.get('estado', '')
-        estados_validos = ['prospecto','negociacion','anticipo_pagado','pagado','cancelado',
-                           'completado','perdido']  # completado/perdido kept for backward compat
+        estados_validos = ['prospecto','negociacion','anticipo_pagado','pagado','entregado',
+                           'completado','cancelado','perdido']
         if nuevo not in estados_validos:
             return redirect(url_for('ventas'))
 
@@ -494,8 +494,9 @@ def register(app):
         TRANSICIONES = {
             'prospecto': ['negociacion', 'cancelado', 'perdido'],
             'negociacion': ['prospecto', 'anticipo_pagado', 'cancelado', 'perdido'],
-            'anticipo_pagado': ['negociacion', 'pagado', 'cancelado', 'perdido', 'completado'],
-            'pagado': ['completado', 'cancelado'],
+            'anticipo_pagado': ['negociacion', 'pagado', 'cancelado', 'perdido'],
+            'pagado': ['entregado', 'completado', 'cancelado'],
+            'entregado': ['completado'],
             'completado': [],
             'cancelado': ['prospecto'],
             'perdido': ['prospecto'],
@@ -869,9 +870,8 @@ def register(app):
         venta = Venta.query.get_or_404(id)
         try:
             venta.entregado_en = datetime.utcnow()
-            # Mark as fully paid when delivered (unless already cancelled/lost)
-            if venta.estado not in ('cancelado', 'perdido', 'cancelado'):
-                venta.estado = 'pagado'
+            if venta.estado not in ('cancelado', 'perdido'):
+                venta.estado = 'entregado'
             from services.inventario import InventarioService
             InventarioService.descontar_stock_venta(venta)
             db.session.commit()
