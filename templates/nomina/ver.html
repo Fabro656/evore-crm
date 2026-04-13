@@ -6,10 +6,13 @@
 <div class="dropdown d-inline-block">
   <button class="btn btn-sm btn-outline-info dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-file-earmark-ruled me-1"></i>Legal</button>
   <ul class="dropdown-menu dropdown-menu-end" style="font-size:.83rem">
-    <li><a class="dropdown-item" href="{{ url_for('legal_generar') }}?plantilla=contrato_indefinido&tercero_nombre={{ (empleado.nombre ~ ' ' ~ empleado.apellido)|urlencode }}&tercero_cedula={{ empleado.cedula|urlencode }}&tercero_cargo={{ (empleado.cargo or '')|urlencode }}&tercero_salario={{ empleado.salario_base }}" target="_blank"><i class="bi bi-file-text me-2"></i>Contrato indefinido</a></li>
-    <li><a class="dropdown-item" href="{{ url_for('legal_generar') }}?plantilla=contrato_fijo&tercero_nombre={{ (empleado.nombre ~ ' ' ~ empleado.apellido)|urlencode }}&tercero_cedula={{ empleado.cedula|urlencode }}&tercero_cargo={{ (empleado.cargo or '')|urlencode }}&tercero_salario={{ empleado.salario_base }}" target="_blank"><i class="bi bi-file-text me-2"></i>Contrato fijo</a></li>
-    <li><a class="dropdown-item" href="{{ url_for('legal_generar') }}?plantilla=carta_terminacion&tercero_nombre={{ (empleado.nombre ~ ' ' ~ empleado.apellido)|urlencode }}&tercero_cedula={{ empleado.cedula|urlencode }}" target="_blank"><i class="bi bi-file-text me-2"></i>Carta terminacion</a></li>
-    <li><a class="dropdown-item" href="{{ url_for('legal_generar') }}?plantilla=autorizacion_datos&tercero_nombre={{ (empleado.nombre ~ ' ' ~ empleado.apellido)|urlencode }}&tercero_cedula={{ empleado.cedula|urlencode }}" target="_blank"><i class="bi bi-file-text me-2"></i>Autorizacion datos</a></li>
+    <li><a class="dropdown-item" href="{{ url_for('legal_desde_entidad', tipo='empleado', id=empleado.id, plantilla='contrato_indefinido') }}" target="_blank"><i class="bi bi-file-text me-2"></i>Contrato indefinido</a></li>
+    <li><a class="dropdown-item" href="{{ url_for('legal_desde_entidad', tipo='empleado', id=empleado.id, plantilla='contrato_fijo') }}" target="_blank"><i class="bi bi-file-text me-2"></i>Contrato fijo</a></li>
+    <li><a class="dropdown-item" href="{{ url_for('legal_desde_entidad', tipo='empleado', id=empleado.id, plantilla='contrato_prestacion') }}" target="_blank"><i class="bi bi-file-text me-2"></i>Prestacion servicios</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="{{ url_for('legal_desde_entidad', tipo='empleado', id=empleado.id, plantilla='carta_terminacion') }}" target="_blank"><i class="bi bi-file-text me-2 text-danger"></i>Carta terminacion</a></li>
+    <li><a class="dropdown-item" href="{{ url_for('legal_desde_entidad', tipo='empleado', id=empleado.id, plantilla='autorizacion_datos') }}" target="_blank"><i class="bi bi-shield-check me-2"></i>Autorizacion datos</a></li>
+    <li><a class="dropdown-item" href="{{ url_for('legal_desde_entidad', tipo='empleado', id=empleado.id, plantilla='nda') }}" target="_blank"><i class="bi bi-shield-lock me-2"></i>NDA</a></li>
   </ul>
 </div>
 <a href="{{ url_for('empleado_editar', id=empleado.id) }}" class="btn btn-sm btn-primary"><i class="bi bi-pencil me-1"></i>Editar</a>

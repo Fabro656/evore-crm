@@ -98,8 +98,16 @@
           {% endif %}
           {% if v.entregado_en or v.estado in ('anticipo_pagado','pagado','completado') %}
           <li><a class="dropdown-item" href="{{ url_for('venta_remision', id=v.id) }}" target="_blank"><i class="bi bi-receipt me-2 text-primary"></i>Remision</a></li>
-          <li><a class="dropdown-item" href="{{ url_for('legal_generar') }}?plantilla=acta_entrega&tercero_nombre={{ (v.cliente.nombre if v.cliente else '')|urlencode }}&tercero_empresa={{ (v.cliente.empresa if v.cliente else '')|urlencode }}" target="_blank"><i class="bi bi-file-earmark-ruled me-2 text-info"></i>Acta de entrega</a></li>
-          <li><a class="dropdown-item" href="{{ url_for('legal_generar') }}?plantilla=contrato_cliente&tercero_nombre={{ (v.cliente.nombre if v.cliente else '')|urlencode }}&tercero_empresa={{ (v.cliente.empresa if v.cliente else '')|urlencode }}" target="_blank"><i class="bi bi-file-earmark-text me-2 text-info"></i>Contrato fabricacion</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="{{ url_for('legal_desde_entidad', tipo='venta', id=v.id, plantilla='acta_entrega') }}" target="_blank"><i class="bi bi-file-earmark-ruled me-2 text-info"></i>Acta de entrega (auto)</a></li>
+          {% if v.cliente_id %}
+            {% set contrato_existente = docs_por_cliente.get(v.cliente_id) if docs_por_cliente else none %}
+            {% if contrato_existente %}
+            <li><a class="dropdown-item" href="{{ url_for('legal_editar', id=contrato_existente.id) }}" target="_blank"><i class="bi bi-file-earmark-check me-2 text-success"></i>Ver contrato ({{ contrato_existente.titulo[:25] }})</a></li>
+            {% else %}
+            <li><a class="dropdown-item" href="{{ url_for('legal_desde_entidad', tipo='cliente', id=v.cliente_id, plantilla='contrato_cliente') }}" target="_blank"><i class="bi bi-file-earmark-plus me-2 text-warning"></i>Generar contrato cliente</a></li>
+            {% endif %}
+          {% endif %}
           {% endif %}
           <li><hr class="dropdown-divider"></li>
           {% if (todas_completadas and not v.cliente_informado_en and not v.entregado_en) or (v.ordenes_produccion|list|length == 0 and not v.cliente_informado_en and not v.entregado_en and v.estado == 'anticipo_pagado') %}

@@ -44,6 +44,9 @@
         {% if oc.estado == 'borrador' %}
         <li><a class="dropdown-item" href="{{ url_for('orden_compra_editar', id=oc.id) }}"><i class="bi bi-pencil me-2 text-secondary"></i>Editar</a></li>
         {% endif %}
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="{{ url_for('legal_desde_entidad', tipo='orden_compra', id=oc.id, plantilla='contrato_proveedor') }}" target="_blank"><i class="bi bi-file-earmark-ruled me-2 text-info"></i>Contrato proveedor</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('legal_desde_entidad', tipo='orden_compra', id=oc.id, plantilla='nda') }}" target="_blank"><i class="bi bi-shield-lock me-2 text-info"></i>NDA proveedor</a></li>
         {% if oc.estado in ('borrador',) or current_user.rol == 'admin' %}
         <li><hr class="dropdown-divider"></li>
         {% endif %}

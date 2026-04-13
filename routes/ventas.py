@@ -272,9 +272,22 @@ def register(app):
             Proveedor.activo == True,
             Proveedor.tipo.in_(['transportista', 'ambos'])
         ).order_by(Proveedor.empresa).all()
+        # Contratos existentes por cliente para mostrar "Ver contrato" vs "Generar"
+        docs_por_cliente = {}
+        try:
+            contratos = DocumentoLegal.query.filter(
+                DocumentoLegal.tipo.in_(['contrato']),
+                DocumentoLegal.activo == True,
+                DocumentoLegal.cliente_id.isnot(None)
+            ).all()
+            for doc in contratos:
+                docs_por_cliente[doc.cliente_id] = doc
+        except Exception:
+            pass
         return render_template('ventas/index.html', items=items, estado_f=estado_f,
                                proximas_vencer=proximas_vencer, today_date=hoy,
-                               transportistas_list=transportistas_list)
+                               transportistas_list=transportistas_list,
+                               docs_por_cliente=docs_por_cliente)
 
 
     # helper: get configured IVA rate (%)

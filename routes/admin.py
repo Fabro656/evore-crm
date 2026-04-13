@@ -432,6 +432,8 @@ def register(app):
             db.session.add(empresa)
             db.session.commit()
         if request.method == 'POST':
+            empresa.nombre = request.form.get('nombre', '') or empresa.nombre
+            empresa.nit = request.form.get('nit', '') or empresa.nit
             empresa.representante_legal = request.form.get('representante_legal', '') or empresa.representante_legal
             empresa.representante_cedula = request.form.get('representante_cedula', '') or empresa.representante_cedula
             empresa.representante_cargo = request.form.get('representante_cargo', '') or empresa.representante_cargo
@@ -511,6 +513,130 @@ def register(app):
         return render_template('legal/generar.html',
             empresa=empresa, clientes_list=clientes_list,
             proveedores_list=proveedores_list, empleados_list=empleados_list)
+
+
+    # ── legal_desde_entidad (/legal/generar-desde/<tipo>/<int:id>)
+    @app.route('/legal/generar-desde/<tipo>/<int:id>')
+    @login_required
+    def legal_desde_entidad(tipo, id):
+        """Genera documento legal pre-llenado desde una entidad del CRM."""
+        empresa = ConfigEmpresa.query.first()
+        plantilla = request.args.get('plantilla', '')
+        genero = request.args.get('genero', 'M')
+
+        # Datos base empresa
+        datos = {
+            'empresa': empresa,
+            'empresa_nombre': empresa.nombre if empresa else 'Empresa',
+            'empresa_nit': empresa.nit if empresa else '',
+            'empresa_direccion': getattr(empresa, 'direccion', '') or '',
+            'empresa_representante': getattr(empresa, 'representante_legal', '') or '',
+            'empresa_representante_cedula': getattr(empresa, 'representante_cedula', '') or '',
+            'empresa_representante_cargo': getattr(empresa, 'representante_cargo', '') or 'Representante Legal',
+            'empresa_tipo_sociedad': getattr(empresa, 'tipo_sociedad', '') or '',
+            'empresa_matricula': getattr(empresa, 'matricula_mercantil', '') or '',
+            'empresa_camara': getattr(empresa, 'camara_comercio', '') or '',
+            'empresa_telefono': getattr(empresa, 'telefono', '') or '',
+            'empresa_ciudad': getattr(empresa, 'ciudad', '') or 'Bogota',
+            'fecha': datetime.utcnow().strftime('%d de %B de %Y'),
+            'ciudad': getattr(empresa, 'ciudad', '') or 'Bogota',
+            'genero': genero,
+            'el_la': 'la' if genero == 'F' else 'el',
+            'El_La': 'La' if genero == 'F' else 'El',
+            'del_de_la': 'de la' if genero == 'F' else 'del',
+            'al_a_la': 'a la' if genero == 'F' else 'al',
+            'senor_senora': 'senora' if genero == 'F' else 'senor',
+            'Senor_Senora': 'Senora' if genero == 'F' else 'Senor',
+            'identificado_identificada': 'identificada' if genero == 'F' else 'identificado',
+            'domiciliado_domiciliada': 'domiciliada' if genero == 'F' else 'domiciliado',
+            'trabajador_trabajadora': 'trabajadora' if genero == 'F' else 'trabajador',
+            'contratado_contratada': 'contratada' if genero == 'F' else 'contratado',
+            'llamado_llamada': 'llamada' if genero == 'F' else 'llamado',
+        }
+
+        if tipo == 'venta':
+            venta = Venta.query.get_or_404(id)
+            cli = venta.cliente if venta.cliente_id else None
+            datos.update({
+                'tercero_nombre': cli.nombre if cli else '',
+                'tercero_cedula': cli.nit if cli else '',
+                'tercero_empresa': cli.empresa if cli else '',
+                'tercero_direccion': cli.direccion if cli else '',
+                'objeto': f'Fabricacion y entrega de los productos del pedido {venta.numero or venta.titulo}',
+                'valor': f'${venta.total:,.0f} COP' if venta.total else '',
+                'vigencia': f'{venta.dias_entrega or 30} dias',
+                # Items para acta de entrega
+                'items': [{'nombre': it.nombre_prod, 'cantidad': it.cantidad, 'unidad': it.unidad or 'unidades',
+                           'descripcion': ''} for it in venta.items] if venta.items else [],
+                'venta': venta,
+            })
+            if not plantilla:
+                plantilla = 'acta_entrega'
+
+        elif tipo == 'orden_compra':
+            oc = OrdenCompra.query.get_or_404(id)
+            prov = oc.proveedor if oc.proveedor_id else None
+            datos.update({
+                'tercero_nombre': prov.nombre if prov else '',
+                'tercero_cedula': prov.nit if prov else '',
+                'tercero_empresa': prov.empresa if prov else '',
+                'tercero_nit': prov.nit if prov else '',
+                'tercero_direccion': prov.direccion if prov else '',
+                'objeto': f'Suministro de materiales segun OC {oc.numero}',
+                'valor': f'${oc.total:,.0f} COP' if oc.total else '',
+                'vigencia': '12 meses',
+                'items': [{'nombre': it.nombre_item, 'cantidad': it.cantidad, 'unidad': it.unidad or 'unidades',
+                           'descripcion': it.descripcion or ''} for it in oc.items] if oc.items else [],
+            })
+            if not plantilla:
+                plantilla = 'contrato_proveedor'
+
+        elif tipo == 'empleado':
+            emp = Empleado.query.get_or_404(id)
+            datos.update({
+                'tercero_nombre': f'{emp.nombre} {emp.apellido}',
+                'tercero_cedula': emp.cedula or '',
+                'tercero_direccion': '',
+                'tercero_cargo': emp.cargo or '',
+                'tercero_salario': str(int(emp.salario_base)) if emp.salario_base else '',
+            })
+            if not plantilla:
+                plantilla = 'contrato_indefinido' if emp.tipo_contrato == 'indefinido' else 'contrato_fijo'
+
+        elif tipo == 'cliente':
+            cli = Cliente.query.get_or_404(id)
+            datos.update({
+                'tercero_nombre': cli.nombre or '',
+                'tercero_cedula': cli.nit or '',
+                'tercero_empresa': cli.empresa or '',
+                'tercero_direccion': cli.direccion or '',
+            })
+            if not plantilla:
+                plantilla = 'contrato_cliente'
+
+        elif tipo == 'proveedor':
+            prov = Proveedor.query.get_or_404(id)
+            datos.update({
+                'tercero_nombre': prov.nombre or '',
+                'tercero_cedula': prov.nit or '',
+                'tercero_empresa': prov.empresa or '',
+                'tercero_nit': prov.nit or '',
+                'tercero_direccion': prov.direccion or '',
+            })
+            if not plantilla:
+                plantilla = 'contrato_proveedor'
+
+        # Asegurar que todos los campos tengan un default
+        defaults = {
+            'tercero_nombre':'','tercero_cedula':'','tercero_direccion':'',
+            'tercero_cargo':'','tercero_salario':'','tercero_empresa':'',
+            'tercero_nit':'','objeto':'','vigencia':'12 meses','valor':'',
+            'items':[],'venta':None,
+        }
+        for k,v in defaults.items():
+            datos.setdefault(k, v)
+
+        return render_template(f'legal/plantillas/{plantilla}.html', **datos)
 
 
     # ── legal_index (/legal)

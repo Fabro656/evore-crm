@@ -32,7 +32,7 @@ table td{vertical-align:top}
 <tbody>
 {% if items %}
 {% for item in items %}
-<tr><td>{{ loop.index }}</td><td>{{ item.producto }}</td><td>{{ item.cantidad }}</td><td>{{ item.unidad }}</td><td>{{ item.descripcion }}</td></tr>
+<tr><td>{{ loop.index }}</td><td>{{ item.nombre }}</td><td>{{ item.cantidad }}</td><td>{{ item.unidad }}</td><td>{{ item.descripcion }}</td></tr>
 {% endfor %}
 {% else %}
 <tr><td>1</td><td></td><td></td><td></td><td></td></tr>
