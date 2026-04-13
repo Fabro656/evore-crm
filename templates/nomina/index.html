@@ -8,6 +8,8 @@
     <button type="submit" class="btn btn-sm btn-outline-success"><i class="bi bi-calendar-check me-1"></i>Cerrar Nomina</button>
   </div>
 </form>
+<a href="{{ url_for('incapacidades') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-file-medical me-1"></i>Incapacidades</a>
+<a href="{{ url_for('vacaciones_tomadas') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-umbrella me-1"></i>Vacaciones</a>
 <a href="{{ url_for('empleado_nuevo') }}" class="btn btn-sm btn-primary"><i class="bi bi-plus-circle me-1"></i>Nuevo empleado</a>
 {% endblock %}
 {% block content %}

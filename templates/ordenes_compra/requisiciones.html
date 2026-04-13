@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% block title %}Requisiciones de Compra{% endblock %}
+{% block page_title %}Requisiciones de Compra{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('ordenes_compra') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-cart-check me-1"></i>Órdenes de compra</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="tc">
+      <div class="ch"><i class="bi bi-plus-circle me-2"></i>Nueva requisición</div>
+      <form method="POST" class="p-3">
+        <div class="mb-2">
+          <label class="form-label">Descripción *</label>
+          <textarea name="descripcion" class="form-control" rows="3" required
+            placeholder="Qué se necesita comprar, cantidad estimada, especificaciones..."></textarea>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Motivo / Justificación</label>
+          <input type="text" name="motivo" class="form-control"
+            placeholder="Ej: Reposición de stock, proyecto especial...">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Prioridad *</label>
+          <select name="prioridad" class="form-select" required>
+            <option value="baja">Baja</option>
+            <option value="media" selected>Media</option>
+            <option value="alta">Alta</option>
+            <option value="urgente">Urgente</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-send me-1"></i>Crear requisición</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="tc">
+      <div class="ch"><i class="bi bi-list-ul me-2"></i>{{ items|length }} requisición(es)</div>
+      {% if items %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead>
+            <tr>
+              <th>N°</th>
+              <th>Descripción</th>
+              <th>Solicitante</th>
+              <th>Prioridad</th>
+              <th>Estado</th>
+              <th>OC vinculada</th>
+              <th>Fecha</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for r in items %}
+          <tr>
+            <td class="fw-semibold" style="color:var(--ac)">{{ r.numero or '--' }}</td>
+            <td>
+              <div>{{ r.descripcion[:60] }}{% if r.descripcion|length > 60 %}…{% endif %}</div>
+              {% if r.motivo %}<small class="text-muted">{{ r.motivo[:50] }}</small>{% endif %}
+            </td>
+            <td style="font-size:.82rem">{{ r.solicitante.nombre if r.solicitante else '—' }}</td>
+            <td>
+              {% if r.prioridad == 'urgente' %}
+                <span class="badge bg-danger"><i class="bi bi-lightning-charge me-1"></i>Urgente</span>
+              {% elif r.prioridad == 'alta' %}
+                <span class="badge bg-warning text-dark">Alta</span>
+              {% elif r.prioridad == 'media' %}
+                <span class="badge bg-info text-dark">Media</span>
+              {% else %}
+                <span class="badge bg-secondary">Baja</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if r.estado == 'pendiente' %}
+                <span class="badge bg-secondary">Pendiente</span>
+              {% elif r.estado == 'aprobada' %}
+                <span class="badge bg-success">Aprobada</span>
+              {% elif r.estado == 'rechazada' %}
+                <span class="badge bg-danger">Rechazada</span>
+              {% elif r.estado == 'convertida' %}
+                <span class="badge bg-primary">Convertida a OC</span>
+              {% else %}
+                <span class="badge bg-secondary">{{ r.estado }}</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if r.orden_compra %}
+                <a href="{{ url_for('orden_compra_editar', id=r.orden_compra.id) }}"
+                   class="text-decoration-none" style="color:var(--ac);font-size:.82rem">
+                  {{ r.orden_compra.numero }}
+                </a>
+              {% else %}—{% endif %}
+            </td>
+            <td><small>{{ r.creado_en.strftime('%d/%m/%Y') if r.creado_en else '—' }}</small></td>
+            <td>
+              <div class="d-flex gap-1">
+                {% if r.estado == 'pendiente' %}
+                <form method="POST" action="{{ url_for('requisicion_aprobar', id=r.id) }}" class="d-inline">
+                  <button type="submit" class="btn btn-xs btn-success" title="Aprobar"
+                    onclick="return confirm('Aprobar la requisicion {{ r.numero }}?')">
+                    <i class="bi bi-check-lg"></i>
+                  </button>
+                </form>
+                <form method="POST" action="{{ url_for('requisicion_rechazar', id=r.id) }}" class="d-inline">
+                  <button type="submit" class="btn btn-xs btn-danger" title="Rechazar"
+                    onclick="return confirm('Rechazar la requisicion {{ r.numero }}?')">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </form>
+                {% endif %}
+                {% if r.estado == 'aprobada' %}
+                <form method="POST" action="{{ url_for('requisicion_convertir', id=r.id) }}" class="d-inline">
+                  <button type="submit" class="btn btn-xs btn-primary" title="Convertir a OC"
+                    onclick="return confirm('Crear una Orden de Compra desde esta requisicion?')">
+                    <i class="bi bi-cart-plus"></i> OC
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state"><i class="bi bi-inbox"></i><p>No hay requisiciones registradas.</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

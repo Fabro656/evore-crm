@@ -755,3 +755,94 @@ def register(app):
         resp.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
         return resp
 
+
+    # ── incapacidades (/nomina/incapacidades)
+    @app.route('/nomina/incapacidades', methods=['GET', 'POST'])
+    @login_required
+    @requiere_modulo('nomina')
+    def incapacidades():
+        if request.method == 'POST':
+            emp_id = int(request.form.get('empleado_id'))
+            fi_str = request.form.get('fecha_inicio')
+            ff_str = request.form.get('fecha_fin')
+            try:
+                fi = datetime.strptime(fi_str, '%Y-%m-%d').date()
+                ff = datetime.strptime(ff_str, '%Y-%m-%d').date()
+                dias = max((ff - fi).days + 1, 0)
+            except Exception:
+                flash('Fechas invalidas.', 'danger')
+                return redirect(url_for('incapacidades'))
+            inc = Incapacidad(
+                empleado_id=emp_id,
+                fecha_inicio=fi,
+                fecha_fin=ff,
+                dias=dias,
+                tipo=request.form.get('tipo', 'general'),
+                entidad=request.form.get('entidad', 'EPS'),
+                diagnostico=request.form.get('diagnostico', '').strip(),
+                notas=request.form.get('notas', '').strip() or None,
+                creado_por=current_user.id
+            )
+            db.session.add(inc)
+            db.session.commit()
+            flash(f'Incapacidad registrada ({dias} dias).', 'success')
+            return redirect(url_for('incapacidades'))
+        empleados = Empleado.query.filter_by(estado='activo').order_by(Empleado.apellido, Empleado.nombre).all()
+        items = Incapacidad.query.order_by(Incapacidad.fecha_inicio.desc()).all()
+        return render_template('nomina/incapacidades.html', empleados=empleados, items=items)
+
+
+    # ── vacaciones (/nomina/vacaciones)
+    @app.route('/nomina/vacaciones', methods=['GET', 'POST'])
+    @login_required
+    @requiere_modulo('nomina')
+    def vacaciones_tomadas():
+        if request.method == 'POST':
+            emp_id = int(request.form.get('empleado_id'))
+            fi_str = request.form.get('fecha_inicio')
+            ff_str = request.form.get('fecha_fin')
+            try:
+                fi = datetime.strptime(fi_str, '%Y-%m-%d').date()
+                ff = datetime.strptime(ff_str, '%Y-%m-%d').date()
+                dias = max((ff - fi).days + 1, 0)
+            except Exception:
+                flash('Fechas invalidas.', 'danger')
+                return redirect(url_for('vacaciones_tomadas'))
+            vac = VacacionTomada(
+                empleado_id=emp_id,
+                fecha_inicio=fi,
+                fecha_fin=ff,
+                dias=dias,
+                tipo=request.form.get('tipo', 'remuneradas'),
+                notas=request.form.get('notas', '').strip() or None,
+                creado_por=current_user.id
+            )
+            db.session.add(vac)
+            db.session.commit()
+            flash(f'Vacaciones registradas ({dias} dias).', 'success')
+            return redirect(url_for('vacaciones_tomadas'))
+
+        empleados = Empleado.query.filter_by(estado='activo').order_by(Empleado.apellido, Empleado.nombre).all()
+        items = VacacionTomada.query.order_by(VacacionTomada.fecha_inicio.desc()).all()
+
+        # Calcular saldo de vacaciones por empleado
+        hoy = date_type.today()
+        saldos = {}
+        for e in empleados:
+            if e.fecha_ingreso:
+                dias_trabajados = (hoy - e.fecha_ingreso).days
+                dias_acumulados = int((dias_trabajados / 365) * 15)
+            else:
+                dias_acumulados = 0
+            dias_tomados = sum(
+                v.dias for v in VacacionTomada.query.filter_by(empleado_id=e.id).all()
+            )
+            saldos[e.id] = {
+                'acumulados': dias_acumulados,
+                'tomados': dias_tomados,
+                'saldo': max(dias_acumulados - dias_tomados, 0)
+            }
+
+        return render_template('nomina/vacaciones.html',
+                               empleados=empleados, items=items, saldos=saldos)
+

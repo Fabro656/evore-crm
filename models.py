@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date as date_type
 import json, secrets, os, logging
 
-__all__ = ['User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'MovimientoBancario', 'NotaContable', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'MovimientoInventario', 'Notificacion', 'Empleado', 'HoraExtra', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'HistorialPrecio', 'HistorialCotizacion', 'load_user', '_migrate', 'init_db']
+__all__ = ['User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'MovimientoBancario', 'NotaContable', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'MovimientoInventario', 'Notificacion', 'Empleado', 'HoraExtra', 'Comision', 'Incapacidad', 'VacacionTomada', 'Requisicion', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'HistorialPrecio', 'HistorialCotizacion', 'load_user', '_migrate', 'init_db']
 
 
 class User(UserMixin, db.Model):
@@ -876,21 +876,82 @@ class OrdenProduccion(db.Model):
     cotizacion_id     = db.Column(db.Integer, db.ForeignKey('cotizaciones.id'), nullable=True)
     venta_id          = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=True)
     producto_id       = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
-    cantidad_total    = db.Column(db.Float, default=0)   # total requerido
-    cantidad_stock    = db.Column(db.Float, default=0)   # ya en stock al crear
-    cantidad_producir = db.Column(db.Float, default=0)   # diferencia a producir
+    operario_id       = db.Column(db.Integer, db.ForeignKey('empleados.id'), nullable=True)  # v41
+    cantidad_total    = db.Column(db.Float, default=0)
+    cantidad_stock    = db.Column(db.Float, default=0)
+    cantidad_producir = db.Column(db.Float, default=0)
+    merma             = db.Column(db.Float, default=0)  # v41 — desperdicio/scrap
+    merma_motivo      = db.Column(db.String(200), nullable=True)
     numero_lote       = db.Column(db.String(80))
     estado            = db.Column(db.String(30), default='en_produccion')
-    # pendiente_materiales | en_produccion | completado
     notas             = db.Column(db.Text)
     creado_por        = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en         = db.Column(db.DateTime, default=datetime.utcnow)
     completado_en     = db.Column(db.DateTime, nullable=True)
-    fecha_inicio_real = db.Column(db.Date, nullable=True)      # v14 Gantt
-    fecha_fin_estimada= db.Column(db.Date, nullable=True)      # v14 Gantt
+    fecha_inicio_real = db.Column(db.Date, nullable=True)
+    fecha_fin_estimada= db.Column(db.Date, nullable=True)
     producto          = db.relationship('Producto', foreign_keys=[producto_id])
+    operario          = db.relationship('Empleado', foreign_keys=[operario_id])
     cotizacion        = db.relationship('Cotizacion', foreign_keys=[cotizacion_id])
     venta             = db.relationship('Venta', foreign_keys=[venta_id], back_populates='ordenes_produccion')
+
+class Comision(db.Model):
+    """Comision por venta para vendedor."""
+    __tablename__ = 'comisiones'
+    id          = db.Column(db.Integer, primary_key=True)
+    venta_id    = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=False)
+    vendedor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    porcentaje  = db.Column(db.Float, default=5.0)
+    monto       = db.Column(db.Float, default=0)
+    estado      = db.Column(db.String(20), default='pendiente')  # pendiente, pagada
+    creado_en   = db.Column(db.DateTime, default=datetime.utcnow)
+    venta       = db.relationship('Venta', foreign_keys=[venta_id])
+    vendedor    = db.relationship('User', foreign_keys=[vendedor_id])
+
+class Incapacidad(db.Model):
+    """Incapacidad medica de un empleado."""
+    __tablename__ = 'incapacidades'
+    id           = db.Column(db.Integer, primary_key=True)
+    empleado_id  = db.Column(db.Integer, db.ForeignKey('empleados.id'), nullable=False)
+    fecha_inicio = db.Column(db.Date, nullable=False)
+    fecha_fin    = db.Column(db.Date, nullable=False)
+    tipo         = db.Column(db.String(30), default='general')  # general, laboral, maternidad
+    entidad      = db.Column(db.String(30), default='EPS')  # EPS, ARL
+    dias         = db.Column(db.Integer, default=0)
+    diagnostico  = db.Column(db.String(300))
+    notas        = db.Column(db.Text)
+    creado_por   = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en    = db.Column(db.DateTime, default=datetime.utcnow)
+    empleado     = db.relationship('Empleado', foreign_keys=[empleado_id])
+
+class VacacionTomada(db.Model):
+    """Registro de vacaciones tomadas por empleado."""
+    __tablename__ = 'vacaciones_tomadas'
+    id           = db.Column(db.Integer, primary_key=True)
+    empleado_id  = db.Column(db.Integer, db.ForeignKey('empleados.id'), nullable=False)
+    fecha_inicio = db.Column(db.Date, nullable=False)
+    fecha_fin    = db.Column(db.Date, nullable=False)
+    dias         = db.Column(db.Integer, default=0)
+    tipo         = db.Column(db.String(20), default='remuneradas')  # remuneradas, compensadas_dinero
+    notas        = db.Column(db.Text)
+    creado_por   = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en    = db.Column(db.DateTime, default=datetime.utcnow)
+    empleado     = db.relationship('Empleado', foreign_keys=[empleado_id])
+
+class Requisicion(db.Model):
+    """Requisicion de compra — solicitud pre-OC."""
+    __tablename__ = 'requisiciones'
+    id           = db.Column(db.Integer, primary_key=True)
+    numero       = db.Column(db.String(20))
+    solicitante_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    descripcion  = db.Column(db.Text, nullable=False)
+    motivo       = db.Column(db.String(200))
+    estado       = db.Column(db.String(20), default='pendiente')  # pendiente, aprobada, rechazada, convertida
+    prioridad    = db.Column(db.String(10), default='media')
+    orden_compra_id = db.Column(db.Integer, db.ForeignKey('ordenes_compra.id'), nullable=True)
+    creado_en    = db.Column(db.DateTime, default=datetime.utcnow)
+    solicitante  = db.relationship('User', foreign_keys=[solicitante_id])
+    orden_compra = db.relationship('OrdenCompra', foreign_keys=[orden_compra_id])
 
 class Notificacion(db.Model):
     __tablename__ = 'notificaciones'
@@ -1455,6 +1516,13 @@ def _migrate(conn):
         ("ALTER TABLE documentos_legales ADD COLUMN requiere_firma_portal BOOLEAN DEFAULT FALSE"),
         ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS nomina_params TEXT"),
         ("ALTER TABLE config_empresa ADD COLUMN nomina_params TEXT"),
+        # v41 — OrdenProduccion: operario y merma
+        ("ALTER TABLE ordenes_produccion ADD COLUMN IF NOT EXISTS operario_id INTEGER REFERENCES empleados(id)"),
+        ("ALTER TABLE ordenes_produccion ADD COLUMN operario_id INTEGER REFERENCES empleados(id)"),
+        ("ALTER TABLE ordenes_produccion ADD COLUMN IF NOT EXISTS merma FLOAT DEFAULT 0"),
+        ("ALTER TABLE ordenes_produccion ADD COLUMN merma FLOAT DEFAULT 0"),
+        ("ALTER TABLE ordenes_produccion ADD COLUMN IF NOT EXISTS merma_motivo VARCHAR(200)"),
+        ("ALTER TABLE ordenes_produccion ADD COLUMN merma_motivo VARCHAR(200)"),
         # v41 — Tracking envio
         ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS guia_transporte VARCHAR(100)"),
         ("ALTER TABLE ventas ADD COLUMN guia_transporte VARCHAR(100)"),

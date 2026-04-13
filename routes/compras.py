@@ -590,3 +590,100 @@ def register(app):
         db.session.delete(obj); db.session.commit()
         flash('Orden de compra eliminada.','info')
         return redirect(url_for('ordenes_compra'))
+
+
+    # ── requisiciones (/requisiciones)
+    @app.route('/requisiciones', methods=['GET', 'POST'])
+    @login_required
+    @requiere_modulo('ordenes_compra')
+    def requisiciones():
+        if request.method == 'POST':
+            req = Requisicion(
+                solicitante_id=current_user.id,
+                descripcion=request.form.get('descripcion', '').strip(),
+                motivo=request.form.get('motivo', '').strip() or None,
+                prioridad=request.form.get('prioridad', 'media'),
+                estado='pendiente'
+            )
+            db.session.add(req)
+            db.session.flush()
+            hoy = datetime.utcnow().date()
+            ultimo = Requisicion.query.filter(
+                Requisicion.numero.like(f'REQ-{hoy.year}-%')
+            ).order_by(Requisicion.id.desc()).first()
+            if ultimo and ultimo.numero and ultimo.id != req.id:
+                try:
+                    seq = int(ultimo.numero.split('-')[-1]) + 1
+                except Exception:
+                    seq = req.id
+            else:
+                seq = req.id
+            req.numero = f'REQ-{hoy.year}-{seq:03d}'
+            db.session.commit()
+            flash(f'Requisicion {req.numero} creada.', 'success')
+            return redirect(url_for('requisiciones'))
+        items = Requisicion.query.order_by(Requisicion.creado_en.desc()).all()
+        return render_template('ordenes_compra/requisiciones.html', items=items)
+
+
+    # ── requisicion_aprobar (/requisiciones/<id>/aprobar)
+    @app.route('/requisiciones/<int:id>/aprobar', methods=['POST'])
+    @login_required
+    @requiere_modulo('ordenes_compra')
+    def requisicion_aprobar(id):
+        req = Requisicion.query.get_or_404(id)
+        req.estado = 'aprobada'
+        db.session.commit()
+        flash(f'Requisicion {req.numero} aprobada.', 'success')
+        return redirect(url_for('requisiciones'))
+
+
+    # ── requisicion_rechazar (/requisiciones/<id>/rechazar)
+    @app.route('/requisiciones/<int:id>/rechazar', methods=['POST'])
+    @login_required
+    @requiere_modulo('ordenes_compra')
+    def requisicion_rechazar(id):
+        req = Requisicion.query.get_or_404(id)
+        req.estado = 'rechazada'
+        db.session.commit()
+        flash(f'Requisicion {req.numero} rechazada.', 'warning')
+        return redirect(url_for('requisiciones'))
+
+
+    # ── requisicion_convertir (/requisiciones/<id>/convertir)
+    @app.route('/requisiciones/<int:id>/convertir', methods=['POST'])
+    @login_required
+    @requiere_modulo('ordenes_compra')
+    def requisicion_convertir(id):
+        req = Requisicion.query.get_or_404(id)
+        if req.estado != 'aprobada':
+            flash('Solo se pueden convertir requisiciones aprobadas.', 'warning')
+            return redirect(url_for('requisiciones'))
+        hoy = datetime.utcnow().date()
+        ultimo_oc = OrdenCompra.query.filter(
+            OrdenCompra.numero.like(f'OC-{hoy.year}-%')
+        ).order_by(OrdenCompra.id.desc()).first()
+        if ultimo_oc and ultimo_oc.numero:
+            try:
+                seq = int(ultimo_oc.numero.split('-')[-1]) + 1
+            except Exception:
+                seq = 1
+        else:
+            seq = 1
+        oc = OrdenCompra(
+            estado='borrador',
+            fecha_emision=hoy,
+            subtotal=0,
+            iva=0,
+            total=0,
+            notas=f'Generada desde requisicion {req.numero}. {req.descripcion}',
+            creado_por=current_user.id
+        )
+        db.session.add(oc)
+        db.session.flush()
+        oc.numero = f'OC-{hoy.year}-{seq:03d}'
+        req.orden_compra_id = oc.id
+        req.estado = 'convertida'
+        db.session.commit()
+        flash(f'OC {oc.numero} creada desde requisicion {req.numero}. Complete los datos de la orden.', 'success')
+        return redirect(url_for('orden_compra_editar', id=oc.id))

@@ -12,7 +12,7 @@
 <table class="table table-hover align-middle">
   <thead><tr>
     <th>Producto</th><th class="text-end">A producir</th><th class="text-end">Stock previo</th>
-    <th>Pedido / Venta</th><th>Lote</th><th>Estado</th><th>Fecha</th><th></th>
+    <th>Pedido / Venta</th><th>Operario</th><th>Lote</th><th>Estado</th><th>Fecha</th><th></th>
   </tr></thead>
   <tbody>
   {% for o in pendientes %}
@@ -29,6 +29,17 @@
       {% elif o.cotizacion %}
         <small>{{ o.cotizacion.numero or '#'+o.cotizacion_id|string }}</small>
       {% else %}—{% endif %}
+    </td>
+    <td>
+      {% if o.operario %}
+        <span style="font-size:.82rem">{{ o.operario.nombre }} {{ o.operario.apellido }}</span>
+      {% else %}
+        <button type="button" class="btn btn-xs btn-outline-secondary" style="font-size:.7rem;padding:1px 6px"
+          data-bs-toggle="modal" data-bs-target="#modalOperario"
+          data-orden="{{ o.id }}" onclick="prepOperario(this)">
+          <i class="bi bi-person-plus"></i> Asignar
+        </button>
+      {% endif %}
     </td>
     <td>{{ o.numero_lote or '—' }}</td>
     <td>
@@ -83,12 +94,24 @@
 <h6 class="fw-semibold text-uppercase text-muted mb-3 mt-4" style="letter-spacing:1px;font-size:.75rem">Completadas recientemente</h6>
 <div class="table-responsive">
 <table class="table table-sm align-middle">
-  <thead><tr><th>Producto</th><th class="text-end">Producido</th><th>Lote asignado</th><th>Completado</th></tr></thead>
+  <thead><tr>
+    <th>Producto</th><th class="text-end">Producido</th><th>Operario</th>
+    <th>Merma</th><th>Lote asignado</th><th>Completado</th>
+  </tr></thead>
   <tbody>
   {% for o in completados %}
   <tr class="text-muted">
     <td>{{ o.producto.nombre }}</td>
     <td class="text-end">{{ '%.2f'|format(o.cantidad_producir) }}</td>
+    <td>
+      {% if o.operario %}{{ o.operario.nombre }} {{ o.operario.apellido }}{% else %}—{% endif %}
+    </td>
+    <td>
+      {% if o.merma and o.merma > 0 %}
+        <span class="badge bg-warning text-dark">{{ '%.2f'|format(o.merma) }}</span>
+        {% if o.merma_motivo %}<small class="text-muted ms-1">{{ o.merma_motivo[:30] }}</small>{% endif %}
+      {% else %}—{% endif %}
+    </td>
     <td>{{ o.numero_lote or '—' }}</td>
     <td><small>{{ o.completado_en.strftime('%d/%m/%Y %H:%M') if o.completado_en else '—' }}</small></td>
   </tr>
@@ -121,6 +144,16 @@
             <label class="form-label">Fecha de vencimiento (opcional)</label>
             <input type="date" name="fecha_vencimiento" class="form-control">
           </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label">Merma / Scrap (unidades)</label>
+              <input type="number" name="merma" class="form-control" min="0" step="0.01" placeholder="0">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Motivo de merma</label>
+              <input type="text" name="merma_motivo" class="form-control" placeholder="Ej: Rotura, humedad...">
+            </div>
+          </div>
           <div class="mb-0">
             <label class="form-label">Notas</label>
             <textarea name="notas" class="form-control" rows="2"
@@ -135,12 +168,44 @@
     </div>
   </div>
 </div>
+
+<!-- Modal Asignar Operario -->
+<div class="modal fade" id="modalOperario" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <form method="POST" id="formOperario">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-person-badge me-2"></i>Asignar operario</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label">Operario</label>
+          <select name="operario_id" class="form-select">
+            <option value="">— Sin asignar —</option>
+            {% for e in empleados %}
+            <option value="{{ e.id }}">{{ e.nombre }} {{ e.apellido }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 {% block scripts %}<script>
 function prepCompletar(btn){
   document.getElementById('compOrdenId').value = btn.dataset.orden;
   document.getElementById('compProdNombre').textContent = btn.dataset.prod;
   document.getElementById('compCant').textContent = btn.dataset.cant;
   document.getElementById('compLote').value = '';
+}
+function prepOperario(btn){
+  var ordenId = btn.dataset.orden;
+  document.getElementById('formOperario').action = '/produccion/ordenes/' + ordenId + '/operario';
 }
 </script>{% endblock %}
 {% endblock %}

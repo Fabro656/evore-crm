@@ -801,6 +801,23 @@ def register(app):
             except Exception as ex:
                 logging.warning(f'venta_cambiar_estado: crear asiento contable error: {ex}')
 
+        # ── BLOQUE 6: Auto-crear comision cuando venta se marca como "completado" ──
+        if nuevo == 'completado' and estado_anterior != 'completado':
+            try:
+                comision_existente = Comision.query.filter_by(venta_id=venta.id).first()
+                if not comision_existente and venta.creado_por:
+                    monto_com = round(float(venta.total or 0) * 0.05, 2)
+                    db.session.add(Comision(
+                        venta_id=venta.id,
+                        vendedor_id=venta.creado_por,
+                        porcentaje=5.0,
+                        monto=monto_com,
+                        estado='pendiente'
+                    ))
+                    logging.info(f'Comision creada automaticamente para venta {venta.id}')
+            except Exception as ex:
+                logging.warning(f'venta_cambiar_estado: auto-comision error: {ex}')
+
         db.session.commit()
         return redirect(url_for('ventas'))
 
@@ -1063,6 +1080,92 @@ def register(app):
         return render_template('ventas/factura.html',
             obj=obj, empresa=empresa, doc_tipo=doc_tipo,
             doc_numero=doc_numero, fecha_doc=fecha_doc)
+
+
+    # ── ventas_kanban (/ventas/kanban)
+    @app.route('/ventas/kanban')
+    @login_required
+    @requiere_modulo('ventas')
+    def ventas_kanban():
+        from datetime import datetime as _dt
+        ventas_todas = Venta.query.order_by(Venta.creado_en.asc()).all()
+        hoy = _dt.utcnow()
+        COLUMNAS = ['prospecto', 'negociacion', 'anticipo_pagado', 'pagado', 'entregado', 'completado']
+        pipeline = {col: [] for col in COLUMNAS}
+        for v in ventas_todas:
+            if v.estado not in pipeline:
+                continue
+            cli = v.cliente
+            dias_en_etapa = (hoy - v.creado_en).days if v.creado_en else 0
+            creador = db.session.get(User, v.creado_por) if v.creado_por else None
+            pipeline[v.estado].append({
+                'id': v.id,
+                'numero': v.numero or f'#{v.id}',
+                'titulo': v.titulo,
+                'cliente_nombre': (cli.empresa or cli.nombre) if cli else '—',
+                'total': v.total or 0,
+                'dias_en_etapa': dias_en_etapa,
+                'creado_por_nombre': creador.nombre if creador else '—',
+                'estado': v.estado,
+            })
+        return render_template('ventas/kanban.html', pipeline=pipeline, columnas=COLUMNAS)
+
+
+    # ── ventas_comisiones (/ventas/comisiones)
+    @app.route('/ventas/comisiones')
+    @login_required
+    @requiere_modulo('ventas')
+    def ventas_comisiones():
+        from datetime import datetime as _dt
+        vendedor_f = request.args.get('vendedor_id', type=int)
+        estado_f   = request.args.get('estado', '')
+        periodo_f  = request.args.get('periodo', '')
+
+        q = Comision.query
+        if vendedor_f:
+            q = q.filter_by(vendedor_id=vendedor_f)
+        if estado_f:
+            q = q.filter_by(estado=estado_f)
+        if periodo_f:
+            try:
+                anio, mes = int(periodo_f[:4]), int(periodo_f[5:7])
+                from datetime import date as _d
+                inicio = _dt(anio, mes, 1)
+                if mes == 12:
+                    fin = _dt(anio + 1, 1, 1)
+                else:
+                    fin = _dt(anio, mes + 1, 1)
+                q = q.filter(Comision.creado_en >= inicio, Comision.creado_en < fin)
+            except Exception:
+                pass
+
+        comisiones = q.order_by(Comision.creado_en.desc()).all()
+        total_pendiente = sum(c.monto for c in comisiones if c.estado == 'pendiente')
+        total_pagada    = sum(c.monto for c in comisiones if c.estado == 'pagada')
+        vendedores = User.query.filter(User.activo == True).order_by(User.nombre).all()
+        return render_template('ventas/comisiones.html',
+                               comisiones=comisiones,
+                               total_pendiente=total_pendiente,
+                               total_pagada=total_pagada,
+                               vendedores=vendedores,
+                               vendedor_f=vendedor_f,
+                               estado_f=estado_f,
+                               periodo_f=periodo_f)
+
+
+    # ── ventas_comision_pagar (/ventas/comisiones/<id>/pagar)
+    @app.route('/ventas/comisiones/<int:id>/pagar', methods=['POST'])
+    @login_required
+    @requiere_modulo('ventas')
+    def ventas_comision_pagar(id):
+        com = Comision.query.get_or_404(id)
+        if com.estado != 'pagada':
+            com.estado = 'pagada'
+            db.session.commit()
+            flash('Comisión marcada como pagada.', 'success')
+        else:
+            flash('La comisión ya estaba pagada.', 'info')
+        return redirect(url_for('ventas_comisiones'))
 
 
     # ── cotizaciones (/cotizaciones)
@@ -1473,6 +1576,38 @@ def register(app):
         obj = Cotizacion.query.get_or_404(id)
         empresa = ConfigEmpresa.query.first() or ConfigEmpresa(nombre='Evore')
         return render_template('cotizaciones/pdf.html', obj=obj, empresa=empresa)
+
+
+    # ── cotizacion_enviar_email (/cotizaciones/<int:id>/enviar-email)
+    @app.route('/cotizaciones/<int:id>/enviar-email', methods=['POST'])
+    @login_required
+    @requiere_modulo('ventas')
+    def cotizacion_enviar_email(id):
+        obj = Cotizacion.query.get_or_404(id)
+        cliente = obj.cliente
+        email_destino = None
+        if cliente and cliente.contactos:
+            for c in cliente.contactos:
+                if c.email:
+                    email_destino = c.email
+                    break
+        if not email_destino and cliente:
+            email_destino = getattr(cliente, 'email', None)
+        if not email_destino:
+            flash('El cliente no tiene email registrado en sus contactos.', 'danger')
+            return redirect(url_for('cotizacion_ver', id=id))
+        try:
+            empresa = ConfigEmpresa.query.first() or ConfigEmpresa(nombre='Evore')
+            cuerpo = render_template('cotizaciones/email_body.html', obj=obj, empresa=empresa)
+            asunto = f'Cotizacion {obj.numero} — {empresa.nombre}'
+            _send_email(email_destino, asunto, cuerpo)
+            obj.estado = 'enviada'
+            db.session.commit()
+            flash(f'Cotizacion enviada a {email_destino}.', 'success')
+        except Exception as ex:
+            logging.warning(f'cotizacion_enviar_email: {ex}')
+            flash(f'Error al enviar email: {ex}', 'danger')
+        return redirect(url_for('cotizacion_ver', id=id))
 
 
     # ══════════════════════════════════════════════════════════════════════════

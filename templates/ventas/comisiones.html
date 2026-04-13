@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% block title %}Comisiones Vendedores{% endblock %}
+{% block page_title %}Comisiones de Vendedores{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('ventas') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Ventas</a>
+{% endblock %}
+
+{% block content %}
+
+{# ── Tarjetas de resumen ── #}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px">
+      <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);font-weight:700;margin-bottom:4px">Total Pendiente</div>
+      <div style="font-size:1.25rem;font-weight:700;color:#D97706">$ {{ '{:,.0f}'.format(total_pendiente).replace(',', '.') }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px">
+      <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);font-weight:700;margin-bottom:4px">Total Pagado</div>
+      <div style="font-size:1.25rem;font-weight:700;color:#059669">$ {{ '{:,.0f}'.format(total_pagada).replace(',', '.') }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px">
+      <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);font-weight:700;margin-bottom:4px">Total Registros</div>
+      <div style="font-size:1.25rem;font-weight:700;color:var(--text)">{{ comisiones | length }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px">
+      <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);font-weight:700;margin-bottom:4px">Total General</div>
+      <div style="font-size:1.25rem;font-weight:700;color:var(--ac)">$ {{ '{:,.0f}'.format(total_pendiente + total_pagada).replace(',', '.') }}</div>
+    </div>
+  </div>
+</div>
+
+{# ── Filtros ── #}
+<form method="GET" action="{{ url_for('ventas_comisiones') }}" class="d-flex flex-wrap gap-2 align-items-end mb-3">
+  <div>
+    <label class="form-label mb-1" style="font-size:.75rem;font-weight:600;color:var(--text2)">Vendedor</label>
+    <select name="vendedor_id" class="form-select form-select-sm" style="min-width:160px">
+      <option value="">— Todos —</option>
+      {% for u in vendedores %}
+      <option value="{{ u.id }}" {% if vendedor_f == u.id %}selected{% endif %}>{{ u.nombre }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="form-label mb-1" style="font-size:.75rem;font-weight:600;color:var(--text2)">Estado</label>
+    <select name="estado" class="form-select form-select-sm" style="min-width:130px">
+      <option value="">— Todos —</option>
+      <option value="pendiente" {% if estado_f == 'pendiente' %}selected{% endif %}>Pendiente</option>
+      <option value="pagada"    {% if estado_f == 'pagada'    %}selected{% endif %}>Pagada</option>
+    </select>
+  </div>
+  <div>
+    <label class="form-label mb-1" style="font-size:.75rem;font-weight:600;color:var(--text2)">Periodo (mes)</label>
+    <input type="month" name="periodo" class="form-control form-control-sm"
+           value="{{ periodo_f }}" style="min-width:140px">
+  </div>
+  <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-funnel me-1"></i>Filtrar</button>
+  {% if vendedor_f or estado_f or periodo_f %}
+  <a href="{{ url_for('ventas_comisiones') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
+  {% endif %}
+</form>
+
+{# ── Tabla de comisiones ── #}
+{% if comisiones %}
+<div class="table-responsive" style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface)">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Vendedor</th>
+        <th>Venta</th>
+        <th class="hide-mobile">Valor Venta</th>
+        <th>Porcentaje</th>
+        <th>Comisión</th>
+        <th>Estado</th>
+        <th class="hide-mobile">Fecha</th>
+        <th style="width:1px"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in comisiones %}
+      <tr>
+        <td>
+          <div class="fw-semibold" style="font-size:.82rem">{{ c.vendedor.nombre if c.vendedor else '—' }}</div>
+          {% if c.vendedor %}
+          <div style="font-size:.72rem;color:var(--text2)">{{ c.vendedor.rol }}</div>
+          {% endif %}
+        </td>
+        <td>
+          {% if c.venta %}
+          <a href="{{ url_for('venta_ver', id=c.venta.id) }}" class="text-decoration-none fw-semibold" style="color:var(--ac);font-size:.82rem">
+            {{ c.venta.numero or ('#' ~ c.venta.id) }}
+          </a>
+          <div style="font-size:.72rem;color:var(--text2)">{{ c.venta.titulo[:40] }}{% if c.venta.titulo|length > 40 %}…{% endif %}</div>
+          {% else %}
+          <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+        <td class="hide-mobile fw-semibold" style="font-size:.82rem">
+          {% if c.venta %}$ {{ '{:,.0f}'.format(c.venta.total or 0).replace(',', '.') }}{% else %}—{% endif %}
+        </td>
+        <td>
+          <span style="font-size:.82rem;font-weight:600;color:var(--text)">{{ '%.1f'|format(c.porcentaje) }}%</span>
+        </td>
+        <td>
+          <span style="font-size:.9rem;font-weight:700;color:{% if c.estado == 'pagada' %}#059669{% else %}#D97706{% endif %}">
+            $ {{ '{:,.0f}'.format(c.monto or 0).replace(',', '.') }}
+          </span>
+        </td>
+        <td>
+          <span class="b b-{{ c.estado }}">{{ 'Pendiente' if c.estado == 'pendiente' else 'Pagada' }}</span>
+        </td>
+        <td class="hide-mobile" style="font-size:.78rem;color:var(--text2)">
+          {{ c.creado_en.strftime('%d/%m/%Y') if c.creado_en else '—' }}
+        </td>
+        <td>
+          {% if c.estado == 'pendiente' %}
+          <form method="POST" action="{{ url_for('ventas_comision_pagar', id=c.id) }}"
+                onsubmit="return confirm('¿Marcar esta comisión como pagada?')">
+            <button type="submit" class="btn btn-sm" title="Marcar como pagada"
+                    style="padding:3px 10px;font-size:.72rem;background:#EDFBF0;color:#1A6B3C;border:1px solid #BEEFD3;border-radius:4px;font-weight:600">
+              <i class="bi bi-check2-circle me-1"></i>Pagar
+            </button>
+          </form>
+          {% else %}
+          <span style="color:var(--text2);font-size:.72rem"><i class="bi bi-check2-all"></i></span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr style="background:var(--surface2)">
+        <td colspan="4" class="fw-semibold" style="font-size:.8rem;color:var(--text2)">Total filtrado</td>
+        <td class="fw-bold" style="font-size:.88rem">
+          $ {{ '{:,.0f}'.format(comisiones | sum(attribute='monto')).replace(',', '.') }}
+        </td>
+        <td colspan="3"></td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+{% else %}
+<div style="text-align:center;padding:48px 24px;color:var(--text2)">
+  <i class="bi bi-cash-coin" style="font-size:2rem;opacity:.3;display:block;margin-bottom:8px"></i>
+  <div style="font-size:.88rem">No hay comisiones para los filtros seleccionados.</div>
+  {% if vendedor_f or estado_f or periodo_f %}
+  <a href="{{ url_for('ventas_comisiones') }}" class="btn btn-sm btn-outline-secondary mt-3">Ver todas las comisiones</a>
+  {% else %}
+  <div style="font-size:.78rem;margin-top:6px;opacity:.7">Las comisiones se crean automáticamente cuando una venta pasa a estado <strong>Completado</strong>.</div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

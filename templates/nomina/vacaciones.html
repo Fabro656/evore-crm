@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% block title %}Vacaciones{% endblock %}
+{% block page_title %}Vacaciones Tomadas{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('nomina_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Nomina</a>
+<a href="{{ url_for('incapacidades') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-medical me-1"></i>Incapacidades</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="tc">
+      <div class="ch"><i class="bi bi-plus-circle me-2"></i>Registrar vacaciones</div>
+      <form method="POST" class="p-3">
+        <div class="mb-2">
+          <label class="form-label">Empleado *</label>
+          <select name="empleado_id" class="form-select" required onchange="mostrarSaldo(this.value)">
+            <option value="">— Seleccionar —</option>
+            {% for e in empleados %}
+            <option value="{{ e.id }}">{{ e.nombre }} {{ e.apellido }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div id="saldoInfo" class="alert alert-info p-2 mb-2" style="font-size:.82rem;display:none"></div>
+        <div class="row g-2 mb-2">
+          <div class="col-6">
+            <label class="form-label">Fecha inicio *</label>
+            <input type="date" name="fecha_inicio" id="fi" class="form-control" required onchange="calcDias()">
+          </div>
+          <div class="col-6">
+            <label class="form-label">Fecha fin *</label>
+            <input type="date" name="fecha_fin" id="ff" class="form-control" required onchange="calcDias()">
+          </div>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Días calculados</label>
+          <input type="text" id="diasCalc" class="form-control" readonly placeholder="Auto-calculado" style="background:#f8f9fa">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Tipo *</label>
+          <select name="tipo" class="form-select" required>
+            <option value="remuneradas">Remuneradas (descanso)</option>
+            <option value="compensadas_dinero">Compensadas en dinero</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Notas</label>
+          <textarea name="notas" class="form-control" rows="2" placeholder="Observaciones..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus-lg me-1"></i>Registrar</button>
+      </form>
+    </div>
+
+    <!-- Saldos por empleado -->
+    <div class="tc mt-3">
+      <div class="ch"><i class="bi bi-calculator me-2"></i>Saldo días por empleado</div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead><tr><th>Empleado</th><th class="text-center">Acum.</th><th class="text-center">Tomados</th><th class="text-center">Saldo</th></tr></thead>
+          <tbody>
+          {% for e in empleados %}
+          {% set s = saldos[e.id] %}
+          <tr>
+            <td style="font-size:.82rem">{{ e.nombre }} {{ e.apellido[:1] }}.</td>
+            <td class="text-center"><small>{{ s.acumulados }}</small></td>
+            <td class="text-center"><small>{{ s.tomados }}</small></td>
+            <td class="text-center">
+              {% if s.saldo > 0 %}
+                <span class="badge bg-success">{{ s.saldo }}</span>
+              {% elif s.saldo == 0 %}
+                <span class="badge bg-secondary">0</span>
+              {% else %}
+                <span class="badge bg-danger">{{ s.saldo }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="tc">
+      <div class="ch"><i class="bi bi-umbrella me-2"></i>Historial de vacaciones</div>
+      {% if items %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead>
+            <tr>
+              <th>Empleado</th>
+              <th>Fecha inicio</th>
+              <th>Fecha fin</th>
+              <th class="text-center">Días</th>
+              <th>Tipo</th>
+              <th>Notas</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for r in items %}
+          <tr>
+            <td class="fw-semibold">{{ r.empleado.nombre }} {{ r.empleado.apellido }}</td>
+            <td><small>{{ r.fecha_inicio.strftime('%d/%m/%Y') }}</small></td>
+            <td><small>{{ r.fecha_fin.strftime('%d/%m/%Y') }}</small></td>
+            <td class="text-center"><span class="badge bg-primary">{{ r.dias }}</span></td>
+            <td>
+              {% if r.tipo == 'remuneradas' %}
+                <span class="badge bg-success">Remuneradas</span>
+              {% else %}
+                <span class="badge bg-warning text-dark">Comp. dinero</span>
+              {% endif %}
+            </td>
+            <td style="font-size:.82rem;color:var(--text2)">{{ r.notas or '—' }}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state"><i class="bi bi-umbrella"></i><p>Sin vacaciones registradas.</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var saldosData = {{ saldos | tojson }};
+
+function calcDias() {
+  var fi = document.getElementById('fi').value;
+  var ff = document.getElementById('ff').value;
+  if (fi && ff) {
+    var d1 = new Date(fi), d2 = new Date(ff);
+    var dias = Math.max(Math.round((d2 - d1) / 86400000) + 1, 0);
+    document.getElementById('diasCalc').value = dias + ' día(s)';
+  }
+}
+
+function mostrarSaldo(empId) {
+  var el = document.getElementById('saldoInfo');
+  if (!empId || !saldosData[empId]) { el.style.display='none'; return; }
+  var s = saldosData[empId];
+  el.style.display = 'block';
+  el.innerHTML = '<strong>Días acumulados:</strong> ' + s.acumulados +
+    ' &nbsp;|&nbsp; <strong>Tomados:</strong> ' + s.tomados +
+    ' &nbsp;|&nbsp; <strong>Saldo:</strong> <strong>' + s.saldo + '</strong>';
+}
+</script>
+{% endblock %}

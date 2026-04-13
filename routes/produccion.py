@@ -1048,8 +1048,10 @@ def register(app):
         ).order_by(OrdenProduccion.creado_en.desc()).all()
         completados = OrdenProduccion.query.filter_by(estado='completado')\
             .order_by(OrdenProduccion.completado_en.desc()).limit(30).all()
+        empleados = Empleado.query.filter_by(estado='activo').order_by(Empleado.apellido, Empleado.nombre).all()
         return render_template('produccion/ordenes.html',
-                               pendientes=pendientes, completados=completados)
+                               pendientes=pendientes, completados=completados,
+                               empleados=empleados)
     
 
     # ── ordenes_produccion_export_csv (/produccion/ordenes/export-csv)
@@ -1092,6 +1094,8 @@ def register(app):
         numero_lote = request.form.get('numero_lote','').strip()
         notas       = request.form.get('notas','')
         fv          = request.form.get('fecha_vencimiento')
+        merma_val   = float(request.form.get('merma') or 0)
+        merma_motivo = request.form.get('merma_motivo','').strip() or None
 
         orden = OrdenProduccion.query.get_or_404(orden_id)
         prod  = orden.producto
@@ -1130,6 +1134,8 @@ def register(app):
         orden.estado       = 'completado'
         orden.numero_lote  = lote_num
         orden.completado_en = datetime.utcnow()
+        orden.merma        = merma_val
+        orden.merma_motivo = merma_motivo
         db.session.commit()
 
         # Notificar admins
@@ -1301,5 +1307,18 @@ def register(app):
 
         db.session.commit()
         flash(f'Orden #{orden.id} detenida. Evento y tarea de reactivación creados.', 'warning')
+        return redirect(url_for('ordenes_produccion'))
+
+
+    # ── orden_asignar_operario (/produccion/ordenes/<id>/operario)
+    @app.route('/produccion/ordenes/<int:id>/operario', methods=['POST'])
+    @login_required
+    @requiere_modulo('produccion')
+    def orden_asignar_operario(id):
+        orden = OrdenProduccion.query.get_or_404(id)
+        operario_id_raw = request.form.get('operario_id')
+        orden.operario_id = int(operario_id_raw) if operario_id_raw else None
+        db.session.commit()
+        flash('Operario asignado.', 'success')
         return redirect(url_for('ordenes_produccion'))
 

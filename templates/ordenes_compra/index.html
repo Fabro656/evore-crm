@@ -1,6 +1,9 @@
 {% extends 'base.html' %}
 {% block title %}Ordenes de Compra{% endblock %}{% block page_title %}Ordenes de Compra{% endblock %}
-{% block topbar_actions %}<a href="{{ url_for('orden_compra_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva Orden</a>{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('requisiciones') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-list-check me-1"></i>Requisiciones</a>
+<a href="{{ url_for('orden_compra_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva Orden</a>
+{% endblock %}
 {% block content %}
 <div class="mb-3 d-flex gap-2 flex-wrap">
   {% for est,lbl in [('','Todas'),('borrador','Borrador'),('anticipo_pagado','Anticipo pagado'),('pagado','Pagado'),('en_espera_producto','En espera producto'),('recibida_parcial','Parcial'),('recibida','Recibida'),('cancelada','Cancelada')] %}

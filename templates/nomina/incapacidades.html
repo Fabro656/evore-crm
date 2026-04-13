@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% block title %}Incapacidades{% endblock %}
+{% block page_title %}Incapacidades Médicas{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('nomina_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Nomina</a>
+<a href="{{ url_for('vacaciones_tomadas') }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-umbrella me-1"></i>Vacaciones</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="tc">
+      <div class="ch"><i class="bi bi-plus-circle me-2"></i>Registrar incapacidad</div>
+      <form method="POST" class="p-3">
+        <div class="mb-2">
+          <label class="form-label">Empleado *</label>
+          <select name="empleado_id" class="form-select" required>
+            <option value="">— Seleccionar —</option>
+            {% for e in empleados %}
+            <option value="{{ e.id }}">{{ e.nombre }} {{ e.apellido }} ({{ e.cargo or '' }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col-6">
+            <label class="form-label">Fecha inicio *</label>
+            <input type="date" name="fecha_inicio" id="fi" class="form-control" required onchange="calcDias()">
+          </div>
+          <div class="col-6">
+            <label class="form-label">Fecha fin *</label>
+            <input type="date" name="fecha_fin" id="ff" class="form-control" required onchange="calcDias()">
+          </div>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Días calculados</label>
+          <input type="text" id="diasCalc" class="form-control" readonly placeholder="Auto-calculado" style="background:#f8f9fa">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Tipo *</label>
+          <select name="tipo" class="form-select" required>
+            <option value="general">General (EPS)</option>
+            <option value="laboral">Laboral (ARL)</option>
+            <option value="maternidad">Maternidad / Licencia</option>
+          </select>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Entidad</label>
+          <select name="entidad" class="form-select">
+            <option value="EPS">EPS</option>
+            <option value="ARL">ARL</option>
+          </select>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Diagnóstico / Código</label>
+          <input type="text" name="diagnostico" class="form-control" placeholder="Ej: J06.9, dolor lumbar...">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Notas</label>
+          <textarea name="notas" class="form-control" rows="2" placeholder="Observaciones adicionales..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus-lg me-1"></i>Registrar</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="tc">
+      <div class="ch"><i class="bi bi-file-medical me-2"></i>Historial de incapacidades</div>
+      {% if items %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead>
+            <tr>
+              <th>Empleado</th>
+              <th>Fecha inicio</th>
+              <th>Fecha fin</th>
+              <th class="text-center">Días</th>
+              <th>Tipo</th>
+              <th>Entidad</th>
+              <th>Diagnóstico</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for r in items %}
+          <tr>
+            <td class="fw-semibold">{{ r.empleado.nombre }} {{ r.empleado.apellido }}</td>
+            <td><small>{{ r.fecha_inicio.strftime('%d/%m/%Y') }}</small></td>
+            <td><small>{{ r.fecha_fin.strftime('%d/%m/%Y') }}</small></td>
+            <td class="text-center">
+              <span class="badge bg-secondary">{{ r.dias }}</span>
+            </td>
+            <td>
+              {% if r.tipo == 'general' %}
+                <span class="badge bg-info text-dark">General</span>
+              {% elif r.tipo == 'laboral' %}
+                <span class="badge bg-danger">Laboral</span>
+              {% else %}
+                <span class="badge bg-success">Maternidad</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border">{{ r.entidad }}</span>
+            </td>
+            <td style="font-size:.82rem;color:var(--text2)">{{ r.diagnostico or '—' }}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state"><i class="bi bi-file-medical"></i><p>Sin incapacidades registradas.</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function calcDias() {
+  var fi = document.getElementById('fi').value;
+  var ff = document.getElementById('ff').value;
+  if (fi && ff) {
+    var d1 = new Date(fi), d2 = new Date(ff);
+    var dias = Math.max(Math.round((d2 - d1) / 86400000) + 1, 0);
+    document.getElementById('diasCalc').value = dias + ' día(s)';
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,306 @@
+{% extends 'base.html' %}
+{% block title %}Pipeline Kanban — Ventas{% endblock %}
+{% block page_title %}Pipeline de Ventas{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('ventas') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-list-ul me-1"></i>Vista Lista</a>
+<a href="{{ url_for('venta_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva venta</a>
+{% endblock %}
+
+{% block content %}
+<style>
+/* ── Kanban Board ──────────────────────────────── */
+.kb-board {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(220px, 1fr));
+  gap: 12px;
+  align-items: start;
+  overflow-x: auto;
+  padding-bottom: 16px;
+}
+@media (max-width: 900px) {
+  .kb-board {
+    grid-template-columns: repeat(6, 240px);
+  }
+}
+.kb-col {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+}
+.kb-col-header {
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.kb-col-title {
+  font-size: .78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.kb-col-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+.kb-count {
+  font-size: .68rem;
+  color: var(--text2);
+}
+.kb-total {
+  font-size: .7rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.kb-cards {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 80px;
+}
+.kb-cards.drag-over {
+  background: rgba(var(--ac-rgb), .05);
+  border-radius: 6px;
+}
+.kb-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 11px;
+  cursor: grab;
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+  position: relative;
+}
+.kb-card:active {
+  cursor: grabbing;
+}
+.kb-card.dragging {
+  opacity: .5;
+  transform: scale(.97);
+  box-shadow: var(--shadow-md);
+}
+.kb-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--border2);
+}
+.kb-card-num {
+  font-size: .68rem;
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 2px;
+}
+.kb-card-title {
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+.kb-card-cliente {
+  font-size: .74rem;
+  color: var(--text2);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.kb-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 4px;
+}
+.kb-card-total {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.kb-days-badge {
+  font-size: .65rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  white-space: nowrap;
+}
+.kb-days-badge.urgent {
+  background: #FFF0EE;
+  border-color: #FFCCC7;
+  color: #8A1A1A;
+}
+.kb-days-badge.warn {
+  background: #FFF8E6;
+  border-color: #FADDAA;
+  color: #7A4A00;
+}
+
+/* Column accent borders */
+.kb-col--prospecto      .kb-col-header { border-top: 3px solid #94A3B8; border-radius: var(--radius) var(--radius) 0 0; }
+.kb-col--negociacion    .kb-col-header { border-top: 3px solid #3B82F6; border-radius: var(--radius) var(--radius) 0 0; }
+.kb-col--anticipo_pagado .kb-col-header { border-top: 3px solid #F59E0B; border-radius: var(--radius) var(--radius) 0 0; }
+.kb-col--pagado         .kb-col-header { border-top: 3px solid #10B981; border-radius: var(--radius) var(--radius) 0 0; }
+.kb-col--entregado      .kb-col-header { border-top: 3px solid #0D9488; border-radius: var(--radius) var(--radius) 0 0; }
+.kb-col--completado     .kb-col-header { border-top: 3px solid #059669; border-radius: var(--radius) var(--radius) 0 0; }
+
+/* Column title colors */
+.kb-col--prospecto      .kb-col-title { color: #64748B; }
+.kb-col--negociacion    .kb-col-title { color: #2563EB; }
+.kb-col--anticipo_pagado .kb-col-title { color: #D97706; }
+.kb-col--pagado         .kb-col-title { color: #059669; }
+.kb-col--entregado      .kb-col-title { color: #0F766E; }
+.kb-col--completado     .kb-col-title { color: #065F46; }
+</style>
+
+<div class="kb-board" id="kbBoard">
+  {% set labels = {
+    'prospecto': 'Prospecto',
+    'negociacion': 'Negociación',
+    'anticipo_pagado': 'Anticipo Pagado',
+    'pagado': 'Pagado',
+    'entregado': 'Entregado',
+    'completado': 'Completado'
+  } %}
+
+  {% for col in columnas %}
+  {% set cards = pipeline[col] %}
+  {% set col_total = cards | sum(attribute='total') %}
+  <div class="kb-col kb-col--{{ col }}" data-estado="{{ col }}">
+    <div class="kb-col-header">
+      <span class="kb-col-title">{{ labels[col] }}</span>
+      <div class="kb-col-meta">
+        <span class="kb-count">{{ cards | length }} venta{{ 's' if cards | length != 1 else '' }}</span>
+        <span class="kb-total">$ {{ '{:,.0f}'.format(col_total).replace(',', '.') }}</span>
+      </div>
+    </div>
+    <div class="kb-cards" id="col-{{ col }}"
+         ondragover="event.preventDefault(); this.classList.add('drag-over')"
+         ondragleave="this.classList.remove('drag-over')"
+         ondrop="handleDrop(event, '{{ col }}')">
+      {% for card in cards %}
+      {% set dias = card['dias_en_etapa'] %}
+      <div class="kb-card"
+           draggable="true"
+           data-id="{{ card['id'] }}"
+           data-estado="{{ card['estado'] }}"
+           ondragstart="handleDragStart(event)"
+           ondragend="handleDragEnd(event)">
+        <div class="kb-card-num">{{ card['numero'] }}</div>
+        <div class="kb-card-title">{{ card['titulo'] }}</div>
+        <div class="kb-card-cliente">
+          <i class="bi bi-building" style="font-size:.7rem"></i>
+          {{ card['cliente_nombre'] }}
+        </div>
+        <div class="kb-card-footer">
+          <span class="kb-card-total">$ {{ '{:,.0f}'.format(card['total']).replace(',', '.') }}</span>
+          <span class="kb-days-badge {% if dias > 30 %}urgent{% elif dias > 14 %}warn{% endif %}">
+            {{ dias }}d
+          </span>
+        </div>
+        <div style="margin-top:5px">
+          <span class="b b-{{ card['estado'] }}" style="font-size:.6rem;padding:1px 7px">{{ labels[card['estado']] }}</span>
+        </div>
+      </div>
+      {% endfor %}
+      {% if not cards %}
+      <div style="text-align:center;color:var(--text2);font-size:.75rem;padding:20px 8px;opacity:.5">
+        Sin ventas
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div id="kb-toast" style="display:none;position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 16px;font-size:.82rem;box-shadow:var(--shadow-md);z-index:9999;color:var(--text)"></div>
+
+<script>
+let draggingId = null;
+let draggingEstadoOrig = null;
+
+function handleDragStart(e) {
+  draggingId = e.currentTarget.dataset.id;
+  draggingEstadoOrig = e.currentTarget.dataset.estado;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleDragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.kb-cards').forEach(c => c.classList.remove('drag-over'));
+}
+
+function showToast(msg, ok) {
+  const t = document.getElementById('kb-toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  t.style.borderColor = ok ? '#10B981' : '#E05555';
+  t.style.color = ok ? '#065F46' : '#8A1A1A';
+  setTimeout(() => { t.style.display = 'none'; }, 3000);
+}
+
+function handleDrop(e, nuevoEstado) {
+  e.preventDefault();
+  const col = e.currentTarget;
+  col.classList.remove('drag-over');
+
+  if (!draggingId || nuevoEstado === draggingEstadoOrig) return;
+
+  const fd = new FormData();
+  fd.append('estado', nuevoEstado);
+
+  fetch(`/ventas/${draggingId}/estado`, { method: 'POST', body: fd, redirect: 'manual' })
+    .then(resp => {
+      if (resp.ok || resp.type === 'opaqueredirect' || resp.status === 302 || resp.status === 200) {
+        // Mover la tarjeta al DOM visualmente
+        const card = document.querySelector(`.kb-card[data-id="${draggingId}"]`);
+        if (card) {
+          card.dataset.estado = nuevoEstado;
+          // Actualizar badge de estado
+          const badge = card.querySelector('.b');
+          if (badge) {
+            const labels = {
+              prospecto: 'Prospecto', negociacion: 'Negociación',
+              anticipo_pagado: 'Anticipo Pagado', pagado: 'Pagado',
+              entregado: 'Entregado', completado: 'Completado'
+            };
+            badge.className = `b b-${nuevoEstado}`;
+            badge.style.fontSize = '.6rem';
+            badge.style.padding = '1px 7px';
+            badge.textContent = labels[nuevoEstado] || nuevoEstado;
+          }
+          // Mover al nuevo contenedor
+          const targetCol = document.getElementById(`col-${nuevoEstado}`);
+          if (targetCol) {
+            // Remover placeholder "Sin ventas" si existe
+            const placeholder = targetCol.querySelector('div[style*="Sin ventas"]');
+            if (placeholder) placeholder.remove();
+            targetCol.appendChild(card);
+          }
+          // Actualizar conteos (simple reload diferido)
+          setTimeout(() => location.reload(), 1200);
+        }
+        showToast('Estado actualizado correctamente', true);
+      } else {
+        showToast('No se pudo cambiar el estado (transición no permitida)', false);
+      }
+    })
+    .catch(() => showToast('Error de red al actualizar el estado', false));
+
+  draggingId = null;
+  draggingEstadoOrig = null;
+}
+</script>
+{% endblock %}

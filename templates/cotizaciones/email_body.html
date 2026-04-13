@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>{{ obj.numero or 'Cotizacion' }} — {{ empresa.nombre }}</title>
+<style>
+body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:11pt;color:#1a1f36;background:#f4f5f7;margin:0;padding:0}
+.wrap{max-width:640px;margin:24px auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.header{background:#1a1f36;padding:24px 32px;display:flex;justify-content:space-between;align-items:center}
+.brand{color:#fff;font-size:16pt;font-weight:800;letter-spacing:-0.5px}
+.doc-num{color:#a8b4cc;font-size:10pt;margin-top:4px}
+.body{padding:28px 32px}
+.greeting{font-size:12pt;margin-bottom:16px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+.info-box{background:#f8f9fe;border-radius:6px;padding:10px 14px}
+.info-box h4{font-size:8pt;text-transform:uppercase;letter-spacing:.5px;color:#8898aa;margin-bottom:4px}
+.info-box p{font-size:10pt;color:#1a1f36;margin:0;line-height:1.5}
+table{width:100%;border-collapse:collapse;margin:16px 0}
+th{background:#1a1f36;color:#fff;font-size:9pt;padding:8px 10px;text-align:left}
+th.r,td.r{text-align:right}
+td{padding:7px 10px;font-size:10pt;border-bottom:1px solid #e8ecf5}
+tr:nth-child(even) td{background:#f8f9fe}
+.totals-table{margin-left:auto;width:260px}
+.totals-table td{font-size:10pt}
+.grand td{background:#1a1f36;color:#fff;font-weight:700}
+.anticipo-row{background:#eef0ff;font-weight:600}
+.footer{background:#f4f5f7;padding:16px 32px;text-align:center;font-size:9pt;color:#6b778c;border-top:1px solid #e8ecf5}
+.cta{display:inline-block;margin:16px 0;padding:10px 24px;background:#0052cc;color:#fff;text-decoration:none;border-radius:6px;font-weight:700;font-size:11pt}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div>
+      <div class="brand">{{ empresa.nombre }}</div>
+      <div class="doc-num">{{ obj.numero or '' }}</div>
+    </div>
+    <div style="color:#a8b4cc;font-size:22pt;font-weight:800">COTIZACION</div>
+  </div>
+
+  <div class="body">
+    <p class="greeting">Estimado/a <strong>{{ obj.cliente.empresa or obj.cliente.nombre if obj.cliente else 'cliente' }}</strong>,</p>
+    <p style="color:#525f7f;margin-bottom:16px">
+      Adjuntamos a continuación la cotización solicitada. Quedamos atentos a cualquier consulta o ajuste que necesiten.
+    </p>
+
+    <div class="info-grid">
+      <div class="info-box">
+        <h4>Proyecto</h4>
+        <p>{{ obj.titulo }}</p>
+      </div>
+      <div class="info-box">
+        <h4>Validez</h4>
+        <p>
+          Emision: {{ obj.fecha_emision.strftime('%d/%m/%Y') }}<br>
+          Valida hasta: {{ obj.fecha_validez.strftime('%d/%m/%Y') if obj.fecha_validez else '—' }}<br>
+          Entrega: {{ obj.dias_entrega or '—' }} dias hábiles
+        </p>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Descripcion</th>
+          <th class="r">Cant.</th>
+          <th class="r">Precio unit.</th>
+          <th class="r">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for it in obj.items %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ it.nombre_prod }}</td>
+        <td class="r">{{ it.cantidad }}</td>
+        <td class="r">$ {{ '{:,.0f}'.format(it.precio_unit).replace(',','.') }}</td>
+        <td class="r">$ {{ '{:,.0f}'.format(it.subtotal).replace(',','.') }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+
+    <table class="totals-table">
+      <tr><td>Subtotal</td><td class="r">$ {{ '{:,.0f}'.format(obj.subtotal).replace(',','.') }}</td></tr>
+      <tr><td>IVA</td><td class="r">$ {{ '{:,.0f}'.format(obj.iva).replace(',','.') }}</td></tr>
+      <tr class="grand"><td>TOTAL</td><td class="r">$ {{ '{:,.0f}'.format(obj.total).replace(',','.') }}</td></tr>
+      {% if obj.monto_anticipo %}
+      <tr class="anticipo-row">
+        <td>Anticipo ({{ obj.porcentaje_anticipo|int }}%)</td>
+        <td class="r">$ {{ '{:,.0f}'.format(obj.monto_anticipo).replace(',','.') }}</td>
+      </tr>
+      {% endif %}
+    </table>
+
+    {% if obj.condiciones_pago %}
+    <p style="margin-top:12px;font-size:10pt"><strong>Condiciones de pago:</strong> {{ obj.condiciones_pago }}</p>
+    {% endif %}
+    {% if obj.notas %}
+    <p style="font-size:10pt;color:#525f7f"><strong>Notas:</strong> {{ obj.notas }}</p>
+    {% endif %}
+
+    <p style="margin-top:20px;font-size:10pt;color:#525f7f">
+      Para aprobar esta cotización o solicitar cambios, por favor responda a este correo o
+      comuniquese con nosotros directamente.
+    </p>
+  </div>
+
+  <div class="footer">
+    {{ empresa.nombre }}
+    {% if empresa.email %} · {{ empresa.email }}{% endif %}
+    {% if empresa.telefono %} · {{ empresa.telefono }}{% endif %}
+    {% if empresa.nit %} · NIT {{ empresa.nit }}{% endif %}
+    <br>Generado por Evore CRM
+  </div>
+</div>
+</body>
+</html>
