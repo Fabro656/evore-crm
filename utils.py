@@ -973,6 +973,19 @@ def _calcular_impuestos(ingresos, utilidad):
                 base_label = 'Utilidad'
             else:
                 continue
+        elif r.aplica_a == 'ica':
+            # ICA municipal: se calcula sobre ingresos brutos
+            base_monto = ingresos
+            base_label = 'Ingresos brutos (base ICA)'
+        elif r.aplica_a in ('retencion_servicios', 'retencion_honorarios'):
+            # Retención en la fuente por servicios u honorarios sobre ingresos
+            base_monto = ingresos
+            base_label = 'Ingresos (base retención)'
+        elif r.aplica_a == 'reteiva':
+            # ReteIVA: porcentaje sobre el IVA estimado (19% de ingresos)
+            iva_estimado = ingresos / 1.19 * 0.19 if ingresos > 0 else 0.0
+            base_monto = iva_estimado
+            base_label = 'IVA estimado (base ReteIVA)'
         monto = base_monto * (r.porcentaje / 100.0)
         total += monto
         detalle.append({
@@ -1011,6 +1024,9 @@ def _descontar_materias(form):
                     lote_id=int(lote_id), estado='usado',
                     notas='Descontado desde inventario',
                     creado_por=None))
+            # Verificar stock mínimo
+            from services.inventario import verificar_stock_minimo
+            verificar_stock_minimo(m.id)
         except Exception as e:
             errores.append(str(e))
     return errores
@@ -1321,6 +1337,9 @@ def _procesar_orden_produccion(cot):
                         notas=f'Auto-reserva cot #{cot.numero or cot.id}',
                         creado_por=current_user.id
                     ))
+                    # Verificar stock mínimo
+                    from services.inventario import verificar_stock_minimo
+                    verificar_stock_minimo(mp.id)
                 else:
                     faltante = necesaria - disponible
                     materias_faltantes.append(
@@ -1339,6 +1358,9 @@ def _procesar_orden_produccion(cot):
                             notas=f'Parcial cot #{cot.numero or cot.id}',
                             creado_por=current_user.id
                         ))
+                    # Verificar stock mínimo (stock agotado o bajo)
+                    from services.inventario import verificar_stock_minimo
+                    verificar_stock_minimo(mp.id)
 
         if materias_faltantes:
             descripcion_falta = '\n'.join(materias_faltantes)
@@ -1457,6 +1479,9 @@ def _procesar_venta_produccion(venta):
                             notas=f'Auto-reserva venta: {venta.titulo}',
                             creado_por=current_user.id
                         ))
+                        # Verificar stock mínimo
+                        from services.inventario import verificar_stock_minimo
+                        verificar_stock_minimo(mp.id)
                     else:
                         # Insuficiente: reservar lo que haya + anotar faltante
                         faltante = necesaria - disponible
@@ -1473,6 +1498,9 @@ def _procesar_venta_produccion(venta):
                                 notas=f'Parcial venta: {venta.titulo}',
                                 creado_por=current_user.id
                             ))
+                        # Verificar stock mínimo (stock agotado o bajo)
+                        from services.inventario import verificar_stock_minimo
+                        verificar_stock_minimo(mp.id)
 
             if materias_faltantes:
                 desc_falta = '\n'.join(materias_faltantes)

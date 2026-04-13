@@ -3,8 +3,66 @@
 from extensions import db
 from models import Producto, LoteProducto
 # MovimientoInventario se importa de forma lazy dentro de cada método (puede no existir en todos los entornos)
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
+
+
+def verificar_stock_minimo(materia_id):
+    """
+    Verifica si una materia prima cayó por debajo de su stock mínimo.
+    Si es así, crea una Notificacion para usuarios admin y produccion,
+    evitando duplicados en las últimas 24 horas.
+    """
+    try:
+        from models import MateriaPrima, Notificacion, User
+        mp = db.session.get(MateriaPrima, materia_id)
+        if not mp:
+            return
+        stock_min = float(mp.stock_minimo or 0)
+        if stock_min <= 0:
+            return  # no tiene minimo configurado
+        stock_disp = float(mp.stock_disponible or 0)
+        if stock_disp > stock_min:
+            return  # stock OK
+
+        # Evitar spam: verificar si ya existe notificacion reciente para esta materia
+        desde = datetime.utcnow() - timedelta(hours=24)
+        patron = f'Stock bajo: {mp.nombre} ('
+        existente = Notificacion.query.filter(
+            Notificacion.tipo == 'alerta_stock',
+            Notificacion.titulo.like(f'{patron}%'),
+            Notificacion.creado_en >= desde
+        ).first()
+        if existente:
+            return  # ya se notificó recientemente
+
+        # Buscar usuarios admin y produccion
+        usuarios = User.query.filter(
+            User.activo == True,
+            User.rol.in_(['admin', 'produccion'])
+        ).all()
+        if not usuarios:
+            return
+
+        titulo = f'Stock bajo: {mp.nombre} ({stock_disp:.1f}/{stock_min:.1f} {mp.unidad})'
+        mensaje = (
+            f'La materia prima "{mp.nombre}" tiene stock disponible '
+            f'({stock_disp:.3f} {mp.unidad}) igual o inferior al mínimo '
+            f'configurado ({stock_min:.3f} {mp.unidad}). '
+            f'Considere crear una orden de compra.'
+        )
+        for u in usuarios:
+            notif = Notificacion(
+                usuario_id=u.id,
+                tipo='alerta_stock',
+                titulo=titulo,
+                mensaje=mensaje,
+                url='/inventario/materias'
+            )
+            db.session.add(notif)
+        logging.info(f'Alerta stock bajo creada: {mp.nombre} ({stock_disp}/{stock_min})')
+    except Exception as ex:
+        logging.warning(f'verificar_stock_minimo error: {ex}')
 
 
 class InventarioService:

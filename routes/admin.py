@@ -281,6 +281,8 @@ def register(app):
                     prov_id = request.form.get('proveedor_id')
                     u.proveedor_id = int(prov_id) if prov_id else None
                 u.set_password(_pwd); db.session.add(u); db.session.commit()
+                _log('crear', 'usuario', u.id, f'Usuario creado: {u.nombre} ({u.email}), rol={u.rol}')
+                db.session.commit()
                 flash('Usuario creado.','success'); return redirect(url_for('admin_usuarios'))
         clientes_list  = Cliente.query.filter_by(estado='activo').order_by(Cliente.empresa, Cliente.nombre).all()
         proveedores_list = Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa, Proveedor.nombre).all()
@@ -297,6 +299,8 @@ def register(app):
         u=User.query.get_or_404(id)
         if u.id != current_user.id:
             u.activo=not u.activo; db.session.commit()
+            _log('editar', 'usuario', u.id, f'Usuario {"activado" if u.activo else "desactivado"}: {u.nombre} ({u.email})')
+            db.session.commit()
             flash(f'Usuario {"activado" if u.activo else "desactivado"}.','info')
         return redirect(url_for('admin_usuarios'))
     
@@ -312,6 +316,8 @@ def register(app):
             flash('Sin permisos.','danger'); return redirect(url_for('dashboard'))
         target = User.query.get_or_404(id)
         # Save real admin id in session
+        _log('impersonar', 'usuario', target.id, f'Admin impersonando a: {target.nombre} ({target.rol})')
+        db.session.commit()
         flask_session['admin_real_id'] = current_user.id
         login_user(target, remember=False)
         flash(f'Viendo la app como: {target.nombre} ({target.rol}). Usa "Volver a admin" para regresar.','warning')
@@ -379,7 +385,10 @@ def register(app):
                 else:
                     flash('Formato de imagen no válido (PNG, JPG, JPEG, GIF).', 'warning')
 
-            db.session.commit(); flash('Configuración guardada.','success')
+            db.session.commit()
+            _log('editar', 'config_empresa', obj.id, f'Configuración empresa actualizada: {obj.nombre}')
+            db.session.commit()
+            flash('Configuración guardada.','success')
         return render_template('admin/config.html', obj=obj)
     
 
@@ -413,6 +422,8 @@ def register(app):
             # Guardar módulos personalizados
             modulos_sel = request.form.getlist('modulos')
             u.modulos_permitidos = json.dumps(modulos_sel) if modulos_sel else '[]'
+            db.session.commit()
+            _log('editar', 'usuario', u.id, f'Usuario editado: {u.nombre} ({u.email}), rol={u.rol}')
             db.session.commit()
             flash('Usuario actualizado.','success'); return redirect(url_for('admin_usuarios'))
         clientes_list  = Cliente.query.filter_by(estado='activo').order_by(Cliente.empresa, Cliente.nombre).all()
@@ -952,6 +963,8 @@ def register(app):
             # ── Nivel 1: sesiones y usuarios ──
             _safe_delete('DELETE FROM user_sesiones')
             _safe_delete(f'DELETE FROM users WHERE id != {admin_id}')
+            db.session.commit()
+            _log('eliminar', 'sistema', 0, f'RESET TOTAL ejecutado por {current_user.email}')
             db.session.commit()
             logging.warning(f'RESET TOTAL ejecutado por user_id={current_user.id} ({current_user.email})')
             flash('Reset completo. Todos los datos y usuarios eliminados (tu cuenta admin fue conservada).', 'success')

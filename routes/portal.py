@@ -21,7 +21,31 @@ def register(app):
         if not cliente:
             flash('Tu cuenta no está vinculada a una empresa. Contacta al administrador.', 'warning')
             return render_template('portal/sin_empresa.html')
-        ventas = Venta.query.filter_by(cliente_id=cliente.id).order_by(Venta.creado_en.desc()).limit(20).all()
+
+        # -- Search, filter & pagination for ventas --
+        buscar = request.args.get('buscar', '').strip()
+        estado_filtro = request.args.get('estado', '')
+        page = request.args.get('page', 1, type=int)
+        per_page = 20
+
+        q_ventas = Venta.query.filter_by(cliente_id=cliente.id)
+        if buscar:
+            like_term = f'%{buscar}%'
+            q_ventas = q_ventas.filter(db.or_(
+                Venta.numero.ilike(like_term),
+                Venta.titulo.ilike(like_term)
+            ))
+        if estado_filtro:
+            q_ventas = q_ventas.filter(Venta.estado == estado_filtro)
+
+        total_ventas = q_ventas.count()
+        total_pages = max(1, (total_ventas + per_page - 1) // per_page)
+        page = max(1, min(page, total_pages))
+        ventas = q_ventas.order_by(Venta.creado_en.desc()).offset((page - 1) * per_page).limit(per_page).all()
+
+        # Distinct estados for filter dropdown
+        estados_ventas = [r[0] for r in db.session.query(Venta.estado).filter_by(cliente_id=cliente.id).distinct().order_by(Venta.estado).all()]
+
         cotizaciones = Cotizacion.query.filter_by(cliente_id=cliente.id).order_by(Cotizacion.creado_en.desc()).limit(20).all()
         pre_cots = PreCotizacion.query.filter_by(cliente_id=cliente.id).order_by(PreCotizacion.creado_en.desc()).limit(10).all()
         mensajes = Tarea.query.filter(Tarea.titulo.like('[Mensaje]%'),
@@ -30,7 +54,10 @@ def register(app):
         sales_manager_user = db.session.get(User, cliente.sales_manager_id) if cliente.sales_manager_id else User.query.filter_by(rol='admin', activo=True).first()
         return render_template('portal/index.html', cliente=cliente, ventas=ventas,
                                cotizaciones=cotizaciones, pre_cots=pre_cots, mensajes=mensajes,
-                               sales_manager_user=sales_manager_user)
+                               sales_manager_user=sales_manager_user,
+                               buscar=buscar, estado_filtro=estado_filtro,
+                               page=page, total_pages=total_pages, total_ventas=total_ventas,
+                               estados_ventas=estados_ventas)
     
 
     # ── portal_cliente_factura (/portal/venta/<id>/factura)

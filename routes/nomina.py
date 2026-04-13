@@ -377,6 +377,7 @@ def register(app):
         empleado = Empleado.query.get_or_404(id)
         if request.method == 'POST':
             try:
+                salario_anterior = float(empleado.salario_base or 0)
                 empleado.nombre=request.form.get('nombre','')
                 empleado.apellido=request.form.get('apellido','')
                 empleado.cedula=request.form.get('cedula','')
@@ -398,6 +399,12 @@ def register(app):
                 empleado.fondo_pensiones=request.form.get('fondo_pensiones','').strip() or None
                 if request.form.get('fecha_ingreso'):
                     empleado.fecha_ingreso=datetime.strptime(request.form.get('fecha_ingreso',''), '%Y-%m-%d').date()
+                db.session.commit()
+                salario_nuevo = float(empleado.salario_base or 0)
+                if salario_anterior != salario_nuevo:
+                    _log('editar', 'empleado', empleado.id, f'Salario cambiado: ${salario_anterior:,.0f} → ${salario_nuevo:,.0f} ({empleado.nombre} {empleado.apellido})')
+                else:
+                    _log('editar', 'empleado', empleado.id, f'Empleado editado: {empleado.nombre} {empleado.apellido}')
                 db.session.commit()
                 flash('Empleado actualizado.','success')
                 return redirect(url_for('empleado_ver', id=empleado.id))

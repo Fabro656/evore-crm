@@ -17,6 +17,10 @@
       <option value="ventas" {% if not obj or obj.aplica_a=='ventas' %}selected{% endif %}>Ventas (IVA en ventas)</option>
       <option value="ingresos" {% if obj and obj.aplica_a=='ingresos' %}selected{% endif %}>Ingresos generales</option>
       <option value="profit" {% if obj and obj.aplica_a=='profit' %}selected{% endif %}>Sobre utilidad / profit</option>
+      <option value="ica" {% if obj and obj.aplica_a=='ica' %}selected{% endif %}>ICA Municipal</option>
+      <option value="retencion_servicios" {% if obj and obj.aplica_a=='retencion_servicios' %}selected{% endif %}>Retención servicios (4-10%)</option>
+      <option value="retencion_honorarios" {% if obj and obj.aplica_a=='retencion_honorarios' %}selected{% endif %}>Retención honorarios (11%)</option>
+      <option value="reteiva" {% if obj and obj.aplica_a=='reteiva' %}selected{% endif %}>ReteIVA (15%)</option>
       <option value="proveedor_producto" {% if obj and obj.aplica_a=='proveedor_producto' %}selected{% endif %}>Proveedor de productos</option>
       <option value="proveedor_granel" {% if obj and obj.aplica_a=='proveedor_granel' %}selected{% endif %}>Proveedor de granel</option>
     </select></div>

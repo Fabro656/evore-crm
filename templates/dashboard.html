@@ -170,6 +170,70 @@
 </div>
 {% endif %}
 
+{# ── Alertas de seguimiento comercial ──────────────── #}
+{% if cots_sin_respuesta or ventas_estancadas or entregas_pendientes %}
+<div class="tc mb-3">
+  <div class="ch" style="cursor:pointer" onclick="this.parentElement.querySelector('.seguimiento-body').classList.toggle('d-none')">
+    <span><i class="bi bi-bell-fill me-2" style="color:#fb6340"></i>Alertas de seguimiento
+      <span class="badge bg-danger ms-1">{{ (cots_sin_respuesta|length) + (ventas_estancadas|length) + (entregas_pendientes|length) }}</span>
+    </span>
+    <i class="bi bi-chevron-down" style="font-size:.8rem;color:var(--text2)"></i>
+  </div>
+  <div class="seguimiento-body">
+    {% if cots_sin_respuesta %}
+    <div style="padding:.5rem .75rem;border-bottom:1px solid var(--border)">
+      <small class="fw-bold text-uppercase" style="color:#e67e22;font-size:.68rem;letter-spacing:1px"><i class="bi bi-file-earmark-text me-1"></i>Cotizaciones sin respuesta (&gt; 7 dias)</small>
+    </div>
+    {% for c in cots_sin_respuesta %}
+    <div style="padding:.4rem .75rem;border-bottom:1px solid var(--border);font-size:.82rem" class="d-flex align-items-center justify-content-between">
+      <div>
+        <a href="{{ url_for('cotizacion_ver', id=c.id) }}" class="fw-semibold text-decoration-none" style="color:var(--text)">{{ c.titulo }}</a>
+        <div><small class="text-muted">{{ c.cliente.empresa or c.cliente.nombre if c.cliente else 'Sin cliente' }}</small></div>
+      </div>
+      <div class="text-end">
+        <span class="badge" style="background:#e67e22;font-size:.7rem">{{ (hoy_date - c.fecha_emision).days }} dias</span>
+      </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if ventas_estancadas %}
+    <div style="padding:.5rem .75rem;border-bottom:1px solid var(--border)">
+      <small class="fw-bold text-uppercase" style="color:#f1c40f;font-size:.68rem;letter-spacing:1px"><i class="bi bi-graph-up me-1"></i>Ventas en negociacion estancadas (&gt; 14 dias)</small>
+    </div>
+    {% for v in ventas_estancadas %}
+    <div style="padding:.4rem .75rem;border-bottom:1px solid var(--border);font-size:.82rem" class="d-flex align-items-center justify-content-between">
+      <div>
+        <a href="{{ url_for('venta_ver', id=v.id) }}" class="fw-semibold text-decoration-none" style="color:var(--text)">{{ v.titulo }}</a>
+        <div><small class="text-muted">{{ v.cliente.empresa or v.cliente.nombre if v.cliente else 'Sin cliente' }}</small></div>
+      </div>
+      <div class="text-end">
+        <span class="badge" style="background:#f1c40f;color:#333;font-size:.7rem">{{ (hoy_date - v.creado_en.date()).days }} dias</span>
+      </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if entregas_pendientes %}
+    <div style="padding:.5rem .75rem;border-bottom:1px solid var(--border)">
+      <small class="fw-bold text-uppercase" style="color:#e74c3c;font-size:.68rem;letter-spacing:1px"><i class="bi bi-truck me-1"></i>Entregas pendientes (&gt; 30 dias)</small>
+    </div>
+    {% for v in entregas_pendientes %}
+    <div style="padding:.4rem .75rem;border-bottom:1px solid var(--border);font-size:.82rem" class="d-flex align-items-center justify-content-between">
+      <div>
+        <a href="{{ url_for('venta_ver', id=v.id) }}" class="fw-semibold text-decoration-none" style="color:var(--text)">{{ v.titulo }}</a>
+        <div><small class="text-muted">{{ v.cliente.empresa or v.cliente.nombre if v.cliente else 'Sin cliente' }}</small></div>
+      </div>
+      <div class="text-end">
+        <span class="badge" style="background:#e74c3c;font-size:.7rem">{{ (hoy_date - v.creado_en.date()).days }} dias</span>
+      </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
 {# ── Tareas + Ventas ───────────────────────────────── #}
 <div class="row g-3 mb-3">
   <div class="col-lg-6">

@@ -21,6 +21,10 @@
       {% if r.aplica_a=='ventas' %}Ventas (IVA)
       {% elif r.aplica_a=='ingresos' %}Ingresos generales
       {% elif r.aplica_a=='profit' %}Utilidad/Profit
+      {% elif r.aplica_a=='ica' %}ICA Municipal
+      {% elif r.aplica_a=='retencion_servicios' %}Retención servicios
+      {% elif r.aplica_a=='retencion_honorarios' %}Retención honorarios
+      {% elif r.aplica_a=='reteiva' %}ReteIVA
       {% elif r.aplica_a=='proveedor_producto' %}Proveedor producto{% if r.proveedor_nombre %}: {{ r.proveedor_nombre }}{% endif %}
       {% elif r.aplica_a=='proveedor_granel' %}Proveedor granel{% if r.proveedor_nombre %}: {{ r.proveedor_nombre }}{% endif %}
       {% else %}{{ r.aplica_a or '—' }}{% endif %}

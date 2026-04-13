@@ -962,6 +962,9 @@ def register(app):
                 )
                 m.stock_disponible -= cantidad
                 m.stock_reservado += cantidad
+                # Verificar stock mínimo
+                from services.inventario import verificar_stock_minimo
+                verificar_stock_minimo(m.id)
                 db.session.add(r); db.session.commit()
                 flash('Reserva creada. Stock actualizado.','success')
                 return redirect(url_for('reservas'))

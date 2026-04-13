@@ -63,6 +63,32 @@ def register(app):
         except Exception:
             alertas_stock = []
 
+        # ── Alertas de seguimiento comercial ──
+        hace_7d  = hoy - timedelta(days=7)
+        hace_14d = hoy - timedelta(days=14)
+        hace_30d = hoy - timedelta(days=30)
+        try:
+            cots_sin_respuesta = Cotizacion.query.filter(
+                Cotizacion.estado == 'enviada',
+                Cotizacion.fecha_emision <= hace_7d
+            ).order_by(Cotizacion.fecha_emision).limit(10).all()
+        except Exception:
+            cots_sin_respuesta = []
+        try:
+            ventas_estancadas = Venta.query.filter(
+                Venta.estado == 'negociacion',
+                Venta.creado_en <= datetime.combine(hace_14d, datetime.min.time())
+            ).order_by(Venta.creado_en).limit(10).all()
+        except Exception:
+            ventas_estancadas = []
+        try:
+            entregas_pendientes = Venta.query.filter(
+                Venta.estado.in_(['pagado']),
+                Venta.creado_en <= datetime.combine(hace_30d, datetime.min.time())
+            ).order_by(Venta.creado_en).limit(10).all()
+        except Exception:
+            entregas_pendientes = []
+
         return render_template('dashboard.html',
             total_clientes       = Cliente.query.filter_by(estado='activo').count(),
             ventas_completadas       = Venta.query.filter_by(estado='completado').count(),
@@ -83,6 +109,10 @@ def register(app):
             notas_recientes      = Nota.query.order_by(Nota.actualizado_en.desc()).limit(4).all(),
             eventos_hoy          = Evento.query.filter(Evento.fecha==hoy).order_by(Evento.hora_inicio).all(),
             eventos_proximos     = Evento.query.filter(Evento.fecha>hoy, Evento.fecha<=hoy+timedelta(days=7)).order_by(Evento.fecha).limit(5).all(),
+            cots_sin_respuesta   = cots_sin_respuesta,
+            ventas_estancadas    = ventas_estancadas,
+            entregas_pendientes  = entregas_pendientes,
+            hoy_date             = hoy,
         )
     
 
