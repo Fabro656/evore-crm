@@ -12,12 +12,12 @@
 <div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-cart-check me-2"></i>{{ items|length }} orden(es) de compra</div>
 {% if items %}
 <div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%">
-<table class="table" style="width:100%;min-width:900px;margin:0">
+<table class="table table-cards" style="width:100%;min-width:900px;margin:0">
   <thead><tr><th>N</th><th>Proveedor</th><th>Estado</th><th>Pago</th><th>Recepcion</th><th>Emision</th><th>Entrega esp.</th><th>Total</th><th></th></tr></thead>
   <tbody>{% for oc in items %}<tr>
-    <td class="fw-semibold" style="color:var(--text)">{{ oc.numero or '--' }}</td>
-    <td>{{ oc.proveedor.empresa or oc.proveedor.nombre if oc.proveedor else '--' }}</td>
-    <td>
+    <td data-label="N" class="fw-semibold" style="color:var(--text)">{{ oc.numero or '--' }}</td>
+    <td data-label="Proveedor">{{ oc.proveedor.empresa or oc.proveedor.nombre if oc.proveedor else '--' }}</td>
+    <td data-label="Estado">
       {% if oc.estado=='borrador' %}<span class="badge bg-secondary">Borrador</span>
       {% elif oc.estado=='anticipo_pagado' %}<span class="badge bg-info text-dark">Anticipo pagado</span>
       {% elif oc.estado=='pagado' %}<span class="badge bg-primary">Pagado</span>
@@ -28,18 +28,18 @@
       {% else %}<span class="badge bg-secondary">{{ oc.estado }}</span>{% endif %}
       {% if oc.tiene_problema_calidad %}<br><span class="badge bg-danger mt-1"><i class="bi bi-exclamation-triangle me-1"></i>Calidad</span>{% endif %}
     </td>
-    <td>
+    <td data-label="Pago">
       <small class="text-muted">{{ moneda(oc.monto_pagado or 0) }} / {{ moneda(oc.total or 0) }}</small>
     </td>
-    <td>
+    <td data-label="Recepcion">
       {% if oc.estado_recepcion=='pendiente' %}<span class="text-muted">Pendiente</span>
       {% elif oc.estado_recepcion=='parcial' %}<span class="text-warning">Parcial</span>
       {% elif oc.estado_recepcion=='recibida' %}<span class="text-success">Recibida</span>
       {% else %}<span class="text-muted">{{ oc.estado_recepcion or 'Pendiente' }}</span>{% endif %}
     </td>
-    <td><small>{{ oc.fecha_emision.strftime('%d/%m/%Y') if oc.fecha_emision else '--' }}</small></td>
-    <td>{% if oc.fecha_esperada %}<small class="{{ 'text-danger fw-semibold' if oc.fecha_esperada < now.date() and oc.estado not in ('recibida','cancelada') else '' }}">{{ oc.fecha_esperada.strftime('%d/%m/%Y') }}</small>{% else %}--{% endif %}</td>
-    <td class="fw-semibold">{{ moneda(oc.total or 0) }}</td>
+    <td data-label="Emision"><small>{{ oc.fecha_emision.strftime('%d/%m/%Y') if oc.fecha_emision else '--' }}</small></td>
+    <td data-label="Entrega">{% if oc.fecha_esperada %}<small class="{{ 'text-danger fw-semibold' if oc.fecha_esperada < now.date() and oc.estado not in ('recibida','cancelada') else '' }}">{{ oc.fecha_esperada.strftime('%d/%m/%Y') }}</small>{% else %}--{% endif %}</td>
+    <td data-label="Total" class="fw-semibold">{{ moneda(oc.total or 0) }}</td>
     <td><div class="dropdown">
       <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.78rem">
         <i class="bi bi-three-dots me-1"></i>Acciones

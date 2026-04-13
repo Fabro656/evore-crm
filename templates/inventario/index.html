@@ -20,20 +20,20 @@
 <div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-box-seam-fill me-2"></i>{{ items|length }} producto(s)</div>
 {% if items %}
 <div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%">
-<table class="table" style="width:100%;min-width:850px;margin:0">
+<table class="table table-cards" style="width:100%;min-width:850px;margin:0">
   <thead><tr><th>Producto</th><th>SKU</th><th>NSO (INVIMA)</th><th>Caducidad</th><th>Precio venta</th><th>Stock</th><th></th></tr></thead>
   <tbody>{% for p in items %}<tr>
-    <td><div class="fw-semibold" style="color:var(--text)">{{ p.nombre }}</div>
+    <td data-label="Producto"><div class="fw-semibold" style="color:var(--text)">{{ p.nombre }}</div>
       {% if p.categoria %}<small class="text-muted">{{ p.categoria }}</small>{% endif %}</td>
-    <td><small class="text-muted">{{ p.sku or '—' }}</small></td>
-    <td><small class="text-muted">{{ p.nso or '—' }}</small></td>
-    <td>{% if p.fecha_caducidad %}
+    <td data-label="SKU"><small class="text-muted">{{ p.sku or '—' }}</small></td>
+    <td data-label="NSO"><small class="text-muted">{{ p.nso or '—' }}</small></td>
+    <td data-label="Caducidad">{% if p.fecha_caducidad %}
       {% set dias_cad = (p.fecha_caducidad - now.date()).days %}
       <span class="b {% if dias_cad < 30 %}b-alta{% elif dias_cad < 90 %}b-media{% else %}b-activo{% endif %}"
             title="{{ dias_cad }} días">{{ p.fecha_caducidad.strftime('%d/%m/%Y') }}</span>
       {% else %}<small class="text-muted">—</small>{% endif %}</td>
-    <td class="fw-semibold">$ {{ '{:,.0f}'.format(p.precio).replace(',','.') }}</td>
-    <td><span class="fw-semibold {{ 'text-danger' if p.stock <= p.stock_minimo else 'text-success' }}">{{ (p.stock|float)|round(0)|int }}</span>
+    <td data-label="Precio" class="fw-semibold">$ {{ '{:,.0f}'.format(p.precio).replace(',','.') }}</td>
+    <td data-label="Stock"><span class="fw-semibold {{ 'text-danger' if p.stock <= p.stock_minimo else 'text-success' }}">{{ (p.stock|float)|round(0)|int }}</span>
       <small class="text-muted"> / mín {{ p.stock_minimo }}</small>
       {% if p.stock <= p.stock_minimo %}<span class="badge bg-danger ms-1" style="font-size:.65rem">BAJO</span>{% endif %}</td>
     <td><div class="dropdown">

@@ -27,7 +27,7 @@
 <div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-truck me-2"></i>{{ items|length }} registro(s)</div>
 {% if items %}
 <div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%">
-<table class="table" style="width:100%;min-width:800px;margin:0">
+<table class="table table-cards" style="width:100%;min-width:800px;margin:0">
   <thead><tr>
     <th style="min-width:200px">Empresa / Nombre</th>
     <th style="min-width:110px">Tipo</th>
@@ -38,17 +38,17 @@
     <th style="width:100px"></th>
   </tr></thead>
   <tbody>{% for p in items %}<tr>
-    <td><span class="fw-semibold" style="color:var(--text)">{{ p.empresa or p.nombre }}</span>
+    <td data-label="Empresa"><span class="fw-semibold" style="color:var(--text)">{{ p.empresa or p.nombre }}</span>
       {% if p.empresa and p.nombre != p.empresa %}<div><small class="text-muted">{{ p.nombre }}</small></div>{% endif %}</td>
-    <td>
+    <td data-label="Tipo">
       {% if p.tipo == 'transportista' %}<span class="badge bg-success">Transportista</span>
       {% elif p.tipo == 'ambos' %}<span class="badge bg-primary">Prov. + Transp.</span>
       {% else %}<span class="badge bg-secondary">Proveedor</span>{% endif %}
     </td>
-    <td><small class="text-muted">{{ p.nit or '—' }}</small></td>
-    <td><small>{{ p.categoria or '—' }}</small></td>
-    <td><small>{{ p.email or '—' }}</small></td>
-    <td><small>{{ p.telefono or '—' }}</small></td>
+    <td data-label="NIT"><small class="text-muted">{{ p.nit or '—' }}</small></td>
+    <td data-label="Categoria"><small>{{ p.categoria or '—' }}</small></td>
+    <td data-label="Email"><small>{{ p.email or '—' }}</small></td>
+    <td data-label="Telefono"><small>{{ p.telefono or '—' }}</small></td>
     <td><div class="d-flex gap-1 justify-content-end">
       <a href="{{ url_for('proveedor_editar', id=p.id) }}" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;padding:2px 8px" title="Editar"><i class="bi bi-pencil"></i></a>
       <form method="POST" action="{{ url_for('proveedor_eliminar', id=p.id) }}" onsubmit="return confirm('¿Eliminar {{ p.empresa or p.nombre }}?')" class="m-0">

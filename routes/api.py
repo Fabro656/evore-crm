@@ -64,7 +64,25 @@ def register(app):
                     'url': '/ordenes_compra/'+str(oc.id)})
         except Exception as _e:
             logging.warning(f'search ordenes_compra: {_e}')
-        return jsonify({'results': results, 'q': q})
+        try:
+            for e in Empleado.query.filter(
+                db.or_(Empleado.nombre.ilike(like), Empleado.apellido.ilike(like))
+            ).limit(3).all():
+                results.append({'type':'Empleado','icon':'person-badge','color':'#EC4899',
+                    'label': f'{e.nombre} {e.apellido}', 'sub': e.cargo or '',
+                    'url': '/nomina/'+str(e.id)})
+        except Exception as _e:
+            logging.warning(f'search empleados: {_e}')
+        try:
+            for cot in Cotizacion.query.filter(
+                db.or_(Cotizacion.numero.ilike(like), Cotizacion.titulo.ilike(like))
+            ).limit(3).all():
+                results.append({'type':'Cotizacion','icon':'file-earmark-text','color':'#F59E0B',
+                    'label': cot.numero or cot.titulo or f'Cot #{cot.id}', 'sub': cot.estado or '',
+                    'url': '/cotizaciones/'+str(cot.id)})
+        except Exception as _e:
+            logging.warning(f'search cotizaciones: {_e}')
+        return jsonify({'results': results, 'q': q, 'total': len(results)})
 
     @app.route('/health')
     def health_check():
