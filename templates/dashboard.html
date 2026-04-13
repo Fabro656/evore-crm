@@ -46,8 +46,10 @@
 </div>
 {% endif %}
 
-{# ── Acciones rápidas ──────────────────────────────── #}
+{# ── Acciones rápidas (por rol) ──────────────────────────────── #}
+{% set r = rol_activo %}
 <div class="qa-bar">
+  {% if r in ('admin','director_operativo') %}
   <a href="{{ url_for('venta_nueva') }}" class="qa-btn"><i class="bi bi-bag-plus"></i> Nueva venta</a>
   <a href="{{ url_for('cotizacion_nueva') }}" class="qa-btn"><i class="bi bi-file-earmark-text"></i> Cotizacion</a>
   <a href="{{ url_for('orden_compra_nueva') }}" class="qa-btn"><i class="bi bi-cart-plus"></i> Nueva OC</a>
@@ -56,9 +58,30 @@
   <a href="{{ url_for('cliente_nuevo') }}" class="qa-btn"><i class="bi bi-person-plus"></i> Nuevo cliente</a>
   <a href="{{ url_for('nota_nueva') }}" class="qa-btn"><i class="bi bi-sticky"></i> Nueva nota</a>
   <a href="{{ url_for('wiki') }}" class="qa-btn"><i class="bi bi-book"></i> Wiki</a>
+  {% elif r in ('vendedor','sales_manager') %}
+  <a href="{{ url_for('venta_nueva') }}" class="qa-btn"><i class="bi bi-bag-plus"></i> Nueva venta</a>
+  <a href="{{ url_for('cotizacion_nueva') }}" class="qa-btn"><i class="bi bi-file-earmark-text"></i> Cotizacion</a>
+  <a href="{{ url_for('cliente_nuevo') }}" class="qa-btn"><i class="bi bi-person-plus"></i> Nuevo cliente</a>
+  <a href="{{ url_for('tarea_nueva') }}" class="qa-btn"><i class="bi bi-check2-square"></i> Nuevo ticket</a>
+  {% elif r == 'produccion' %}
+  <a href="{{ url_for('ordenes_produccion') }}" class="qa-btn"><i class="bi bi-gear"></i> Ordenes prod.</a>
+  <a href="{{ url_for('recetas') }}" class="qa-btn"><i class="bi bi-journal-text"></i> Ver recetas</a>
+  <a href="{{ url_for('inventario') }}" class="qa-btn"><i class="bi bi-box-seam"></i> Inventario</a>
+  <a href="{{ url_for('tarea_nueva') }}" class="qa-btn"><i class="bi bi-check2-square"></i> Nuevo ticket</a>
+  {% elif r in ('contador','director_financiero') %}
+  <a href="{{ url_for('contable_asiento_nuevo') }}" class="qa-btn"><i class="bi bi-journal-plus"></i> Nuevo asiento</a>
+  <a href="{{ url_for('gastos') }}" class="qa-btn"><i class="bi bi-receipt"></i> Ver gastos</a>
+  <a href="{{ url_for('contable_balance_general') }}" class="qa-btn"><i class="bi bi-clipboard-data"></i> Balance</a>
+  <a href="{{ url_for('reportes') }}" class="qa-btn"><i class="bi bi-bar-chart-line"></i> Reportes</a>
+  {% else %}
+  <a href="{{ url_for('tarea_nueva') }}" class="qa-btn"><i class="bi bi-check2-square"></i> Nuevo ticket</a>
+  <a href="{{ url_for('nota_nueva') }}" class="qa-btn"><i class="bi bi-sticky"></i> Nueva nota</a>
+  <a href="{{ url_for('wiki') }}" class="qa-btn"><i class="bi bi-book"></i> Wiki</a>
+  {% endif %}
 </div>
 
 {# ── Fila 1: métricas operativas ───────────────────── #}
+{% if r in ('admin','director_operativo','director_financiero','contador','vendedor','sales_manager') %}
 <div class="row g-3 mb-3 dash-stats">
   <div class="col-6 col-lg-3">
     <div class="sc sc-accent" style="border-top-color:var(--ac)">
@@ -99,7 +122,10 @@
   </div>
 </div>
 
+{% endif %}
+
 {# ── Fila 2: métricas financieras ─────────────────── #}
+{% if r in ('admin','director_operativo','director_financiero','contador') %}
 <div class="row g-3 mb-4 dash-stats">
   <div class="col-6 col-lg-3">
     <div class="sc">
@@ -148,8 +174,10 @@
   </div>
 </div>
 
+{% endif %}
+
 {# ── Alerta stock bajo ─────────────────────────────── #}
-{% if alertas_stock %}
+{% if r in ('admin','director_operativo','produccion') and alertas_stock %}
 <div class="alert alert-warning mb-3 py-2" style="font-size:.87rem">
   <div class="d-flex align-items-center gap-2 mb-2">
     <i class="bi bi-exclamation-triangle-fill fs-5 text-warning"></i>
@@ -162,7 +190,7 @@
     {% endfor %}
   </ul>
 </div>
-{% elif productos_bajo_stock > 0 %}
+{% elif r in ('admin','director_operativo','produccion') and productos_bajo_stock > 0 %}
 <div class="alert alert-warning d-flex align-items-center gap-2 mb-3 py-2" style="font-size:.87rem">
   <i class="bi bi-exclamation-triangle-fill fs-5"></i>
   <span><strong>{{ productos_bajo_stock }} producto(s)</strong> con stock bajo o agotado.</span>
@@ -171,7 +199,7 @@
 {% endif %}
 
 {# ── Alertas de seguimiento comercial ──────────────── #}
-{% if cots_sin_respuesta or ventas_estancadas or entregas_pendientes %}
+{% if r in ('admin','director_operativo','director_financiero','contador','vendedor','sales_manager') and (cots_sin_respuesta or ventas_estancadas or entregas_pendientes) %}
 <div class="tc mb-3">
   <div class="ch" style="cursor:pointer" onclick="this.parentElement.querySelector('.seguimiento-body').classList.toggle('d-none')">
     <span><i class="bi bi-bell-fill me-2" style="color:var(--orange)"></i>Alertas de seguimiento
@@ -235,6 +263,7 @@
 {% endif %}
 
 {# ── CLV + Rentabilidad ─────────────────────────────── #}
+{% if r in ('admin','director_operativo','director_financiero','contador','vendedor','sales_manager') %}
 <div class="row g-3 mb-3">
   <div class="col-12 col-md-6">
     <div class="tc">
@@ -300,8 +329,11 @@
   </div>
 </div>
 
+{% endif %}
+
 {# ── Tareas + Ventas ───────────────────────────────── #}
 <div class="row g-3 mb-3">
+  {% if r in ('admin','director_operativo','produccion') %}
   <div class="col-lg-6">
     <div class="tc">
       <div class="ch">
@@ -330,6 +362,8 @@
       {% endif %}
     </div>
   </div>
+  {% endif %}
+  {% if r in ('admin','director_operativo','vendedor','sales_manager') %}
   <div class="col-lg-6">
     <div class="tc">
       <div class="ch">
@@ -358,6 +392,7 @@
       {% endif %}
     </div>
   </div>
+  {% endif %}
 </div>
 
 {# ── Actividad reciente ────────────────────────────── #}
@@ -382,7 +417,7 @@
 
 {# ── Aprobaciones + Calendario + Notas ──────────────── #}
 <div class="row g-3 mb-3 mt-1">
-  {% if aprobaciones_pendientes %}
+  {% if r in ('admin','director_operativo','director_financiero','contador') and aprobaciones_pendientes %}
   <div class="col-lg-4">
     <div class="tc">
       <div class="ch">
