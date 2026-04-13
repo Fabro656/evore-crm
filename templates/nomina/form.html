@@ -68,6 +68,27 @@
                 <option value="4" {% if empleado and empleado.nivel_riesgo_arl==4 %}selected{% endif %}>4 — Alto</option>
                 <option value="5" {% if empleado and empleado.nivel_riesgo_arl==5 %}selected{% endif %}>5 — Muy alto</option>
               </select></div>
+            <div class="col-6"><label class="form-label">EPS</label>
+              <select name="eps" class="form-select">
+                <option value="">— Seleccionar —</option>
+                {% for e in ['Sura EPS','Nueva EPS','Sanitas','Compensar EPS','Famisanar','Salud Total','Coomeva EPS','Mutual SER','Coosalud','Cajacopi','Emssanar','Asmet Salud','Pijaos Salud','Capital Salud','Savia Salud','Otra'] %}
+                <option value="{{ e }}" {% if empleado and empleado.eps==e %}selected{% endif %}>{{ e }}</option>
+                {% endfor %}
+              </select></div>
+            <div class="col-6"><label class="form-label">Caja de compensacion</label>
+              <select name="caja_compensacion" class="form-select">
+                <option value="">— Seleccionar —</option>
+                {% for c in ['Compensar','Cafam','Colsubsidio','Comfandi','Comfenalco','Comfama','Combarranquilla','Comfamiliar','Cajacopi','Comfacauca','Comfaoriente','Otra'] %}
+                <option value="{{ c }}" {% if empleado and empleado.caja_compensacion==c %}selected{% endif %}>{{ c }}</option>
+                {% endfor %}
+              </select></div>
+            <div class="col-6"><label class="form-label">Fondo de pensiones</label>
+              <select name="fondo_pensiones" class="form-select">
+                <option value="">— Seleccionar —</option>
+                {% for f in ['Porvenir','Proteccion','Colfondos','Old Mutual (Skandia)','Colpensiones','Otra'] %}
+                <option value="{{ f }}" {% if empleado and empleado.fondo_pensiones==f %}selected{% endif %}>{{ f }}</option>
+                {% endfor %}
+              </select></div>
           </div>
         </div>
         <div class="form-section">

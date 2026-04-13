@@ -989,6 +989,9 @@ class Empleado(db.Model):
     contacto_emergencia_nombre   = db.Column(db.String(120))
     contacto_emergencia_telefono = db.Column(db.String(30))
     contacto_emergencia_parentesco = db.Column(db.String(50))
+    eps                 = db.Column(db.String(100))
+    caja_compensacion   = db.Column(db.String(100))
+    fondo_pensiones     = db.Column(db.String(100))
     creado_por          = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en           = db.Column(db.DateTime, default=datetime.utcnow)
     es_demo             = db.Column(db.Boolean, default=False)
@@ -1555,6 +1558,13 @@ def _migrate(conn):
         ("ALTER TABLE empleados ADD COLUMN contacto_emergencia_telefono VARCHAR(30)"),
         ("ALTER TABLE empleados ADD COLUMN IF NOT EXISTS contacto_emergencia_parentesco VARCHAR(50)"),
         ("ALTER TABLE empleados ADD COLUMN contacto_emergencia_parentesco VARCHAR(50)"),
+        # v42b — Empleado: EPS, caja de compensacion, fondo de pensiones
+        ("ALTER TABLE empleados ADD COLUMN IF NOT EXISTS eps VARCHAR(100)"),
+        ("ALTER TABLE empleados ADD COLUMN eps VARCHAR(100)"),
+        ("ALTER TABLE empleados ADD COLUMN IF NOT EXISTS caja_compensacion VARCHAR(100)"),
+        ("ALTER TABLE empleados ADD COLUMN caja_compensacion VARCHAR(100)"),
+        ("ALTER TABLE empleados ADD COLUMN IF NOT EXISTS fondo_pensiones VARCHAR(100)"),
+        ("ALTER TABLE empleados ADD COLUMN fondo_pensiones VARCHAR(100)"),
     ]
     for sql in migrations:
         try:

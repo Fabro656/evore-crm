@@ -311,6 +311,9 @@ def register(app):
                     contacto_emergencia_nombre=request.form.get('contacto_emergencia_nombre','').strip() or None,
                     contacto_emergencia_telefono=request.form.get('contacto_emergencia_telefono','').strip() or None,
                     contacto_emergencia_parentesco=request.form.get('contacto_emergencia_parentesco','').strip() or None,
+                    eps=request.form.get('eps','').strip() or None,
+                    caja_compensacion=request.form.get('caja_compensacion','').strip() or None,
+                    fondo_pensiones=request.form.get('fondo_pensiones','').strip() or None,
                     creado_por=current_user.id
                 )
                 if not e.nombre or not e.apellido:
@@ -390,6 +393,9 @@ def register(app):
                 empleado.contacto_emergencia_nombre=request.form.get('contacto_emergencia_nombre','').strip() or None
                 empleado.contacto_emergencia_telefono=request.form.get('contacto_emergencia_telefono','').strip() or None
                 empleado.contacto_emergencia_parentesco=request.form.get('contacto_emergencia_parentesco','').strip() or None
+                empleado.eps=request.form.get('eps','').strip() or None
+                empleado.caja_compensacion=request.form.get('caja_compensacion','').strip() or None
+                empleado.fondo_pensiones=request.form.get('fondo_pensiones','').strip() or None
                 if request.form.get('fecha_ingreso'):
                     empleado.fecha_ingreso=datetime.strptime(request.form.get('fecha_ingreso',''), '%Y-%m-%d').date()
                 db.session.commit()
