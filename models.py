@@ -846,6 +846,8 @@ class RecetaItem(db.Model):
     materia_prima_id = db.Column(db.Integer, db.ForeignKey('materias_primas.id'), nullable=False)
     cantidad_por_unidad = db.Column(db.Float, default=0)
     es_empaque       = db.Column(db.Boolean, default=False)
+    rendimiento      = db.Column(db.Float, default=1)  # v41: unidades de producto que cubre 1 unidad de este insumo
+    # Ejemplo: caja de 250 uds → rendimiento=250, cinta para 100 cajas de 250 → rendimiento=25000
     clasificacion    = db.Column(db.String(30), default='materia_prima')
     # clasificacion: materia_prima | granel | empaque_primario | empaque_secundario
     materia          = db.relationship('MateriaPrima', foreign_keys=[materia_prima_id])
@@ -1516,6 +1518,9 @@ def _migrate(conn):
         ("ALTER TABLE documentos_legales ADD COLUMN requiere_firma_portal BOOLEAN DEFAULT FALSE"),
         ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS nomina_params TEXT"),
         ("ALTER TABLE config_empresa ADD COLUMN nomina_params TEXT"),
+        # v41 — RecetaItem: rendimiento para empaques
+        ("ALTER TABLE receta_items ADD COLUMN IF NOT EXISTS rendimiento FLOAT DEFAULT 1"),
+        ("ALTER TABLE receta_items ADD COLUMN rendimiento FLOAT DEFAULT 1"),
         # v41 — OrdenProduccion: operario y merma
         ("ALTER TABLE ordenes_produccion ADD COLUMN IF NOT EXISTS operario_id INTEGER REFERENCES empleados(id)"),
         ("ALTER TABLE ordenes_produccion ADD COLUMN operario_id INTEGER REFERENCES empleados(id)"),

@@ -646,15 +646,19 @@ def register(app):
             ids   = request.form.getlist('materia_id[]')
             cants = request.form.getlist('cantidad[]')
             clasifs = request.form.getlist('clasificacion[]')
+            rendimientos = request.form.getlist('rendimiento[]')
             for i, (mid, cant) in enumerate(zip(ids, cants)):
                 if mid and cant:
                     clasif = clasifs[i] if i < len(clasifs) else 'materia_prima'
+                    rend = float(rendimientos[i]) if i < len(rendimientos) and rendimientos[i] else 1
+                    es_emp = clasif in ('empaque_primario', 'empaque_secundario')
                     db.session.add(RecetaItem(
                         receta_id=r.id,
                         materia_prima_id=int(mid),
                         cantidad_por_unidad=float(cant),
                         clasificacion=clasif,
-                        es_empaque=clasif in ('empaque_primario','empaque_secundario')
+                        es_empaque=es_emp,
+                        rendimiento=rend if es_emp else 1
                     ))
             # Registrar ingredientes al producto y asegurarse que existen en el catálogo
             _registrar_ingredientes_en_cero(ids, prod_id)
@@ -783,15 +787,19 @@ def register(app):
                             es_empaque=emp['es_empaque'],
                             clasificacion=emp['clasificacion']
                         ))
+                rendimientos = request.form.getlist('rendimiento[]')
                 for i, (mid, cant) in enumerate(zip(ids, cants)):
                     if mid and cant:
                         clasif = clasifs[i] if i < len(clasifs) else 'materia_prima'
+                        rend = float(rendimientos[i]) if i < len(rendimientos) and rendimientos[i] else 1
+                        es_emp = clasif in ('empaque_primario', 'empaque_secundario')
                         db.session.add(RecetaItem(
                             receta_id=obj.id,
                             materia_prima_id=int(mid),
                             cantidad_por_unidad=float(cant),
                             clasificacion=clasif,
-                            es_empaque=clasif in ('empaque_primario','empaque_secundario')
+                            es_empaque=es_emp,
+                            rendimiento=rend if es_emp else 1
                         ))
                 _registrar_ingredientes_en_cero(ids, prod_id)
                 # Auto-generar SKU si falta

@@ -87,11 +87,18 @@
       </span>
     </div>
     <div class="col-md-2">
-      <select name="clasificacion[]" class="form-select form-select-sm">
+      <select name="clasificacion[]" class="form-select form-select-sm" onchange="toggleRendimiento(this)">
         <option value="materia_prima" {% if item.clasificacion=='materia_prima' %}selected{% endif %}>MP / Granel</option>
         <option value="empaque_primario" {% if item.clasificacion=='empaque_primario' %}selected{% endif %}>Empaque primario</option>
         <option value="empaque_secundario" {% if item.clasificacion=='empaque_secundario' %}selected{% endif %}>Empaque secundario</option>
       </select>
+    </div>
+    <div class="col-md-1 rendimiento-col" style="{{ '' if item.clasificacion in ('empaque_primario','empaque_secundario') else 'display:none' }}">
+      <input type="number" name="rendimiento[]" step="1" min="1" class="form-control form-control-sm"
+             value="{{ item.rendimiento or 1 }}" placeholder="Rinde" title="Unidades de producto que cubre 1 unidad de este empaque">
+    </div>
+    <div class="col-md-1" style="{{ 'display:none' if item.clasificacion in ('empaque_primario','empaque_secundario') else '' }}">
+      <input type="hidden" name="rendimiento[]" value="{{ item.rendimiento or 1 }}">
     </div>
     <div class="col-md-1">
       <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="this.closest('.item-row').remove()"><i class="bi bi-trash"></i></button>
@@ -226,7 +233,19 @@ function addItem(selectedId){
   var selClas=document.createElement('select');
   selClas.name='clasificacion[]'; selClas.className='form-select form-select-sm';
   selClas.innerHTML='<option value="materia_prima">MP / Granel</option><option value="empaque_primario">Empaque primario</option><option value="empaque_secundario">Empaque secundario</option>';
+  selClas.addEventListener('change',function(){toggleRendimiento(this);});
   colClas.appendChild(selClas);
+
+  // Rendimiento (para empaques)
+  var colRend=document.createElement('div'); colRend.className='col-md-1 rendimiento-col'; colRend.style.display='none';
+  var inpRend=document.createElement('input');
+  inpRend.type='number'; inpRend.name='rendimiento[]'; inpRend.step='1'; inpRend.min='1'; inpRend.value='1';
+  inpRend.className='form-control form-control-sm'; inpRend.placeholder='Rinde'; inpRend.title='Uds de producto por 1 empaque';
+  colRend.appendChild(inpRend);
+  // Hidden rendimiento default
+  var colRendH=document.createElement('div'); colRendH.className='col-md-1';
+  var inpRendH=document.createElement('input'); inpRendH.type='hidden'; inpRendH.name='rendimiento[]'; inpRendH.value='1';
+  colRendH.appendChild(inpRendH);
 
   var colD=document.createElement('div'); colD.className='col-md-1';
   var btn=document.createElement('button'); btn.type='button';
@@ -235,8 +254,16 @@ function addItem(selectedId){
   btn.addEventListener('click',function(){this.closest('.item-row').remove();});
   colD.appendChild(btn);
 
-  row.appendChild(colA); row.appendChild(colB); row.appendChild(colC); row.appendChild(colClas); row.appendChild(colD);
+  row.appendChild(colA); row.appendChild(colB); row.appendChild(colC); row.appendChild(colClas); row.appendChild(colRend); row.appendChild(colRendH); row.appendChild(colD);
   cont.appendChild(row);
+}
+
+function toggleRendimiento(sel){
+  var row = sel.closest('.item-row');
+  if(!row) return;
+  var isEmpaque = sel.value.includes('empaque');
+  var rendCols = row.querySelectorAll('.rendimiento-col');
+  rendCols.forEach(function(c){ c.style.display = isEmpaque ? '' : 'none'; });
 }
 
 function abrirNuevaMp(){
