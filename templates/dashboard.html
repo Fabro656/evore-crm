@@ -7,33 +7,52 @@
 {% endblock %}
 {% block content %}
 
-{# ── Banner bienvenida / onboarding por rol ────────────────── #}
+{# ── Banner bienvenida / onboarding interactivo por rol ────── #}
 {% if onboarding and onboarding.pending %}
-<div class="onboard-banner mb-3">
-  <div style="position:relative;z-index:1">
-    <div style="font-size:.72rem;letter-spacing:2px;text-transform:uppercase;opacity:.6;margin-bottom:.3rem">
-      {{ current_user.rol|replace('_',' ')|title }} — {{ onboarding.done }}/{{ onboarding.total }} completados
+<div style="border-radius:var(--radius);border:1px solid var(--border);background:linear-gradient(135deg,#0B2D61,#0176D3);color:#fff;padding:1.5rem;margin-bottom:1.5rem">
+  <div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+      <h5 style="margin:0;font-weight:700"><i class="bi bi-rocket-takeoff me-2" style="opacity:.8"></i>Bienvenido a Evore CRM</h5>
+      <p style="margin:.3rem 0 0;opacity:.8;font-size:.85rem">Completa estos pasos para configurar tu espacio de trabajo</p>
     </div>
-    <div style="font-size:1.25rem;font-weight:700;margin-bottom:.3rem">Hola, {{ current_user.nombre }}!</div>
-    <div style="font-size:.87rem;opacity:.75;max-width:520px">Sigue estos pasos para configurar tu area de trabajo.</div>
-    <div style="background:rgba(255,255,255,.15);border-radius:4px;height:6px;margin:8px 0 12px;max-width:400px">
-      <div style="background:var(--surface);border-radius:4px;height:100%;width:{{ (onboarding.done / onboarding.total * 100)|int }}%;transition:width .3s"></div>
+    <div style="text-align:right">
+      <div style="font-size:1.5rem;font-weight:800">{{ onboarding.done }}/{{ onboarding.total }}</div>
+      <div style="font-size:.7rem;opacity:.6">completados</div>
     </div>
-    <div class="onboard-steps mt-2">
-      {% for step in onboarding.steps %}
-      {% set done = step.key in onboarding.completed %}
-      <a href="{{ url_for(step.url) }}" class="onboard-step" style="{% if done %}opacity:.5;text-decoration:line-through{% endif %}"
-         {% if not done %}onclick="fetch('/onboarding/step/{{ step.key }}/complete',{method:'POST'})"{% endif %}>
-        <i class="bi {{ step.icon }}"></i> {{ loop.index }}. {{ step.titulo }}
-        {% if done %}<i class="bi bi-check-circle-fill" style="color:#7cff7c"></i>{% endif %}
-      </a>
-      {% endfor %}
+  </div>
+  {# ── Progress bar ── #}
+  <div style="background:rgba(255,255,255,.15);border-radius:10px;height:8px;margin-bottom:1rem;overflow:hidden">
+    <div style="background:#2dce89;height:100%;border-radius:10px;width:{{ (onboarding.done / onboarding.total * 100)|int }}%;transition:width .5s"></div>
+  </div>
+  {# ── Steps grid ── #}
+  <div class="row g-2">
+    {% for step in onboarding.steps %}
+    {% set done = step.key in onboarding.completed %}
+    <div class="col-12 col-sm-6 col-lg-4">
+      <div style="background:rgba(255,255,255,{% if done %}.05{% else %}.12{% endif %});border:1px solid rgba(255,255,255,{% if done %}.05{% else %}.15{% endif %});border-radius:10px;padding:.75rem;{% if done %}opacity:.6{% endif %}">
+        <div class="d-flex align-items-start gap-2">
+          <div style="width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            {% if done %}<i class="bi bi-check-lg" style="color:#2dce89;font-size:1rem"></i>
+            {% else %}<i class="bi {{ step.icon }}" style="font-size:.9rem"></i>{% endif %}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:600;font-size:.82rem;{% if done %}text-decoration:line-through{% endif %}">{{ step.titulo }}</div>
+            <div style="font-size:.72rem;opacity:.7;margin-top:1px">{{ step.desc }}</div>
+          </div>
+          {% if not done %}
+          <a href="{{ url_for(step.url) }}"
+             onclick="fetch('/onboarding/complete-step',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:'{{ step.key }}'})}).catch(function(){})"
+             style="background:rgba(255,255,255,.2);color:#fff;border:none;padding:4px 12px;border-radius:6px;font-size:.72rem;font-weight:600;text-decoration:none;white-space:nowrap;flex-shrink:0">Ir &rarr;</a>
+          {% endif %}
+        </div>
+      </div>
     </div>
-    <div style="margin-top:10px">
-      <form method="POST" action="{{ url_for('onboarding_dismiss') }}" style="display:inline">
-        <button type="submit" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:.75rem;cursor:pointer;text-decoration:underline">Ocultar guia</button>
-      </form>
-    </div>
+    {% endfor %}
+  </div>
+  <div style="margin-top:1rem;text-align:right">
+    <form method="POST" action="{{ url_for('onboarding_dismiss') }}" class="d-inline">
+      <button type="submit" style="background:rgba(255,255,255,.15);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.15);padding:4px 14px;border-radius:6px;font-size:.75rem;cursor:pointer">Completar tutorial</button>
+    </form>
   </div>
 </div>
 {% else %}

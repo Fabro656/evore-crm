@@ -138,7 +138,22 @@ def register(app):
     def onboarding_dismiss():
         current_user.onboarding_dismissed = True
         db.session.commit()
-        return ('', 204)
+        return redirect(url_for('dashboard'))
+
+    # ── onboarding_complete_step (/onboarding/complete-step)  JSON API
+    @app.route('/onboarding/complete-step', methods=['POST'])
+    @login_required
+    def onboarding_complete_step():
+        key = request.form.get('key', '') or (request.get_json(silent=True, force=True) or {}).get('key', '')
+        if key:
+            try:
+                config = json.loads(current_user.onboarding_role_config or '{}')
+            except Exception:
+                config = {}
+            config[key] = True
+            current_user.onboarding_role_config = json.dumps(config)
+            db.session.commit()
+        return jsonify({'ok': True})
     
 
     # ── onboarding_reset (/onboarding/reset)
