@@ -600,7 +600,9 @@ class ConfigEmpresa(db.Model):
     email      = db.Column(db.String(120))
     ciudad     = db.Column(db.String(100))
     sitio_web  = db.Column(db.String(200))
-    firma_path = db.Column(db.String(300), nullable=True)   # v30: ruta imagen firma digital
+    firma_path = db.Column(db.String(300), nullable=True)
+    representante_legal = db.Column(db.String(200), nullable=True)  # v39
+    representante_cedula = db.Column(db.String(30), nullable=True)  # v39
 
 class Evento(db.Model):
     __tablename__ = 'eventos'
@@ -1296,6 +1298,11 @@ def _migrate(conn):
         ("ALTER TABLE aprobaciones ADD COLUMN cotizacion_id INTEGER REFERENCES cotizaciones(id)"),
         ("ALTER TABLE aprobaciones ADD COLUMN IF NOT EXISTS asiento_id INTEGER REFERENCES asientos_contables(id)"),
         ("ALTER TABLE aprobaciones ADD COLUMN asiento_id INTEGER REFERENCES asientos_contables(id)"),
+        # v39 — ConfigEmpresa representante legal
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS representante_legal VARCHAR(200)"),
+        ("ALTER TABLE config_empresa ADD COLUMN representante_legal VARCHAR(200)"),
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS representante_cedula VARCHAR(30)"),
+        ("ALTER TABLE config_empresa ADD COLUMN representante_cedula VARCHAR(30)"),
         # v39 — MovimientoInventario table
         ("CREATE TABLE IF NOT EXISTS movimientos_inventario (id SERIAL PRIMARY KEY, producto_id INTEGER REFERENCES productos(id), materia_prima_id INTEGER REFERENCES materias_primas(id), tipo VARCHAR(30) NOT NULL, cantidad FLOAT DEFAULT 0, stock_anterior FLOAT DEFAULT 0, stock_posterior FLOAT DEFAULT 0, referencia VARCHAR(200), usuario_id INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
         ("CREATE TABLE IF NOT EXISTS movimientos_inventario (id INTEGER PRIMARY KEY AUTOINCREMENT, producto_id INTEGER REFERENCES productos(id), materia_prima_id INTEGER REFERENCES materias_primas(id), tipo VARCHAR(30) NOT NULL, cantidad FLOAT DEFAULT 0, stock_anterior FLOAT DEFAULT 0, stock_posterior FLOAT DEFAULT 0, referencia VARCHAR(200), usuario_id INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"),

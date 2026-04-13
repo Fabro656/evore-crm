@@ -117,8 +117,18 @@
       </div>
     </div>
 
+    <div class="col-12"><hr><label class="form-label fw-bold">Firma digital (opcional)</label></div>
+    <div class="col-md-6">
+      <div style="border:2px dashed var(--border);border-radius:8px;background:var(--surface2);position:relative">
+        <canvas id="signPad" width="400" height="120" style="width:100%;cursor:crosshair;display:block"></canvas>
+        <button type="button" onclick="clearSign()" class="btn btn-xs btn-outline-secondary" style="position:absolute;top:4px;right:4px;font-size:.7rem">Limpiar</button>
+      </div>
+      <input type="hidden" name="firma_data" id="firmaData">
+      <small class="text-muted">Dibuja tu firma con el mouse o el dedo. Se incluira en el documento generado.</small>
+    </div>
+
     <div class="mt-4">
-      <button type="submit" class="btn btn-primary"><i class="bi bi-file-earmark-text me-1"></i>Generar documento</button>
+      <button type="submit" class="btn btn-primary" onclick="document.getElementById('firmaData').value=document.getElementById('signPad').toDataURL()"><i class="bi bi-file-earmark-text me-1"></i>Generar documento</button>
     </div>
   </form>
 </div>
@@ -135,6 +145,20 @@ function cargarDatos(){
   if(opt.dataset.cargo) document.getElementById('tCargo').value = opt.dataset.cargo;
   if(opt.dataset.salario) document.getElementById('tSalario').value = opt.dataset.salario;
 }
+// Signature pad
+var signCanvas=document.getElementById('signPad');
+var signCtx=signCanvas.getContext('2d');
+var signing=false;
+signCtx.lineWidth=2;signCtx.lineCap='round';signCtx.strokeStyle='#1a1a1a';
+function getPos(e){var r=signCanvas.getBoundingClientRect();var t=e.touches?e.touches[0]:e;return{x:(t.clientX-r.left)*(signCanvas.width/r.width),y:(t.clientY-r.top)*(signCanvas.height/r.height)};}
+signCanvas.addEventListener('mousedown',function(e){signing=true;var p=getPos(e);signCtx.beginPath();signCtx.moveTo(p.x,p.y);});
+signCanvas.addEventListener('mousemove',function(e){if(!signing)return;var p=getPos(e);signCtx.lineTo(p.x,p.y);signCtx.stroke();});
+signCanvas.addEventListener('mouseup',function(){signing=false;});
+signCanvas.addEventListener('touchstart',function(e){e.preventDefault();signing=true;var p=getPos(e);signCtx.beginPath();signCtx.moveTo(p.x,p.y);},{passive:false});
+signCanvas.addEventListener('touchmove',function(e){e.preventDefault();if(!signing)return;var p=getPos(e);signCtx.lineTo(p.x,p.y);signCtx.stroke();},{passive:false});
+signCanvas.addEventListener('touchend',function(){signing=false;});
+function clearSign(){signCtx.clearRect(0,0,signCanvas.width,signCanvas.height);}
+
 function toggleCampos(){
   var plantilla = document.querySelector('[name="plantilla"]').value;
   var esLaboral = plantilla.includes('contrato_indefinido') || plantilla.includes('contrato_fijo') || plantilla.includes('carta_terminacion');

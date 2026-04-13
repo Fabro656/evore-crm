@@ -1,7 +1,19 @@
 {% extends 'base.html' %}
 {% block title %}{{ empleado.nombre }} {{ empleado.apellido }}{% endblock %}
 {% block page_title %}{{ empleado.nombre }} {{ empleado.apellido }}{% endblock %}
-{% block topbar_actions %}<a href="{{ url_for('empleado_recibo', id=empleado.id) }}" class="btn btn-sm btn-outline-success" target="_blank"><i class="bi bi-receipt me-1"></i>Recibo de pago</a><a href="{{ url_for('empleado_editar', id=empleado.id) }}" class="btn btn-sm btn-primary"><i class="bi bi-pencil me-1"></i>Editar</a>{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('empleado_recibo', id=empleado.id) }}" class="btn btn-sm btn-outline-success" target="_blank"><i class="bi bi-receipt me-1"></i>Recibo</a>
+<div class="dropdown d-inline-block">
+  <button class="btn btn-sm btn-outline-info dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-file-earmark-ruled me-1"></i>Legal</button>
+  <ul class="dropdown-menu dropdown-menu-end" style="font-size:.83rem">
+    <li><a class="dropdown-item" href="{{ url_for('legal_generar') }}?plantilla=contrato_indefinido&tercero_nombre={{ (empleado.nombre ~ ' ' ~ empleado.apellido)|urlencode }}&tercero_cedula={{ empleado.cedula|urlencode }}&tercero_cargo={{ (empleado.cargo or '')|urlencode }}&tercero_salario={{ empleado.salario_base }}" target="_blank"><i class="bi bi-file-text me-2"></i>Contrato indefinido</a></li>
+    <li><a class="dropdown-item" href="{{ url_for('legal_generar') }}?plantilla=contrato_fijo&tercero_nombre={{ (empleado.nombre ~ ' ' ~ empleado.apellido)|urlencode }}&tercero_cedula={{ empleado.cedula|urlencode }}&tercero_cargo={{ (empleado.cargo or '')|urlencode }}&tercero_salario={{ empleado.salario_base }}" target="_blank"><i class="bi bi-file-text me-2"></i>Contrato fijo</a></li>
+    <li><a class="dropdown-item" href="{{ url_for('legal_generar') }}?plantilla=carta_terminacion&tercero_nombre={{ (empleado.nombre ~ ' ' ~ empleado.apellido)|urlencode }}&tercero_cedula={{ empleado.cedula|urlencode }}" target="_blank"><i class="bi bi-file-text me-2"></i>Carta terminacion</a></li>
+    <li><a class="dropdown-item" href="{{ url_for('legal_generar') }}?plantilla=autorizacion_datos&tercero_nombre={{ (empleado.nombre ~ ' ' ~ empleado.apellido)|urlencode }}&tercero_cedula={{ empleado.cedula|urlencode }}" target="_blank"><i class="bi bi-file-text me-2"></i>Autorizacion datos</a></li>
+  </ul>
+</div>
+<a href="{{ url_for('empleado_editar', id=empleado.id) }}" class="btn btn-sm btn-primary"><i class="bi bi-pencil me-1"></i>Editar</a>
+{% endblock %}
 {% block content %}
 <div class="fc">
   <div class="row g-3 mb-3">

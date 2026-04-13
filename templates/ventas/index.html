@@ -101,6 +101,8 @@
           {% endif %}
           {% if v.entregado_en or v.estado in ('anticipo_pagado','pagado','completado') %}
           <li><a class="dropdown-item" href="{{ url_for('venta_remision', id=v.id) }}" target="_blank"><i class="bi bi-receipt me-2 text-primary"></i>Remision</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('legal_generar') }}?plantilla=acta_entrega&tercero_nombre={{ (v.cliente.nombre if v.cliente else '')|urlencode }}&tercero_empresa={{ (v.cliente.empresa if v.cliente else '')|urlencode }}" target="_blank"><i class="bi bi-file-earmark-ruled me-2 text-info"></i>Acta de entrega</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('legal_generar') }}?plantilla=contrato_cliente&tercero_nombre={{ (v.cliente.nombre if v.cliente else '')|urlencode }}&tercero_empresa={{ (v.cliente.empresa if v.cliente else '')|urlencode }}" target="_blank"><i class="bi bi-file-earmark-text me-2 text-info"></i>Contrato fabricacion</a></li>
           {% endif %}
           <li><hr class="dropdown-divider"></li>
           {% if (todas_completadas and not v.cliente_informado_en and not v.entregado_en) or (v.ordenes_produccion|list|length == 0 and not v.cliente_informado_en and not v.entregado_en and v.estado == 'anticipo_pagado') %}

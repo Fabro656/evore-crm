@@ -109,21 +109,42 @@
           <div class="ch"><i class="bi bi-bag-fill me-2"></i>Mis Compras ({{ ventas|length }})</div>
           <div class="table-responsive">
             <table class="table">
-              <thead><tr><th>#</th><th>Descripción</th><th>Fecha</th><th>Total</th><th>Estado</th><th>Descargar</th></tr></thead>
+              <thead><tr><th>#</th><th>Pedido</th><th>Fecha</th><th>Total</th><th>Pagado</th><th>Estado</th><th>Envio</th><th>Docs</th></tr></thead>
               <tbody>
               {% for v in ventas %}
               <tr>
                 <td><strong>{{ v.numero or ('PED-'+v.id|string) }}</strong></td>
-                <td>{{ v.titulo or 'Pedido sin nombre' }}</td>
-                <td>{{ v.creado_en.strftime('%d/%m/%Y') }}</td>
-                <td><strong>$ {{ '{:,.0f}'.format(v.total or 0).replace(',','.') }}</strong></td>
-                <td><span class="b b-{{ v.estado }}">{{ v.estado.replace('_',' ').title() }}</span></td>
+                <td style="font-size:.85rem">{{ v.titulo or 'Pedido' }}</td>
+                <td><small>{{ v.creado_en.strftime('%d/%m/%Y') }}</small></td>
+                <td><strong>{{ moneda(v.total or 0) }}</strong></td>
                 <td>
-                  {% if v.estado in ['completado','anticipo_pagado'] %}
-                  <a href="{{ url_for('venta_remision', id=v.id) }}" class="btn btn-xs btn-outline-primary" target="_blank"><i class="bi bi-download me-1"></i>Remisión</a>
+                  {% if v.monto_pagado_total and v.monto_pagado_total >= v.total %}
+                    <span class="b b-completado">Pagado total</span>
+                  {% elif v.monto_pagado_total and v.monto_pagado_total > 0 %}
+                    <span class="b b-anticipo_pagado">Parcial {{ moneda(v.monto_pagado_total) }}</span>
                   {% else %}
-                  <span style="font-size:.8rem;color:var(--text2)">—</span>
+                    <span class="b b-pendiente">Pendiente</span>
                   {% endif %}
+                </td>
+                <td><span class="b b-{{ v.estado }}">{{ v.estado.replace('_',' ').title() }}</span></td>
+                <td style="font-size:.8rem">
+                  {% if v.entregado_en %}
+                    <span class="text-success"><i class="bi bi-check-circle me-1"></i>Entregado {{ v.entregado_en.strftime('%d/%m') }}</span>
+                  {% elif v.enviado_en %}
+                    <span class="text-primary"><i class="bi bi-truck me-1"></i>Enviado {{ v.enviado_en.strftime('%d/%m') }}{% if v.transportista %} — {{ v.transportista.empresa or v.transportista.nombre }}{% endif %}</span>
+                  {% elif v.estado in ('anticipo_pagado','pagado') %}
+                    <span class="text-warning"><i class="bi bi-hourglass-split me-1"></i>En produccion</span>
+                  {% else %}
+                    <span class="text-muted">--</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="d-flex gap-1">
+                    <a href="{{ url_for('portal_cliente_factura', id=v.id) }}" class="btn btn-xs btn-outline-secondary" target="_blank" title="Factura"><i class="bi bi-file-earmark-text"></i></a>
+                    {% if v.estado in ('anticipo_pagado','pagado','entregado','completado') %}
+                    <a href="{{ url_for('portal_cliente_remision', id=v.id) }}" class="btn btn-xs btn-outline-primary" target="_blank" title="Remision"><i class="bi bi-receipt"></i></a>
+                    {% endif %}
+                  </div>
                 </td>
               </tr>
               {% endfor %}

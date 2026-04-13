@@ -33,6 +33,35 @@ def register(app):
                                sales_manager_user=sales_manager_user)
     
 
+    # ── portal_cliente_factura (/portal/venta/<id>/factura)
+    @app.route('/portal/venta/<int:id>/factura')
+    @login_required
+    def portal_cliente_factura(id):
+        if current_user.rol != 'cliente': return redirect(url_for('dashboard'))
+        venta = Venta.query.get_or_404(id)
+        if venta.cliente_id != current_user.cliente_id:
+            flash('No tienes acceso a esta venta.', 'danger')
+            return redirect(url_for('portal_cliente'))
+        empresa = ConfigEmpresa.query.first()
+        return render_template('ventas/factura.html', venta=venta, empresa=empresa)
+
+
+    # ── portal_cliente_remision (/portal/venta/<id>/remision)
+    @app.route('/portal/venta/<int:id>/remision')
+    @login_required
+    def portal_cliente_remision(id):
+        if current_user.rol != 'cliente': return redirect(url_for('dashboard'))
+        venta = Venta.query.get_or_404(id)
+        if venta.cliente_id != current_user.cliente_id:
+            flash('No tienes acceso a esta venta.', 'danger')
+            return redirect(url_for('portal_cliente'))
+        empresa = ConfigEmpresa.query.first()
+        empaques_detalle = []
+        transportista = venta.transportista if hasattr(venta, 'transportista') else None
+        return render_template('ventas/remision.html', venta=venta, empresa=empresa,
+                               empaques_detalle=empaques_detalle, transportista=transportista)
+
+
     # ── portal_mensaje_nuevo (/portal/mensaje/nuevo)
     @app.route('/portal/mensaje/nuevo', methods=['POST'])
     @login_required
@@ -302,6 +331,20 @@ def register(app):
         return render_template('portal/proveedor_index.html', prov=prov,
                                ordenes=ordenes, cotizaciones=cotizaciones)
     
+
+    # ── portal_prov_oc_pdf (/portal-proveedor/oc/<int:id>/pdf)
+    @app.route('/portal-proveedor/oc/<int:id>/pdf')
+    @login_required
+    def portal_prov_oc_pdf(id):
+        """Proveedor descarga PDF de su OC."""
+        if current_user.rol != 'proveedor': return redirect(url_for('dashboard'))
+        oc = OrdenCompra.query.get_or_404(id)
+        if oc.proveedor_id != current_user.proveedor_id:
+            flash('No tienes acceso a esta OC.', 'danger')
+            return redirect(url_for('portal_proveedor'))
+        empresa = ConfigEmpresa.query.first()
+        return render_template('ordenes_compra/pdf.html', oc=oc, empresa=empresa)
+
 
     # ── portal_prov_confirmar_oc (/portal-proveedor/confirmar-oc/<int:id>)
     @app.route('/portal-proveedor/confirmar-oc/<int:id>', methods=['POST'])
