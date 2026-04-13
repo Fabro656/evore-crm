@@ -6,8 +6,10 @@
 {% endblock %}
 
 {% block content %}
-<div class="fc" style="max-width:800px">
-  <form method="POST" target="_blank">
+<div class="row g-3">
+<div class="col-lg-6">
+<div class="fc">
+  <form method="POST" target="_blank" id="legalForm">
     <div class="row g-3">
 
       <div class="col-md-6">
@@ -132,6 +134,20 @@
     </div>
   </form>
 </div>
+</div>{# end col-lg-6 form #}
+
+<div class="col-lg-6">
+  <div class="tc" style="position:sticky;top:70px">
+    <div class="ch"><i class="bi bi-eye me-2"></i>Vista previa</div>
+    <div id="legalPreview" style="padding:1.5rem;font-family:Georgia,serif;font-size:11px;line-height:1.7;color:var(--text);min-height:500px;max-height:80vh;overflow-y:auto">
+      <div class="text-center text-muted py-5" id="previewPlaceholder">
+        <i class="bi bi-file-earmark-text" style="font-size:2rem;display:block;margin-bottom:.5rem;opacity:.3"></i>
+        Selecciona un tipo de documento y completa los datos para ver la vista previa.
+      </div>
+    </div>
+  </div>
+</div>
+</div>{# end row #}
 
 <script>
 function cargarDatos(){
@@ -164,6 +180,72 @@ function toggleCampos(){
   var esLaboral = plantilla.includes('contrato_indefinido') || plantilla.includes('contrato_fijo') || plantilla.includes('carta_terminacion');
   document.getElementById('secCargo').style.display = esLaboral ? '' : 'none';
   document.getElementById('secSalario').style.display = esLaboral ? '' : 'none';
+  actualizarPreview();
 }
+
+// Live preview
+var PLANTILLA_TITULOS = {
+  'contrato_indefinido':'CONTRATO INDIVIDUAL DE TRABAJO A TERMINO INDEFINIDO',
+  'contrato_fijo':'CONTRATO DE TRABAJO A TERMINO FIJO',
+  'contrato_prestacion':'CONTRATO DE PRESTACION DE SERVICIOS',
+  'nda':'ACUERDO DE CONFIDENCIALIDAD (NDA)',
+  'contrato_proveedor':'CONTRATO DE SUMINISTRO',
+  'contrato_cliente':'CONTRATO DE FABRICACION',
+  'acta_entrega':'ACTA DE ENTREGA DE PRODUCTO',
+  'carta_terminacion':'CARTA DE TERMINACION DE CONTRATO',
+  'autorizacion_datos':'AUTORIZACION DE TRATAMIENTO DE DATOS PERSONALES'
+};
+function actualizarPreview(){
+  var plantilla = document.querySelector('[name="plantilla"]').value;
+  var prev = document.getElementById('legalPreview');
+  var ph = document.getElementById('previewPlaceholder');
+  if(!plantilla){ if(ph) ph.style.display=''; return; }
+  if(ph) ph.style.display='none';
+  var genero = document.querySelector('[name="genero"]').value;
+  var el_la = genero==='F'?'la':'el';
+  var senor = genero==='F'?'senora':'senor';
+  var ident = genero==='F'?'identificada':'identificado';
+  var trab = genero==='F'?'trabajadora':'trabajador';
+  var nombre = document.getElementById('tNombre').value || '[NOMBRE]';
+  var cedula = document.getElementById('tCedula').value || '[CEDULA]';
+  var cargo = document.getElementById('tCargo').value || '[CARGO]';
+  var salario = document.getElementById('tSalario').value || '[SALARIO]';
+  var empresa_t = document.getElementById('tEmpresa').value || '';
+  var ciudad = document.querySelector('[name="ciudad"]').value || 'Bogota';
+  var objeto = document.querySelector('[name="objeto"]').value || '[objeto del contrato]';
+  var vigencia = document.querySelector('[name="vigencia"]').value || '12 meses';
+  var repr = document.querySelector('[name="representante"]').value || '{{ empresa.nombre if empresa else "Empresa" }}';
+
+  var html = '<h2 style="text-align:center;font-size:13px;letter-spacing:1.5px;margin-bottom:15px">'+(PLANTILLA_TITULOS[plantilla]||plantilla)+'</h2>';
+  html += '<p>En la ciudad de <strong>'+ciudad+'</strong>, entre <strong>{{ empresa.nombre if empresa else "Empresa" }}</strong> (NIT {{ empresa.nit if empresa else "" }}), representada por <strong>'+repr+'</strong>, ';
+  if(plantilla.includes('contrato_')){
+    html += 'y '+el_la+' '+senor+' <strong>'+nombre+'</strong>, '+ident+' con C.C. <strong>'+cedula+'</strong>';
+    if(plantilla.includes('proveedor')||plantilla.includes('cliente')){
+      html += empresa_t ? ', en representacion de <strong>'+empresa_t+'</strong>' : '';
+    }
+    html += '.</p>';
+  } else {
+    html += 'y <strong>'+nombre+'</strong> ('+cedula+').</p>';
+  }
+
+  if(plantilla.includes('indefinido')||plantilla.includes('fijo')){
+    html += '<p><strong>CARGO:</strong> '+cargo+'</p>';
+    html += '<p><strong>SALARIO:</strong> $'+parseInt(salario||0).toLocaleString('es-CO')+' COP mensuales</p>';
+    html += '<p><strong>VIGENCIA:</strong> '+vigencia+'</p>';
+  }
+  if(plantilla==='nda'||plantilla==='contrato_proveedor'||plantilla==='contrato_cliente'){
+    html += '<p><strong>OBJETO:</strong> '+objeto+'</p>';
+    html += '<p><strong>VIGENCIA:</strong> '+vigencia+'</p>';
+  }
+
+  html += '<div style="margin-top:20px;border-top:1px solid var(--border);padding-top:10px;color:var(--text2);font-size:10px">';
+  html += '<em>Este es un preview. El documento completo se genera al hacer click en "Generar documento".</em></div>';
+  prev.innerHTML = html;
+}
+// Update preview on any input change
+document.querySelectorAll('#legalForm input, #legalForm select, #legalForm textarea').forEach(function(el){
+  el.addEventListener('input', actualizarPreview);
+  el.addEventListener('change', actualizarPreview);
+});
 </script>
 {% endblock %}

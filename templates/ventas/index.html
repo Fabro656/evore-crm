@@ -34,11 +34,8 @@
      class="b {% if estado_f==est %}b-negociacion{% else %}b-borrador{% endif %}"
      style="text-decoration:none;cursor:pointer;padding:4px 12px">{{ lbl }}</a>{% endfor %}
 </div>
-<div class="tc">
-  <div class="ch">
-    <span><i class="bi bi-graph-up-arrow me-2 text-primary"></i>{{ items|length }} venta{{ 's' if items|length != 1 else '' }}</span>
-  </div>
-{% if items %}<div class="table-responsive"><table class="table">
+<div class="mb-2" style="font-size:.82rem;color:var(--text2)">{{ items|length }} venta{{ 's' if items|length != 1 else '' }}</div>
+{% if items %}<div class="table-responsive"><table class="table" style="background:var(--surface);border-radius:var(--radius);overflow:hidden">
   <thead><tr>
     <th>N°</th>
     <th>Título</th>
@@ -135,7 +132,7 @@
   <p>No hay ventas{% if estado_f %} con estado "{{ estado_f }}"{% endif %}.</p>
   <a href="{{ url_for('venta_nueva') }}" class="btn btn-primary">Crear primera venta</a>
 </div>
-{% endif %}</div>
+{% endif %}
 
 {# Modal enviar con transportista #}
 <div class="modal fade" id="modalEnvio" tabindex="-1">
