@@ -172,19 +172,34 @@
           <div class="d-flex gap-1 justify-content-center flex-wrap">
             {# -- Boton confirmar pago (egreso vinculado a OC) -- #}
             {% if not es_ingreso and a.orden_compra_id and a.estado_pago != 'completo' %}
-            <button type="button" class="btn btn-xs btn-success" title="Confirmar pago"
-                    data-aid="{{ a.id }}" data-anum="{{ a.numero or '' }}" data-amonto="{{ a.debe or 0 }}" data-apagado="{{ a.monto_pagado or 0 }}" data-atipo="egreso"
-                    onclick="abrirModalPago(this)">
-              <i class="bi bi-check-circle me-1"></i>Pago
-            </button>
+            <div class="dropdown d-inline-block">
+              <button class="btn btn-xs btn-success dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-check-circle me-1"></i>Pago</button>
+              <div class="dropdown-menu p-2" style="min-width:220px" onclick="event.stopPropagation()">
+                <form method="POST" action="{{ url_for('contable_confirmar_pago', id=a.id) }}{% if request.args.get('_embed')=='1' %}?_embed=1{% endif %}">
+                  <small class="fw-bold d-block mb-1">{{ a.numero }} — {{ moneda(a.debe or 0) }}</small>
+                  <div class="mb-1"><select name="tipo_pago" class="form-select form-select-sm" onchange="this.closest('form').querySelector('[name=monto_pago]').style.display=this.value==='total'?'none':''">
+                    <option value="total">Pago total</option><option value="parcial">Parcial</option></select></div>
+                  <input type="number" name="monto_pago" class="form-control form-control-sm mb-1" value="{{ ((a.debe or 0) - (a.monto_pagado or 0))|int }}" style="display:none" min="1">
+                  <select name="metodo_pago" class="form-select form-select-sm mb-1"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option><option value="nequi">Nequi</option></select>
+                  <button type="submit" class="btn btn-success btn-sm w-100"><i class="bi bi-check-lg me-1"></i>Confirmar</button>
+                </form>
+              </div>
+            </div>
             {% endif %}
-            {# -- Boton confirmar ingreso (ingreso vinculado a venta) -- #}
             {% if es_ingreso and a.venta_id and a.estado_pago != 'completo' %}
-            <button type="button" class="btn btn-xs btn-success" title="Confirmar cobro recibido"
-                    data-aid="{{ a.id }}" data-anum="{{ a.numero or '' }}" data-amonto="{{ a.haber or 0 }}" data-apagado="{{ a.monto_pagado or 0 }}" data-atipo="ingreso"
-                    onclick="abrirModalPago(this)">
-              <i class="bi bi-check-circle me-1"></i>Cobro
-            </button>
+            <div class="dropdown d-inline-block">
+              <button class="btn btn-xs btn-success dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-check-circle me-1"></i>Cobro</button>
+              <div class="dropdown-menu p-2" style="min-width:220px" onclick="event.stopPropagation()">
+                <form method="POST" action="{{ url_for('contable_confirmar_ingreso', id=a.id) }}{% if request.args.get('_embed')=='1' %}?_embed=1{% endif %}">
+                  <small class="fw-bold d-block mb-1">{{ a.numero }} — {{ moneda(a.haber or 0) }}</small>
+                  <div class="mb-1"><select name="tipo_pago" class="form-select form-select-sm" onchange="this.closest('form').querySelector('[name=monto_pago]').style.display=this.value==='total'?'none':''">
+                    <option value="total">Cobro total</option><option value="parcial">Parcial</option></select></div>
+                  <input type="number" name="monto_pago" class="form-control form-control-sm mb-1" value="{{ ((a.haber or 0) - (a.monto_pagado or 0))|int }}" style="display:none" min="1">
+                  <select name="metodo_pago" class="form-select form-select-sm mb-1"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option><option value="nequi">Nequi</option></select>
+                  <button type="submit" class="btn btn-success btn-sm w-100"><i class="bi bi-check-lg me-1"></i>Confirmar</button>
+                </form>
+              </div>
+            </div>
             {% endif %}
             <a href="{{ url_for('contable_asiento_editar', id=a.id) }}" class="btn btn-xs btn-outline-primary" title="Editar"><i class="bi bi-pencil"></i></a>
             <a href="{{ url_for('contable_comprobante', id=a.id) }}" class="btn btn-xs btn-outline-secondary" title="Comprobante" target="_blank"><i class="bi bi-file-earmark-pdf"></i></a>
@@ -219,6 +234,7 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <form method="POST" id="formConfirmarPago">
+        {% if request.args.get('_embed') == '1' %}<input type="hidden" name="_embed" value="1">{% endif %}
         <div class="modal-header">
           <h5 class="modal-title" id="modalPagoTitle">Confirmar pago</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

@@ -507,6 +507,7 @@ def register(app):
                 'objeto': request.form.get('objeto', ''),
                 'vigencia': request.form.get('vigencia', '12 meses'),
                 'valor': request.form.get('valor', ''),
+                'firma_data': request.form.get('firma_data', ''),
             }
             return render_template(f'legal/plantillas/{plantilla}.html', **datos)
 

@@ -422,6 +422,9 @@ def register(app):
 
         db.session.commit()
         flash(f'Pago de {moneda(monto)} confirmado para asiento {asiento.numero}.', 'success')
+        # Redirect preservando _embed si aplica
+        if request.args.get('_embed') == '1' or request.form.get('_embed') == '1':
+            return redirect(url_for('contable_asientos', vista='generados', _embed='1'))
         return redirect(url_for('contable_asientos', vista='generados'))
 
 
@@ -459,6 +462,8 @@ def register(app):
 
         db.session.commit()
         flash(f'Cobro de {moneda(monto)} confirmado para asiento {asiento.numero}.', 'success')
+        if request.args.get('_embed') == '1' or request.form.get('_embed') == '1':
+            return redirect(url_for('contable_asientos', vista='generados', _embed='1'))
         return redirect(url_for('contable_asientos', vista='generados'))
 
 

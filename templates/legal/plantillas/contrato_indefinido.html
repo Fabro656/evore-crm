@@ -53,7 +53,10 @@ Para todos los efectos del presente contrato, las partes fijan como domicilio co
 <p style="margin-top:30px">En senal de aceptacion, las partes firman el presente contrato en dos (2) ejemplares del mismo tenor y valor, en la ciudad de {{ empresa_ciudad or ciudad }}, a los {{ fecha }}.</p>
 
 <div class="firma">
-  <div><strong>{{ empresa_representante or empresa_nombre }}</strong><br>EMPLEADOR<br>NIT: {{ empresa_nit }}{% if empresa_representante_cedula %}<br>C.C. {{ empresa_representante_cedula }}{% endif %}</div>
+  <div>
+    {% if firma_data and firma_data != 'data:,' %}<img src="{{ firma_data }}" style="max-width:180px;max-height:60px;display:block;margin:0 auto 5px"><small style="color:#666;font-size:8pt">Firmado digitalmente en Evore CRM</small><br>{% endif %}
+    <strong>{{ empresa_representante or empresa_nombre }}</strong><br>EMPLEADOR<br>NIT: {{ empresa_nit }}{% if empresa_representante_cedula %}<br>C.C. {{ empresa_representante_cedula }}{% endif %}
+  </div>
   <div><strong>{{ tercero_nombre }}</strong><br>{{ trabajador_trabajadora|upper }}<br>C.C. {{ tercero_cedula }}</div>
 </div>
 
