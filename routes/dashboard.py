@@ -11,32 +11,6 @@ import json, os, re, io, secrets, logging
 
 def register(app):
 
-    # ── API: guardar/cargar workspace tabs del usuario
-    @app.route('/api/workspace/tabs', methods=['GET', 'POST'])
-    @login_required
-    def api_workspace_tabs():
-        if request.method == 'POST':
-            data = request.get_json(silent=True) or {}
-            tabs = data.get('tabs', [])
-            active_id = data.get('activeId', None)
-            current_user.workspace_tabs = json.dumps({'tabs': tabs, 'activeId': active_id})
-            db.session.commit()
-            return jsonify({'ok': True})
-        # GET — handle both old format (plain list) and new format ({tabs, activeId})
-        try:
-            raw = json.loads(current_user.workspace_tabs or '[]')
-            if isinstance(raw, list):
-                tabs = raw
-                active_id = None
-            else:
-                tabs = raw.get('tabs', [])
-                active_id = raw.get('activeId', None)
-        except Exception:
-            tabs = []
-            active_id = None
-        return jsonify({'tabs': tabs, 'activeId': active_id})
-
-
     # ── dashboard (/)
     @app.route('/')
     @login_required

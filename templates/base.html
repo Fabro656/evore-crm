@@ -474,7 +474,7 @@ img,svg{max-width:100%;height:auto}
 </script>
 {% if request.args.get('_embed') == '1' %}
 <style>
-  #sb,#sb-overlay,#wsTabBar,.sb-foot{display:none!important}
+  #sb,#sb-overlay,.sb-foot{display:none!important}
   #main{margin-left:0!important}
   .topbar{position:relative!important;padding:.3rem .75rem!important}
   .topbar .pg-title{font-size:.85rem}
@@ -1048,24 +1048,19 @@ function toggleSidebar(){
           <li><a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('mi_actividad') }}" style="font-size:.85rem;padding:.5rem 1rem"><i class="bi bi-bar-chart-fill" style="color:#00875A"></i>Mi actividad</a></li>
           <li><a class="dropdown-item d-flex align-items-center gap-2" href="#" onclick="if(window.iniciarObContextual){iniciarObContextual()}else{alert('Recarga la pagina')}" style="font-size:.85rem;padding:.5rem 1rem"><i class="bi bi-question-circle" style="color:#FF8B00"></i>Ver tutorial</a></li>
           <li><hr class="dropdown-divider my-1"></li>
-          <li><a class="dropdown-item d-flex align-items-center gap-2 text-danger" href="{{ url_for('logout') }}" onclick="try{sessionStorage.removeItem('evore_ws_tabs');document.querySelectorAll('#wsIframeContainer iframe').forEach(function(f){f.src='about:blank'})}catch(e){}" style="font-size:.85rem;padding:.5rem 1rem"><i class="bi bi-box-arrow-right"></i>Cerrar sesion</a></li>
+          <li><a class="dropdown-item d-flex align-items-center gap-2 text-danger" href="{{ url_for('logout') }}" style="font-size:.85rem;padding:.5rem 1rem"><i class="bi bi-box-arrow-right"></i>Cerrar sesion</a></li>
         </ul>
       </div>
     </div>
   </div>
-  {# ── Workspace: barra de pestanas + area de contenido/iframes ── #}
-  <div id="wsTabBar" style="display:none;background:var(--surface);border-bottom:1px solid var(--border);padding:0 .25rem;overflow-x:auto;white-space:nowrap;scrollbar-width:thin;position:relative">
-    <div id="wsTabList" style="display:flex;gap:0;min-height:34px;align-items:stretch"></div>
-  </div>
-  <div class="content" id="wsContent">
+  <div class="content">
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}{% for cat, msg in messages %}
     <div class="alert alert-{{ cat }} alert-dismissible fade show">{{ msg }}
       <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
     {% endfor %}{% endif %}{% endwith %}
-    <div id="wsDefaultContent">{% block content %}{% endblock %}</div>
+    {% block content %}{% endblock %}
   </div>
-  <div id="wsIframeContainer" style="display:none;flex:1;position:relative"></div>
 </div>
 <!-- Panel notificaciones flotante -->
 <div class="notif-dd" id="notifDd" style="display:none">
@@ -1730,10 +1725,6 @@ window.iniciarObContextual = function(){
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('evore_theme', next);
     updateIcon();
-    // Propagar tema a iframes del workspace
-    try{document.querySelectorAll('#wsIframeContainer iframe').forEach(function(f){
-      try{f.contentDocument.documentElement.setAttribute('data-theme',next)}catch(e){}
-    })}catch(e){}
   };
   document.addEventListener('DOMContentLoaded', updateIcon);
 })();
@@ -1996,289 +1987,6 @@ window.iniciarObContextual = function(){
 {% endraw %}</script>
 {% endif %}{# end if not demo - AI panel #}
 
-{# ── Workspace Tab System JS (solo en pagina principal, NO en iframes embed) ── #}
-{% if request.args.get('_embed') != '1' %}
-<script>
-(function(){
-  // Doble check: si estamos en iframe, no ejecutar workspace tabs
-  if(window.self !== window.top) return;
-  var WS = {
-    tabs: [],
-    activeId: null,
-    tabBar: document.getElementById('wsTabBar'),
-    tabList: document.getElementById('wsTabList'),
-    content: document.getElementById('wsContent'),
-    defaultContent: document.getElementById('wsDefaultContent'),
-    iframeContainer: document.getElementById('wsIframeContainer'),
-    saveTimer: null,
-    dragSrcIdx: null
-  };
-
-  // ── Load tabs from server (fallback to sessionStorage)
-  function loadTabs(){
-    try {
-      var cached = sessionStorage.getItem('evore_ws_state');
-      if(cached){
-        var state = JSON.parse(cached);
-        WS.tabs = state.tabs || [];
-        WS.activeId = state.activeId || null;
-      }
-    } catch(e){ WS.tabs = []; WS.activeId = null; }
-    // Async load from server — only use server data if sessionStorage is empty
-    // to avoid overwriting in-session state on every page navigation
-    if(WS.tabs.length === 0){
-      fetch('/api/workspace/tabs').then(function(r){return r.json()}).then(function(d){
-        if(d.tabs && d.tabs.length > 0){
-          WS.tabs = d.tabs;
-          WS.activeId = d.activeId || null;
-          saveTabs();
-          renderTabs();
-          if(WS.activeId) activateTab(WS.activeId);
-        }
-      }).catch(function(){});
-    }
-  }
-
-  function saveTabs(){
-    // Always save synchronously to sessionStorage so state survives page navigations
-    try {
-      sessionStorage.setItem('evore_ws_state', JSON.stringify({tabs: WS.tabs, activeId: WS.activeId}));
-    } catch(e){}
-    // Debounce server save
-    clearTimeout(WS.saveTimer);
-    WS.saveTimer = setTimeout(function(){
-      fetch('/api/workspace/tabs', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({tabs: WS.tabs, activeId: WS.activeId})
-      }).catch(function(){});
-    }, 1000);
-  }
-
-  function genId(){ return 'tab_' + Date.now() + '_' + Math.random().toString(36).substr(2,5); }
-
-  // ── Open a module in a workspace tab
-  function openTab(url, title){
-    // Already open? Just activate
-    var existing = WS.tabs.find(function(t){return t.url === url});
-    if(existing){
-      activateTab(existing.id);
-      return;
-    }
-    var tab = { id: genId(), url: url, title: (title||'Tab').substring(0,30) };
-    WS.tabs.push(tab);
-    createIframe(tab);
-    activateTab(tab.id);
-    saveTabs();
-    renderTabs();
-  }
-
-  function createIframe(tab){
-    var iframe = document.createElement('iframe');
-    iframe.id = 'wsFrame_' + tab.id;
-    iframe.src = tab.url + (tab.url.includes('?') ? '&' : '?') + '_embed=1';
-    iframe.style.display = 'none';
-    WS.iframeContainer.appendChild(iframe);
-    // Listen for navigation inside iframe — update title only, never close the tab
-    iframe.addEventListener('load', function(){
-      try {
-        var iTitle = iframe.contentDocument && iframe.contentDocument.title;
-        if(iTitle && iTitle !== 'Evore CRM'){
-          var t = WS.tabs.find(function(x){return x.id===tab.id});
-          if(t){ t.title = iTitle.substring(0,30); renderTabs(); saveTabs(); }
-        }
-      }catch(e){/* cross-origin or load error — ignore, keep tab alive */}
-    });
-  }
-
-  function activateTab(tabId){
-    WS.activeId = tabId;
-    // Hide default content, show iframe container
-    WS.defaultContent.style.display = 'none';
-    WS.content.style.display = 'none';
-    WS.iframeContainer.style.display = 'flex';
-    // Show only active iframe (lazy-create if needed)
-    var frames = WS.iframeContainer.querySelectorAll('iframe');
-    frames.forEach(function(f){ f.style.display = 'none'; });
-    var active = document.getElementById('wsFrame_' + tabId);
-    if(!active){
-      var tab = WS.tabs.find(function(t){return t.id===tabId});
-      if(tab){ createIframe(tab); active = document.getElementById('wsFrame_' + tabId); }
-    }
-    if(active) active.style.display = 'block';
-    renderTabs();
-    saveTabs(); // persist activeId so it survives page navigation
-    // Update sidebar active state
-    updateSidebarActive(tabId);
-  }
-
-  function closeTab(tabId){
-    var idx = WS.tabs.findIndex(function(t){return t.id===tabId});
-    if(idx < 0) return;
-    WS.tabs.splice(idx, 1);
-    var frame = document.getElementById('wsFrame_' + tabId);
-    if(frame) frame.remove();
-    if(WS.tabs.length === 0){
-      // No more tabs, show default content
-      WS.activeId = null;
-      WS.defaultContent.style.display = '';
-      WS.content.style.display = '';
-      WS.iframeContainer.style.display = 'none';
-    } else if(WS.activeId === tabId){
-      // Activate adjacent tab
-      var newIdx = Math.min(idx, WS.tabs.length - 1);
-      activateTab(WS.tabs[newIdx].id);
-    }
-    saveTabs();
-    renderTabs();
-  }
-
-  function showDefaultContent(){
-    WS.activeId = null;
-    WS.defaultContent.style.display = '';
-    WS.content.style.display = '';
-    WS.iframeContainer.style.display = 'none';
-    // Hide all iframes
-    WS.iframeContainer.querySelectorAll('iframe').forEach(function(f){f.style.display='none'});
-    renderTabs();
-    saveTabs();
-  }
-
-  function updateSidebarActive(tabId){
-    var tab = WS.tabs.find(function(t){return t.id===tabId});
-    if(!tab) return;
-    document.querySelectorAll('.sb-nav .nav-link').forEach(function(link){
-      link.classList.remove('active');
-      if(tab.url === link.getAttribute('href')) link.classList.add('active');
-    });
-  }
-
-  // ── Render tab bar
-  function renderTabs(){
-    if(WS.tabs.length === 0){
-      WS.tabBar.style.display = 'none';
-      return;
-    }
-    WS.tabBar.style.display = '';
-    WS.tabList.innerHTML = '';
-    // "Page" tab (current page, non-iframe)
-    var pgTab = document.createElement('div');
-    pgTab.className = 'ws-tab' + (!WS.activeId ? ' active' : '');
-    pgTab.innerHTML = '<i class="bi bi-house-door" style="font-size:.75rem"></i><span class="ws-tab-title">Pagina actual</span>';
-    pgTab.onclick = function(){ showDefaultContent(); };
-    WS.tabList.appendChild(pgTab);
-
-    WS.tabs.forEach(function(tab, idx){
-      var el = document.createElement('div');
-      el.className = 'ws-tab' + (tab.id === WS.activeId ? ' active' : '');
-      el.draggable = true;
-      el.dataset.idx = idx;
-      el.innerHTML = '<span class="ws-tab-title">' + escHtml(tab.title) + '</span>'
-        + '<span class="ws-tab-close" data-id="'+tab.id+'">&times;</span>';
-      // Click to activate
-      el.addEventListener('click', function(e){
-        if(e.target.classList.contains('ws-tab-close')){
-          e.stopPropagation();
-          closeTab(e.target.dataset.id);
-          return;
-        }
-        activateTab(tab.id);
-      });
-      // Drag & drop for reorder
-      el.addEventListener('dragstart', function(e){
-        WS.dragSrcIdx = idx;
-        e.dataTransfer.effectAllowed = 'move';
-        el.classList.add('dragging');
-      });
-      el.addEventListener('dragend', function(){ el.classList.remove('dragging'); });
-      el.addEventListener('dragover', function(e){ e.preventDefault(); e.dataTransfer.dropEffect='move'; el.classList.add('drag-over'); });
-      el.addEventListener('dragleave', function(){ el.classList.remove('drag-over'); });
-      el.addEventListener('drop', function(e){
-        e.preventDefault();
-        el.classList.remove('drag-over');
-        var from = WS.dragSrcIdx;
-        var to = idx;
-        if(from === to) return;
-        var moved = WS.tabs.splice(from, 1)[0];
-        WS.tabs.splice(to, 0, moved);
-        saveTabs();
-        renderTabs();
-      });
-      WS.tabList.appendChild(el);
-    });
-  }
-
-  function escHtml(s){ var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
-
-  // ── Intercept sidebar clicks to open as workspace tabs
-  document.querySelectorAll('.sb-nav .nav-link').forEach(function(link){
-    link.addEventListener('click', function(e){
-      var href = link.getAttribute('href');
-      if(!href || href === '#') return;
-      if(e.ctrlKey || e.metaKey) return; // let browser handle
-      e.preventDefault();
-      var label = link.querySelector('span') ? link.querySelector('span').textContent.trim() : 'Tab';
-      openTab(href, label);
-    });
-  });
-
-  // Listen for messages from embedded iframes
-  window.addEventListener('message', function(e){
-    if(!e.data) return;
-    // Logout desde un iframe → cerrar sesion global
-    if(e.data.type === 'embed-logout'){
-      window.location.href = '/logout';
-      return;
-    }
-    if(e.data.type !== 'embed-navigate') return;
-    // Update tab title when iframe navigates
-    var tab = WS.tabs.find(function(t){return t.id === WS.activeId});
-    if(tab && e.data.title){
-      tab.title = e.data.title.substring(0,30);
-      renderTabs();
-      saveTabs();
-    }
-  });
-
-  // ── Init
-  loadTabs();
-  // Restore tab bar on DOMContentLoaded (sync sessionStorage path is already done by loadTabs)
-  if(WS.tabs.length > 0){
-    renderTabs();
-    // Restore the previously active tab (lazy — creates iframe on first activate)
-    if(WS.activeId && WS.tabs.find(function(t){return t.id===WS.activeId})){
-      activateTab(WS.activeId);
-    }
-  }
-
-  // Save state before page unloads so sessionStorage is always up-to-date
-  window.addEventListener('beforeunload', function(){
-    try {
-      sessionStorage.setItem('evore_ws_state', JSON.stringify({tabs: WS.tabs, activeId: WS.activeId}));
-    } catch(e){}
-  });
-
-  // Expose API
-  window.wsOpenTab = openTab;
-  window.wsCloseTab = closeTab;
-  window.wsCloseAll = function(){ while(WS.tabs.length) closeTab(WS.tabs[0].id); };
-})();
-</script>
-<style>
-#wsTabBar{scrollbar-height:4px}
-#wsTabBar::-webkit-scrollbar{height:4px}
-#wsTabBar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-.ws-tab{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;font-size:.78rem;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all .12s;white-space:nowrap;max-width:180px;user-select:none}
-.ws-tab:hover{color:var(--text);background:var(--surface2)}
-.ws-tab.active{color:var(--ac);border-bottom-color:var(--ac);font-weight:600;background:rgba(var(--ac-rgb),.05)}
-.ws-tab .ws-tab-title{overflow:hidden;text-overflow:ellipsis;max-width:140px}
-.ws-tab .ws-tab-close{font-size:1rem;line-height:1;opacity:.3;cursor:pointer;padding:0 2px;margin-left:2px}
-.ws-tab .ws-tab-close:hover{opacity:1;color:var(--red)}
-.ws-tab.dragging{opacity:.4}
-.ws-tab.drag-over{border-bottom-color:var(--ac);background:rgba(var(--ac-rgb),.1)}
-#wsIframeContainer{overflow:hidden;flex:1}
-#wsIframeContainer iframe{width:100%;height:100%;border:none;position:absolute;top:0;left:0;right:0;bottom:0}
-</style>
-{% endif %}{# end if not _embed — workspace tabs #}
 <script>
 // ── CSRF: auto-inject hidden token into every POST form ─────────────────
 (function(){

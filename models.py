@@ -23,7 +23,6 @@ class User(UserMixin, db.Model):
     onboarding_role_config = db.Column(db.Text, default='{}')
     cliente_id           = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=True)
     proveedor_id        = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
-    workspace_tabs      = db.Column(db.Text, default='[]')  # v36 JSON: [{url, title, order}]
     def set_password(self, p):   self.password_hash = generate_password_hash(p)
     def check_password(self, p): return check_password_hash(self.password_hash, p)
 
