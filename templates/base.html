@@ -1506,12 +1506,12 @@ function cerrarOnboarding(){
   bootstrap.Modal.getInstance(document.getElementById('modalOnboarding')).hide();
 }
 /* Initialize step 0 on page load */
-document.addEventListener('DOMContentLoaded',function(){ goStep(0); });
+document.addEventListener('DOMContentLoaded',function(){ try{ goStep(0); }catch(e){} });
 </script>
 {% if session.pop('show_onboarding_once', False) and not current_user.onboarding_dismissed %}
 <script>
 document.addEventListener('DOMContentLoaded',function(){
-  setTimeout(function(){ iniciarObContextual(); },1000);
+  setTimeout(function(){ if(window.iniciarObContextual) iniciarObContextual(); },1200);
 });
 </script>
 {% endif %}
@@ -1565,7 +1565,10 @@ document.addEventListener('DOMContentLoaded',function(){
     if(OB_STEPS.length === 0) return;
     obIdx = 0;
     obActive = true;
-    document.getElementById('obCtx').style.display = '';
+    var ctx = document.getElementById('obCtx');
+    ctx.style.display = 'block';
+    ctx.style.position = 'relative';
+    ctx.style.zIndex = '9999';
     mostrarPasoOb();
   };
 
@@ -1668,7 +1671,9 @@ document.addEventListener('DOMContentLoaded',function(){
 
   window.obCtxSkip = function(){
     obActive = false;
-    document.getElementById('obCtx').style.display = 'none';
+    var ctx = document.getElementById('obCtx');
+    ctx.style.display = 'none';
+    ctx.style.zIndex = '';
     document.querySelectorAll('.sb-nav .nav-link').forEach(function(l){l.style.opacity='';l.style.transform=''});
     // Mark as seen
     fetch('/onboarding/dismiss',{method:'POST',headers:{'Content-Type':'application/json'}}).catch(function(){});
