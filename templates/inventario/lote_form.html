@@ -27,5 +27,7 @@
   <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear Lote' }}</button>
   <a href="{{ url_for('lotes') }}" class="btn btn-outline-secondary">Cancelar</a>
 </div></form></div>
+{% endblock %}
 {% block scripts %}<script>
 setupAutoTitulo('[name="numero_lote"]',['[name="producto_id"]','[name="fecha_produccion"]']);
+</script>{% endblock %}
