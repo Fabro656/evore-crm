@@ -869,7 +869,7 @@ def register(app):
     @app.route('/admin/reset-total', methods=['POST'])
     @login_required
     def admin_reset_total():
-        """Borra TODOS los datos operativos. Mantiene usuarios pero los resetea.
+        """Borra TODOS los datos y usuarios (excepto el admin que ejecuta).
         Requiere confirmacion con contrasena del administrador."""
         from werkzeug.security import check_password_hash
         if current_user.rol not in ('admin', 'director_financiero'):
@@ -888,7 +888,9 @@ def register(app):
                 sp.commit()
             except Exception as _e:
                 sp.rollback()
+                logging.warning(f'Reset: falló "{sql}": {_e}')
 
+        admin_id = current_user.id
         try:
             # ── Nivel 7: líneas contables y asociaciones ──
             _safe_delete('DELETE FROM lineas_asiento')
@@ -947,13 +949,12 @@ def register(app):
             _safe_delete('DELETE FROM contactos_cliente')
             _safe_delete('DELETE FROM clientes')
             _safe_delete('DELETE FROM proveedores')
-            # ── Nivel 1: sesiones (limpiar todo) ──
+            # ── Nivel 1: sesiones y usuarios ──
             _safe_delete('DELETE FROM user_sesiones')
-            # ── Resetear usuarios (mantener cuentas, limpiar estado) ──
-            _safe_delete("UPDATE users SET cliente_id = NULL, proveedor_id = NULL, onboarding_dismissed = 0, onboarding_step = 0, onboarding_role_config = '{}'")
+            _safe_delete(f'DELETE FROM users WHERE id != {admin_id}')
             db.session.commit()
             logging.warning(f'RESET TOTAL ejecutado por user_id={current_user.id} ({current_user.email})')
-            flash('Reset completo. Todos los datos borrados, usuarios conservados en cero.', 'success')
+            flash('Reset completo. Todos los datos y usuarios eliminados (tu cuenta admin fue conservada).', 'success')
         except Exception as e:
             db.session.rollback()
             logging.error(f'admin_reset_total ERROR: {e}')
