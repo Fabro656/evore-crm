@@ -81,7 +81,20 @@ html[data-theme="dark"] .alert-success{background:rgba(59,168,96,.12);color:#80D
 html[data-theme="dark"] .alert-warning{background:rgba(224,144,0,.12);color:#FFCA60;border-color:rgba(224,144,0,.25)}
 html[data-theme="dark"] .alert-danger{background:rgba(224,85,85,.12);color:#FFAAAA;border-color:rgba(224,85,85,.25)}
 html[data-theme="dark"] .alert-info{background:rgba(21,137,238,.12);color:#90C8F5;border-color:rgba(21,137,238,.25)}
-@media(max-width:768px){.portal-sb{display:none}.portal-content{padding:.85rem}}
+@media(max-width:768px){
+  .portal-sb{display:none}
+  .portal-content{padding:.85rem}
+  .portal-topbar{flex-wrap:wrap;gap:.4rem}
+  .portal-topbar h1{font-size:.88rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .portal-mobile-nav{display:flex!important}
+  .table th{font-size:.62rem;padding:.4rem .5rem}
+  .table td{padding:.4rem .5rem;font-size:.8rem}
+  .tc{border-radius:8px}
+  .form-control,.form-select{min-height:42px;font-size:16px}
+  .btn{min-height:38px}
+  .sc{padding:.75rem}
+}
+@media(min-width:769px){.portal-mobile-nav{display:none!important}}
 </style>
 </head>
 <body>
@@ -122,6 +135,20 @@ html[data-theme="dark"] .alert-info{background:rgba(21,137,238,.12);color:#90C8F
       </div>
     </div>
   </div>
+</div>
+
+{# ── Mobile nav (solo visible en movil) ── #}
+<div class="portal-mobile-nav" style="background:var(--surface);border-bottom:1px solid var(--border);padding:.5rem;gap:.5rem;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none">
+  {% if current_user.rol == 'cliente' %}
+  <a href="{{ url_for('portal_cliente') }}" class="btn btn-sm {{ 'btn-primary' if request.endpoint=='portal_cliente' else 'btn-outline-secondary' }}" style="white-space:nowrap;flex-shrink:0"><i class="bi bi-house me-1"></i>Inicio</a>
+  <a href="{{ url_for('portal_pre_cotizacion_nueva') }}" class="btn btn-sm {{ 'btn-primary' if request.endpoint=='portal_pre_cotizacion_nueva' else 'btn-outline-secondary' }}" style="white-space:nowrap;flex-shrink:0"><i class="bi bi-plus me-1"></i>Solicitud</a>
+  <a href="{{ url_for('portal_cliente_docs') }}" class="btn btn-sm {{ 'btn-primary' if request.endpoint=='portal_cliente_docs' else 'btn-outline-secondary' }}" style="white-space:nowrap;flex-shrink:0"><i class="bi bi-file-earmark me-1"></i>Docs</a>
+  <a href="{{ url_for('portal_ticket_nuevo') }}" class="btn btn-sm {{ 'btn-primary' if request.endpoint=='portal_ticket_nuevo' else 'btn-outline-secondary' }}" style="white-space:nowrap;flex-shrink:0"><i class="bi bi-chat me-1"></i>Mensaje</a>
+  {% elif current_user.rol == 'proveedor' %}
+  <a href="{{ url_for('portal_proveedor') }}" class="btn btn-sm {{ 'btn-primary' if request.endpoint=='portal_proveedor' else 'btn-outline-secondary' }}" style="white-space:nowrap;flex-shrink:0"><i class="bi bi-house me-1"></i>Inicio</a>
+  <a href="{{ url_for('portal_prov_docs') }}" class="btn btn-sm {{ 'btn-primary' if request.endpoint=='portal_prov_docs' else 'btn-outline-secondary' }}" style="white-space:nowrap;flex-shrink:0"><i class="bi bi-file-earmark me-1"></i>Docs</a>
+  <a href="{{ url_for('portal_prov_ticket') }}" class="btn btn-sm {{ 'btn-primary' if request.endpoint=='portal_prov_ticket' else 'btn-outline-secondary' }}" style="white-space:nowrap;flex-shrink:0"><i class="bi bi-chat me-1"></i>Mensaje</a>
+  {% endif %}
 </div>
 
 {# ── Main ── #}
