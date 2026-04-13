@@ -8,7 +8,7 @@
 {% for r in recetas %}
 {% set c = costos[r.id] %}
 <div class="col-12">
-  <div class="fc h-100" style="max-width:100%">
+  <div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);padding:1rem;width:100%">
     {# ── Encabezado ── #}
     <div class="d-flex justify-content-between align-items-start mb-3">
       <div>
@@ -31,8 +31,8 @@
     {% if r.descripcion %}<p class="text-muted small mb-2">{{ r.descripcion }}</p>{% endif %}
 
     {# ── Tabla de ingredientes con costos ── #}
-    <div class="table-responsive">
-    <table class="table table-sm mb-3" style="font-size:.85rem">
+    <div style="overflow-x:auto;width:100%">
+    <table class="table table-sm mb-3" style="font-size:.85rem;width:100%;min-width:700px;margin:0">
       <thead>
         <tr>
           <th>Materia Prima</th>
@@ -116,7 +116,7 @@
   </div>
 </div>
 {% else %}
-<div class="col-12"><div class="fc text-center py-5 text-muted">
+<div class="col-12"><div class="text-center py-5 text-muted">
   <i class="bi bi-diagram-3 fs-1 d-block mb-2"></i>No hay productos registrados.
   <a href="{{ url_for('receta_nueva') }}" class="btn btn-primary mt-3">Crear primer producto</a>
 </div></div>
