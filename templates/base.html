@@ -1033,8 +1033,8 @@ function toggleSidebar(){
       </button>
       <div class="dropdown">
         <button class="btn btn-sm dropdown-toggle d-flex align-items-center gap-2" style="background:none;border:1px solid var(--border);padding:5px 10px;border-radius:20px;color:var(--text)" data-bs-toggle="dropdown">
-          <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold" style="width:26px;height:26px;font-size:.72rem;flex-shrink:0">{{ current_user.nombre[0].upper() }}</div>
-          <span class="d-none d-md-inline" style="font-size:.82rem;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ current_user.nombre.split()[0] }}</span>
+          <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold" style="width:26px;height:26px;font-size:.72rem;flex-shrink:0"><i class="bi {{ rol_icons.get(rol_activo, 'bi-person') }}" style="font-size:.7rem"></i></div>
+          <span class="d-none d-md-inline" style="font-size:.82rem;font-weight:600;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ rol_labels.get(rol_activo, rol_activo) }}</span>
         </button>
         <ul class="dropdown-menu dropdown-menu-end" style="min-width:200px;border-radius:8px;box-shadow:0 8px 24px rgba(9,30,66,.15);border:1px solid var(--border);padding:.4rem 0">
           <li><div style="padding:.6rem 1rem .3rem">
