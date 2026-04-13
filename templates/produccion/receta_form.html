@@ -21,11 +21,11 @@
       <div class="form-text">Se creará automáticamente un producto con este nombre.</div>
     </div>
   </div>
-  <div class="col-md-3"><label class="form-label">Unidades por lote <span class="req">*</span></label>
+  <div class="col-6 col-md-3"><label class="form-label">Unidades por lote <span class="req">*</span></label>
     <input type="number" name="unidades_produce" min="1" class="form-control" value="{{ obj.unidades_produce if obj else 1 }}" required></div>
   <div class="col-12"><label class="form-label">Descripcion</label>
     <textarea name="descripcion" class="form-control" rows="2">{{ obj.descripcion if obj else '' }}</textarea></div>
-  <div class="col-md-3">
+  <div class="col-6 col-md-3">
     <label class="form-label">% Margen de ganancia</label>
     <input type="number" name="margen_pct" min="0" max="500" step="0.1" class="form-control" value="{{ obj.margen_pct if obj and obj.margen_pct else 30 }}">
     <small style="color:var(--text2)">Definido por director financiero</small>
@@ -60,7 +60,7 @@
   {% for item in obj.items %}
   {% set m = item.materia %}
   <div class="row g-2 mb-2 item-row align-items-center">
-    <div class="col-md-5">
+    <div class="col-12 col-md-5">
       <div class="d-flex gap-1 align-items-center">
         <select name="materia_id[]" class="form-select form-select-sm mp-sel" required>
           <option value="">Seleccionar materia prima...</option>
@@ -77,30 +77,30 @@
         {% endif %}
       </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-6 col-md-3">
       <input type="number" name="cantidad[]" step="0.001" min="0.001" class="form-control form-control-sm"
              value="{{ item.cantidad_por_unidad }}" placeholder="Cantidad por unidad" required>
     </div>
-    <div class="col-md-1">
+    <div class="col-6 col-md-1">
       <span class="form-control-plaintext form-control-sm text-muted unidad-lbl">
         {% for mp in materias %}{% if mp.id==item.materia_prima_id %}{{ mp.unidad }}{% endif %}{% endfor %}
       </span>
     </div>
-    <div class="col-md-2">
+    <div class="col-6 col-md-2">
       <select name="clasificacion[]" class="form-select form-select-sm" onchange="toggleRendimiento(this)">
         <option value="materia_prima" {% if item.clasificacion=='materia_prima' %}selected{% endif %}>MP / Granel</option>
         <option value="empaque_primario" {% if item.clasificacion=='empaque_primario' %}selected{% endif %}>Empaque primario</option>
         <option value="empaque_secundario" {% if item.clasificacion=='empaque_secundario' %}selected{% endif %}>Empaque secundario</option>
       </select>
     </div>
-    <div class="col-md-1 rendimiento-col" style="{{ '' if item.clasificacion in ('empaque_primario','empaque_secundario') else 'display:none' }}">
+    <div class="col-6 col-md-1 rendimiento-col" style="{{ '' if item.clasificacion in ('empaque_primario','empaque_secundario') else 'display:none' }}">
       <input type="number" name="rendimiento[]" step="1" min="1" class="form-control form-control-sm"
              value="{{ item.rendimiento or 1 }}" placeholder="Rinde" title="Unidades de producto que cubre 1 unidad de este empaque">
     </div>
-    <div class="col-md-1" style="{{ 'display:none' if item.clasificacion in ('empaque_primario','empaque_secundario') else '' }}">
+    <div class="col-6 col-md-1" style="{{ 'display:none' if item.clasificacion in ('empaque_primario','empaque_secundario') else '' }}">
       <input type="hidden" name="rendimiento[]" value="{{ item.rendimiento or 1 }}">
     </div>
-    <div class="col-md-1">
+    <div class="col-6 col-md-1">
       <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="this.closest('.item-row').remove()"><i class="bi bi-trash"></i></button>
     </div>
   </div>
@@ -205,7 +205,7 @@ function addItem(selectedId){
   row.className = 'row g-2 mb-2 item-row align-items-center';
 
   // col A: select + cotizar btn
-  var colA = document.createElement('div'); colA.className='col-md-5';
+  var colA = document.createElement('div'); colA.className='col-12 col-md-5';
   var wrap = document.createElement('div'); wrap.className='d-flex gap-1 align-items-center';
   wrap.appendChild(makeMpSelect(selectedId));
   var cotBtn = document.createElement('a');
@@ -217,18 +217,18 @@ function addItem(selectedId){
   wrap.appendChild(cotBtn);
   colA.appendChild(wrap);
 
-  var colB=document.createElement('div'); colB.className='col-md-3';
+  var colB=document.createElement('div'); colB.className='col-6 col-md-3';
   var inp=document.createElement('input');
   inp.type='number'; inp.name='cantidad[]'; inp.step='0.001'; inp.min='0.001';
   inp.className='form-control form-control-sm'; inp.placeholder='Cantidad por unidad'; inp.required=true;
   colB.appendChild(inp);
 
-  var colC=document.createElement('div'); colC.className='col-md-2';
+  var colC=document.createElement('div'); colC.className='col-6 col-md-2';
   var uLbl=document.createElement('span'); uLbl.className='form-control-plaintext form-control-sm text-muted unidad-lbl';
   colC.appendChild(uLbl);
 
   // Clasificación
-  var colClas=document.createElement('div'); colClas.className='col-md-2';
+  var colClas=document.createElement('div'); colClas.className='col-6 col-md-2';
   var selClas=document.createElement('select');
   selClas.name='clasificacion[]'; selClas.className='form-select form-select-sm';
   selClas.innerHTML='<option value="materia_prima">MP / Granel</option><option value="empaque_primario">Empaque primario</option><option value="empaque_secundario">Empaque secundario</option>';
@@ -236,17 +236,17 @@ function addItem(selectedId){
   colClas.appendChild(selClas);
 
   // Rendimiento (para empaques)
-  var colRend=document.createElement('div'); colRend.className='col-md-1 rendimiento-col'; colRend.style.display='none';
+  var colRend=document.createElement('div'); colRend.className='col-6 col-md-1 rendimiento-col'; colRend.style.display='none';
   var inpRend=document.createElement('input');
   inpRend.type='number'; inpRend.name='rendimiento[]'; inpRend.step='1'; inpRend.min='1'; inpRend.value='1';
   inpRend.className='form-control form-control-sm'; inpRend.placeholder='Rinde'; inpRend.title='Uds de producto por 1 empaque';
   colRend.appendChild(inpRend);
   // Hidden rendimiento default
-  var colRendH=document.createElement('div'); colRendH.className='col-md-1';
+  var colRendH=document.createElement('div'); colRendH.className='col-6 col-md-1';
   var inpRendH=document.createElement('input'); inpRendH.type='hidden'; inpRendH.name='rendimiento[]'; inpRendH.value='1';
   colRendH.appendChild(inpRendH);
 
-  var colD=document.createElement('div'); colD.className='col-md-1';
+  var colD=document.createElement('div'); colD.className='col-6 col-md-1';
   var btn=document.createElement('button'); btn.type='button';
   btn.className='btn btn-sm btn-outline-danger w-100';
   btn.innerHTML='<i class="bi bi-trash"></i>';

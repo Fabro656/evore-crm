@@ -20,7 +20,7 @@
 {% block content %}
 <div class="fc">
   <div class="row g-3 mb-3">
-    <div class="col-md-8">
+    <div class="col-12 col-md-8">
       <div class="tc">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
           <div><label style="color:var(--text2);font-size:.85rem">Cedula</label><div style="font-weight:600">{{ empleado.cedula or 'No disponible' }}</div></div>
@@ -51,7 +51,7 @@
         </div>
       </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-12 col-md-4">
       <div class="tc">
         <div style="text-align:center">
           <div style="font-size:2rem;color:var(--ac);font-weight:700">{{ (empleado.salario_base|cop) }}</div>
@@ -66,7 +66,7 @@
     </div>
   </div>
   <div class="row g-3">
-    <div class="col-md-6">
+    <div class="col-12 col-md-6">
       <div class="tc">
         <h6 style="margin-bottom:1rem"><i class="bi bi-person me-2"></i>Lo que recibe el empleado</h6>
         <table style="font-size:.9rem;width:100%">
@@ -79,7 +79,7 @@
         </table>
       </div>
     </div>
-    <div class="col-md-6">
+    <div class="col-12 col-md-6">
       <div class="tc">
         <h6 style="margin-bottom:1rem"><i class="bi bi-briefcase me-2"></i>Lo que paga la empresa</h6>
         <table style="font-size:.9rem;width:100%">

@@ -2,25 +2,25 @@
 {% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('cotizaciones') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
 {% block content %}<div class="fc" style="max-width:100%"><form method="POST"><div class="row g-3">
-  <div class="col-md-8"><label class="form-label">Título de la cotización *</label>
+  <div class="col-12 col-md-8"><label class="form-label">Título de la cotización *</label>
     <input type="text" name="titulo" class="form-control" placeholder="Ej: Diseño y producción de catálogo Q2 2026" value="{{ obj.titulo if obj else '' }}" required></div>
-  <div class="col-md-4"><label class="form-label">Cliente</label>
+  <div class="col-12 col-md-4"><label class="form-label">Cliente</label>
     <select name="cliente_id" class="form-select">
       <option value="">— Sin cliente —</option>
       {% for c in clientes_list %}<option value="{{ c.id }}" {% if obj and obj.cliente_id==c.id %}selected{% endif %}>{{ c.empresa or c.nombre }}</option>{% endfor %}
     </select></div>
-  <div class="col-md-3"><label class="form-label">Fecha de emisión</label>
+  <div class="col-12 col-md-3"><label class="form-label">Fecha de emisión</label>
     <input type="date" name="fecha_emision" class="form-control" value="{{ obj.fecha_emision.strftime('%Y-%m-%d') if obj else today }}"></div>
-  <div class="col-md-3"><label class="form-label">Válida hasta</label>
+  <div class="col-12 col-md-3"><label class="form-label">Válida hasta</label>
     <input type="date" name="fecha_validez" class="form-control" value="{{ obj.fecha_validez.strftime('%Y-%m-%d') if obj and obj.fecha_validez else '' }}"></div>
-  <div class="col-md-3"><label class="form-label">Días de entrega estimados</label>
+  <div class="col-12 col-md-3"><label class="form-label">Días de entrega estimados</label>
     <input type="number" name="dias_entrega" class="form-control" min="1" value="{{ obj.dias_entrega if obj else '30' }}"></div>
-  <div class="col-md-3"><label class="form-label">% Anticipo</label>
+  <div class="col-12 col-md-3"><label class="form-label">% Anticipo</label>
     <div class="input-group"><input type="number" name="porcentaje_anticipo" id="pctAnticipo" class="form-control" min="0" max="100" step="1" value="{{ obj.porcentaje_anticipo|int if obj else '50' }}"><span class="input-group-text">%</span></div></div>
 
   <div class="col-12" style="background:var(--surface2);border-radius:8px;padding:1rem;border-left:3px solid var(--ac)">
     <div class="row g-2">
-      <div class="col-md-4"><label class="form-label fw-semibold mb-2">Tipo de días</label>
+      <div class="col-12 col-md-4"><label class="form-label fw-semibold mb-2">Tipo de días</label>
         <div class="form-check">
           <input type="radio" class="form-check-input" name="dias_tipo" id="diasCal" value="calendario" {% if not obj or obj.dias_tipo=='calendario' %}checked{% endif %}>
           <label class="form-check-label" for="diasCal">Días calendario</label>
@@ -30,7 +30,7 @@
           <label class="form-check-label" for="diasHab">Días hábiles (L-V)</label>
         </div>
       </div>
-      <div class="col-md-4"><label class="form-label fw-semibold mb-2">Tiempo desde</label>
+      <div class="col-12 col-md-4"><label class="form-label fw-semibold mb-2">Tiempo desde</label>
         <div class="form-check">
           <input type="radio" class="form-check-input" name="tiempo_desde" id="desde_anticipo" value="anticipo" {% if not obj or obj.tiempo_desde=='anticipo' %}checked{% endif %}>
           <label class="form-check-label" for="desde_anticipo">Recepción anticipo</label>
@@ -56,13 +56,13 @@
       {% if obj and obj.items %}
         {% for it in obj.items %}
         <div class="row g-2 mb-2 item-row" style="background:var(--surface2);padding:.5rem;border-radius:6px">
-          <div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Tipo *</label>
+          <div class="col-6 col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Tipo *</label>
             <select name="item_tipo[]" class="form-select form-select-sm item-tipo" onchange="updateItemRow(this)">
               <option value="producto" {% if it.tipo_item=='producto' %}selected{% endif %}>Producto</option>
               <option value="servicio" {% if it.tipo_item=='servicio' %}selected{% endif %}>Servicio</option>
             </select>
           </div>
-          <div class="col-md-3 prod-select" style="display:{% if it.tipo_item=='servicio' %}none{% else %}block{% endif %}">
+          <div class="col-12 col-md-3 prod-select" style="display:{% if it.tipo_item=='servicio' %}none{% else %}block{% endif %}">
             <label class="form-label mb-1" style="font-size:.8rem">Producto</label>
             <select name="item_nombre[]" class="form-select form-select-sm item-nombre" onchange="onProductSelect(this)" required>
               <option value="">— Seleccionar —</option>
@@ -70,56 +70,56 @@
             <input type="hidden" name="item_producto_id[]" class="item-producto-id" value="{{ it.producto_id if it.producto_id else '' }}">
             <small class="prod-info text-muted" style="font-size:.72rem;display:none"></small>
           </div>
-          <div class="col-md-3 srv-select" style="display:{% if it.tipo_item=='producto' %}none{% else %}block{% endif %}">
+          <div class="col-12 col-md-3 srv-select" style="display:{% if it.tipo_item=='producto' %}none{% else %}block{% endif %}">
             <label class="form-label mb-1" style="font-size:.8rem">Servicio</label>
             <select name="item_servicio_id[]" class="form-select form-select-sm item-servicio" onchange="autocompletar_servicio(this)">
               <option value="">— Seleccionar —</option>
               {% for s in servicios_json %}<option value="{{ s.id }}" {% if it.servicio_id==s.id %}selected{% endif %}>{{ s.nombre }}</option>{% endfor %}
             </select>
           </div>
-          <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Cant.</label>
+          <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Cant.</label>
             <input type="number" name="item_cantidad[]" class="form-control form-control-sm item-cant" placeholder="1" step="0.01" min="0" value="{{ it.cantidad }}" oninput="calcRow(this)"></div>
-          <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Unidad</label>
+          <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Unidad</label>
             <input type="text" name="item_unidad[]" class="form-control form-control-sm item-unidad" value="{{ it.unidad or 'unidades' }}" readonly style="background:var(--surface2)"></div>
-          <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Precio</label>
+          <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Precio</label>
             <div class="input-group input-group-sm"><span class="input-group-text" style="font-size:.75rem">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0" step="1" min="0" value="{{ it.precio_unit|int }}" oninput="calcRow(this)"></div></div>
-          <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">IVA %</label>
+          <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">IVA %</label>
             <input type="number" name="item_iva_pct[]" class="form-control form-control-sm item-iva-pct" placeholder="19" step="0.01" min="0" value="{{ it.iva_pct|int if it.aplica_iva else '0' }}" oninput="calcRow(this)">
             <input type="hidden" name="item_aplica_iva[]" class="item-aplica-iva-val" value="{{ 'on' if it.aplica_iva else 'off' }}"></div>
-          <div class="col-md-2 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:var(--ac)">$ {{ '{:,.0f}'.format(it.subtotal).replace(',','.') }}</span></div>
-          <div class="col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.item-row').remove();calcTotal()"><i class="bi bi-trash"></i></button></div>
+          <div class="col-6 col-md-2 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:var(--ac)">$ {{ '{:,.0f}'.format(it.subtotal).replace(',','.') }}</span></div>
+          <div class="col-6 col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.item-row').remove();calcTotal()"><i class="bi bi-trash"></i></button></div>
         </div>{% endfor %}
       {% else %}
         <div class="row g-2 mb-2 item-row" style="background:var(--surface2);padding:.5rem;border-radius:6px">
-          <div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Tipo *</label>
+          <div class="col-6 col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Tipo *</label>
             <select name="item_tipo[]" class="form-select form-select-sm item-tipo" onchange="updateItemRow(this)">
               <option value="producto" selected>Producto</option>
               <option value="servicio">Servicio</option>
             </select>
           </div>
-          <div class="col-md-3 prod-select"><label class="form-label mb-1" style="font-size:.8rem">Producto</label>
+          <div class="col-12 col-md-3 prod-select"><label class="form-label mb-1" style="font-size:.8rem">Producto</label>
             <select name="item_nombre[]" class="form-select form-select-sm item-nombre" onchange="onProductSelect(this)" required>
               <option value="">— Seleccionar —</option>
             </select>
             <input type="hidden" name="item_producto_id[]" class="item-producto-id" value="">
             <small class="prod-info text-muted" style="font-size:.72rem;display:none"></small>
           </div>
-          <div class="col-md-3 srv-select" style="display:none"><label class="form-label mb-1" style="font-size:.8rem">Servicio</label>
+          <div class="col-12 col-md-3 srv-select" style="display:none"><label class="form-label mb-1" style="font-size:.8rem">Servicio</label>
             <select name="item_servicio_id[]" class="form-select form-select-sm item-servicio" onchange="autocompletar_servicio(this)">
               <option value="">— Seleccionar —</option>
             </select>
           </div>
-          <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Cant.</label>
+          <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Cant.</label>
             <input type="number" name="item_cantidad[]" class="form-control form-control-sm item-cant" placeholder="1" step="0.01" min="0" value="1" oninput="calcRow(this)"></div>
-          <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Unidad</label>
+          <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Unidad</label>
             <input type="text" name="item_unidad[]" class="form-control form-control-sm item-unidad" value="unidades" readonly style="background:var(--surface2)"></div>
-          <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Precio</label>
+          <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Precio</label>
             <div class="input-group input-group-sm"><span class="input-group-text" style="font-size:.75rem">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0" step="1" min="0" value="0" oninput="calcRow(this)"></div></div>
-          <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">IVA %</label>
+          <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">IVA %</label>
             <input type="number" name="item_iva_pct[]" class="form-control form-control-sm item-iva-pct" placeholder="19" step="0.01" min="0" value="19" oninput="calcRow(this)">
             <input type="hidden" name="item_aplica_iva[]" class="item-aplica-iva-val" value="on"></div>
-          <div class="col-md-2 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:var(--ac)">$ 0</span></div>
-          <div class="col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.item-row').remove();calcTotal()"><i class="bi bi-trash"></i></button></div>
+          <div class="col-6 col-md-2 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:var(--ac)">$ 0</span></div>
+          <div class="col-6 col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.item-row').remove();calcTotal()"><i class="bi bi-trash"></i></button></div>
         </div>
       {% endif %}
     </div>
@@ -137,7 +137,7 @@
     </table>
     </div>
   </div>
-  <div class="col-md-6 offset-md-6">
+  <div class="col-12 col-md-6 offset-md-6">
     <div class="d-flex justify-content-between mb-1"><span class="text-muted">Subtotal:</span><span id="lblSub" class="fw-semibold">$ 0</span></div>
     <div class="d-flex justify-content-between mb-1"><span class="text-muted">Total IVA:</span><span id="lblIva" class="fw-semibold">$ 0</span></div>
     <div class="d-flex justify-content-between mb-1"><span class="fw-bold">Total:</span><span id="lblTotal" class="fw-bold" style="color:var(--ac);font-size:1.1rem">$ 0</span></div>
@@ -348,30 +348,30 @@ function addRow(){
   var div=document.createElement('div');
   div.className='row g-2 mb-2 item-row';
   div.style.cssText='background:var(--surface2);padding:.5rem;border-radius:6px';
-  div.innerHTML='<div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Tipo *</label>'
+  div.innerHTML='<div class="col-6 col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Tipo *</label>'
     +'<select name="item_tipo[]" class="form-select form-select-sm item-tipo" onchange="updateItemRow(this)">'
     +'<option value="producto" selected>Producto</option>'
     +'<option value="servicio">Servicio</option>'
     +'</select></div>'
-    +'<div class="col-md-3 prod-select"><label class="form-label mb-1" style="font-size:.8rem">Producto</label>'
+    +'<div class="col-12 col-md-3 prod-select"><label class="form-label mb-1" style="font-size:.8rem">Producto</label>'
     +'<select name="item_nombre[]" class="form-select form-select-sm item-nombre" onchange="onProductSelect(this)" required>'+buildProdOptions()+'</select>'
     +'<input type="hidden" name="item_producto_id[]" class="item-producto-id" value="">'
     +'<small class="prod-info text-muted" style="font-size:.72rem;display:none"></small></div>'
-    +'<div class="col-md-3 srv-select" style="display:none"><label class="form-label mb-1" style="font-size:.8rem">Servicio</label>'
+    +'<div class="col-12 col-md-3 srv-select" style="display:none"><label class="form-label mb-1" style="font-size:.8rem">Servicio</label>'
     +'<select name="item_servicio_id[]" class="form-select form-select-sm item-servicio" onchange="autocompletar_servicio(this)"><option value="">— Seleccionar —</option>'
     +SERVICIOS.map(s=>'<option value="'+s.id+'">'+s.nombre+'</option>').join('')
     +'</select></div>'
-    +'<div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Cant.</label>'
+    +'<div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Cant.</label>'
     +'<input type="number" name="item_cantidad[]" class="form-control form-control-sm item-cant" placeholder="1" step="0.01" min="0" value="1" oninput="calcRow(this)"></div>'
-    +'<div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Unidad</label>'
+    +'<div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Unidad</label>'
     +'<input type="text" name="item_unidad[]" class="form-control form-control-sm item-unidad" placeholder="un" value="unidades"></div>'
-    +'<div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Precio</label>'
+    +'<div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Precio</label>'
     +'<div class="input-group input-group-sm"><span class="input-group-text" style="font-size:.75rem">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0" step="1" min="0" value="0" oninput="calcRow(this)"></div></div>'
-    +'<div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">IVA %</label>'
+    +'<div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">IVA %</label>'
     +'<input type="number" name="item_iva_pct[]" class="form-control form-control-sm item-iva-pct" placeholder="19" step="0.01" min="0" value="19" oninput="calcRow(this)">'
     +'<input type="hidden" name="item_aplica_iva[]" class="item-aplica-iva-val" value="on"></div>'
-    +'<div class="col-md-2 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:var(--ac)">$ 0</span></div>'
-    +'<div class="col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest(\'.item-row\').remove();calcTotal()"><i class="bi bi-trash"></i></button></div>';
+    +'<div class="col-6 col-md-2 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:var(--ac)">$ 0</span></div>'
+    +'<div class="col-6 col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest(\'.item-row\').remove();calcTotal()"><i class="bi bi-trash"></i></button></div>';
   wrap.appendChild(div);
 }
 document.getElementById('pctAnticipo').addEventListener('input',calcTotal);
