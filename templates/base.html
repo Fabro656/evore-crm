@@ -608,7 +608,7 @@ img,svg{max-width:100%;height:auto}
           <i class="bi bi-bell-fill"></i>
           {% if notif_count > 0 %}<span class="notif-badge">{{ notif_count if notif_count < 10 else '9+' }}</span>{% endif %}
         </button>
-        <button class="notif-btn" onclick="iniciarObContextual()" title="Tutorial" style="font-size:.85rem">
+        <button class="notif-btn" onclick="if(window.iniciarObContextual){iniciarObContextual()}else{alert('Tutorial no disponible. Recarga la pagina.')}" title="Tutorial" style="font-size:.85rem">
           <i class="bi bi-question-circle"></i>
         </button>
       </div>
@@ -1012,7 +1012,7 @@ function toggleSidebar(){
               onclick="toggleTheme()" title="Cambiar tema">
         <i class="bi bi-sun-fill" id="themeIcon" style="font-size:.9rem"></i>
       </button>
-<button class="btn btn-sm d-none d-md-inline-flex" style="background:none;border:1px solid var(--border);color:var(--text2);padding:4px 10px;font-size:.78rem" onclick="iniciarObContextual()" title="Ver tutorial">
+<button class="btn btn-sm d-none d-md-inline-flex" style="background:none;border:1px solid var(--border);color:var(--text2);padding:4px 10px;font-size:.78rem" onclick="if(window.iniciarObContextual){iniciarObContextual()}else{alert('Recarga la pagina')}" title="Ver tutorial">
         <i class="bi bi-question-circle me-1"></i>Ayuda
       </button>
       <div class="dropdown">
@@ -1029,7 +1029,7 @@ function toggleSidebar(){
           <li><hr class="dropdown-divider my-1"></li>
           <li><a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('perfil') }}" style="font-size:.85rem;padding:.5rem 1rem"><i class="bi bi-person-gear" style="color:#0052CC"></i>Mi perfil</a></li>
           <li><a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('mi_actividad') }}" style="font-size:.85rem;padding:.5rem 1rem"><i class="bi bi-bar-chart-fill" style="color:#00875A"></i>Mi actividad</a></li>
-          <li><a class="dropdown-item d-flex align-items-center gap-2" href="#" onclick="iniciarObContextual()" style="font-size:.85rem;padding:.5rem 1rem"><i class="bi bi-question-circle" style="color:#FF8B00"></i>Ver tutorial</a></li>
+          <li><a class="dropdown-item d-flex align-items-center gap-2" href="#" onclick="if(window.iniciarObContextual){iniciarObContextual()}else{alert('Recarga la pagina')}" style="font-size:.85rem;padding:.5rem 1rem"><i class="bi bi-question-circle" style="color:#FF8B00"></i>Ver tutorial</a></li>
           <li><hr class="dropdown-divider my-1"></li>
           <li><a class="dropdown-item d-flex align-items-center gap-2 text-danger" href="{{ url_for('logout') }}" onclick="try{sessionStorage.removeItem('evore_ws_tabs');document.querySelectorAll('#wsIframeContainer iframe').forEach(function(f){f.src='about:blank'})}catch(e){}" style="font-size:.85rem;padding:.5rem 1rem"><i class="bi bi-box-arrow-right"></i>Cerrar sesion</a></li>
         </ul>
@@ -1540,6 +1540,7 @@ document.addEventListener('DOMContentLoaded',function(){
 @media(max-width:768px){#obCtxTip::before{display:none}}
 </style>
 <script>
+try {
 var OB_STEPS = [
     // Dock icons
     {icon:'bi-house-fill', color:'#3B82F6', title:'Home — Centro de control', desc:'Tu dashboard principal con KPIs, tickets pendientes, ventas recientes, aprobaciones, calendario del dia y notas. Todo lo importante en un vistazo.'},
@@ -1677,6 +1678,7 @@ var OB_STEPS = [
     // Mark as seen
     fetch('/onboarding/dismiss',{method:'POST',headers:{'Content-Type':'application/json'}}).catch(function(){});
   };
+} catch(_obErr) { console.error('Onboarding init error:', _obErr); }
 </script>
 
 <!-- Quick Actions Modal -->
