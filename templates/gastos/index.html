@@ -8,9 +8,9 @@
   <div class="col-md-3"><div class="sc"><div class="sv">{{ total_registros }}</div><div class="sl">Registros totales</div></div></div>
 </div>
 {% if plantillas %}
-<div class="tc mb-4">
-  <div class="ch"><i class="bi bi-arrow-repeat me-2"></i>Gastos recurrentes mensuales — pendientes de registrar</div>
-  <div class="p-3">
+<div class="mb-4" style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface)">
+  <div class="p-3 pb-2" style="font-size:.82rem;font-weight:600;color:var(--text2)"><i class="bi bi-arrow-repeat me-2"></i>Gastos recurrentes mensuales — pendientes de registrar</div>
+  <div class="p-3 pt-0">
     <div class="row g-2">
       {% for p in plantillas %}
       <div class="col-md-4">
@@ -27,7 +27,7 @@
     </div>
   </div>
 </div>{% endif %}
-<div class="tc mb-3"><div class="p-3"><form method="GET" class="row g-2 align-items-end">
+<div class="mb-3" style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface)"><div class="p-3"><form method="GET" class="row g-2 align-items-end">
   <div class="col-sm-3"><select name="tipo" class="form-select form-select-sm">
     <option value="">Todos los tipos</option>
     {% for t in tipos %}<option value="{{ t }}" {% if tipo_f==t %}selected{% endif %}>{{ t }}</option>{% endfor %}
