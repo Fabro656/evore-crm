@@ -917,3 +917,260 @@ def register(app):
             total_base=total_base_rete, total_retenido=total_retenido,
             base_minima=BASE_RETEFUENTE, tasa=TASA_RETE*100,
             detalles=detalles)
+
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # CONCILIACIÓN BANCARIA (v40)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    @app.route('/contable/conciliacion')
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_conciliacion():
+        """Página principal de conciliación bancaria."""
+        banco_filtro = request.args.get('banco', '')
+        desde_str    = request.args.get('desde', '')
+        hasta_str    = request.args.get('hasta', '')
+
+        q = MovimientoBancario.query
+        if banco_filtro:
+            q = q.filter(MovimientoBancario.banco == banco_filtro)
+        if desde_str:
+            try:
+                q = q.filter(MovimientoBancario.fecha >= datetime.strptime(desde_str, '%Y-%m-%d').date())
+            except Exception:
+                pass
+        if hasta_str:
+            try:
+                q = q.filter(MovimientoBancario.fecha <= datetime.strptime(hasta_str, '%Y-%m-%d').date())
+            except Exception:
+                pass
+
+        movimientos = q.order_by(MovimientoBancario.fecha.desc(), MovimientoBancario.id.desc()).all()
+
+        total_movs      = len(movimientos)
+        total_conciliados   = sum(1 for m in movimientos if m.conciliado)
+        total_pendientes    = total_movs - total_conciliados
+        suma_debitos        = sum(m.monto for m in movimientos if m.tipo == 'debito')
+        suma_creditos       = sum(m.monto for m in movimientos if m.tipo == 'credito')
+
+        # Lista de bancos cargados (para el filtro)
+        bancos = [r[0] for r in db.session.query(MovimientoBancario.banco).distinct().all() if r[0]]
+
+        # Asientos sin conciliar para el dropdown de match manual
+        asientos_disponibles = AsientoContable.query.filter(
+            ~AsientoContable.id.in_(
+                db.session.query(MovimientoBancario.asiento_id).filter(
+                    MovimientoBancario.asiento_id != None
+                )
+            )
+        ).order_by(AsientoContable.fecha.desc()).limit(200).all()
+
+        return render_template('contable/conciliacion.html',
+            movimientos=movimientos,
+            total_movs=total_movs,
+            total_conciliados=total_conciliados,
+            total_pendientes=total_pendientes,
+            suma_debitos=suma_debitos,
+            suma_creditos=suma_creditos,
+            bancos=bancos,
+            banco_filtro=banco_filtro,
+            desde=desde_str,
+            hasta=hasta_str,
+            asientos_disponibles=asientos_disponibles,
+            hoy=date_type.today().isoformat())
+
+
+    @app.route('/contable/conciliacion/upload', methods=['POST'])
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_conciliacion_upload():
+        """Importar extracto bancario CSV."""
+        import csv, io
+
+        archivo = request.files.get('archivo')
+        banco   = request.form.get('banco', '').strip()
+
+        if not archivo or not archivo.filename:
+            flash('Selecciona un archivo CSV.', 'warning')
+            return redirect(url_for('contable_conciliacion'))
+        if not banco:
+            flash('Indica el nombre del banco.', 'warning')
+            return redirect(url_for('contable_conciliacion'))
+
+        try:
+            contenido = archivo.read().decode('utf-8-sig', errors='replace')
+        except Exception:
+            flash('No se pudo leer el archivo. Asegúrate de que esté en UTF-8.', 'danger')
+            return redirect(url_for('contable_conciliacion'))
+
+        # Auto-detectar delimitador: semicolon o comma
+        muestra = contenido[:2000]
+        dialecto = csv.Sniffer().sniff(muestra, delimiters=';,')
+        reader = csv.DictReader(io.StringIO(contenido), dialect=dialecto)
+
+        # Normalizar nombres de columnas (minúsculas, sin espacios)
+        def _norm(k):
+            return k.lower().strip().replace(' ', '_').replace('ó', 'o').replace('é', 'e')
+
+        importados = 0
+        errores    = 0
+        for fila in reader:
+            fila_norm = {_norm(k): v.strip() if v else '' for k, v in fila.items() if k}
+
+            # Fecha — acepta dd/mm/yyyy, dd-mm-yyyy, yyyy-mm-dd
+            fecha_raw = (fila_norm.get('fecha') or fila_norm.get('date') or '').strip()
+            fecha_obj = None
+            for fmt in ('%d/%m/%Y', '%d-%m-%Y', '%Y-%m-%d', '%Y/%m/%d'):
+                try:
+                    fecha_obj = datetime.strptime(fecha_raw, fmt).date()
+                    break
+                except Exception:
+                    pass
+            if not fecha_obj:
+                errores += 1
+                continue
+
+            descripcion = (fila_norm.get('descripcion') or fila_norm.get('description')
+                           or fila_norm.get('concepto') or fila_norm.get('detalle') or '')
+            referencia  = (fila_norm.get('referencia') or fila_norm.get('ref')
+                           or fila_norm.get('numero') or fila_norm.get('nro') or '')
+
+            # Débito / Crédito — admite columna única 'monto' con signo o columnas separadas
+            debito_raw  = (fila_norm.get('debito') or fila_norm.get('debitos')
+                           or fila_norm.get('cargo') or fila_norm.get('cargos') or '0')
+            credito_raw = (fila_norm.get('credito') or fila_norm.get('creditos')
+                           or fila_norm.get('abono') or fila_norm.get('abonos') or '0')
+            monto_raw   = fila_norm.get('monto') or fila_norm.get('valor') or ''
+
+            def _to_float(s):
+                """Limpia formato colombiano: 1.234.567,89 → 1234567.89"""
+                s = s.strip().replace('$', '').replace(' ', '')
+                # Si tiene coma Y punto: asumir punto=miles, coma=decimales
+                if ',' in s and '.' in s:
+                    s = s.replace('.', '').replace(',', '.')
+                elif ',' in s:
+                    s = s.replace(',', '.')
+                else:
+                    s = s.replace('.', '', s.count('.') - 1) if s.count('.') > 1 else s
+                try:
+                    return abs(float(s))
+                except Exception:
+                    return 0.0
+
+            debito  = _to_float(debito_raw)
+            credito = _to_float(credito_raw)
+
+            # Si viene en columna única 'monto'
+            if debito == 0 and credito == 0 and monto_raw:
+                val = _to_float(monto_raw)
+                raw_s = monto_raw.strip().replace('$', '').replace(' ', '')
+                if raw_s.startswith('-'):
+                    debito = val
+                else:
+                    credito = val
+
+            if debito == 0 and credito == 0:
+                errores += 1
+                continue
+
+            saldo_raw = fila_norm.get('saldo') or fila_norm.get('saldo_disponible') or ''
+            saldo     = _to_float(saldo_raw) if saldo_raw else None
+
+            if debito > 0:
+                mov = MovimientoBancario(
+                    fecha=fecha_obj, descripcion=descripcion[:300], referencia=referencia[:100],
+                    monto=debito, tipo='debito', saldo=saldo, banco=banco, conciliado=False
+                )
+                db.session.add(mov)
+                importados += 1
+            if credito > 0:
+                mov = MovimientoBancario(
+                    fecha=fecha_obj, descripcion=descripcion[:300], referencia=referencia[:100],
+                    monto=credito, tipo='credito', saldo=saldo, banco=banco, conciliado=False
+                )
+                db.session.add(mov)
+                importados += 1
+
+        db.session.commit()
+        if importados:
+            flash(f'{importados} movimiento(s) importado(s) correctamente.{" " + str(errores) + " fila(s) omitidas." if errores else ""}', 'success')
+        else:
+            flash(f'No se importaron movimientos. Verifica el formato del CSV. ({errores} filas con error)', 'warning')
+        return redirect(url_for('contable_conciliacion', banco=banco))
+
+
+    @app.route('/contable/conciliacion/auto-match', methods=['POST'])
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_conciliacion_auto_match():
+        """Conciliar automáticamente movimientos vs asientos por monto y fecha (±3 días)."""
+        pendientes = MovimientoBancario.query.filter_by(conciliado=False).all()
+        if not pendientes:
+            flash('No hay movimientos pendientes de conciliar.', 'info')
+            return redirect(url_for('contable_conciliacion'))
+
+        conciliados = 0
+        for mov in pendientes:
+            fecha_min = mov.fecha - timedelta(days=3)
+            fecha_max = mov.fecha + timedelta(days=3)
+            clasificacion_buscada = 'egreso' if mov.tipo == 'debito' else 'ingreso'
+
+            # Buscar asiento con mismo monto y fecha cercana que no esté ya vinculado
+            candidatos = AsientoContable.query.filter(
+                AsientoContable.clasificacion == clasificacion_buscada,
+                AsientoContable.fecha >= fecha_min,
+                AsientoContable.fecha <= fecha_max,
+                ~AsientoContable.id.in_(
+                    db.session.query(MovimientoBancario.asiento_id).filter(
+                        MovimientoBancario.asiento_id != None
+                    )
+                )
+            ).all()
+
+            mejor = None
+            for a in candidatos:
+                monto_asiento = float(a.debe or 0) if clasificacion_buscada == 'egreso' else float(a.haber or 0)
+                if abs(monto_asiento - mov.monto) < 1.0:
+                    mejor = a
+                    break
+
+            if mejor:
+                mov.asiento_id = mejor.id
+                mov.conciliado = True
+                conciliados += 1
+
+        db.session.commit()
+        flash(f'Conciliación automática completada: {conciliados} movimiento(s) conciliado(s).', 'success')
+        return redirect(url_for('contable_conciliacion'))
+
+
+    @app.route('/contable/conciliacion/<int:id>/match', methods=['POST'])
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_conciliacion_match(id):
+        """Vincular manualmente un movimiento bancario con un asiento contable."""
+        mov = MovimientoBancario.query.get_or_404(id)
+        asiento_id_raw = request.form.get('asiento_id', '')
+        if not asiento_id_raw or not asiento_id_raw.isdigit():
+            flash('Selecciona un asiento válido.', 'warning')
+            return redirect(url_for('contable_conciliacion'))
+        asiento = AsientoContable.query.get_or_404(int(asiento_id_raw))
+        mov.asiento_id = asiento.id
+        mov.conciliado = True
+        db.session.commit()
+        flash(f'Movimiento vinculado al asiento {asiento.numero}.', 'success')
+        return redirect(url_for('contable_conciliacion'))
+
+
+    @app.route('/contable/conciliacion/<int:id>/unmatch', methods=['POST'])
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_conciliacion_unmatch(id):
+        """Deshacer la vinculación de un movimiento bancario."""
+        mov = MovimientoBancario.query.get_or_404(id)
+        mov.asiento_id = None
+        mov.conciliado = False
+        db.session.commit()
+        flash('Conciliación deshecha.', 'info')
+        return redirect(url_for('contable_conciliacion'))

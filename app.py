@@ -133,6 +133,12 @@ def create_app():
             init_db()
         except Exception as e:
             logging.error(f'DB init error: {e}')
+        # Cargar parametros de nomina desde DB (sobreescribe defaults de company_config)
+        try:
+            from utils import _cargar_nomina_params
+            _cargar_nomina_params()
+        except Exception:
+            pass
 
     return app
 

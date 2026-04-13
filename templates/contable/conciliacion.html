@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+{% block title %}Conciliación Bancaria{% endblock %}
+{% block page_title %}Conciliación Bancaria{% endblock %}
+
+{% block topbar_actions %}
+<div class="d-flex gap-2 flex-wrap align-items-center">
+  {% if movimientos %}
+  <form method="POST" action="{{ url_for('contable_conciliacion_auto_match') }}" class="d-inline">
+    <button type="submit" class="btn btn-sm btn-success"
+            onclick="return confirm('¿Ejecutar conciliación automática sobre todos los movimientos pendientes?')">
+      <i class="bi bi-magic me-1"></i>Auto-conciliar
+    </button>
+  </form>
+  {% endif %}
+  <a href="{{ url_for('contable_index') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Contabilidad
+  </a>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{# ── Sección de carga de CSV ── #}
+<div class="tc mb-3">
+  <div class="ch"><i class="bi bi-upload me-2"></i>Importar Extracto Bancario (CSV)</div>
+  <div style="padding:1rem">
+    <form method="POST" action="{{ url_for('contable_conciliacion_upload') }}" enctype="multipart/form-data">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label mb-1" style="font-size:.8rem;color:var(--text2)">Banco</label>
+          <select name="banco" class="form-control form-control-sm" required>
+            <option value="">— Seleccionar banco —</option>
+            <option value="Bancolombia">Bancolombia</option>
+            <option value="Davivienda">Davivienda</option>
+            <option value="Banco de Bogotá">Banco de Bogotá</option>
+            <option value="BBVA Colombia">BBVA Colombia</option>
+            <option value="Nequi">Nequi</option>
+            <option value="Daviplata">Daviplata</option>
+            <option value="Nubank">Nubank</option>
+            <option value="Banco Popular">Banco Popular</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+        <div class="col-md-5">
+          <label class="form-label mb-1" style="font-size:.8rem;color:var(--text2)">Archivo CSV</label>
+          <input type="file" name="archivo" accept=".csv,.txt" class="form-control form-control-sm" required>
+        </div>
+        <div class="col-md-3">
+          <button type="submit" class="btn btn-sm btn-primary w-100">
+            <i class="bi bi-cloud-upload me-1"></i>Cargar extracto
+          </button>
+        </div>
+      </div>
+    </form>
+    <div class="mt-2" style="font-size:.75rem;color:var(--text2)">
+      <i class="bi bi-info-circle me-1"></i>
+      Columnas esperadas: <code>fecha, descripcion, referencia, debito, credito, saldo</code>
+      (o <code>cargo/abono</code>). Soporta separador coma o punto y coma, fechas dd/mm/aaaa o aaaa-mm-dd.
+    </div>
+  </div>
+</div>
+
+{# ── Filtros ── #}
+<form method="GET" class="mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-6 col-md-3">
+      <label class="form-label mb-1" style="font-size:.8rem;color:var(--text2)">Banco</label>
+      <select name="banco" class="form-control form-control-sm">
+        <option value="">Todos los bancos</option>
+        {% for b in bancos %}
+        <option value="{{ b }}" {% if banco_filtro == b %}selected{% endif %}>{{ b }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-3">
+      <label class="form-label mb-1" style="font-size:.8rem;color:var(--text2)">Desde</label>
+      <input type="date" name="desde" class="form-control form-control-sm" value="{{ desde }}">
+    </div>
+    <div class="col-6 col-md-3">
+      <label class="form-label mb-1" style="font-size:.8rem;color:var(--text2)">Hasta</label>
+      <input type="date" name="hasta" class="form-control form-control-sm" value="{{ hasta }}">
+    </div>
+    <div class="col-6 col-md-3 d-flex gap-2">
+      <button type="submit" class="btn btn-sm btn-outline-primary flex-fill">
+        <i class="bi bi-funnel me-1"></i>Filtrar
+      </button>
+      <a href="{{ url_for('contable_conciliacion') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-x-lg"></i>
+      </a>
+    </div>
+  </div>
+</form>
+
+{# ── Estadísticas ── #}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="fc text-center py-3">
+      <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Total movimientos</div>
+      <div class="fw-bold mt-1" style="font-size:1.4rem;color:var(--ac)">{{ total_movs }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="fc text-center py-3" style="border-top:3px solid var(--green)">
+      <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Conciliados</div>
+      <div class="fw-bold mt-1" style="font-size:1.4rem;color:var(--green)">{{ total_conciliados }}</div>
+      {% if total_movs > 0 %}
+      <div style="font-size:.72rem;color:var(--text2)">{{ ((total_conciliados / total_movs) * 100) | round(0) | int }}%</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="fc text-center py-3" style="border-top:3px solid {{ 'var(--yellow)' if total_pendientes > 0 else 'var(--green)' }}">
+      <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Pendientes</div>
+      <div class="fw-bold mt-1" style="font-size:1.4rem;color:{{ 'var(--yellow)' if total_pendientes > 0 else 'var(--green)' }}">{{ total_pendientes }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="fc text-center py-3">
+      <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Débitos / Créditos</div>
+      <div class="mt-1">
+        <span style="font-size:.9rem;color:var(--red);font-weight:600">− {{ moneda(suma_debitos) }}</span><br>
+        <span style="font-size:.9rem;color:var(--green);font-weight:600">+ {{ moneda(suma_creditos) }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── Tabla de movimientos ── #}
+{% if movimientos %}
+<div class="tc">
+  <div class="ch d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-bank me-2"></i>Movimientos bancarios</span>
+    <span class="badge bg-secondary">{{ movimientos | length }}</span>
+  </div>
+  <div style="overflow-x:auto">
+    <table class="table table-sm mb-0" style="font-size:.82rem">
+      <thead>
+        <tr>
+          <th style="white-space:nowrap">Fecha</th>
+          <th>Descripción</th>
+          <th>Referencia</th>
+          <th class="text-end">Débito</th>
+          <th class="text-end">Crédito</th>
+          <th class="text-end">Saldo</th>
+          <th class="text-center">Estado</th>
+          <th>Asiento vinculado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for mov in movimientos %}
+        <tr style="
+          {% if mov.conciliado %}background:rgba(0,135,90,.07){% else %}background:rgba(255,196,0,.07){% endif %}
+        ">
+          <td style="white-space:nowrap;color:var(--text2)">
+            {{ mov.fecha.strftime('%d/%m/%Y') if mov.fecha else '—' }}
+          </td>
+          <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="{{ mov.descripcion }}">
+            {% if mov.banco %}<span class="b" style="font-size:.65rem;margin-right:.3rem">{{ mov.banco }}</span>{% endif %}
+            {{ mov.descripcion or '—' }}
+          </td>
+          <td style="color:var(--text2);white-space:nowrap">{{ mov.referencia or '—' }}</td>
+          <td class="text-end" style="color:var(--red);white-space:nowrap">
+            {% if mov.tipo == 'debito' %}{{ moneda(mov.monto) }}{% else %}—{% endif %}
+          </td>
+          <td class="text-end" style="color:var(--green);white-space:nowrap">
+            {% if mov.tipo == 'credito' %}{{ moneda(mov.monto) }}{% else %}—{% endif %}
+          </td>
+          <td class="text-end" style="color:var(--text2);white-space:nowrap">
+            {{ moneda(mov.saldo) if mov.saldo is not none else '—' }}
+          </td>
+          <td class="text-center">
+            {% if mov.conciliado %}
+              <span class="b" style="background:var(--green);color:#fff;font-size:.68rem">Conciliado</span>
+            {% else %}
+              <span class="b" style="background:var(--yellow);color:#333;font-size:.68rem">Pendiente</span>
+            {% endif %}
+          </td>
+          <td style="min-width:220px">
+            {% if mov.conciliado and mov.asiento %}
+              <div class="d-flex align-items-center gap-1">
+                <a href="{{ url_for('contable_asientos') }}" class="text-decoration-none"
+                   style="font-size:.78rem;color:var(--ac)">
+                  <i class="bi bi-link-45deg"></i> {{ mov.asiento.numero }}
+                </a>
+                <form method="POST"
+                      action="{{ url_for('contable_conciliacion_unmatch', id=mov.id) }}"
+                      class="d-inline ms-1">
+                  <button type="submit" class="btn btn-sm py-0 px-1 btn-outline-secondary"
+                          style="font-size:.68rem;line-height:1.4"
+                          title="Desvincular"
+                          onclick="return confirm('¿Desvincular este movimiento del asiento?')">
+                    <i class="bi bi-x"></i>
+                  </button>
+                </form>
+              </div>
+            {% else %}
+              <form method="POST"
+                    action="{{ url_for('contable_conciliacion_match', id=mov.id) }}"
+                    class="d-flex gap-1">
+                <select name="asiento_id" class="form-control form-control-sm py-0"
+                        style="font-size:.75rem;height:1.8rem" required>
+                  <option value="">— Vincular asiento —</option>
+                  {% for a in asientos_disponibles %}
+                  <option value="{{ a.id }}">
+                    {{ a.numero }} | {{ a.fecha.strftime('%d/%m/%y') if a.fecha else '' }}
+                    | {{ moneda(a.debe if a.clasificacion == 'egreso' else a.haber) }}
+                    | {{ a.descripcion[:40] }}
+                  </option>
+                  {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-sm btn-outline-primary py-0 px-2"
+                        style="font-size:.72rem;height:1.8rem;white-space:nowrap">
+                  <i class="bi bi-link-45deg"></i>
+                </button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="tc">
+  <div style="padding:2.5rem;text-align:center;color:var(--text2)">
+    <i class="bi bi-bank" style="font-size:2.5rem;opacity:.3;display:block;margin-bottom:.75rem"></i>
+    <div style="font-size:.9rem">No hay movimientos bancarios cargados.</div>
+    <div style="font-size:.8rem;margin-top:.4rem">Importa un extracto CSV para comenzar la conciliación.</div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

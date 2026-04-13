@@ -1473,8 +1473,11 @@ document.addEventListener('DOMContentLoaded',function(){
 {# ── Onboarding contextual: tooltips junto a iconos del dock ── #}
 <div id="obCtx" style="display:none">
   <div id="obCtxOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:2000" onclick="obCtxNext()"></div>
-  <div id="obCtxTip" style="position:fixed;z-index:2001;background:rgba(15,23,42,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:#fff;border-radius:16px;border:1px solid rgba(255,255,255,.1);box-shadow:0 20px 60px rgba(0,0,0,.5);width:300px;padding:0;overflow:hidden;animation:obCtxIn .25s ease">
-    <div style="padding:16px 18px 12px">
+  <div id="obCtxTip" style="position:fixed;z-index:2001;background:rgba(15,23,42,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:#fff;border-radius:16px;border:1px solid rgba(255,255,255,.1);box-shadow:0 20px 60px rgba(0,0,0,.5);width:320px;padding:0;overflow:hidden;animation:obCtxIn .25s ease">
+    <div id="obCtxIllust" style="text-align:center;padding:18px 18px 0;display:none">
+      <div style="width:56px;height:56px;border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:1.6rem;margin-bottom:4px" id="obCtxIconBox"><i id="obCtxIcon"></i></div>
+    </div>
+    <div style="padding:12px 18px 10px">
       <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.4);margin-bottom:6px" id="obCtxStep"></div>
       <div style="font-size:1rem;font-weight:700;margin-bottom:6px" id="obCtxTitle"></div>
       <div style="font-size:.84rem;color:rgba(255,255,255,.7);line-height:1.5" id="obCtxDesc"></div>
@@ -1493,20 +1496,20 @@ document.addEventListener('DOMContentLoaded',function(){
 (function(){
   var OB_STEPS = [
     // Dock icons
-    {icon:'bi-house-fill', title:'Home — Centro de control', desc:'Tu dashboard principal con KPIs, tickets pendientes, ventas recientes, aprobaciones, calendario del dia y notas. Todo lo importante en un vistazo.'},
-    {icon:'bi-check2-square', title:'Tickets', desc:'Crea y gestiona tickets con prioridades, asignacion multiple, categorias (calidad, logistica, pago). Tambien puedes crear notificaciones informativas. Se crean automaticamente por problemas de calidad o nomina pendiente.'},
-    {icon:'bi-calendar3', title:'Calendario', desc:'Eventos, citas y recordatorios con vista mensual. Navega por mes y ano con los selectores. Haz click en cualquier dia para crear un evento.'},
-    {icon:'bi-bag-fill', title:'Comercial — Clientes, Ventas, Cotizaciones', desc:'Pipeline de ventas: Prospecto → Negociacion → Anticipo → Pagado → Entregado. Al crear venta se genera asiento contable. Mantiene click para ver: Clientes, Productos, Ventas, Cotizaciones, Servicios.'},
-    {icon:'bi-cart-check', title:'Compras — Proveedores y OC', desc:'Selecciona proveedor, elige multiples cotizaciones, crea OC. El pago se confirma desde Asientos Contables. Mantiene click para ver: Proveedores, Cotizaciones, Ordenes, Registro. Al enviar OC se crean registros en Produccion.'},
-    {icon:'bi-gear-fill', title:'Produccion', desc:'Ordenes de produccion, Gantt, recepcion de material desde OC. Si hay problema de calidad, se crean tickets automaticos para compras y ventas. Mantiene click para ver: Dashboard, Ordenes, Gantt, Recepcion MP.'},
-    {icon:'bi-currency-dollar', title:'Finanzas', desc:'Asientos contables generados (desde OC/ventas) y manuales (caja chica). PUC colombiano con auto-clasificacion. Confirma pagos aqui — cambia el estado de OC y ventas. Mantiene click para ver: Contabilidad, Asientos, PUC, Gastos, Balances, Reportes.'},
-    {icon:'bi-people-fill', title:'Nomina', desc:'Cierra nomina con prorrateo por dias trabajados. Al despedir/retirar, la liquidacion (cesantias, prima, vacaciones, indemnizacion) se registra como gasto de inmediato.'},
-    {icon:'bi-clipboard-check', title:'Aprobaciones', desc:'OC, ventas, cotizaciones y asientos pueden requerir aprobacion. El proceso se BLOQUEA hasta aprobar, enviar a revision, o rechazar. Admin y Director Financiero se auto-aprueban.'},
-    // UI elements (positioned differently)
-    {target:'topbar', title:'Barra superior', desc:'Aqui encontraras: titulo de la pagina actual, botones de accion del modulo, cambio de tema claro/oscuro, menu de perfil y fecha actual.'},
-    {target:'perfil', title:'Menu de perfil', desc:'Click en tu avatar (arriba derecha) para ver: tu perfil, actividad, tutorial y cerrar sesion.'},
-    {target:'dock-foot', title:'Pie del dock', desc:'Tu avatar, campana de notificaciones, boton Wiki (libro) con el manual del sistema, y boton Tutorial (?) para repetir esta guia.'},
-    {target:'busqueda', title:'Buscador global', desc:'El icono de lupa en el dock busca en todo el CRM: clientes, ventas, productos, ordenes de compra, documentos.'},
+    {icon:'bi-house-fill', color:'#3B82F6', title:'Home — Centro de control', desc:'Tu dashboard principal con KPIs, tickets pendientes, ventas recientes, aprobaciones, calendario del dia y notas. Todo lo importante en un vistazo.'},
+    {icon:'bi-check2-square', color:'#8B5CF6', title:'Tickets', desc:'Crea y gestiona tickets con prioridades, asignacion multiple, categorias (calidad, logistica, pago). Se crean automaticamente por problemas de calidad o nomina pendiente.'},
+    {icon:'bi-calendar3', color:'#F59E0B', title:'Calendario', desc:'Eventos, citas y recordatorios con vista mensual. Navega por mes y ano. Haz click en cualquier dia para crear un evento.'},
+    {icon:'bi-bag-fill', color:'#10B981', title:'Comercial — Clientes, Ventas, Cotizaciones', desc:'Pipeline: Prospecto → Negociacion → Anticipo → Pagado → Entregado. Al crear venta se genera asiento contable y contrato para el portal del cliente.'},
+    {icon:'bi-cart-check', color:'#F97316', title:'Compras — Proveedores y OC', desc:'Selecciona proveedor, elige cotizaciones, crea OC. Se genera contrato para firma del proveedor. El pago se confirma desde Asientos Contables.'},
+    {icon:'bi-gear-fill', color:'#6366F1', title:'Produccion', desc:'Ordenes de produccion, Gantt por venta, recepcion de material desde OC. Si hay problema de calidad, se crean tickets automaticos.'},
+    {icon:'bi-currency-dollar', color:'#059669', title:'Finanzas', desc:'Asientos generados (OC/ventas) y manuales (caja chica). PUC colombiano. Confirma pagos aqui. Reconciliacion bancaria con CSV. IVA, retenciones, cierres.'},
+    {icon:'bi-people-fill', color:'#EC4899', title:'Nomina', desc:'Cierra nomina con prorrateo por dias. Parametros editables (SMLMV, aportes). Al retirar, liquidacion inmediata con cesantias, prima, vacaciones.'},
+    {icon:'bi-clipboard-check', color:'#EF4444', title:'Aprobaciones', desc:'OC, ventas, cotizaciones y asientos pueden requerir aprobacion. El proceso se BLOQUEA hasta aprobar o rechazar.'},
+    {icon:'bi-shield-check', color:'#0EA5E9', title:'Legal', desc:'9 plantillas legales colombianas. Firma digital con selfie. Contratos se envian al portal para firma del cliente/proveedor.'},
+    // UI elements
+    {target:'topbar', color:'#64748B', icon:'bi-layout-text-window', title:'Barra superior', desc:'Titulo de pagina, botones de accion, tema claro/oscuro, perfil y fecha.'},
+    {target:'perfil', color:'#64748B', icon:'bi-person-circle', title:'Menu de perfil', desc:'Click en tu avatar para ver: perfil, actividad, tutorial y cerrar sesion.'},
+    {target:'dock-foot', color:'#64748B', icon:'bi-grid-3x3-gap', title:'Pie del dock', desc:'Avatar, notificaciones, Wiki del sistema y boton Tutorial para repetir esta guia.'},
   ];
   var obIdx = 0;
   var obActive = false;
@@ -1526,6 +1529,16 @@ document.addEventListener('DOMContentLoaded',function(){
     document.getElementById('obCtxTitle').textContent = step.title;
     document.getElementById('obCtxDesc').textContent = step.desc;
     document.getElementById('obCtxBtn').textContent = obIdx === OB_STEPS.length - 1 ? 'Listo!' : 'Siguiente';
+    // Render icon illustration
+    var illust = document.getElementById('obCtxIllust');
+    var iconBox = document.getElementById('obCtxIconBox');
+    var iconEl = document.getElementById('obCtxIcon');
+    if(step.icon && step.color){
+      illust.style.display='';
+      iconBox.style.background=step.color+'22';
+      iconBox.style.color=step.color;
+      iconEl.className=step.icon;
+    } else { illust.style.display='none'; }
     var tip = document.getElementById('obCtxTip');
     // Reset highlight
     document.querySelectorAll('.sb-nav .nav-link').forEach(function(l){l.style.opacity='.3'});

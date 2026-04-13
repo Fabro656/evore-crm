@@ -1127,7 +1127,8 @@ def register(app):
             mat_inicio = mat_fin = None
             if o.venta_id:
                 oc_mat = OrdenCompra.query.filter(
-                    OrdenCompra.estado.in_(['borrador','enviada','recibida'])
+                    OrdenCompra.venta_origen_id == o.venta_id,
+                    OrdenCompra.estado.notin_(['cancelada'])
                 ).order_by(OrdenCompra.creado_en.desc()).first()
                 if oc_mat:
                     mat_inicio = oc_mat.fecha_emision

@@ -507,6 +507,22 @@ class AsientoContable(db.Model):
     gasto            = db.relationship('GastoOperativo', foreign_keys=[gasto_id])
     lineas           = db.relationship('LineaAsiento', backref='asiento', lazy=True, cascade='all, delete-orphan')
 
+class MovimientoBancario(db.Model):
+    """Movimiento importado de extracto bancario para conciliación."""
+    __tablename__ = 'movimientos_bancarios'
+    id          = db.Column(db.Integer, primary_key=True)
+    fecha       = db.Column(db.Date, nullable=False)
+    descripcion = db.Column(db.String(300))
+    referencia  = db.Column(db.String(100))
+    monto       = db.Column(db.Float, nullable=False)
+    tipo        = db.Column(db.String(10), default='debito')   # debito, credito
+    saldo       = db.Column(db.Float, nullable=True)
+    banco       = db.Column(db.String(100))
+    conciliado  = db.Column(db.Boolean, default=False)
+    asiento_id  = db.Column(db.Integer, db.ForeignKey('asientos_contables.id'), nullable=True)
+    creado_en   = db.Column(db.DateTime, default=datetime.utcnow)
+    asiento     = db.relationship('AsientoContable', foreign_keys=[asiento_id])
+
 class LineaAsiento(db.Model):
     """Línea de un asiento contable — partida doble con cuenta PUC."""
     __tablename__ = 'lineas_asiento'
@@ -626,6 +642,8 @@ class ConfigEmpresa(db.Model):
     contador_tarjeta = db.Column(db.String(50), nullable=True)  # tarjeta profesional
     revisor_fiscal = db.Column(db.String(200), nullable=True)
     revisor_tarjeta = db.Column(db.String(50), nullable=True)
+    # v40 — Parametros nomina editables (JSON override sobre company_config defaults)
+    nomina_params = db.Column(db.Text, nullable=True)  # JSON: {"min_wage": 1423500, ...}
 
 class Evento(db.Model):
     __tablename__ = 'eventos'
@@ -1393,6 +1411,8 @@ def _migrate(conn):
         ("ALTER TABLE documentos_legales ADD COLUMN firma_portal_en TIMESTAMP"),
         ("ALTER TABLE documentos_legales ADD COLUMN IF NOT EXISTS requiere_firma_portal BOOLEAN DEFAULT FALSE"),
         ("ALTER TABLE documentos_legales ADD COLUMN requiere_firma_portal BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS nomina_params TEXT"),
+        ("ALTER TABLE config_empresa ADD COLUMN nomina_params TEXT"),
         ("ALTER TABLE documentos_legales ADD COLUMN IF NOT EXISTS selfie_empresa_data TEXT"),
         ("ALTER TABLE documentos_legales ADD COLUMN selfie_empresa_data TEXT"),
         ("ALTER TABLE documentos_legales ADD COLUMN IF NOT EXISTS selfie_portal_data TEXT"),

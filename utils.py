@@ -176,6 +176,29 @@ TASA_INT_CESANTIAS      = _payroll.get('int_cesantias', 0.12)
 TASA_PRIMA              = _payroll.get('prima', 1/12)
 TASA_VACACIONES         = _payroll.get('vacaciones', 0.0417)
 
+def _cargar_nomina_params():
+    """Carga parametros de nomina desde DB (ConfigEmpresa.nomina_params) y sobreescribe globals."""
+    global SMLMV_2025, AUXILIO_TRANSPORTE_2025, TASA_SALUD_EMP, TASA_PENSION_EMP
+    global TASA_SALUD_EMPR, TASA_PENSION_EMPR, TASA_CAJA_COMP, TASA_SENA, TASA_ICBF
+    global TASA_ARL, TASA_CESANTIAS, TASA_INT_CESANTIAS, TASA_PRIMA, TASA_VACACIONES
+    try:
+        from models import ConfigEmpresa
+        import json
+        cfg = ConfigEmpresa.query.first()
+        if cfg and cfg.nomina_params:
+            p = json.loads(cfg.nomina_params)
+            if p.get('min_wage'):              SMLMV_2025 = float(p['min_wage'])
+            if p.get('transport_subsidy'):     AUXILIO_TRANSPORTE_2025 = float(p['transport_subsidy'])
+            if p.get('health_employee'):       TASA_SALUD_EMP = float(p['health_employee'])
+            if p.get('pension_employee'):      TASA_PENSION_EMP = float(p['pension_employee'])
+            if p.get('health_employer'):       TASA_SALUD_EMPR = float(p['health_employer'])
+            if p.get('pension_employer'):      TASA_PENSION_EMPR = float(p['pension_employer'])
+            if p.get('caja_comp'):             TASA_CAJA_COMP = float(p['caja_comp'])
+            if p.get('sena'):                  TASA_SENA = float(p['sena'])
+            if p.get('icbf'):                  TASA_ICBF = float(p['icbf'])
+    except Exception:
+        pass  # fallback to company_config defaults
+
 # ── Mail setup (graceful degradation if Flask-Mail not installed/configured)
 try:
     from flask_mail import Message as MailMessage

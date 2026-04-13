@@ -427,40 +427,54 @@ def register(app):
     @login_required
     @requiere_modulo('nomina')
     def parametros_nomina_editar():
-        """Permite a admin/contador editar los parámetros globales de nómina (tasas, SMLMV, auxilio transporte)."""
+        """Editar parametros de nomina (SMLMV, tasas, aportes). Se guardan en ConfigEmpresa.nomina_params."""
         if current_user.rol not in ('admin', 'contador'):
-            flash('Solo administradores y contadores pueden editar parámetros de nómina.','danger')
+            flash('Solo administradores y contadores pueden editar parametros.','danger')
             return redirect(url_for('nomina_index'))
-
-        from utils import (
-            SMLMV_2025, AUXILIO_TRANSPORTE_2025,
-            TASA_SALUD_EMP, TASA_PENSION_EMP,
-            TASA_SALUD_EMPR, TASA_PENSION_EMPR,
-            TASA_ARL, TASA_CAJA_COMP, TASA_SENA, TASA_ICBF,
-            TASA_CESANTIAS, TASA_INT_CESANTIAS,
-            TASA_PRIMA, TASA_VACACIONES
-        )
-
+        import json as _json
+        from company_config import COMPANY
+        defaults = COMPANY['payroll']
+        empresa = ConfigEmpresa.query.first()
+        current = {}
+        if empresa and empresa.nomina_params:
+            try: current = _json.loads(empresa.nomina_params)
+            except: pass
         if request.method == 'POST':
-            # Nota: Los parámetros se editan en utils.py. Este formulario es informativo
-            # y en una implementación completa, se almacenarían en la BD en una tabla de configuración.
-            flash('Los parámetros de nómina se editan directamente en utils.py.', 'info')
-            return redirect(url_for('nomina_index'))
-
-        # Mostrar parámetros actuales
-        return render_template('nomina/parametros.html',
-            smlmv=SMLMV_2025,
-            auxilio_transporte=AUXILIO_TRANSPORTE_2025,
-            tasa_salud_emp=TASA_SALUD_EMP,
-            tasa_pension_emp=TASA_PENSION_EMP,
-            tasa_salud_empr=TASA_SALUD_EMPR,
-            tasa_pension_empr=TASA_PENSION_EMPR,
-            tasa_caja=TASA_CAJA_COMP,
-            tasa_sena=TASA_SENA,
-            tasa_icbf=TASA_ICBF,
-            tasa_cesantias=TASA_CESANTIAS,
-            tasa_int_cesantias=TASA_INT_CESANTIAS,
-            tasa_prima=TASA_PRIMA,
-            tasa_vacaciones=TASA_VACACIONES
-        )
+            params = {}
+            for key in ['min_wage', 'transport_subsidy']:
+                v = request.form.get(key, '').strip()
+                if v: params[key] = float(v)
+            for key in ['health_employee', 'pension_employee', 'health_employer', 'pension_employer',
+                        'caja_comp', 'sena', 'icbf']:
+                v = request.form.get(key, '').strip()
+                if v: params[key] = float(v)
+            if not empresa:
+                empresa = ConfigEmpresa(nombre='Mi Empresa')
+                db.session.add(empresa)
+            empresa.nomina_params = _json.dumps(params) if params else None
+            db.session.commit()
+            from utils import _cargar_nomina_params
+            _cargar_nomina_params()
+            flash('Parametros de nomina actualizados.', 'success')
+            return redirect(url_for('parametros_nomina_editar'))
+        fields = [
+            ('min_wage', 'Salario minimo mensual (SMLMV)', 'moneda'),
+            ('transport_subsidy', 'Auxilio de transporte', 'moneda'),
+            ('health_employee', 'Salud empleado', 'pct'),
+            ('pension_employee', 'Pension empleado', 'pct'),
+            ('health_employer', 'Salud empleador', 'pct'),
+            ('pension_employer', 'Pension empleador', 'pct'),
+            ('caja_comp', 'Caja de compensacion', 'pct'),
+            ('sena', 'SENA', 'pct'),
+            ('icbf', 'ICBF', 'pct'),
+        ]
+        display = {}
+        for key, label, tipo in fields:
+            display[key] = {
+                'label': label, 'tipo': tipo,
+                'default': defaults.get(key, 0),
+                'value': current.get(key, defaults.get(key, 0)),
+                'overridden': key in current
+            }
+        return render_template('nomina/params.html', fields=fields, display=display)
     
