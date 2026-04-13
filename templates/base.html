@@ -1,6 +1,10 @@
 <html lang="es" id="htmlRoot"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="csrf-token" content="{{ csrf_token }}">
+<meta name="theme-color" content="#0176D3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/static/manifest.json">
+<link rel="apple-touch-icon" href="/static/img/icon-192.png">
 <title>{% block title %}Evore CRM{% endblock %}</title>
 <script>document.documentElement.setAttribute('data-theme',localStorage.getItem('evore_theme')||'light');var l=localStorage.getItem('evore_layout')||'default';if(l==='horizon') document.documentElement.setAttribute('data-layout','horizon');</script>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -2038,4 +2042,5 @@ window.iniciarObContextual = function(){
 })();
 </script>
 
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(function(){});}</script>
 </body></html>

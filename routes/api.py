@@ -66,6 +66,13 @@ def register(app):
         """Railway healthcheck — must respond fast without DB queries."""
         return 'OK', 200
 
+    @app.route('/sw.js')
+    def pwa_service_worker():
+        resp = make_response(send_file('static/sw.js', mimetype='application/javascript', max_age=0))
+        resp.headers['Service-Worker-Allowed'] = '/'
+        resp.headers['Cache-Control'] = 'no-cache, no-store'
+        return resp
+
     @app.route('/debug-check')
     @login_required
     def debug_check():
