@@ -1282,6 +1282,7 @@ def register(app):
             for it in items_data:
                 db.session.add(CotizacionItem(
                     cotizacion_id=cot.id, nombre_prod=it['nombre'],
+                    producto_id=it.get('producto_id'),
                     cantidad=it['cantidad'], precio_unit=it['precio'], subtotal=it['subtotal'],
                     unidad=it['unidad'], tipo_item=it['tipo'], servicio_id=it['servicio_id'],
                     aplica_iva=it['aplica_iva'], iva_pct=it['iva_pct'], iva_monto=it['iva_monto']))
@@ -1442,6 +1443,7 @@ def register(app):
 
                 db.session.add(CotizacionItem(
                     cotizacion_id=obj.id, nombre_prod=nm,
+                    producto_id=prod_id,
                     cantidad=cant, precio_unit=precio, subtotal=sub,
                     unidad=unidad, tipo_item=tipo, servicio_id=srv_id,
                     aplica_iva=aplica_iva, iva_pct=iva_pct, iva_monto=iva_monto))

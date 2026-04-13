@@ -8,27 +8,35 @@
   <div class="col-md-3"><div class="sc"><div class="sv">{{ items|selectattr('estado','eq','enviada')|list|length }}</div><div class="sl">Enviadas</div></div></div>
   <div class="col-md-3"><div class="sc"><div class="sv">{{ items|selectattr('estado','eq','vencida')|list|length }}</div><div class="sl">Vencidas</div></div></div>
 </div>
-<div class="tc"><div class="ch"><i class="bi bi-file-earmark-text me-2"></i>Cotizaciones</div>
-{% if items %}<div class="table-responsive"><table class="table">
-  <thead><tr><th>Número</th><th>Título</th><th>Cliente</th><th>Total</th><th>Estado</th><th>Válida hasta</th><th></th></tr></thead>
+{% if items %}
+<div class="table-responsive" style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface)">
+<table class="table">
+  <thead><tr><th>Numero</th><th>Titulo</th><th>Productos</th><th>Cliente</th><th>Total</th><th>Estado</th><th>Valida hasta</th><th></th></tr></thead>
   <tbody>{% for c in items %}<tr {% if c.estado=='vencida' %}style="background-color:rgba(255,0,0,.05)"{% endif %}>
     <td><a href="{{ url_for('cotizacion_ver', id=c.id) }}" class="fw-semibold text-decoration-none" style="color:var(--ac)">{{ c.numero or '—' }}</a></td>
     <td style="color:var(--text)">{{ c.titulo }}</td>
+    <td style="font-size:.8rem">
+      {% for it in c.items[:3] %}
+        <span class="d-block">{{ it.nombre_prod }}{% if it.producto_id %} <i class="bi bi-link-45deg text-primary" style="font-size:.7rem" title="Vinculado a producto"></i>{% endif %}</span>
+      {% endfor %}
+      {% if c.items|length > 3 %}<small class="text-muted">+{{ c.items|length - 3 }} mas</small>{% endif %}
+    </td>
     <td><small class="text-muted">{{ c.cliente.empresa or c.cliente.nombre if c.cliente else '—' }}</small></td>
-    <td class="fw-semibold">$ {{ '{:,.0f}'.format(c.total).replace(',','.') }}</td>
-    <td><span class="b {% if c.estado=='borrador' %}b-media{% elif c.estado=='enviada' %}b-info{% elif c.estado=='aprobada' %}b-activo{% elif c.estado=='confirmacion_orden' %}b-alta{% elif c.estado=='vencida' %}b-peligro{% else %}b-inactivo{% endif %}">
+    <td class="fw-semibold">{{ moneda(c.total) }}</td>
+    <td><span class="b {% if c.estado=='borrador' %}b-borrador{% elif c.estado=='enviada' %}b-negociacion{% elif c.estado=='aprobada' %}b-activo{% elif c.estado=='confirmacion_orden' %}b-aceptada_cliente{% elif c.estado=='vencida' %}b-rechazada{% else %}b-pendiente{% endif %}">
       {{ {'borrador':'Borrador','enviada':'Enviada','aprobada':'Aprobada','confirmacion_orden':'Orden confirmada','vencida':'VENCIDA'}.get(c.estado, c.estado) }}
     </span></td>
-    <td><small class="text-muted" {% if c.estado=='vencida' %}style="color:var(--danger);font-weight:bold"{% endif %}>{{ c.fecha_validez.strftime('%d/%m/%Y') if c.fecha_validez else '—' }}</small></td>
+    <td><small class="text-muted">{{ c.fecha_validez.strftime('%d/%m/%Y') if c.fecha_validez else '—' }}</small></td>
     <td><div class="d-flex gap-1">
       <a href="{{ url_for('cotizacion_ver', id=c.id) }}" class="btn btn-sm btn-outline-primary" title="Ver"><i class="bi bi-eye"></i></a>
       <a href="{{ url_for('cotizacion_editar', id=c.id) }}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
       <a href="{{ url_for('cotizacion_pdf', id=c.id) }}" class="btn btn-sm btn-outline-dark" title="PDF" target="_blank"><i class="bi bi-file-pdf"></i></a>
-      <form method="POST" action="{{ url_for('cotizacion_eliminar', id=c.id) }}" onsubmit="return confirm('¿Eliminar cotización?')">
+      <form method="POST" action="{{ url_for('cotizacion_eliminar', id=c.id) }}" onsubmit="return confirm('Eliminar?')">
         <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
     </div></td>
   </tr>{% endfor %}</tbody>
-</table></div>
+</table>
+</div>
 {% else %}<div class="text-center text-muted py-5"><i class="bi bi-file-earmark-text" style="font-size:3rem"></i>
   <p class="mt-3">Sin cotizaciones.</p><a href="{{ url_for('cotizacion_nueva') }}" class="btn btn-primary">Crear primera</a></div>
-{% endif %}</div>{% endblock %}
+{% endif %}{% endblock %}
