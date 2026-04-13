@@ -12,35 +12,56 @@ h1{text-align:center;font-size:14pt;text-transform:uppercase;letter-spacing:2px;
 <button class="no-print" onclick="window.print()" style="background:#0176D3;color:#fff;border:none;padding:8px 16px;border-radius:5px;cursor:pointer">Imprimir</button>
 
 <h1>Contrato de Suministro</h1>
+<p style="text-align:center;font-size:10pt;color:#666">(Articulos 968 a 980 del Codigo de Comercio)</p>
 
-<p>En la ciudad de <strong>{{ ciudad }}</strong>, a los <strong>{{ fecha }}</strong>, entre <strong>{{ empresa_nombre }}</strong> (NIT {{ empresa_nit }}), representada por <strong>{{ empresa_representante }}</strong>, en adelante EL COMPRADOR, y <strong>{{ tercero_empresa or tercero_nombre }}</strong> ({{ 'NIT ' + tercero_nit if tercero_nit else 'C.C. ' + tercero_cedula }}), representada por <strong>{{ tercero_nombre }}</strong>, en adelante EL PROVEEDOR, se celebra el presente contrato de suministro:</p>
+<p>En la ciudad de <strong>{{ empresa_ciudad or ciudad }}</strong>, a los <strong>{{ fecha }}</strong>, entre:</p>
+
+<p><strong>EL COMPRADOR:</strong> <strong>{{ empresa_nombre }}</strong>, identificada con NIT <strong>{{ empresa_nit }}</strong>{% if empresa_tipo_sociedad %}, {{ empresa_tipo_sociedad }}{% endif %}{% if empresa_camara and empresa_matricula %}, inscrita en la Camara de Comercio de {{ empresa_camara }}, con matricula mercantil No. {{ empresa_matricula }}{% endif %}, representada legalmente por <strong>{{ empresa_representante }}</strong>{% if empresa_representante_cedula %}, identificado(a) con cedula de ciudadania No. {{ empresa_representante_cedula }}{% endif %}{% if empresa_representante_cargo %}, en su calidad de {{ empresa_representante_cargo }}{% endif %}, con domicilio en {{ empresa_direccion or empresa_ciudad or ciudad }}{% if empresa_telefono %}, telefono {{ empresa_telefono }}{% endif %}.</p>
+
+<p><strong>EL PROVEEDOR:</strong> <strong>{{ tercero_empresa or tercero_nombre }}</strong>, identificada con {{ 'NIT ' + tercero_nit if tercero_nit else 'C.C. ' + tercero_cedula }}, representada legalmente por <strong>{{ tercero_nombre }}</strong>{% if tercero_cedula and tercero_nit %}, identificado(a) con cedula de ciudadania No. {{ tercero_cedula }}{% endif %}{% if tercero_cargo %}, en su calidad de {{ tercero_cargo }}{% endif %}, con domicilio en {{ tercero_direccion or 'la ciudad' }}.</p>
+
+<p>Las partes, de comun acuerdo, celebran el presente contrato de suministro conforme a los articulos 968 a 980 del Codigo de Comercio colombiano y demas normas aplicables, el cual se regira por las siguientes clausulas:</p>
 
 <div class="clausula"><strong>PRIMERA — OBJETO:</strong>
-EL PROVEEDOR se obliga a suministrar a EL COMPRADOR los siguientes bienes y/o servicios: {{ objeto or '[DESCRIPCION DE MATERIALES/SERVICIOS]' }}. Las especificaciones tecnicas, cantidades y condiciones de entrega se estableceran en cada orden de compra emitida por EL COMPRADOR.</div>
+EL PROVEEDOR se obliga a suministrar a EL COMPRADOR, de manera periodica o continuada, los siguientes bienes y/o servicios: {{ objeto or '[DESCRIPCION DE MATERIALES/SERVICIOS]' }}. Las especificaciones tecnicas, cantidades y condiciones de entrega se estableceran en cada orden de compra emitida por EL COMPRADOR, la cual formara parte integral del presente contrato una vez sea aceptada por EL PROVEEDOR.</div>
 
-<div class="clausula"><strong>SEGUNDA — PRECIO Y FORMA DE PAGO:</strong>
-Los precios seran los convenidos en las cotizaciones vigentes al momento de cada orden de compra. El pago se realizara {{ valor or 'dentro de los 30 dias siguientes a la recepcion del material y la factura correspondiente' }}. EL COMPRADOR aplicara las retenciones de ley (retencion en la fuente, ICA) segun corresponda.</div>
+<div class="clausula"><strong>SEGUNDA — PRECIO, IVA Y FORMA DE PAGO:</strong>
+Los precios seran los convenidos en las cotizaciones vigentes al momento de cada orden de compra. Todos los precios se entienden <strong>antes de IVA</strong>; se aplicara el Impuesto sobre las Ventas (IVA) a la tarifa general del diecinueve por ciento (19%) o la tarifa que corresponda segun la naturaleza del bien o servicio, de conformidad con el Estatuto Tributario. El pago se realizara {{ valor or 'dentro de los treinta (30) dias calendario siguientes a la recepcion del material y la factura electronica correspondiente' }}. <strong>PARAGRAFO:</strong> EL COMPRADOR podra compensar contra los pagos debidos cualquier suma que EL PROVEEDOR le adeude por concepto de multas, garantias, devoluciones u otros conceptos derivados del presente contrato.</div>
 
-<div class="clausula"><strong>TERCERA — PLAZO DE ENTREGA:</strong>
-EL PROVEEDOR se compromete a entregar los bienes en los plazos establecidos en cada orden de compra. El incumplimiento reiterado (mas de 3 entregas tardias) dara lugar a la terminacion unilateral del contrato por parte de EL COMPRADOR.</div>
+<div class="clausula"><strong>TERCERA — FACTURACION ELECTRONICA:</strong>
+EL PROVEEDOR se obliga a emitir factura electronica de venta de conformidad con el Decreto 358 de 2020, la Resolucion DIAN 000042 de 2020 y demas normas que las modifiquen o complementen. La factura debera cumplir con todos los requisitos del articulo 617 del Estatuto Tributario y ser validada previamente por la DIAN. EL COMPRADOR no estara obligado a efectuar pago alguno si la factura no cumple con los requisitos legales y fiscales exigidos.</div>
 
-<div class="clausula"><strong>CUARTA — CALIDAD:</strong>
-Los bienes suministrados deberan cumplir con las especificaciones tecnicas acordadas. EL COMPRADOR podra rechazar materiales que no cumplan con los estandares de calidad, debiendo EL PROVEEDOR reemplazarlos sin costo adicional dentro de los 5 dias habiles siguientes.</div>
+<div class="clausula"><strong>CUARTA — RETENCIONES TRIBUTARIAS:</strong>
+De conformidad con el articulo 392 del Estatuto Tributario y demas normas concordantes, EL COMPRADOR actuara como agente de retencion y aplicara las siguientes retenciones, segun corresponda: a) Retencion en la fuente por compras a la tarifa del dos punto cinco por ciento (2.5%) sobre pagos o abonos en cuenta que superen veintisiete (27) UVT; b) Retencion de IVA (Reteiva) del quince por ciento (15%) cuando EL COMPRADOR sea Gran Contribuyente; c) Retencion de Industria y Comercio (ReteICA) segun las tarifas del municipio donde se realice la operacion. EL PROVEEDOR declara ser responsable de IVA y estar obligado a facturar. Los certificados de retencion seran expedidos en los plazos legales.</div>
 
-<div class="clausula"><strong>QUINTA — VIGENCIA:</strong>
-El presente contrato tendra una vigencia de <strong>{{ vigencia }}</strong>, contados a partir de su firma, prorrogable automaticamente por periodos iguales salvo aviso de terminacion con 30 dias de anticipacion.</div>
+<div class="clausula"><strong>QUINTA — PLAZO DE ENTREGA Y LUGAR:</strong>
+EL PROVEEDOR se compromete a entregar los bienes en los plazos establecidos en cada orden de compra, en el lugar designado por EL COMPRADOR, que salvo indicacion contraria sera: {{ empresa_direccion or empresa_ciudad or ciudad }}. Los bienes viajaran por cuenta y riesgo de EL PROVEEDOR hasta el momento de la entrega efectiva en el lugar convenido. EL PROVEEDOR debera entregar los bienes acompanados de la respectiva remision o guia de transporte. El incumplimiento reiterado (mas de tres entregas tardias en un periodo de seis meses) dara lugar a la terminacion unilateral del contrato por parte de EL COMPRADOR, sin perjuicio de la indemnizacion de perjuicios a que haya lugar.</div>
 
-<div class="clausula"><strong>SEXTA — CONFIDENCIALIDAD:</strong>
-Las partes se comprometen a mantener la confidencialidad de toda informacion tecnica, comercial o financiera a la que tengan acceso con ocasion del presente contrato.</div>
+<div class="clausula"><strong>SEXTA — CALIDAD Y GARANTIA:</strong>
+Los bienes suministrados deberan cumplir con las especificaciones tecnicas acordadas, las normas tecnicas colombianas (NTC) aplicables y la reglamentacion vigente. EL COMPRADOR podra rechazar materiales que no cumplan con los estandares de calidad, debiendo EL PROVEEDOR reemplazarlos sin costo adicional dentro de los cinco (5) dias habiles siguientes. <strong>PARAGRAFO — GARANTIA:</strong> EL PROVEEDOR otorga garantia sobre los bienes suministrados por un periodo minimo de seis (6) meses contados a partir de la entrega efectiva, durante el cual se compromete a reemplazar o reparar sin costo alguno aquellos bienes que presenten defectos de fabricacion, materiales o funcionamiento, sin perjuicio de la garantia legal establecida en la Ley 1480 de 2011.</div>
 
-<div class="clausula"><strong>SEPTIMA — RESPONSABILIDAD:</strong>
-EL PROVEEDOR sera responsable de los danos causados por defectos en los bienes suministrados, conforme a las normas de responsabilidad civil y la Ley 1480 de 2011 (Estatuto del Consumidor).</div>
+<div class="clausula"><strong>SEPTIMA — VIGENCIA:</strong>
+El presente contrato tendra una vigencia de <strong>{{ vigencia }}</strong>, contados a partir de su firma, prorrogable automaticamente por periodos iguales salvo aviso escrito de terminacion enviado por cualquiera de las partes con no menos de treinta (30) dias calendario de anticipacion al vencimiento del periodo respectivo.</div>
 
-<div class="clausula"><strong>OCTAVA — TERMINACION:</strong>
-Este contrato podra terminarse por: a) Mutuo acuerdo; b) Incumplimiento de cualquiera de las partes; c) Fuerza mayor o caso fortuito; d) Decision unilateral con preaviso de 30 dias.</div>
+<div class="clausula"><strong>OCTAVA — CONFIDENCIALIDAD:</strong>
+Las partes se comprometen a mantener la confidencialidad de toda informacion tecnica, comercial, financiera o de cualquier otra naturaleza a la que tengan acceso con ocasion del presente contrato. Esta obligacion se extiende por un periodo de dos (2) anos despues de terminado el contrato.</div>
+
+<div class="clausula"><strong>NOVENA — RESPONSABILIDAD:</strong>
+EL PROVEEDOR sera responsable de los danos directos causados por defectos en los bienes suministrados, conforme a las normas de responsabilidad civil y la Ley 1480 de 2011 (Estatuto del Consumidor). EL PROVEEDOR debera contar con una poliza de responsabilidad civil extracontractual vigente durante la ejecucion del contrato, cuando la naturaleza de los bienes o servicios asi lo amerite.</div>
+
+<div class="clausula"><strong>DECIMA — TERMINACION:</strong>
+Este contrato podra terminarse por: a) Mutuo acuerdo de las partes; b) Incumplimiento grave de cualquiera de las obligaciones pactadas, previo requerimiento escrito a la parte incumplida con un plazo de quince (15) dias habiles para subsanar; c) Fuerza mayor o caso fortuito que imposibilite su ejecucion por mas de treinta (30) dias; d) Decision unilateral con preaviso escrito de treinta (30) dias calendario; e) Liquidacion, disolucion o proceso de insolvencia de cualquiera de las partes.</div>
+
+<div class="clausula"><strong>UNDECIMA — RESOLUCION DE CONFLICTOS:</strong>
+Toda controversia o diferencia derivada del presente contrato sera resuelta en primera instancia mediante negociacion directa entre las partes por un termino de treinta (30) dias calendario. En caso de no llegar a un acuerdo, las partes acudiran a un tribunal de arbitraje del Centro de Arbitraje y Conciliacion de la Camara de Comercio de {{ empresa_camara or empresa_ciudad or ciudad }}, el cual estara integrado por un (1) arbitro designado de comun acuerdo o, en su defecto, por la respectiva Camara de Comercio. El arbitraje sera en derecho y se regira por la Ley 1563 de 2012.</div>
+
+<div class="clausula"><strong>DUODECIMA — DOMICILIO:</strong>
+Para todos los efectos legales del presente contrato, las partes fijan como domicilio contractual la ciudad de <strong>{{ empresa_ciudad or ciudad }}</strong>.</div>
+
+<p style="margin-top:30px">En senal de aceptacion, las partes firman el presente contrato en dos (2) ejemplares del mismo tenor y valor, en la ciudad de {{ empresa_ciudad or ciudad }}, a los {{ fecha }}.</p>
 
 <div class="firma">
-  <div><strong>{{ empresa_representante or empresa_nombre }}</strong><br>EL COMPRADOR<br>NIT: {{ empresa_nit }}</div>
+  <div><strong>{{ empresa_representante or empresa_nombre }}</strong><br>EL COMPRADOR<br>NIT: {{ empresa_nit }}{% if empresa_representante_cedula %}<br>C.C. {{ empresa_representante_cedula }}{% endif %}</div>
   <div><strong>{{ tercero_nombre }}</strong><br>EL PROVEEDOR<br>{{ 'NIT: ' + tercero_nit if tercero_nit else 'C.C. ' + tercero_cedula }}</div>
 </div>
 </body></html>
