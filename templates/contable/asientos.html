@@ -201,16 +201,22 @@
               </div>
             </div>
             {% endif %}
-            <a href="{{ url_for('contable_asiento_editar', id=a.id) }}" class="btn btn-xs btn-outline-primary" title="Editar"><i class="bi bi-pencil"></i></a>
-            <a href="{{ url_for('contable_comprobante', id=a.id) }}" class="btn btn-xs btn-outline-secondary" title="Comprobante" target="_blank"><i class="bi bi-file-earmark-pdf"></i></a>
-            {% if es_cc %}
-            <a href="{{ url_for('contable_pdf_caja_chica', id=a.id) }}" class="btn btn-xs btn-outline-warning" title="PDF Caja Chica" target="_blank"><i class="bi bi-printer"></i></a>
-            {% endif %}
-            {% if current_user.rol == 'admin' %}
-            <form method="POST" action="{{ url_for('contable_asiento_eliminar', id=a.id) }}" style="display:inline" onsubmit="return confirm('Eliminar asiento {{ a.numero }}?')">
-              <button type="submit" class="btn btn-xs btn-outline-danger" title="Eliminar"><i class="bi bi-trash"></i></button>
-            </form>
-            {% endif %}
+            <div class="dropdown d-inline-block">
+              <button class="btn btn-xs btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.72rem"><i class="bi bi-three-dots"></i></button>
+              <ul class="dropdown-menu dropdown-menu-end" style="font-size:.82rem;min-width:170px">
+                <li><a class="dropdown-item" href="{{ url_for('contable_asiento_editar', id=a.id) }}"><i class="bi bi-pencil me-2 text-primary"></i>Editar</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('contable_comprobante', id=a.id) }}" target="_blank"><i class="bi bi-file-earmark-pdf me-2 text-secondary"></i>Comprobante</a></li>
+                {% if es_cc %}
+                <li><a class="dropdown-item" href="{{ url_for('contable_pdf_caja_chica', id=a.id) }}" target="_blank"><i class="bi bi-printer me-2 text-warning"></i>PDF Caja Chica</a></li>
+                {% endif %}
+                {% if current_user.rol == 'admin' %}
+                <li><hr class="dropdown-divider"></li>
+                <li><form method="POST" action="{{ url_for('contable_asiento_eliminar', id=a.id) }}" onsubmit="return confirm('Eliminar?')" class="px-0 m-0">
+                  <button class="dropdown-item text-danger" type="submit"><i class="bi bi-trash me-2"></i>Eliminar</button>
+                </form></li>
+                {% endif %}
+              </ul>
+            </div>
           </div>
         </td>
       </tr>

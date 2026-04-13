@@ -1,10 +1,10 @@
 {% extends 'portal_base.html' %}
 {% block title %}Mi Portal{% endblock %}
+{% block page_title %}Portal — {{ cliente.empresa or cliente.nombre }}{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('portal_pre_cotizacion_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-file-earmark-plus me-1"></i>Nueva Solicitud</a>
+{% endblock %}
 {% block content %}
-<div style="margin-bottom:1.5rem">
-  <h5 style="font-weight:700;margin-bottom:.5rem">Portal — {{ cliente.empresa or cliente.nombre }}</h5>
-  <a href="{{ url_for('portal_pre_cotizacion_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-file-earmark-plus me-1"></i>Nueva Solicitud de Compra</a>
-</div>
 <div class="row g-4">
   <!-- Left: Client Card -->
   <div class="col-lg-3">

@@ -1,90 +1,80 @@
 {% extends 'portal_base.html' %}
 {% block title %}Portal Proveedor{% endblock %}
+{% block page_title %}Portal — {{ prov.empresa or prov.nombre }}{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('portal_prov_ticket') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chat-left-text me-1"></i>Mensaje</a>
+{% endblock %}
+
 {% block content %}
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem">
-  <h5 style="font-weight:700;margin:0">Portal — {{ prov.nombre }}</h5>
-  <a href="{{ url_for('portal_prov_ticket') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chat-left-text me-1"></i>Enviar Mensaje</a>
-</div>
-<div class="onboard-banner mb-3" style="background:var(--sidebar-bg,#253858);color:#fff">
-  <div class="d-flex align-items-center gap-3 flex-wrap">
-    <div>
-      <h4 class="mb-1 fw-bold">{{ prov.nombre }}</h4>
-      {% if prov.nit %}<div style="opacity:.7;font-size:.85rem">{{ nit_label }}: {{ prov.nit }}</div>{% endif %}
-      {% if prov.contacto_nombre %}<div style="opacity:.8;font-size:.83rem;margin-top:.4rem"><i class="bi bi-person me-1"></i>Contacto: {{ prov.contacto_nombre }}</div>{% endif %}
+{# ── Info del proveedor ── #}
+<div class="row g-3 mb-3">
+  <div class="col-md-3">
+    <div class="sc" style="border-top:3px solid var(--ac)">
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width:44px;height:44px;background:var(--ac);font-size:1.1rem;flex-shrink:0">{{ (prov.empresa or prov.nombre)[0].upper() }}</div>
+        <div>
+          <div class="fw-bold">{{ prov.empresa or prov.nombre }}</div>
+          <span class="b b-activo" style="font-size:.65rem">{{ prov.categoria or 'Proveedor' }}</span>
+        </div>
+      </div>
+      {% if prov.nit %}<div style="font-size:.82rem;color:var(--text2);margin-bottom:4px"><strong>NIT:</strong> {{ prov.nit }}</div>{% endif %}
+      {% if prov.contacto_nombre %}<div style="font-size:.82rem;color:var(--text2)"><i class="bi bi-person me-1"></i>{{ prov.contacto_nombre }}</div>{% endif %}
+      {% if prov.email %}<div style="font-size:.82rem;color:var(--text2)"><i class="bi bi-envelope me-1"></i>{{ prov.email }}</div>{% endif %}
+      {% if prov.telefono %}<div style="font-size:.82rem;color:var(--text2)"><i class="bi bi-phone me-1"></i>{{ prov.telefono }}</div>{% endif %}
     </div>
-    <div class="ms-auto">
-      <span class="b" style="background:rgba(255,255,255,.15);color:#fff">{{ prov.categoria or 'Proveedor' }}</span>
+  </div>
+  <div class="col-md-3">
+    <div class="sc text-center">
+      <div style="font-size:1.8rem;font-weight:700;color:var(--ac)">{{ ordenes|length }}</div>
+      <div style="font-size:.8rem;color:var(--text2)">Ordenes de compra</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="sc text-center">
+      <div style="font-size:1.8rem;font-weight:700;color:var(--green)">{{ ordenes|selectattr('estado','equalto','recibida')|list|length }}</div>
+      <div style="font-size:.8rem;color:var(--text2)">Completadas</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="sc text-center">
+      <div style="font-size:1.8rem;font-weight:700;color:var(--orange)">{{ ordenes|rejectattr('estado','in',['recibida','cancelada'])|list|length }}</div>
+      <div style="font-size:.8rem;color:var(--text2)">En proceso</div>
     </div>
   </div>
 </div>
 
-<!-- Órdenes de Compra (BLOQUE 4 - MEJORADO) -->
+{# ── Ordenes de Compra ── #}
 <div class="tc mb-3">
-  <div class="ch"><i class="bi bi-cart-fill me-2"></i>Órdenes de Compra
-    <span class="b b-borrador">{{ ordenes|length }}</span>
-  </div>
+  <div class="ch"><i class="bi bi-cart-fill me-2"></i>Ordenes de Compra</div>
   {% if ordenes %}
   <div class="table-responsive">
     <table class="table">
-      <thead><tr>
-        <th>#</th><th>Fecha</th><th>Items</th><th>Total</th><th>Estado</th><th>Pago</th><th>Entrega</th><th>Acciones</th>
-      </tr></thead>
+      <thead><tr><th>#</th><th>Fecha</th><th>Items</th><th>Total</th><th>Pago</th><th>Estado</th><th>Entrega</th><th>Acciones</th></tr></thead>
       <tbody>
       {% for oc in ordenes %}
       <tr>
-        <td><strong>{{ oc.numero or ('OC-'+oc.id|string) }}</strong></td>
-        <td>{{ oc.creado_en.strftime('%d/%m/%Y') }}</td>
-        <td>{{ oc.items|length }} ítem(s)</td>
-        <td>$ {{ '{:,.0f}'.format(oc.total or 0).replace(',','.') }}</td>
-        <td>
-          <span class="b b-{{ oc.estado or 'pendiente' }}">{{ (oc.estado or 'pendiente').replace('_',' ').title() }}</span>
-        </td>
+        <td class="fw-semibold">{{ oc.numero or '--' }}</td>
+        <td><small>{{ oc.creado_en.strftime('%d/%m/%Y') }}</small></td>
+        <td>{{ oc.items|length }} item(s)</td>
+        <td class="fw-semibold">{{ moneda(oc.total or 0) }}</td>
         <td>
           {% if oc.estado in ('en_espera_producto','recibida','recibida_parcial','pagado') %}
-            <span class="b b-completado">Pagado {{ moneda(oc.monto_pagado or 0) }}</span>
+            <span class="b b-completado">Pagado</span>
           {% elif oc.estado == 'anticipo_pagado' %}
             <span class="b b-anticipo_pagado">Anticipo {{ moneda(oc.monto_pagado or 0) }}</span>
           {% else %}
             <span class="b b-pendiente">Pendiente</span>
           {% endif %}
         </td>
-        <td style="font-size:.82rem;color:var(--text2)">{{ oc.fecha_esperada.strftime('%d/%m/%Y') if oc.fecha_esperada else '--' }}</td>
+        <td><span class="b b-{{ oc.estado or 'pendiente' }}">{{ (oc.estado or 'pendiente').replace('_',' ').title() }}</span></td>
+        <td><small class="text-muted">{{ oc.fecha_esperada.strftime('%d/%m/%Y') if oc.fecha_esperada else '--' }}</small></td>
         <td>
-          <div class="d-flex gap-1 flex-wrap">
-            <a href="{{ url_for('portal_prov_oc_pdf', id=oc.id) }}" class="btn btn-sm btn-outline-secondary" target="_blank" title="Descargar PDF"><i class="bi bi-file-earmark-pdf"></i></a>
-            {% if oc.estado in ('pendiente','enviada') %}
-            <form method="POST" action="{{ url_for('portal_prov_confirmar_oc', id=oc.id) }}" style="display:inline">
-              <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('¿Confirmar recepción de esta orden?')">
-                <i class="bi bi-check-circle me-1"></i>Aceptar
-              </button>
+          <div class="d-flex gap-1">
+            <a href="{{ url_for('portal_prov_oc_pdf', id=oc.id) }}" class="btn btn-xs btn-outline-secondary" target="_blank" title="PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+            {% if oc.estado_proveedor == 'pendiente' %}
+            <form method="POST" action="{{ url_for('portal_prov_confirmar_oc', id=oc.id) }}" class="d-inline">
+              <button type="submit" class="btn btn-xs btn-success" onclick="return confirm('Confirmar esta OC?')"><i class="bi bi-check-lg"></i></button>
             </form>
-            {% endif %}
-            {% if oc.estado not in ('anulada','cancelada','rechazada') %}
-            <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#modalAnticipoOC{{ oc.id }}" title="Registrar anticipo recibido">
-              <i class="bi bi-cash-coin me-1"></i>Anticipo
-            </button>
-            <!-- Modal para registrar anticipo (BLOQUE 4) -->
-            <div class="modal fade" id="modalAnticipoOC{{ oc.id }}" tabindex="-1">
-              <div class="modal-dialog modal-sm">
-                <div class="modal-content">
-                  <div class="modal-header">
-                    <h5 class="modal-title">Registrar anticipo recibido</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                  </div>
-                  <form method="POST" action="{{ url_for('portal_prov_anticipo_oc', id=oc.id) }}">
-                    <div class="modal-body">
-                      <label class="form-label">Fecha de recepción del anticipo</label>
-                      <input type="date" name="fecha_anticipo_real" class="form-control" value="{{ oc.fecha_anticipo_real.strftime('%Y-%m-%d') if oc.fecha_anticipo_real else '' }}" required>
-                      <small class="form-text text-muted mt-2">Esta fecha se utilizará para recalcular la fecha de entrega esperada.</small>
-                    </div>
-                    <div class="modal-footer">
-                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                      <button type="submit" class="btn btn-primary">Registrar anticipo</button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            </div>
             {% endif %}
           </div>
         </td>
@@ -94,25 +84,26 @@
     </table>
   </div>
   {% else %}
-  <div class="empty-state"><i class="bi bi-cart"></i><p>Sin órdenes de compra aún</p></div>
+  <div class="empty-state"><i class="bi bi-cart"></i><p>Sin ordenes de compra.</p></div>
   {% endif %}
 </div>
 
-<!-- Cotizaciones de proveedor -->
+{# ── Cotizaciones ── #}
 {% if cotizaciones %}
-<div class="tc mb-3">
-  <div class="ch"><i class="bi bi-file-text me-2"></i>Mis Cotizaciones</div>
+<div class="tc">
+  <div class="ch"><i class="bi bi-file-earmark-check me-2"></i>Mis Cotizaciones</div>
   <div class="table-responsive">
     <table class="table">
-      <thead><tr><th>#</th><th>Fecha</th><th>Descripción</th><th>Total</th><th>Estado</th></tr></thead>
+      <thead><tr><th>#</th><th>Producto</th><th>Precio unit.</th><th>Unidad</th><th>Plazo</th><th>Estado</th></tr></thead>
       <tbody>
-      {% for c in cotizaciones %}
+      {% for cp in cotizaciones %}
       <tr>
-        <td><strong>{{ c.numero or c.id }}</strong></td>
-        <td>{{ c.creado_en.strftime('%d/%m/%Y') }}</td>
-        <td>{{ c.descripcion or '—' }}</td>
-        <td>$ {{ '{:,.0f}'.format(c.total or 0).replace(',','.') }}</td>
-        <td><span class="b b-{{ c.estado or 'borrador' }}">{{ (c.estado or 'borrador').title() }}</span></td>
+        <td><small class="fw-semibold">{{ cp.numero or '--' }}</small></td>
+        <td>{{ cp.nombre_producto }}</td>
+        <td class="fw-semibold">{{ moneda(cp.precio_unitario or 0) }}</td>
+        <td><small>{{ cp.unidad }}</small></td>
+        <td><small class="text-muted">{{ cp.plazo_entrega_dias or '--' }} dias</small></td>
+        <td><span class="b b-{{ cp.estado }}">{{ cp.estado.title() }}</span></td>
       </tr>
       {% endfor %}
       </tbody>
