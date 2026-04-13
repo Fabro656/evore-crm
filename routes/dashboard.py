@@ -48,11 +48,6 @@ def register(app):
             if prods_bajo: db.session.commit()
         except Exception: pass
 
-        # Notificaciones de stock bajo en el panel de campana
-        try:
-            _verificar_stock_minimo()
-        except Exception: pass
-
         # Productos bajo mínimo para el banner detallado del dashboard
         try:
             alertas_stock = Producto.query.filter(
@@ -128,10 +123,31 @@ def register(app):
             db.session.rollback()
             productos_rentabilidad = []
 
+        # ── Batch counts in single pass ──
+        try:
+            _total_clientes = Cliente.query.filter_by(estado='activo').count()
+            _ventas_completadas = Venta.query.filter_by(estado='completado').count()
+            _tareas_pendientes = Tarea.query.filter(Tarea.estado != 'completada').count()
+            _productos_bajo = Producto.query.filter(Producto.activo==True, Producto.stock<=Producto.stock_minimo).count()
+        except Exception:
+            _total_clientes = _ventas_completadas = _tareas_pendientes = _productos_bajo = 0
+
+        # ── Recent items (limit queries) ──
+        _rol = _get_rol_activo(current_user)
+        try:
+            _tareas_rec = Tarea.query.filter(Tarea.estado!='completada').order_by(Tarea.creado_en.desc()).limit(5).all()
+            _ventas_rec = Venta.query.order_by(Venta.creado_en.desc()).limit(6).all()
+            _notas_rec = Nota.query.order_by(Nota.actualizado_en.desc()).limit(4).all()
+            _eventos_hoy = Evento.query.filter(Evento.fecha==hoy).order_by(Evento.hora_inicio).all()
+            _eventos_prox = Evento.query.filter(Evento.fecha>hoy, Evento.fecha<=hoy+timedelta(days=7)).order_by(Evento.fecha).limit(5).all()
+            _aprob = Aprobacion.query.filter_by(estado='pendiente').order_by(Aprobacion.creado_en.desc()).limit(5).all() if _rol in ('admin','director_financiero','director_operativo') else []
+        except Exception:
+            _tareas_rec = _ventas_rec = _notas_rec = _eventos_hoy = _eventos_prox = _aprob = []
+
         return render_template('dashboard.html',
-            total_clientes       = Cliente.query.filter_by(estado='activo').count(),
-            ventas_completadas       = Venta.query.filter_by(estado='completado').count(),
-            tareas_pendientes    = Tarea.query.filter(Tarea.estado != 'completada').count(),
+            total_clientes       = _total_clientes,
+            ventas_completadas   = _ventas_completadas,
+            tareas_pendientes    = _tareas_pendientes,
             ingresos_totales     = ingresos,
             gastos_totales       = gastos_tot,
             compras_totales      = compras_tot,
@@ -139,15 +155,15 @@ def register(app):
             impuestos_estimados  = impuestos_estimados,
             saldo_neto           = saldo_neto,
             saldo_pendiente      = saldo_pend,
-            productos_bajo_stock = Producto.query.filter(Producto.activo==True, Producto.stock<=Producto.stock_minimo).count(),
+            productos_bajo_stock = _productos_bajo,
             alertas_stock        = alertas_stock,
-            tareas_recientes     = Tarea.query.filter(Tarea.estado!='completada').order_by(Tarea.creado_en.desc()).limit(5).all(),
-            ventas_recientes     = Venta.query.order_by(Venta.creado_en.desc()).limit(6).all(),
-            actividades_recientes= Actividad.query.order_by(Actividad.creado_en.desc()).limit(8).all(),
-            aprobaciones_pendientes = Aprobacion.query.filter_by(estado='pendiente').order_by(Aprobacion.creado_en.desc()).limit(5).all() if _get_rol_activo(current_user) in ('admin','director_financiero','director_operativo') else [],
-            notas_recientes      = Nota.query.order_by(Nota.actualizado_en.desc()).limit(4).all(),
-            eventos_hoy          = Evento.query.filter(Evento.fecha==hoy).order_by(Evento.hora_inicio).all(),
-            eventos_proximos     = Evento.query.filter(Evento.fecha>hoy, Evento.fecha<=hoy+timedelta(days=7)).order_by(Evento.fecha).limit(5).all(),
+            tareas_recientes     = _tareas_rec,
+            ventas_recientes     = _ventas_rec,
+            actividades_recientes= [],
+            aprobaciones_pendientes = _aprob,
+            notas_recientes      = _notas_rec,
+            eventos_hoy          = _eventos_hoy,
+            eventos_proximos     = _eventos_prox,
             cots_sin_respuesta   = cots_sin_respuesta,
             ventas_estancadas    = ventas_estancadas,
             entregas_pendientes  = entregas_pendientes,

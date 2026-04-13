@@ -62,6 +62,19 @@ def create_app():
         except Exception as e:
             logging.warning(f'Mail init warning: {e}')
 
+    # ── Gzip compression ─────────────────────────────────────────────
+    try:
+        from flask_compress import Compress
+        app.config['COMPRESS_MIMETYPES'] = [
+            'text/html', 'text/css', 'text/xml', 'text/javascript',
+            'application/json', 'application/javascript', 'application/xml',
+            'image/svg+xml',
+        ]
+        app.config['COMPRESS_MIN_SIZE'] = 500
+        Compress(app)
+    except ImportError:
+        logging.info('flask-compress not installed — serving uncompressed')
+
     # ── Register routes ───────────────────────────────────────────────
     from routes import register_all
     register_all(app)
@@ -152,6 +165,12 @@ def create_app():
 
     @app.after_request
     def _security_headers(response):
+        # ── Cache: static assets 7 days, HTML no-cache ───────────────────
+        if request.path.startswith('/static/'):
+            response.headers['Cache-Control'] = 'public, max-age=604800'
+        elif response.content_type and 'text/html' in response.content_type:
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+
         # ── Standard security headers ────────────────────────────────────
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['X-Frame-Options']         = 'SAMEORIGIN'
