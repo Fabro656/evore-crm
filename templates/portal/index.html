@@ -8,7 +8,7 @@
 <div class="row g-4">
   <!-- Left: Client Card -->
   <div class="col-lg-3">
-    <div class="tc mb-3">
+    <div class="tc mb-3" style="padding:1.25rem">
       <div class="d-flex align-items-center gap-2 mb-3">
         <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
              style="width:50px;height:50px;background:#2563EB;font-size:1.3rem;flex-shrink:0">{{ (cliente.empresa or cliente.nombre)[0].upper() }}</div>
@@ -206,11 +206,11 @@
 
       <!-- TAB 4: Mensajes -->
       <div class="tab-pane fade" id="tab-mensajes">
-        <div class="tc">
+        <div class="tc" style="padding-bottom:1rem">
           <div class="ch"><i class="bi bi-chat-left-text me-2"></i>Mensajes con Sales Manager</div>
 
           {% if mensajes %}
-          <div style="max-height:400px;overflow-y:auto;padding:1rem;background:var(--surface2);border-radius:8px;margin-bottom:1rem">
+          <div style="max-height:400px;overflow-y:auto;padding:1rem;margin:0 1rem;background:var(--surface2);border-radius:8px;margin-bottom:1rem">
             {% for msg in mensajes %}
             <div class="mb-3 p-2" style="background:var(--surface);border-radius:6px;border-left:3px solid var(--ac)">
               <div class="d-flex justify-content-between align-items-start mb-1">
@@ -231,9 +231,9 @@
           <div class="alert alert-info mb-3"><i class="bi bi-info-circle me-2"></i>Sin mensajes aún</div>
           {% endif %}
 
-          <form method="POST" action="{{ url_for('portal_mensaje_nuevo') }}">
+          <form method="POST" action="{{ url_for('portal_mensaje_nuevo') }}" style="padding:0 1rem">
             <div class="input-group">
-              <textarea name="mensaje" class="form-control" placeholder="Escribe tu mensaje aquí..." required style="max-height:120px"></textarea>
+              <textarea name="mensaje" class="form-control" placeholder="Escribe tu mensaje aqui..." required style="max-height:120px"></textarea>
               <button type="submit" class="btn btn-primary"><i class="bi bi-send me-1"></i>Enviar</button>
             </div>
           </form>

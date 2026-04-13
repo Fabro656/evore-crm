@@ -1544,19 +1544,23 @@ document.addEventListener('DOMContentLoaded',function(){
 window.iniciarObContextual = function(){
   try {
     var steps = [
+      // Orden identico al sidebar
       {icon:'bi-house-fill', color:'#3B82F6', title:'Home', desc:'Dashboard con KPIs, tickets, ventas, aprobaciones, calendario y notas.'},
       {icon:'bi-check2-square', color:'#8B5CF6', title:'Tickets', desc:'Seguimiento con prioridades y categorias. Auto-generados por calidad o nomina.'},
       {icon:'bi-calendar3', color:'#F59E0B', title:'Calendario', desc:'Eventos y recordatorios. Click en dia para crear.'},
+      {icon:'bi-sticky-fill', color:'#7C3AED', title:'Notas', desc:'Vinculadas a OC, ventas, proveedores. Tipos: nota, alerta, seguimiento.'},
       {icon:'bi-bag-fill', color:'#10B981', title:'Comercial', desc:'Pipeline de ventas. Auto-genera asiento contable y contrato al portal.'},
       {icon:'bi-cart-check', color:'#F97316', title:'Compras', desc:'OC multi-cotizacion. Contrato proveedor. Pago via asientos.'},
+      {icon:'bi-box-seam-fill', color:'#6366F1', title:'Inventario', desc:'Stock PT y MP con alertas de minimo. Lotes con trazabilidad FIFO.'},
       {icon:'bi-gear-fill', color:'#6366F1', title:'Produccion', desc:'Ordenes, Gantt, recepcion MP, control calidad con tickets auto.'},
+      {icon:'bi-truck-front', color:'#10B981', title:'Logistica', desc:'Simulador envio, calculadora cajas, transportistas, tracking.'},
       {icon:'bi-currency-dollar', color:'#059669', title:'Finanzas', desc:'PUC, asientos, reconciliacion bancaria, IVA, retenciones, cierres.'},
+      {icon:'bi-shield-check', color:'#0EA5E9', title:'Legal', desc:'9 plantillas colombianas. Firma digital + selfie. Auto-genera contratos.'},
       {icon:'bi-people-fill', color:'#EC4899', title:'Nomina', desc:'Prorrateo, horas extra, retencion, parametros editables, liquidacion.'},
       {icon:'bi-clipboard-check', color:'#EF4444', title:'Aprobaciones', desc:'Bloquea OC/ventas hasta aprobar o rechazar.'},
-      {icon:'bi-shield-check', color:'#0EA5E9', title:'Legal', desc:'9 plantillas colombianas. Firma digital + selfie. Auto-genera contratos.'},
-      {t:'topbar', color:'#64748B', icon:'bi-layout-text-window', title:'Barra superior', desc:'Acciones del modulo, tema, perfil, fecha.'},
-      {t:'perfil', color:'#64748B', icon:'bi-person-circle', title:'Perfil', desc:'Perfil, actividad, tutorial, cerrar sesion.'},
-      {t:'foot', color:'#64748B', icon:'bi-grid-3x3-gap', title:'Pie del dock', desc:'Notificaciones, Wiki, Tutorial.'},
+      // UI - se posicionan sobre elementos especificos
+      {t:'topbar', color:'#64748B', icon:'bi-layout-text-window', title:'Barra superior', desc:'Titulo de pagina, botones de accion, tema claro/oscuro, y fecha actual.'},
+      {t:'foot', color:'#64748B', icon:'bi-grid-3x3-gap', title:'Pie del dock', desc:'Tu avatar, notificaciones, Wiki del sistema, y este boton Tutorial.'},
     ];
     var idx = 0;
     var ctx = document.getElementById('obCtx');
