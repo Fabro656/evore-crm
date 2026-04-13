@@ -119,14 +119,35 @@
       </div>
     </div>
 
-    <div class="col-12"><hr><label class="form-label fw-bold">Firma digital (opcional)</label></div>
+    <div class="col-12"><hr><label class="form-label fw-bold">Firma del documento</label></div>
+    <div class="col-md-3">
+      <label class="form-label">Quien firma por la empresa</label>
+      <select name="firmante_tipo" class="form-select form-select-sm" onchange="cargarFirmante()">
+        <option value="representante">Representante legal</option>
+        <option value="contador">Contador</option>
+        <option value="otro">Otro (manual)</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Nombre del firmante</label>
+      <input type="text" name="firmante_nombre" id="firmNombre" class="form-control form-control-sm" value="{{ empresa.representante_legal if empresa and empresa.representante_legal else '' }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Cedula del firmante</label>
+      <input type="text" name="firmante_cedula" id="firmCedula" class="form-control form-control-sm" value="{{ empresa.representante_cedula if empresa and empresa.representante_cedula else '' }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Cargo del firmante</label>
+      <input type="text" name="firmante_cargo" id="firmCargo" class="form-control form-control-sm" value="{{ empresa.representante_cargo if empresa and empresa.representante_cargo else 'Representante Legal' }}">
+    </div>
     <div class="col-md-6">
+      <label class="form-label">Firma digital (opcional)</label>
       <div style="border:2px dashed var(--border);border-radius:8px;background:var(--surface2);position:relative">
         <canvas id="signPad" width="400" height="120" style="width:100%;cursor:crosshair;display:block"></canvas>
         <button type="button" onclick="clearSign()" class="btn btn-xs btn-outline-secondary" style="position:absolute;top:4px;right:4px;font-size:.7rem">Limpiar</button>
       </div>
       <input type="hidden" name="firma_data" id="firmaData">
-      <small class="text-muted">Dibuja tu firma con el mouse o el dedo. Se incluira en el documento generado.</small>
+      <small class="text-muted">Se incluira con texto "Firmado digitalmente en Evore CRM".</small>
     </div>
 
     <div class="mt-4">
@@ -174,6 +195,23 @@ signCanvas.addEventListener('touchstart',function(e){e.preventDefault();signing=
 signCanvas.addEventListener('touchmove',function(e){e.preventDefault();if(!signing)return;var p=getPos(e);signCtx.lineTo(p.x,p.y);signCtx.stroke();},{passive:false});
 signCanvas.addEventListener('touchend',function(){signing=false;});
 function clearSign(){signCtx.clearRect(0,0,signCanvas.width,signCanvas.height);}
+
+function cargarFirmante(){
+  var tipo = document.querySelector('[name="firmante_tipo"]').value;
+  if(tipo==='representante'){
+    document.getElementById('firmNombre').value='{{ (empresa.representante_legal or "")|e }}';
+    document.getElementById('firmCedula').value='{{ (empresa.representante_cedula or "")|e }}';
+    document.getElementById('firmCargo').value='{{ (empresa.representante_cargo or "Representante Legal")|e }}';
+  } else if(tipo==='contador'){
+    document.getElementById('firmNombre').value='{{ (empresa.contador_nombre or "")|e }}';
+    document.getElementById('firmCedula').value='{{ (empresa.contador_tarjeta or "")|e }}';
+    document.getElementById('firmCargo').value='Contador';
+  } else {
+    document.getElementById('firmNombre').value='';
+    document.getElementById('firmCedula').value='';
+    document.getElementById('firmCargo').value='';
+  }
+}
 
 function toggleCampos(){
   var p = document.querySelector('[name="plantilla"]').value;

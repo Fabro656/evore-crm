@@ -508,6 +508,9 @@ def register(app):
                 'vigencia': request.form.get('vigencia', '12 meses'),
                 'valor': request.form.get('valor', ''),
                 'firma_data': request.form.get('firma_data', ''),
+                'firmante_nombre': request.form.get('firmante_nombre', '') or (getattr(empresa, 'representante_legal', '') or ''),
+                'firmante_cedula': request.form.get('firmante_cedula', '') or (getattr(empresa, 'representante_cedula', '') or ''),
+                'firmante_cargo': request.form.get('firmante_cargo', '') or 'Representante Legal',
             }
             return render_template(f'legal/plantillas/{plantilla}.html', **datos)
 
@@ -557,18 +560,21 @@ def register(app):
 
         if tipo == 'venta':
             venta = Venta.query.get_or_404(id)
-            cli = venta.cliente if venta.cliente_id else None
+            try:
+                cli = db.session.get(Cliente, venta.cliente_id) if venta.cliente_id else None
+            except Exception:
+                cli = None
             datos.update({
-                'tercero_nombre': cli.nombre if cli else '',
-                'tercero_cedula': cli.nit if cli else '',
-                'tercero_empresa': cli.empresa if cli else '',
-                'tercero_direccion': cli.direccion if cli else '',
+                'tercero_nombre': getattr(cli, 'nombre', '') or '' if cli else '',
+                'tercero_cedula': getattr(cli, 'nit', '') or '' if cli else '',
+                'tercero_empresa': getattr(cli, 'empresa', '') or '' if cli else '',
+                'tercero_direccion': getattr(cli, 'direccion', '') or '' if cli else '',
                 'objeto': f'Fabricacion y entrega de los productos del pedido {venta.numero or venta.titulo}',
                 'valor': f'${venta.total:,.0f} COP' if venta.total else '',
                 'vigencia': f'{venta.dias_entrega or 30} dias',
-                # Items para acta de entrega
-                'items': [{'nombre': it.nombre_prod, 'cantidad': it.cantidad, 'unidad': it.unidad or 'unidades',
-                           'descripcion': ''} for it in venta.items] if venta.items else [],
+                'items': [{'nombre': getattr(it, 'nombre_prod', '') or '', 'cantidad': getattr(it, 'cantidad', 0) or 0,
+                           'unidad': getattr(it, 'unidad', 'unidades') or 'unidades',
+                           'descripcion': ''} for it in (venta.items or [])],
                 'venta': venta,
             })
             if not plantilla:
@@ -632,7 +638,10 @@ def register(app):
             'tercero_nombre':'','tercero_cedula':'','tercero_direccion':'',
             'tercero_cargo':'','tercero_salario':'','tercero_empresa':'',
             'tercero_nit':'','objeto':'','vigencia':'12 meses','valor':'',
-            'items':[],'venta':None,
+            'items':[],'venta':None,'firma_data':'',
+            'firmante_nombre': getattr(empresa, 'representante_legal', '') or '',
+            'firmante_cedula': getattr(empresa, 'representante_cedula', '') or '',
+            'firmante_cargo': getattr(empresa, 'representante_cargo', '') or 'Representante Legal',
         }
         for k,v in defaults.items():
             datos.setdefault(k, v)
