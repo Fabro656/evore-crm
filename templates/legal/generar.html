@@ -176,10 +176,19 @@ signCanvas.addEventListener('touchend',function(){signing=false;});
 function clearSign(){signCtx.clearRect(0,0,signCanvas.width,signCanvas.height);}
 
 function toggleCampos(){
-  var plantilla = document.querySelector('[name="plantilla"]').value;
-  var esLaboral = plantilla.includes('contrato_indefinido') || plantilla.includes('contrato_fijo') || plantilla.includes('carta_terminacion');
+  var p = document.querySelector('[name="plantilla"]').value;
+  var esLaboral = p.includes('contrato_indefinido') || p.includes('contrato_fijo') || p.includes('carta_terminacion') || p.includes('contrato_prestacion');
+  var esComercial = p.includes('contrato_proveedor') || p.includes('contrato_cliente') || p.includes('nda');
   document.getElementById('secCargo').style.display = esLaboral ? '' : 'none';
-  document.getElementById('secSalario').style.display = esLaboral ? '' : 'none';
+  document.getElementById('secSalario').style.display = (esLaboral && !p.includes('carta_terminacion')) ? '' : 'none';
+  document.getElementById('secEmpresa').style.display = esComercial ? '' : 'none';
+  document.getElementById('secNit').style.display = esComercial ? '' : 'none';
+  // Auto-seleccionar fuente de datos
+  var label = document.querySelector('label[for="cargarDesde"]');
+  if(esLaboral && label) label.textContent = 'Cargar empleado';
+  else if(p.includes('proveedor') && label) label.textContent = 'Cargar proveedor';
+  else if(p.includes('cliente') || p.includes('acta') && label) label.textContent = 'Cargar cliente';
+  else if(label) label.textContent = 'Cargar desde';
   actualizarPreview();
 }
 

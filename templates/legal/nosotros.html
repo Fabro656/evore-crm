@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block title %}Informacion Legal{% endblock %}
+{% block page_title %}Nosotros — Informacion Legal{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('legal_index') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Legal</a>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:800px">
+  <div class="alert alert-info py-2 mb-3" style="font-size:.82rem">
+    <i class="bi bi-info-circle me-1"></i>Esta informacion se usa automaticamente en todos los documentos legales generados (contratos, actas, NDAs). Mantenla actualizada segun el certificado de existencia y representacion legal de la Camara de Comercio.
+  </div>
+
+  <form method="POST">
+    <div class="row g-3">
+      <div class="col-12">
+        <h6 style="color:var(--ac);text-transform:uppercase;font-size:.75rem;letter-spacing:1px;margin-bottom:.5rem"><i class="bi bi-building me-1"></i>Datos de la empresa</h6>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Razon social</label>
+        <input type="text" class="form-control" value="{{ empresa.nombre or '' }}" disabled>
+        <small class="text-muted">Se edita en Configuracion de empresa</small>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">NIT</label>
+        <input type="text" class="form-control" value="{{ empresa.nit or '' }}" disabled>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Tipo de sociedad *</label>
+        <select name="tipo_sociedad" class="form-select">
+          {% for v,l in [('SAS','S.A.S. (Sociedad por Acciones Simplificada)'),('LTDA','Ltda. (Sociedad Limitada)'),('SA','S.A. (Sociedad Anonima)'),('SCA','S.C.A. (Sociedad en Comandita)'),('persona_natural','Persona Natural'),('otro','Otro')] %}
+          <option value="{{ v }}" {% if empresa.tipo_sociedad==v %}selected{% endif %}>{{ l }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Matricula mercantil</label>
+        <input type="text" name="matricula_mercantil" class="form-control" value="{{ empresa.matricula_mercantil or '' }}" placeholder="Ej: 12345678">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Camara de comercio</label>
+        <input type="text" name="camara_comercio" class="form-control" value="{{ empresa.camara_comercio or '' }}" placeholder="Ej: Bogota">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Regimen tributario</label>
+        <select name="regimen_tributario" class="form-select">
+          <option value="responsable_iva" {% if empresa.regimen_tributario=='responsable_iva' %}selected{% endif %}>Responsable de IVA</option>
+          <option value="no_responsable" {% if empresa.regimen_tributario=='no_responsable' %}selected{% endif %}>No responsable de IVA</option>
+          <option value="gran_contribuyente" {% if empresa.regimen_tributario=='gran_contribuyente' %}selected{% endif %}>Gran contribuyente</option>
+          <option value="regimen_simple" {% if empresa.regimen_tributario=='regimen_simple' %}selected{% endif %}>Regimen Simple (SIMPLE)</option>
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Actividad economica (CIIU)</label>
+        <input type="text" name="actividad_economica" class="form-control" value="{{ empresa.actividad_economica or '' }}" placeholder="Ej: 2023 — Fabricacion de otros productos quimicos">
+      </div>
+
+      <div class="col-12 mt-3">
+        <h6 style="color:var(--ac);text-transform:uppercase;font-size:.75rem;letter-spacing:1px;margin-bottom:.5rem"><i class="bi bi-person-badge me-1"></i>Representante legal</h6>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Nombre completo *</label>
+        <input type="text" name="representante_legal" class="form-control" value="{{ empresa.representante_legal or '' }}" required placeholder="Nombre y apellidos">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Cedula *</label>
+        <input type="text" name="representante_cedula" class="form-control" value="{{ empresa.representante_cedula or '' }}" required placeholder="1.234.567.890">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Cargo</label>
+        <input type="text" name="representante_cargo" class="form-control" value="{{ empresa.representante_cargo or 'Representante Legal' }}" placeholder="Gerente General">
+      </div>
+
+      <div class="col-12 mt-3">
+        <h6 style="color:var(--ac);text-transform:uppercase;font-size:.75rem;letter-spacing:1px;margin-bottom:.5rem"><i class="bi bi-calculator me-1"></i>Contador y revisor fiscal</h6>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Contador</label>
+        <input type="text" name="contador_nombre" class="form-control" value="{{ empresa.contador_nombre or '' }}" placeholder="Nombre completo">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Tarjeta profesional</label>
+        <input type="text" name="contador_tarjeta" class="form-control" value="{{ empresa.contador_tarjeta or '' }}" placeholder="T.P. 12345-T">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Revisor fiscal</label>
+        <input type="text" name="revisor_fiscal" class="form-control" value="{{ empresa.revisor_fiscal or '' }}" placeholder="Nombre completo (si aplica)">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">T.P. revisor</label>
+        <input type="text" name="revisor_tarjeta" class="form-control" value="{{ empresa.revisor_tarjeta or '' }}" placeholder="T.P.">
+      </div>
+    </div>
+
+    <div class="mt-4">
+      <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Guardar informacion legal</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

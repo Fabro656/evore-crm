@@ -601,8 +601,19 @@ class ConfigEmpresa(db.Model):
     ciudad     = db.Column(db.String(100))
     sitio_web  = db.Column(db.String(200))
     firma_path = db.Column(db.String(300), nullable=True)
-    representante_legal = db.Column(db.String(200), nullable=True)  # v39
-    representante_cedula = db.Column(db.String(30), nullable=True)  # v39
+    # v39 — Info legal completa (ley colombiana)
+    representante_legal = db.Column(db.String(200), nullable=True)
+    representante_cedula = db.Column(db.String(30), nullable=True)
+    representante_cargo = db.Column(db.String(100), nullable=True)
+    tipo_sociedad = db.Column(db.String(100), nullable=True)  # SAS, LTDA, SA, etc.
+    matricula_mercantil = db.Column(db.String(50), nullable=True)
+    camara_comercio = db.Column(db.String(100), nullable=True)
+    regimen_tributario = db.Column(db.String(50), nullable=True)  # comun, simplificado
+    actividad_economica = db.Column(db.String(200), nullable=True)  # CIIU
+    contador_nombre = db.Column(db.String(200), nullable=True)
+    contador_tarjeta = db.Column(db.String(50), nullable=True)  # tarjeta profesional
+    revisor_fiscal = db.Column(db.String(200), nullable=True)
+    revisor_tarjeta = db.Column(db.String(50), nullable=True)
 
 class Evento(db.Model):
     __tablename__ = 'eventos'
@@ -1298,11 +1309,31 @@ def _migrate(conn):
         ("ALTER TABLE aprobaciones ADD COLUMN cotizacion_id INTEGER REFERENCES cotizaciones(id)"),
         ("ALTER TABLE aprobaciones ADD COLUMN IF NOT EXISTS asiento_id INTEGER REFERENCES asientos_contables(id)"),
         ("ALTER TABLE aprobaciones ADD COLUMN asiento_id INTEGER REFERENCES asientos_contables(id)"),
-        # v39 — ConfigEmpresa representante legal
+        # v39 — ConfigEmpresa info legal completa
         ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS representante_legal VARCHAR(200)"),
         ("ALTER TABLE config_empresa ADD COLUMN representante_legal VARCHAR(200)"),
         ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS representante_cedula VARCHAR(30)"),
         ("ALTER TABLE config_empresa ADD COLUMN representante_cedula VARCHAR(30)"),
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS representante_cargo VARCHAR(100)"),
+        ("ALTER TABLE config_empresa ADD COLUMN representante_cargo VARCHAR(100)"),
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS tipo_sociedad VARCHAR(100)"),
+        ("ALTER TABLE config_empresa ADD COLUMN tipo_sociedad VARCHAR(100)"),
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS matricula_mercantil VARCHAR(50)"),
+        ("ALTER TABLE config_empresa ADD COLUMN matricula_mercantil VARCHAR(50)"),
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS camara_comercio VARCHAR(100)"),
+        ("ALTER TABLE config_empresa ADD COLUMN camara_comercio VARCHAR(100)"),
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS regimen_tributario VARCHAR(50)"),
+        ("ALTER TABLE config_empresa ADD COLUMN regimen_tributario VARCHAR(50)"),
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS actividad_economica VARCHAR(200)"),
+        ("ALTER TABLE config_empresa ADD COLUMN actividad_economica VARCHAR(200)"),
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS contador_nombre VARCHAR(200)"),
+        ("ALTER TABLE config_empresa ADD COLUMN contador_nombre VARCHAR(200)"),
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS contador_tarjeta VARCHAR(50)"),
+        ("ALTER TABLE config_empresa ADD COLUMN contador_tarjeta VARCHAR(50)"),
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS revisor_fiscal VARCHAR(200)"),
+        ("ALTER TABLE config_empresa ADD COLUMN revisor_fiscal VARCHAR(200)"),
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS revisor_tarjeta VARCHAR(50)"),
+        ("ALTER TABLE config_empresa ADD COLUMN revisor_tarjeta VARCHAR(50)"),
         # v39 — MovimientoInventario table
         ("CREATE TABLE IF NOT EXISTS movimientos_inventario (id SERIAL PRIMARY KEY, producto_id INTEGER REFERENCES productos(id), materia_prima_id INTEGER REFERENCES materias_primas(id), tipo VARCHAR(30) NOT NULL, cantidad FLOAT DEFAULT 0, stock_anterior FLOAT DEFAULT 0, stock_posterior FLOAT DEFAULT 0, referencia VARCHAR(200), usuario_id INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
         ("CREATE TABLE IF NOT EXISTS movimientos_inventario (id INTEGER PRIMARY KEY AUTOINCREMENT, producto_id INTEGER REFERENCES productos(id), materia_prima_id INTEGER REFERENCES materias_primas(id), tipo VARCHAR(30) NOT NULL, cantidad FLOAT DEFAULT 0, stock_anterior FLOAT DEFAULT 0, stock_posterior FLOAT DEFAULT 0, referencia VARCHAR(200), usuario_id INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"),

@@ -421,6 +421,35 @@ def register(app):
                                clientes_list=clientes_list, proveedores_list=proveedores_list)
     
 
+    # ── legal_nosotros (/legal/nosotros) — Info legal de la empresa
+    @app.route('/legal/nosotros', methods=['GET', 'POST'])
+    @login_required
+    @requiere_modulo('legal')
+    def legal_nosotros():
+        empresa = ConfigEmpresa.query.first()
+        if not empresa:
+            empresa = ConfigEmpresa(nombre='Mi Empresa')
+            db.session.add(empresa)
+            db.session.commit()
+        if request.method == 'POST':
+            empresa.representante_legal = request.form.get('representante_legal', '') or empresa.representante_legal
+            empresa.representante_cedula = request.form.get('representante_cedula', '') or empresa.representante_cedula
+            empresa.representante_cargo = request.form.get('representante_cargo', '') or empresa.representante_cargo
+            empresa.tipo_sociedad = request.form.get('tipo_sociedad', '') or empresa.tipo_sociedad
+            empresa.matricula_mercantil = request.form.get('matricula_mercantil', '') or empresa.matricula_mercantil
+            empresa.camara_comercio = request.form.get('camara_comercio', '') or empresa.camara_comercio
+            empresa.regimen_tributario = request.form.get('regimen_tributario', '') or empresa.regimen_tributario
+            empresa.actividad_economica = request.form.get('actividad_economica', '') or empresa.actividad_economica
+            empresa.contador_nombre = request.form.get('contador_nombre', '') or empresa.contador_nombre
+            empresa.contador_tarjeta = request.form.get('contador_tarjeta', '') or empresa.contador_tarjeta
+            empresa.revisor_fiscal = request.form.get('revisor_fiscal', '') or empresa.revisor_fiscal
+            empresa.revisor_tarjeta = request.form.get('revisor_tarjeta', '') or empresa.revisor_tarjeta
+            db.session.commit()
+            flash('Informacion legal actualizada.', 'success')
+            return redirect(url_for('legal_nosotros'))
+        return render_template('legal/nosotros.html', empresa=empresa)
+
+
     # ── legal_generar (/legal/generar) — Generador de documentos legales
     @app.route('/legal/generar', methods=['GET', 'POST'])
     @login_required
@@ -440,7 +469,16 @@ def register(app):
                 'empresa_nombre': empresa.nombre if empresa else 'Empresa',
                 'empresa_nit': empresa.nit if empresa else '',
                 'empresa_direccion': empresa.direccion if empresa else '',
-                'empresa_representante': empresa.representante_legal if hasattr(empresa, 'representante_legal') and empresa else (request.form.get('representante', '')),
+                'empresa_representante': getattr(empresa, 'representante_legal', '') or request.form.get('representante', ''),
+                'empresa_representante_cedula': getattr(empresa, 'representante_cedula', '') or '',
+                'empresa_representante_cargo': getattr(empresa, 'representante_cargo', '') or 'Representante Legal',
+                'empresa_tipo_sociedad': getattr(empresa, 'tipo_sociedad', '') or 'SAS',
+                'empresa_matricula': getattr(empresa, 'matricula_mercantil', '') or '',
+                'empresa_camara': getattr(empresa, 'camara_comercio', '') or '',
+                'empresa_regimen': getattr(empresa, 'regimen_tributario', '') or '',
+                'empresa_actividad': getattr(empresa, 'actividad_economica', '') or '',
+                'empresa_telefono': getattr(empresa, 'telefono', '') or '',
+                'empresa_ciudad': getattr(empresa, 'ciudad', '') or request.form.get('ciudad', 'Bogota'),
                 'fecha': request.form.get('fecha', datetime.utcnow().strftime('%d de %B de %Y')),
                 'ciudad': request.form.get('ciudad', 'Bogota'),
                 'genero': genero,

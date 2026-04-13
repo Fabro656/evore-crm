@@ -6,6 +6,8 @@ h1{text-align:center;font-size:14pt;text-transform:uppercase;letter-spacing:2px;
 .clausula strong{display:block;margin-bottom:5px}
 .firma{display:flex;justify-content:space-between;margin-top:60px}
 .firma div{width:45%;text-align:center;border-top:1px solid #333;padding-top:8px;font-size:10pt}
+.testigos{display:flex;justify-content:space-between;margin-top:50px}
+.testigos div{width:45%;text-align:center;border-top:1px solid #999;padding-top:8px;font-size:9pt;color:#555}
 .no-print{position:fixed;top:10px;right:10px}
 @media print{.no-print{display:none}}
 </style></head><body>
@@ -13,39 +15,50 @@ h1{text-align:center;font-size:14pt;text-transform:uppercase;letter-spacing:2px;
 
 <h1>Contrato Individual de Trabajo a Termino Indefinido</h1>
 
-<p>En la ciudad de <strong>{{ ciudad }}</strong>, a los <strong>{{ fecha }}</strong>, entre <strong>{{ empresa_nombre }}</strong>, identificada con NIT <strong>{{ empresa_nit }}</strong>, representada legalmente por <strong>{{ empresa_representante }}</strong>, en adelante {{ El_La }} EMPLEADOR, y {{ el_la }} {{ senor_senora }} <strong>{{ tercero_nombre }}</strong>, {{ identificado_identificada }} con cedula de ciudadania No. <strong>{{ tercero_cedula }}</strong>, {{ domiciliado_domiciliada }} en <strong>{{ tercero_direccion or 'la ciudad' }}</strong>, en adelante {{ El_La }} {{ trabajador_trabajadora|upper }}, se celebra el presente contrato individual de trabajo, regido por las siguientes clausulas y en lo no previsto en el, por el Codigo Sustantivo del Trabajo:</p>
+<p>En la ciudad de <strong>{{ empresa_ciudad or ciudad }}</strong>, a los <strong>{{ fecha }}</strong>, entre <strong>{{ empresa_nombre }}</strong>, identificada con NIT <strong>{{ empresa_nit }}</strong>{% if empresa_tipo_sociedad %}, {{ empresa_tipo_sociedad }}{% endif %}{% if empresa_camara and empresa_matricula %}, inscrita en la Camara de Comercio de {{ empresa_camara }}, con matricula mercantil No. {{ empresa_matricula }}{% endif %}, representada legalmente por <strong>{{ empresa_representante }}</strong>{% if empresa_representante_cedula %}, identificado(a) con cedula de ciudadania No. {{ empresa_representante_cedula }}{% endif %}{% if empresa_representante_cargo %}, en su calidad de {{ empresa_representante_cargo }}{% endif %}, con domicilio en {{ empresa_direccion or empresa_ciudad or ciudad }}, en adelante {{ El_La }} EMPLEADOR, y {{ el_la }} {{ senor_senora }} <strong>{{ tercero_nombre }}</strong>, {{ identificado_identificada }} con cedula de ciudadania No. <strong>{{ tercero_cedula }}</strong>, {{ domiciliado_domiciliada }} en <strong>{{ tercero_direccion or 'la ciudad' }}</strong>, en adelante {{ El_La }} {{ trabajador_trabajadora|upper }}, se celebra el presente contrato individual de trabajo, regido por las siguientes clausulas y en lo no previsto en el, por el Codigo Sustantivo del Trabajo y demas normas laborales vigentes:</p>
 
 <div class="clausula"><strong>PRIMERA — OBJETO:</strong>
-{{ El_La }} {{ trabajador_trabajadora }} se obliga a prestar sus servicios personales {{ al_a_la }} EMPLEADOR, desempenando el cargo de <strong>{{ tercero_cargo or '[CARGO]' }}</strong>, y a ejecutar las labores inherentes a dicho cargo, asi como las que le sean asignadas por el EMPLEADOR.</div>
+De conformidad con el articulo 23 del Codigo Sustantivo del Trabajo, el presente contrato reune los tres (3) elementos esenciales del contrato de trabajo: (i) la prestacion personal del servicio por parte {{ del_de_la }} {{ trabajador_trabajadora }}, (ii) la continuada subordinacion y dependencia respecto {{ del_de_la }} EMPLEADOR, y (iii) la remuneracion como retribucion del servicio. {{ El_La }} {{ trabajador_trabajadora }} se obliga a prestar sus servicios personales {{ al_a_la }} EMPLEADOR, desempenando el cargo de <strong>{{ tercero_cargo or '[CARGO]' }}</strong>, y a ejecutar las labores inherentes a dicho cargo, asi como las complementarias y conexas que le sean asignadas por el EMPLEADOR, de acuerdo con sus instrucciones y reglamentos.</div>
 
 <div class="clausula"><strong>SEGUNDA — REMUNERACION:</strong>
-{{ El_La }} EMPLEADOR pagara {{ al_a_la }} {{ trabajador_trabajadora }} como remuneracion, un salario mensual de <strong>{{ tercero_salario or '[SALARIO]' }}</strong> pesos colombianos (COP), pagadero en periodos quincenales. Este salario incluye la remuneracion de los descansos dominicales y festivos de que tratan los capitulos I y II del titulo VII del Codigo Sustantivo del Trabajo.</div>
+{{ El_La }} EMPLEADOR pagara {{ al_a_la }} {{ trabajador_trabajadora }} como remuneracion un salario mensual de <strong>{{ tercero_salario or '[SALARIO]' }}</strong> pesos colombianos (COP), pagadero en periodos quincenales, los dias quince (15) y treinta (30) de cada mes, o el dia habil inmediatamente anterior si alguna de dichas fechas coincide con un dia no laborable. Este salario incluye la remuneracion de los descansos dominicales y festivos de que tratan los capitulos I y II del titulo VII del Codigo Sustantivo del Trabajo. <strong>PARAGRAFO:</strong> Cuando el salario {{ del_de_la }} {{ trabajador_trabajadora }} no exceda de dos (2) veces el salario minimo legal mensual vigente (SMLMV), {{ el_la }} EMPLEADOR reconocera adicionalmente el auxilio de transporte establecido por la ley, el cual se pagara conjuntamente con el salario en los mismos periodos.</div>
 
 <div class="clausula"><strong>TERCERA — DURACION:</strong>
-El presente contrato es a <strong>termino indefinido</strong> y tendra vigencia mientras subsistan las causas que le dieron origen y la materia del trabajo.</div>
+El presente contrato es a <strong>termino indefinido</strong> y tendra vigencia mientras subsistan las causas que le dieron origen y la materia del trabajo, de conformidad con el articulo 47 del Codigo Sustantivo del Trabajo.</div>
 
 <div class="clausula"><strong>CUARTA — PERIODO DE PRUEBA:</strong>
-Las partes acuerdan un periodo de prueba de dos (2) meses, contados a partir de la fecha de inicio de labores, de conformidad con el articulo 78 del Codigo Sustantivo del Trabajo.</div>
+De conformidad con los articulos 77 y 78 del Codigo Sustantivo del Trabajo, las partes acuerdan un periodo de prueba de dos (2) meses, contados a partir de la fecha de inicio de labores. Durante este periodo, cualquiera de las partes podra dar por terminado el contrato unilateralmente y sin previo aviso, sin que haya lugar al pago de indemnizacion alguna. El periodo de prueba debe constar por escrito y en caso contrario se entendera que no se ha pactado. <strong>PARAGRAFO:</strong> Si el periodo de prueba se pacta por un termino inferior a dos (2) meses, las partes podran prorrogarlo antes de su vencimiento sin que el tiempo total supere los dos (2) meses.</div>
 
 <div class="clausula"><strong>QUINTA — JORNADA DE TRABAJO:</strong>
-{{ El_La }} {{ trabajador_trabajadora }} se obliga a laborar la jornada maxima legal de cuarenta y siete (47) horas semanales, en los horarios que establezca {{ el_la }} EMPLEADOR, pudiendo hacer ajustes cuando lo estime conveniente.</div>
+{{ El_La }} {{ trabajador_trabajadora }} se obliga a laborar la jornada maxima legal de cuarenta y dos (42) horas semanales, distribuidas de comun acuerdo entre las partes, de conformidad con la Ley 2101 de 2021 que redujo la jornada laboral en Colombia. El trabajo suplementario o de horas extras se remunerara con los recargos establecidos en los articulos 168 y siguientes del Codigo Sustantivo del Trabajo. {{ El_La }} EMPLEADOR podra ajustar los horarios cuando lo estime conveniente, dentro de los limites legales.</div>
 
 <div class="clausula"><strong>SEXTA — OBLIGACIONES DEL TRABAJADOR:</strong>
-{{ El_La }} {{ trabajador_trabajadora }} se obliga a: a) Prestar el servicio personalmente; b) Observar las normas de disciplina y orden; c) Guardar reserva sobre los asuntos relacionados con su trabajo; d) Procurar el cuidado de los bienes del empleador; e) Comunicar oportunamente cualquier irregularidad.</div>
+{{ El_La }} {{ trabajador_trabajadora }} se obliga a: a) Prestar el servicio personalmente, con dedicacion y eficiencia; b) Observar las normas del reglamento interno de trabajo, disciplina y orden; c) Guardar absoluta reserva sobre los asuntos relacionados con su trabajo y sobre la informacion confidencial del EMPLEADOR; d) Procurar el cuidado integral de los bienes, herramientas y materiales del EMPLEADOR; e) Comunicar oportunamente al EMPLEADOR cualquier irregularidad que observe; f) Cumplir las normas de seguridad y salud en el trabajo (SST) establecidas por el EMPLEADOR.</div>
 
-<div class="clausula"><strong>SEPTIMA — OBLIGACIONES DEL EMPLEADOR:</strong>
-{{ El_La }} EMPLEADOR se obliga a: a) Pagar la remuneracion pactada; b) Afiliar {{ al_a_la }} {{ trabajador_trabajadora }} al Sistema de Seguridad Social (EPS, AFP, ARL); c) Suministrar los elementos necesarios para el trabajo; d) Pagar las prestaciones sociales de ley (cesantias, intereses sobre cesantias, prima de servicios, vacaciones).</div>
+<div class="clausula"><strong>SEPTIMA — SEGURIDAD SOCIAL:</strong>
+De conformidad con la Ley 100 de 1993, el Decreto 1295 de 1994 y demas normas concordantes, {{ el_la }} EMPLEADOR se obliga a afiliar {{ al_a_la }} {{ trabajador_trabajadora }} al Sistema de Seguridad Social Integral, que comprende: a) <strong>Salud:</strong> afiliacion a una Entidad Promotora de Salud (EPS) elegida por {{ el_la }} {{ trabajador_trabajadora }}; b) <strong>Pension:</strong> afiliacion a un fondo de pensiones (AFP) elegido por {{ el_la }} {{ trabajador_trabajadora }}; c) <strong>Riesgos Laborales:</strong> afiliacion a una Administradora de Riesgos Laborales (ARL), cuya cotizacion sera asumida en su totalidad por {{ el_la }} EMPLEADOR. Los aportes se realizaran sobre la base del salario mensual devengado, en las proporciones establecidas por la ley.</div>
 
-<div class="clausula"><strong>OCTAVA — TERMINACION:</strong>
-Son justas causas de terminacion unilateral del contrato, las enumeradas en los articulos 62 y 63 del Codigo Sustantivo del Trabajo.</div>
+<div class="clausula"><strong>OCTAVA — PRESTACIONES SOCIALES:</strong>
+{{ El_La }} EMPLEADOR reconocera y pagara {{ al_a_la }} {{ trabajador_trabajadora }} las siguientes prestaciones sociales conforme a la legislacion colombiana vigente: a) <strong>Cesantias:</strong> equivalentes a un (1) mes de salario por cada ano de servicio o proporcionalmente por fraccion, las cuales seran consignadas antes del 14 de febrero del ano siguiente en el fondo de cesantias elegido por {{ el_la }} {{ trabajador_trabajadora }}, de conformidad con la Ley 50 de 1990; b) <strong>Intereses sobre cesantias:</strong> equivalentes al doce por ciento (12%) anual sobre el saldo de cesantias, pagaderos a mas tardar el 31 de enero de cada ano, de conformidad con la Ley 52 de 1975; c) <strong>Prima de servicios:</strong> equivalente a treinta (30) dias de salario por ano, pagaderos en dos pagos semestrales (la primera quincena de junio y los primeros veinte dias de diciembre), conforme al articulo 306 del Codigo Sustantivo del Trabajo; d) <strong>Vacaciones:</strong> quince (15) dias habiles consecutivos de descanso remunerado por cada ano de servicio, conforme al articulo 186 del Codigo Sustantivo del Trabajo; e) <strong>Dotacion:</strong> cuando el salario {{ del_de_la }} {{ trabajador_trabajadora }} no exceda de dos (2) veces el SMLMV, {{ el_la }} EMPLEADOR suministrara un par de zapatos y un vestido de labor cada cuatro (4) meses, conforme al articulo 230 del Codigo Sustantivo del Trabajo.</div>
 
-<div class="clausula"><strong>NOVENA — CLAUSULA DE CONFIDENCIALIDAD:</strong>
-{{ El_La }} {{ trabajador_trabajadora }} se compromete a mantener estricta reserva sobre toda la informacion confidencial, secretos comerciales, formulas, procesos de produccion y demas informacion privilegiada a la que tenga acceso con ocasion del contrato.</div>
+<div class="clausula"><strong>NOVENA — TERMINACION:</strong>
+Son justas causas de terminacion unilateral del contrato, las enumeradas en los articulos 62 y 63 del Codigo Sustantivo del Trabajo. En caso de terminacion sin justa causa por parte del EMPLEADOR, este debera pagar la indemnizacion establecida en el articulo 64 del Codigo Sustantivo del Trabajo.</div>
 
-<p style="margin-top:30px">En senal de aceptacion, las partes firman el presente contrato en dos (2) ejemplares del mismo tenor, en la ciudad y fecha indicadas.</p>
+<div class="clausula"><strong>DECIMA — CONFIDENCIALIDAD Y PROPIEDAD INTELECTUAL:</strong>
+{{ El_La }} {{ trabajador_trabajadora }} se compromete a mantener estricta reserva sobre toda la informacion confidencial, secretos comerciales, formulas, procesos de produccion, recetas, listas de clientes, precios, estrategias de mercado, y demas informacion privilegiada a la que tenga acceso con ocasion del contrato. <strong>PARAGRAFO — PROPIEDAD INTELECTUAL:</strong> De conformidad con el articulo 20 de la Ley 23 de 1982 y el articulo 28 de la Decisión Andina 351 de 1993, todas las obras, inventos, disenos, desarrollos, mejoras y creaciones intelectuales que {{ el_la }} {{ trabajador_trabajadora }} realice en ejercicio de sus funciones o con los medios del EMPLEADOR, seran de propiedad exclusiva del EMPLEADOR, quien podra utilizarlos, modificarlos o transferirlos libremente.</div>
+
+<div class="clausula"><strong>UNDECIMA — DOMICILIO CONTRACTUAL:</strong>
+Para todos los efectos del presente contrato, las partes fijan como domicilio contractual la ciudad de <strong>{{ empresa_ciudad or ciudad }}</strong>, y se someten a la jurisdiccion de los jueces laborales de dicha ciudad.</div>
+
+<p style="margin-top:30px">En senal de aceptacion, las partes firman el presente contrato en dos (2) ejemplares del mismo tenor y valor, en la ciudad de {{ empresa_ciudad or ciudad }}, a los {{ fecha }}.</p>
 
 <div class="firma">
-  <div><strong>{{ empresa_representante or empresa_nombre }}</strong><br>EMPLEADOR<br>NIT: {{ empresa_nit }}</div>
+  <div><strong>{{ empresa_representante or empresa_nombre }}</strong><br>EMPLEADOR<br>NIT: {{ empresa_nit }}{% if empresa_representante_cedula %}<br>C.C. {{ empresa_representante_cedula }}{% endif %}</div>
   <div><strong>{{ tercero_nombre }}</strong><br>{{ trabajador_trabajadora|upper }}<br>C.C. {{ tercero_cedula }}</div>
+</div>
+
+<div class="testigos">
+  <div>Testigo 1<br>Nombre: ___________________________<br>C.C.: ___________________________</div>
+  <div>Testigo 2<br>Nombre: ___________________________<br>C.C.: ___________________________</div>
 </div>
 </body></html>
