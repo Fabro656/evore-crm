@@ -1,41 +1,33 @@
-// Evore CRM — Service Worker v2
-const CACHE_NAME = 'evore-v2';
-const OFFLINE_URL = '/offline';
-
-const PRECACHE = [
-  '/offline',
-  '/static/img/evore-horizontal.svg',
-  '/static/img/evore-vertical.svg',
-  '/static/img/icon-192.png',
-];
+// Evore CRM — Service Worker v3
+const CACHE_NAME = 'evore-v3';
 
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(PRECACHE).catch(() => {}))
-      .then(() => self.skipWaiting())
-  );
+  // Skip waiting to activate immediately
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
+  // Delete ALL old caches and claim clients
   event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+      Promise.all(keys.map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', event => {
-  // Only handle GET
+  // Only intercept GET requests
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
 
-  // Skip API, auth endpoints, and CSRF-dependent routes
+  // Never cache API, auth, or dynamic routes
   if (url.pathname.startsWith('/api/')) return;
   if (url.pathname === '/cambiar-rol') return;
+  if (url.pathname === '/login') return;
+  if (url.pathname === '/logout') return;
 
-  // CDN assets: cache-first
+  // CDN assets (Bootstrap, icons): cache-first
   if (url.hostname === 'cdn.jsdelivr.net') {
     event.respondWith(
       caches.match(event.request).then(cached => {
@@ -69,25 +61,6 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // HTML pages: network-first, offline fallback
-  if (event.request.headers.get('accept') &&
-      event.request.headers.get('accept').includes('text/html')) {
-    event.respondWith(
-      fetch(event.request)
-        .then(resp => {
-          // Cache successful HTML responses for faster back-navigation
-          if (resp.ok && !url.pathname.includes('logout')) {
-            const clone = resp.clone();
-            caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
-          }
-          return resp;
-        })
-        .catch(() => {
-          // Try cached version first, then offline page
-          return caches.match(event.request)
-            .then(cached => cached || caches.match(OFFLINE_URL));
-        })
-    );
-    return;
-  }
+  // All other requests (HTML pages): always network, no cache
+  // This prevents stale pages after deploys
 });
