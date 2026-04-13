@@ -455,15 +455,6 @@ def _calcular_costo_receta(producto_id):
         es_empaque = getattr(ri, 'es_empaque', False)
         rendimiento = float(getattr(ri, 'rendimiento', 1) or 1)
 
-        if es_empaque and rendimiento > 1:
-            # Empaque: 1 unidad del insumo cubre `rendimiento` unidades de producto
-            # Ejemplo: caja de 250 uds → para producir 1000 uds necesitas 1000/250 = 4 cajas
-            # Costo por unidad de producto = precio_insumo / rendimiento
-            cantidad_total = receta.unidades_produce / rendimiento
-        else:
-            # Materia prima normal: cantidad_por_unidad * lote
-            cantidad_total = ri.cantidad_por_unidad * receta.unidades_produce
-
         # Buscar cotización vigente para esta materia prima
         from datetime import date
         cot_vigente = CotizacionProveedor.query.filter(
@@ -473,27 +464,38 @@ def _calcular_costo_receta(producto_id):
         ).order_by(CotizacionProveedor.precio_unitario.asc()).first()
 
         if cot_vigente:
-            costo_unit = cot_vigente.precio_unitario * 1.19
+            precio_compra = cot_vigente.precio_unitario  # precio antes de IVA
         elif mp.costo_unitario and mp.costo_unitario > 0:
-            costo_unit = mp.costo_unitario * 1.19
+            precio_compra = mp.costo_unitario
             alertas.append(f'{mp.nombre}: sin cotización vigente, usando costo registrado')
         else:
-            costo_unit = 0
+            precio_compra = 0
             alertas.append(f'{mp.nombre}: SIN COTIZACIÓN NI COSTO')
 
-        subtotal = cantidad_total * costo_unit
-        costo_total += subtotal
+        if es_empaque and rendimiento > 1:
+            # EMPAQUE: precio_compra es el precio de 1 unidad de empaque (ej: 1 caja = $8000)
+            # rendimiento = cuantas piezas caben en 1 empaque (ej: 150)
+            # Costo por pieza = precio / rendimiento = 8000 / 150 = $53.33
+            costo_por_pieza = precio_compra / rendimiento
+            # Para el lote completo: costo_por_pieza * unidades_produce
+            cantidad_total = receta.unidades_produce  # se expresa en piezas
+            subtotal = costo_por_pieza * receta.unidades_produce
+            costo_unit_display = costo_por_pieza  # lo que se muestra como "costo unitario"
+        else:
+            # MATERIA PRIMA NORMAL: cantidad_por_unidad * lote * precio
+            cantidad_total = ri.cantidad_por_unidad * receta.unidades_produce
+            costo_unit_display = precio_compra
+            subtotal = cantidad_total * precio_compra
 
-        # Para empaques, calcular el costo real por unidad de producto
-        costo_por_unidad_producto = (costo_unit / rendimiento) if es_empaque and rendimiento > 1 else costo_unit
+        costo_total += subtotal
 
         desglose.append({
             'materia': mp.nombre,
             'materia_id': mp.id,
             'cantidad': cantidad_total,
-            'unidad': mp.unidad,
-            'costo_unit': costo_unit,
-            'costo_por_unidad_prod': costo_por_unidad_producto,
+            'unidad': 'piezas' if es_empaque and rendimiento > 1 else mp.unidad,
+            'costo_unit': costo_unit_display,
+            'precio_compra': precio_compra,
             'subtotal': subtotal,
             'tiene_cotizacion': cot_vigente is not None,
             'es_empaque': es_empaque,

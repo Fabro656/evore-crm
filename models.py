@@ -1074,6 +1074,7 @@ class EmpaqueSecundario(db.Model):
     """Configuración de empaque secundario (caja) para un producto terminado."""
     __tablename__ = 'empaques_secundarios'
     id               = db.Column(db.Integer, primary_key=True)
+    nombre           = db.Column(db.String(100), default='Caja')  # v41: nombre del empaque (Caja, Bolsa, etc.)
     producto_id      = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
     alto             = db.Column(db.Float, default=0)   # cm
     ancho            = db.Column(db.Float, default=0)   # cm
@@ -1518,6 +1519,9 @@ def _migrate(conn):
         ("ALTER TABLE documentos_legales ADD COLUMN requiere_firma_portal BOOLEAN DEFAULT FALSE"),
         ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS nomina_params TEXT"),
         ("ALTER TABLE config_empresa ADD COLUMN nomina_params TEXT"),
+        # v41 — EmpaqueSecundario: nombre del empaque
+        ("ALTER TABLE empaques_secundarios ADD COLUMN IF NOT EXISTS nombre VARCHAR(100) DEFAULT 'Caja'"),
+        ("ALTER TABLE empaques_secundarios ADD COLUMN nombre VARCHAR(100) DEFAULT 'Caja'"),
         # v41 — RecetaItem: rendimiento para empaques
         ("ALTER TABLE receta_items ADD COLUMN IF NOT EXISTS rendimiento FLOAT DEFAULT 1"),
         ("ALTER TABLE receta_items ADD COLUMN rendimiento FLOAT DEFAULT 1"),
