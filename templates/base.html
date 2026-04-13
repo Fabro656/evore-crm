@@ -1996,9 +1996,12 @@ window.iniciarObContextual = function(){
 {% endraw %}</script>
 {% endif %}{# end if not demo - AI panel #}
 
-{# ── Workspace Tab System JS ── #}
+{# ── Workspace Tab System JS (solo en pagina principal, NO en iframes embed) ── #}
+{% if request.args.get('_embed') != '1' %}
 <script>
 (function(){
+  // Doble check: si estamos en iframe, no ejecutar workspace tabs
+  if(window.self !== window.top) return;
   var WS = {
     tabs: [],
     activeId: null,
@@ -2275,6 +2278,7 @@ window.iniciarObContextual = function(){
 #wsIframeContainer{overflow:hidden;flex:1}
 #wsIframeContainer iframe{width:100%;height:100%;border:none;position:absolute;top:0;left:0;right:0;bottom:0}
 </style>
+{% endif %}{# end if not _embed — workspace tabs #}
 <script>
 // ── CSRF: auto-inject hidden token into every POST form ─────────────────
 (function(){
