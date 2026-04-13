@@ -76,6 +76,7 @@
           {% if doc.archivo_url %}
           <a href="{{ doc.archivo_url }}" target="_blank" class="btn btn-xs btn-outline-secondary"><i class="bi bi-download me-1"></i>Descargar</a>
           {% endif %}
+          <a href="{{ url_for('legal_documento_firmado', id=doc.id) }}" target="_blank" class="btn btn-xs btn-outline-primary"><i class="bi bi-file-earmark-pdf me-1"></i>Descargar</a>
           <button type="button" class="btn btn-xs btn-outline-success" onclick="verFirma('{{ doc.firma_portal_data|e }}')"><i class="bi bi-pen me-1"></i>Ver firma</button>
         </div>
       </div>

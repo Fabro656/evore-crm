@@ -105,6 +105,31 @@ def register(app):
                               retirados=retirados, despedidos=despedidos)
     
 
+    # ── nomina_empleados_export_csv (/nomina/empleados/export-csv)
+    @app.route('/nomina/empleados/export-csv')
+    @login_required
+    @requiere_modulo('nomina')
+    def nomina_empleados_export_csv():
+        empleados = Empleado.query.order_by(Empleado.apellido, Empleado.nombre).all()
+        rows = []
+        for e in empleados:
+            nombre_completo = f"{e.nombre or ''} {e.apellido or ''}".strip()
+            fecha_ingreso = e.fecha_ingreso.strftime('%d/%m/%Y') if e.fecha_ingreso else ''
+            rows.append([
+                nombre_completo,
+                e.cedula or '',
+                e.cargo or '',
+                e.departamento or '',
+                e.salario_base or 0,
+                e.estado or '',
+                fecha_ingreso,
+            ])
+        return generar_csv_response(
+            rows,
+            ['Nombre', 'Cedula', 'Cargo', 'Departamento', 'Salario', 'Estado', 'Fecha_Ingreso'],
+            filename='empleados.csv'
+        )
+
     # ── nomina_cerrar_mes (/nomina/cerrar-mes)
     @app.route('/nomina/cerrar-mes', methods=['POST'])
     @login_required
@@ -179,9 +204,16 @@ def register(app):
 
             try:
                 calc = _calcular_nomina(emp, dias_mes=dias_del_mes, dias_trabajados=dias_trabajados)
+                # Sumar horas extra del periodo
+                horas_extra_emp = HoraExtra.query.filter_by(empleado_id=emp.id, periodo=mes).all()
+                valor_he = sum(float(h.valor or 0) for h in horas_extra_emp)
+                calc['horas_extra'] = valor_he
+                calc['salario_neto'] += valor_he
+                calc['costo_total_empresa'] += valor_he
                 total_costo += calc['costo_total_empresa']
                 total_neto += calc['salario_neto']
-                detalle_empleados.append(f'{emp.nombre} {emp.apellido}: {dias_trabajados}d')
+                he_txt = f' +HE:{moneda(valor_he)}' if valor_he > 0 else ''
+                detalle_empleados.append(f'{emp.nombre} {emp.apellido}: {dias_trabajados}d{he_txt}')
             except Exception as _ce:
                 logging.warning(f'nomina_cerrar_mes: calc({emp.id}) error: {_ce}')
 
@@ -487,4 +519,60 @@ def register(app):
                 'overridden': key in current
             }
         return render_template('nomina/params.html', fields=fields, display=display)
-    
+
+    # Recargos segun CST Art. 168-170
+    RECARGOS_HE = {
+        'diurna': 0.25,             # Art. 168: 25% sobre hora ordinaria
+        'nocturna': 0.75,           # Art. 168: 75%
+        'dominical_diurna': 1.00,   # Art. 171: 100%
+        'dominical_nocturna': 1.50, # Art. 171+168: 150%
+    }
+
+    # ── horas_extra (/nomina/horas-extra)
+    @app.route('/nomina/horas-extra', methods=['GET', 'POST'])
+    @login_required
+    @requiere_modulo('nomina')
+    def horas_extra():
+        periodo = request.args.get('periodo', datetime.utcnow().strftime('%Y-%m'))
+        empleados = Empleado.query.filter_by(estado='activo').order_by(Empleado.nombre).all()
+        if request.method == 'POST':
+            emp_id = int(request.form.get('empleado_id') or 0)
+            emp = db.session.get(Empleado, emp_id)
+            if not emp:
+                flash('Empleado no encontrado.', 'danger')
+                return redirect(url_for('horas_extra', periodo=periodo))
+            tipo = request.form.get('tipo', 'diurna')
+            horas = float(request.form.get('horas') or 0)
+            fecha = request.form.get('fecha', '')
+            if horas <= 0:
+                flash('Las horas deben ser mayor a cero.', 'warning')
+                return redirect(url_for('horas_extra', periodo=periodo))
+            recargo = RECARGOS_HE.get(tipo, 0.25)
+            salario_hora = float(emp.salario_base or 0) / 240  # 30 dias * 8 horas
+            valor = round(salario_hora * (1 + recargo) * horas)
+            he = HoraExtra(
+                empleado_id=emp_id,
+                fecha=datetime.strptime(fecha, '%Y-%m-%d').date() if fecha else datetime.utcnow().date(),
+                tipo=tipo, horas=horas, recargo_pct=recargo, valor=valor,
+                periodo=periodo, notas=request.form.get('notas', ''),
+                creado_por=current_user.id
+            )
+            db.session.add(he); db.session.commit()
+            flash(f'Hora extra registrada: {horas}h {tipo} = {moneda(valor)}', 'success')
+            return redirect(url_for('horas_extra', periodo=periodo))
+        registros = HoraExtra.query.filter_by(periodo=periodo).order_by(HoraExtra.fecha.desc()).all()
+        total_valor = sum(float(r.valor or 0) for r in registros)
+        return render_template('nomina/horas_extra.html', registros=registros, empleados=empleados,
+                               periodo=periodo, total_valor=total_valor, recargos=RECARGOS_HE)
+
+    # ── horas_extra_eliminar (/nomina/horas-extra/<id>/eliminar)
+    @app.route('/nomina/horas-extra/<int:id>/eliminar', methods=['POST'])
+    @login_required
+    @requiere_modulo('nomina')
+    def horas_extra_eliminar(id):
+        he = HoraExtra.query.get_or_404(id)
+        periodo = he.periodo
+        db.session.delete(he); db.session.commit()
+        flash('Registro eliminado.', 'info')
+        return redirect(url_for('horas_extra', periodo=periodo))
+

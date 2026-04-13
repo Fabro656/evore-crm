@@ -176,6 +176,31 @@ def register(app):
             ingresos_mes=ingresos_mes, gastos_mes=gastos_mes,
             balance_mes=ingresos_mes - gastos_mes)
 
+    # ── contable_asientos_export_csv (/contable/asientos/export-csv)
+    @app.route('/contable/asientos/export-csv')
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_asientos_export_csv():
+        asientos = AsientoContable.query.order_by(AsientoContable.fecha.desc()).all()
+        rows = []
+        for a in asientos:
+            fecha = a.fecha.strftime('%d/%m/%Y') if a.fecha else ''
+            rows.append([
+                a.numero or '',
+                fecha,
+                a.descripcion or '',
+                a.tipo or '',
+                a.debe or 0,
+                a.haber or 0,
+                a.estado_pago or '',
+                a.estado_asiento or '',
+            ])
+        return generar_csv_response(
+            rows,
+            ['Numero', 'Fecha', 'Descripcion', 'Tipo', 'Debe', 'Haber', 'Estado_Pago', 'Estado_Asiento'],
+            filename='asientos_contables.csv'
+        )
+
     # ── contable_asiento_nuevo: Crear asiento manual (/contable/asientos/nuevo)
     @app.route('/contable/asientos/nuevo', methods=['GET', 'POST'])
     @login_required
@@ -1190,3 +1215,78 @@ def register(app):
         db.session.commit()
         flash('Conciliación deshecha.', 'info')
         return redirect(url_for('contable_conciliacion'))
+
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # LIBRO AUXILIAR POR TERCERO
+    # ══════════════════════════════════════════════════════════════════════════
+
+    @app.route('/contable/libro-auxiliar')
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_libro_auxiliar_tercero():
+        """Libro auxiliar por tercero — todos los asientos de un cliente o proveedor con saldo acumulado."""
+        tercero = request.args.get('tercero', '').strip()
+        desde   = request.args.get('desde', '')
+        hasta   = request.args.get('hasta', '')
+
+        movimientos   = []
+        tercero_nombre = ''
+        total_debe    = 0.0
+        total_haber   = 0.0
+        saldo_final   = 0.0
+
+        if tercero:
+            q = AsientoContable.query.filter(
+                db.or_(
+                    AsientoContable.tercero_nit.ilike(f'%{tercero}%'),
+                    AsientoContable.tercero_nombre.ilike(f'%{tercero}%')
+                ),
+                AsientoContable.estado_asiento != 'anulado'
+            )
+
+            if desde:
+                try:
+                    q = q.filter(AsientoContable.fecha >= datetime.strptime(desde, '%Y-%m-%d').date())
+                except Exception:
+                    pass
+            if hasta:
+                try:
+                    q = q.filter(AsientoContable.fecha <= datetime.strptime(hasta, '%Y-%m-%d').date())
+                except Exception:
+                    pass
+
+            asientos = q.order_by(AsientoContable.fecha, AsientoContable.numero).all()
+
+            saldo_acum = 0.0
+            for a in asientos:
+                debe  = float(a.debe  or 0)
+                haber = float(a.haber or 0)
+                saldo_acum += debe - haber
+                total_debe  += debe
+                total_haber += haber
+                movimientos.append({
+                    'fecha':       a.fecha,
+                    'numero':      a.numero or '—',
+                    'descripcion': a.descripcion,
+                    'debe':        debe,
+                    'haber':       haber,
+                    'saldo_acum':  saldo_acum,
+                    'id':          a.id,
+                })
+
+            saldo_final = saldo_acum
+
+            # Determinar nombre representativo del tercero para mostrar en el encabezado
+            if asientos:
+                tercero_nombre = (asientos[0].tercero_nombre or asientos[0].tercero_nit or tercero)
+            else:
+                tercero_nombre = tercero
+
+        return render_template('contable/libro_auxiliar.html',
+            movimientos=movimientos,
+            tercero_nombre=tercero_nombre,
+            total_debe=total_debe,
+            total_haber=total_haber,
+            saldo_final=saldo_final,
+            filtros={'tercero': tercero, 'desde': desde, 'hasta': hasta})

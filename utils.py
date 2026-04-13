@@ -1467,6 +1467,21 @@ def _modulos_user(user):
     except: pass
     return _MODULOS_ROL.get(user.rol, ['tareas','notas'])
 
+def generar_csv_response(rows, headers, filename='export.csv'):
+    """Genera una Response Flask con un CSV descargable."""
+    import csv, io
+    from flask import make_response
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(headers)
+    for row in rows:
+        writer.writerow(row)
+    resp = make_response(output.getvalue())
+    resp.headers['Content-Type'] = 'text/csv; charset=utf-8'
+    resp.headers['Content-Disposition'] = f'attachment; filename={filename}'
+    return resp
+
+
 def register_app_hooks(app):
     """Register template filters and context processors on the Flask app."""
     app.template_filter('cop')(cop)

@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% block title %}Libro Auxiliar por Tercero{% endblock %}
+{% block page_title %}Libro Auxiliar por Tercero{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('contable_index') }}" class="btn btn-ghost btn-sm"><i class="bi bi-arrow-left me-1"></i>Contable</a>
+{% endblock %}
+{% block content %}
+
+<div class="fc mb-4">
+  <h6 class="text-muted text-uppercase mb-3" style="font-size:.72rem;letter-spacing:1px">Filtros de búsqueda</h6>
+  <form method="GET" class="row g-2 align-items-end">
+    <div class="col-md-4">
+      <label class="form-label mb-1" style="font-size:.82rem">Tercero (NIT o nombre)</label>
+      <input type="text" name="tercero" class="form-control form-control-sm"
+             placeholder="Ej: 900123456 o Proveedor ABC"
+             value="{{ filtros.tercero }}" required>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label mb-1" style="font-size:.82rem">Desde</label>
+      <input type="date" name="desde" class="form-control form-control-sm" value="{{ filtros.desde }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label mb-1" style="font-size:.82rem">Hasta</label>
+      <input type="date" name="hasta" class="form-control form-control-sm" value="{{ filtros.hasta }}">
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-primary btn-sm w-100"><i class="bi bi-search me-1"></i>Consultar</button>
+    </div>
+  </form>
+</div>
+
+{% if filtros.tercero %}
+  {% if movimientos %}
+  <div class="tc">
+    <div class="ch d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-person-lines-fill me-2"></i>{{ tercero_nombre }} — {{ movimientos|length }} movimiento(s)</span>
+      {% if filtros.desde or filtros.hasta %}
+      <small class="text-muted">
+        {% if filtros.desde %}Desde {{ filtros.desde }}{% endif %}
+        {% if filtros.hasta %} hasta {{ filtros.hasta }}{% endif %}
+      </small>
+      {% endif %}
+    </div>
+    <div class="table-responsive">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Asiento #</th>
+            <th>Descripción</th>
+            <th class="text-end">Debe</th>
+            <th class="text-end">Haber</th>
+            <th class="text-end">Saldo Acumulado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in movimientos %}
+          <tr>
+            <td><small>{{ m.fecha.strftime('%d/%m/%Y') }}</small></td>
+            <td>
+              <a href="{{ url_for('contable_comprobante', id=m.id) }}" style="color:var(--ac)">
+                {{ m.numero }}
+              </a>
+            </td>
+            <td style="font-size:.85rem">{{ m.descripcion }}</td>
+            <td class="text-end">
+              {% if m.debe %}
+                <span class="text-success">{{ m.debe | moneda }}</span>
+              {% else %}—{% endif %}
+            </td>
+            <td class="text-end">
+              {% if m.haber %}
+                <span class="text-danger">{{ m.haber | moneda }}</span>
+              {% else %}—{% endif %}
+            </td>
+            <td class="text-end fw-bold"
+                style="color:{% if m.saldo_acum >= 0 %}var(--text){% else %}var(--red){% endif %}">
+              {{ m.saldo_acum | moneda }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot style="border-top:2px solid var(--ac)">
+          <tr class="fw-bold">
+            <td colspan="3">TOTALES</td>
+            <td class="text-end text-success">{{ total_debe | moneda }}</td>
+            <td class="text-end text-danger">{{ total_haber | moneda }}</td>
+            <td class="text-end" style="font-size:1.05rem;color:var(--ac)">
+              {{ saldo_final | moneda }}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="sc" style="text-align:center;padding:2.5rem">
+    <i class="bi bi-person-slash" style="font-size:2.5rem;color:var(--text2);display:block;margin-bottom:.75rem"></i>
+    <p class="mb-1" style="color:var(--text2);font-size:.95rem">
+      No se encontraron asientos para <strong>{{ filtros.tercero }}</strong>.
+    </p>
+    <small class="text-muted">Verifica el NIT o nombre del tercero e intenta nuevamente.</small>
+  </div>
+  {% endif %}
+{% else %}
+<div class="sc" style="text-align:center;padding:2.5rem">
+  <i class="bi bi-journal-bookmark" style="font-size:2.5rem;color:var(--text2);display:block;margin-bottom:.75rem"></i>
+  <p style="color:var(--text2);margin:0;font-size:.95rem">Ingresa el NIT o nombre del tercero para consultar su libro auxiliar.</p>
+</div>
+{% endif %}
+
+{% endblock %}

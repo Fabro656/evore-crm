@@ -761,6 +761,39 @@ def register(app):
         return redirect(url_for('legal_index'))
 
 
+    # ── legal_documento_firmado (/legal/<id>/firmado) — Documento con ambas firmas + selfies
+    @app.route('/legal/<int:id>/firmado')
+    @login_required
+    def legal_documento_firmado(id):
+        """Renderiza documento legal con ambas firmas y selfies incrustadas."""
+        doc = DocumentoLegal.query.get_or_404(id)
+        # Acceso: admin/legal o el firmante portal
+        if current_user.rol not in ('admin', 'director_financiero', 'director_operativo', 'contador'):
+            if current_user.rol == 'cliente' and doc.cliente_id != current_user.cliente_id:
+                flash('Sin permisos.', 'danger'); return redirect(url_for('portal_cliente'))
+            elif current_user.rol == 'proveedor' and doc.proveedor_id != current_user.proveedor_id:
+                flash('Sin permisos.', 'danger'); return redirect(url_for('portal_proveedor'))
+        empresa = ConfigEmpresa.query.first()
+        # Datos para el template
+        datos = {
+            'doc': doc,
+            'empresa': empresa,
+            'empresa_nombre': empresa.nombre if empresa else '',
+            'empresa_nit': empresa.nit if empresa else '',
+            'empresa_direccion': getattr(empresa, 'direccion', '') or '',
+            'empresa_representante': getattr(empresa, 'representante_legal', '') or '',
+            'firma_empresa': doc.firma_empresa_data,
+            'selfie_empresa': doc.selfie_empresa_data,
+            'firma_portal': doc.firma_portal_data,
+            'selfie_portal': doc.selfie_portal_data,
+            'firmante_empresa': doc.firma_empresa_por or '',
+            'firmante_portal': doc.firma_portal_por or '',
+            'fecha_firma_empresa': doc.firma_empresa_en.strftime('%d/%m/%Y %H:%M') if doc.firma_empresa_en else '',
+            'fecha_firma_portal': doc.firma_portal_en.strftime('%d/%m/%Y %H:%M') if doc.firma_portal_en else '',
+        }
+        return render_template('legal/documento_firmado.html', **datos)
+
+
     # ── admin_reset_total (/admin/reset-total) ─────────────────────────────────
     @app.route('/admin/reset-total', methods=['POST'])
     @login_required

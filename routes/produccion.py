@@ -1052,6 +1052,37 @@ def register(app):
                                pendientes=pendientes, completados=completados)
     
 
+    # ── ordenes_produccion_export_csv (/produccion/ordenes/export-csv)
+    @app.route('/produccion/ordenes/export-csv')
+    @login_required
+    @requiere_modulo('produccion')
+    def ordenes_produccion_export_csv():
+        ordenes = OrdenProduccion.query.order_by(OrdenProduccion.creado_en.desc()).all()
+        rows = []
+        for o in ordenes:
+            producto_nombre = o.producto.nombre if o.producto else ''
+            venta_numero = o.venta.numero if o.venta else ''
+            if o.fecha_inicio_real:
+                fecha = o.fecha_inicio_real.strftime('%d/%m/%Y')
+            elif o.creado_en:
+                fecha = o.creado_en.strftime('%d/%m/%Y')
+            else:
+                fecha = ''
+            rows.append([
+                o.id,
+                producto_nombre,
+                o.cantidad_producir or 0,
+                o.estado or '',
+                venta_numero,
+                fecha,
+                o.numero_lote or '',
+            ])
+        return generar_csv_response(
+            rows,
+            ['ID', 'Producto', 'Cantidad', 'Estado', 'Venta', 'Fecha_Inicio', 'Lote'],
+            filename='ordenes_produccion.csv'
+        )
+
     # ── orden_completar (/produccion/ordenes/completar)
     @app.route('/produccion/ordenes/completar', methods=['POST'])
     @login_required

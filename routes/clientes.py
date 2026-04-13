@@ -44,6 +44,29 @@ def register(app):
                                busqueda=busqueda, estado_rel_f=estado_rel_f)
     
 
+    # ── clientes_export_csv (/clientes/export-csv)
+    @app.route('/clientes/export-csv')
+    @login_required
+    @requiere_modulo('clientes')
+    def clientes_export_csv():
+        clientes_list = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
+        rows = []
+        for c in clientes_list:
+            rows.append([
+                c.nombre or '',
+                c.empresa or '',
+                c.nit or '',
+                c.email or '',
+                c.telefono or '',
+                c.estado_relacion or '',
+                c.ciudad or '',
+            ])
+        return generar_csv_response(
+            rows,
+            ['Nombre', 'Empresa', 'NIT', 'Email', 'Telefono', 'Estado', 'Ciudad'],
+            filename='clientes.csv'
+        )
+
     # ── cliente_nuevo (/clientes/nuevo)
     @app.route('/clientes/nuevo', methods=['GET','POST'])
     @login_required

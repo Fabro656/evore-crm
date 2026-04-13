@@ -40,6 +40,61 @@ def register(app):
         return items
 
 
+    # ── comparativo_cotizaciones (/cotizaciones-proveedor/comparativo)
+    @app.route('/cotizaciones-proveedor/comparativo')
+    @login_required
+    @requiere_modulo('ordenes_compra')
+    def comparativo_cotizaciones():
+        producto_q  = request.args.get('producto', '').strip()
+        materia_id  = request.args.get('materia_id', type=int)
+
+        q = CotizacionProveedor.query
+        if producto_q:
+            q = q.filter(CotizacionProveedor.nombre_producto.ilike(f'%{producto_q}%'))
+        if materia_id:
+            q = q.filter_by(materia_prima_id=materia_id)
+        cotizaciones = q.order_by(CotizacionProveedor.nombre_producto,
+                                  CotizacionProveedor.precio_unitario).all()
+
+        # Agrupar por nombre_producto (case-insensitive, strip)
+        grupos = {}
+        for c in cotizaciones:
+            key = c.nombre_producto.strip().lower()
+            grupos.setdefault(key, {'nombre': c.nombre_producto.strip(), 'cotizaciones': []})
+            prov_nombre = (c.proveedor.empresa or c.proveedor.nombre) if c.proveedor else '—'
+            grupos[key]['cotizaciones'].append({
+                'id':               c.id,
+                'numero':           c.numero or '',
+                'proveedor':        prov_nombre,
+                'precio_unitario':  c.precio_unitario,
+                'unidad':           c.unidad,
+                'unidades_minimas': c.unidades_minimas,
+                'plazo_entrega_dias': c.plazo_entrega_dias or 0,
+                'vigencia':         c.vigencia,
+                'estado':           c.estado,
+                'condicion_pago_tipo': c.condicion_pago_tipo or 'contado',
+                'condicion_pago_dias': c.condicion_pago_dias or 0,
+                'anticipo_porcentaje': c.anticipo_porcentaje or 0,
+            })
+
+        # Para cada grupo calcular el precio mínimo y el plazo mínimo (>0)
+        grupos_lista = []
+        for key, g in grupos.items():
+            cots = g['cotizaciones']
+            precios = [c['precio_unitario'] for c in cots if c['precio_unitario'] > 0]
+            plazos  = [c['plazo_entrega_dias'] for c in cots if c['plazo_entrega_dias'] > 0]
+            g['precio_min']  = min(precios) if precios else None
+            g['plazo_min']   = min(plazos)  if plazos  else None
+            grupos_lista.append(g)
+
+        grupos_lista.sort(key=lambda g: g['nombre'].lower())
+
+        return render_template('proveedores/comparativo.html',
+                               grupos=grupos_lista,
+                               producto_q=producto_q,
+                               materia_id=materia_id)
+
+
     # ── cotizaciones_proveedor (/cotizaciones-proveedor)
     @app.route('/cotizaciones-proveedor')
     @login_required

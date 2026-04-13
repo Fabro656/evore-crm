@@ -135,7 +135,9 @@
                   {% if v.entregado_en %}
                     <span class="text-success"><i class="bi bi-check-circle me-1"></i>Entregado {{ v.entregado_en.strftime('%d/%m') }}</span>
                   {% elif v.enviado_en %}
-                    <span class="text-primary"><i class="bi bi-truck me-1"></i>Enviado {{ v.enviado_en.strftime('%d/%m') }}{% if v.transportista %} — {{ v.transportista.empresa or v.transportista.nombre }}{% endif %}</span>
+                    <span class="text-primary"><i class="bi bi-truck me-1"></i>En transito {{ v.enviado_en.strftime('%d/%m') }}</span>
+                    {% if v.transportista %}<br><small class="text-muted">{{ v.transportista.empresa or v.transportista.nombre }}</small>{% endif %}
+                    {% if v.guia_transporte %}<br><small class="text-muted"><i class="bi bi-upc me-1"></i>Guia: <strong>{{ v.guia_transporte }}</strong></small>{% endif %}
                   {% elif v.estado in ('anticipo_pagado','pagado') %}
                     <span class="text-warning"><i class="bi bi-hourglass-split me-1"></i>En produccion</span>
                   {% else %}

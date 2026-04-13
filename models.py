@@ -177,6 +177,9 @@ class Venta(db.Model):
     transportista_id    = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)  # v38
     enviado_en          = db.Column(db.DateTime, nullable=True)  # v38
     estado_cliente_pago = db.Column(db.String(30), default='pendiente')  # pendiente, enviado, recibido
+    # v41 — Tracking de envio
+    guia_transporte     = db.Column(db.String(100), nullable=True)
+    estado_envio        = db.Column(db.String(30), default='pendiente')  # pendiente, preparando, en_transito, entregado
     estado              = db.Column(db.String(30), default='prospecto')
     fecha_anticipo      = db.Column(db.Date)
     dias_entrega        = db.Column(db.Integer, default=30)
@@ -902,6 +905,23 @@ class Empleado(db.Model):
     creado_en           = db.Column(db.DateTime, default=datetime.utcnow)
     es_demo             = db.Column(db.Boolean, default=False)
 
+class HoraExtra(db.Model):
+    """Registro de horas extra por empleado — Art. 168-170 CST."""
+    __tablename__ = 'horas_extra'
+    id           = db.Column(db.Integer, primary_key=True)
+    empleado_id  = db.Column(db.Integer, db.ForeignKey('empleados.id'), nullable=False)
+    fecha        = db.Column(db.Date, nullable=False)
+    tipo         = db.Column(db.String(30), nullable=False)
+    # tipos: diurna (25%), nocturna (75%), dominical_diurna (100%), dominical_nocturna (150%)
+    horas        = db.Column(db.Float, nullable=False, default=1)
+    recargo_pct  = db.Column(db.Float, default=0.25)  # porcentaje de recargo
+    valor        = db.Column(db.Float, default=0)  # valor calculado
+    periodo      = db.Column(db.String(7))  # "2026-04" para vincular a cierre de nomina
+    notas        = db.Column(db.String(200))
+    creado_por   = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en    = db.Column(db.DateTime, default=datetime.utcnow)
+    empleado     = db.relationship('Empleado', foreign_keys=[empleado_id])
+
 class UserSesion(db.Model):
     __tablename__ = 'user_sesiones'
     id         = db.Column(db.Integer, primary_key=True)
@@ -1413,6 +1433,11 @@ def _migrate(conn):
         ("ALTER TABLE documentos_legales ADD COLUMN requiere_firma_portal BOOLEAN DEFAULT FALSE"),
         ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS nomina_params TEXT"),
         ("ALTER TABLE config_empresa ADD COLUMN nomina_params TEXT"),
+        # v41 — Tracking envio
+        ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS guia_transporte VARCHAR(100)"),
+        ("ALTER TABLE ventas ADD COLUMN guia_transporte VARCHAR(100)"),
+        ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS estado_envio VARCHAR(30) DEFAULT 'pendiente'"),
+        ("ALTER TABLE ventas ADD COLUMN estado_envio VARCHAR(30) DEFAULT 'pendiente'"),
         ("ALTER TABLE documentos_legales ADD COLUMN IF NOT EXISTS selfie_empresa_data TEXT"),
         ("ALTER TABLE documentos_legales ADD COLUMN selfie_empresa_data TEXT"),
         ("ALTER TABLE documentos_legales ADD COLUMN IF NOT EXISTS selfie_portal_data TEXT"),

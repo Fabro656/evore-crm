@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}Horas Extra{% endblock %}
+{% block page_title %}Horas Extra — {{ periodo }}{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('nomina_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Nomina</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="tc">
+      <div class="ch"><i class="bi bi-plus-circle me-2"></i>Registrar hora extra</div>
+      <form method="POST" class="p-3">
+        <div class="mb-2">
+          <label class="form-label">Empleado *</label>
+          <select name="empleado_id" class="form-select" required>
+            <option value="">— Seleccionar —</option>
+            {% for e in empleados %}
+            <option value="{{ e.id }}">{{ e.nombre }} {{ e.apellido }} ({{ e.cargo or '' }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Fecha *</label>
+          <input type="date" name="fecha" class="form-control" required>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Tipo de hora extra *</label>
+          <select name="tipo" class="form-select" required>
+            <option value="diurna">Diurna (+25%) — Art. 168 CST</option>
+            <option value="nocturna">Nocturna (+75%) — Art. 168 CST</option>
+            <option value="dominical_diurna">Dominical/Festivo diurna (+100%) — Art. 171 CST</option>
+            <option value="dominical_nocturna">Dominical/Festivo nocturna (+150%) — Art. 171 CST</option>
+          </select>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Horas *</label>
+          <input type="number" name="horas" class="form-control" step="0.5" min="0.5" max="24" required placeholder="Ej: 2">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Notas</label>
+          <input type="text" name="notas" class="form-control" placeholder="Motivo, autorizacion...">
+        </div>
+        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus-lg me-1"></i>Registrar</button>
+      </form>
+    </div>
+
+    <div class="tc mt-3">
+      <div class="ch"><i class="bi bi-calendar me-2"></i>Cambiar periodo</div>
+      <form method="GET" class="p-3 d-flex gap-2">
+        <input type="month" name="periodo" class="form-control" value="{{ periodo }}">
+        <button class="btn btn-outline-primary"><i class="bi bi-search"></i></button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="sc mb-3" style="border-top:3px solid var(--ac)">
+      <div style="font-size:1.6rem;font-weight:700;color:var(--ac)">{{ moneda(total_valor) }}</div>
+      <div style="font-size:.82rem;color:var(--text2)">Total horas extra {{ periodo }} ({{ registros|length }} registros)</div>
+    </div>
+
+    <div class="tc">
+      <div class="ch"><i class="bi bi-clock-history me-2"></i>Registros del periodo</div>
+      {% if registros %}
+      <div class="table-responsive">
+        <table class="table">
+          <thead><tr><th>Fecha</th><th>Empleado</th><th>Tipo</th><th>Horas</th><th>Recargo</th><th>Valor</th><th></th></tr></thead>
+          <tbody>
+          {% for r in registros %}
+          <tr>
+            <td><small>{{ r.fecha.strftime('%d/%m/%Y') }}</small></td>
+            <td class="fw-semibold">{{ r.empleado.nombre }} {{ r.empleado.apellido }}</td>
+            <td>
+              {% if r.tipo == 'diurna' %}<span class="b b-activo">Diurna</span>
+              {% elif r.tipo == 'nocturna' %}<span class="b b-negociacion">Nocturna</span>
+              {% elif r.tipo == 'dominical_diurna' %}<span class="b b-pendiente">Dom. diurna</span>
+              {% else %}<span class="b b-rechazada">Dom. nocturna</span>{% endif %}
+            </td>
+            <td>{{ r.horas }}h</td>
+            <td>{{ (r.recargo_pct * 100)|int }}%</td>
+            <td class="fw-semibold">{{ moneda(r.valor) }}</td>
+            <td>
+              <form method="POST" action="{{ url_for('horas_extra_eliminar', id=r.id) }}" onsubmit="return confirm('Eliminar?')">
+                <button class="btn btn-xs btn-outline-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state"><i class="bi bi-clock"></i><p>Sin horas extra registradas para {{ periodo }}.</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -290,6 +290,35 @@ def register(app):
                                docs_por_cliente=docs_por_cliente)
 
 
+    # ── ventas_export_csv (/ventas/export-csv)
+    @app.route('/ventas/export-csv')
+    @login_required
+    @requiere_modulo('ventas')
+    def ventas_export_csv():
+        ventas = Venta.query.order_by(Venta.creado_en.desc()).all()
+        rows = []
+        for v in ventas:
+            cliente = v.cliente
+            if cliente:
+                nombre_cliente = cliente.empresa or cliente.nombre or ''
+            else:
+                nombre_cliente = ''
+            fecha = v.creado_en.strftime('%d/%m/%Y') if v.creado_en else ''
+            rows.append([
+                v.numero or '',
+                v.titulo or '',
+                nombre_cliente,
+                v.total or 0,
+                v.estado or '',
+                fecha,
+                v.monto_pagado_total or 0,
+            ])
+        return generar_csv_response(
+            rows,
+            ['Numero', 'Titulo', 'Cliente', 'Total', 'Estado', 'Fecha', 'Pagado'],
+            filename='ventas.csv'
+        )
+
     # helper: get configured IVA rate (%)
     def _iva_rate():
         try:
@@ -878,6 +907,8 @@ def register(app):
         if transportista_id:
             venta.transportista_id = transportista_id
         venta.enviado_en = datetime.utcnow()
+        venta.guia_transporte = request.form.get('guia_transporte', '').strip() or None
+        venta.estado_envio = 'en_transito'
         db.session.commit()
 
         # Notificar al cliente
@@ -924,6 +955,7 @@ def register(app):
         venta = Venta.query.get_or_404(id)
         try:
             venta.entregado_en = datetime.utcnow()
+            venta.estado_envio = 'entregado'
             if venta.estado not in ('cancelado', 'perdido'):
                 venta.estado = 'entregado'
             from services.inventario import InventarioService
