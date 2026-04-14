@@ -35,7 +35,7 @@
      style="text-decoration:none;cursor:pointer;padding:4px 12px">{{ lbl }}</a>{% endfor %}
 </div>
 <div class="mb-2" style="font-size:.82rem;color:var(--text2)">{{ items|length }} venta{{ 's' if items|length != 1 else '' }}</div>
-{% if items %}<div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%"><table class="table table-cards" style="width:100%;margin:0">
+{% if items %}<div style="overflow-x:auto;width:100%"><table class="table table-cards" style="width:100%;margin:0">
   <thead><tr>
     <th>N°</th>
     <th>Título</th>

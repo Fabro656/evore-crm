@@ -20,7 +20,7 @@
 <div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-file-earmark-check me-2"></i>{{ items|length }} cotización(es)
   {% if tipo_f %}<span class="badge {{ 'bg-warning text-dark' if tipo_f=='granel' else 'bg-info text-dark' }} ms-2">{{ tipo_f.title() }}</span>{% endif %}
 </div>
-{% if items %}<div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%"><table class="table table-cards" style="width:100%;margin:0">
+{% if items %}<div style="overflow-x:auto;width:100%"><table class="table table-cards" style="width:100%;margin:0">
   <thead><tr><th>N°</th><th>Tipo</th><th>Producto / Servicio</th><th>Proveedor</th><th>P. Unit.</th><th>Plazo</th><th>Condición Pago</th><th>Vigencia</th><th>Estado</th><th></th></tr></thead>
   <tbody>{% for c in items %}<tr>
     <td><small class="fw-semibold text-muted">{{ c.numero or '—' }}</small></td>

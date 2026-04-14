@@ -19,7 +19,7 @@
 </form></div></div>
 <div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-box-seam-fill me-2"></i>{{ items|length }} producto(s)</div>
 {% if items %}
-<div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%">
+<div style="overflow-x:auto;width:100%">
 <table class="table table-cards" style="width:100%;min-width:850px;margin:0">
   <thead><tr><th>Producto</th><th>SKU</th><th>NSO (INVIMA)</th><th>Caducidad</th><th>Precio venta</th><th>Stock</th><th></th></tr></thead>
   <tbody>{% for p in items %}<tr>

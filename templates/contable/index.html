@@ -58,7 +58,7 @@
     <span><i class="bi bi-percent me-2 text-danger"></i>Desglose de impuestos estimados — {{ anio }}/{{ '%02d'|format(mes) }}</span>
     <a href="{{ url_for('impuestos') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-gear me-1"></i>Configurar reglas</a>
   </div>
-  <div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%">
+  <div style="overflow-x:auto;width:100%">
   <table class="table table-cards" style="width:100%;margin:0">
     <thead><tr><th>Regla</th><th>Aplica a</th><th class="text-end">Base</th><th class="text-center">%</th><th class="text-end">Impuesto estimado</th></tr></thead>
     <tbody>

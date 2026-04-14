@@ -11,7 +11,7 @@
 </div>
 <div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-cart-check me-2"></i>{{ items|length }} orden(es) de compra</div>
 {% if items %}
-<div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%">
+<div style="overflow-x:auto;width:100%">
 <table class="table table-cards" style="width:100%;min-width:900px;margin:0">
   <thead><tr><th>N</th><th>Proveedor</th><th>Estado</th><th>Pago</th><th>Recepcion</th><th>Emision</th><th>Entrega esp.</th><th>Total</th><th></th></tr></thead>
   <tbody>{% for oc in items %}<tr>

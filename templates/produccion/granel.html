@@ -11,7 +11,7 @@
 </div>
 <div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-building me-2"></i>{{ items|length }} cotizacion(es)</div>
 {% if items %}
-<div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%">
+<div style="overflow-x:auto;width:100%">
 <table class="table" style="width:100%;min-width:1000px;margin:0">
   <thead><tr><th>Producto</th><th>SKU</th><th>NSO (INVIMA)</th><th>Proveedor</th><th>P. Unitario</th><th>Mín. unidades</th><th>Vigencia</th><th>Estado</th><th>Producto inv.</th><th></th></tr></thead>
   <tbody>{% for g in items %}<tr>

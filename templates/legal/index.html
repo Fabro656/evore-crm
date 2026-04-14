@@ -22,7 +22,7 @@
 </div>
 <div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-shield-check me-2"></i>{{ items|length }} documento(s)</div>
 {% if items %}
-<div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%">
+<div style="overflow-x:auto;width:100%">
 <table class="table" style="width:100%;min-width:1000px;margin:0">
   <thead><tr><th>Tipo</th><th>Titulo</th><th>N°</th><th>Entidad</th><th>Emision</th><th>Vencimiento</th><th>Estado</th><th>Firmas</th><th></th></tr></thead>
   <tbody>{% for d in items %}
