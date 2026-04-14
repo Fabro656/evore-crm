@@ -504,15 +504,20 @@ var CURR_LOCALE=CURR_CODE==='MXN'?'es-MX':'es-CO';
 var CURR_SEP=CURR_CODE==='MXN'?',':'.';
 let tasaLocal=null,enUSD=false;
 async function cargarTasa(){
-  // Fallback rates in case API fails
-  var fallback={'COP':4200,'MXN':17.5,'ARS':900,'PEN':3.7,'CLP':950};
+  var fallback={'COP':4150,'MXN':17.2,'ARS':1050,'PEN':3.7,'CLP':960};
+  // Try primary API
   try{
     const r=await fetch('https://open.er-api.com/v6/latest/USD');
-    const d=await r.json();
-    tasaLocal=d.rates[CURR_CODE]||d.rates.COP||fallback[CURR_CODE]||4200;
-  }catch(e){
-    tasaLocal=fallback[CURR_CODE]||4200;
+    if(r.ok){const d=await r.json(); tasaLocal=d.rates[CURR_CODE]||d.rates.COP||fallback[CURR_CODE];}
+  }catch(e){}
+  // Try backup API if primary failed
+  if(!tasaLocal){
+    try{
+      const r2=await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json');
+      if(r2.ok){const d2=await r2.json(); tasaLocal=d2.usd[CURR_CODE.toLowerCase()]||fallback[CURR_CODE];}
+    }catch(e){}
   }
+  if(!tasaLocal) tasaLocal=fallback[CURR_CODE]||4150;
   try{
     var formatted=tasaLocal.toFixed(CURR_CODE==='MXN'?2:0).replace(/\B(?=(\d{3})+(?!\d))/g,CURR_SEP);
     var t='1 USD = $'+formatted+' '+CURR_CODE;
