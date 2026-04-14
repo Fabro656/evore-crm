@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('proveedores') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
-{% block content %}<div class="fc" style="max-width:900px"><form method="POST" novalidate>
+{% block content %}<div class="fc" style="max-width:var(--content-lg)"><form method="POST" novalidate>
 <h6 class="text-muted mb-3 text-uppercase" style="letter-spacing:1px;font-size:.75rem">Tipo de registro</h6>
 <div class="row g-3 mb-3">
   <div class="col-12">

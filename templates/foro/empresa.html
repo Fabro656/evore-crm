@@ -3,7 +3,7 @@
 {% block page_title %}{{ company.nombre }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('foro') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Foro</a>{% endblock %}
 {% block content %}
-<div style="max-width:900px;margin:0 auto">
+<div style="max-width:var(--content-lg);margin:0 auto">
   <!-- Company header -->
   <div class="fc mb-3">
     <div class="d-flex align-items-center gap-3">

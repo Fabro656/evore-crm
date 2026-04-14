@@ -3,7 +3,7 @@
 {% block page_title %}Agregar usuario a {{ empresa.nombre }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('admin_empresas') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
 {% block content %}
-<div class="fc" style="max-width:600px;width:100%">
+<div class="fc" style="max-width:var(--content-md);width:100%">
 <div class="alert alert-info py-2 mb-3" style="font-size:.82rem">
   <i class="bi bi-info-circle me-1"></i>
   <strong>{{ empresa.nombre }}</strong> — {{ current_count }}/{{ empresa.max_users }} usuarios.

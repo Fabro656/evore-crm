@@ -10,7 +10,7 @@
   </ol>
 </nav>
 {% endblock %}
-{% block content %}<div class="fc" style="max-width:860px;width:100%"><form method="POST"><div class="row g-3">
+{% block content %}<div class="fc" style="max-width:var(--content-lg);width:100%"><form method="POST"><div class="row g-3">
   <div class="col-md-6"><label class="form-label">Nombre *</label>
     <input type="text" name="nombre" class="form-control" value="{{ obj.nombre if obj else '' }}" required></div>
   <div class="col-md-6"><label class="form-label">Email *</label>
