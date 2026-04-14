@@ -93,7 +93,10 @@ body{background:var(--surface);font-family:-apple-system,BlinkMacSystemFont,'Seg
 #sb.sb-expanded{width:240px;align-items:stretch}
 #sb.sb-expanded .sb-brand{gap:8px}
 #sb.sb-expanded .sb-brand a{display:flex!important;flex:1;min-width:0;overflow:hidden}
-#sb.sb-expanded .sb-brand img{display:block!important;width:100%!important;max-width:100%!important;height:auto!important;max-height:28px!important;object-fit:contain!important;object-position:left!important}
+#sb.sb-expanded .sb-brand img.logo-light{display:block!important;width:100%!important;max-width:100%!important;height:auto!important;max-height:32px!important;object-fit:contain!important;object-position:left!important}
+#sb.sb-expanded .sb-brand img.logo-dark{display:none!important;width:100%!important;max-width:100%!important;height:auto!important;max-height:32px!important;object-fit:contain!important;object-position:left!important}
+html[data-theme="dark"] #sb.sb-expanded .sb-brand img.logo-light{display:none!important}
+html[data-theme="dark"] #sb.sb-expanded .sb-brand img.logo-dark{display:block!important}
 #sb.sb-expanded .sb-sec{display:block;font-size:.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--sb-text);opacity:.45;padding:.7rem .9rem .15rem}
 #sb.sb-expanded .sb-nav{align-items:stretch;padding:4px 6px}
 #sb.sb-expanded .sb-nav .nav-link{width:auto;height:auto;padding:.42rem .75rem!important;justify-content:flex-start;gap:.6rem;border-radius:8px}
@@ -703,8 +706,8 @@ img,svg{max-width:100%;height:auto}
     {% if current_user.is_authenticated %}
       {% if company_config and 'evore' in (company_config.get('name','') or '').lower() %}
       <a href="/" style="text-decoration:none;display:none;overflow:hidden">
-        <img src="{{ url_for('static', filename='img/evore-vertical-blue.svg') }}" alt="Evore" class="logo-light" style="max-width:130px;height:auto">
-        <img src="{{ url_for('static', filename='img/evore-vertical-white.svg') }}" alt="Evore" class="logo-dark" style="max-width:130px;height:auto">
+        <img src="{{ url_for('static', filename='img/evore-logo-blue.svg') }}" alt="Evore" class="logo-light" style="max-width:180px;height:auto">
+        <img src="{{ url_for('static', filename='img/evore-logo-white.svg') }}" alt="Evore" class="logo-dark" style="max-width:180px;height:auto">
       </a>
       {% else %}
       <a href="/" style="text-decoration:none;color:#fff;display:none;align-items:center;gap:.5rem;overflow:hidden">
