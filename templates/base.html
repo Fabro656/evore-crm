@@ -2141,22 +2141,8 @@ if('serviceWorker' in navigator){
   });
   if(window.caches){caches.keys().then(function(ks){ks.forEach(function(k){caches.delete(k);});});}
 }
-var _deferredInstall=null;
-window.addEventListener('beforeinstallprompt',function(e){
-  e.preventDefault(); _deferredInstall=e;
-  if(localStorage.getItem('evore_pwa_dismiss')) return;
-  document.getElementById('pwaBar').style.display='';
-});
-function pwaInstall(){if(_deferredInstall){_deferredInstall.prompt();_deferredInstall=null;document.getElementById('pwaBar').style.display='none';}}
-function pwaDismiss(){document.getElementById('pwaBar').style.display='none';localStorage.setItem('evore_pwa_dismiss','1');}
+
 </script>
-<div id="pwaBar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0176D3;color:#fff;padding:10px 16px;font-size:.85rem">
-<div style="max-width:900px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
-<span><i class="bi bi-download me-2"></i><strong>Instalar Evore CRM</strong> como app</span>
-<span style="display:flex;gap:6px">
-<button onclick="pwaInstall()" style="padding:5px 16px;background:#fff;color:#0176D3;border:none;border-radius:6px;font-weight:700;font-size:.82rem;cursor:pointer">Instalar</button>
-<button onclick="pwaDismiss()" style="padding:5px 10px;background:transparent;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.3);border-radius:6px;font-size:.82rem;cursor:pointer">No</button>
-</span></div></div>
 <script>
 // ── Global keyboard shortcuts ──
 document.addEventListener('keydown', function(e) {
