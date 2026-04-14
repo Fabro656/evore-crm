@@ -685,7 +685,7 @@ img,svg{max-width:100%;height:auto}
           <span class="u-rol">{{ rol_activo }}</span></div>
       </div>
       <div class="d-flex flex-column gap-1 align-items-center">
-        <button class="notif-btn" id="notifBtn" onclick="toggleNotif(event)" title="Notificaciones">
+        <button class="notif-btn d-none d-md-flex" id="notifBtn" onclick="toggleNotif(event)" title="Notificaciones">
           <i class="bi bi-bell-fill"></i>
           {% if notif_count > 0 %}<span class="notif-badge">{{ notif_count if notif_count < 10 else '9+' }}</span>{% endif %}
         </button>
