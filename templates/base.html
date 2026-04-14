@@ -827,6 +827,7 @@ img,svg{max-width:100%;height:auto}
   <a class="dock-panel-head" href="{{ url_for('admin_usuarios') }}"><i class="bi bi-shield-lock-fill"></i><span>Administracion</span><i class="bi bi-arrow-right dp-arrow"></i></a>
   <div class="dock-panel-body">
     <a href="{{ url_for('admin_usuarios') }}" class="dock-panel-link"><i class="bi bi-shield-person-fill"></i>Usuarios</a>
+    {% if is_platform_admin %}<a href="{{ url_for('admin_empresas') }}" class="dock-panel-link"><i class="bi bi-building"></i>Empresas</a>{% endif %}
     <a href="{{ url_for('actividad') }}" class="dock-panel-link"><i class="bi bi-clock-history"></i>Actividad</a>
     <a href="{{ url_for('admin_config') }}" class="dock-panel-link"><i class="bi bi-gear"></i>Empresa</a>
   </div>
@@ -1123,8 +1124,13 @@ function toggleSidebar(){
           <li><div style="padding:.6rem 1rem .3rem">
             <div style="font-weight:700;font-size:.85rem;color:var(--text)">{{ current_user.nombre }}</div>
             <div style="font-size:.75rem;color:var(--text2)">{{ current_user.email }}</div>
+            {% if active_company %}<div style="font-size:.72rem;color:var(--ac);font-weight:600;margin-top:2px"><i class="bi bi-building me-1"></i>{{ active_company.nombre }}</div>{% endif %}
             <span class="b b-negociacion mt-1 d-inline-block"><i class="bi {{ rol_icons.get(rol_activo, 'bi-person') }} me-1"></i>{{ rol_labels.get(rol_activo, rol_activo) }}</span>
           </div></li>
+          <li><hr class="dropdown-divider my-1"></li>
+          <li><a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('seleccionar_empresa') }}" style="font-size:.83rem;padding:.4rem 1rem">
+            <i class="bi bi-building" style="color:var(--ac)"></i>Cambiar empresa
+          </a></li>
           {% if roles_disponibles|length > 1 %}
           <li><hr class="dropdown-divider my-1"></li>
           <li><div style="padding:.3rem 1rem .1rem;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Cambiar rol</div></li>

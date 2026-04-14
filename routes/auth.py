@@ -93,8 +93,20 @@ def register(app):
                 flask_session['show_onboarding_once'] = True
                 ses = UserSesion(user_id=user.id); db.session.add(ses); db.session.commit()
                 flask_session['sesion_id'] = ses.id
-                # Multi-rol: setear rol activo al principal
-                flask_session['rol_activo'] = user.rol
+                # Multi-tenancy: check how many companies user belongs to
+                user_companies = UserCompany.query.filter_by(user_id=user.id, activo=True).all()
+                if len(user_companies) > 1:
+                    # Multiple companies — redirect to selector
+                    return redirect(url_for('seleccionar_empresa'))
+                elif len(user_companies) == 1:
+                    # Single company — set it directly
+                    uc = user_companies[0]
+                    flask_session['active_company_id'] = uc.company_id
+                    flask_session['rol_activo'] = uc.rol
+                else:
+                    # No UserCompany records — use default from User
+                    flask_session['active_company_id'] = user.company_id
+                    flask_session['rol_activo'] = user.rol
                 flash(f'¡Bienvenido, {user.nombre}!', 'success')
                 return redirect(request.args.get('next') or url_for('dashboard'))
             # Record failed attempt
@@ -116,8 +128,49 @@ def register(app):
                 ses.duracion_min = round(delta.total_seconds()/60, 1)
                 db.session.commit()
         flask_session.pop('rol_activo', None)
+        flask_session.pop('active_company_id', None)
         logout_user(); flash('Sesión cerrada.', 'info'); return redirect(url_for('login'))
-    
+
+
+    # ── seleccionar_empresa (/seleccionar-empresa) — company selector after login
+    @app.route('/seleccionar-empresa')
+    @login_required
+    def seleccionar_empresa():
+        user_companies = UserCompany.query.filter_by(user_id=current_user.id, activo=True).all()
+        companies = []
+        for uc in user_companies:
+            company = db.session.get(Company, uc.company_id)
+            if company and company.activo:
+                companies.append({'company': company, 'rol': uc.rol})
+        if len(companies) == 1:
+            flask_session['active_company_id'] = companies[0]['company'].id
+            flask_session['rol_activo'] = companies[0]['rol']
+            return redirect(url_for('dashboard'))
+        return render_template('seleccionar_empresa.html', companies=companies)
+
+    # ── cambiar_empresa (/cambiar-empresa) — switch active company
+    @app.route('/cambiar-empresa', methods=['POST'])
+    @login_required
+    def cambiar_empresa():
+        company_id = request.form.get('company_id', type=int)
+        if not company_id:
+            flash('Empresa no válida.', 'danger')
+            return redirect(url_for('dashboard'))
+        # Verify user belongs to this company
+        uc = UserCompany.query.filter_by(user_id=current_user.id, company_id=company_id, activo=True).first()
+        if not uc:
+            flash('No tienes acceso a esa empresa.', 'danger')
+            return redirect(url_for('dashboard'))
+        flask_session['active_company_id'] = company_id
+        flask_session['rol_activo'] = uc.rol
+        # Clear inject_globals cache
+        from utils import _inject_cache
+        keys_to_clear = [k for k in _inject_cache if k.endswith(f'_{current_user.id}')]
+        for k in keys_to_clear:
+            _inject_cache.pop(k, None)
+        company = db.session.get(Company, company_id)
+        flash(f'Cambiaste a: {company.nombre}', 'info')
+        return redirect(url_for('dashboard'))
 
     # ── cambiar_rol (/cambiar-rol) — multi-rol switcher
     @app.route('/cambiar-rol', methods=['POST'])

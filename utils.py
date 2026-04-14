@@ -117,29 +117,57 @@ _ROL_ICONS = {
 }
 
 def _get_roles_usuario(user):
-    """Retorna lista de roles disponibles para el usuario."""
+    """Retorna lista de roles disponibles para el usuario en la empresa activa."""
     if not user or not user.is_authenticated:
         return []
     roles = set()
-    roles.add(user.rol)  # rol principal siempre incluido
-    try:
-        asignados = json.loads(user.roles_asignados or '[]')
-        if isinstance(asignados, list):
-            roles.update(asignados)
-    except Exception:
-        pass
+    # Get role from UserCompany for active company
+    active_cid = session.get('active_company_id')
+    if active_cid:
+        try:
+            from models import UserCompany
+            uc = UserCompany.query.filter_by(user_id=user.id, company_id=active_cid, activo=True).first()
+            if uc:
+                roles.add(uc.rol)
+                try:
+                    extra = json.loads(uc.roles_asignados or '[]')
+                    if isinstance(extra, list):
+                        roles.update(extra)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+    # Fallback to user's default role
+    if not roles:
+        roles.add(user.rol)
+        try:
+            asignados = json.loads(user.roles_asignados or '[]')
+            if isinstance(asignados, list):
+                roles.update(asignados)
+        except Exception:
+            pass
     # admin siempre tiene acceso a todo
     if 'admin' in roles:
         return list(_ROL_LABELS.keys())
     return sorted(roles, key=lambda r: list(_ROL_LABELS.keys()).index(r) if r in _ROL_LABELS else 99)
 
 def _get_rol_activo(user):
-    """Retorna el rol activo actual desde session, o el rol principal."""
+    """Retorna el rol activo actual desde session, o el rol en la empresa activa."""
     if not user or not user.is_authenticated:
         return 'usuario'
     rol_session = session.get('rol_activo')
     if rol_session and rol_session in _get_roles_usuario(user):
         return rol_session
+    # Fallback: get role from UserCompany for active company
+    active_cid = session.get('active_company_id')
+    if active_cid:
+        try:
+            from models import UserCompany
+            uc = UserCompany.query.filter_by(user_id=user.id, company_id=active_cid, activo=True).first()
+            if uc:
+                return uc.rol
+        except Exception:
+            pass
     return user.rol
 
 # ── Onboarding por rol ─────────────────────────────────────────────

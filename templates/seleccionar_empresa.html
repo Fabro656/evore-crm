@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="csrf-token" content="{{ csrf_token }}">
+<meta name="theme-color" content="#0176D3">
+<title>Seleccionar Empresa — Evore CRM</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<script>document.documentElement.setAttribute('data-theme',localStorage.getItem('evore_theme')||'light');</script>
+<style>
+:root{--ac:#0176D3;--surface:#FFFFFF;--bg:#F3F5F9;--text:#1A2536;--text2:#5A6A85;--border:#D5DFF0;--green:#2E844A}
+html[data-theme="dark"]{--ac:#1589EE;--surface:#1E1E1E;--bg:#161616;--text:#E4E4E4;--text2:#8A8A8A;--border:#323232;--green:#3BA860}
+body{background:var(--surface);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.selector-wrap{max-width:480px;width:100%;padding:2rem}
+.selector-card{border:1px solid var(--border);border-radius:12px;padding:1.25rem;margin-bottom:.75rem;cursor:pointer;transition:all .15s;background:var(--surface)}
+.selector-card:hover{border-color:var(--ac);box-shadow:0 4px 16px rgba(0,0,0,.08);transform:translateY(-2px)}
+</style>
+</head><body>
+<div class="selector-wrap">
+  <div style="text-align:center;margin-bottom:2rem">
+    <i class="bi bi-building" style="font-size:2.5rem;color:var(--ac)"></i>
+    <h4 style="margin:.75rem 0 .25rem;font-weight:700">Hola, {{ current_user.nombre.split()[0] }}</h4>
+    <p style="color:var(--text2);font-size:.9rem;margin:0">Selecciona la empresa donde quieres trabajar</p>
+  </div>
+
+  {% for item in companies %}
+  <form method="POST" action="{{ url_for('cambiar_empresa') }}">
+    <input type="hidden" name="company_id" value="{{ item.company.id }}">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+    <button type="submit" class="selector-card d-flex align-items-center gap-3 w-100 text-start" style="border:1px solid var(--border);background:var(--surface)">
+      <div style="width:48px;height:48px;border-radius:10px;background:var(--ac);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;flex-shrink:0">
+        {{ item.company.nombre[0].upper() }}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:1rem">{{ item.company.nombre }}</div>
+        <div style="font-size:.78rem;color:var(--text2)">
+          {{ item.company.nit or '' }}
+          {% if item.company.es_principal %}<span class="badge bg-primary ms-1" style="font-size:.6rem">Plataforma</span>{% endif %}
+        </div>
+      </div>
+      <div style="text-align:right">
+        <span class="badge" style="background:rgba(var(--ac),0.1);color:var(--ac);border:1px solid var(--border);font-size:.72rem">{{ item.rol|capitalize }}</span>
+      </div>
+    </button>
+  </form>
+  {% endfor %}
+
+  <div style="text-align:center;margin-top:1.5rem">
+    <a href="{{ url_for('logout') }}" style="font-size:.82rem;color:var(--text2);text-decoration:none">
+      <i class="bi bi-box-arrow-left me-1"></i>Cerrar sesion
+    </a>
+  </div>
+</div>
+</body></html>

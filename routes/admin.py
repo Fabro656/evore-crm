@@ -247,6 +247,135 @@ def register(app):
         return redirect(url_for('gastos'))
     
 
+    # ══════════════════════════════════════════════════════════════
+    # MULTI-TENANCY: Company management (solo admin de Company principal)
+    # ══════════════════════════════════════════════════════════════
+
+    @app.route('/admin/empresas')
+    @login_required
+    def admin_empresas():
+        """Lista de empresas — solo visible para admin de la plataforma."""
+        from flask import g
+        company = db.session.get(Company, g.company_id) if g.company_id else None
+        if not company or not company.es_principal or current_user.rol != 'admin':
+            flash('Solo el administrador de la plataforma puede gestionar empresas.', 'danger')
+            return redirect(url_for('dashboard'))
+        empresas = Company.query.order_by(Company.id).all()
+        # Count users per company
+        for emp in empresas:
+            emp._user_count = UserCompany.query.filter_by(company_id=emp.id, activo=True).count()
+        return render_template('admin/empresas.html', empresas=empresas)
+
+    @app.route('/admin/empresas/nueva', methods=['GET','POST'])
+    @login_required
+    def admin_empresa_nueva():
+        from flask import g
+        company = db.session.get(Company, g.company_id) if g.company_id else None
+        if not company or not company.es_principal or current_user.rol != 'admin':
+            flash('Sin permisos.', 'danger')
+            return redirect(url_for('dashboard'))
+        if request.method == 'POST':
+            nombre = request.form.get('nombre', '').strip()
+            nit = request.form.get('nit', '').strip()
+            max_users = int(request.form.get('max_users', 3))
+            plan = request.form.get('plan', 'free')
+            if not nombre:
+                flash('El nombre es obligatorio.', 'danger')
+                return render_template('admin/empresa_form.html', obj=None)
+            slug = nombre.lower().replace(' ', '-').replace('.', '').replace(',', '')
+            # Check slug unique
+            if Company.query.filter_by(slug=slug).first():
+                slug = f'{slug}-{Company.query.count()}'
+            emp = Company(nombre=nombre, slug=slug, nit=nit, max_users=max_users,
+                          plan=plan, activo=True, creado_por=current_user.id)
+            db.session.add(emp)
+            db.session.flush()
+            # Create ConfigEmpresa for the new company
+            db.session.add(ConfigEmpresa(nombre=nombre, company_id=emp.id))
+            # Seed PUC for new company
+            try:
+                from company_config import COMPANY as _CC
+                if _CC.get('chart_of_accounts') == 'co_puc':
+                    for cuenta in CuentaPUC.query.filter_by(company_id=company.id).all():
+                        new_cuenta = CuentaPUC(codigo=cuenta.codigo, nombre=cuenta.nombre,
+                                               tipo=cuenta.tipo, nivel=cuenta.nivel,
+                                               company_id=emp.id)
+                        db.session.add(new_cuenta)
+            except Exception:
+                pass
+            _log('crear', 'empresa', emp.id, f'Empresa creada: {emp.nombre} (max_users={max_users})')
+            db.session.commit()
+            flash(f'Empresa "{nombre}" creada. Ahora crea un usuario admin para ella.', 'success')
+            return redirect(url_for('admin_empresa_usuario', empresa_id=emp.id))
+        return render_template('admin/empresa_form.html', obj=None)
+
+    @app.route('/admin/empresas/<int:id>/editar', methods=['GET','POST'])
+    @login_required
+    def admin_empresa_editar(id):
+        from flask import g
+        company = db.session.get(Company, g.company_id) if g.company_id else None
+        if not company or not company.es_principal or current_user.rol != 'admin':
+            flash('Sin permisos.', 'danger')
+            return redirect(url_for('dashboard'))
+        emp = Company.query.get_or_404(id)
+        if request.method == 'POST':
+            emp.nombre = request.form.get('nombre', emp.nombre).strip()
+            emp.nit = request.form.get('nit', '').strip()
+            emp.max_users = int(request.form.get('max_users', emp.max_users))
+            emp.plan = request.form.get('plan', emp.plan)
+            emp.activo = request.form.get('activo') == 'on'
+            _log('editar', 'empresa', emp.id, f'Empresa editada: {emp.nombre}')
+            db.session.commit()
+            flash(f'Empresa "{emp.nombre}" actualizada.', 'success')
+            return redirect(url_for('admin_empresas'))
+        return render_template('admin/empresa_form.html', obj=emp)
+
+    @app.route('/admin/empresas/<int:empresa_id>/usuario', methods=['GET','POST'])
+    @login_required
+    def admin_empresa_usuario(empresa_id):
+        """Crear un usuario para una empresa específica."""
+        from flask import g
+        company = db.session.get(Company, g.company_id) if g.company_id else None
+        if not company or not company.es_principal or current_user.rol != 'admin':
+            flash('Sin permisos.', 'danger')
+            return redirect(url_for('dashboard'))
+        emp = Company.query.get_or_404(empresa_id)
+        # Check user limit
+        current_count = UserCompany.query.filter_by(company_id=emp.id, activo=True).count()
+        if request.method == 'POST':
+            if current_count >= emp.max_users:
+                flash(f'Limite alcanzado: {emp.nombre} tiene {current_count}/{emp.max_users} usuarios.', 'danger')
+                return redirect(url_for('admin_empresas'))
+            email = request.form.get('email', '').strip()
+            nombre = request.form.get('nombre', '').strip()
+            rol = request.form.get('rol', 'usuario')
+            password = request.form.get('password', '')
+            if len(password) < 8:
+                flash('Contraseña mínimo 8 caracteres.', 'danger')
+                return render_template('admin/empresa_usuario_form.html', empresa=emp, current_count=current_count)
+            # Check if user already exists
+            existing = User.query.filter_by(email=email).first()
+            if existing:
+                # User exists — just add to this company
+                existing_uc = UserCompany.query.filter_by(user_id=existing.id, company_id=emp.id).first()
+                if existing_uc:
+                    flash(f'{email} ya pertenece a {emp.nombre}.', 'warning')
+                else:
+                    db.session.add(UserCompany(user_id=existing.id, company_id=emp.id, rol=rol))
+                    db.session.commit()
+                    flash(f'{existing.nombre} agregado a {emp.nombre} como {rol}.', 'success')
+            else:
+                # Create new user
+                u = User(nombre=nombre, email=email, rol=rol, company_id=emp.id)
+                u.set_password(password)
+                db.session.add(u)
+                db.session.flush()
+                db.session.add(UserCompany(user_id=u.id, company_id=emp.id, rol=rol))
+                db.session.commit()
+                flash(f'Usuario {nombre} creado en {emp.nombre}.', 'success')
+            return redirect(url_for('admin_empresas'))
+        return render_template('admin/empresa_usuario_form.html', empresa=emp, current_count=current_count)
+
     # ── admin_usuarios (/admin/usuarios)
     @app.route('/admin/usuarios')
     @login_required

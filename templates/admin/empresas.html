@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Empresas{% endblock %}{% block page_title %}Empresas de la Plataforma{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('admin_empresa_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva Empresa</a>
+{% endblock %}
+{% block content %}
+<div class="count-label"><i class="bi bi-building me-2"></i>{{ empresas|length }} empresa(s)</div>
+{% if empresas %}
+<div style="overflow-x:auto;width:100%">
+<table class="table table-cards" style="width:100%;margin:0">
+  <thead><tr>
+    <th>Empresa</th>
+    <th>NIT</th>
+    <th>Plan</th>
+    <th>Usuarios</th>
+    <th>Estado</th>
+    <th></th>
+  </tr></thead>
+  <tbody>
+  {% for emp in empresas %}<tr>
+    <td data-label="Empresa">
+      <span class="fw-semibold">{{ emp.nombre }}</span>
+      {% if emp.es_principal %}<span class="badge bg-primary ms-1" style="font-size:.6rem">Plataforma</span>{% endif %}
+    </td>
+    <td data-label="NIT"><small class="text-muted">{{ emp.nit or '—' }}</small></td>
+    <td data-label="Plan"><span class="badge bg-light text-dark border">{{ emp.plan|capitalize }}</span></td>
+    <td data-label="Usuarios">
+      <span class="fw-semibold {% if emp._user_count >= emp.max_users %}text-danger{% else %}text-success{% endif %}">{{ emp._user_count }}</span>
+      <small class="text-muted">/ {{ emp.max_users }}</small>
+    </td>
+    <td data-label="Estado">
+      {% if emp.activo %}<span class="badge bg-success">Activa</span>
+      {% else %}<span class="badge bg-danger">Inactiva</span>{% endif %}
+    </td>
+    <td>
+      <div class="d-flex gap-1 justify-content-end">
+        <a href="{{ url_for('admin_empresa_usuario', empresa_id=emp.id) }}" class="btn btn-sm btn-outline-success" style="font-size:.72rem;padding:2px 8px" title="Agregar usuario"><i class="bi bi-person-plus"></i></a>
+        <a href="{{ url_for('admin_empresa_editar', id=emp.id) }}" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;padding:2px 8px" title="Editar"><i class="bi bi-pencil"></i></a>
+      </div>
+    </td>
+  </tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="text-center text-muted py-5">
+  <i class="bi bi-building" style="font-size:3rem"></i>
+  <p class="mt-3">Sin empresas registradas.</p>
+</div>
+{% endif %}
+{% endblock %}
