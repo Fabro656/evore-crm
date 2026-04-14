@@ -10,7 +10,7 @@
   </ol>
 </nav>
 {% endblock %}
-{% block content %}<div class="fc" style="max-width:900px"><form method="POST">
+{% block content %}<div class="fc" style="max-width:900px"><form method="POST" novalidate>
 
 <div class="form-section">
   <div class="form-section-title"><i class="bi bi-building me-2"></i>Información de la empresa</div>
@@ -156,4 +156,45 @@ function addContacto(){
     <div class="col-md-1"><button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="this.closest('.prod-row').remove()" title="Eliminar"><i class="bi bi-trash"></i></button></div>
   </div></div>`);
 }
+// Inline validation
+document.querySelector('form[method="POST"]').addEventListener('submit',function(e){
+  var valid=true;
+  this.querySelectorAll('[required]').forEach(function(input){
+    input.classList.remove('is-invalid');
+    var fb=input.parentElement.querySelector('.invalid-feedback');
+    if(fb) fb.remove();
+    if(!input.value.trim()){
+      valid=false;
+      input.classList.add('is-invalid');
+      var div=document.createElement('div');
+      div.className='invalid-feedback';
+      div.textContent='Este campo es obligatorio';
+      input.parentElement.appendChild(div);
+    }
+  });
+  this.querySelectorAll('input[type="email"]').forEach(function(input){
+    if(input.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value)){
+      valid=false;
+      input.classList.add('is-invalid');
+      if(!input.parentElement.querySelector('.invalid-feedback')){
+        var div=document.createElement('div');div.className='invalid-feedback';
+        div.textContent='Ingresa un email valido';input.parentElement.appendChild(div);
+      }
+    }
+  });
+  this.querySelectorAll('input[type="number"][min]').forEach(function(input){
+    if(input.value && parseFloat(input.value) < parseFloat(input.min)){
+      valid=false;
+      input.classList.add('is-invalid');
+      if(!input.parentElement.querySelector('.invalid-feedback')){
+        var div=document.createElement('div');div.className='invalid-feedback';
+        div.textContent='Valor minimo: '+input.min;input.parentElement.appendChild(div);
+      }
+    }
+  });
+  if(!valid){e.preventDefault();e.stopPropagation();}
+});
+document.querySelectorAll('.form-control,.form-select').forEach(function(el){
+  el.addEventListener('input',function(){this.classList.remove('is-invalid');var fb=this.parentElement.querySelector('.invalid-feedback');if(fb)fb.remove();});
+});
 </script>{% endblock %}

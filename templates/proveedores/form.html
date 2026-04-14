@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}{{ titulo }}{% endblock %}{% block page_title %}{{ titulo }}{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('proveedores') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
-{% block content %}<div class="fc" style="max-width:900px"><form method="POST">
+{% block content %}<div class="fc" style="max-width:900px"><form method="POST" novalidate>
 <h6 class="text-muted mb-3 text-uppercase" style="letter-spacing:1px;font-size:.75rem">Tipo de registro</h6>
 <div class="row g-3 mb-3">
   <div class="col-12">
@@ -68,4 +68,47 @@ document.addEventListener('DOMContentLoaded',toggleVehiculo);
 <div class="d-flex gap-2 mt-4">
   <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear' }}</button>
   <a href="{{ url_for('proveedores') }}" class="btn btn-outline-secondary">Cancelar</a>
-</div></form></div>{% endblock %}
+</div></form>
+<script>
+document.querySelector('form[method="POST"]').addEventListener('submit',function(e){
+  var valid=true;
+  this.querySelectorAll('[required]').forEach(function(input){
+    input.classList.remove('is-invalid');
+    var fb=input.parentElement.querySelector('.invalid-feedback');
+    if(fb) fb.remove();
+    if(!input.value.trim()){
+      valid=false;
+      input.classList.add('is-invalid');
+      var div=document.createElement('div');
+      div.className='invalid-feedback';
+      div.textContent='Este campo es obligatorio';
+      input.parentElement.appendChild(div);
+    }
+  });
+  this.querySelectorAll('input[type="email"]').forEach(function(input){
+    if(input.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value)){
+      valid=false;
+      input.classList.add('is-invalid');
+      if(!input.parentElement.querySelector('.invalid-feedback')){
+        var div=document.createElement('div');div.className='invalid-feedback';
+        div.textContent='Ingresa un email valido';input.parentElement.appendChild(div);
+      }
+    }
+  });
+  this.querySelectorAll('input[type="number"][min]').forEach(function(input){
+    if(input.value && parseFloat(input.value) < parseFloat(input.min)){
+      valid=false;
+      input.classList.add('is-invalid');
+      if(!input.parentElement.querySelector('.invalid-feedback')){
+        var div=document.createElement('div');div.className='invalid-feedback';
+        div.textContent='Valor minimo: '+input.min;input.parentElement.appendChild(div);
+      }
+    }
+  });
+  if(!valid){e.preventDefault();e.stopPropagation();}
+});
+document.querySelectorAll('.form-control,.form-select').forEach(function(el){
+  el.addEventListener('input',function(){this.classList.remove('is-invalid');var fb=this.parentElement.querySelector('.invalid-feedback');if(fb)fb.remove();});
+});
+</script>
+</div>{% endblock %}

@@ -23,8 +23,15 @@
     </div>
   </form>
 </div>
-<div class="count-label"><i class="bi bi-check2-square me-2"></i>{{ total_items }} ticket(s)</div>
+<div class="d-flex align-items-center justify-content-between mb-2">
+  <div class="count-label"><i class="bi bi-check2-square me-2"></i>{{ total_items }} ticket(s)</div>
+  <div class="btn-group btn-group-sm">
+    <button class="btn btn-outline-secondary active" id="viewCards" onclick="setView('cards')" title="Tarjetas"><i class="bi bi-grid-3x3-gap"></i></button>
+    <button class="btn btn-outline-secondary" id="viewTable" onclick="setView('table')" title="Tabla"><i class="bi bi-list-ul"></i></button>
+  </div>
+</div>
 {% if items %}
+<div id="viewCardsContainer">
 <div class="row g-3">
   {% for t in items %}
   <div class="col-12 col-md-6 col-xl-4">
@@ -71,6 +78,35 @@
   </div>
   {% endfor %}
 </div>
+</div>{# /viewCardsContainer #}
+
+<div id="viewTableContainer" style="display:none">
+<div class="table-responsive">
+  <table class="table table-hover align-middle" style="font-size:.85rem">
+    <thead>
+      <tr>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Titulo</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Asignado</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Prioridad</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Estado</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Vencimiento</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in items %}
+      <tr>
+        <td><a href="{{ url_for('tarea_ver', id=t.id) }}" class="text-decoration-none fw-semibold" style="font-size:.82rem">{{ t.titulo }}</a></td>
+        <td style="color:var(--text2)">{{ t.asignado_user.nombre if t.asignado_user else '—' }}</td>
+        <td><span class="b b-{{ t.prioridad }}" style="font-size:.7rem">{{ t.prioridad.title() }}</span></td>
+        <td><span class="b b-{{ t.estado }}" style="font-size:.7rem">{{ t.estado.replace('_',' ').title() }}</span></td>
+        <td style="color:var(--text2);font-size:.82rem">{% if t.fecha_vencimiento %}<span class="{{ 'text-danger fw-bold' if t.estado!='completada' and t.fecha_vencimiento < now.date() else '' }}">{{ t.fecha_vencimiento.strftime('%d/%m/%Y') }}</span>{% else %}—{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+</div>{# /viewTableContainer #}
+
 {% if total_pages > 1 %}
 <div class="d-flex justify-content-between align-items-center mt-3" style="font-size:var(--font-small)">
   <span class="text-muted">Pagina {{ page }} de {{ total_pages }}</span>
@@ -85,4 +121,15 @@
 {% endif %}
 {% else %}<div class="text-center text-muted py-5"><i class="bi bi-check2-all" style="font-size:3rem"></i>
   <p class="mt-3">Sin tickets{% if buscar %} que coincidan con "{{ buscar }}"{% endif %}.</p><a href="{{ url_for('tarea_nueva') }}" class="btn btn-primary">Crear primera</a></div>
-{% endif %}{% endblock %}
+{% endif %}
+<script>
+function setView(v){
+  document.getElementById('viewCardsContainer').style.display=v==='cards'?'':'none';
+  document.getElementById('viewTableContainer').style.display=v==='table'?'':'none';
+  document.getElementById('viewCards').classList.toggle('active',v==='cards');
+  document.getElementById('viewTable').classList.toggle('active',v==='table');
+  localStorage.setItem('evore_tareas_view',v);
+}
+(function(){var v=localStorage.getItem('evore_tareas_view');if(v==='table')setView('table');})();
+</script>
+{% endblock %}

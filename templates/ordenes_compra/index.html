@@ -21,8 +21,15 @@
     </div>
   </form>
 </div>
-<div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-cart-check me-2"></i>{{ total_items }} orden(es) de compra</div>
+<div class="d-flex align-items-center justify-content-between mb-2">
+  <div style="font-size:.82rem;color:var(--text2)"><i class="bi bi-cart-check me-2"></i>{{ total_items }} orden(es) de compra</div>
+  <div class="btn-group btn-group-sm">
+    <button class="btn btn-outline-secondary active" id="viewCards" onclick="setView('cards')" title="Tarjetas"><i class="bi bi-grid-3x3-gap"></i></button>
+    <button class="btn btn-outline-secondary" id="viewTable" onclick="setView('table')" title="Tabla"><i class="bi bi-list-ul"></i></button>
+  </div>
+</div>
 {% if items %}
+<div id="viewCardsContainer">
 <div class="row g-3">
   {% for oc in items %}
   <div class="col-12 col-md-6 col-xl-4">
@@ -109,6 +116,35 @@
   </div>
   {% endfor %}
 </div>
+</div>{# /viewCardsContainer #}
+
+<div id="viewTableContainer" style="display:none">
+<div class="table-responsive">
+  <table class="table table-hover align-middle" style="font-size:.85rem">
+    <thead>
+      <tr>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Numero</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Proveedor</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)" class="text-end">Total</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Estado</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Fecha</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for oc in items %}
+      <tr>
+        <td><a href="{{ url_for('oc_pdf', id=oc.id) }}" target="_blank" class="text-decoration-none fw-semibold" style="font-size:.82rem">{{ oc.numero or '--' }}</a></td>
+        <td style="color:var(--text2)">{{ oc.proveedor.empresa or oc.proveedor.nombre if oc.proveedor else '--' }}</td>
+        <td class="text-end fw-semibold">{{ moneda(oc.total or 0) }}</td>
+        <td>{% if oc.estado=='borrador' %}<span class="badge bg-secondary" style="font-size:.7rem">Borrador</span>{% elif oc.estado=='anticipo_pagado' %}<span class="badge bg-info text-dark" style="font-size:.7rem">Anticipo pagado</span>{% elif oc.estado=='pagado' %}<span class="badge bg-primary" style="font-size:.7rem">Pagado</span>{% elif oc.estado=='en_espera_producto' %}<span class="badge bg-warning text-dark" style="font-size:.7rem">En espera</span>{% elif oc.estado=='recibida_parcial' %}<span class="badge text-dark" style="background:#fd7e14!important;font-size:.7rem">Parcial</span>{% elif oc.estado=='recibida' %}<span class="badge bg-success" style="font-size:.7rem">Recibida</span>{% elif oc.estado=='cancelada' %}<span class="badge bg-danger" style="font-size:.7rem">Cancelada</span>{% else %}<span class="badge bg-secondary" style="font-size:.7rem">{{ oc.estado }}</span>{% endif %}</td>
+        <td style="color:var(--text2);font-size:.82rem">{{ oc.fecha_emision.strftime('%d/%m/%Y') if oc.fecha_emision else '--' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+</div>{# /viewTableContainer #}
+
 {% if total_pages > 1 %}
 <div class="d-flex justify-content-between align-items-center mt-3">
   <small class="text-muted">Pagina {{ page }} de {{ total_pages }}</small>
@@ -135,4 +171,15 @@
 {% endif %}
 {% else %}<div class="text-center text-muted py-5"><i class="bi bi-cart-check" style="font-size:3rem"></i>
   <p class="mt-3">Sin ordenes de compra.</p><a href="{{ url_for('orden_compra_nueva') }}" class="btn btn-primary">Crear primera</a></div>
-{% endif %}{% endblock %}
+{% endif %}
+<script>
+function setView(v){
+  document.getElementById('viewCardsContainer').style.display=v==='cards'?'':'none';
+  document.getElementById('viewTableContainer').style.display=v==='table'?'':'none';
+  document.getElementById('viewCards').classList.toggle('active',v==='cards');
+  document.getElementById('viewTable').classList.toggle('active',v==='table');
+  localStorage.setItem('evore_oc_view',v);
+}
+(function(){var v=localStorage.getItem('evore_oc_view');if(v==='table')setView('table');})();
+</script>
+{% endblock %}

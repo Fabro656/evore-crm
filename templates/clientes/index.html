@@ -24,9 +24,16 @@
     </div>
   </form>
 </div>
-<div class="count-label"><i class="bi bi-people-fill me-2"></i>{{ total_items }} cliente(s)</div>
+<div class="d-flex align-items-center justify-content-between mb-2">
+  <div class="count-label"><i class="bi bi-people-fill me-2"></i>{{ total_items }} cliente(s)</div>
+  <div class="btn-group btn-group-sm">
+    <button class="btn btn-outline-secondary active" id="viewCards" onclick="setView('cards')" title="Tarjetas"><i class="bi bi-grid-3x3-gap"></i></button>
+    <button class="btn btn-outline-secondary" id="viewTable" onclick="setView('table')" title="Tabla"><i class="bi bi-list-ul"></i></button>
+  </div>
+</div>
 
 {% if items %}
+<div id="viewCardsContainer">
 <div class="row g-3">
   {% for c in items %}
   <div class="col-12 col-md-6 col-xl-4">
@@ -112,6 +119,34 @@
   </div>
   {% endfor %}
 </div>
+</div>{# /viewCardsContainer #}
+
+<div id="viewTableContainer" style="display:none">
+<div class="table-responsive">
+  <table class="table table-hover align-middle" style="font-size:.85rem">
+    <thead>
+      <tr>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Empresa</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">NIT</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Tier</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Relacion</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Contacto</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in items %}
+      <tr>
+        <td><a href="{{ url_for('cliente_ver', id=c.id) }}" class="text-decoration-none fw-semibold" style="font-size:.82rem">{{ c.empresa or c.nombre }}</a></td>
+        <td style="color:var(--text2)">{{ c.nit or '—' }}</td>
+        <td>{% if c.tier and c.tier != 'standard' %}<span class="badge" style="background:{% if c.tier=='gold' %}#FFD700;color:#333{% elif c.tier=='silver' %}#C0C0C0;color:#333{% elif c.tier=='bronze' %}#CD7F32;color:#fff{% endif %};font-size:.7rem">{{ c.tier|capitalize }}</span>{% else %}—{% endif %}</td>
+        <td><span class="b b-{{ c.estado_relacion }}" style="font-size:.7rem">{{ c.estado_relacion.replace('_',' ').title() }}</span></td>
+        <td style="color:var(--text2);font-size:.82rem">{{ c.contactos[0].nombre if c.contactos else '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+</div>{# /viewTableContainer #}
 
 {% if total_pages > 1 %}
 <div class="d-flex justify-content-between align-items-center mt-4" style="font-size:var(--font-small)">
@@ -141,4 +176,14 @@
   <a href="{{ url_for('cliente_nuevo') }}" class="btn btn-primary">Agregar primer cliente</a>
 </div>
 {% endif %}
+<script>
+function setView(v){
+  document.getElementById('viewCardsContainer').style.display=v==='cards'?'':'none';
+  document.getElementById('viewTableContainer').style.display=v==='table'?'':'none';
+  document.getElementById('viewCards').classList.toggle('active',v==='cards');
+  document.getElementById('viewTable').classList.toggle('active',v==='table');
+  localStorage.setItem('evore_clientes_view',v);
+}
+(function(){var v=localStorage.getItem('evore_clientes_view');if(v==='table')setView('table');})();
+</script>
 {% endblock %}

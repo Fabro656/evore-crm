@@ -39,8 +39,15 @@
     <a href="{{ url_for('gastos') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
   </div>
 </form></div></div>
-<div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-receipt me-2"></i>{{ items|length }} gasto(s)</div>
+<div class="d-flex align-items-center justify-content-between mb-2">
+  <div style="font-size:.82rem;color:var(--text2)"><i class="bi bi-receipt me-2"></i>{{ items|length }} gasto(s)</div>
+  <div class="btn-group btn-group-sm">
+    <button class="btn btn-outline-secondary active" id="viewCards" onclick="setView('cards')" title="Tarjetas"><i class="bi bi-grid-3x3-gap"></i></button>
+    <button class="btn btn-outline-secondary" id="viewTable" onclick="setView('table')" title="Tabla"><i class="bi bi-list-ul"></i></button>
+  </div>
+</div>
 {% if items %}
+<div id="viewCardsContainer">
 <div class="row g-3">
   {% for g in items %}{% if not g.es_plantilla %}
   <div class="col-12 col-md-6 col-xl-4">
@@ -83,6 +90,46 @@
   </div>
   {% endif %}{% endfor %}
 </div>
+</div>{# /viewCardsContainer #}
+
+<div id="viewTableContainer" style="display:none">
+<div class="table-responsive">
+  <table class="table table-hover align-middle" style="font-size:.85rem">
+    <thead>
+      <tr>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Descripcion</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Tipo</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)" class="text-end">Monto</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Fecha</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for g in items %}{% if not g.es_plantilla %}
+      <tr>
+        <td class="fw-semibold" style="font-size:.82rem">{{ g.descripcion or '--' }}</td>
+        <td><span class="badge bg-secondary" style="font-size:.7rem">{{ g.tipo_custom if g.tipo=='Otro' and g.tipo_custom else g.tipo }}</span></td>
+        <td class="text-end fw-semibold">{{ moneda(g.monto) }}</td>
+        <td style="color:var(--text2);font-size:.82rem">{{ g.fecha.strftime('%d/%m/%Y') }}</td>
+        <td>{% if g.estado_pago is defined and g.estado_pago == 'pagado' %}<span class="badge bg-success" style="font-size:.7rem">Pagado</span>{% else %}<span class="badge bg-warning text-dark" style="font-size:.7rem">Pendiente</span>{% endif %}</td>
+      </tr>
+      {% endif %}{% endfor %}
+    </tbody>
+  </table>
+</div>
+</div>{# /viewTableContainer #}
+
 {% else %}<div class="text-center text-muted py-5"><i class="bi bi-receipt" style="font-size:3rem"></i>
   <p class="mt-3">Sin gastos.</p><a href="{{ url_for('gasto_nuevo') }}" class="btn btn-primary">Agregar primero</a></div>
-{% endif %}{% endblock %}
+{% endif %}
+<script>
+function setView(v){
+  document.getElementById('viewCardsContainer').style.display=v==='cards'?'':'none';
+  document.getElementById('viewTableContainer').style.display=v==='table'?'':'none';
+  document.getElementById('viewCards').classList.toggle('active',v==='cards');
+  document.getElementById('viewTable').classList.toggle('active',v==='table');
+  localStorage.setItem('evore_gastos_view',v);
+}
+(function(){var v=localStorage.getItem('evore_gastos_view');if(v==='table')setView('table');})();
+</script>
+{% endblock %}

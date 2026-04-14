@@ -4,9 +4,16 @@
 <a href="{{ url_for('receta_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo Producto</a>
 {% endblock %}
 {% block content %}
-<div class="count-label"><i class="bi bi-diagram-3 me-2"></i>{{ total_items }} producto(s)</div>
+<div class="d-flex align-items-center justify-content-between mb-2">
+  <div class="count-label"><i class="bi bi-diagram-3 me-2"></i>{{ total_items }} producto(s)</div>
+  <div class="btn-group btn-group-sm">
+    <button class="btn btn-outline-secondary active" id="viewCards" onclick="setView('cards')" title="Tarjetas"><i class="bi bi-grid-3x3-gap"></i></button>
+    <button class="btn btn-outline-secondary" id="viewTable" onclick="setView('table')" title="Tabla"><i class="bi bi-list-ul"></i></button>
+  </div>
+</div>
 
 {% if recetas %}
+<div id="viewCardsContainer">
 <div class="row g-3">
 {% for r in recetas %}
 {% set c = costos[r.id] %}
@@ -90,6 +97,38 @@
 </div>
 {% endfor %}
 </div>
+</div>{# /viewCardsContainer #}
+
+<div id="viewTableContainer" style="display:none">
+<div class="table-responsive">
+  <table class="table table-hover align-middle" style="font-size:.85rem">
+    <thead>
+      <tr>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Producto</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">SKU</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)" class="text-end">Costo Unit</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)" class="text-end">Margen</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)" class="text-end">Precio Venta</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in recetas %}
+      {% set c = costos[r.id] %}
+      {% set precio_sin_iva = c.costo_unitario * (1 + r.margen_pct / 100) if r.margen_pct else 0 %}
+      {% set iva = precio_sin_iva * 0.19 if r.margen_pct else 0 %}
+      <tr>
+        <td><a href="{{ url_for('receta_editar', id=r.id) }}" class="text-decoration-none fw-semibold" style="font-size:.82rem">{{ r.producto.nombre }}</a></td>
+        <td style="color:var(--text2);font-size:.82rem">{{ r.producto.sku if r.producto.sku and r.producto.sku != 'None' else '—' }}</td>
+        <td class="text-end fw-semibold">${{ '{:,.0f}'.format(c.costo_unitario) }}</td>
+        <td class="text-end">{% if r.margen_pct %}<span class="badge bg-info bg-opacity-75" style="font-size:.7rem">{{ r.margen_pct }}%</span>{% else %}—{% endif %}</td>
+        <td class="text-end fw-semibold" style="color:var(--green)">{% if r.margen_pct %}<span>${{ '{:,.0f}'.format(precio_sin_iva + iva) }}</span>{% else %}—{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+</div>{# /viewTableContainer #}
+
 {% else %}
 <div class="empty-state">
   <i class="bi bi-diagram-3"></i>
@@ -127,6 +166,14 @@
 </div>
 
 {% block scripts %}<script>
+function setView(v){
+  document.getElementById('viewCardsContainer').style.display=v==='cards'?'':'none';
+  document.getElementById('viewTableContainer').style.display=v==='table'?'':'none';
+  document.getElementById('viewCards').classList.toggle('active',v==='cards');
+  document.getElementById('viewTable').classList.toggle('active',v==='table');
+  localStorage.setItem('evore_recetas_view',v);
+}
+(function(){var v=localStorage.getItem('evore_recetas_view');if(v==='table')setView('table');})();
 var _histModal = null;
 function verHistorial(prodId) {
   if (!_histModal) _histModal = new bootstrap.Modal(document.getElementById('historialModal'));

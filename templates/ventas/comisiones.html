@@ -71,6 +71,13 @@
 </form>
 
 {# -- Cards de comisiones -- #}
+<div class="d-flex align-items-center justify-content-between mb-2">
+  <div class="count-label"><i class="bi bi-cash-coin me-2"></i>{{ comisiones|length }} comision(es)</div>
+  <div class="btn-group btn-group-sm">
+    <button class="btn btn-outline-secondary active" id="viewCards" onclick="setView('cards')" title="Tarjetas"><i class="bi bi-grid-3x3-gap"></i></button>
+    <button class="btn btn-outline-secondary" id="viewTable" onclick="setView('table')" title="Tabla"><i class="bi bi-list-ul"></i></button>
+  </div>
+</div>
 {% if comisiones %}
 
 {# Total filtrado #}
@@ -79,6 +86,7 @@
   <span style="font-size:1.05rem;font-weight:700;color:var(--text)">$ {{ '{:,.0f}'.format(comisiones | sum(attribute='monto')).replace(',', '.') }}</span>
 </div>
 
+<div id="viewCardsContainer">
 <div class="row g-3">
   {% for c in comisiones %}
   <div class="col-12 col-md-6 col-xl-4">
@@ -160,6 +168,35 @@
   </div>
   {% endfor %}
 </div>
+</div>{# /viewCardsContainer #}
+
+<div id="viewTableContainer" style="display:none">
+<div class="table-responsive">
+  <table class="table table-hover align-middle" style="font-size:.85rem">
+    <thead>
+      <tr>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Vendedor</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Venta</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)" class="text-end">Comision</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)" class="text-end">%</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in comisiones %}
+      <tr>
+        <td class="fw-semibold" style="font-size:.82rem">{{ c.vendedor.nombre if c.vendedor else '—' }}</td>
+        <td>{% if c.venta %}<a href="{{ url_for('venta_ver', id=c.venta.id) }}" class="text-decoration-none" style="font-size:.82rem">{{ c.venta.numero or ('#' ~ c.venta.id) }}</a>{% else %}—{% endif %}</td>
+        <td class="text-end fw-semibold" style="color:{% if c.estado == 'pagada' %}#059669{% else %}#D97706{% endif %}">$ {{ '{:,.0f}'.format(c.monto or 0).replace(',', '.') }}</td>
+        <td class="text-end fw-semibold">{{ '%.1f'|format(c.porcentaje) }}%</td>
+        <td><span class="b b-{{ c.estado }}" style="font-size:.7rem">{{ 'Pendiente' if c.estado == 'pendiente' else 'Pagada' }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+</div>{# /viewTableContainer #}
+
 {% else %}
 <div style="text-align:center;padding:48px 24px;color:var(--text2)">
   <i class="bi bi-cash-coin" style="font-size:2rem;opacity:.3;display:block;margin-bottom:8px"></i>
@@ -172,4 +209,14 @@
 </div>
 {% endif %}
 
+<script>
+function setView(v){
+  document.getElementById('viewCardsContainer').style.display=v==='cards'?'':'none';
+  document.getElementById('viewTableContainer').style.display=v==='table'?'':'none';
+  document.getElementById('viewCards').classList.toggle('active',v==='cards');
+  document.getElementById('viewTable').classList.toggle('active',v==='table');
+  localStorage.setItem('evore_comisiones_view',v);
+}
+(function(){var v=localStorage.getItem('evore_comisiones_view');if(v==='table')setView('table');})();
+</script>
 {% endblock %}

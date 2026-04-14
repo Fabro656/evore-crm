@@ -17,8 +17,15 @@
     <a href="{{ url_for('inventario') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
   </div>
 </form></div></div>
-<div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-box-seam-fill me-2"></i>{{ items|length }} producto(s)</div>
+<div class="d-flex align-items-center justify-content-between mb-2">
+  <div style="font-size:.82rem;color:var(--text2)"><i class="bi bi-box-seam-fill me-2"></i>{{ items|length }} producto(s)</div>
+  <div class="btn-group btn-group-sm">
+    <button class="btn btn-outline-secondary active" id="viewCards" onclick="setView('cards')" title="Tarjetas"><i class="bi bi-grid-3x3-gap"></i></button>
+    <button class="btn btn-outline-secondary" id="viewTable" onclick="setView('table')" title="Tabla"><i class="bi bi-list-ul"></i></button>
+  </div>
+</div>
 {% if items %}
+<div id="viewCardsContainer">
 <div class="row g-3">
   {% for p in items %}
   <div class="col-12 col-md-6 col-xl-4">
@@ -61,6 +68,46 @@
   </div>
   {% endfor %}
 </div>
+</div>{# /viewCardsContainer #}
+
+<div id="viewTableContainer" style="display:none">
+<div class="table-responsive">
+  <table class="table table-hover align-middle" style="font-size:.85rem">
+    <thead>
+      <tr>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Nombre</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">SKU</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)" class="text-end">Stock</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)" class="text-end">Stock Min</th>
+        <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)" class="text-end">Precio</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in items %}
+      <tr>
+        <td><a href="{{ url_for('producto_editar', id=p.id) }}" class="text-decoration-none fw-semibold" style="font-size:.82rem">{{ p.nombre }}</a></td>
+        <td style="color:var(--text2);font-size:.82rem">{{ p.sku or '—' }}</td>
+        <td class="text-end fw-semibold" style="color:{{ 'var(--bs-danger)' if p.stock_minimo and p.stock <= p.stock_minimo else 'var(--text)' }}">{{ (p.stock|float)|round(0)|int }}{% if p.stock_minimo and p.stock <= p.stock_minimo %} <span class="badge bg-danger" style="font-size:.6rem">BAJO</span>{% endif %}</td>
+        <td class="text-end" style="color:var(--text2)">{{ p.stock_minimo or '—' }}</td>
+        <td class="text-end fw-semibold">$ {{ '{:,.0f}'.format(p.precio).replace(',','.') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+</div>{# /viewTableContainer #}
+
 {% else %}<div class="text-center text-muted py-5"><i class="bi bi-box-seam" style="font-size:3rem"></i>
   <p class="mt-3">Sin productos.</p><a href="{{ url_for('producto_nuevo') }}" class="btn btn-primary">Agregar</a></div>
-{% endif %}{% endblock %}
+{% endif %}
+<script>
+function setView(v){
+  document.getElementById('viewCardsContainer').style.display=v==='cards'?'':'none';
+  document.getElementById('viewTableContainer').style.display=v==='table'?'':'none';
+  document.getElementById('viewCards').classList.toggle('active',v==='cards');
+  document.getElementById('viewTable').classList.toggle('active',v==='table');
+  localStorage.setItem('evore_inventario_view',v);
+}
+(function(){var v=localStorage.getItem('evore_inventario_view');if(v==='table')setView('table');})();
+</script>
+{% endblock %}
