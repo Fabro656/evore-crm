@@ -462,8 +462,8 @@ html[data-theme="dark"] .skeleton{background:linear-gradient(90deg,var(--surface
    RESPONSIVE — Mobile
    ══════════════════════════════════════════════════ */
 @media(max-width:768px){
-  #sb{transform:translateX(-64px);box-shadow:none}
-  #sb.sb-open{transform:translateX(0);box-shadow:6px 0 40px rgba(0,0,0,.3)}
+  #sb{display:none}
+  #sb.sb-open{display:flex;position:fixed;top:0;left:0;height:100dvh;width:64px;z-index:1050;transform:none;box-shadow:6px 0 40px rgba(0,0,0,.3)}
   #sb-tog{display:flex}
   #main{margin-left:0!important;width:100%;padding-bottom:calc(90px + env(safe-area-inset-bottom,0))}
   .fab,#diagBtn,#aiFab{display:none!important}
@@ -496,8 +496,8 @@ html[data-theme="dark"] .skeleton{background:linear-gradient(90deg,var(--surface
   .tc{border-radius:var(--radius-sm)}
   #diagPanel{width:calc(100vw - 32px);right:16px}
   .notif-dd{width:calc(100vw - 32px);left:16px}
-  .dock-panel{left:12px!important;width:calc(100vw - 24px)!important;max-height:60dvh}
-  .dock-panel-body{max-height:50dvh}
+  .dock-panel{left:12px!important;width:calc(100vw - 24px)!important;max-height:calc(100dvh - 160px)!important;bottom:calc(90px + env(safe-area-inset-bottom,0))!important;top:auto!important}
+  .dock-panel-body{max-height:calc(100dvh - 240px)}
   #obCtxTip{width:calc(100vw - 24px)!important}
   [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
   .filter-bar{gap:var(--sp-1);font-size:var(--font-small)}

@@ -43,8 +43,9 @@
 {# ══════════════════════════ INTRO ══════════════════════════ #}
 <div class="wiki-section">
   <div class="wiki-h2"><i class="bi bi-book" style="color:var(--ac)"></i>Que es {{ company_name }}?</div>
-  <p class="wiki-p">{{ company_name }} es un sistema ERP/CRM para empresas manufactureras que producen para terceros. Integra <strong>21 modulos</strong>: ventas, produccion, inventario, compras, contabilidad (PUC colombiano), nomina, legal, logistica, portales de cliente/proveedor, y mas.</p>
-  <p class="wiki-p"><strong>Numeros:</strong> 245 rutas, 50 tablas, 119 templates, firmado digitalmente con selfie, reconciliacion bancaria, horas extra, y export CSV.</p>
+  <p class="wiki-p">{{ company_name }} es un sistema ERP/CRM <strong>multi-empresa</strong> para empresas manufactureras que producen para terceros. Integra <strong>23+ modulos</strong>: ventas, produccion, inventario, compras, contabilidad (PUC colombiano), nomina, legal, logistica, portales de cliente/proveedor, chat interno e inter-empresa, y mas.</p>
+  <p class="wiki-p"><strong>Numeros:</strong> 250+ rutas, 50+ tablas, 119 templates, firmado digitalmente con selfie, reconciliacion bancaria, horas extra, export CSV, y sistema de chat en tiempo real.</p>
+  <p class="wiki-p"><strong>Multi-tenancy:</strong> Cada empresa (Company) opera de forma independiente con sus propios datos. Los usuarios pueden pertenecer a multiples empresas con roles diferentes en cada una (via UserCompany). Un admin de plataforma gestiona todas las empresas desde Admin → Empresas.</p>
 </div>
 
 {# ══════════════════════════ FLUJO COMERCIAL ══════════════════════════ #}
@@ -244,27 +245,36 @@
       <h4><i class="bi bi-robot" style="color:#8B5CF6"></i>Asistente IA</h4>
       <p>Consulta datos del CRM. Crea tickets, notas, clientes, ventas y OC por chat. OpenAI → Anthropic → Ollama (fallback).</p>
     </div>
+    <div class="wiki-card">
+      <h4><i class="bi bi-chat-dots-fill" style="color:#06B6D4"></i>Chat</h4>
+      <p>Panel flotante de mensajeria. Chat interno entre miembros del equipo y chat inter-empresa con clientes y proveedores. Salas con participantes multiples, mensajes en tiempo real, contador de no leidos.</p>
+    </div>
+    <div class="wiki-card">
+      <h4><i class="bi bi-buildings" style="color:#8B5CF6"></i>Multi-empresa</h4>
+      <p>Modelo Company con datos independientes por empresa. Admin de plataforma crea y edita empresas. Usuarios pertenecen a multiples empresas con roles distintos (UserCompany). Cambio de empresa desde el menu superior. Relaciones comerciales entre empresas (CompanyRelationship).</p>
+    </div>
   </div>
 </div>
 
 {# ══════════════════════════ ROLES ══════════════════════════ #}
 <div class="wiki-section">
   <div class="wiki-h2"><i class="bi bi-shield-lock" style="color:var(--red)"></i>Roles y permisos</div>
+  <p class="wiki-p"><strong>Multi-rol por empresa:</strong> Un usuario puede tener roles distintos en cada empresa a la que pertenece. La relacion usuario-empresa-rol se gestiona via <code>UserCompany</code>. Al cambiar de empresa activa, se aplican los permisos correspondientes a ese rol.</p>
   <table class="wiki-table">
     <thead>
-      <tr><th>Rol</th><th>Acceso</th><th>Puede aprobar</th></tr>
+      <tr><th>Rol</th><th>Acceso</th><th>Chat</th><th>Puede aprobar</th></tr>
     </thead>
     <tbody>
-      <tr><td><strong>Admin</strong></td><td>Todo el sistema. Crea usuarios, configura empresa.</td><td>Si (auto)</td></tr>
-      <tr><td><strong>Director Financiero</strong></td><td>Contabilidad, nomina, gastos, aprobaciones, reportes</td><td>Si (auto)</td></tr>
-      <tr><td><strong>Director Operativo</strong></td><td>Produccion, compras, inventario, proveedores, aprobaciones</td><td>Si</td></tr>
-      <tr><td><strong>Sales Manager</strong></td><td>Clientes, ventas, cotizaciones, portal cliente</td><td>No</td></tr>
-      <tr><td><strong>Vendedor</strong></td><td>Clientes, ventas, cotizaciones, tickets</td><td>No</td></tr>
-      <tr><td><strong>Produccion</strong></td><td>Inventario, produccion, recetas, empaques</td><td>No</td></tr>
-      <tr><td><strong>Contador</strong></td><td>Contabilidad, nomina, gastos, reportes</td><td>No</td></tr>
-      <tr><td><strong>Tester</strong></td><td>Todo (modo lectura + pruebas)</td><td>No</td></tr>
-      <tr><td><strong>Cliente</strong></td><td>Portal cliente unicamente</td><td>No</td></tr>
-      <tr><td><strong>Proveedor</strong></td><td>Portal proveedor unicamente</td><td>No</td></tr>
+      <tr><td><strong>Admin</strong></td><td>Todo el sistema. Crea usuarios, configura empresa. Gestiona empresas (si es admin plataforma).</td><td>Interno + inter-empresa</td><td>Si (auto)</td></tr>
+      <tr><td><strong>Director Financiero</strong></td><td>Contabilidad, nomina, gastos, aprobaciones, reportes</td><td>Interno + inter-empresa</td><td>Si (auto)</td></tr>
+      <tr><td><strong>Director Operativo</strong></td><td>Produccion, compras, inventario, proveedores, aprobaciones</td><td>Interno + inter-empresa</td><td>Si</td></tr>
+      <tr><td><strong>Sales Manager</strong></td><td>Clientes, ventas, cotizaciones, portal cliente</td><td>Interno + con clientes</td><td>No</td></tr>
+      <tr><td><strong>Vendedor</strong></td><td>Clientes, ventas, cotizaciones, tickets</td><td>Interno + con clientes</td><td>No</td></tr>
+      <tr><td><strong>Produccion</strong></td><td>Inventario, produccion, recetas, empaques</td><td>Interno</td><td>No</td></tr>
+      <tr><td><strong>Contador</strong></td><td>Contabilidad, nomina, gastos, reportes</td><td>Interno</td><td>No</td></tr>
+      <tr><td><strong>Tester</strong></td><td>Todo (modo lectura + pruebas)</td><td>Interno</td><td>No</td></tr>
+      <tr><td><strong>Cliente</strong></td><td>Portal cliente unicamente</td><td>Con empresa vendedora</td><td>No</td></tr>
+      <tr><td><strong>Proveedor</strong></td><td>Portal proveedor unicamente</td><td>Con empresa compradora</td><td>No</td></tr>
     </tbody>
   </table>
 </div>
@@ -416,6 +426,53 @@
     </tbody>
   </table>
   <p class="wiki-p"><strong>Firma digital:</strong> Canvas para dibujar firma + captura de selfie con camara frontal. Comprimido JPEG ~50KB. Validez legal segun Ley 527/1999 y Decreto 2364/2012. Se sugiere firmar desde movil.</p>
+</div>
+
+{# ══════════════════════════ MULTI-EMPRESA ══════════════════════════ #}
+<div class="wiki-section">
+  <div class="wiki-h2"><i class="bi bi-buildings" style="color:#8B5CF6"></i>Multi-empresa (Multi-tenancy)</div>
+  <p class="wiki-p">El sistema soporta multiples empresas independientes en una sola instalacion. Cada empresa tiene sus propios datos aislados (clientes, ventas, inventario, contabilidad, etc.).</p>
+
+  <div class="wiki-h3">Conceptos clave</div>
+  <table class="wiki-table">
+    <thead><tr><th>Modelo</th><th>Funcion</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Company</strong></td><td>Entidad empresa con nombre, NIT, direccion, logo. Una empresa se marca como "principal" (es_principal).</td></tr>
+      <tr><td><strong>UserCompany</strong></td><td>Relacion usuario-empresa con rol. Un usuario puede ser admin en la Empresa A y vendedor en la Empresa B.</td></tr>
+      <tr><td><strong>CompanyRelationship</strong></td><td>Relaciones comerciales entre empresas (cliente-proveedor). Permite chat inter-empresa y portales cruzados.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="wiki-h3">Funcionalidades</div>
+  <div class="wiki-grid">
+    <div class="wiki-card"><h4><i class="bi bi-arrow-left-right"></i>Cambiar empresa</h4><p>Desde el menu superior, el usuario cambia entre las empresas a las que pertenece. Los datos se filtran automaticamente.</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-plus-circle"></i>Admin crea empresas</h4><p>Solo el admin de la plataforma (empresa principal) puede crear nuevas empresas desde Admin → Empresas.</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-person-plus"></i>Agregar usuarios</h4><p>Cada empresa puede invitar usuarios y asignarles un rol especifico para esa empresa.</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-link-45deg"></i>Relaciones comerciales</h4><p>Las empresas pueden establecer relaciones cliente/proveedor que habilitan chat inter-empresa y visibilidad cruzada.</p></div>
+  </div>
+</div>
+
+{# ══════════════════════════ CHAT ══════════════════════════ #}
+<div class="wiki-section">
+  <div class="wiki-h2"><i class="bi bi-chat-dots-fill" style="color:#06B6D4"></i>Sistema de Chat</div>
+  <p class="wiki-p">Chat integrado en un panel flotante accesible desde cualquier pagina del sistema. Soporta conversaciones internas entre miembros del equipo y chat inter-empresa con clientes y proveedores.</p>
+
+  <div class="wiki-h3">Tipos de chat</div>
+  <table class="wiki-table">
+    <thead><tr><th>Tipo</th><th>Participantes</th><th>Uso</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Chat interno</strong></td><td>Miembros de la misma empresa</td><td>Coordinacion entre areas (ventas, produccion, contable). Comunicacion rapida sin salir del CRM.</td></tr>
+      <tr><td><strong>Chat inter-empresa</strong></td><td>Usuarios de empresas con relacion comercial</td><td>Comunicacion directa con clientes y proveedores. Requiere CompanyRelationship activa.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="wiki-h3">Funcionalidades</div>
+  <div class="wiki-grid">
+    <div class="wiki-card"><h4><i class="bi bi-chat-left-text"></i>Salas (ChatRoom)</h4><p>Salas con nombre, tipo (interno/inter-empresa) y multiples participantes. Se crean desde el panel de chat.</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-people"></i>Participantes</h4><p>Cada sala tiene participantes activos (ChatParticipant). Se pueden agregar o desactivar miembros.</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-envelope"></i>Mensajes</h4><p>ChatMessage con texto, fecha, usuario emisor. Indicador de mensajes no leidos por sala.</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-layout-sidebar-inset"></i>Panel flotante</h4><p>Accesible desde cualquier pagina. No interrumpe el flujo de trabajo. Se abre desde el icono de chat en la barra superior.</p></div>
+  </div>
 </div>
 
 {# ══════════════════════════ ATAJOS ══════════════════════════ #}

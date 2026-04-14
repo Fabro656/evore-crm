@@ -190,6 +190,8 @@ ONBOARDING_STEPS = {
         {'key':'ordenes_compra','titulo':'Ordenes de Compra','desc':'Compra materiales con cotizaciones multiples y seguimiento contable','url':'ordenes_compra','icon':'bi-cart-check'},
         {'key':'aprobaciones','titulo':'Sistema de aprobaciones','desc':'Revisa y aprueba solicitudes del equipo','url':'aprobaciones_pendientes','icon':'bi-clipboard-check'},
         {'key':'nomina','titulo':'Nomina y liquidaciones','desc':'Cierra nomina mensual con prorrateo por dias','url':'nomina_index','icon':'bi-people-fill'},
+        {'key':'chat','titulo':'Chat interno','desc':'Comunicate con tu equipo desde el panel de chat','url':'chat_index','icon':'bi-chat-dots'},
+        {'key':'empresas','titulo':'Gestiona empresas','desc':'Crea y administra empresas de la plataforma','url':'admin_empresas','icon':'bi-buildings'},
     ],
     'director_financiero': [
         {'key':'dashboard','titulo':'Tu panel financiero','desc':'Revisa ingresos, egresos y utilidad','url':'contable_index','icon':'bi-speedometer2'},
@@ -210,6 +212,7 @@ ONBOARDING_STEPS = {
         {'key':'venta','titulo':'Registra una venta','desc':'O convierte una cotizacion aprobada','url':'venta_nueva','icon':'bi-cart-plus'},
         {'key':'tareas','titulo':'Gestiona tus tareas','desc':'Seguimiento a pendientes','url':'tareas','icon':'bi-check2-square'},
         {'key':'tickets','titulo':'Tickets de seguimiento','desc':'Crea y gestiona tickets para cada negocio','url':'tareas','icon':'bi-check2-square'},
+        {'key':'chat_clientes','titulo':'Chat con clientes','desc':'Comunicate directamente con tus clientes desde el chat','url':'chat_index','icon':'bi-chat-dots'},
     ],
     'produccion': [
         {'key':'inventario','titulo':'Revisa el inventario','desc':'Stock de productos y materias primas','url':'inventario','icon':'bi-box-seam'},
@@ -217,6 +220,7 @@ ONBOARDING_STEPS = {
         {'key':'recetas','titulo':'Recetas / BOM','desc':'Formulas de cada producto','url':'recetas','icon':'bi-clipboard2-data'},
         {'key':'ordenes','titulo':'Ordenes de produccion','desc':'Produccion pendiente y en curso','url':'ordenes_produccion','icon':'bi-gear'},
         {'key':'recepcion','titulo':'Recepcion de material','desc':'Recibe material desde ordenes de compra','url':'compras','icon':'bi-box-arrow-in-down'},
+        {'key':'chat_interno','titulo':'Chat interno','desc':'Coordina con ventas y compras desde el panel de chat','url':'chat_index','icon':'bi-chat-dots'},
     ],
     'contador': [
         {'key':'puc','titulo':'Plan de Cuentas (PUC)','desc':'Catalogo contable colombiano','url':'contable_puc','icon':'bi-list-ol'},
