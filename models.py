@@ -80,6 +80,7 @@ class User(UserMixin, db.Model):
 class ContactoCliente(db.Model):
     __tablename__ = 'contactos_cliente'
     id         = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=False)
     nombre     = db.Column(db.String(100), nullable=False)
     cargo      = db.Column(db.String(100))
@@ -90,6 +91,7 @@ class ContactoCliente(db.Model):
 class Cliente(db.Model):
     __tablename__ = 'clientes'
     id              = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     nombre          = db.Column(db.String(100), nullable=False)
     empresa         = db.Column(db.String(100))
     nit             = db.Column(db.String(30))
@@ -127,6 +129,7 @@ class Cliente(db.Model):
 class OrdenCompra(db.Model):
     __tablename__ = 'ordenes_compra'
     id                      = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     numero                  = db.Column(db.String(20))               # OC-YYYY-NNN
     proveedor_id            = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
     cotizacion_id           = db.Column(db.Integer, db.ForeignKey('cotizaciones_proveedor.id'), nullable=True)
@@ -174,6 +177,7 @@ class OrdenCompraItem(db.Model):
 class Proveedor(db.Model):
     __tablename__ = 'proveedores'
     id         = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     nombre     = db.Column(db.String(100), nullable=False)
     empresa    = db.Column(db.String(100))
     nit        = db.Column(db.String(30))
@@ -219,6 +223,7 @@ class VentaProducto(db.Model):
 class Venta(db.Model):
     __tablename__ = 'ventas'
     id                  = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     titulo              = db.Column(db.String(200), nullable=False)
     cliente_id          = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=True)
     subtotal            = db.Column(db.Float, default=0)
@@ -277,6 +282,7 @@ class Aprobacion(db.Model):
     """Sistema de aprobaciones que bloquean flujo de OC/ventas/cotizaciones/asientos."""
     __tablename__ = 'aprobaciones'
     id             = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     tipo_accion    = db.Column(db.String(50), nullable=False)  # orden_compra, venta, cotizacion, asiento_manual
     descripcion    = db.Column(db.String(300))
     monto          = db.Column(db.Float, default=0)
@@ -316,6 +322,7 @@ class TareaComentario(db.Model):
 class Tarea(db.Model):
     __tablename__ = 'tareas'
     id                = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     titulo            = db.Column(db.String(200), nullable=False)
     descripcion       = db.Column(db.Text)
     estado            = db.Column(db.String(20), default='pendiente', index=True)
@@ -340,6 +347,7 @@ class Tarea(db.Model):
 class Producto(db.Model):
     __tablename__ = 'productos'
     id           = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     nombre       = db.Column(db.String(200), nullable=False)
     descripcion  = db.Column(db.Text)
     sku          = db.Column(db.String(50))
@@ -400,6 +408,7 @@ class MarcaProducto(db.Model):
 class CompraMateria(db.Model):
     __tablename__ = 'compras_materia'
     id              = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     producto_id     = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=True)
     materia_id      = db.Column(db.Integer, db.ForeignKey('materias_primas.id'), nullable=True)
     nombre_item     = db.Column(db.String(200), nullable=False)
@@ -434,6 +443,7 @@ class CompraMateria(db.Model):
 class CotizacionProveedor(db.Model):
     __tablename__ = 'cotizaciones_proveedor'
     id                    = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     numero                = db.Column(db.String(20))               # CP-YYYY-NNN
     proveedor_id          = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
     tipo_cotizacion       = db.Column(db.String(20), default='general')  # granel, general
@@ -465,6 +475,7 @@ class CotizacionProveedor(db.Model):
 class CotizacionGranel(db.Model):
     __tablename__ = 'cotizaciones_granel'
     id               = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     producto_id      = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=True)
     nombre_producto  = db.Column(db.String(200), nullable=False)
     sku              = db.Column(db.String(50))
@@ -483,6 +494,7 @@ class CotizacionGranel(db.Model):
 class DocumentoLegal(db.Model):
     __tablename__ = 'documentos_legales'
     id                = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     tipo              = db.Column(db.String(50), nullable=False)
     # tipos: permiso_sanitario, registro_invima, nso, contrato, licencia, certificado, otro
     titulo            = db.Column(db.String(200), nullable=False)
@@ -520,6 +532,7 @@ class CuentaPUC(db.Model):
     """Plan Único de Cuentas — catálogo contable colombiano (Decreto 2650/1993)."""
     __tablename__ = 'cuentas_puc'
     id          = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     codigo      = db.Column(db.String(10), unique=True, index=True, nullable=False)
     nombre      = db.Column(db.String(200), nullable=False)
     nivel       = db.Column(db.Integer, default=1)  # 1=clase,2=grupo,3=cuenta,4=subcuenta,5=auxiliar
@@ -533,6 +546,7 @@ class CuentaPUC(db.Model):
 class AsientoContable(db.Model):
     __tablename__ = 'asientos_contables'
     id               = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     numero           = db.Column(db.String(20))     # AC-YYYY-NNN
     fecha            = db.Column(db.Date, nullable=False)
     descripcion      = db.Column(db.String(300), nullable=False)
@@ -578,6 +592,7 @@ class MovimientoBancario(db.Model):
     """Movimiento importado de extracto bancario para conciliación."""
     __tablename__ = 'movimientos_bancarios'
     id          = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     fecha       = db.Column(db.Date, nullable=False)
     descripcion = db.Column(db.String(300))
     referencia  = db.Column(db.String(100))
@@ -594,6 +609,7 @@ class NotaContable(db.Model):
     """Nota credito o debito — correccion parcial/total de una factura."""
     __tablename__ = 'notas_contables'
     id              = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     numero          = db.Column(db.String(20))  # NC-YYYY-NNN o ND-YYYY-NNN
     tipo            = db.Column(db.String(10), nullable=False)  # credito, debito
     fecha           = db.Column(db.Date, nullable=False)
@@ -630,6 +646,7 @@ class LineaAsiento(db.Model):
 class ReglaTributaria(db.Model):
     __tablename__ = 'reglas_tributarias'
     id               = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     nombre           = db.Column(db.String(100), nullable=False)
     descripcion      = db.Column(db.Text)
     porcentaje       = db.Column(db.Float, default=0)
@@ -642,6 +659,7 @@ class MovimientoInventario(db.Model):
     """Audit trail de todos los movimientos de stock."""
     __tablename__ = 'movimientos_inventario'
     id              = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     producto_id     = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=True)
     materia_prima_id= db.Column(db.Integer, db.ForeignKey('materias_primas.id'), nullable=True)
     tipo            = db.Column(db.String(30), nullable=False)  # ingreso, egreso, reserva, liberacion, ajuste
@@ -656,6 +674,7 @@ class MovimientoInventario(db.Model):
 class GastoOperativo(db.Model):
     __tablename__ = 'gastos_operativos'
     id           = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     fecha        = db.Column(db.Date, nullable=False)
     tipo         = db.Column(db.String(50), nullable=False)
     tipo_custom  = db.Column(db.String(100))
@@ -672,6 +691,7 @@ class GastoOperativo(db.Model):
 class Nota(db.Model):
     __tablename__ = 'notas'
     id             = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     titulo         = db.Column(db.String(200))
     contenido      = db.Column(db.Text, nullable=False)
     cliente_id     = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=True)
@@ -699,6 +719,7 @@ class Nota(db.Model):
 class Actividad(db.Model):
     __tablename__ = 'actividades'
     id          = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     tipo        = db.Column(db.String(20))   # crear, editar, eliminar, completar
     entidad     = db.Column(db.String(50))   # cliente, venta, tarea, nota...
     entidad_id  = db.Column(db.Integer)
@@ -747,6 +768,7 @@ class ConfigEmpresa(db.Model):
 class Evento(db.Model):
     __tablename__ = 'eventos'
     id          = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     titulo      = db.Column(db.String(200), nullable=False)
     tipo        = db.Column(db.String(20), default='recordatorio')  # cita, reunion, recordatorio
     fecha       = db.Column(db.Date, nullable=False)
@@ -778,6 +800,7 @@ class CotizacionItem(db.Model):
 class Cotizacion(db.Model):
     __tablename__ = 'cotizaciones'
     id                  = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     numero              = db.Column(db.String(20))
     titulo              = db.Column(db.String(200), nullable=False)
     cliente_id          = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=True)
@@ -813,6 +836,7 @@ class Cotizacion(db.Model):
 class LoteProducto(db.Model):
     __tablename__ = 'lotes_producto'
     id                  = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     producto_id         = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
     numero_lote         = db.Column(db.String(80), nullable=False)
     nso                 = db.Column(db.String(80))
@@ -835,6 +859,7 @@ class MateriaPrimaProducto(db.Model):
 class MateriaPrima(db.Model):
     __tablename__ = 'materias_primas'
     id               = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     nombre           = db.Column(db.String(200), nullable=False)
     descripcion      = db.Column(db.Text)
     unidad           = db.Column(db.String(30), default='unidades')  # kg, g, litros, ml, unidades
@@ -863,6 +888,7 @@ class LoteMateriaPrima(db.Model):
     """Lote de stock de materia prima ingresado mediante compra."""
     __tablename__ = 'lotes_materia_prima'
     id               = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     materia_prima_id = db.Column(db.Integer, db.ForeignKey('materias_primas.id'), nullable=False)
     compra_id        = db.Column(db.Integer, db.ForeignKey('compras_materia.id'), nullable=True)
     numero_lote      = db.Column(db.String(80))
@@ -900,6 +926,7 @@ class LoteMateriaPrima(db.Model):
 class RecetaProducto(db.Model):
     __tablename__ = 'recetas_producto'
     id               = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     producto_id      = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
     unidades_produce = db.Column(db.Integer, default=1)    # cuántas unidades produce esta receta
     descripcion      = db.Column(db.Text)
@@ -929,6 +956,7 @@ class RecetaItem(db.Model):
 class ReservaProduccion(db.Model):
     __tablename__ = 'reservas_produccion'
     id               = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     materia_prima_id = db.Column(db.Integer, db.ForeignKey('materias_primas.id'), nullable=False)
     cantidad         = db.Column(db.Float, default=0)
     estado           = db.Column(db.String(20), default='reservado')  # reservado, usado, cancelado
@@ -949,6 +977,7 @@ class ReservaProduccion(db.Model):
 class OrdenProduccion(db.Model):
     __tablename__ = 'ordenes_produccion'
     id                = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     cotizacion_id     = db.Column(db.Integer, db.ForeignKey('cotizaciones.id'), nullable=True)
     venta_id          = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=True)
     producto_id       = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
@@ -975,6 +1004,7 @@ class Comision(db.Model):
     """Comision por venta para vendedor."""
     __tablename__ = 'comisiones'
     id          = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     venta_id    = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=False)
     vendedor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     porcentaje  = db.Column(db.Float, default=5.0)
@@ -988,6 +1018,7 @@ class Incapacidad(db.Model):
     """Incapacidad medica de un empleado."""
     __tablename__ = 'incapacidades'
     id           = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     empleado_id  = db.Column(db.Integer, db.ForeignKey('empleados.id'), nullable=False)
     fecha_inicio = db.Column(db.Date, nullable=False)
     fecha_fin    = db.Column(db.Date, nullable=False)
@@ -1004,6 +1035,7 @@ class VacacionTomada(db.Model):
     """Registro de vacaciones tomadas por empleado."""
     __tablename__ = 'vacaciones_tomadas'
     id           = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     empleado_id  = db.Column(db.Integer, db.ForeignKey('empleados.id'), nullable=False)
     fecha_inicio = db.Column(db.Date, nullable=False)
     fecha_fin    = db.Column(db.Date, nullable=False)
@@ -1018,6 +1050,7 @@ class Requisicion(db.Model):
     """Requisicion de compra — solicitud pre-OC."""
     __tablename__ = 'requisiciones'
     id           = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     numero       = db.Column(db.String(20))
     solicitante_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     descripcion  = db.Column(db.Text, nullable=False)
@@ -1032,6 +1065,7 @@ class Requisicion(db.Model):
 class Notificacion(db.Model):
     __tablename__ = 'notificaciones'
     id         = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
     tipo       = db.Column(db.String(40), default='info')  # tarea_asignada, alerta_stock, info
     titulo     = db.Column(db.String(200), nullable=False)
@@ -1044,6 +1078,7 @@ class Notificacion(db.Model):
 class Empleado(db.Model):
     __tablename__ = 'empleados'
     id                  = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     nombre              = db.Column(db.String(100), nullable=False)
     apellido            = db.Column(db.String(100), nullable=False)
     cedula              = db.Column(db.String(30))
@@ -1075,6 +1110,7 @@ class HoraExtra(db.Model):
     """Registro de horas extra por empleado — Art. 168-170 CST."""
     __tablename__ = 'horas_extra'
     id           = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     empleado_id  = db.Column(db.Integer, db.ForeignKey('empleados.id'), nullable=False)
     fecha        = db.Column(db.Date, nullable=False)
     tipo         = db.Column(db.String(30), nullable=False)
@@ -1109,6 +1145,7 @@ class PreCotizacionItem(db.Model):
 class PreCotizacion(db.Model):
     __tablename__ = 'pre_cotizaciones'
     id               = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     numero           = db.Column(db.String(30))
     cliente_id       = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=False)
     cliente_user_id  = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
@@ -1132,6 +1169,7 @@ class Servicio(db.Model):
     """Servicio que puede incluirse en cotizaciones y ventas sin afectar inventario."""
     __tablename__ = 'servicios'
     id            = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     nombre        = db.Column(db.String(200), nullable=False)
     descripcion   = db.Column(db.Text)
     costo_interno = db.Column(db.Float, default=0)   # costo para la empresa
@@ -1155,6 +1193,7 @@ class EmpaqueSecundario(db.Model):
     """Configuración de empaque secundario (caja) para un producto terminado."""
     __tablename__ = 'empaques_secundarios'
     id               = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     nombre           = db.Column(db.String(100), default='Caja')  # v41: nombre del empaque (Caja, Bolsa, etc.)
     producto_id      = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
     alto             = db.Column(db.Float, default=0)   # cm
@@ -1713,6 +1752,59 @@ def _migrate(conn):
         ("CREATE INDEX IF NOT EXISTS idx_config_empresa_company ON config_empresa(company_id)"),
         ("CREATE INDEX IF NOT EXISTS idx_company_rel_from ON company_relationships(company_from_id)"),
         ("CREATE INDEX IF NOT EXISTS idx_company_rel_to ON company_relationships(company_to_id)"),
+        # ══════════════════════════════════════════════════
+        # MULTI-TENANCY — Phase 2: company_id on all tables
+        # ══════════════════════════════════════════════════
+        ("ALTER TABLE contactos_cliente ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE ordenes_compra ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE aprobaciones ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE tareas ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE productos ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE compras_materia ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE cotizaciones_proveedor ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE cotizaciones_granel ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE documentos_legales ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE cuentas_puc ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE asientos_contables ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE movimientos_bancarios ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE notas_contables ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE reglas_tributarias ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE movimientos_inventario ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE gastos_operativos ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE notas ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE actividades ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE eventos ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE cotizaciones ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE lotes_producto ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE materias_primas ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE lotes_materia_prima ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE recetas_producto ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE reservas_produccion ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE ordenes_produccion ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE comisiones ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE incapacidades ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE vacaciones_tomadas ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE requisiciones ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE notificaciones ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE empleados ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE horas_extra ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE pre_cotizaciones ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE servicios ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE empaques_secundarios ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        # Indices for company_id
+        ("CREATE INDEX IF NOT EXISTS idx_clientes_company ON clientes(company_id)"),
+        ("CREATE INDEX IF NOT EXISTS idx_ventas_company ON ventas(company_id)"),
+        ("CREATE INDEX IF NOT EXISTS idx_ordenes_compra_company ON ordenes_compra(company_id)"),
+        ("CREATE INDEX IF NOT EXISTS idx_proveedores_company ON proveedores(company_id)"),
+        ("CREATE INDEX IF NOT EXISTS idx_productos_company ON productos(company_id)"),
+        ("CREATE INDEX IF NOT EXISTS idx_tareas_company ON tareas(company_id)"),
+        ("CREATE INDEX IF NOT EXISTS idx_asientos_contables_company ON asientos_contables(company_id)"),
+        ("CREATE INDEX IF NOT EXISTS idx_gastos_operativos_company ON gastos_operativos(company_id)"),
+        ("CREATE INDEX IF NOT EXISTS idx_empleados_company ON empleados(company_id)"),
+        ("CREATE INDEX IF NOT EXISTS idx_cotizaciones_company ON cotizaciones(company_id)"),
     ]
     # Split: IF NOT EXISTS can batch, others need individual try/except
     batch_safe = [s for s in migrations if 'IF NOT EXISTS' in s]
@@ -1734,6 +1826,33 @@ def _migrate(conn):
         except Exception:
             try: conn.rollback()
             except Exception: pass
+    # ── Multi-tenancy: assign existing data to default company ──
+    try:
+        result = conn.execute(db.text("SELECT id FROM companies ORDER BY id LIMIT 1"))
+        row = result.fetchone()
+        if row:
+            default_cid = row[0]
+            tables_with_company = [
+                'clientes','proveedores','ventas','ordenes_compra','productos',
+                'tareas','cotizaciones','asientos_contables','gastos_operativos',
+                'empleados','notas','actividades','eventos','documentos_legales',
+                'compras_materia','cotizaciones_proveedor','cotizaciones_granel',
+                'reglas_tributarias','materias_primas','recetas_producto',
+                'ordenes_produccion','reservas_produccion','lotes_producto',
+                'lotes_materia_prima','notificaciones','comisiones','requisiciones',
+                'aprobaciones','horas_extra','incapacidades','vacaciones_tomadas',
+                'pre_cotizaciones','servicios','empaques_secundarios','contactos_cliente',
+                'cuentas_puc','movimientos_bancarios','notas_contables','movimientos_inventario',
+            ]
+            for t in tables_with_company:
+                try:
+                    conn.execute(db.text(f"UPDATE {t} SET company_id = :cid WHERE company_id IS NULL"), {'cid': default_cid})
+                except Exception:
+                    pass
+            conn.commit()
+    except Exception:
+        try: conn.rollback()
+        except Exception: pass
 
 def init_db():
     """Create tables and run migrations. Call inside app context."""
