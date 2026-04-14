@@ -1813,20 +1813,9 @@ def _migrate(conn):
         ("CREATE INDEX IF NOT EXISTS idx_empleados_company ON empleados(company_id)"),
         ("CREATE INDEX IF NOT EXISTS idx_cotizaciones_company ON cotizaciones(company_id)"),
     ]
-    # Split: IF NOT EXISTS can batch, others need individual try/except
-    batch_safe = [s for s in migrations if 'IF NOT EXISTS' in s]
-    batch_risky = [s for s in migrations if 'IF NOT EXISTS' not in s]
-    # Batch execute safe migrations (won't fail on existing columns)
-    if batch_safe:
-        try:
-            for sql in batch_safe:
-                conn.execute(db.text(sql))
-            conn.commit()
-        except Exception:
-            try: conn.rollback()
-            except Exception: pass
-    # Execute risky ones individually (may fail on SQLite)
-    for sql in batch_risky:
+    # Execute ALL migrations individually with rollback on each failure
+    # This prevents one failed migration from aborting the entire transaction
+    for sql in migrations:
         try:
             conn.execute(db.text(sql))
             conn.commit()
