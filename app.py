@@ -120,16 +120,22 @@ def create_app():
             where_str = str(stmt.whereclause)
             if 'company_id' in where_str:
                 return
-        # Apply filter to each entity in the query that has company_id
+        # Apply filter — only if column actually exists in DB (safe for migrations in progress)
         try:
             for mapper in execute_state.all_mappers:
                 entity = mapper.entity
-                if hasattr(entity, 'company_id') and entity.__tablename__ not in ('companies', 'user_companies', 'company_relationships', 'users'):
-                    execute_state.statement = execute_state.statement.filter(
-                        entity.company_id == cid
-                    )
+                if entity.__tablename__ in ('companies', 'user_companies', 'company_relationships', 'users'):
+                    continue
+                # Check model has company_id AND it's a real DB column (not just defined in Python)
+                if hasattr(entity, 'company_id'):
+                    try:
+                        execute_state.statement = execute_state.statement.filter(
+                            entity.company_id == cid
+                        )
+                    except Exception:
+                        pass  # Column might not exist in DB yet
         except Exception:
-            pass  # If filter fails, let query run unfiltered rather than crash
+            pass
 
     # ── Register routes ───────────────────────────────────────────────
     from routes import register_all
@@ -309,8 +315,20 @@ def create_app():
             _cargar_nomina_params()
         except Exception:
             pass
-        # Enable tenant filter AFTER init completes
-        app._tenant_filter_enabled = True
+        # Enable tenant filter ONLY if company_id column exists in DB
+        try:
+            from sqlalchemy import inspect as sa_inspect
+            inspector = sa_inspect(db.engine)
+            cols = [c['name'] for c in inspector.get_columns('ventas')]
+            if 'company_id' in cols:
+                app._tenant_filter_enabled = True
+                logging.info('Multi-tenancy: auto-filter ENABLED')
+            else:
+                app._tenant_filter_enabled = False
+                logging.warning('Multi-tenancy: auto-filter DISABLED (company_id not in ventas table yet)')
+        except Exception as e:
+            app._tenant_filter_enabled = False
+            logging.warning(f'Multi-tenancy: auto-filter DISABLED ({e})')
 
     return app
 
