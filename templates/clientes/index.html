@@ -22,7 +22,7 @@
     <a href="{{ url_for('clientes') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
   </div>
 </form></div></div>
-<div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-people-fill me-2"></i>{{ items|length }} cliente(s)</div>
+<div class="count-label"><i class="bi bi-people-fill me-2"></i>{{ items|length }} cliente(s)</div>
 {% if items %}
 <div style="overflow-x:auto;width:100%">
 <table class="table table-cards" style="width:100%;min-width:700px;margin:0">

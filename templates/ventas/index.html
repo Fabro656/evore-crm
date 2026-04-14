@@ -26,7 +26,7 @@
 </div>
 {% endif %}
 
-<div class="mb-3 d-flex gap-2 flex-wrap align-items-center">
+<div class="filter-bar">
   {% for est,lbl,cnt in [('','Todas',items|length)] %}
   <span class="text-muted me-1" style="font-size:.8rem">Filtrar:</span>{% endfor %}
   {% for est,lbl in [('','Todas'),('prospecto','Prospecto'),('negociacion','Negociación'),('anticipo_pagado','Anticipo'),('pagado','Pagado'),('cancelado','Cancelado'),('completado','Completado (legado)'),('perdido','Perdido (legado)')] %}
@@ -34,7 +34,7 @@
      class="b {% if estado_f==est %}b-negociacion{% else %}b-borrador{% endif %}"
      style="text-decoration:none;cursor:pointer;padding:4px 12px">{{ lbl }}</a>{% endfor %}
 </div>
-<div class="mb-2" style="font-size:.82rem;color:var(--text2)">{{ items|length }} venta{{ 's' if items|length != 1 else '' }}</div>
+<div class="count-label">{{ items|length }} venta{{ 's' if items|length != 1 else '' }}</div>
 {% if items %}<div style="overflow-x:auto;width:100%"><table class="table table-cards" style="width:100%;margin:0">
   <thead><tr>
     <th>N°</th>

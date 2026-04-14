@@ -2,13 +2,13 @@
 {% block title %}Tickets{% endblock %}{% block page_title %}Tickets{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('tarea_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva</a>{% endblock %}
 {% block content %}
-<div class="mb-3 d-flex gap-2 flex-wrap">
+<div class="filter-bar">
   {% for est,lbl in [('','Todas'),('pendiente','Pendiente'),('en_progreso','En progreso'),('completada','Completada')] %}
   <a href="{{ url_for('tareas', estado=est) }}" class="btn btn-sm {{ 'btn-primary' if estado_f==est else 'btn-outline-secondary' }}">{{ lbl }}</a>{% endfor %}
   <span class="text-muted mx-1">|</span>
   <a href="{{ url_for('tareas', prioridad='alta') }}" class="btn btn-sm {{ 'btn-danger' if prioridad_f=='alta' else 'btn-outline-secondary' }}">Alta prioridad</a>
 </div>
-<div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-check2-square me-2"></i>{{ items|length }} ticket(s)</div>
+<div class="count-label"><i class="bi bi-check2-square me-2"></i>{{ items|length }} ticket(s)</div>
 {% if items %}
 <div style="overflow-x:auto;width:100%">
 <table class="table table-cards" style="width:100%;min-width:750px;margin:0">
