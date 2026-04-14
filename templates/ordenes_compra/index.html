@@ -11,65 +11,91 @@
 </div>
 <div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-cart-check me-2"></i>{{ total_items }} orden(es) de compra</div>
 {% if items %}
-<div style="overflow-x:auto;width:100%">
-<table class="table table-cards" style="width:100%;min-width:900px;margin:0">
-  <thead><tr><th>N</th><th>Proveedor</th><th>Estado</th><th>Pago</th><th>Recepcion</th><th>Emision</th><th>Entrega esp.</th><th>Total</th><th></th></tr></thead>
-  <tbody>{% for oc in items %}<tr>
-    <td data-label="N" class="fw-semibold" style="color:var(--text)">{{ oc.numero or '--' }}</td>
-    <td data-label="Proveedor">{{ oc.proveedor.empresa or oc.proveedor.nombre if oc.proveedor else '--' }}</td>
-    <td data-label="Estado">
-      {% if oc.estado=='borrador' %}<span class="badge bg-secondary">Borrador</span>
-      {% elif oc.estado=='anticipo_pagado' %}<span class="badge bg-info text-dark">Anticipo pagado</span>
-      {% elif oc.estado=='pagado' %}<span class="badge bg-primary">Pagado</span>
-      {% elif oc.estado=='en_espera_producto' %}<span class="badge bg-warning text-dark">En espera producto</span>
-      {% elif oc.estado=='recibida_parcial' %}<span class="badge bg-orange text-dark" style="background:#fd7e14!important">Recibida parcial</span>
-      {% elif oc.estado=='recibida' %}<span class="badge bg-success">Recibida</span>
-      {% elif oc.estado=='cancelada' %}<span class="badge bg-danger">Cancelada</span>
-      {% else %}<span class="badge bg-secondary">{{ oc.estado }}</span>{% endif %}
-      {% if oc.tiene_problema_calidad %}<br><span class="badge bg-danger mt-1"><i class="bi bi-exclamation-triangle me-1"></i>Calidad</span>{% endif %}
-    </td>
-    <td data-label="Pago">
-      <small class="text-muted">{{ moneda(oc.monto_pagado or 0) }} / {{ moneda(oc.total or 0) }}</small>
-    </td>
-    <td data-label="Recepcion">
-      {% if oc.estado_recepcion=='pendiente' %}<span class="text-muted">Pendiente</span>
-      {% elif oc.estado_recepcion=='parcial' %}<span class="text-warning">Parcial</span>
-      {% elif oc.estado_recepcion=='recibida' %}<span class="text-success">Recibida</span>
-      {% else %}<span class="text-muted">{{ oc.estado_recepcion or 'Pendiente' }}</span>{% endif %}
-    </td>
-    <td data-label="Emision"><small>{{ oc.fecha_emision.strftime('%d/%m/%Y') if oc.fecha_emision else '--' }}</small></td>
-    <td data-label="Entrega">{% if oc.fecha_esperada %}<small class="{{ 'text-danger fw-semibold' if oc.fecha_esperada < now.date() and oc.estado not in ('recibida','cancelada') else '' }}">{{ oc.fecha_esperada.strftime('%d/%m/%Y') }}</small>{% else %}--{% endif %}</td>
-    <td data-label="Total" class="fw-semibold">{{ moneda(oc.total or 0) }}</td>
-    <td><div class="dropdown">
-      <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.78rem">
-        <i class="bi bi-three-dots me-1"></i>Acciones
-      </button>
-      <ul class="dropdown-menu dropdown-menu-end" style="font-size:.83rem;min-width:180px">
-        <li><a class="dropdown-item" href="{{ url_for('oc_pdf', id=oc.id) }}" target="_blank"><i class="bi bi-file-earmark-pdf me-2 text-primary"></i>PDF</a></li>
+<div class="row g-3">
+  {% for oc in items %}
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="fc h-100" style="padding:0;overflow:hidden;transition:box-shadow .15s,transform .15s" onmouseenter="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)';this.style.transform='translateY(-1px)'" onmouseleave="this.style.boxShadow='';this.style.transform=''">
+      <!-- Color bar by estado -->
+      <div style="height:4px;background:{% if oc.estado=='borrador' %}#6c757d{% elif oc.estado=='anticipo_pagado' %}#0dcaf0{% elif oc.estado=='pagado' %}#0d6efd{% elif oc.estado=='en_espera_producto' %}#ffc107{% elif oc.estado=='recibida_parcial' %}#fd7e14{% elif oc.estado=='recibida' %}#198754{% elif oc.estado=='cancelada' %}#dc3545{% else %}#6c757d{% endif %}"></div>
+      <div style="padding:1rem 1.15rem">
+        <!-- Header: numero + estado -->
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div>
+            <a href="{{ url_for('oc_pdf', id=oc.id) }}" target="_blank" class="fw-semibold text-decoration-none" style="color:var(--text);font-size:1.05rem">{{ oc.numero or '--' }}</a>
+            <div><small class="text-muted">{{ oc.proveedor.empresa or oc.proveedor.nombre if oc.proveedor else '--' }}</small></div>
+          </div>
+          <div class="ms-2 flex-shrink-0 text-end">
+            {% if oc.estado=='borrador' %}<span class="badge bg-secondary">Borrador</span>
+            {% elif oc.estado=='anticipo_pagado' %}<span class="badge bg-info text-dark">Anticipo pagado</span>
+            {% elif oc.estado=='pagado' %}<span class="badge bg-primary">Pagado</span>
+            {% elif oc.estado=='en_espera_producto' %}<span class="badge bg-warning text-dark">En espera producto</span>
+            {% elif oc.estado=='recibida_parcial' %}<span class="badge text-dark" style="background:#fd7e14!important">Recibida parcial</span>
+            {% elif oc.estado=='recibida' %}<span class="badge bg-success">Recibida</span>
+            {% elif oc.estado=='cancelada' %}<span class="badge bg-danger">Cancelada</span>
+            {% else %}<span class="badge bg-secondary">{{ oc.estado }}</span>{% endif %}
+            {% if oc.tiene_problema_calidad %}<br><span class="badge bg-danger mt-1"><i class="bi bi-exclamation-triangle me-1"></i>Calidad</span>{% endif %}
+          </div>
+        </div>
+        <!-- Total prominent -->
+        <div class="fw-semibold mb-2" style="font-size:1.2rem;color:var(--text)">{{ moneda(oc.total or 0) }}</div>
+        <!-- Details -->
+        <div class="d-flex flex-column gap-1 mb-2" style="font-size:.85rem">
+          <div class="d-flex align-items-center gap-2 text-muted">
+            <i class="bi bi-cash-stack" style="width:16px;text-align:center"></i>
+            <span>Pagado: {{ moneda(oc.monto_pagado or 0) }} / {{ moneda(oc.total or 0) }}</span>
+          </div>
+          <div class="d-flex align-items-center gap-2 text-muted">
+            <i class="bi bi-box-seam" style="width:16px;text-align:center"></i>
+            <span>Recepcion:
+              {% if oc.estado_recepcion=='pendiente' %}Pendiente
+              {% elif oc.estado_recepcion=='parcial' %}<span class="text-warning">Parcial</span>
+              {% elif oc.estado_recepcion=='recibida' %}<span class="text-success">Recibida</span>
+              {% else %}{{ oc.estado_recepcion or 'Pendiente' }}{% endif %}
+            </span>
+          </div>
+          <div class="d-flex align-items-center gap-2 text-muted">
+            <i class="bi bi-calendar-event" style="width:16px;text-align:center"></i>
+            <span>Emision: {{ oc.fecha_emision.strftime('%d/%m/%Y') if oc.fecha_emision else '--' }}</span>
+          </div>
+          <div class="d-flex align-items-center gap-2 text-muted">
+            <i class="bi bi-calendar-check" style="width:16px;text-align:center"></i>
+            <span>Entrega: {% if oc.fecha_esperada %}<span class="{{ 'text-danger fw-semibold' if oc.fecha_esperada < now.date() and oc.estado not in ('recibida','cancelada') else '' }}">{{ oc.fecha_esperada.strftime('%d/%m/%Y') }}</span>{% else %}--{% endif %}</span>
+          </div>
+        </div>
+      </div>
+      <!-- Actions -->
+      <div style="padding:.6rem 1.15rem;border-top:1px solid rgba(0,0,0,.07)" class="d-flex gap-2 justify-content-end flex-wrap">
+        <a href="{{ url_for('oc_pdf', id=oc.id) }}" target="_blank" class="btn btn-sm btn-outline-primary" style="font-size:.78rem;padding:3px 10px"><i class="bi bi-file-earmark-pdf me-1"></i>PDF</a>
         {% if oc.estado == 'borrador' %}
-        <li><a class="dropdown-item" href="{{ url_for('orden_compra_editar', id=oc.id) }}"><i class="bi bi-pencil me-2 text-secondary"></i>Editar</a></li>
+        <a href="{{ url_for('orden_compra_editar', id=oc.id) }}" class="btn btn-sm btn-outline-secondary" style="font-size:.78rem;padding:3px 10px"><i class="bi bi-pencil me-1"></i>Editar</a>
         {% endif %}
-        <li><hr class="dropdown-divider"></li>
-        <li><a class="dropdown-item" href="{{ url_for('legal_desde_entidad', tipo='orden_compra', id=oc.id, plantilla='contrato_proveedor') }}" target="_blank"><i class="bi bi-file-earmark-ruled me-2 text-info"></i>Contrato proveedor</a></li>
-        <li><a class="dropdown-item" href="{{ url_for('legal_desde_entidad', tipo='orden_compra', id=oc.id, plantilla='nda') }}" target="_blank"><i class="bi bi-shield-lock me-2 text-info"></i>NDA proveedor</a></li>
-        {% if oc.estado in ('borrador',) or current_user.rol == 'admin' %}
-        <li><hr class="dropdown-divider"></li>
-        {% endif %}
-        {% if oc.estado in ('borrador',) %}
-        <li><form method="POST" action="{{ url_for('orden_compra_estado', id=oc.id) }}" onsubmit="return confirm('Cancelar esta orden de compra?')" class="px-0 m-0">
-          <input type="hidden" name="estado" value="cancelada">
-          <button class="dropdown-item text-danger" type="submit"><i class="bi bi-x-lg me-2"></i>Cancelar</button>
-        </form></li>
-        {% endif %}
-        {% if current_user.rol == 'admin' %}
-        <li><form method="POST" action="{{ url_for('orden_compra_eliminar', id=oc.id) }}" onsubmit="return confirm('Eliminar permanentemente?')" class="px-0 m-0">
-          <button class="dropdown-item text-danger" type="submit"><i class="bi bi-trash me-2"></i>Eliminar</button>
-        </form></li>
-        {% endif %}
-      </ul>
-    </div></td>
-  </tr>{% endfor %}</tbody>
-</table>
+        <div class="dropdown">
+          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.78rem;padding:3px 10px">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end" style="font-size:.83rem;min-width:180px">
+            <li><a class="dropdown-item" href="{{ url_for('legal_desde_entidad', tipo='orden_compra', id=oc.id, plantilla='contrato_proveedor') }}" target="_blank"><i class="bi bi-file-earmark-ruled me-2 text-info"></i>Contrato proveedor</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('legal_desde_entidad', tipo='orden_compra', id=oc.id, plantilla='nda') }}" target="_blank"><i class="bi bi-shield-lock me-2 text-info"></i>NDA proveedor</a></li>
+            {% if oc.estado in ('borrador',) or current_user.rol == 'admin' %}
+            <li><hr class="dropdown-divider"></li>
+            {% endif %}
+            {% if oc.estado in ('borrador',) %}
+            <li><form method="POST" action="{{ url_for('orden_compra_estado', id=oc.id) }}" onsubmit="return confirm('Cancelar esta orden de compra?')" class="px-0 m-0">
+              <input type="hidden" name="estado" value="cancelada">
+              <button class="dropdown-item text-danger" type="submit"><i class="bi bi-x-lg me-2"></i>Cancelar</button>
+            </form></li>
+            {% endif %}
+            {% if current_user.rol == 'admin' %}
+            <li><form method="POST" action="{{ url_for('orden_compra_eliminar', id=oc.id) }}" onsubmit="return confirm('Eliminar permanentemente?')" class="px-0 m-0">
+              <button class="dropdown-item text-danger" type="submit"><i class="bi bi-trash me-2"></i>Eliminar</button>
+            </form></li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
 </div>
 {% if total_pages > 1 %}
 <div class="d-flex justify-content-between align-items-center mt-3">

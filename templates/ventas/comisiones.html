@@ -8,7 +8,7 @@
 
 {% block content %}
 
-{# ── Tarjetas de resumen ── #}
+{# -- Tarjetas de resumen -- #}
 <div class="row g-3 mb-4">
   <div class="col-6 col-md-3">
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px">
@@ -36,7 +36,7 @@
   </div>
 </div>
 
-{# ── Filtros ── #}
+{# -- Filtros -- #}
 <form method="GET" action="{{ url_for('ventas_comisiones') }}" class="d-flex flex-wrap gap-2 align-items-end mb-3">
   <div>
     <label class="form-label mb-1" style="font-size:.75rem;font-weight:600;color:var(--text2)">Vendedor</label>
@@ -66,84 +66,95 @@
   {% endif %}
 </form>
 
-{# ── Tabla de comisiones ── #}
+{# -- Cards de comisiones -- #}
 {% if comisiones %}
-<div style="overflow-x:auto;width:100%">
-  <table class="table table-cards" style="width:100%;margin:0">
-    <thead>
-      <tr>
-        <th>Vendedor</th>
-        <th>Venta</th>
-        <th class="hide-mobile">Valor Venta</th>
-        <th>Porcentaje</th>
-        <th>Comisión</th>
-        <th>Estado</th>
-        <th class="hide-mobile">Fecha</th>
-        <th style="width:1px"></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for c in comisiones %}
-      <tr>
-        <td>
-          <div class="fw-semibold" style="font-size:.82rem">{{ c.vendedor.nombre if c.vendedor else '—' }}</div>
-          {% if c.vendedor %}
-          <div style="font-size:.72rem;color:var(--text2)">{{ c.vendedor.rol }}</div>
-          {% endif %}
-        </td>
-        <td>
+
+{# Total filtrado #}
+<div style="background:var(--surface2,#f3f4f6);border:1px solid var(--border);border-radius:var(--radius,8px);padding:10px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
+  <span style="font-size:.82rem;font-weight:600;color:var(--text2)">Total filtrado ({{ comisiones|length }} registros)</span>
+  <span style="font-size:1.05rem;font-weight:700;color:var(--text)">$ {{ '{:,.0f}'.format(comisiones | sum(attribute='monto')).replace(',', '.') }}</span>
+</div>
+
+<div class="row g-3">
+  {% for c in comisiones %}
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="fc h-100" style="padding:0;overflow:hidden;transition:box-shadow .15s,transform .15s"
+         onmouseenter="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)';this.style.transform='translateY(-1px)'"
+         onmouseleave="this.style.boxShadow='';this.style.transform=''">
+      <!-- Color bar: green=pagada, amber=pendiente -->
+      <div style="height:4px;background:{% if c.estado == 'pagada' %}#059669{% else %}#D97706{% endif %}"></div>
+
+      <div style="padding:1rem 1.15rem">
+        <!-- Vendedor + estado badge -->
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div style="flex:1;min-width:0">
+            <div class="fw-semibold" style="font-size:1.02rem">{{ c.vendedor.nombre if c.vendedor else '—' }}</div>
+            {% if c.vendedor %}
+            <div style="font-size:.72rem;color:var(--text2)">{{ c.vendedor.rol }}</div>
+            {% endif %}
+          </div>
+          <span class="b b-{{ c.estado }}" style="flex-shrink:0">{{ 'Pendiente' if c.estado == 'pendiente' else 'Pagada' }}</span>
+        </div>
+
+        <!-- Venta link -->
+        <div class="mb-3">
           {% if c.venta %}
-          <a href="{{ url_for('venta_ver', id=c.venta.id) }}" class="text-decoration-none fw-semibold" style="color:var(--ac);font-size:.82rem">
-            {{ c.venta.numero or ('#' ~ c.venta.id) }}
+          <a href="{{ url_for('venta_ver', id=c.venta.id) }}" class="text-decoration-none fw-semibold" style="color:var(--ac);font-size:.88rem">
+            <i class="bi bi-receipt me-1"></i>{{ c.venta.numero or ('#' ~ c.venta.id) }}
           </a>
-          <div style="font-size:.72rem;color:var(--text2)">{{ c.venta.titulo[:40] }}{% if c.venta.titulo|length > 40 %}…{% endif %}</div>
-          {% else %}
-          <span class="text-muted">—</span>
+          <div style="font-size:.75rem;color:var(--text2);margin-top:1px">{{ c.venta.titulo[:50] }}{% if c.venta.titulo|length > 50 %}...{% endif %}</div>
+          {% if c.venta.total %}
+          <div style="font-size:.75rem;color:var(--text2);margin-top:2px">Valor venta: <strong>$ {{ '{:,.0f}'.format(c.venta.total or 0).replace(',', '.') }}</strong></div>
           {% endif %}
-        </td>
-        <td class="hide-mobile fw-semibold" style="font-size:.82rem">
-          {% if c.venta %}$ {{ '{:,.0f}'.format(c.venta.total or 0).replace(',', '.') }}{% else %}—{% endif %}
-        </td>
-        <td>
-          <span style="font-size:.82rem;font-weight:600;color:var(--text)">{{ '%.1f'|format(c.porcentaje) }}%</span>
-        </td>
-        <td>
-          <span style="font-size:.9rem;font-weight:700;color:{% if c.estado == 'pagada' %}#059669{% else %}#D97706{% endif %}">
-            $ {{ '{:,.0f}'.format(c.monto or 0).replace(',', '.') }}
-          </span>
-        </td>
-        <td>
-          <span class="b b-{{ c.estado }}">{{ 'Pendiente' if c.estado == 'pendiente' else 'Pagada' }}</span>
-        </td>
-        <td class="hide-mobile" style="font-size:.78rem;color:var(--text2)">
-          {{ c.creado_en.strftime('%d/%m/%Y') if c.creado_en else '—' }}
-        </td>
-        <td>
-          {% if c.estado == 'pendiente' %}
-          <form method="POST" action="{{ url_for('ventas_comision_pagar', id=c.id) }}"
-                onsubmit="return confirm('¿Marcar esta comisión como pagada?')">
-            <button type="submit" class="btn btn-sm" title="Marcar como pagada"
-                    style="padding:3px 10px;font-size:.72rem;background:#EDFBF0;color:#1A6B3C;border:1px solid #BEEFD3;border-radius:4px;font-weight:600">
-              <i class="bi bi-check2-circle me-1"></i>Pagar
-            </button>
-          </form>
           {% else %}
-          <span style="color:var(--text2);font-size:.72rem"><i class="bi bi-check2-all"></i></span>
+          <span class="text-muted" style="font-size:.82rem">Sin venta asociada</span>
           {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-    <tfoot>
-      <tr style="background:var(--surface2)">
-        <td colspan="4" class="fw-semibold" style="font-size:.8rem;color:var(--text2)">Total filtrado</td>
-        <td class="fw-bold" style="font-size:.88rem">
-          $ {{ '{:,.0f}'.format(comisiones | sum(attribute='monto')).replace(',', '.') }}
-        </td>
-        <td colspan="3"></td>
-      </tr>
-    </tfoot>
-  </table>
+        </div>
+
+        <!-- Monto comision (grande) + porcentaje -->
+        <div class="d-flex align-items-end justify-content-between mb-1">
+          <div>
+            <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.3px;color:var(--text2);font-weight:600">Comision</div>
+            <div style="font-size:1.3rem;font-weight:700;color:{% if c.estado == 'pagada' %}#059669{% else %}#D97706{% endif %}">
+              $ {{ '{:,.0f}'.format(c.monto or 0).replace(',', '.') }}
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.3px;color:var(--text2);font-weight:600">Porcentaje</div>
+            <div style="font-size:1.1rem;font-weight:700;color:var(--text)">{{ '%.1f'|format(c.porcentaje) }}%</div>
+          </div>
+        </div>
+
+        <!-- Fecha -->
+        {% if c.creado_en %}
+        <div style="font-size:.72rem;color:var(--text2);margin-top:6px">
+          <i class="bi bi-calendar3 me-1"></i>{{ c.creado_en.strftime('%d/%m/%Y') }}
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Actions -->
+      <div style="padding:.65rem 1.15rem;border-top:1px solid var(--border,#e5e7eb);display:flex;gap:6px;justify-content:flex-end;align-items:center">
+        {% if c.venta %}
+        <a href="{{ url_for('venta_ver', id=c.venta.id) }}" class="btn btn-outline-secondary btn-sm" style="font-size:.72rem">
+          <i class="bi bi-eye me-1"></i>Ver Venta
+        </a>
+        {% endif %}
+        {% if c.estado == 'pendiente' %}
+        <form method="POST" action="{{ url_for('ventas_comision_pagar', id=c.id) }}"
+              onsubmit="return confirm('¿Marcar esta comision como pagada?')" style="display:inline">
+          <button type="submit" class="btn btn-sm"
+                  style="padding:3px 12px;font-size:.72rem;background:#EDFBF0;color:#1A6B3C;border:1px solid #BEEFD3;border-radius:4px;font-weight:600">
+            <i class="bi bi-check2-circle me-1"></i>Pagar
+          </button>
+        </form>
+        {% else %}
+        <span style="color:#059669;font-size:.75rem;font-weight:600"><i class="bi bi-check2-all me-1"></i>Pagada</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
 </div>
 {% else %}
 <div style="text-align:center;padding:48px 24px;color:var(--text2)">
@@ -152,7 +163,7 @@
   {% if vendedor_f or estado_f or periodo_f %}
   <a href="{{ url_for('ventas_comisiones') }}" class="btn btn-sm btn-outline-secondary mt-3">Ver todas las comisiones</a>
   {% else %}
-  <div style="font-size:.78rem;margin-top:6px;opacity:.7">Las comisiones se crean automáticamente cuando una venta pasa a estado <strong>Completado</strong>.</div>
+  <div style="font-size:.78rem;margin-top:6px;opacity:.7">Las comisiones se crean automaticamente cuando una venta pasa a estado <strong>Completado</strong>.</div>
   {% endif %}
 </div>
 {% endif %}

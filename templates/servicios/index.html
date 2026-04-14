@@ -54,117 +54,93 @@
         </div>
     </div>
 
-    <!-- Tabla de Servicios -->
-    <div class="card">
-        <div class="card-header bg-light">
-            <h5 class="mb-0">
-                <i class="fas fa-list"></i> Lista de Servicios
-            </h5>
-        </div>
-        <div class="card-body">
-            {% if items %}
-                <div style="overflow-x:auto;width:100%">
-                    <table class="table table-hover table-sm table-cards" style="width:100%;margin:0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Categoría</th>
-                                <th>Unidad</th>
-                                <th>Costo Interno</th>
-                                <th>Precio Venta</th>
-                                <th>Margen %</th>
-                                <th>Estado</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for servicio in items %}
-                                <tr class="{% if not servicio.activo %}table-secondary{% endif %}">
-                                    <td>
-                                        <strong>{{ servicio.nombre }}</strong>
-                                        {% if servicio.descripcion %}
-                                            <br>
-                                            <small class="text-muted">{{ servicio.descripcion[:100] }}{% if servicio.descripcion|length > 100 %}...{% endif %}</small>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if servicio.categoria %}
-                                            <span class="badge bg-secondary">{{ servicio.categoria }}</span>
-                                        {% else %}
-                                            <span class="text-muted">—</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <small class="badge bg-light text-dark">{{ servicio.unidad }}</small>
-                                    </td>
-                                    <td>{{ servicio.costo_interno|cop }}</td>
-                                    <td>
-                                        <strong>{{ servicio.precio_venta|cop }}</strong>
-                                    </td>
-                                    <td>
-                                        {% if servicio.precio_venta > 0 %}
-                                            <span class="badge bg-{% if servicio.margen >= 40 %}success{% elif servicio.margen >= 20 %}info{% else %}warning{% endif %}">
-                                                {{ servicio.margen }}%
-                                            </span>
-                                        {% else %}
-                                            <span class="text-muted">—</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if servicio.activo %}
-                                            <span class="badge bg-success">
-                                                <i class="fas fa-check"></i> Activo
-                                            </span>
-                                        {% else %}
-                                            <span class="badge bg-danger">
-                                                <i class="fas fa-times"></i> Inactivo
-                                            </span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm" role="group">
-                                            <a href="{{ url_for('servicios_editar', id=servicio.id) }}"
-                                               class="btn btn-outline-primary btn-sm"
-                                               title="Editar">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <form method="POST" action="{{ url_for('servicios_toggle', id=servicio.id) }}" style="display:inline;">
-                                                <button type="submit" class="btn btn-outline-warning btn-sm"
-                                                        title="{% if servicio.activo %}Desactivar{% else %}Activar{% endif %}">
-                                                    <i class="fas fa-toggle-{% if servicio.activo %}on{% else %}off{% endif %}"></i>
-                                                </button>
-                                            </form>
-                                            <form method="POST" action="{{ url_for('servicios_eliminar', id=servicio.id) }}" style="display:inline;">
-                                                <button type="submit" class="btn btn-outline-danger btn-sm"
-                                                        title="Eliminar"
-                                                        onclick="return confirm('¿Eliminar este servicio? Esta acción no se puede deshacer.')">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+    <!-- Cards de Servicios -->
+    {% if items %}
+    <div class="row g-3">
+        {% for servicio in items %}
+        <div class="col-12 col-md-6 col-xl-4">
+            <div class="fc h-100" style="padding:0;overflow:hidden;transition:box-shadow .15s,transform .15s{% if not servicio.activo %};opacity:.65{% endif %}"
+                 onmouseenter="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)';this.style.transform='translateY(-1px)'"
+                 onmouseleave="this.style.boxShadow='';this.style.transform=''">
+                <!-- Color bar -->
+                <div style="height:4px;background:{% if servicio.activo %}#10b981{% else %}#ef4444{% endif %}"></div>
+
+                <div style="padding:1rem 1.15rem">
+                    <!-- Header: nombre + estado -->
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div style="flex:1;min-width:0">
+                            <a href="{{ url_for('servicios_editar', id=servicio.id) }}" class="text-decoration-none" style="color:inherit">
+                                <strong style="font-size:1.05rem">{{ servicio.nombre }}</strong>
+                            </a>
+                            {% if servicio.descripcion %}
+                            <div style="font-size:.78rem;color:var(--text2,#6b7280);margin-top:2px">{{ servicio.descripcion[:100] }}{% if servicio.descripcion|length > 100 %}...{% endif %}</div>
+                            {% endif %}
+                        </div>
+                        <div class="ms-2">
+                            {% if servicio.activo %}
+                            <span class="badge bg-success"><i class="fas fa-check"></i> Activo</span>
+                            {% else %}
+                            <span class="badge bg-danger"><i class="fas fa-times"></i> Inactivo</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Categoria + Unidad -->
+                    <div class="d-flex flex-wrap gap-1 mb-3">
+                        {% if servicio.categoria %}
+                        <span class="badge bg-secondary">{{ servicio.categoria }}</span>
+                        {% endif %}
+                        <span class="badge bg-light text-dark">{{ servicio.unidad }}</span>
+                        {% if servicio.precio_venta > 0 %}
+                        <span class="badge bg-{% if servicio.margen >= 40 %}success{% elif servicio.margen >= 20 %}info{% else %}warning{% endif %}">
+                            Margen {{ servicio.margen }}%
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Precios -->
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.3px;color:var(--text2,#6b7280);font-weight:600">Costo Interno</div>
+                            <div style="font-size:.95rem;font-weight:600;color:var(--text,#374151)">{{ servicio.costo_interno|cop }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.3px;color:var(--text2,#6b7280);font-weight:600">Precio Venta</div>
+                            <div style="font-size:1.15rem;font-weight:700;color:#059669">{{ servicio.precio_venta|cop }}</div>
+                        </div>
+                    </div>
                 </div>
-            {% else %}
-                <div class="alert alert-info mb-0">
-                    <i class="fas fa-info-circle"></i> No hay servicios configurados aún.
-                    <a href="{{ url_for('servicios_nuevo') }}" class="alert-link">Crear uno ahora</a>
+
+                <!-- Actions -->
+                <div style="padding:.65rem 1.15rem;border-top:1px solid var(--border,#e5e7eb);display:flex;gap:6px;justify-content:flex-end">
+                    <a href="{{ url_for('servicios_editar', id=servicio.id) }}"
+                       class="btn btn-outline-primary btn-sm" title="Editar">
+                        <i class="fas fa-edit"></i> Editar
+                    </a>
+                    <form method="POST" action="{{ url_for('servicios_toggle', id=servicio.id) }}" style="display:inline">
+                        <button type="submit" class="btn btn-outline-warning btn-sm"
+                                title="{% if servicio.activo %}Desactivar{% else %}Activar{% endif %}">
+                            <i class="fas fa-toggle-{% if servicio.activo %}on{% else %}off{% endif %}"></i>
+                            {% if servicio.activo %}Desactivar{% else %}Activar{% endif %}
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ url_for('servicios_eliminar', id=servicio.id) }}" style="display:inline">
+                        <button type="submit" class="btn btn-outline-danger btn-sm"
+                                title="Eliminar"
+                                onclick="return confirm('¿Eliminar este servicio? Esta acción no se puede deshacer.')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </form>
                 </div>
-            {% endif %}
+            </div>
         </div>
+        {% endfor %}
     </div>
+    {% else %}
+    <div class="alert alert-info mb-0">
+        <i class="fas fa-info-circle"></i> No hay servicios configurados aún.
+        <a href="{{ url_for('servicios_nuevo') }}" class="alert-link">Crear uno ahora</a>
+    </div>
+    {% endif %}
 </div>
-
-<style>
-    .table-hover tbody tr:hover {
-        background-color: #f5f5f5;
-    }
-    .table-secondary {
-        opacity: 0.7;
-    }
-</style>
-
 {% endblock %}

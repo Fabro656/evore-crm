@@ -5,67 +5,120 @@
 <a href="{{ url_for('cliente_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo</a>
 {% endblock %}
 {% block content %}
-<div class="tc mb-3"><div class="p-3"><form method="GET" class="row g-2 align-items-end">
-  <div class="col-sm-4"><input type="text" name="buscar" class="form-control form-control-sm" placeholder="Nombre, empresa, NIT..." value="{{ busqueda }}"></div>
-  <div class="col-sm-2"><select name="tier" class="form-select form-select-sm">
-    <option value="">Todos los tiers</option>
-    {% for t in ['gold','silver','bronze','standard'] %}
-    <option value="{{ t }}" {% if request.args.get('tier')==t %}selected{% endif %}>{{ t|capitalize }}</option>{% endfor %}
-  </select></div>
-  <div class="col-sm-3"><select name="estado_rel" class="form-select form-select-sm">
-    <option value="">Todas las relaciones</option>
-    {% for er in ['prospecto','negociacion','cliente_activo','vip','inactivo','perdido'] %}
-    <option value="{{ er }}" {% if estado_rel_f==er %}selected{% endif %}>{{ er.replace('_',' ').title() }}</option>{% endfor %}
-  </select></div>
-  <div class="col-auto">
-    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
-    <a href="{{ url_for('clientes') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
-  </div>
-</form></div></div>
-<div class="count-label"><i class="bi bi-people-fill me-2"></i>{{ total_items }} cliente(s)</div>
-{% if items %}
-<div style="overflow-x:auto;width:100%">
-<table class="table table-cards" style="width:100%;min-width:700px;margin:0">
-  <thead><tr>
-    <th style="min-width:200px">Empresa</th>
-    <th style="min-width:100px">NIT</th>
-    <th style="min-width:80px">Tier</th>
-    <th style="min-width:120px">Relacion</th>
-    <th style="min-width:180px">Contacto principal</th>
-    <th style="min-width:90px">Alta</th>
-    <th style="width:100px"></th>
-  </tr></thead>
-  <tbody>{% for c in items %}<tr>
-    <td data-label="Empresa"><a href="{{ url_for('cliente_ver', id=c.id) }}" class="fw-semibold text-decoration-none" style="color:var(--text)">{{ c.empresa or c.nombre }}</a>
-      {% if c.empresa and c.nombre != c.empresa %}<div><small class="text-muted">{{ c.nombre }}</small></div>{% endif %}</td>
-    <td data-label="NIT"><small class="text-muted">{{ c.nit or '—' }}</small></td>
-    <td data-label="Tier">
-      {% if c.tier == 'gold' %}<span class="badge" style="background:#FFD700;color:#333">Gold</span>
-      {% elif c.tier == 'silver' %}<span class="badge" style="background:#C0C0C0;color:#333">Silver</span>
-      {% elif c.tier == 'bronze' %}<span class="badge" style="background:#CD7F32;color:#fff">Bronze</span>
-      {% else %}<span class="badge bg-light text-dark border">Standard</span>{% endif %}
-    </td>
-    <td data-label="Relación"><span class="b b-{{ c.estado_relacion }}" title="Estado: {{ c.estado_relacion.replace('_',' ').title() }}">{{ c.estado_relacion.replace('_',' ').title() }}</span></td>
-    <td data-label="Contacto">{% if c.contactos %}<small>{{ c.contactos[0].nombre }}{% if c.contactos[0].cargo %} · {{ c.contactos[0].cargo }}{% endif %}{% if c.contactos[0].email %}<br><span class="text-muted">{{ c.contactos[0].email }}</span>{% endif %}</small>{% else %}—{% endif %}</td>
-    <td data-label="Alta"><small class="text-muted">{{ c.creado_en.strftime('%d/%m/%Y') }}</small></td>
-    <td><div class="d-flex gap-1 justify-content-end">
-      <a href="{{ url_for('cliente_ver', id=c.id) }}" class="btn btn-sm btn-outline-primary" style="font-size:.72rem;padding:2px 8px" title="Ver"><i class="bi bi-eye"></i></a>
-      <a href="{{ url_for('cliente_editar', id=c.id) }}" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;padding:2px 8px" title="Editar"><i class="bi bi-pencil"></i></a>
-      <form method="POST" action="{{ url_for('cliente_eliminar', id=c.id) }}" onsubmit="return confirm('¿Eliminar cliente {{ c.empresa or c.nombre }}? Se desvincularan ventas, cotizaciones y documentos asociados.')" class="m-0">
-        <button class="btn btn-sm btn-outline-danger" type="submit" style="font-size:.72rem;padding:2px 8px" title="Eliminar"><i class="bi bi-trash"></i></button>
-      </form>
-    </div></td>
-  </tr>{% endfor %}</tbody>
-</table>
+<div class="fc mb-3">
+  <form method="GET" class="row g-2 align-items-end">
+    <div class="col-sm-4"><input type="text" name="buscar" class="form-control form-control-sm" placeholder="Nombre, empresa, NIT..." value="{{ busqueda }}"></div>
+    <div class="col-sm-2"><select name="tier" class="form-select form-select-sm">
+      <option value="">Todos los tiers</option>
+      {% for t in ['gold','silver','bronze','standard'] %}
+      <option value="{{ t }}" {% if request.args.get('tier')==t %}selected{% endif %}>{{ t|capitalize }}</option>{% endfor %}
+    </select></div>
+    <div class="col-sm-3"><select name="estado_rel" class="form-select form-select-sm">
+      <option value="">Todas las relaciones</option>
+      {% for er in ['prospecto','negociacion','cliente_activo','vip','inactivo','perdido'] %}
+      <option value="{{ er }}" {% if estado_rel_f==er %}selected{% endif %}>{{ er.replace('_',' ').title() }}</option>{% endfor %}
+    </select></div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
+      <a href="{{ url_for('clientes') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
+    </div>
+  </form>
 </div>
+<div class="count-label"><i class="bi bi-people-fill me-2"></i>{{ total_items }} cliente(s)</div>
+
+{% if items %}
+<div class="row g-3">
+  {% for c in items %}
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="fc h-100" style="padding:0;overflow:hidden;transition:box-shadow .15s,transform .15s" onmouseenter="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)';this.style.transform='translateY(-1px)'" onmouseleave="this.style.boxShadow='';this.style.transform=''">
+      {# Color bar: tier #}
+      <div style="height:4px;background:{% if c.tier=='gold' %}#FFD700{% elif c.tier=='silver' %}#C0C0C0{% elif c.tier=='bronze' %}#CD7F32{% else %}var(--border){% endif %}"></div>
+      <div style="padding:1rem 1.15rem">
+        {# Header: avatar + name + tier badge #}
+        <div class="d-flex align-items-start gap-3 mb-2">
+          <a href="{{ url_for('cliente_ver', id=c.id) }}" class="text-decoration-none" style="flex-shrink:0">
+            <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
+                 style="width:42px;height:42px;background:{% if c.tier=='gold' %}#FFD700;color:#333{% elif c.tier=='silver' %}#C0C0C0;color:#333{% elif c.tier=='bronze' %}#CD7F32{% else %}var(--ac){% endif %};font-size:1rem">{{ (c.empresa or c.nombre)[0].upper() }}</div>
+          </a>
+          <div style="min-width:0;flex:1">
+            <a href="{{ url_for('cliente_ver', id=c.id) }}" class="text-decoration-none">
+              <div class="fw-bold" style="color:var(--text1);font-size:.92rem;line-height:1.2">{{ c.empresa or c.nombre }}</div>
+            </a>
+            {% if c.empresa and c.nombre != c.empresa %}<div class="text-muted" style="font-size:.75rem">{{ c.nombre }}</div>{% endif %}
+            <div class="d-flex align-items-center gap-2 mt-1 flex-wrap">
+              <span class="b b-{{ c.estado_relacion }}" style="font-size:.68rem">{{ c.estado_relacion.replace('_',' ').title() }}</span>
+              {% if c.tier == 'gold' %}<span class="badge" style="background:#FFD700;color:#333;font-size:.6rem">Gold</span>
+              {% elif c.tier == 'silver' %}<span class="badge" style="background:#C0C0C0;color:#333;font-size:.6rem">Silver</span>
+              {% elif c.tier == 'bronze' %}<span class="badge" style="background:#CD7F32;color:#fff;font-size:.6rem">Bronze</span>{% endif %}
+            </div>
+          </div>
+        </div>
+
+        {# Info rows #}
+        <div class="mb-3" style="font-size:.82rem">
+          {% if c.nit %}
+          <div class="d-flex align-items-center gap-2 text-muted mb-1">
+            <i class="bi bi-credit-card" style="font-size:.75rem;width:16px;text-align:center"></i>
+            <span>{{ c.tipo_documento or 'NIT' }}: {{ c.nit }}</span>
+          </div>
+          {% endif %}
+          {% if c.contactos %}
+          <div class="d-flex align-items-center gap-2 text-muted mb-1">
+            <i class="bi bi-person" style="font-size:.75rem;width:16px;text-align:center"></i>
+            <span>{{ c.contactos[0].nombre }}{% if c.contactos[0].cargo %} · {{ c.contactos[0].cargo }}{% endif %}</span>
+          </div>
+          {% if c.contactos[0].email %}
+          <div class="d-flex align-items-center gap-2 text-muted mb-1">
+            <i class="bi bi-envelope" style="font-size:.75rem;width:16px;text-align:center"></i>
+            <a href="mailto:{{ c.contactos[0].email }}" class="text-decoration-none" style="color:var(--ac);font-size:.8rem">{{ c.contactos[0].email }}</a>
+          </div>
+          {% endif %}
+          {% if c.contactos[0].telefono %}
+          <div class="d-flex align-items-center gap-2 text-muted mb-1">
+            <i class="bi bi-telephone" style="font-size:.75rem;width:16px;text-align:center"></i>
+            <span>{{ c.contactos[0].telefono }}</span>
+          </div>
+          {% endif %}
+          {% endif %}
+        </div>
+
+        {# Stats row #}
+        {% if c.ventas %}
+        <div class="d-flex gap-3 mb-3" style="font-size:.78rem">
+          <div>
+            <div class="text-muted" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px">Ventas</div>
+            <div class="fw-bold" style="color:var(--text1)">{{ c.ventas|length }}</div>
+          </div>
+          {% set total_ventas = c.ventas|sum(attribute='total') %}
+          {% if total_ventas > 0 %}
+          <div>
+            <div class="text-muted" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px">Total</div>
+            <div class="fw-bold" style="color:var(--green)">$ {{ '{:,.0f}'.format(total_ventas).replace(',','.') }}</div>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        {# Actions #}
+        <div class="d-flex align-items-center gap-2 pt-2" style="border-top:1px solid var(--border)">
+          <a href="{{ url_for('cliente_ver', id=c.id) }}" class="btn btn-sm btn-outline-primary" style="font-size:.75rem;padding:3px 10px"><i class="bi bi-eye me-1"></i>Ver</a>
+          <a href="{{ url_for('cliente_editar', id=c.id) }}" class="btn btn-sm btn-outline-secondary" style="font-size:.75rem;padding:3px 10px"><i class="bi bi-pencil me-1"></i>Editar</a>
+          <form method="POST" action="{{ url_for('cliente_eliminar', id=c.id) }}" onsubmit="return confirm('Eliminar cliente {{ c.empresa or c.nombre }}?')" class="ms-auto m-0">
+            <button class="btn btn-sm btn-outline-danger" type="submit" style="font-size:.75rem;padding:3px 8px"><i class="bi bi-trash"></i></button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
 {% if total_pages > 1 %}
-<div class="d-flex justify-content-between align-items-center mt-3">
-  <small class="text-muted">Pagina {{ page }} de {{ total_pages }}</small>
+<div class="d-flex justify-content-between align-items-center mt-4" style="font-size:var(--font-small)">
+  <span class="text-muted">{{ total_items }} cliente(s) — pagina {{ page }} de {{ total_pages }}</span>
   <nav>
-    <ul class="pagination pagination-sm mb-0">
-      <li class="page-item {% if page <= 1 %}disabled{% endif %}">
-        <a class="page-link" href="{{ url_for('clientes', buscar=busqueda, estado_rel=estado_rel_f, tier=request.args.get('tier',''), page=page-1) }}">&laquo; Anterior</a>
-      </li>
+    <ul class="pagination pagination-sm mb-0" style="gap:4px">
+      {% if page > 1 %}<li class="page-item"><a class="page-link" href="{{ url_for('clientes', buscar=busqueda, estado_rel=estado_rel_f, tier=request.args.get('tier',''), page=page-1) }}">&laquo;</a></li>{% endif %}
       {% for p in range(1, total_pages + 1) %}
         {% if p == page %}
         <li class="page-item active"><span class="page-link">{{ p }}</span></li>
@@ -75,13 +128,17 @@
         <li class="page-item disabled"><span class="page-link">...</span></li>
         {% endif %}
       {% endfor %}
-      <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
-        <a class="page-link" href="{{ url_for('clientes', buscar=busqueda, estado_rel=estado_rel_f, tier=request.args.get('tier',''), page=page+1) }}">Siguiente &raquo;</a>
-      </li>
+      {% if page < total_pages %}<li class="page-item"><a class="page-link" href="{{ url_for('clientes', buscar=busqueda, estado_rel=estado_rel_f, tier=request.args.get('tier',''), page=page+1) }}">&raquo;</a></li>{% endif %}
     </ul>
   </nav>
 </div>
 {% endif %}
-{% else %}<div class="text-center text-muted py-5"><i class="bi bi-people" style="font-size:3rem"></i>
-  <p class="mt-3">Sin clientes.</p><a href="{{ url_for('cliente_nuevo') }}" class="btn btn-primary">Agregar</a></div>
-{% endif %}{% endblock %}
+
+{% else %}
+<div class="empty-state">
+  <i class="bi bi-people"></i>
+  <p>Sin clientes{% if busqueda %} para "{{ busqueda }}"{% endif %}.</p>
+  <a href="{{ url_for('cliente_nuevo') }}" class="btn btn-primary">Agregar primer cliente</a>
+</div>
+{% endif %}
+{% endblock %}
