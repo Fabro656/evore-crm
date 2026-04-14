@@ -464,17 +464,16 @@ html[data-theme="dark"] .skeleton{background:linear-gradient(90deg,var(--surface
 @media(max-width:768px){
   #sb{display:none}
   #sb.sb-open{display:flex;position:fixed;top:0;left:0;height:100dvh;width:64px;z-index:1050;transform:none;box-shadow:6px 0 40px rgba(0,0,0,.3);padding-bottom:calc(80px + env(safe-area-inset-bottom,0))}
-  #sb .sb-foot .rounded-circle{display:none!important}
-  #sb .sb-foot .ui{display:none!important}
-  #sb .sb-foot{padding:4px 0;gap:2px}
+  #sb .sb-foot{display:none!important}
   #sb-tog{display:flex}
   #main{margin-left:0!important;width:100%;padding-bottom:calc(120px + env(safe-area-inset-bottom,0))}
   .fab,#diagBtn,#aiFab{display:none!important}
-  .topbar .dropdown-menu{position:fixed!important;top:52px!important;right:8px!important;left:8px!important;max-width:calc(100vw - 16px)!important;transform:none!important;z-index:99999!important;max-height:calc(100dvh - 140px);overflow-y:auto;background:var(--surface)!important;box-shadow:0 20px 60px rgba(0,0,0,.35)!important}
+  .topbar .dropdown-menu{position:fixed!important;top:50px!important;right:6px!important;left:6px!important;width:auto!important;max-width:none!important;transform:none!important;z-index:999999!important;max-height:calc(100dvh - 130px);overflow-y:auto;background:var(--surface)!important;box-shadow:0 20px 60px rgba(0,0,0,.5)!important;border:1px solid var(--border)!important}
+  .topbar .dropdown-menu.show~*,.topbar .dropdown.show~*{z-index:1!important}
   #chatPanel{width:calc(100vw - 24px)!important;max-height:calc(100dvh - 160px)!important;bottom:calc(90px + env(safe-area-inset-bottom,0))!important;left:12px!important;top:auto!important;border-radius:16px!important;z-index:1060!important}
   #sb.sb-expanded+#main,#sb.sb-expanded~#main{margin-left:0!important}
   .content{padding:var(--sp-4) var(--sp-3)}
-  .topbar{padding:var(--sp-2) var(--sp-3);gap:var(--sp-1);overflow:hidden}
+  .topbar{padding:var(--sp-2) var(--sp-3);gap:var(--sp-1);overflow:visible;z-index:99998}
   .topbar-right{gap:var(--sp-1)!important;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;max-width:calc(100vw - 100px);flex-shrink:0}
   .topbar-right .btn{white-space:nowrap;flex-shrink:0;font-size:var(--font-small)}
   .topbar-right::-webkit-scrollbar{display:none}
