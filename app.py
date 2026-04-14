@@ -92,6 +92,38 @@ def create_app():
     except ImportError:
         logging.info('flask-compress not installed — serving uncompressed')
 
+    # ── Multi-tenancy: auto-filter queries by company_id ────────────
+    from sqlalchemy import event
+    @event.listens_for(db.session, 'do_orm_execute')
+    def _tenant_filter(execute_state):
+        """Automatically filter all SELECT queries by company_id when tenant is set."""
+        if not execute_state.is_select:
+            return
+        # Only filter when we have an active tenant
+        try:
+            from flask import g, has_request_context
+            if not has_request_context():
+                return
+            cid = getattr(g, 'company_id', None)
+            if not cid:
+                return
+        except Exception:
+            return
+        # Check if the query targets a model with company_id
+        # Skip if the query already has a company_id filter (avoid double-filter)
+        stmt = execute_state.statement
+        if hasattr(stmt, 'whereclause') and stmt.whereclause is not None:
+            where_str = str(stmt.whereclause)
+            if 'company_id' in where_str:
+                return
+        # Apply filter to each entity in the query that has company_id
+        for mapper in execute_state.all_mappers:
+            entity = mapper.entity
+            if hasattr(entity, 'company_id') and entity.__tablename__ not in ('companies', 'user_companies', 'company_relationships', 'users'):
+                execute_state.statement = execute_state.statement.filter(
+                    entity.company_id == cid
+                )
+
     # ── Register routes ───────────────────────────────────────────────
     from routes import register_all
     register_all(app)

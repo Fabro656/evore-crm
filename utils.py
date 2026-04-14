@@ -395,6 +395,19 @@ def inject_globals():
                     lambda: Aprobacion.query.filter_by(estado='pendiente').count(),
                     current_user.id)
         except Exception: pass
+    # Active company info
+    from flask import g
+    active_company = None
+    is_platform_admin = False
+    if current_user.is_authenticated:
+        try:
+            from models import Company
+            cid = getattr(g, 'company_id', None) or getattr(current_user, 'company_id', None)
+            if cid:
+                active_company = db.session.get(Company, cid)
+            is_platform_admin = bool(active_company and active_company.es_principal and current_user.rol == 'admin')
+        except Exception:
+            pass
     return {'now': datetime.utcnow(), 'modulos_user': modulos, 'notif_count': notif_count,
             'empresa_cliente_nombre': empresa_cliente_nombre, 'empresa_proveedor_nombre': empresa_proveedor_nombre,
             'onboarding': onboarding_data,
@@ -403,7 +416,10 @@ def inject_globals():
             'rol_labels': _ROL_LABELS,
             'rol_icons': _ROL_ICONS,
             'tareas_pend': _tareas_pend, 'aprob_pend': _aprob_pend,
-            'company_name': COMPANY['name'], 'company_config': COMPANY,
+            'active_company': active_company,
+            'is_platform_admin': is_platform_admin,
+            'company_name': active_company.nombre if active_company else COMPANY['name'],
+            'company_config': COMPANY,
             'nit_label': COMPANY.get('nit_label', 'NIT'),
             'currency_code': COMPANY.get('currency_code', 'COP')}
 

@@ -21,7 +21,9 @@ class Company(db.Model):
     nit             = db.Column(db.String(30))
     logo_url        = db.Column(db.String(500))
     plan            = db.Column(db.String(20), default='free')  # free, starter, pro
+    max_users       = db.Column(db.Integer, default=3)  # limite de usuarios, controlado por admin Evore
     activo          = db.Column(db.Boolean, default=True)
+    es_principal    = db.Column(db.Boolean, default=False)  # True solo para Evore (Company #1)
     config          = db.Column(db.Text, default='{}')  # JSON: pais, moneda, parametros
     creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
     creado_por      = db.Column(db.Integer, nullable=True)
@@ -1752,6 +1754,11 @@ def _migrate(conn):
         ("CREATE INDEX IF NOT EXISTS idx_config_empresa_company ON config_empresa(company_id)"),
         ("CREATE INDEX IF NOT EXISTS idx_company_rel_from ON company_relationships(company_from_id)"),
         ("CREATE INDEX IF NOT EXISTS idx_company_rel_to ON company_relationships(company_to_id)"),
+        # Multi-tenancy Phase 2b: Company max_users + es_principal
+        ("ALTER TABLE companies ADD COLUMN IF NOT EXISTS max_users INTEGER DEFAULT 3"),
+        ("ALTER TABLE companies ADD COLUMN max_users INTEGER DEFAULT 3"),
+        ("ALTER TABLE companies ADD COLUMN IF NOT EXISTS es_principal BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE companies ADD COLUMN es_principal BOOLEAN DEFAULT FALSE"),
         # ══════════════════════════════════════════════════
         # MULTI-TENANCY — Phase 2: company_id on all tables
         # ══════════════════════════════════════════════════
@@ -1874,7 +1881,9 @@ def init_db():
             slug=COMPANY['name'].lower().replace(' ', '-'),
             nit='',
             plan='pro',
+            max_users=999,
             activo=True,
+            es_principal=True,
             creado_por=None
         )
         db.session.add(default_company)
