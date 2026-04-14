@@ -122,7 +122,10 @@ def _get_roles_usuario(user):
         return []
     roles = set()
     # Get role from UserCompany for active company
-    active_cid = session.get('active_company_id')
+    try:
+        active_cid = session.get('active_company_id')
+    except RuntimeError:
+        active_cid = None
     if active_cid:
         try:
             from models import UserCompany
@@ -155,11 +158,17 @@ def _get_rol_activo(user):
     """Retorna el rol activo actual desde session, o el rol en la empresa activa."""
     if not user or not user.is_authenticated:
         return 'usuario'
-    rol_session = session.get('rol_activo')
+    try:
+        rol_session = session.get('rol_activo')
+    except RuntimeError:
+        rol_session = None
     if rol_session and rol_session in _get_roles_usuario(user):
         return rol_session
     # Fallback: get role from UserCompany for active company
-    active_cid = session.get('active_company_id')
+    try:
+        active_cid = session.get('active_company_id')
+    except RuntimeError:
+        active_cid = None
     if active_cid:
         try:
             from models import UserCompany
