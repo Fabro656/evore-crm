@@ -329,8 +329,13 @@ def register(app):
                         db.session.add(new_cuenta)
             except Exception:
                 pass
-            _log('crear', 'empresa', emp.id, f'Empresa creada: {emp.nombre} (max_users={max_users})')
             db.session.commit()
+            try:
+                _log('crear', 'empresa', emp.id, f'Empresa creada: {emp.nombre} (max_users={max_users})')
+                db.session.commit()
+            except Exception:
+                try: db.session.rollback()
+                except Exception: pass
             flash(f'Empresa "{nombre}" creada. Ahora crea un usuario admin para ella.', 'success')
             return redirect(url_for('admin_empresa_usuario', empresa_id=emp.id))
         return render_template('admin/empresa_form.html', obj=None)

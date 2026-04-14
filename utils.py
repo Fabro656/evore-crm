@@ -491,11 +491,17 @@ def _send_email(to, subject, body):
 
 def _log(tipo, entidad, entidad_id, descripcion):
     try:
-        db.session.add(Actividad(
-            tipo=tipo, entidad=entidad, entidad_id=entidad_id,
-            descripcion=descripcion, usuario_id=current_user.id))
+        from flask import g
+        cid = getattr(g, 'company_id', None) if hasattr(g, 'company_id') else None
+        act = Actividad(tipo=tipo, entidad=entidad, entidad_id=entidad_id,
+                        descripcion=descripcion, usuario_id=current_user.id)
+        if cid:
+            try: act.company_id = cid
+            except Exception: pass
+        db.session.add(act)
     except Exception:
-        pass
+        try: db.session.rollback()
+        except Exception: pass
 
 # Mapeo de cuentas textuales a codigos PUC colombiano
 _PUC_MAP = {
