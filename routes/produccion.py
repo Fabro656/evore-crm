@@ -71,6 +71,7 @@ def register(app):
     @requiere_modulo('produccion')
     def compras():
         busqueda=request.args.get('buscar','')
+        page = request.args.get('page', 1, type=int)
         q=CompraMateria.query
         if busqueda:
             q=q.filter(db.or_(CompraMateria.nombre_item.ilike(f'%{busqueda}%'),
@@ -81,9 +82,10 @@ def register(app):
         total_general = db.session.query(db.func.sum(CompraMateria.costo_total)).scalar() or 0
         total_mes = db.session.query(db.func.sum(CompraMateria.costo_total)).filter(CompraMateria.fecha >= mes_ini).scalar() or 0
         materias = MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).all()
-        return render_template('produccion/compras.html', items=q.order_by(CompraMateria.fecha.desc()).all(),
+        pagination = q.order_by(CompraMateria.fecha.desc()).paginate(page=page, per_page=25, error_out=False)
+        return render_template('produccion/compras.html', items=pagination.items,
                                busqueda=busqueda, total_general=total_general, total_mes=total_mes,
-                               materias=materias)
+                               materias=materias, pagination=pagination)
     
 
     # ── compra_nueva (/produccion/compras/nueva)
@@ -440,8 +442,9 @@ def register(app):
     @requiere_modulo('produccion')
     def materias():
         from datetime import date
-        items = MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).all()
-        return render_template('produccion/materias.html', materias=items, today=date.today())
+        page = request.args.get('page', 1, type=int)
+        pagination = MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).paginate(page=page, per_page=25, error_out=False)
+        return render_template('produccion/materias.html', materias=pagination.items, today=date.today(), pagination=pagination)
     
 
     def _save_materia_m2m(m, form):

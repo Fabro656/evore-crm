@@ -73,12 +73,14 @@ def register(app):
         tipo_f  = request.args.get('tipo','')
         desde_f = request.args.get('desde','')
         hasta_f = request.args.get('hasta','')
+        page = request.args.get('page', 1, type=int)
         try:
             q = GastoOperativo.query.filter_by(es_plantilla=False)
             if tipo_f:  q = q.filter_by(tipo=tipo_f)
             if desde_f: q = q.filter(GastoOperativo.fecha >= datetime.strptime(desde_f,'%Y-%m-%d').date())
             if hasta_f: q = q.filter(GastoOperativo.fecha <= datetime.strptime(hasta_f,'%Y-%m-%d').date())
-            items = q.order_by(GastoOperativo.fecha.desc()).all()
+            pagination = q.order_by(GastoOperativo.fecha.desc()).paginate(page=page, per_page=25, error_out=False)
+            items = pagination.items
             total_g   = db.session.query(db.func.sum(GastoOperativo.monto)).filter_by(es_plantilla=False).scalar() or 0
             mes_ini   = date_t.today().replace(day=1)
             total_mes = db.session.query(db.func.sum(GastoOperativo.monto)).filter(
@@ -90,16 +92,17 @@ def register(app):
             db.session.rollback()
             q2 = GastoOperativo.query
             if tipo_f: q2 = q2.filter_by(tipo=tipo_f)
-            items = q2.order_by(GastoOperativo.fecha.desc()).all()
+            pagination = q2.order_by(GastoOperativo.fecha.desc()).paginate(page=page, per_page=25, error_out=False)
+            items = pagination.items
             total_g = db.session.query(db.func.sum(GastoOperativo.monto)).scalar() or 0
             mes_ini = date_t.today().replace(day=1)
             total_mes = db.session.query(db.func.sum(GastoOperativo.monto)).filter(GastoOperativo.fecha>=mes_ini).scalar() or 0
             tipos = [t[0] for t in db.session.query(GastoOperativo.tipo).distinct().order_by(GastoOperativo.tipo).all()]
-            plantillas = []; total_reg = len(items)
+            plantillas = []; total_reg = pagination.total
         return render_template('gastos/index.html', items=items, tipo_f=tipo_f,
             desde_f=desde_f, hasta_f=hasta_f, total_general=total_g,
             total_mes=total_mes, total_registros=total_reg,
-            tipos=tipos, plantillas=plantillas)
+            tipos=tipos, plantillas=plantillas, pagination=pagination)
     
 
     # ── gasto_nuevo (/gastos/nuevo)

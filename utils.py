@@ -316,6 +316,20 @@ def requiere_modulo(modulo):
         return wrapped
     return decorator
 
+_inject_cache = {}
+_INJECT_CACHE_TTL = 15  # seconds
+
+def _cached_count(key, query_fn, user_id):
+    """Cache DB count queries for 15 seconds per user."""
+    import time
+    cache_key = f'{key}_{user_id}'
+    now = time.time()
+    if cache_key in _inject_cache and now - _inject_cache[cache_key][1] < _INJECT_CACHE_TTL:
+        return _inject_cache[cache_key][0]
+    result = query_fn()
+    _inject_cache[cache_key] = (result, now)
+    return result
+
 def inject_globals():
     modulos = _modulos_user(current_user) if current_user.is_authenticated else []
     notif_count = 0
@@ -328,8 +342,9 @@ def inject_globals():
             if session['rol_activo'] not in _roles_validos:
                 session.pop('rol_activo', None)
         try:
-            notif_count = Notificacion.query.filter_by(
-                usuario_id=current_user.id, leida=False).count()
+            notif_count = _cached_count('notif',
+                lambda: Notificacion.query.filter_by(usuario_id=current_user.id, leida=False).count(),
+                current_user.id)
         except Exception: pass
         _rol_act = _get_rol_activo(current_user)
         if _rol_act == 'cliente':
@@ -370,11 +385,15 @@ def inject_globals():
     _aprob_pend = 0
     if current_user.is_authenticated:
         try:
-            _tareas_pend = Tarea.query.filter(Tarea.estado != 'completada', Tarea.asignado_a == current_user.id).count()
+            _tareas_pend = _cached_count('tareas',
+                lambda: Tarea.query.filter(Tarea.estado != 'completada', Tarea.asignado_a == current_user.id).count(),
+                current_user.id)
         except Exception: pass
         try:
             if _get_rol_activo(current_user) in ('admin','director_financiero','director_operativo'):
-                _aprob_pend = Aprobacion.query.filter_by(estado='pendiente').count()
+                _aprob_pend = _cached_count('aprob',
+                    lambda: Aprobacion.query.filter_by(estado='pendiente').count(),
+                    current_user.id)
         except Exception: pass
     return {'now': datetime.utcnow(), 'modulos_user': modulos, 'notif_count': notif_count,
             'empresa_cliente_nombre': empresa_cliente_nombre, 'empresa_proveedor_nombre': empresa_proveedor_nombre,

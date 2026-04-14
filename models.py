@@ -81,7 +81,7 @@ class OrdenCompra(db.Model):
     proveedor_id            = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
     cotizacion_id           = db.Column(db.Integer, db.ForeignKey('cotizaciones_proveedor.id'), nullable=True)
     transportista_id        = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
-    estado                  = db.Column(db.String(30), default='borrador')  # borrador, anticipo_pagado, pagado, en_espera_producto, recibida_parcial, recibida, cancelada
+    estado                  = db.Column(db.String(30), default='borrador', index=True)  # borrador, anticipo_pagado, pagado, en_espera_producto, recibida_parcial, recibida, cancelada
     fecha_emision           = db.Column(db.Date)
     fecha_esperada          = db.Column(db.Date)   # fecha entrega esperada (calculada desde cotización)
     fecha_estimada_pago     = db.Column(db.Date)   # fecha estimada de pago al proveedor
@@ -186,12 +186,12 @@ class Venta(db.Model):
     # v41 — Tracking de envio
     guia_transporte     = db.Column(db.String(100), nullable=True)
     estado_envio        = db.Column(db.String(30), default='pendiente')  # pendiente, preparando, en_transito, entregado
-    estado              = db.Column(db.String(30), default='prospecto')
+    estado              = db.Column(db.String(30), default='prospecto', index=True)
     fecha_anticipo      = db.Column(db.Date)
     dias_entrega        = db.Column(db.Integer, default=30)
     fecha_entrega_est   = db.Column(db.Date)
     notas               = db.Column(db.Text)
-    creado_en           = db.Column(db.DateTime, default=datetime.utcnow)
+    creado_en           = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     creado_por          = db.Column(db.Integer, db.ForeignKey('users.id'))
     numero              = db.Column(db.String(20))               # v12.3 VNT-YYYY-NNN
     cliente_informado_en= db.Column(db.DateTime, nullable=True)  # v12.2
@@ -268,10 +268,10 @@ class Tarea(db.Model):
     id                = db.Column(db.Integer, primary_key=True)
     titulo            = db.Column(db.String(200), nullable=False)
     descripcion       = db.Column(db.Text)
-    estado            = db.Column(db.String(20), default='pendiente')
+    estado            = db.Column(db.String(20), default='pendiente', index=True)
     prioridad         = db.Column(db.String(10), default='media')
     fecha_vencimiento = db.Column(db.Date)
-    asignado_a        = db.Column(db.Integer, db.ForeignKey('users.id'))
+    asignado_a        = db.Column(db.Integer, db.ForeignKey('users.id'), index=True)
     creado_por        = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en         = db.Column(db.DateTime, default=datetime.utcnow)
     cotizacion_id     = db.Column(db.Integer, db.ForeignKey('cotizaciones.id'), nullable=True)
@@ -654,7 +654,7 @@ class Actividad(db.Model):
     entidad_id  = db.Column(db.Integer)
     descripcion = db.Column(db.String(300))
     usuario_id  = db.Column(db.Integer, db.ForeignKey('users.id'))
-    creado_en   = db.Column(db.DateTime, default=datetime.utcnow)
+    creado_en   = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     usuario     = db.relationship('User', foreign_keys=[usuario_id])
 
 class ConfigEmpresa(db.Model):
@@ -981,12 +981,12 @@ class Requisicion(db.Model):
 class Notificacion(db.Model):
     __tablename__ = 'notificaciones'
     id         = db.Column(db.Integer, primary_key=True)
-    usuario_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
     tipo       = db.Column(db.String(40), default='info')  # tarea_asignada, alerta_stock, info
     titulo     = db.Column(db.String(200), nullable=False)
     mensaje    = db.Column(db.Text)
     url        = db.Column(db.String(300))
-    leida      = db.Column(db.Boolean, default=False)
+    leida      = db.Column(db.Boolean, default=False, index=True)
     creado_en  = db.Column(db.DateTime, default=datetime.utcnow)
     usuario    = db.relationship('User', foreign_keys=[usuario_id])
 
@@ -1004,7 +1004,7 @@ class Empleado(db.Model):
     salario_base        = db.Column(db.Float, default=0)
     auxilio_transporte  = db.Column(db.Boolean, default=True)  # aplica si salario <= 2 SMLMV
     nivel_riesgo_arl    = db.Column(db.Integer, default=1)  # 1-5
-    estado              = db.Column(db.String(20), default='activo')  # activo, inactivo, retirado
+    estado              = db.Column(db.String(20), default='activo', index=True)  # activo, inactivo, retirado
     fecha_ingreso       = db.Column(db.Date)
     fecha_retiro        = db.Column(db.Date, nullable=True)
     motivo_retiro       = db.Column(db.String(30), nullable=True)  # renuncia, despido_justa, despido_sin_justa, mutuo_acuerdo
@@ -1636,6 +1636,16 @@ def _migrate(conn):
         # Producto: código UNSPSC para DIAN
         ("ALTER TABLE productos ADD COLUMN IF NOT EXISTS codigo_unspsc VARCHAR(20)"),
         ("ALTER TABLE productos ADD COLUMN codigo_unspsc VARCHAR(20)"),
+        # v43 — Performance indices for frequently queried columns
+        ("CREATE INDEX IF NOT EXISTS idx_ventas_estado ON ventas(estado)"),
+        ("CREATE INDEX IF NOT EXISTS idx_ventas_creado_en ON ventas(creado_en)"),
+        ("CREATE INDEX IF NOT EXISTS idx_ordenes_compra_estado ON ordenes_compra(estado)"),
+        ("CREATE INDEX IF NOT EXISTS idx_tareas_estado ON tareas(estado)"),
+        ("CREATE INDEX IF NOT EXISTS idx_tareas_asignado_a ON tareas(asignado_a)"),
+        ("CREATE INDEX IF NOT EXISTS idx_empleados_estado ON empleados(estado)"),
+        ("CREATE INDEX IF NOT EXISTS idx_notificaciones_usuario_id ON notificaciones(usuario_id)"),
+        ("CREATE INDEX IF NOT EXISTS idx_notificaciones_leida ON notificaciones(leida)"),
+        ("CREATE INDEX IF NOT EXISTS idx_actividades_creado_en ON actividades(creado_en)"),
     ]
     # Split: IF NOT EXISTS can batch, others need individual try/except
     batch_safe = [s for s in migrations if 'IF NOT EXISTS' in s]

@@ -150,31 +150,44 @@ def register(app):
             except Exception:
                 pass
 
-        asientos = q.order_by(AsientoContable.fecha.desc(), AsientoContable.creado_en.desc()).all()
-
-        # Dividir en generados y manuales
-        TIPOS_GENERADOS = {'compra', 'venta', 'nomina', 'gasto'}
+        # Dividir en generados y manuales via DB filter
+        TIPOS_GENERADOS = ['compra', 'venta', 'nomina', 'gasto']
         if vista == 'manuales':
-            asientos_filtrados = [a for a in asientos if a.tipo not in TIPOS_GENERADOS]
+            q = q.filter(AsientoContable.tipo.notin_(TIPOS_GENERADOS))
         else:
-            asientos_filtrados = [a for a in asientos if a.tipo in TIPOS_GENERADOS]
+            q = q.filter(AsientoContable.tipo.in_(TIPOS_GENERADOS))
 
-        total_ingresos_list = sum(float(a.haber or 0) for a in asientos_filtrados if a.clasificacion == 'ingreso')
-        total_egresos_list  = sum(float(a.debe or 0)  for a in asientos_filtrados if a.clasificacion == 'egreso')
+        q = q.order_by(AsientoContable.fecha.desc(), AsientoContable.creado_en.desc())
+
+        # Totals from filtered query (before pagination)
+        from sqlalchemy import func as sa_func
+        totals_q = q.with_entities(
+            sa_func.sum(db.case((AsientoContable.clasificacion == 'ingreso', AsientoContable.haber), else_=0)),
+            sa_func.sum(db.case((AsientoContable.clasificacion == 'egreso', AsientoContable.debe), else_=0))
+        ).first()
+        total_ingresos_list = float(totals_q[0] or 0)
+        total_egresos_list  = float(totals_q[1] or 0)
+
+        page = request.args.get('page', 1, type=int)
+        pagination = q.paginate(page=page, per_page=25, error_out=False)
+        asientos_filtrados = pagination.items
 
         # Stats del mes actual
         mes_ini = date_type.today().replace(day=1)
-        asientos_mes = AsientoContable.query.filter(AsientoContable.fecha >= mes_ini).all()
-        ingresos_mes = sum(float(a.haber or 0) for a in asientos_mes if a.clasificacion == 'ingreso')
-        gastos_mes   = sum(float(a.debe or 0)  for a in asientos_mes if a.clasificacion == 'egreso')
+        mes_totals = AsientoContable.query.filter(AsientoContable.fecha >= mes_ini).with_entities(
+            sa_func.sum(db.case((AsientoContable.clasificacion == 'ingreso', AsientoContable.haber), else_=0)),
+            sa_func.sum(db.case((AsientoContable.clasificacion == 'egreso', AsientoContable.debe), else_=0))
+        ).first()
+        ingresos_mes = float(mes_totals[0] or 0)
+        gastos_mes   = float(mes_totals[1] or 0)
 
         return render_template('contable/asientos.html',
-            asientos=asientos, asientos_filtrados=asientos_filtrados,
+            asientos=asientos_filtrados, asientos_filtrados=asientos_filtrados,
             filtro=filtro, desde=desde, hasta=hasta, vista=vista,
             total_ingresos_list=total_ingresos_list,
             total_egresos_list=total_egresos_list,
             ingresos_mes=ingresos_mes, gastos_mes=gastos_mes,
-            balance_mes=ingresos_mes - gastos_mes)
+            balance_mes=ingresos_mes - gastos_mes, pagination=pagination)
 
     # ── contable_asientos_export_csv (/contable/asientos/export-csv)
     @app.route('/contable/asientos/export-csv')
