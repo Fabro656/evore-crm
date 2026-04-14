@@ -2196,7 +2196,7 @@ if('serviceWorker' in navigator){
       <span style="font-weight:700;font-size:.9rem">Chat</span>
     </div>
     <div class="d-flex gap-1">
-      <a href="{{ url_for('chat_nuevo') }}" style="background:rgba(255,255,255,.15);border:none;color:#fff;cursor:pointer;font-size:.7rem;padding:3px 10px;border-radius:6px;text-decoration:none"><i class="bi bi-plus-lg me-1"></i>Nuevo</a>
+      <button onclick="chatCreateInline()" style="background:rgba(255,255,255,.15);border:none;color:#fff;cursor:pointer;font-size:.7rem;padding:3px 10px;border-radius:6px"><i class="bi bi-plus-lg me-1"></i>Nuevo</button>
       <button onclick="toggleChatPanel()" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:1.1rem;padding:2px 6px">&times;</button>
     </div>
   </div>
@@ -2258,6 +2258,46 @@ function chatRenderTabs(){
     html += '<button onclick="chatOpenRoom('+r.id+')" style="padding:8px 14px;font-size:.75rem;font-weight:'+(active?'700':'500')+';color:'+(active?'var(--ac)':'var(--text2)')+';background:'+(active?'var(--surface)':'transparent')+';border:none;border-bottom:2px solid '+(active?'var(--ac)':'transparent')+';cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .12s">'+r.name+'</button>';
   });
   tabs.innerHTML = html;
+}
+
+function chatCreateInline(){
+  var msgs = document.getElementById('chatMsgs');
+  msgs.innerHTML = '<div style="padding:16px"><div style="font-weight:700;margin-bottom:8px;font-size:.85rem">Nueva conversacion</div>'
+    +'<input type="text" id="chatNewName" placeholder="Nombre (opcional)" style="width:100%;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;margin-bottom:8px;background:var(--input-bg);color:var(--text)">'
+    +'<div style="font-size:.75rem;color:var(--text2);margin-bottom:6px">Selecciona participantes:</div>'
+    +'<div id="chatNewUsers" style="max-height:200px;overflow-y:auto">Cargando...</div>'
+    +'<button onclick="chatCreateSubmit()" style="width:100%;padding:8px;background:var(--ac);color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;margin-top:8px"><i class="bi bi-chat-dots me-1"></i>Crear</button></div>';
+  document.getElementById('chatInput').style.display='none';
+  // Load users
+  fetch('/chat/nuevo').then(r=>r.text()).then(html=>{
+    var tmp=document.createElement('div'); tmp.innerHTML=html;
+    var labels=tmp.querySelectorAll('label.d-flex');
+    var usersHtml='';
+    labels.forEach(function(l){
+      var input=l.querySelector('input[type=checkbox]');
+      var name=l.querySelector('[style*="font-weight:600"]');
+      if(input&&name){
+        usersHtml+='<label style="display:flex;align-items:center;gap:8px;padding:6px 4px;cursor:pointer;font-size:.82rem"><input type="checkbox" class="chatNewUserCb" value="'+input.value+'"> '+name.textContent.trim()+'</label>';
+      }
+    });
+    document.getElementById('chatNewUsers').innerHTML=usersHtml||'<span style="color:var(--text2);font-size:.8rem">Sin usuarios disponibles</span>';
+  }).catch(function(){document.getElementById('chatNewUsers').innerHTML='Error';});
+}
+
+function chatCreateSubmit(){
+  var name=document.getElementById('chatNewName').value.trim();
+  var cbs=document.querySelectorAll('.chatNewUserCb:checked');
+  var fd=new FormData();
+  fd.append('nombre',name);
+  fd.append('_csrf_token',document.querySelector('meta[name=csrf-token]').content);
+  cbs.forEach(function(cb){fd.append('users',cb.value);});
+  fetch('/chat/nuevo',{method:'POST',body:fd,redirect:'follow'}).then(function(r){
+    if(r.redirected){
+      var match=r.url.match(/\/chat\/(\d+)/);
+      if(match){chatLoadRooms();setTimeout(function(){chatOpenRoom(parseInt(match[1]));},500);return;}
+    }
+    chatLoadRooms();
+  }).catch(function(){chatLoadRooms();});
 }
 
 function chatOpenRoom(roomId){
