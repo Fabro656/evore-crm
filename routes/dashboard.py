@@ -11,6 +11,13 @@ import json, os, re, io, logging
 
 def register(app):
 
+    # ── landing page (public)
+    @app.route('/inicio')
+    def landing():
+        if current_user.is_authenticated:
+            return redirect(url_for('dashboard'))
+        return render_template('landing.html')
+
     # ── dashboard (/)
     @app.route('/')
     @login_required

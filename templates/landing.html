@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Evore — ERP para manufactura colombiana</title>
+<meta name="description" content="Evore es un ERP/CRM colombiano para pymes manufactureras. Gestiona ventas, producción, inventario, contabilidad y conecta con tu red de clientes y proveedores.">
+<link rel="icon" href="/static/img/icon-192.png" type="image/png">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+:root{--ac:#0176D3;--ac2:#0047A1;--ac-rgb:1,118,211;--text:#1A2536;--text2:#5A6A85;--bg:#F7FAFD;--surface:#FFFFFF;--border:#D5DFF0;--green:#2E844A;--orange:#DD7A01}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;color:var(--text);background:var(--bg);overflow-x:hidden}
+a{color:var(--ac);text-decoration:none}
+.btn-ac{display:inline-flex;align-items:center;gap:.5rem;background:var(--ac);color:#fff;border:none;padding:.7rem 1.6rem;border-radius:10px;font-weight:700;font-size:.92rem;cursor:pointer;transition:all .2s}
+.btn-ac:hover{background:var(--ac2);color:#fff;transform:translateY(-2px);box-shadow:0 8px 24px rgba(var(--ac-rgb),.35)}
+.btn-w{display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.25);padding:.65rem 1.5rem;border-radius:10px;font-weight:600;font-size:.92rem;transition:all .2s;backdrop-filter:blur(8px)}
+.btn-w:hover{background:rgba(255,255,255,.2);color:#fff;transform:translateY(-2px)}
+.btn-ghost{display:inline-flex;align-items:center;gap:.5rem;background:transparent;color:var(--ac);border:1.5px solid var(--ac);padding:.55rem 1.3rem;border-radius:10px;font-weight:600;font-size:.88rem;transition:all .15s}
+.btn-ghost:hover{background:rgba(var(--ac-rgb),.06)}
+
+/* ── Scroll animations ── */
+.reveal{opacity:0;transform:translateY(40px);transition:opacity .7s ease,transform .7s ease}
+.reveal.visible{opacity:1;transform:none}
+.reveal-left{opacity:0;transform:translateX(-60px);transition:opacity .7s ease,transform .7s ease}
+.reveal-left.visible{opacity:1;transform:none}
+.reveal-right{opacity:0;transform:translateX(60px);transition:opacity .7s ease,transform .7s ease}
+.reveal-right.visible{opacity:1;transform:none}
+.stagger-1{transition-delay:.1s}.stagger-2{transition-delay:.2s}.stagger-3{transition-delay:.3s}.stagger-4{transition-delay:.4s}.stagger-5{transition-delay:.5s}
+
+/* ── Nav ── */
+.ln{position:fixed;top:0;left:0;right:0;z-index:100;padding:.75rem 0;transition:background .3s,box-shadow .3s,padding .3s}
+.ln.scrolled{background:rgba(255,255,255,.95);backdrop-filter:blur(16px);box-shadow:0 1px 8px rgba(0,0,0,.06);padding:.5rem 0}
+.ln-inner{max-width:1200px;margin:0 auto;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between}
+.ln-logo{height:28px;transition:filter .3s}
+.ln.scrolled .ln-logo{filter:none}
+.ln:not(.scrolled) .ln-logo{filter:brightness(0) invert(1)}
+.ln-links{display:flex;gap:1.25rem;align-items:center;font-size:.85rem;font-weight:500}
+.ln-links a.nav-a{color:rgba(255,255,255,.7);transition:color .2s}
+.ln.scrolled .ln-links a.nav-a{color:var(--text2)}
+.ln-links a.nav-a:hover{color:#fff}
+.ln.scrolled .ln-links a.nav-a:hover{color:var(--ac)}
+
+/* ── Hero ── */
+.hero-wrap{position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0B1D33;overflow:hidden}
+.hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.12}
+.hero-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,29,51,.3) 0%,rgba(11,29,51,.85) 100%)}
+.hero{position:relative;z-index:1;text-align:center;max-width:850px;padding:8rem 1.5rem 5rem}
+.hero-badge{display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:50px;padding:.4rem 1rem;font-size:.78rem;color:rgba(255,255,255,.7);margin-bottom:1.5rem;backdrop-filter:blur(8px)}
+.hero h1{font-size:3.2rem;font-weight:800;line-height:1.1;letter-spacing:-1.5px;color:#fff;margin-bottom:1.25rem}
+.hero h1 span{background:linear-gradient(135deg,#5BAFFA,#A78BFA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:1.15rem;color:rgba(255,255,255,.65);max-width:600px;margin:0 auto 2.5rem;line-height:1.7}
+.hero-btns{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+.hero-stats{display:flex;gap:3rem;justify-content:center;margin-top:3.5rem;padding-top:2rem;border-top:1px solid rgba(255,255,255,.08)}
+.hero-stat{text-align:center}
+.hero-stat .num{font-size:2rem;font-weight:800;color:#fff;line-height:1}
+.hero-stat .lbl{font-size:.78rem;color:rgba(255,255,255,.45);margin-top:.25rem}
+
+/* ── Sections ── */
+.sec{max-width:1200px;margin:0 auto;padding:6rem 1.5rem}
+.sec-title{text-align:center;margin-bottom:3.5rem}
+.sec-title h2{font-size:2.2rem;font-weight:800;letter-spacing:-.5px}
+.sec-title p{color:var(--text2);max-width:550px;margin:.75rem auto 0;font-size:1.02rem;line-height:1.7}
+.sec-alt{background:var(--surface)}
+
+/* ── Feature grid ── */
+.fg{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
+.fcard{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2rem;transition:all .25s}
+.fcard:hover{box-shadow:0 12px 32px rgba(0,0,0,.08);transform:translateY(-4px);border-color:var(--ac)}
+.fcard-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:#fff;margin-bottom:1.25rem}
+.fcard h3{font-size:1.05rem;font-weight:700;margin-bottom:.5rem}
+.fcard p{font-size:.87rem;color:var(--text2);line-height:1.65}
+
+/* ── Ecosystem ── */
+.eco-row{display:flex;gap:2rem;align-items:center;margin-bottom:4rem}
+.eco-row:nth-child(even){flex-direction:row-reverse}
+.eco-visual{flex:1;min-width:0}
+.eco-visual-box{background:linear-gradient(135deg,#EBF4FF,#F0EAFF);border-radius:20px;padding:3rem;text-align:center;font-size:4rem;color:var(--ac)}
+.eco-text{flex:1;min-width:0}
+.eco-step{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--ac);color:#fff;font-weight:800;font-size:.9rem;margin-bottom:.75rem}
+.eco-text h3{font-size:1.35rem;font-weight:700;margin-bottom:.6rem}
+.eco-text p{font-size:.95rem;color:var(--text2);line-height:1.7}
+
+/* ── Pricing ── */
+.price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;max-width:960px;margin:0 auto}
+.pcard{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2.5rem 2rem;text-align:center;transition:all .25s}
+.pcard:hover{box-shadow:0 12px 32px rgba(0,0,0,.08);transform:translateY(-4px)}
+.pcard.featured{border:2px solid var(--ac);position:relative;box-shadow:0 8px 24px rgba(var(--ac-rgb),.12)}
+.pcard.featured::before{content:'Más popular';position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--ac);color:#fff;padding:3px 18px;border-radius:20px;font-size:.72rem;font-weight:700;letter-spacing:.5px}
+.pcard-icon{font-size:2rem;margin-bottom:.5rem}
+.pcard h3{font-size:1.1rem;font-weight:700}
+.pcard-price{font-size:2.5rem;font-weight:800;margin:.5rem 0 .25rem}
+.pcard-price span{font-size:.95rem;font-weight:400;color:var(--text2)}
+.pcard-sub{font-size:.82rem;color:var(--text2)}
+.pcard ul{text-align:left;list-style:none;margin:1.5rem 0;font-size:.88rem}
+.pcard ul li{padding:.4rem 0;display:flex;align-items:center;gap:.5rem}
+.pcard ul .bi-check-lg{color:var(--green);flex-shrink:0}
+.pcard ul .bi-x-lg{color:var(--text2);opacity:.25;flex-shrink:0}
+
+/* ── CTA ── */
+.cta-wrap{padding:0 1.5rem}
+.cta{background:linear-gradient(135deg,#0B2D61 0%,var(--ac) 50%,#7C3AED 100%);color:#fff;text-align:center;padding:5rem 2rem;border-radius:24px;max-width:1000px;margin:0 auto;position:relative;overflow:hidden}
+.cta::before{content:'';position:absolute;top:-100px;right:-100px;width:300px;height:300px;background:rgba(255,255,255,.04);border-radius:50%}
+.cta::after{content:'';position:absolute;bottom:-80px;left:-80px;width:250px;height:250px;background:rgba(255,255,255,.03);border-radius:50%}
+.cta h2{font-size:2.2rem;font-weight:800;margin-bottom:.75rem;position:relative;z-index:1}
+.cta p{opacity:.75;max-width:500px;margin:0 auto 2rem;font-size:1.05rem;position:relative;z-index:1;line-height:1.7}
+
+/* ── Footer ── */
+.ft{text-align:center;padding:3rem 1.5rem;font-size:.82rem;color:var(--text2);border-top:1px solid var(--border)}
+.ft-logo{height:22px;margin-bottom:1rem}
+
+/* ── Mobile ── */
+@media(max-width:768px){
+  .hero h1{font-size:2rem}
+  .hero{padding:7rem 1.5rem 3rem}
+  .hero-stats{gap:1.5rem;flex-wrap:wrap}
+  .hero-stat .num{font-size:1.5rem}
+  .fg{grid-template-columns:1fr}
+  .eco-row,.eco-row:nth-child(even){flex-direction:column}
+  .eco-visual-box{padding:2rem;font-size:3rem}
+  .price-grid{grid-template-columns:1fr;max-width:380px}
+  .ln-links .hide-m{display:none}
+  .sec{padding:4rem 1.5rem}
+  .sec-title h2{font-size:1.6rem}
+  .cta{padding:3rem 1.5rem;border-radius:16px}
+  .cta h2{font-size:1.6rem}
+}
+</style>
+</head>
+<body>
+
+<!-- Nav (transparent on top, solid on scroll) -->
+<nav class="ln" id="nav">
+  <div class="ln-inner">
+    <a href="/inicio"><img src="/static/img/evore-logo-blue.svg" alt="Evore" class="ln-logo"></a>
+    <div class="ln-links">
+      <a href="#funciones" class="nav-a hide-m">Funciones</a>
+      <a href="#ecosistema" class="nav-a hide-m">Ecosistema</a>
+      <a href="#precios" class="nav-a hide-m">Precios</a>
+      <a href="/login" class="btn-ghost" style="border-color:rgba(255,255,255,.3);color:rgba(255,255,255,.8)">Iniciar sesión</a>
+      <a href="/login" class="btn-ac">Empezar gratis</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero with video background -->
+<div class="hero-wrap">
+  <video class="hero-video" autoplay muted loop playsinline>
+    <source src="/static/img/hero-bg.mp4" type="video/mp4">
+  </video>
+  <div class="hero-overlay"></div>
+  <section class="hero">
+    <div class="hero-badge"><i class="bi bi-lightning-fill" style="color:#F6C500"></i>Hecho en Colombia para pymes que producen</div>
+    <h1>El ERP que <span>conecta</span> a las empresas manufactureras</h1>
+    <p>Gestiona ventas, producción, inventario y contabilidad. Conecta con clientes y proveedores. Crece con un marketplace donde tu reputación habla por ti.</p>
+    <div class="hero-btns">
+      <a href="/login" class="btn-ac" style="padding:.8rem 2rem;font-size:1rem"><i class="bi bi-rocket-takeoff"></i>Empezar gratis</a>
+      <a href="#funciones" class="btn-w"><i class="bi bi-play-circle"></i>Ver funciones</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="num">304</div><div class="lbl">Funcionalidades</div></div>
+      <div class="hero-stat"><div class="num">65+</div><div class="lbl">Modelos de datos</div></div>
+      <div class="hero-stat"><div class="num">30</div><div class="lbl">Industrias</div></div>
+      <div class="hero-stat"><div class="num">$0</div><div class="lbl">Para empezar</div></div>
+    </div>
+  </section>
+</div>
+
+<!-- Features -->
+<section class="sec sec-alt" id="funciones">
+  <div class="sec-title reveal">
+    <h2>Todo lo que tu empresa necesita</h2>
+    <p>Un solo sistema para administrar cada área de tu operación. Sin Excel, sin WhatsApp, sin herramientas dispersas.</p>
+  </div>
+  <div class="fg">
+    <div class="fcard reveal stagger-1">
+      <div class="fcard-icon" style="background:var(--ac)"><i class="bi bi-bag-fill"></i></div>
+      <h3>Ventas y CRM</h3>
+      <p>Pipeline visual, cotizaciones, anticipos, estados de pago. Tarjetas interactivas desde el prospecto hasta la entrega.</p>
+    </div>
+    <div class="fcard reveal stagger-2">
+      <div class="fcard-icon" style="background:var(--green)"><i class="bi bi-gear-fill"></i></div>
+      <h3>Producción y BOM</h3>
+      <p>Recetas, órdenes de producción, operarios, Gantt de planta. Consumo FIFO con control de lotes y vencimiento.</p>
+    </div>
+    <div class="fcard reveal stagger-3">
+      <div class="fcard-icon" style="background:var(--orange)"><i class="bi bi-box-seam-fill"></i></div>
+      <h3>Inventario inteligente</h3>
+      <p>Productos, materias primas, lotes, reservas automáticas, alertas de stock bajo. Todo en tiempo real.</p>
+    </div>
+    <div class="fcard reveal stagger-1">
+      <div class="fcard-icon" style="background:#7C3AED"><i class="bi bi-cart-check-fill"></i></div>
+      <h3>Compras y proveedores</h3>
+      <p>Órdenes de compra con aprobaciones, cotizaciones comparativas y calificación automática de proveedores.</p>
+    </div>
+    <div class="fcard reveal stagger-2">
+      <div class="fcard-icon" style="background:#0EA5E9"><i class="bi bi-calculator-fill"></i></div>
+      <h3>Contabilidad PUC</h3>
+      <p>Plan Único de Cuentas colombiano. Asientos automáticos, balances, estado de resultados, flujo de caja, retenciones.</p>
+    </div>
+    <div class="fcard reveal stagger-3">
+      <div class="fcard-icon" style="background:#EC4899"><i class="bi bi-people-fill"></i></div>
+      <h3>Nómina colombiana</h3>
+      <p>Horas extra, retención fuente Art. 383 ET, cesantías, prima, vacaciones, PILA. Todo parametrizable.</p>
+    </div>
+    <div class="fcard reveal stagger-1">
+      <div class="fcard-icon" style="background:#F59E0B"><i class="bi bi-shield-check"></i></div>
+      <h3>Documentos legales</h3>
+      <p>9 plantillas auto-generadas con firma digital y selfie. Cumplimiento Ley 527/1999.</p>
+    </div>
+    <div class="fcard reveal stagger-2">
+      <div class="fcard-icon" style="background:#06B6D4"><i class="bi bi-chat-dots-fill"></i></div>
+      <h3>Chat integrado</h3>
+      <p>Chat interno y entre empresas. Notificaciones automáticas. Panel flotante con pestañas.</p>
+    </div>
+    <div class="fcard reveal stagger-3">
+      <div class="fcard-icon" style="background:#8B5CF6"><i class="bi bi-shop"></i></div>
+      <h3>Marketplace Somos Evore</h3>
+      <p>Publica productos, conecta con nuevos clientes con un clic, y construye reputación con valoraciones.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Ecosystem -->
+<section class="sec" id="ecosistema">
+  <div class="sec-title reveal">
+    <h2>No es solo un ERP. Es un ecosistema.</h2>
+    <p>Cada empresa que entra a Evore se convierte en un nodo de una red comercial viva.</p>
+  </div>
+
+  <div class="eco-row">
+    <div class="eco-visual reveal-left">
+      <div class="eco-visual-box"><i class="bi bi-person-plus-fill"></i></div>
+    </div>
+    <div class="eco-text reveal-right">
+      <div class="eco-step">1</div>
+      <h3>Registras un cliente</h3>
+      <p>Al ingresar su NIT o cédula, Evore detecta si ya está en la plataforma. Si no existe, le crea una cuenta gratuita automáticamente con acceso al portal.</p>
+    </div>
+  </div>
+
+  <div class="eco-row">
+    <div class="eco-visual reveal-right">
+      <div class="eco-visual-box" style="background:linear-gradient(135deg,#EDFBF0,#E8F5E9)"><i class="bi bi-link-45deg" style="color:var(--green)"></i></div>
+    </div>
+    <div class="eco-text reveal-left">
+      <div class="eco-step" style="background:var(--green)">2</div>
+      <h3>Se crea la conexión</h3>
+      <p>Relación comercial, canal de chat dedicado y acceso cruzado a portales. Tu cliente ve sus pedidos y documentos al instante.</p>
+    </div>
+  </div>
+
+  <div class="eco-row">
+    <div class="eco-visual reveal-left">
+      <div class="eco-visual-box" style="background:linear-gradient(135deg,#F5F0FF,#EDE9FE)"><i class="bi bi-stars" style="color:#7C3AED"></i></div>
+    </div>
+    <div class="eco-text reveal-right">
+      <div class="eco-step" style="background:#7C3AED">3</div>
+      <h3>La red crece</h3>
+      <p>En el marketplace Somos Evore, las empresas se descubren, publican sus productos, y la comunidad califica la calidad con estrellas y reseñas.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing -->
+<section class="sec sec-alt" id="precios">
+  <div class="sec-title reveal">
+    <h2>Precios simples, sin sorpresas</h2>
+    <p>Empieza gratis. Crece cuando estés listo. Pago mensual o anual con 10% de descuento.</p>
+  </div>
+  <div class="price-grid">
+    <div class="pcard reveal stagger-1">
+      <div class="pcard-icon" style="color:var(--text2)"><i class="bi bi-box-seam"></i></div>
+      <h3>Gratuito</h3>
+      <div class="pcard-price">$0</div>
+      <div class="pcard-sub">Para siempre</div>
+      <ul>
+        <li><i class="bi bi-check-lg"></i>Portal cliente/proveedor</li>
+        <li><i class="bi bi-check-lg"></i>Ver pedidos y documentos</li>
+        <li><i class="bi bi-check-lg"></i>Chat con empresas</li>
+        <li><i class="bi bi-check-lg"></i>1 usuario</li>
+        <li><i class="bi bi-x-lg"></i><span style="opacity:.4">CRM completo</span></li>
+      </ul>
+      <a href="/login" class="btn-ghost" style="width:100%;justify-content:center">Empezar</a>
+    </div>
+    <div class="pcard featured reveal stagger-2">
+      <div class="pcard-icon" style="color:var(--ac)"><i class="bi bi-building"></i></div>
+      <h3>Starter</h3>
+      <div class="pcard-price">$39.900 <span>/ mes</span></div>
+      <div class="pcard-sub">COP — 3 usuarios incluidos</div>
+      <ul>
+        <li><i class="bi bi-check-lg"></i>Todo lo del gratuito</li>
+        <li><i class="bi bi-check-lg"></i>CRM completo</li>
+        <li><i class="bi bi-check-lg"></i>Ventas y cotizaciones</li>
+        <li><i class="bi bi-check-lg"></i>Inventario y producción</li>
+        <li><i class="bi bi-check-lg"></i>Contabilidad PUC</li>
+        <li><i class="bi bi-check-lg"></i>Nómina colombiana</li>
+        <li><i class="bi bi-check-lg"></i>Documentos legales</li>
+        <li><i class="bi bi-check-lg"></i>Hasta 3 usuarios</li>
+      </ul>
+      <a href="/login" class="btn-ac" style="width:100%;justify-content:center">Activar Starter</a>
+    </div>
+    <div class="pcard reveal stagger-3">
+      <div class="pcard-icon" style="color:#7C3AED"><i class="bi bi-building-gear"></i></div>
+      <h3>Profesional</h3>
+      <div class="pcard-price" style="font-size:1.8rem">$39.900 <span>+ $5.900/extra</span></div>
+      <div class="pcard-sub">COP / mes — 3 incluidos</div>
+      <ul>
+        <li><i class="bi bi-check-lg"></i>Todo lo del Starter</li>
+        <li><i class="bi bi-check-lg"></i>Usuarios adicionales</li>
+        <li><i class="bi bi-check-lg"></i>Soporte prioritario</li>
+        <li><i class="bi bi-check-lg"></i>Reportes avanzados</li>
+      </ul>
+      <a href="/login" class="btn-ghost" style="width:100%;justify-content:center">Contactar</a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="sec cta-wrap">
+  <div class="cta reveal">
+    <h2>Tu empresa merece un sistema que crezca contigo</h2>
+    <p>Empieza gratis hoy. Sin tarjeta de crédito. Sin compromisos. Tus datos seguros siempre.</p>
+    <a href="/login" class="btn-ac" style="padding:.85rem 2.5rem;font-size:1.05rem;background:#fff;color:var(--ac);position:relative;z-index:1"><i class="bi bi-rocket-takeoff"></i>Crear cuenta gratis</a>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="ft">
+  <img src="/static/img/evore-logo-blue.svg" alt="Evore" class="ft-logo" style="display:block;margin:0 auto .75rem">
+  <div style="margin-bottom:.75rem;display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap">
+    <a href="#funciones">Funciones</a>
+    <a href="#ecosistema">Ecosistema</a>
+    <a href="#precios">Precios</a>
+    <a href="/login">Iniciar sesión</a>
+  </div>
+  <div>Evore &copy; 2026 — Hecho en Colombia para pymes que producen.</div>
+</footer>
+
+<script>
+// ── Nav scroll effect ──
+var nav=document.getElementById('nav');
+window.addEventListener('scroll',function(){
+  nav.classList.toggle('scrolled',window.scrollY>60);
+});
+// ── Also update login button style on scroll ──
+var loginBtn=nav.querySelector('.btn-ghost');
+function updateNav(){
+  if(nav.classList.contains('scrolled')){
+    loginBtn.style.borderColor='var(--ac)';loginBtn.style.color='var(--ac)';
+  }else{
+    loginBtn.style.borderColor='rgba(255,255,255,.3)';loginBtn.style.color='rgba(255,255,255,.8)';
+  }
+}
+window.addEventListener('scroll',updateNav);
+
+// ── Scroll reveal animations ──
+var reveals=document.querySelectorAll('.reveal,.reveal-left,.reveal-right');
+var observer=new IntersectionObserver(function(entries){
+  entries.forEach(function(e){
+    if(e.isIntersecting){e.target.classList.add('visible');observer.unobserve(e.target);}
+  });
+},{threshold:.15,rootMargin:'0px 0px -40px 0px'});
+reveals.forEach(function(el){observer.observe(el);});
+
+// ── Smooth scroll ──
+document.querySelectorAll('a[href^="#"]').forEach(function(a){
+  a.addEventListener('click',function(e){
+    e.preventDefault();
+    var t=document.querySelector(this.getAttribute('href'));
+    if(t)t.scrollIntoView({behavior:'smooth',block:'start'});
+  });
+});
+
+// ── Parallax on hero stats ──
+window.addEventListener('scroll',function(){
+  var s=window.scrollY;
+  var hero=document.querySelector('.hero');
+  if(hero&&s<window.innerHeight){
+    hero.style.transform='translateY('+s*0.15+'px)';
+    hero.style.opacity=1-s/(window.innerHeight*0.8);
+  }
+});
+</script>
+</body>
+</html>
