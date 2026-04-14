@@ -172,6 +172,19 @@ def create_app():
         if exc is not None:
             db.session.rollback()
 
+    # ── Multi-tenancy: set active company on every request ──────────
+    @app.before_request
+    def _set_tenant():
+        from flask import g
+        from flask_login import current_user
+        g.company_id = None
+        if current_user and current_user.is_authenticated:
+            # Use session active_company_id if set, else user's default
+            g.company_id = session.get('active_company_id') or getattr(current_user, 'company_id', None)
+            if not g.company_id and current_user.company_id:
+                g.company_id = current_user.company_id
+                session['active_company_id'] = g.company_id
+
     # ── App-level hooks ───────────────────────────────────────────────
     @app.before_request
     def _force_https():

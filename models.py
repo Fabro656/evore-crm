@@ -5,7 +5,56 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date as date_type
 import json, secrets, os, logging
 
-__all__ = ['User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'MovimientoBancario', 'NotaContable', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'MovimientoInventario', 'Notificacion', 'Empleado', 'HoraExtra', 'Comision', 'Incapacidad', 'VacacionTomada', 'Requisicion', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'HistorialPrecio', 'HistorialCotizacion', 'load_user', '_migrate', 'init_db']
+__all__ = ['Company', 'UserCompany', 'User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'MovimientoBancario', 'NotaContable', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'MovimientoInventario', 'Notificacion', 'Empleado', 'HoraExtra', 'Comision', 'Incapacidad', 'VacacionTomada', 'Requisicion', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'HistorialPrecio', 'HistorialCotizacion', 'CompanyRelationship', 'load_user', '_migrate', 'init_db']
+
+
+# ══════════════════════════════════════════════════════════════════
+# MULTI-TENANCY FOUNDATION
+# ══════════════════════════════════════════════════════════════════
+
+class Company(db.Model):
+    """Cada empresa/tenant en la plataforma."""
+    __tablename__ = 'companies'
+    id              = db.Column(db.Integer, primary_key=True)
+    nombre          = db.Column(db.String(200), nullable=False)
+    slug            = db.Column(db.String(100), unique=True)
+    nit             = db.Column(db.String(30))
+    logo_url        = db.Column(db.String(500))
+    plan            = db.Column(db.String(20), default='free')  # free, starter, pro
+    activo          = db.Column(db.Boolean, default=True)
+    config          = db.Column(db.Text, default='{}')  # JSON: pais, moneda, parametros
+    creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
+    creado_por      = db.Column(db.Integer, nullable=True)
+
+class UserCompany(db.Model):
+    """Relacion user↔company con rol y permisos en esa empresa."""
+    __tablename__ = 'user_companies'
+    id                  = db.Column(db.Integer, primary_key=True)
+    user_id             = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    company_id          = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=False, index=True)
+    rol                 = db.Column(db.String(20), default='usuario')
+    roles_asignados     = db.Column(db.Text, default='[]')
+    modulos_permitidos  = db.Column(db.Text, default='[]')
+    activo              = db.Column(db.Boolean, default=True)
+    creado_en           = db.Column(db.DateTime, default=datetime.utcnow)
+    # Relationships
+    user                = db.relationship('User', backref=db.backref('company_memberships', lazy=True))
+    company             = db.relationship('Company', backref=db.backref('members', lazy=True))
+    __table_args__      = (db.UniqueConstraint('user_id', 'company_id', name='uq_user_company'),)
+
+class CompanyRelationship(db.Model):
+    """Relacion entre empresas (cliente/proveedor)."""
+    __tablename__ = 'company_relationships'
+    id              = db.Column(db.Integer, primary_key=True)
+    company_from_id = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=False, index=True)
+    company_to_id   = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=False, index=True)
+    tipo            = db.Column(db.String(20), default='cliente')  # cliente, proveedor, ambos
+    cliente_id      = db.Column(db.Integer, nullable=True)  # FK lógico al cliente en company_from
+    proveedor_id    = db.Column(db.Integer, nullable=True)  # FK lógico al proveedor en company_from
+    activo          = db.Column(db.Boolean, default=True)
+    creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
+    company_from    = db.relationship('Company', foreign_keys=[company_from_id])
+    company_to      = db.relationship('Company', foreign_keys=[company_to_id])
 
 
 class User(UserMixin, db.Model):
@@ -16,6 +65,7 @@ class User(UserMixin, db.Model):
     password_hash       = db.Column(db.String(256), nullable=False)
     rol                 = db.Column(db.String(20), default='usuario')
     activo              = db.Column(db.Boolean, default=True)
+    company_id          = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)  # default company
     modulos_permitidos  = db.Column(db.Text, default='[]')   # JSON list
     roles_asignados     = db.Column(db.Text, default='[]')   # JSON list: roles multiples asignados
     creado_en           = db.Column(db.DateTime, default=datetime.utcnow)
@@ -660,6 +710,7 @@ class Actividad(db.Model):
 class ConfigEmpresa(db.Model):
     __tablename__ = 'config_empresa'
     id         = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     nombre     = db.Column(db.String(200), default='Evore')
     nit        = db.Column(db.String(30))
     direccion  = db.Column(db.Text)
@@ -1646,6 +1697,22 @@ def _migrate(conn):
         ("CREATE INDEX IF NOT EXISTS idx_notificaciones_usuario_id ON notificaciones(usuario_id)"),
         ("CREATE INDEX IF NOT EXISTS idx_notificaciones_leida ON notificaciones(leida)"),
         ("CREATE INDEX IF NOT EXISTS idx_actividades_creado_en ON actividades(creado_en)"),
+        # ══════════════════════════════════════════════════
+        # MULTI-TENANCY — Phase 1
+        # ══════════════════════════════════════════════════
+        # User: company_id default
+        ("ALTER TABLE users ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE users ADD COLUMN company_id INTEGER REFERENCES companies(id)"),
+        # ConfigEmpresa: company_id
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)"),
+        ("ALTER TABLE config_empresa ADD COLUMN company_id INTEGER REFERENCES companies(id)"),
+        # Indices
+        ("CREATE INDEX IF NOT EXISTS idx_user_companies_user ON user_companies(user_id)"),
+        ("CREATE INDEX IF NOT EXISTS idx_user_companies_company ON user_companies(company_id)"),
+        ("CREATE INDEX IF NOT EXISTS idx_users_company ON users(company_id)"),
+        ("CREATE INDEX IF NOT EXISTS idx_config_empresa_company ON config_empresa(company_id)"),
+        ("CREATE INDEX IF NOT EXISTS idx_company_rel_from ON company_relationships(company_from_id)"),
+        ("CREATE INDEX IF NOT EXISTS idx_company_rel_to ON company_relationships(company_to_id)"),
     ]
     # Split: IF NOT EXISTS can batch, others need individual try/except
     batch_safe = [s for s in migrations if 'IF NOT EXISTS' in s]
@@ -1680,20 +1747,60 @@ def init_db():
     import os, secrets, logging
     from company_config import COMPANY
     _admin_email = os.environ.get('ADMIN_EMAIL', COMPANY['admin_email'])
+    # ── Multi-tenancy: ensure default company exists ──
+    default_company = Company.query.first()
+    if not default_company:
+        default_company = Company(
+            nombre=COMPANY['name'],
+            slug=COMPANY['name'].lower().replace(' ', '-'),
+            nit='',
+            plan='pro',
+            activo=True,
+            creado_por=None
+        )
+        db.session.add(default_company)
+        db.session.commit()
+        logging.info(f'Default company created: {default_company.nombre} (id={default_company.id})')
+    # ── Assign existing users to default company if not assigned ──
+    unassigned = User.query.filter(User.company_id.is_(None)).all()
+    if unassigned:
+        for u in unassigned:
+            u.company_id = default_company.id
+            # Also create UserCompany record if missing
+            existing_uc = UserCompany.query.filter_by(user_id=u.id, company_id=default_company.id).first()
+            if not existing_uc:
+                db.session.add(UserCompany(
+                    user_id=u.id, company_id=default_company.id,
+                    rol=u.rol, roles_asignados=u.roles_asignados or '[]',
+                    modulos_permitidos=u.modulos_permitidos or '[]'
+                ))
+        db.session.commit()
+        logging.info(f'Assigned {len(unassigned)} users to default company')
+    # ── Create admin user if not exists ──
     if not User.query.filter_by(email=_admin_email).first():
         _admin_pass = os.environ.get('ADMIN_PASSWORD')
         if not _admin_pass:
             _admin_pass = secrets.token_urlsafe(14)
             logging.warning('ADMIN AUTO-GENERATED PASSWORD (save this!): %s', _admin_pass)
-        admin = User(nombre='Administrador', email=_admin_email, rol='admin')
+        admin = User(nombre='Administrador', email=_admin_email, rol='admin', company_id=default_company.id)
         admin.set_password(_admin_pass)
-        db.session.add(admin); db.session.commit()
-    if not ConfigEmpresa.query.first():
-        db.session.add(ConfigEmpresa(
+        db.session.add(admin)
+        db.session.flush()
+        db.session.add(UserCompany(user_id=admin.id, company_id=default_company.id, rol='admin'))
+        db.session.commit()
+    # ── Link ConfigEmpresa to default company ──
+    config = ConfigEmpresa.query.first()
+    if not config:
+        config = ConfigEmpresa(
             nombre=COMPANY['name'],
             email=COMPANY['default_email'],
-            sitio_web=COMPANY['default_website']
-        ))
+            sitio_web=COMPANY['default_website'],
+            company_id=default_company.id
+        )
+        db.session.add(config)
+        db.session.commit()
+    elif not config.company_id:
+        config.company_id = default_company.id
         db.session.commit()
     # Sembrar catálogo contable según país
     if COMPANY['chart_of_accounts'] == 'co_puc':
