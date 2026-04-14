@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date as date_type
 import json, secrets, os, logging
 
-__all__ = ['Company', 'UserCompany', 'User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'MovimientoBancario', 'NotaContable', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'MovimientoInventario', 'Notificacion', 'Empleado', 'HoraExtra', 'Comision', 'Incapacidad', 'VacacionTomada', 'Requisicion', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'HistorialPrecio', 'HistorialCotizacion', 'CompanyRelationship', 'load_user', '_migrate', 'init_db']
+__all__ = ['Company', 'UserCompany', 'ChatRoom', 'ChatParticipant', 'ChatMessage', 'User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'MovimientoBancario', 'NotaContable', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'MovimientoInventario', 'Notificacion', 'Empleado', 'HoraExtra', 'Comision', 'Incapacidad', 'VacacionTomada', 'Requisicion', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'HistorialPrecio', 'HistorialCotizacion', 'CompanyRelationship', 'load_user', '_migrate', 'init_db']
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -57,6 +57,46 @@ class CompanyRelationship(db.Model):
     creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
     company_from    = db.relationship('Company', foreign_keys=[company_from_id])
     company_to      = db.relationship('Company', foreign_keys=[company_to_id])
+
+
+class ChatRoom(db.Model):
+    """Sala de chat — interna o inter-empresa."""
+    __tablename__ = 'chat_rooms'
+    id              = db.Column(db.Integer, primary_key=True)
+    company_id      = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
+    tipo            = db.Column(db.String(20), default='interno')  # interno, cliente, proveedor
+    nombre          = db.Column(db.String(200))
+    company_relationship_id = db.Column(db.Integer, db.ForeignKey('company_relationships.id'), nullable=True)
+    activo          = db.Column(db.Boolean, default=True)
+    creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
+    creado_por      = db.Column(db.Integer, nullable=True)
+    participants    = db.relationship('ChatParticipant', backref='room', lazy=True, cascade='all, delete-orphan')
+    messages        = db.relationship('ChatMessage', backref='room', lazy=True, cascade='all, delete-orphan')
+
+class ChatParticipant(db.Model):
+    """Participante de un chat room."""
+    __tablename__ = 'chat_participants'
+    id              = db.Column(db.Integer, primary_key=True)
+    room_id         = db.Column(db.Integer, db.ForeignKey('chat_rooms.id'), nullable=False, index=True)
+    user_id         = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    rol             = db.Column(db.String(20), default='miembro')  # miembro, admin, observador
+    activo          = db.Column(db.Boolean, default=True)
+    agregado_en     = db.Column(db.DateTime, default=datetime.utcnow)
+    agregado_por    = db.Column(db.Integer, nullable=True)
+    user            = db.relationship('User', foreign_keys=[user_id])
+    __table_args__  = (db.UniqueConstraint('room_id', 'user_id', name='uq_chat_participant'),)
+
+class ChatMessage(db.Model):
+    """Mensaje en un chat room."""
+    __tablename__ = 'chat_messages'
+    id              = db.Column(db.Integer, primary_key=True)
+    room_id         = db.Column(db.Integer, db.ForeignKey('chat_rooms.id'), nullable=False, index=True)
+    user_id         = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    contenido       = db.Column(db.Text, nullable=False)
+    tipo            = db.Column(db.String(20), default='texto')  # texto, archivo, sistema
+    leido_por       = db.Column(db.Text, default='[]')  # JSON list of user_ids
+    creado_en       = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    user            = db.relationship('User', foreign_keys=[user_id])
 
 
 class User(UserMixin, db.Model):

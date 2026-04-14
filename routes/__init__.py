@@ -18,6 +18,7 @@ from routes import contable
 from routes import empaques
 from routes import servicios
 from routes import aprobaciones
+from routes import chat
 
 def register_all(app):
     auth.register(app)
@@ -39,3 +40,4 @@ def register_all(app):
     empaques.register(app)
     servicios.register(app)
     aprobaciones.register(app)
+    chat.register(app)

@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block title %}{{ room.nombre or 'Chat' }}{% endblock %}
+{% block page_title %}{{ room.nombre or 'Chat' }}{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('chat_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Chats</a>
+{% endblock %}
+{% block content %}
+<div style="display:flex;gap:var(--sp-4);height:calc(100vh - 160px);min-height:400px">
+  {# Messages area #}
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+    {# Messages scroll area #}
+    <div id="chatMessages" style="flex:1;overflow-y:auto;padding:var(--sp-3);display:flex;flex-direction:column;gap:var(--sp-2)">
+      {% for msg in messages %}
+      <div style="display:flex;{% if msg.user_id == current_user.id %}justify-content:flex-end{% else %}justify-content:flex-start{% endif %}">
+        <div style="max-width:75%;padding:var(--sp-2) var(--sp-3);border-radius:12px;font-size:var(--font-body);
+          {% if msg.tipo == 'sistema' %}background:var(--surface2);color:var(--text2);font-size:var(--font-small);text-align:center;max-width:100%;font-style:italic
+          {% elif msg.user_id == current_user.id %}background:var(--ac);color:#fff
+          {% else %}background:var(--surface2);color:var(--text){% endif %}">
+          {% if msg.tipo != 'sistema' and msg.user_id != current_user.id %}
+          <div style="font-size:var(--font-caption);font-weight:600;margin-bottom:2px;{% if msg.user_id == current_user.id %}color:rgba(255,255,255,.7){% else %}color:var(--ac){% endif %}">{{ msg.user.nombre if msg.user else '?' }}</div>
+          {% endif %}
+          <div>{{ msg.contenido }}</div>
+          <div style="font-size:.6rem;margin-top:2px;{% if msg.user_id == current_user.id %}color:rgba(255,255,255,.5);text-align:right{% else %}color:var(--text2){% endif %}">{{ msg.creado_en.strftime('%H:%M') if msg.creado_en else '' }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {# Input area #}
+    <form method="POST" action="{{ url_for('chat_enviar', room_id=room.id) }}" style="display:flex;gap:var(--sp-2);padding:var(--sp-3);border-top:1px solid var(--border)">
+      <input type="text" name="contenido" class="form-control" placeholder="Escribe un mensaje..." autocomplete="off" required style="flex:1">
+      <button type="submit" class="btn btn-primary" style="flex-shrink:0"><i class="bi bi-send"></i></button>
+    </form>
+  </div>
+  {# Participants sidebar (desktop only) #}
+  <div class="d-none d-lg-block" style="width:220px;border-left:1px solid var(--border);padding:var(--sp-3)">
+    <div style="font-size:var(--font-small);font-weight:700;color:var(--text2);text-transform:uppercase;margin-bottom:var(--sp-2)">Participantes ({{ participants|length }})</div>
+    {% for p in participants %}
+    <div class="d-flex align-items-center gap-2 mb-2">
+      <div style="width:28px;height:28px;border-radius:50%;background:var(--ac);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;flex-shrink:0">{{ p.user.nombre[0].upper() if p.user else '?' }}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:var(--font-small);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ p.user.nombre if p.user else '?' }}</div>
+        {% if p.rol == 'admin' %}<span style="font-size:.6rem;color:var(--ac)">Admin</span>{% endif %}
+      </div>
+      {% if (is_admin or (my_participant and my_participant.rol == 'admin')) and p.user_id != current_user.id %}
+      <form method="POST" action="{{ url_for('chat_remover', room_id=room.id) }}" class="m-0" onsubmit="return confirm('Remover a {{ p.user.nombre if p.user else \"usuario\" }}?')">
+        <input type="hidden" name="user_id" value="{{ p.user_id }}">
+        <button class="btn btn-sm btn-outline-danger" style="font-size:.6rem;padding:1px 4px"><i class="bi bi-x"></i></button>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% if is_admin or (my_participant and my_participant.rol == 'admin') %}
+    <hr style="margin:var(--sp-2) 0">
+    <form method="POST" action="{{ url_for('chat_agregar', room_id=room.id) }}" class="d-flex gap-1">
+      <select name="user_id" class="form-select form-select-sm" style="font-size:var(--font-caption)" required>
+        <option value="">+ Agregar</option>
+        {% for u in all_users %}
+        {% if u.id not in participants|map(attribute='user_id')|list %}
+        <option value="{{ u.id }}">{{ u.nombre }}</option>
+        {% endif %}
+        {% endfor %}
+      </select>
+      <button class="btn btn-sm btn-outline-success" style="flex-shrink:0"><i class="bi bi-plus"></i></button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+<script>
+// Auto-scroll to bottom
+var chatDiv = document.getElementById('chatMessages');
+if(chatDiv) chatDiv.scrollTop = chatDiv.scrollHeight;
+// Poll for new messages every 5s
+var lastMsgId = {{ messages[-1].id if messages else 0 }};
+setInterval(function(){
+  fetch('/api/chat/{{ room.id }}/mensajes?after=' + lastMsgId)
+    .then(r => r.json())
+    .then(data => {
+      if(!data.messages || !data.messages.length) return;
+      data.messages.forEach(function(m){
+        if(m.id <= lastMsgId) return;
+        lastMsgId = m.id;
+        var div = document.createElement('div');
+        div.style = 'display:flex;' + (m.is_mine ? 'justify-content:flex-end' : 'justify-content:flex-start');
+        var bubble = document.createElement('div');
+        bubble.style = 'max-width:75%;padding:8px 12px;border-radius:12px;font-size:.875rem;' +
+          (m.tipo === 'sistema' ? 'background:var(--surface2);color:var(--text2);font-style:italic;text-align:center;max-width:100%' :
+           m.is_mine ? 'background:var(--ac);color:#fff' : 'background:var(--surface2);color:var(--text)');
+        var html = '';
+        if(m.tipo !== 'sistema' && !m.is_mine) html += '<div style="font-size:.75rem;font-weight:600;color:var(--ac);margin-bottom:2px">' + m.user_name + '</div>';
+        html += '<div>' + m.contenido + '</div>';
+        html += '<div style="font-size:.6rem;margin-top:2px;' + (m.is_mine ? 'color:rgba(255,255,255,.5);text-align:right' : 'color:var(--text2)') + '">' + m.creado_en + '</div>';
+        bubble.innerHTML = html;
+        div.appendChild(bubble);
+        chatDiv.appendChild(div);
+        chatDiv.scrollTop = chatDiv.scrollHeight;
+      });
+    }).catch(function(){});
+}, 5000);
+</script>
+{% endblock %}

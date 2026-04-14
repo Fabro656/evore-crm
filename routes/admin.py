@@ -302,6 +302,22 @@ def register(app):
                     activo=True
                 )
                 db.session.add(rel)
+                db.session.flush()
+                # Auto-create chat room for the relationship
+                chat_room = ChatRoom(
+                    company_id=company.id,
+                    tipo=tipo_relacion,
+                    nombre=f'{tipo_relacion.capitalize()}: {nombre}',
+                    company_relationship_id=rel.id,
+                    creado_por=current_user.id
+                )
+                db.session.add(chat_room)
+                db.session.flush()
+                # Add admin as participant
+                db.session.add(ChatParticipant(
+                    room_id=chat_room.id, user_id=current_user.id,
+                    rol='admin', agregado_por=current_user.id
+                ))
             # Seed PUC for new company
             try:
                 from company_config import COMPANY as _CC

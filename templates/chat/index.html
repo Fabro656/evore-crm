@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Chat{% endblock %}{% block page_title %}Chat{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('chat_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva conversacion</a>
+{% endblock %}
+{% block content %}
+<div class="count-label"><i class="bi bi-chat-dots-fill me-2"></i>{{ rooms|length }} conversacion(es)</div>
+{% if rooms %}
+<div style="display:flex;flex-direction:column;gap:2px">
+{% for item in rooms %}
+<a href="{{ url_for('chat_room', room_id=item.room.id) }}" class="text-decoration-none"
+   style="display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-3) var(--sp-4);border-radius:var(--radius);transition:background .12s;{% if item.unread %}background:rgba(var(--ac-rgb),.05){% endif %}">
+  <div style="width:44px;height:44px;border-radius:50%;background:{% if item.room.tipo == 'cliente' %}var(--green){% elif item.room.tipo == 'proveedor' %}var(--ac){% else %}var(--orange){% endif %};color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">
+    {% if item.room.tipo == 'cliente' %}<i class="bi bi-bag"></i>
+    {% elif item.room.tipo == 'proveedor' %}<i class="bi bi-truck"></i>
+    {% else %}<i class="bi bi-chat-dots"></i>{% endif %}
+  </div>
+  <div style="flex:1;min-width:0">
+    <div class="d-flex justify-content-between align-items-center">
+      <span style="font-weight:600;color:var(--text);font-size:var(--font-body)">{{ item.display_name }}</span>
+      {% if item.last_msg %}<small style="color:var(--text2);font-size:var(--font-caption)">{{ item.last_msg.creado_en.strftime('%H:%M') if item.last_msg.creado_en else '' }}</small>{% endif %}
+    </div>
+    <div class="d-flex justify-content-between align-items-center">
+      <span style="font-size:var(--font-small);color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:300px">
+        {% if item.last_msg %}{{ item.last_msg.contenido[:60] }}{% else %}Sin mensajes{% endif %}
+      </span>
+      {% if item.unread %}<span style="background:var(--ac);color:#fff;font-size:.65rem;padding:2px 7px;border-radius:10px;font-weight:700">{{ item.unread }}</span>{% endif %}
+    </div>
+  </div>
+</a>
+{% endfor %}
+</div>
+{% else %}
+<div class="text-center text-muted py-5">
+  <i class="bi bi-chat-dots" style="font-size:3rem"></i>
+  <p class="mt-3">Sin conversaciones.</p>
+  <a href="{{ url_for('chat_nuevo') }}" class="btn btn-primary">Iniciar chat</a>
+</div>
+{% endif %}
+{% endblock %}
