@@ -42,6 +42,10 @@
   --radius:8px;--radius-sm:4px;
   /* Motion */
   --transition-fast:150ms ease;--transition-base:250ms ease;--transition-slow:350ms cubic-bezier(.4,0,.2,1);
+  /* Spacing scale (8px base) */
+  --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:24px;--sp-6:32px;--sp-7:48px;
+  /* Typography */
+  --font-micro:.69rem;--font-caption:.75rem;--font-small:.82rem;--font-body:.875rem;--font-title:1rem;--font-display:1.25rem;--font-hero:1.75rem;
 }
 
 /* ── Base reset ──────────────────────────────────── */
@@ -128,7 +132,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 #sb-tog:hover{background:var(--surface2)}
 
 /* ── Content area ────────────────────────────────── */
-.content{padding:1.25rem;animation:fadeIn var(--transition-base) ease;flex:1;background:var(--surface)}
+.content{padding:var(--sp-5);animation:fadeIn var(--transition-base) ease;flex:1;background:var(--surface)}
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 @keyframes toastIn{from{transform:translateX(100px);opacity:0}to{transform:translateX(0);opacity:1}}
 
@@ -141,7 +145,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .skeleton-card .skeleton{margin-bottom:10px}
 
 /* ── Stat Cards ──────────────────────────────────── */
-.sc{background:var(--surface);border-radius:var(--radius);padding:1.1rem 1.25rem;box-shadow:var(--shadow);transition:box-shadow .15s,background-color .2s,border-color .2s;height:100%;border:1px solid var(--border)}
+.sc{background:var(--surface);border-radius:var(--radius);padding:var(--sp-4);box-shadow:var(--shadow);transition:box-shadow .15s,background-color .2s,border-color .2s;height:100%;border:1px solid var(--border)}
 .sc:hover{box-shadow:var(--shadow-md)}
 .sc-accent{border-top:3px solid var(--ac)}
 .si{width:42px;height:42px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0}
@@ -152,11 +156,11 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 /* ── Table Cards ─────────────────────────────────── */
 .tc{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;transition:all var(--transition-fast)}
 .tc:hover{box-shadow:var(--shadow-md)}
-.ch{background:var(--surface);border-bottom:1px solid var(--border);padding:.75rem 1.25rem;font-weight:600;color:var(--text);font-size:.88rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem}
+.ch{background:var(--surface);border-bottom:1px solid var(--border);padding:var(--sp-3) var(--sp-4);font-weight:600;color:var(--text);font-size:.88rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem}
 .table{margin:0;border-collapse:collapse;border:none!important;background:transparent!important}
 .table>:not(caption)>*>*{box-shadow:none!important}
-.table th{font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);border-bottom:2px solid var(--border);padding:.55rem 1rem;white-space:nowrap;background:var(--surface2)}
-.table td{padding:.55rem 1rem;vertical-align:middle;border-bottom:1px solid var(--border);color:var(--text);font-size:.85rem;background:transparent}
+.table th{font-size:var(--font-micro);font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);border-bottom:2px solid var(--border);padding:var(--sp-3) var(--sp-4);white-space:nowrap;background:var(--surface2)}
+.table td{padding:var(--sp-3) var(--sp-4);vertical-align:middle;border-bottom:1px solid var(--border);color:var(--text);font-size:var(--font-body);background:transparent}
 .table tbody tr:nth-child(even) td{background:rgba(0,0,0,.015)}
 .table tbody tr:last-child td{border-bottom:none}
 .table tbody tr:hover{background:var(--surface2)}
@@ -189,6 +193,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .btn-ghost{background:transparent;border:1.5px solid var(--border);color:var(--text);transition:all .15s}
 .btn-ghost:hover{background:var(--surface2);border-color:var(--border2);box-shadow:var(--shadow)}
 .btn-lg{min-height:44px;font-size:.9rem;padding:.65rem 1.4rem}
+.btn-sm{font-size:var(--font-small);padding:var(--sp-1) var(--sp-3)}
 .btn-action{background:var(--ac);border:none;color:#fff;border-radius:var(--radius-sm);padding:.5rem 1rem;font-weight:600;font-size:.82rem;display:flex;align-items:center;gap:.5rem;cursor:pointer;transition:background .12s;white-space:nowrap}
 .btn-action:hover{background:var(--ac2);color:#fff}
 
@@ -425,6 +430,15 @@ html[data-theme="dark"] .ev-venta{background:rgba(59,168,96,.12);color:#80D9A0;b
 html[data-theme="dark"] .diag-rojo{background:rgba(224,85,85,.12);color:#FFAAAA}
 html[data-theme="dark"] .diag-amarillo{background:rgba(224,144,0,.12);color:#FFCA60}
 html[data-theme="dark"] .diag-verde{background:rgba(59,168,96,.12);color:#80D9A0}
+html[data-theme="dark"] .stock-bar-wrap{background:var(--border)}
+html[data-theme="dark"] .onboard-banner{background:linear-gradient(135deg,#0a1628,#0d3a6e)}
+html[data-theme="dark"] .breadcrumb-item a{color:var(--ac)}
+html[data-theme="dark"] .breadcrumb-item.active{color:var(--text2)}
+html[data-theme="dark"] .mnav-tab{color:var(--text2)}
+html[data-theme="dark"] .mnav-tab.mnav-active{color:var(--ac)}
+html[data-theme="dark"] #mobileNav{background:var(--surface);border-color:var(--border)}
+html[data-theme="dark"] .toast-msg{box-shadow:0 8px 24px rgba(0,0,0,.4)}
+html[data-theme="dark"] .skeleton{background:linear-gradient(90deg,var(--surface2) 25%,var(--surface) 50%,var(--surface2) 75%);background-size:200% 100%}
 
 /* ── Utility classes ─────────────────────────────── */
 .gap-xs{gap:4px}.gap-sm{gap:8px}.gap-md{gap:16px}.gap-lg{gap:24px}.gap-xl{gap:32px}
@@ -437,6 +451,10 @@ html[data-theme="dark"] .diag-verde{background:rgba(59,168,96,.12);color:#80D9A0
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:var(--border2)}
+
+/* ── Dashboard utilities ── */
+.dash-link{font-size:.75rem;color:var(--ac);text-decoration:none}
+.dash-link:hover{text-decoration:underline}
 
 /* ══════════════════════════════════════════════════
    RESPONSIVE — Mobile

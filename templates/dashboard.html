@@ -108,7 +108,7 @@
         <div><div class="sv">{{ total_clientes }}</div><div class="sl">Clientes activos</div></div>
         <div class="si" style="background:var(--surface2)"><i class="bi bi-people-fill" style="color:var(--ac)"></i></div>
       </div>
-      <div class="mt-2"><a href="{{ url_for('clientes') }}" style="font-size:.75rem;color:var(--ac);text-decoration:none">Ver clientes →</a></div>
+      <div class="mt-2"><a href="{{ url_for('clientes') }}" class="dash-link">Ver clientes →</a></div>
     </div>
   </div>
   <div class="col-6 col-lg-3">
@@ -117,7 +117,7 @@
         <div><div class="sv">{{ ventas_completadas }}</div><div class="sl">Ventas ganadas</div></div>
         <div class="si" style="background:var(--surface2)"><i class="bi bi-graph-up-arrow" style="color:var(--green)"></i></div>
       </div>
-      <div class="mt-2"><a href="{{ url_for('ventas') }}" style="font-size:.75rem;color:var(--green);text-decoration:none">Ver ventas →</a></div>
+      <div class="mt-2"><a href="{{ url_for('ventas') }}" class="dash-link" style="color:var(--green)">Ver ventas →</a></div>
     </div>
   </div>
   <div class="col-6 col-lg-3">
@@ -126,7 +126,7 @@
         <div><div class="sv">{{ tareas_pendientes }}</div><div class="sl">Tareas pendientes</div></div>
         <div class="si" style="background:var(--surface2)"><i class="bi bi-check2-square" style="color:var(--orange)"></i></div>
       </div>
-      <div class="mt-2"><a href="{{ url_for('tareas') }}" style="font-size:.75rem;color:var(--orange);text-decoration:none">Ver tareas →</a></div>
+      <div class="mt-2"><a href="{{ url_for('tareas') }}" class="dash-link" style="color:var(--orange)">Ver tareas →</a></div>
     </div>
   </div>
   <div class="col-6 col-lg-3">
@@ -136,7 +136,7 @@
           <div class="sl">Por cobrar</div></div>
         <div class="si" style="background:var(--surface2)"><i class="bi bi-hourglass-split" style="color:var(--orange)"></i></div>
       </div>
-      <div class="mt-2"><a href="{{ url_for('ventas') }}" style="font-size:.75rem;color:var(--orange);text-decoration:none">Ver pendientes →</a></div>
+      <div class="mt-2"><a href="{{ url_for('ventas') }}" class="dash-link" style="color:var(--orange)">Ver pendientes →</a></div>
     </div>
   </div>
 </div>
@@ -172,7 +172,7 @@
         <div class="si" style="background:var(--surface2)"><i class="bi bi-percent" style="color:var(--red)"></i></div>
       </div>
       {% if impuestos_estimados == 0 %}
-      <div class="mt-1"><a href="{{ url_for('impuestos') }}" style="font-size:.73rem;color:var(--red)">Configurar reglas →</a></div>
+      <div class="mt-1"><a href="{{ url_for('impuestos') }}" class="dash-link" style="color:var(--red)">Configurar reglas →</a></div>
       {% endif %}
     </div>
   </div>
@@ -188,7 +188,7 @@
           <i class="bi bi-cash-stack" style="color:{{ 'var(--green)' if saldo_neto >= 0 else 'var(--red)' }}"></i>
         </div>
       </div>
-      <div class="mt-2"><a href="{{ url_for('contable_index') }}" style="font-size:.73rem;color:var(--ac);text-decoration:none">Ver desglose →</a></div>
+      <div class="mt-2"><a href="{{ url_for('contable_index') }}" class="dash-link">Ver desglose →</a></div>
     </div>
   </div>
 </div>
@@ -432,7 +432,7 @@ fetch('/api/dashboard/lazy').then(function(r){return r.json()}).then(function(d)
       </div>
       {% endfor %}
       <div style="padding:.5rem .75rem;text-align:center">
-        <a href="{{ url_for('aprobaciones_pendientes') }}" style="font-size:.8rem;color:var(--ac);text-decoration:none">Ver todas</a>
+        <a href="{{ url_for('aprobaciones_pendientes') }}" class="dash-link">Ver todas</a>
       </div>
     </div>
   </div>
@@ -487,7 +487,7 @@ fetch('/api/dashboard/lazy').then(function(r){return r.json()}).then(function(d)
       </div>
       {% endfor %}
       <div style="padding:.5rem .75rem;text-align:center">
-        <a href="{{ url_for('notas') }}" style="font-size:.8rem;color:var(--ac);text-decoration:none">Ver todas</a>
+        <a href="{{ url_for('notas') }}" class="dash-link">Ver todas</a>
       </div>
       {% else %}
       <div style="padding:1.5rem;text-align:center;color:var(--text2);font-size:.85rem"><i class="bi bi-sticky me-1"></i>Sin notas</div>
