@@ -67,11 +67,11 @@
 
 {# ── Foro introduction banner ────────────────────────── #}
 {% if not request.args.get('_embed') %}
-<div id="foroBanner" class="alert d-flex align-items-center gap-3 mb-3" style="background:linear-gradient(135deg,#EEF6FF,#E8F5E9);border:1px solid #B8D4F0;border-radius:var(--br)">
-  <div style="font-size:2rem"><i class="bi bi-shop text-primary"></i></div>
+<div id="foroBanner" class="alert d-flex align-items-center gap-3 mb-3" style="background:var(--surface2);border:1px solid var(--border);border-left:4px solid var(--ac);border-radius:var(--br)">
+  <div style="font-size:2rem"><i class="bi bi-shop" style="color:var(--ac)"></i></div>
   <div style="flex:1">
-    <div class="fw-bold" style="font-size:.92rem">Somos Evore — tu marketplace</div>
-    <div style="font-size:.8rem;color:var(--text2)">Publica tus productos y servicios, conecta con nuevos clientes y proveedores, y construye tu reputacion.</div>
+    <div class="fw-bold" style="font-size:.92rem;color:var(--text)">Somos Evore — tu marketplace</div>
+    <div style="font-size:.8rem;color:var(--text2)">Publica tus productos y servicios, conecta con nuevos clientes y proveedores, y construye tu reputación.</div>
   </div>
   <a href="{{ url_for('foro') }}" class="btn btn-primary btn-sm flex-shrink-0"><i class="bi bi-shop me-1"></i>Explorar</a>
   <button type="button" class="btn-close flex-shrink-0" onclick="this.closest('#foroBanner').remove();localStorage.setItem('evore_foro_banner_dismissed','1')"></button>
