@@ -683,7 +683,7 @@ img,svg{max-width:100%;height:auto}
     {% endif %}
     {# ── Wiki + Buscador ── #}
     <a href="#" onclick="event.preventDefault();toggleChatPanel()" class="nav-link" data-tip="Chat" aria-label="Chat" style="position:relative"><i class="bi bi-chat-dots-fill"></i><span>Chat</span><span id="chatBadge" style="display:none;position:absolute;top:2px;right:2px;background:var(--red);color:#fff;font-size:.55rem;padding:1px 4px;border-radius:8px;line-height:1.2"></span></a>
-    <a href="{{ url_for('foro') }}" class="nav-link {% if 'foro' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Somos Evore" aria-label="Somos Evore"><i class="bi bi-shop"></i><span>Foro</span></a>
+    <a href="{{ url_for('foro') }}" class="nav-link {% if 'foro' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Somos Evore" aria-label="Somos Evore" style="position:relative"><i class="bi bi-shop"></i><span>Foro</span><span style="position:absolute;top:0;right:0;background:var(--red);color:#fff;font-size:.5rem;padding:1px 4px;border-radius:6px;font-weight:700">NEW</span></a>
     <a href="{{ url_for('portal_mis_relaciones') }}" class="nav-link {% if request.endpoint=='portal_mis_relaciones' or request.endpoint=='portal_interempresa' %}active" aria-current="page{% endif %}" data-tip="Relaciones" aria-label="Relaciones comerciales"><i class="bi bi-building"></i><span>Relaciones</span></a>
     <a href="{{ url_for('wiki') }}" class="nav-link {% if request.endpoint=='wiki' %}active" aria-current="page{% endif %}" data-tip="Wiki" aria-label="Wiki" data-dock-panel="wiki_page"><i class="bi bi-book"></i><span>Wiki</span></a>
     <a href="{{ url_for('buscador') }}" class="nav-link {% if request.endpoint=='buscador' %}active" aria-current="page{% endif %}" data-tip="Buscador" aria-label="Buscador" data-dock-panel="buscador"><i class="bi bi-search"></i><span>Buscador</span></a>
@@ -830,24 +830,28 @@ img,svg{max-width:100%;height:auto}
 <div class="dock-panel" id="dp-finanzas">
   <a class="dock-panel-head" href="{{ url_for('contable_index') }}"><i class="bi bi-currency-dollar"></i><span>Finanzas</span><i class="bi bi-arrow-right dp-arrow"></i></a>
   <div class="dock-panel-body">
+    <div style="padding:4px 12px 2px;font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--sb-text);opacity:.4">Operaciones</div>
     <a href="{{ url_for('contable_index') }}" class="dock-panel-link"><i class="bi bi-calculator"></i>Contabilidad</a>
     <a href="{{ url_for('contable_asientos') }}" class="dock-panel-link"><i class="bi bi-journal-bookmark-fill"></i>Asientos contables</a>
     <a href="{{ url_for('contable_puc') }}" class="dock-panel-link"><i class="bi bi-list-ol"></i>Plan de Cuentas</a>
     {% if 'gastos' in m %}<a href="{{ url_for('gastos') }}" class="dock-panel-link"><i class="bi bi-receipt"></i>Gastos</a>{% endif %}
+    <div style="padding:4px 12px 2px;font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--sb-text);opacity:.4">Reportes</div>
     <a href="{{ url_for('contable_balance_prueba') }}" class="dock-panel-link"><i class="bi bi-table"></i>Balance de Prueba</a>
     <a href="{{ url_for('contable_balance_general') }}" class="dock-panel-link"><i class="bi bi-bank2"></i>Balance General</a>
     <a href="{{ url_for('contable_estado_resultados') }}" class="dock-panel-link"><i class="bi bi-graph-up-arrow"></i>Estado de Resultados</a>
-    <a href="{{ url_for('contable_notas') }}" class="dock-panel-link"><i class="bi bi-file-earmark-minus"></i>Notas credito/debito</a>
     <a href="{{ url_for('contable_flujo_caja') }}" class="dock-panel-link"><i class="bi bi-cash-stack"></i>Flujo de caja</a>
     <a href="{{ url_for('contable_flujo_caja_proyectado') }}" class="dock-panel-link"><i class="bi bi-graph-up-arrow"></i>Flujo de caja proyectado</a>
-    <a href="{{ url_for('contable_conciliacion') }}" class="dock-panel-link"><i class="bi bi-bank"></i>Reconciliacion bancaria</a>
     <a href="{{ url_for('contable_libro_auxiliar_tercero') }}" class="dock-panel-link"><i class="bi bi-person-lines-fill"></i>Libro auxiliar</a>
-    <a href="{{ url_for('contable_certificado_retencion') }}" class="dock-panel-link"><i class="bi bi-file-earmark-pdf"></i>Certificados retencion</a>
+    <a href="{{ url_for('contable_conciliacion') }}" class="dock-panel-link"><i class="bi bi-bank"></i>Reconciliacion bancaria</a>
     {% if 'reportes' in m %}<a href="{{ url_for('reportes') }}" class="dock-panel-link"><i class="bi bi-bar-chart-fill"></i>Reportes</a>{% endif %}
+    <div style="padding:4px 12px 2px;font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--sb-text);opacity:.4">Fiscal</div>
     <a href="{{ url_for('contable_iva') }}" class="dock-panel-link"><i class="bi bi-percent"></i>IVA (generado vs descontable)</a>
     <a href="{{ url_for('contable_retenciones') }}" class="dock-panel-link"><i class="bi bi-receipt-cutoff"></i>Retenciones en la fuente</a>
+    <a href="{{ url_for('contable_certificado_retencion') }}" class="dock-panel-link"><i class="bi bi-file-earmark-pdf"></i>Certificados retencion</a>
     <a href="{{ url_for('contable_cierre_periodo') }}" class="dock-panel-link"><i class="bi bi-lock"></i>Cierre de periodo</a>
     <a href="{{ url_for('impuestos') }}" class="dock-panel-link"><i class="bi bi-sliders"></i>Reglas tributarias</a>
+    <div style="padding:4px 12px 2px;font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--sb-text);opacity:.4">Notas</div>
+    <a href="{{ url_for('contable_notas') }}" class="dock-panel-link"><i class="bi bi-file-earmark-minus"></i>Notas credito/debito</a>
   </div>
 </div>
 {% if rol_activo in ('admin','director_financiero') %}
@@ -1183,7 +1187,25 @@ function toggleSidebar(){
     </div>
     {% endfor %}
     </div>
-    <script>setTimeout(function(){var c=document.getElementById('toastContainer');if(c){c.style.transition='opacity .5s';c.style.opacity='0';setTimeout(function(){c.remove()},500);}},8000);</script>
+    <script>
+    (function(){
+      var tc=document.getElementById('toastContainer');
+      if(!tc) return;
+      tc.querySelectorAll('.toast-msg').forEach(function(t){
+        var btn=document.createElement('button');
+        btn.innerHTML='&times;';
+        btn.style.cssText='background:none;border:none;color:#fff;font-size:1.1rem;cursor:pointer;padding:0 0 0 8px;line-height:1;opacity:.7';
+        btn.addEventListener('click',function(){t.style.display='none';var visible=tc.querySelectorAll('.toast-msg');var allHidden=true;visible.forEach(function(v){if(v.style.display!=='none')allHidden=false;});if(allHidden)tc.remove();});
+        t.appendChild(btn);
+      });
+      var remaining=8000,start=Date.now(),timer;
+      function fadeOut(){tc.style.transition='opacity .5s';tc.style.opacity='0';setTimeout(function(){tc.remove()},500);}
+      function startTimer(){start=Date.now();timer=setTimeout(fadeOut,remaining);}
+      tc.addEventListener('mouseenter',function(){clearTimeout(timer);remaining-=(Date.now()-start);if(remaining<500)remaining=500;});
+      tc.addEventListener('mouseleave',function(){startTimer();});
+      startTimer();
+    })();
+    </script>
     {% endif %}
     {% endwith %}
     {% if active_company and not active_company.es_principal %}
@@ -2192,18 +2214,10 @@ window.iniciarObContextual = function(){
 <nav id="mobileNav" class="d-md-none" style="position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;justify-content:space-around;align-items:stretch;padding:6px 4px calc(14px + env(safe-area-inset-bottom,0));z-index:1060;box-shadow:0 -2px 12px rgba(0,0,0,.06)">
   <a href="{{ url_for('dashboard') }}" class="mnav-tab {% if request.endpoint=='dashboard' %}mnav-active{% endif %}">
     <i class="bi bi-house-fill"></i><span>Home</span></a>
-  {% if 'ventas' in modulos_user %}
-  <a href="{{ url_for('ventas') }}" class="mnav-tab {% if 'venta' in request.endpoint %}mnav-active{% endif %}">
-    <i class="bi bi-bag-fill"></i><span>Ventas</span></a>
-  {% elif 'produccion' in modulos_user %}
-  <a href="{{ url_for('produccion_index') }}" class="mnav-tab {% if 'produccion' in request.endpoint %}mnav-active{% endif %}">
-    <i class="bi bi-gear-fill"></i><span>Produccion</span></a>
-  {% elif 'finanzas' in modulos_user %}
-  <a href="{{ url_for('contable_index') }}" class="mnav-tab {% if 'contable' in request.endpoint %}mnav-active{% endif %}">
-    <i class="bi bi-calculator"></i><span>Finanzas</span></a>
-  {% endif %}
-  <button onclick="abrirBuscador()" class="mnav-tab">
-    <i class="bi bi-search"></i><span>Buscar</span></button>
+  <a href="{{ url_for('foro') }}" class="mnav-tab {% if 'foro' in request.endpoint %}mnav-active{% endif %}">
+    <i class="bi bi-shop"></i><span>Foro</span></a>
+  <button onclick="toggleChatPanel()" class="mnav-tab" style="position:relative">
+    <i class="bi bi-chat-dots-fill"></i><span id="mnavChatBadge" class="mnav-badge" style="display:none"></span><span>Chat</span></button>
   <a href="{{ url_for('notificaciones') }}" class="mnav-tab" style="position:relative">
     <i class="bi bi-bell-fill"></i>{% if notif_count %}<span class="mnav-badge">{{ notif_count }}</span>{% endif %}<span>Alertas</span></a>
   <button onclick="openSB()" class="mnav-tab">
@@ -2401,6 +2415,8 @@ function chatOpenRoom(roomId){
     fetch('/api/chat/unread').then(function(r){return r.json()}).then(function(d){
       var badge=document.getElementById('chatBadge');
       if(badge){if(d.count>0){badge.textContent=d.count;badge.style.display=''}else{badge.style.display='none'}}
+      var mb=document.getElementById('mnavChatBadge');
+      if(mb){if(d.count>0){mb.textContent=d.count;mb.style.display=''}else{mb.style.display='none'}}
     }).catch(function(){});
   }, 500);
 }
@@ -2462,6 +2478,11 @@ setInterval(function(){
     if(badge){
       if(d.count > 0){ badge.textContent=d.count; badge.style.display=''; }
       else { badge.style.display='none'; }
+    }
+    var mobileBadge = document.getElementById('mnavChatBadge');
+    if(mobileBadge){
+      if(d.count > 0){ mobileBadge.textContent=d.count; mobileBadge.style.display=''; }
+      else { mobileBadge.style.display='none'; }
     }
   }).catch(function(){});
 }, 15000);
