@@ -1777,9 +1777,9 @@ def register(app):
         )
         db.session.add(pago)
 
-        # Actualizar totales de la venta
-        venta.monto_pagado_total = (venta.monto_pagado_total or 0) + monto
-        venta.saldo = max(0, (venta.total or 0) - (venta.monto_pagado_total or 0))
+        # Actualizar totales de la venta (con cap — no puede pagar más del total)
+        venta.monto_pagado_total = min((venta.monto_pagado_total or 0) + monto, float(venta.total or 0))
+        venta.saldo = max(0, float(venta.total or 0) - (venta.monto_pagado_total or 0))
 
         # Auto-transicionar estado si corresponde
         if venta.monto_pagado_total >= (venta.monto_anticipo or 0) and venta.estado == 'negociacion':
