@@ -2298,9 +2298,28 @@ function chatRenderTabs(){
   var html = '';
   _chatRooms.forEach(function(r){
     var active = r.id === _chatRoomId;
-    html += '<button onclick="chatOpenRoom('+r.id+')" style="padding:7px 12px;font-size:.72rem;font-weight:'+(active?'700':'400')+';color:'+(active?'#5BAFFA':'rgba(255,255,255,.5)')+';background:'+(active?'rgba(91,175,250,.12)':'transparent')+';border:none;border-bottom:2px solid '+(active?'#5BAFFA':'transparent')+';cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .12s">'+r.name+'</button>';
+    html += '<div style="display:flex;align-items:center;border-bottom:2px solid '+(active?'#5BAFFA':'transparent')+';flex-shrink:0;transition:all .12s;background:'+(active?'rgba(91,175,250,.12)':'transparent')+'">'
+      +'<button onclick="chatOpenRoom('+r.id+')" style="padding:7px 10px 7px 12px;font-size:.72rem;font-weight:'+(active?'700':'400')+';color:'+(active?'#5BAFFA':'rgba(255,255,255,.5)')+';background:transparent;border:none;cursor:pointer;white-space:nowrap">'+r.name+'</button>'
+      +'<button onclick="event.stopPropagation();chatCloseTab('+r.id+')" style="padding:2px 6px 2px 0;font-size:.6rem;color:rgba(255,255,255,.25);background:none;border:none;cursor:pointer;line-height:1" title="Cerrar">&times;</button>'
+      +'</div>';
   });
   tabs.innerHTML = html;
+}
+
+function chatCloseTab(roomId){
+  _chatRooms = _chatRooms.filter(function(r){ return r.id !== roomId; });
+  if(_chatRoomId === roomId){
+    if(_chatPollTimer) clearInterval(_chatPollTimer);
+    _chatRoomId = null;
+    _chatLastMsgId = 0;
+    if(_chatRooms.length){
+      chatOpenRoom(_chatRooms[0].id);
+    } else {
+      document.getElementById('chatMsgs').innerHTML = '<div style="padding:30px 16px;text-align:center;color:rgba(255,255,255,.3)"><i class="bi bi-chat-dots" style="font-size:1.8rem;display:block;margin-bottom:6px"></i><span style="font-size:.78rem">Selecciona o crea una conversacion</span></div>';
+      document.getElementById('chatInput').style.display='none';
+    }
+  }
+  chatRenderTabs();
 }
 
 function chatCreateInline(){
@@ -2376,6 +2395,14 @@ function chatOpenRoom(roomId){
   if(_chatPollTimer) clearInterval(_chatPollTimer);
   _chatPollTimer = setInterval(chatPollMessages, 3000);
   setTimeout(function(){ document.getElementById('chatMsgInput').focus(); }, 100);
+  // Mark as read — hit the room page to trigger read marking + update badge
+  fetch('/chat/'+roomId, {headers:{'X-Requested-With':'XMLHttpRequest'}}).catch(function(){});
+  setTimeout(function(){
+    fetch('/api/chat/unread').then(function(r){return r.json()}).then(function(d){
+      var badge=document.getElementById('chatBadge');
+      if(badge){if(d.count>0){badge.textContent=d.count;badge.style.display=''}else{badge.style.display='none'}}
+    }).catch(function(){});
+  }, 500);
 }
 
 function chatPollMessages(){
@@ -2415,20 +2442,13 @@ function chatSend(e){
   var text = input.value.trim();
   if(!text || !_chatRoomId) return;
   input.value = '';
-  // Optimistic: show message immediately
-  var container = document.getElementById('chatMsgs');
-  var div = document.createElement('div');
-  div.style = 'display:flex;justify-content:flex-end';
-  div.innerHTML = '<div style="max-width:80%;padding:8px 12px;border-radius:16px 16px 4px 16px;font-size:.85rem;background:var(--ac);color:#fff;opacity:.7">'+text+'</div>';
-  container.appendChild(div);
-  container.scrollTop = container.scrollHeight;
-  // Send
+  // Send to server first, then poll will bring it back — no optimistic double
   var fd = new FormData();
   fd.append('contenido', text);
   fd.append('_csrf_token', document.querySelector('meta[name=csrf-token]').content);
   fetch('/chat/'+_chatRoomId+'/enviar', {method:'POST', body:fd, headers:{'X-Requested-With':'XMLHttpRequest'}})
-    .then(function(){ div.querySelector('div').style.opacity='1'; })
-    .catch(function(){ div.querySelector('div').style.background='var(--red)'; });
+    .then(function(){ chatPollMessages(); })
+    .catch(function(){});
 }
 
 function chatShowNew(){

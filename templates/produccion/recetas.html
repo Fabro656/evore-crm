@@ -1,130 +1,105 @@
 {% extends 'base.html' %}
-{% block title %}Productos{% endblock %}{% block page_title %}Productos{% endblock %}
+{% block title %}Recetas BOM{% endblock %}{% block page_title %}Recetas BOM{% endblock %}
 {% block topbar_actions %}
 <a href="{{ url_for('receta_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo Producto</a>
 {% endblock %}
 {% block content %}
 <div class="count-label"><i class="bi bi-diagram-3 me-2"></i>{{ total_items }} producto(s)</div>
+
+{% if recetas %}
 <div class="row g-3">
 {% for r in recetas %}
 {% set c = costos[r.id] %}
-<div class="col-12">
-  <div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);padding:1rem;width:100%">
-    {# ── Encabezado ── #}
-    <div class="d-flex justify-content-between align-items-start mb-3">
-      <div>
-        <h5 class="mb-0">{{ r.producto.nombre }}</h5>
-        <div class="d-flex gap-2 align-items-center mt-1 flex-wrap">
-          {% if r.producto.sku and r.producto.sku != 'None' %}<span class="badge bg-secondary">SKU: {{ r.producto.sku }}</span>{% endif %}
-          <small class="text-muted">Produce {{ r.unidades_produce }} unidad(es) por lote</small>
-          {% if r.margen_pct %}<span class="badge bg-info bg-opacity-75">Margen: {{ r.margen_pct }}%</span>{% endif %}
+<div class="col-12 col-md-6 col-xl-4">
+  <div class="fc h-100" style="padding:0;overflow:hidden;transition:box-shadow .15s,transform .15s" onmouseenter="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)';this.style.transform='translateY(-1px)'" onmouseleave="this.style.boxShadow='';this.style.transform=''">
+    {# Color bar: margin-based #}
+    <div style="height:4px;background:{% if r.margen_pct and r.margen_pct >= 30 %}var(--green){% elif r.margen_pct and r.margen_pct >= 15 %}var(--orange){% elif r.margen_pct %}var(--red){% else %}var(--border){% endif %}"></div>
+    <div style="padding:1rem 1.15rem">
+      {# Header #}
+      <div class="d-flex align-items-start justify-content-between mb-2">
+        <div style="min-width:0;flex:1">
+          <a href="{{ url_for('receta_editar', id=r.id) }}" class="text-decoration-none">
+            <h6 class="fw-bold mb-0" style="color:var(--text1);font-size:.92rem">{{ r.producto.nombre }}</h6>
+          </a>
+          <div class="d-flex gap-2 align-items-center mt-1 flex-wrap">
+            {% if r.producto.sku and r.producto.sku != 'None' %}<span class="badge bg-secondary" style="font-size:.6rem">SKU: {{ r.producto.sku }}</span>{% endif %}
+            {% if r.margen_pct %}<span class="badge bg-info bg-opacity-75" style="font-size:.6rem">Margen: {{ r.margen_pct }}%</span>{% endif %}
+            <span class="text-muted" style="font-size:.7rem">{{ r.unidades_produce }} und/lote</span>
+          </div>
         </div>
       </div>
-      <div class="d-flex gap-2">
-        <button class="btn btn-sm btn-outline-info" title="Historial de precios" onclick="verHistorial({{ r.producto_id }})"><i class="bi bi-clock-history"></i></button>
-        <a href="{{ url_for('receta_editar', id=r.id) }}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
-        <form method="POST" action="{{ url_for('receta_eliminar', id=r.id) }}" class="d-inline"
-              onsubmit="return confirm('¿Eliminar receta?')">
-          <button class="btn btn-sm btn-outline-danger" title="Eliminar"><i class="bi bi-trash"></i></button>
+
+      {% if r.descripcion %}<p class="text-muted mb-2" style="font-size:.78rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ r.descripcion }}</p>{% endif %}
+
+      {# Ingredients summary #}
+      <div class="mb-3" style="font-size:.78rem">
+        <div class="text-muted mb-1" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;font-weight:600">Ingredientes ({{ c.desglose|length }})</div>
+        {% for d in c.desglose[:4] %}
+        <div class="d-flex justify-content-between py-1 {% if not loop.last %}border-bottom{% endif %}" style="border-color:var(--border)!important">
+          <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            {{ d.materia }}
+            {% if not d.tiene_cotizacion %}<i class="bi bi-exclamation-triangle text-warning" style="font-size:.65rem"></i>{% endif %}
+          </span>
+          <span class="text-muted flex-shrink-0 ms-2">${{ '{:,.0f}'.format(d.subtotal / r.unidades_produce if r.unidades_produce else d.subtotal) }}</span>
+        </div>
+        {% endfor %}
+        {% if c.desglose|length > 4 %}
+        <div class="text-muted text-center mt-1" style="font-size:.7rem">+{{ c.desglose|length - 4 }} mas</div>
+        {% endif %}
+      </div>
+
+      {# Cost summary #}
+      <div class="p-2 rounded mb-3" style="background:var(--surface2);font-size:.82rem">
+        <div class="d-flex justify-content-between">
+          <span class="text-muted">Costo/unidad</span>
+          <span class="fw-bold">${{ '{:,.0f}'.format(c.costo_unitario) }}</span>
+        </div>
+        {% if r.margen_pct %}
+        {% set precio_sin_iva = c.costo_unitario * (1 + r.margen_pct / 100) %}
+        {% set iva = precio_sin_iva * 0.19 %}
+        <div class="d-flex justify-content-between mt-1">
+          <span class="text-muted">Precio venta</span>
+          <span class="fw-bold" style="color:var(--green)">${{ '{:,.0f}'.format(precio_sin_iva + iva) }}</span>
+        </div>
+        {% endif %}
+      </div>
+
+      {# Alerts #}
+      {% set tiene_empaque = r.items|selectattr('clasificacion','equalto','empaque_secundario')|list %}
+      {% if not tiene_empaque %}
+      <div class="mb-2 px-2 py-1 rounded" style="background:#fff3cd;font-size:.72rem;color:#856404;border:1px solid #ffc107">
+        <i class="bi bi-box2-heart me-1"></i>Sin empaque secundario
+      </div>
+      {% endif %}
+      {% if c.alertas %}
+      <div class="mb-2 px-2 py-1 rounded" style="background:var(--surface2);font-size:.72rem;color:var(--orange)">
+        <i class="bi bi-exclamation-triangle me-1"></i>{{ c.alertas|length }} alerta(s)
+      </div>
+      {% endif %}
+
+      {# Actions #}
+      <div class="d-flex align-items-center gap-2 pt-2" style="border-top:1px solid var(--border)">
+        <a href="{{ url_for('receta_editar', id=r.id) }}" class="btn btn-sm btn-outline-primary" style="font-size:.75rem;padding:3px 10px"><i class="bi bi-pencil me-1"></i>Editar</a>
+        <button class="btn btn-sm btn-outline-info" style="font-size:.75rem;padding:3px 10px" title="Historial de precios" onclick="verHistorial({{ r.producto_id }})"><i class="bi bi-clock-history me-1"></i>Precios</button>
+        <form method="POST" action="{{ url_for('receta_eliminar', id=r.id) }}" class="ms-auto m-0" onsubmit="return confirm('Eliminar receta?')">
+          <button class="btn btn-sm btn-outline-danger" style="font-size:.75rem;padding:3px 8px"><i class="bi bi-trash"></i></button>
         </form>
       </div>
     </div>
-    {% if r.descripcion %}<p class="text-muted small mb-2">{{ r.descripcion }}</p>{% endif %}
-
-    {# ── Tabla de ingredientes con costos ── #}
-    <div style="overflow-x:auto;width:100%">
-    <table class="table table-sm mb-3" style="font-size:.85rem;width:100%;min-width:700px;margin:0">
-      <thead>
-        <tr>
-          <th>Materia Prima</th>
-          <th class="text-end">Cantidad/und</th>
-          <th>Unidad</th>
-          <th class="text-end">Disponible</th>
-          <th class="text-end">Reservado</th>
-          <th class="text-end">Costo unitario</th>
-          <th class="text-end">Subtotal</th>
-        </tr>
-      </thead>
-      <tbody>
-      {% for d in c.desglose %}
-      <tr>
-        <td>
-          {{ d.materia }}
-          {% if not d.tiene_cotizacion %}<i class="bi bi-exclamation-triangle text-warning" title="Sin cotización vigente"></i>{% endif %}
-        </td>
-        <td class="text-end">{{ d.cantidad / r.unidades_produce if r.unidades_produce else d.cantidad }}</td>
-        <td>{{ d.unidad }}</td>
-        <td class="text-end {% if d.stock_disponible < d.cantidad %}text-danger{% else %}text-success{% endif %}">
-          {{ '%.2f'|format(d.stock_disponible) }}</td>
-        <td class="text-end text-warning">{{ '%.2f'|format(d.get('stock_reservado', 0) if d.get('stock_reservado') else 0) }}</td>
-        <td class="text-end">${{ '{:,.0f}'.format(d.costo_unit) }}/{{ d.unidad }}</td>
-        <td class="text-end">${{ '{:,.0f}'.format(d.subtotal / r.unidades_produce if r.unidades_produce else d.subtotal) }}</td>
-      </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-    </div>
-
-    {# ── Resumen financiero ── #}
-    <div class="row g-2">
-      <div class="col-12">
-        <table class="table table-sm mb-0" style="font-size:.85rem">
-          <tr>
-            <td><strong>Costo de producción (1 unidad)</strong></td>
-            <td class="text-end"><strong>${{ '{:,.0f}'.format(c.costo_unitario) }}</strong></td>
-          </tr>
-          {% if r.margen_pct %}
-          <tr>
-            <td>+ Margen {{ r.margen_pct }}%</td>
-            <td class="text-end">${{ '{:,.0f}'.format(c.costo_unitario * r.margen_pct / 100) }}</td>
-          </tr>
-          {% set precio_sin_iva = c.costo_unitario * (1 + r.margen_pct / 100) %}
-          {% set iva = precio_sin_iva * 0.19 %}
-          <tr>
-            <td>= Precio sin IVA</td>
-            <td class="text-end">${{ '{:,.0f}'.format(precio_sin_iva) }}</td>
-          </tr>
-          <tr>
-            <td>+ IVA 19%</td>
-            <td class="text-end">${{ '{:,.0f}'.format(iva) }}</td>
-          </tr>
-          <tr class="table-success">
-            <td><strong>Precio de venta (sin IVA + IVA)</strong></td>
-            <td class="text-end"><strong>${{ '{:,.0f}'.format(precio_sin_iva + iva) }}</strong></td>
-          </tr>
-          {% endif %}
-        </table>
-      </div>
-    </div>
-
-    {# ── Alerta empaque secundario ── #}
-    {% set tiene_empaque = r.items|selectattr('clasificacion','equalto','empaque_secundario')|list %}
-    {% if not tiene_empaque %}
-    <div class="mt-2 p-2 rounded" style="background:#fff3cd;font-size:.82rem;color:#856404;border:1px solid #ffc107">
-      <i class="bi bi-box2-heart me-1"></i><strong>Empaque secundario no registrado.</strong>
-      Agrega la caja/empaque secundario como ingrediente antes de enviar cotización.
-      <a href="{{ url_for('receta_editar', id=r.id) }}" class="ms-2 btn btn-sm btn-outline-warning">Agregar empaque</a>
-    </div>
-    {% endif %}
-
-    {# ── Alertas de cotización ── #}
-    {% if c.alertas %}
-    <div class="mt-2 p-2 rounded" style="background:var(--surface2);font-size:.8rem;color:var(--orange)">
-      <i class="bi bi-exclamation-triangle me-1"></i><strong>{{ c.alertas|length }} alerta(s):</strong>
-      {% for a in c.alertas %}<div class="ms-3">· {{ a }}</div>{% endfor %}
-    </div>
-    {% endif %}
   </div>
 </div>
-{% else %}
-<div class="col-12"><div class="text-center py-5 text-muted">
-  <i class="bi bi-diagram-3 fs-1 d-block mb-2"></i>No hay productos registrados.
-  <a href="{{ url_for('receta_nueva') }}" class="btn btn-primary mt-3">Crear primer producto</a>
-</div></div>
 {% endfor %}
 </div>
+{% else %}
+<div class="empty-state">
+  <i class="bi bi-diagram-3"></i>
+  <p>No hay productos registrados.</p>
+  <a href="{{ url_for('receta_nueva') }}" class="btn btn-primary">Crear primer producto</a>
+</div>
+{% endif %}
+
 {% if total_pages > 1 %}
-<div class="d-flex justify-content-between align-items-center mt-3" style="font-size:var(--font-small)">
+<div class="d-flex justify-content-between align-items-center mt-4" style="font-size:var(--font-small)">
   <span class="text-muted">Pagina {{ page }} de {{ total_pages }}</span>
   <nav><ul class="pagination pagination-sm mb-0" style="gap:4px">
     {% if page > 1 %}<li class="page-item"><a class="page-link" href="?page={{ page-1 }}">&laquo;</a></li>{% endif %}
@@ -164,7 +139,7 @@ function verHistorial(prodId) {
         document.getElementById('historialBody').innerHTML = '<div class="text-center text-muted py-3">Sin cambios de precio registrados.</div>';
         return;
       }
-      var html = '<table class="table table-sm" style="font-size:.85rem"><thead><tr><th>Fecha</th><th class="text-end">Precio anterior</th><th class="text-end">Precio nuevo</th><th>Origen</th><th>Usuario</th></tr></thead><tbody>';
+      var html = '<table class="table table-sm" style="font-size:.85rem"><thead><tr><th>Fecha</th><th class="text-end">Anterior</th><th class="text-end">Nuevo</th><th>Origen</th><th>Usuario</th></tr></thead><tbody>';
       data.forEach(function(h){
         var color = h.precio_nuevo > h.precio_anterior ? 'text-success' : h.precio_nuevo < h.precio_anterior ? 'text-danger' : '';
         html += '<tr><td>' + h.fecha + '</td>'
@@ -177,7 +152,7 @@ function verHistorial(prodId) {
       document.getElementById('historialBody').innerHTML = html;
     })
     .catch(function(e){
-      document.getElementById('historialBody').innerHTML = '<div class="alert alert-danger py-2">Error: ' + e + '</div>';
+      document.getElementById('historialBody').innerHTML = '<div class="alert alert-danger py-2">Error al cargar historial</div>';
     });
 }
 </script>{% endblock %}
