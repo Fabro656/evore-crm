@@ -140,13 +140,18 @@ def register(app):
                 )
             if estado_f: q=q.filter_by(estado=estado_f)
             if prioridad_f: q=q.filter_by(prioridad=prioridad_f)
-            items = q.order_by(Tarea.creado_en.desc()).all()
+            page = request.args.get('page', 1, type=int)
+            per_page = 25
+            pagination = q.order_by(Tarea.creado_en.desc()).paginate(page=page, per_page=per_page, error_out=False)
+            items = pagination.items
         except Exception as e:
             logging.warning(f'tareas: query error: {e}')
             db.session.rollback()
-            items = []
+            items = []; page = 1; pagination = None
         return render_template('tareas/index.html', items=items,
-            estado_f=estado_f, prioridad_f=prioridad_f)
+            estado_f=estado_f, prioridad_f=prioridad_f,
+            page=page, total_pages=pagination.pages if pagination else 1,
+            total_items=pagination.total if pagination else len(items))
     
 
     # ── tarea_nueva (/tareas/nueva)

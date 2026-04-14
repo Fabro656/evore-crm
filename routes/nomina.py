@@ -84,7 +84,10 @@ def register(app):
             query = query.filter_by(estado=estado_filter)
         if departamento_filter:
             query = query.filter_by(departamento=departamento_filter)
-        empleados = query.all()
+        page = request.args.get('page', 1, type=int)
+        per_page = 25
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        empleados = pagination.items
         departamentos = db.session.query(Empleado.departamento).distinct().filter(Empleado.departamento != None).all()
         departamentos = [d[0] for d in departamentos if d[0]]
         # Stats
@@ -102,7 +105,8 @@ def register(app):
         return render_template('nomina/index.html', empleados=empleados, departamentos=departamentos,
                               estado_filter=estado_filter, departamento_filter=departamento_filter,
                               activos=activos, masa_salarial=masa_salarial, costo_empresa=costo_empresa,
-                              retirados=retirados, despedidos=despedidos)
+                              retirados=retirados, despedidos=despedidos,
+                              page=page, total_pages=pagination.pages, total_items=pagination.total)
     
 
     # ── nomina_empleados_export_csv (/nomina/empleados/export-csv)

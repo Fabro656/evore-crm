@@ -10,7 +10,11 @@ _login_attempts: dict = defaultdict(list)
 _RATE_LIMIT_MAX     = 5    # max attempts
 _RATE_LIMIT_WINDOW  = 60   # seconds
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 # ── Sentry error monitoring ──────────────────────────────────────────────
 _sentry_dsn = os.environ.get('SENTRY_DSN')

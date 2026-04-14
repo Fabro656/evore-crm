@@ -4,6 +4,7 @@
 <a href="{{ url_for('receta_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo Producto</a>
 {% endblock %}
 {% block content %}
+<div class="count-label"><i class="bi bi-diagram-3 me-2"></i>{{ total_items }} producto(s)</div>
 <div class="row g-3">
 {% for r in recetas %}
 {% set c = costos[r.id] %}
@@ -122,6 +123,18 @@
 </div></div>
 {% endfor %}
 </div>
+{% if total_pages > 1 %}
+<div class="d-flex justify-content-between align-items-center mt-3" style="font-size:var(--font-small)">
+  <span class="text-muted">Pagina {{ page }} de {{ total_pages }}</span>
+  <nav><ul class="pagination pagination-sm mb-0" style="gap:4px">
+    {% if page > 1 %}<li class="page-item"><a class="page-link" href="?page={{ page-1 }}">&laquo;</a></li>{% endif %}
+    {% for p in range(1, total_pages+1) %}{% if p == page %}<li class="page-item active"><span class="page-link">{{ p }}</span></li>
+    {% elif p <= 3 or p > total_pages-3 or (p >= page-1 and p <= page+1) %}<li class="page-item"><a class="page-link" href="?page={{ p }}">{{ p }}</a></li>
+    {% elif p == 4 or p == total_pages-3 %}<li class="page-item disabled"><span class="page-link">...</span></li>{% endif %}{% endfor %}
+    {% if page < total_pages %}<li class="page-item"><a class="page-link" href="?page={{ page+1 }}">&raquo;</a></li>{% endif %}
+  </ul></nav>
+</div>
+{% endif %}
 
 {# Modal historial de precios #}
 <div class="modal fade" id="historialModal" tabindex="-1">

@@ -525,7 +525,10 @@ def register(app):
     @login_required
     @requiere_modulo('produccion')
     def recetas():
-        items = RecetaProducto.query.filter_by(activo=True).all()
+        page = request.args.get('page', 1, type=int)
+        per_page = 25
+        pagination = RecetaProducto.query.filter_by(activo=True).paginate(page=page, per_page=per_page, error_out=False)
+        items = pagination.items
         # Recalcular costos y precios para cada receta (siempre actualizado)
         costos = {}
         for r in items:
@@ -534,7 +537,8 @@ def register(app):
             db.session.commit()  # Persistir precios actualizados
         except Exception:
             db.session.rollback()
-        return render_template('produccion/recetas.html', recetas=items, costos=costos)
+        return render_template('produccion/recetas.html', recetas=items, costos=costos,
+                              page=page, total_pages=pagination.pages, total_items=pagination.total)
 
     @app.route('/api/receta/<int:producto_id>/costo')
     @login_required
