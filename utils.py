@@ -359,6 +359,20 @@ def _cached_count(key, query_fn, user_id):
     return result
 
 def inject_globals():
+    try:
+        return _inject_globals_inner()
+    except Exception as e:
+        logging.warning(f'inject_globals error: {e}')
+        return {'now': datetime.utcnow(), 'modulos_user': [], 'notif_count': 0,
+                'empresa_cliente_nombre': None, 'empresa_proveedor_nombre': None,
+                'onboarding': None, 'rol_activo': 'usuario', 'roles_disponibles': [],
+                'rol_labels': _ROL_LABELS, 'rol_icons': _ROL_ICONS,
+                'tareas_pend': 0, 'aprob_pend': 0,
+                'active_company': None, 'is_platform_admin': False,
+                'company_name': 'Evore', 'company_config': COMPANY,
+                'nit_label': 'NIT', 'currency_code': 'COP'}
+
+def _inject_globals_inner():
     modulos = _modulos_user(current_user) if current_user.is_authenticated else []
     notif_count = 0
     empresa_cliente_nombre = None
