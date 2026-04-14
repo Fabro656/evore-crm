@@ -93,10 +93,14 @@ def create_app():
         logging.info('flask-compress not installed — serving uncompressed')
 
     # ── Multi-tenancy: auto-filter queries by company_id ────────────
+    app._tenant_filter_enabled = False  # Disabled during init_db
+
     from sqlalchemy import event
     @event.listens_for(db.session, 'do_orm_execute')
     def _tenant_filter(execute_state):
         """Automatically filter all SELECT queries by company_id when tenant is set."""
+        if not getattr(app, '_tenant_filter_enabled', False):
+            return
         if not execute_state.is_select:
             return
         # Only filter when we have an active tenant
@@ -305,6 +309,8 @@ def create_app():
             _cargar_nomina_params()
         except Exception:
             pass
+        # Enable tenant filter AFTER init completes
+        app._tenant_filter_enabled = True
 
     return app
 
