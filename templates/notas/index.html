@@ -2,77 +2,65 @@
 {% block title %}Notas{% endblock %}{% block page_title %}Notas y Seguimiento{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('nota_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva nota</a>{% endblock %}
 {% block content %}
-<div class="row g-3 mb-3">
-  <div class="col-md-3">
-    <form method="GET" id="filtroNotas">
-      <select name="cliente_id" class="form-select form-select-sm" onchange="this.form.submit()">
-        <option value="">Todos los clientes</option>
-        {% for c in clientes_list %}<option value="{{ c.id }}" {% if c.id|string == cliente_f %}selected{% endif %}>{{ c.empresa or c.nombre }}</option>{% endfor %}
-      </select>
-    </form>
-  </div>
-  <div class="col-md-2">
-    <form method="GET">
-      <select name="tipo_nota" class="form-select form-select-sm" onchange="this.form.submit()">
-        <option value="">Todos los tipos</option>
-        {% for t,l in [('nota','Nota'),('alerta','Alerta'),('seguimiento','Seguimiento'),('resolucion','Resolucion')] %}
-        <option value="{{ t }}" {% if tipo_f == t %}selected{% endif %}>{{ l }}</option>{% endfor %}
-      </select>
-    </form>
-  </div>
-  <div class="col-md-2">
-    <form method="GET">
-      <select name="estado_nota" class="form-select form-select-sm" onchange="this.form.submit()">
-        <option value="">Todos los estados</option>
-        <option value="abierta" {% if estado_f == 'abierta' %}selected{% endif %}>Abiertas</option>
-        <option value="resuelta" {% if estado_f == 'resuelta' %}selected{% endif %}>Resueltas</option>
-      </select>
-    </form>
+<div class="mb-3 d-flex gap-2 flex-wrap align-items-center">
+  <form method="GET" class="d-flex gap-2 flex-wrap align-items-center">
+    <select name="cliente_id" class="form-select form-select-sm" style="width:auto;min-width:150px" onchange="this.form.submit()">
+      <option value="">Todos los clientes</option>
+      {% for c in clientes_list %}<option value="{{ c.id }}" {% if c.id|string == cliente_f %}selected{% endif %}>{{ c.empresa or c.nombre }}</option>{% endfor %}
+    </select>
+    <select name="tipo_nota" class="form-select form-select-sm" style="width:auto;min-width:120px" onchange="this.form.submit()">
+      <option value="">Todos los tipos</option>
+      {% for t,l in [('nota','Nota'),('alerta','Alerta'),('seguimiento','Seguimiento'),('resolucion','Resolucion')] %}
+      <option value="{{ t }}" {% if tipo_f == t %}selected{% endif %}>{{ l }}</option>{% endfor %}
+    </select>
+    <select name="estado_nota" class="form-select form-select-sm" style="width:auto;min-width:120px" onchange="this.form.submit()">
+      <option value="">Todos los estados</option>
+      <option value="abierta" {% if estado_f == 'abierta' %}selected{% endif %}>Abiertas</option>
+      <option value="resuelta" {% if estado_f == 'resuelta' %}selected{% endif %}>Resueltas</option>
+    </select>
+    {% if cliente_f or tipo_f or estado_f %}
+    <a href="{{ url_for('notas') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
+    {% endif %}
+  </form>
+</div>
+<div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-sticky-fill me-2"></i>{{ items|length }} nota(s)</div>
+{% if items %}
+<div style="display:flex;flex-direction:column;gap:.5rem">
+{% for n in items %}
+<div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);padding:1rem 1.25rem;{% if n.estado_nota is defined and n.estado_nota == 'resuelta' %}opacity:.6{% endif %}">
+  <div class="d-flex justify-content-between align-items-start gap-2">
+    <div style="flex:1;min-width:0">
+      <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+        <span class="fw-semibold" style="color:var(--text);font-size:.95rem">{{ n.titulo or '(Sin titulo)' }}</span>
+        {% if n.tipo_nota is defined and n.tipo_nota == 'alerta' %}<span class="badge bg-danger" style="font-size:.65rem">Alerta</span>
+        {% elif n.tipo_nota is defined and n.tipo_nota == 'seguimiento' %}<span class="badge bg-warning text-dark" style="font-size:.65rem">Seguimiento</span>
+        {% elif n.tipo_nota is defined and n.tipo_nota == 'resolucion' %}<span class="badge bg-success" style="font-size:.65rem">Resolucion</span>{% endif %}
+        {% if n.prioridad is defined and n.prioridad == 'alta' %}<span class="badge bg-danger" style="font-size:.65rem">Alta</span>{% endif %}
+        {% if n.estado_nota is defined and n.estado_nota == 'resuelta' %}<span class="badge bg-success" style="font-size:.65rem">Resuelta</span>{% endif %}
+      </div>
+      <p style="font-size:.85rem;color:var(--text2);margin:0 0 .5rem;line-height:1.5">{{ n.contenido[:300] }}{% if n.contenido|length > 300 %}...{% endif %}</p>
+      <div style="font-size:.73rem;color:var(--text2);display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+        {% if n.cliente %}<span class="badge bg-light text-dark border"><i class="bi bi-person me-1"></i>{{ n.cliente.empresa or n.cliente.nombre }}</span>{% endif %}
+        {% if n.orden_compra_id is defined and n.orden_compra_id %}<span class="badge bg-light text-dark border"><i class="bi bi-cart me-1"></i>OC</span>{% endif %}
+        {% if n.venta_id is defined and n.venta_id %}<span class="badge bg-light text-dark border"><i class="bi bi-bag me-1"></i>Venta</span>{% endif %}
+        {% if n.modulo %}<span class="badge" style="background:var(--surface2);color:var(--ac)">{{ n.modulo }}</span>{% endif %}
+        <span>{{ n.autor.nombre if n.autor else '' }} · {{ n.creado_en.strftime('%d/%m/%Y') }}</span>
+      </div>
+    </div>
+    <div class="d-flex gap-1 flex-shrink-0">
+      {% if not (n.estado_nota is defined and n.estado_nota == 'resuelta') %}
+      <form method="POST" action="{{ url_for('nota_resolver', id=n.id) }}" class="m-0">
+        <button class="btn btn-sm btn-outline-success" type="submit" style="font-size:.72rem;padding:2px 8px" title="Resolver"><i class="bi bi-check-lg"></i></button>
+      </form>
+      {% endif %}
+      <a href="{{ url_for('nota_editar', id=n.id) }}" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;padding:2px 8px" title="Editar"><i class="bi bi-pencil"></i></a>
+      <form method="POST" action="{{ url_for('nota_eliminar', id=n.id) }}" onsubmit="return confirm('Eliminar nota?')" class="m-0">
+        <button class="btn btn-sm btn-outline-danger" type="submit" style="font-size:.72rem;padding:2px 8px" title="Eliminar"><i class="bi bi-trash"></i></button>
+      </form>
+    </div>
   </div>
 </div>
-{% if items %}
-<div class="row g-3">
-{% for n in items %}
-<div class="col-md-6 col-lg-4">
-  <div class="tc h-100" style="position:relative;{% if n.estado_nota is defined and n.estado_nota == 'resuelta' %}opacity:.6{% endif %}">
-    <div class="d-flex justify-content-between align-items-start mb-2">
-      <div>
-        {% if n.tipo_nota is defined and n.tipo_nota == 'alerta' %}<span class="badge bg-danger me-1">Alerta</span>
-        {% elif n.tipo_nota is defined and n.tipo_nota == 'seguimiento' %}<span class="badge bg-warning text-dark me-1">Seguimiento</span>
-        {% elif n.tipo_nota is defined and n.tipo_nota == 'resolucion' %}<span class="badge bg-success me-1">Resolucion</span>
-        {% endif %}
-        {% if n.prioridad is defined and n.prioridad == 'alta' %}<span class="badge bg-danger me-1">Alta</span>{% endif %}
-        <div class="fw-semibold" style="color:var(--text);font-size:.95rem">{{ n.titulo or '(Sin titulo)' }}</div>
-      </div>
-      <div class="dropdown">
-        <button class="btn btn-sm btn-outline-secondary dropdown-toggle py-0 px-1" data-bs-toggle="dropdown" style="font-size:.75rem">
-          <i class="bi bi-three-dots"></i>
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end" style="font-size:.83rem;min-width:170px">
-          {% if not (n.estado_nota is defined and n.estado_nota == 'resuelta') %}
-          <li><form method="POST" action="{{ url_for('nota_resolver', id=n.id) }}" class="px-0 m-0">
-            <button class="dropdown-item text-success" type="submit"><i class="bi bi-check-lg me-2"></i>Resolver</button>
-          </form></li>
-          {% endif %}
-          <li><a class="dropdown-item" href="{{ url_for('nota_editar', id=n.id) }}"><i class="bi bi-pencil me-2 text-secondary"></i>Editar</a></li>
-          <li><hr class="dropdown-divider"></li>
-          <li><form method="POST" action="{{ url_for('nota_eliminar', id=n.id) }}" onsubmit="return confirm('Eliminar nota?')" class="px-0 m-0">
-            <button class="dropdown-item text-danger" type="submit"><i class="bi bi-trash me-2"></i>Eliminar</button>
-          </form></li>
-        </ul>
-      </div>
-    </div>
-    <p style="font-size:.88rem;color:var(--text2);white-space:pre-line;margin-bottom:.75rem">{{ n.contenido[:300] }}{% if n.contenido|length > 300 %}...{% endif %}</p>
-    <div style="font-size:.75rem;color:var(--text2);border-top:1px solid var(--border);padding-top:.5rem;margin-top:auto">
-      {% if n.cliente %}<span class="badge bg-light text-dark me-1"><i class="bi bi-person me-1"></i>{{ n.cliente.empresa or n.cliente.nombre }}</span>{% endif %}
-      {% if n.orden_compra_id is defined and n.orden_compra_id %}<span class="badge bg-light text-dark me-1"><i class="bi bi-cart me-1"></i>OC</span>{% endif %}
-      {% if n.venta_id is defined and n.venta_id %}<span class="badge bg-light text-dark me-1"><i class="bi bi-bag me-1"></i>Venta</span>{% endif %}
-      {% if n.modulo %}<span class="badge" style="background:var(--surface2);color:var(--ac)">{{ n.modulo }}</span>{% endif %}
-      {% if n.estado_nota is defined and n.estado_nota == 'resuelta' %}<span class="badge bg-success">Resuelta</span>{% endif %}
-      <br>{{ n.autor.nombre if n.autor else '' }} -- {{ n.creado_en.strftime('%d/%m/%Y') }}
-    </div>
-  </div>
-</div>{% endfor %}
+{% endfor %}
 </div>
 {% else %}<div class="text-center text-muted py-5"><i class="bi bi-sticky" style="font-size:3rem"></i>
   <p class="mt-3">Sin notas.</p><a href="{{ url_for('nota_nueva') }}" class="btn btn-primary">Crear primera</a></div>{% endif %}

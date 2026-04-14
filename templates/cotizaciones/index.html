@@ -9,8 +9,8 @@
   <div class="col-md-3"><div class="sc"><div class="sv">{{ items|selectattr('estado','eq','vencida')|list|length }}</div><div class="sl">Vencidas</div></div></div>
 </div>
 {% if items %}
-<div class="table-responsive" style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface)">
-<table class="table">
+<div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%">
+<table class="table table-cards" style="width:100%;margin:0">
   <thead><tr><th>Numero</th><th>Titulo</th><th>Productos</th><th class="text-end">Cantidad</th><th>Dias entrega</th><th>Anticipo %</th><th>Cliente</th><th>Total</th><th>Estado</th><th>Valida hasta</th><th></th></tr></thead>
   <tbody>{% for c in items %}<tr {% if c.estado=='vencida' %}style="background-color:rgba(255,0,0,.05)"{% endif %}>
     <td><a href="{{ url_for('cotizacion_ver', id=c.id) }}" class="fw-semibold text-decoration-none" style="color:var(--ac)">{{ c.numero or '—' }}</a></td>

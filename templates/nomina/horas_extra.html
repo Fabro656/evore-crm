@@ -63,8 +63,8 @@
     <div class="tc">
       <div class="ch"><i class="bi bi-clock-history me-2"></i>Registros del periodo</div>
       {% if registros %}
-      <div class="table-responsive">
-        <table class="table">
+      <div style="overflow-x:auto;width:100%">
+        <table class="table table-cards" style="width:100%;margin:0">
           <thead><tr><th>Fecha</th><th>Empleado</th><th>Tipo</th><th>Horas</th><th>Recargo</th><th>Valor</th><th></th></tr></thead>
           <tbody>
           {% for r in registros %}
