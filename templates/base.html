@@ -139,10 +139,10 @@ body{background:var(--surface);font-family:-apple-system,BlinkMacSystemFont,'Seg
 /* ── Skeleton loading ────────────────────────────── */
 .skeleton{background:linear-gradient(90deg,var(--surface2) 25%,var(--surface) 50%,var(--surface2) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;min-height:20px}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-.skeleton-row{display:flex;gap:12px;margin-bottom:12px}
+.skeleton-row{display:flex;gap:var(--sp-3);margin-bottom:var(--sp-3)}
 .skeleton-row .skeleton{flex:1;height:16px}
-.skeleton-card{padding:1rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)}
-.skeleton-card .skeleton{margin-bottom:10px}
+.skeleton-card{padding:var(--sp-4);border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)}
+.skeleton-card .skeleton{margin-bottom:var(--sp-2)}
 
 /* ── Stat Cards ──────────────────────────────────── */
 .sc{background:var(--surface);border-radius:var(--radius);padding:var(--sp-4);box-shadow:var(--shadow);transition:box-shadow .15s,background-color .2s,border-color .2s;height:100%;border:1px solid var(--border)}
@@ -156,7 +156,7 @@ body{background:var(--surface);font-family:-apple-system,BlinkMacSystemFont,'Seg
 /* ── Table Cards ─────────────────────────────────── */
 .tc{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;transition:all var(--transition-fast)}
 .tc:hover{box-shadow:var(--shadow-md)}
-.ch{background:var(--surface);border-bottom:1px solid var(--border);padding:var(--sp-3) var(--sp-4);font-weight:600;color:var(--text);font-size:.88rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem}
+.ch{background:var(--surface);border-bottom:1px solid var(--border);padding:var(--sp-3) var(--sp-4);font-weight:600;color:var(--text);font-size:var(--font-title);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--sp-1)}
 .table{margin:0;border-collapse:collapse;border:none!important;background:transparent!important}
 .table>:not(caption)>*>*{box-shadow:none!important}
 .table th{font-size:var(--font-micro);font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);border-bottom:2px solid var(--border);padding:var(--sp-3) var(--sp-4);white-space:nowrap;background:var(--surface2)}
@@ -166,7 +166,7 @@ body{background:var(--surface);font-family:-apple-system,BlinkMacSystemFont,'Seg
 .table tbody tr:hover{background:var(--surface2)}
 
 /* ── Form Card ───────────────────────────────────── */
-.fc{background:var(--surface);border-radius:var(--radius);padding:1.5rem 1.75rem;border:1px solid var(--border);max-width:860px;transition:background-color .2s,border-color .2s}
+.fc{background:var(--surface);border-radius:var(--radius);padding:var(--sp-5) var(--sp-5);border:1px solid var(--border);max-width:860px;transition:background-color .2s,border-color .2s}
 .form-label{font-weight:600;font-size:.82rem;color:var(--text);margin-bottom:.3rem}
 .form-label .req{color:var(--red);margin-left:2px;font-weight:700}
 .form-text{font-size:.76rem;color:var(--text2);margin-top:.2rem}
@@ -360,12 +360,8 @@ html[data-theme="dark"]{
 html[data-theme="dark"] body{background:var(--surface);color:var(--text)}
 html[data-theme="dark"] .topbar{background:rgba(30,30,30,.85);border-color:var(--topbar-border)}
 html[data-theme="dark"] .tc,html[data-theme="dark"] .fc,html[data-theme="dark"] .sc{background:var(--surface);border-color:var(--border)}
-html[data-theme="dark"] .tc{background:var(--surface);border-color:var(--border)}
-html[data-theme="dark"] .fc{background:var(--surface);border-color:var(--border);color:var(--text)}
-html[data-theme="dark"] .sc{background:var(--surface);border-color:var(--border)}
+html[data-theme="dark"] .fc{color:var(--text)}
 html[data-theme="dark"] .ch{background:var(--surface);border-color:var(--border);color:var(--text)}
-html[data-theme="dark"] .sv{color:var(--text)}
-html[data-theme="dark"] .pg-title{color:var(--text)}
 /* Tables */
 html[data-theme="dark"] .table{color:var(--text)}
 html[data-theme="dark"] .table>:not(caption)>*>*{background-color:var(--surface);color:var(--text);border-color:var(--border)}
