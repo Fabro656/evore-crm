@@ -703,8 +703,8 @@ img,svg{max-width:100%;height:auto}
     {% if current_user.is_authenticated %}
       {% if company_config and 'evore' in (company_config.get('name','') or '').lower() %}
       <a href="/" style="text-decoration:none;display:none;overflow:hidden">
-        <img src="{{ url_for('static', filename='img/evore-horizontal.png') }}" alt="Evore CRM logo" class="logo-light" style="display:block;max-width:140px;height:auto">
-        <img src="{{ url_for('static', filename='img/evore-horizontal-dark.png') }}" alt="Evore CRM logo" class="logo-dark" style="display:none;max-width:140px;height:auto">
+        <img src="{{ url_for('static', filename='img/evore-logo-blue.svg') }}" alt="Evore" class="logo-light" style="display:block;max-width:140px;height:auto">
+        <img src="{{ url_for('static', filename='img/evore-logo-white.svg') }}" alt="Evore" class="logo-dark" style="display:none;max-width:140px;height:auto">
       </a>
       {% else %}
       <a href="/" style="text-decoration:none;color:#fff;display:none;align-items:center;gap:.5rem;overflow:hidden">
