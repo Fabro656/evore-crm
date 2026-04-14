@@ -1,0 +1,63 @@
+{% extends 'site/base.html' %}
+{% block title %}{{ module.name }} — Evore{% endblock %}
+{% block description %}{{ module.tagline }}{% endblock %}
+{% block content %}
+
+<!-- Hero -->
+<div class="ph rv">
+  <div class="ph-label">{{ module.label }}</div>
+  <h1>{{ module.headline }}</h1>
+  <p>{{ module.subline }}</p>
+</div>
+
+<!-- Feature rows -->
+<section class="s">
+  <div class="sw">
+    {% for feat in module.features %}
+    <div class="fr rv">
+      <div class="fr-vis">
+        <div class="mock">
+          <div class="mock-bar"><i></i><i></i><i></i></div>
+          <div class="mock-body">
+            {% for card in feat.cards %}
+            <div class="mk">
+              <div class="mk-d" style="background:{{ card.color }}"><i class="bi {{ card.icon }}"></i></div>
+              <div class="mk-i"><div class="mk-t">{{ card.title }}</div><div class="mk-s">{{ card.sub }}</div></div>
+              <div class="mk-v" style="color:{{ card.color }}">{{ card.value }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      <div class="fr-txt">
+        <div class="lb">{{ feat.label }}</div>
+        <h3>{{ feat.title }}</h3>
+        <p>{{ feat.desc }}</p>
+        <ul class="fl">
+          {% for item in feat.checks %}
+          <li><i class="bi bi-check-circle-fill"></i>{{ item }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- Stats -->
+{% if module.stats %}
+<section class="s s-gray">
+  <div class="si">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:2rem;text-align:center">
+      {% for stat in module.stats %}
+      <div class="rv">
+        <div style="font-size:clamp(2rem,4vw,3rem);font-weight:700;color:var(--ac);line-height:1">{{ stat.value }}</div>
+        <div style="font-size:.88rem;color:var(--t2);margin-top:.5rem">{{ stat.label }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% endblock %}

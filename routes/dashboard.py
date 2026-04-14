@@ -16,7 +16,7 @@ def register(app):
     def landing():
         if current_user.is_authenticated:
             return redirect(url_for('dashboard'))
-        return render_template('landing.html')
+        return render_template('landing.html', active_module=None)
 
     # ── contact/purchase form (public)
     @app.route('/contacto', methods=['POST'])
