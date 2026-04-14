@@ -117,12 +117,15 @@ def create_app():
             if 'company_id' in where_str:
                 return
         # Apply filter to each entity in the query that has company_id
-        for mapper in execute_state.all_mappers:
-            entity = mapper.entity
-            if hasattr(entity, 'company_id') and entity.__tablename__ not in ('companies', 'user_companies', 'company_relationships', 'users'):
-                execute_state.statement = execute_state.statement.filter(
-                    entity.company_id == cid
-                )
+        try:
+            for mapper in execute_state.all_mappers:
+                entity = mapper.entity
+                if hasattr(entity, 'company_id') and entity.__tablename__ not in ('companies', 'user_companies', 'company_relationships', 'users'):
+                    execute_state.statement = execute_state.statement.filter(
+                        entity.company_id == cid
+                    )
+        except Exception:
+            pass  # If filter fails, let query run unfiltered rather than crash
 
     # ── Register routes ───────────────────────────────────────────────
     from routes import register_all

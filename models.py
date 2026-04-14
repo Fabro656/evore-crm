@@ -1942,14 +1942,21 @@ def init_db():
 
 def _fix_missing_skus():
     """Genera SKU para productos que tengan None o vacío."""
-    prods = Producto.query.filter(
-        db.or_(Producto.sku == None, Producto.sku == 'None', Producto.sku == '')
-    ).all()
-    if not prods:
-        return
-    for p in prods:
-        p.sku = _generar_sku(p.nombre)
-    db.session.commit()
+    try:
+        # Use raw SQL to bypass auto-filter during init
+        result = db.session.execute(db.text(
+            "SELECT id, nombre FROM productos WHERE sku IS NULL OR sku = 'None' OR sku = ''"
+        )).fetchall()
+        if not result:
+            return
+        for row in result:
+            sku = _generar_sku(row[1])
+            db.session.execute(db.text("UPDATE productos SET sku = :sku WHERE id = :id"), {'sku': sku, 'id': row[0]})
+        db.session.commit()
+    except Exception as e:
+        logging.warning(f'_fix_missing_skus: {e}')
+        try: db.session.rollback()
+        except Exception: pass
 
 
 
@@ -1958,7 +1965,8 @@ def _seed_puc():
     """Siembra el Plan Único de Cuentas mínimo para empresa manufacturera colombiana."""
     import logging
     try:
-        if CuentaPUC.query.count() > 0:
+        count = db.session.execute(db.text("SELECT COUNT(*) FROM cuentas_puc")).scalar()
+        if count and count > 0:
             return
     except Exception:
         return
@@ -2094,7 +2102,8 @@ def _seed_cuc_mx():
     """Siembra el Catalogo de Cuentas minimo para empresa manufacturera mexicana."""
     import logging
     try:
-        if CuentaPUC.query.count() > 0:
+        count = db.session.execute(db.text("SELECT COUNT(*) FROM cuentas_puc")).scalar()
+        if count and count > 0:
             return
     except Exception:
         return
