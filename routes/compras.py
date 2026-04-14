@@ -204,7 +204,7 @@ def register(app):
             ).order_by(CotizacionProveedor.id.desc()).first()
             if ultimo and ultimo.numero:
                 try: seq = int(ultimo.numero.split('-')[-1]) + 1
-                except: seq = 1
+                except Exception: seq = 1
             else: seq = 1
             cp.numero = f'CP-{hoy.year}-{seq:03d}'
             db.session.commit()
@@ -377,7 +377,7 @@ def register(app):
             ultimo_oc = OrdenCompra.query.filter(OrdenCompra.numero.like(f'OC-{hoy.year}-%')).order_by(OrdenCompra.id.desc()).first()
             if ultimo_oc and ultimo_oc.numero:
                 try: seq = int(ultimo_oc.numero.split('-')[-1]) + 1
-                except: seq = 1
+                except Exception: seq = 1
             else: seq = 1
             oc.numero = f'OC-{hoy.year}-{seq:03d}'
             saved_items = _oc_save_items(oc.id)

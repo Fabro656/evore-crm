@@ -110,7 +110,7 @@ def register(app):
                     ).first()
                     if not tiene:
                         mp_sin_cot.append(mp.nombre)
-            except: pass
+            except Exception: pass
             mp_sin_cot_str = ', '.join(mp_sin_cot[:8]) if mp_sin_cot else 'todas tienen cotización'
         except Exception as e:
             logging.warning(f'AI context building error: {e}')

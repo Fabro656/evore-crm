@@ -605,10 +605,10 @@ def register(app):
         q = Venta.query.filter(Venta.estado.in_(['anticipo_pagado','completado','prospecto','negociacion','perdido']))
         if desde_s:
             try: q = q.filter(db.func.date(Venta.creado_en) >= datetime.strptime(desde_s,'%Y-%m-%d').date())
-            except: pass
+            except Exception: pass
         if hasta_s:
             try: q = q.filter(db.func.date(Venta.creado_en) <= datetime.strptime(hasta_s,'%Y-%m-%d').date())
-            except: pass
+            except Exception: pass
         items = q.order_by(Venta.creado_en.desc()).all()
         return render_template('contable/ingresos.html', items=items, desde_s=desde_s, hasta_s=hasta_s)
     
@@ -626,13 +626,13 @@ def register(app):
                 d = datetime.strptime(desde_s,'%Y-%m-%d').date()
                 gastos = gastos.filter(GastoOperativo.fecha >= d)
                 compras = compras.filter(CompraMateria.fecha >= d)
-            except: pass
+            except Exception: pass
         if hasta_s:
             try:
                 h = datetime.strptime(hasta_s,'%Y-%m-%d').date()
                 gastos = gastos.filter(GastoOperativo.fecha <= h)
                 compras = compras.filter(CompraMateria.fecha <= h)
-            except: pass
+            except Exception: pass
         return render_template('contable/egresos.html',
             gastos=gastos.order_by(GastoOperativo.fecha.desc()).all(),
             compras=compras.order_by(CompraMateria.fecha.desc()).all(),
@@ -664,7 +664,7 @@ def register(app):
             ).order_by(AsientoContable.id.desc()).first()
             if ultimo and ultimo.numero:
                 try: seq = int(ultimo.numero.split('-')[-1]) + 1
-                except: seq = 1
+                except Exception: seq = 1
             else: seq = 1
             a.numero = f'AC-{hoy.year}-{seq:03d}'
             db.session.commit()
@@ -689,10 +689,10 @@ def register(app):
             q = Venta.query
             if desde_s:
                 try: q = q.filter(db.func.date(Venta.creado_en) >= datetime.strptime(desde_s,'%Y-%m-%d').date())
-                except: pass
+                except Exception: pass
             if hasta_s:
                 try: q = q.filter(db.func.date(Venta.creado_en) <= datetime.strptime(hasta_s,'%Y-%m-%d').date())
-                except: pass
+                except Exception: pass
             for v in q.order_by(Venta.creado_en).all():
                 writer.writerow([v.numero or '', v.titulo,
                     v.cliente.empresa or v.cliente.nombre if v.cliente else '',
@@ -703,10 +703,10 @@ def register(app):
             q = GastoOperativo.query
             if desde_s:
                 try: q = q.filter(GastoOperativo.fecha >= datetime.strptime(desde_s,'%Y-%m-%d').date())
-                except: pass
+                except Exception: pass
             if hasta_s:
                 try: q = q.filter(GastoOperativo.fecha <= datetime.strptime(hasta_s,'%Y-%m-%d').date())
-                except: pass
+                except Exception: pass
             for g in q.order_by(GastoOperativo.fecha).all():
                 writer.writerow([g.fecha.strftime('%Y-%m-%d'), g.tipo, g.descripcion or '', g.monto, g.recurrencia])
         elif tipo == 'compras':
@@ -714,10 +714,10 @@ def register(app):
             q = CompraMateria.query
             if desde_s:
                 try: q = q.filter(CompraMateria.fecha >= datetime.strptime(desde_s,'%Y-%m-%d').date())
-                except: pass
+                except Exception: pass
             if hasta_s:
                 try: q = q.filter(CompraMateria.fecha <= datetime.strptime(hasta_s,'%Y-%m-%d').date())
-                except: pass
+                except Exception: pass
             for c in q.order_by(CompraMateria.fecha).all():
                 writer.writerow([c.fecha.strftime('%Y-%m-%d'), c.nombre_item, c.proveedor or '',
                     c.cantidad, c.unidad, c.costo_total, c.nro_factura or ''])
@@ -744,31 +744,31 @@ def register(app):
                 resultados['clientes'] = Cliente.query.filter(
                     db.or_(Cliente.nombre.ilike(like), Cliente.empresa.ilike(like), Cliente.nit.ilike(like))
                 ).limit(20).all()
-            except: resultados['clientes'] = []
+            except Exception: resultados['clientes'] = []
             try:
                 resultados['proveedores'] = Proveedor.query.filter(
                     db.or_(Proveedor.nombre.ilike(like), Proveedor.empresa.ilike(like), Proveedor.nit.ilike(like))
                 ).limit(20).all()
-            except: resultados['proveedores'] = []
+            except Exception: resultados['proveedores'] = []
             try:
                 resultados['productos'] = Producto.query.filter(
                     db.or_(Producto.nombre.ilike(like), Producto.sku.ilike(like), Producto.nso.ilike(like))
                 ).filter_by(activo=True).limit(20).all()
-            except: resultados['productos'] = []
+            except Exception: resultados['productos'] = []
             try:
                 resultados['ventas'] = Venta.query.filter(
                     db.or_(Venta.titulo.ilike(like), Venta.numero.ilike(like))
                 ).limit(20).all()
-            except: resultados['ventas'] = []
+            except Exception: resultados['ventas'] = []
             try:
                 resultados['ordenes_prod'] = OrdenProduccion.query.join(Producto).filter(
                     db.or_(Producto.nombre.ilike(like),
                            db.cast(OrdenProduccion.id, db.String).ilike(like))
                 ).limit(20).all()
-            except: resultados['ordenes_prod'] = []
+            except Exception: resultados['ordenes_prod'] = []
             try:
                 resultados['ordenes_compra'] = OrdenCompra.query.filter(
                     OrdenCompra.numero.ilike(like)
                 ).limit(20).all()
-            except: resultados['ordenes_compra'] = []
+            except Exception: resultados['ordenes_compra'] = []
         return render_template('buscador.html', q=q, resultados=resultados)

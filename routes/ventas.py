@@ -390,7 +390,7 @@ def register(app):
             ).order_by(Venta.id.desc()).first()
             if ultimo_vnt and ultimo_vnt.numero:
                 try: seq = int(ultimo_vnt.numero.split('-')[-1]) + 1
-                except: seq = 1
+                except Exception: seq = 1
             else: seq = 1
             v.numero = f'VNT-{hoy.year}-{seq:03d}'
             try:
@@ -1241,7 +1241,7 @@ def register(app):
             ).order_by(Cotizacion.id.desc()).first()
             if ultimo and ultimo.numero:
                 try: seq = int(ultimo.numero.split('-')[-1]) + 1
-                except: seq = 1
+                except Exception: seq = 1
             else: seq = 1
             numero = f'COT-{hoy.year}-{seq:03d}'
             fd_em = request.form.get('fecha_emision')
@@ -1681,7 +1681,7 @@ def register(app):
         ).order_by(Venta.id.desc()).first()
         if ultimo_vnt and ultimo_vnt.numero:
             try: seq = int(ultimo_vnt.numero.split('-')[-1]) + 1
-            except: seq = 1
+            except Exception: seq = 1
         else: seq = 1
         numero_venta = f'VNT-{hoy.year}-{seq:03d}'
 

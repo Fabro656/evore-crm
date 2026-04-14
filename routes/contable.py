@@ -641,7 +641,7 @@ def register(app):
         periodo = request.args.get('periodo', datetime.utcnow().strftime('%Y-%m'))
         try:
             anio, mes = int(periodo.split('-')[0]), int(periodo.split('-')[1])
-        except:
+        except Exception:
             anio, mes = datetime.utcnow().year, datetime.utcnow().month
         from calendar import monthrange
         mes_ini = date_type(anio, mes, 1)
@@ -681,7 +681,7 @@ def register(app):
         corte = request.args.get('corte', date_type.today().isoformat())
         try:
             fecha_corte = datetime.strptime(corte, '%Y-%m-%d').date()
-        except:
+        except Exception:
             fecha_corte = date_type.today()
 
         def _saldo_clase(prefijo):
@@ -728,7 +728,7 @@ def register(app):
         periodo = request.args.get('periodo', datetime.utcnow().strftime('%Y-%m'))
         try:
             anio, mes = int(periodo.split('-')[0]), int(periodo.split('-')[1])
-        except:
+        except Exception:
             anio, mes = datetime.utcnow().year, datetime.utcnow().month
         from calendar import monthrange
         mes_ini = date_type(anio, mes, 1)
@@ -780,7 +780,7 @@ def register(app):
         periodo = request.args.get('periodo', datetime.utcnow().strftime('%Y-%m'))
         try:
             anio, mes = int(periodo.split('-')[0]), int(periodo.split('-')[1])
-        except:
+        except Exception:
             anio, mes = datetime.utcnow().year, datetime.utcnow().month
         from calendar import monthrange
         mes_ini = date_type(anio, mes, 1)

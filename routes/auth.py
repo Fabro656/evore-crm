@@ -172,7 +172,7 @@ def register(app):
     def onboarding_step_complete(key):
         try:
             config = json.loads(current_user.onboarding_role_config or '{}')
-        except: config = {}
+        except Exception: config = {}
         config[key] = True
         current_user.onboarding_role_config = json.dumps(config)
         db.session.commit()

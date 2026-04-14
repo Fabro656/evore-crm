@@ -290,7 +290,7 @@ def _format_currency(value, decimals=None):
         # Swap to temp, then to target
         formatted = formatted.replace(',', 'TEMP').replace('.', dsep).replace('TEMP', tsep)
         return f'{sym} {formatted}'
-    except:
+    except Exception:
         return f'{COMPANY.get("currency_symbol", "$")} 0'
 
 def cop(value):
@@ -330,7 +330,7 @@ def inject_globals():
         try:
             notif_count = Notificacion.query.filter_by(
                 usuario_id=current_user.id, leida=False).count()
-        except: pass
+        except Exception: pass
         _rol_act = _get_rol_activo(current_user)
         if _rol_act == 'cliente':
             try:
@@ -353,7 +353,7 @@ def inject_globals():
         if steps:
             try:
                 completed = json.loads(getattr(current_user, 'onboarding_role_config', '{}') or '{}')
-            except: completed = {}
+            except Exception: completed = {}
             pending = [s for s in steps if s['key'] not in completed]
             if pending:
                 onboarding_data = {
@@ -371,11 +371,11 @@ def inject_globals():
     if current_user.is_authenticated:
         try:
             _tareas_pend = Tarea.query.filter(Tarea.estado != 'completada', Tarea.asignado_a == current_user.id).count()
-        except: pass
+        except Exception: pass
         try:
             if _get_rol_activo(current_user) in ('admin','director_financiero','director_operativo'):
                 _aprob_pend = Aprobacion.query.filter_by(estado='pendiente').count()
-        except: pass
+        except Exception: pass
     return {'now': datetime.utcnow(), 'modulos_user': modulos, 'notif_count': notif_count,
             'empresa_cliente_nombre': empresa_cliente_nombre, 'empresa_proveedor_nombre': empresa_proveedor_nombre,
             'onboarding': onboarding_data,
@@ -629,7 +629,7 @@ def _precio_minimo_venta(producto_id, cantidad=1):
     try:
         regla = ReglaTributaria.query.filter_by(aplica_a='ventas', activo=True).first()
         iva_pct = float(regla.porcentaje) if regla else 19.0
-    except:
+    except Exception:
         iva_pct = 19.0
 
     costo_total = costo_unit * cantidad
@@ -1597,7 +1597,7 @@ def _modulos_user(user):
     try:
         custom = json.loads(user.modulos_permitidos or '[]')
         if custom: return custom
-    except: pass
+    except Exception: pass
     return _MODULOS_ROL.get(user.rol, ['tareas','notas'])
 
 def generar_csv_response(rows, headers, filename='export.csv'):

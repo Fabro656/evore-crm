@@ -376,7 +376,7 @@ def register(app):
         ).order_by(Cotizacion.id.desc()).first()
         if ultimo and ultimo.numero:
             try: seq = int(ultimo.numero.split('-')[-1]) + 1
-            except: seq = 1
+            except Exception: seq = 1
         else: seq = 1
         numero = f'COT-{hoy.year}-{seq:03d}'
 
