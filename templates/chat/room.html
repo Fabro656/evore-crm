@@ -42,7 +42,7 @@
         {% if p.rol == 'admin' %}<span style="font-size:.6rem;color:var(--ac)">Admin</span>{% endif %}
       </div>
       {% if (is_admin or (my_participant and my_participant.rol == 'admin')) and p.user_id != current_user.id %}
-      <form method="POST" action="{{ url_for('chat_remover', room_id=room.id) }}" class="m-0" onsubmit="return confirm('Remover a {{ p.user.nombre if p.user else \"usuario\" }}?')">
+      <form method="POST" action="{{ url_for('chat_remover', room_id=room.id) }}" class="m-0" onsubmit="return confirm('Remover participante?')">
         <input type="hidden" name="user_id" value="{{ p.user_id }}">
         <button class="btn btn-sm btn-outline-danger" style="font-size:.6rem;padding:1px 4px"><i class="bi bi-x"></i></button>
       </form>
