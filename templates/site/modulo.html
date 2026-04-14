@@ -3,33 +3,37 @@
 {% block description %}{{ module.tagline }}{% endblock %}
 {% block content %}
 
-<!-- Hero -->
 <div class="ph rv">
-  <div class="ph-label">{{ module.label }}</div>
+  <div class="ph-l">{{ module.label }}</div>
   <h1>{{ module.headline }}</h1>
   <p>{{ module.subline }}</p>
 </div>
 
-<!-- Feature rows -->
-<section class="s">
+<section class="sc sc-d">
   <div class="sw">
     {% for feat in module.features %}
     <div class="fr rv">
-      <div class="fr-vis">
-        <div class="mock">
-          <div class="mock-bar"><i></i><i></i><i></i></div>
-          <div class="mock-body">
+      <div class="fr-v">
+        <div class="mock mock-shimmer">
+          <div class="mock-t"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span>evore.co/{{ active_module }}</span></div>
+          <div class="mock-b">
             {% for card in feat.cards %}
-            <div class="mk">
-              <div class="mk-d" style="background:{{ card.color }}"><i class="bi {{ card.icon }}"></i></div>
-              <div class="mk-i"><div class="mk-t">{{ card.title }}</div><div class="mk-s">{{ card.sub }}</div></div>
-              <div class="mk-v" style="color:{{ card.color }}">{{ card.value }}</div>
+            <div class="crm-card">
+              <div class="crm-bar" style="background:{{ card.color }}"></div>
+              <div class="crm-body">
+                <div class="crm-av" style="background:{{ card.color }}"><i class="bi {{ card.icon }}"></i></div>
+                <div class="crm-info">
+                  <div class="crm-name">{{ card.title }}</div>
+                  <div class="crm-sub">{{ card.sub }}</div>
+                </div>
+                <div class="crm-val" style="color:{{ card.color }}">{{ card.value }}</div>
+              </div>
             </div>
             {% endfor %}
           </div>
         </div>
       </div>
-      <div class="fr-txt">
+      <div class="fr-t">
         <div class="lb">{{ feat.label }}</div>
         <h3>{{ feat.title }}</h3>
         <p>{{ feat.desc }}</p>
@@ -44,9 +48,8 @@
   </div>
 </section>
 
-<!-- Stats -->
 {% if module.stats %}
-<section class="s s-gray">
+<section class="sc sc-g">
   <div class="si">
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:2rem;text-align:center">
       {% for stat in module.stats %}

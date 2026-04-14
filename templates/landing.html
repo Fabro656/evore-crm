@@ -1,162 +1,57 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Evore — ERP para manufactura colombiana</title>
-<meta name="description" content="Evore conecta a las pymes manufactureras de Colombia. Ventas, producción, inventario, contabilidad, nómina y un marketplace integrado.">
-<link rel="icon" href="/static/img/icon-192.png" type="image/png">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-:root{--ac:#0176D3;--ac2:#0047A1;--ar:1,118,211;--t:#1A2536;--t2:#5A6A85;--bg:#F7FAFD;--sf:#FFF;--bd:#D5DFF0;--gn:#2E844A;--og:#DD7A01}
-body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI','Helvetica Neue',Arial,sans-serif;color:var(--t);background:#000;overflow-x:hidden;-webkit-font-smoothing:antialiased}
-a{text-decoration:none;color:inherit}
-img{max-width:100%;height:auto}
+{% extends 'site/base.html' %}
+{% block title %}Evore — ERP para manufactura colombiana{% endblock %}
 
-/* ── Buttons ── */
-.ba{display:inline-flex;align-items:center;gap:.5rem;background:var(--ac);color:#fff;border:none;padding:.75rem 1.75rem;border-radius:980px;font-weight:600;font-size:.95rem;cursor:pointer;transition:all .25s}
-.ba:hover{background:var(--ac2);color:#fff;transform:scale(1.04)}
-.bw{display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);padding:.7rem 1.6rem;border-radius:980px;font-weight:500;font-size:.95rem;cursor:pointer;transition:all .25s;backdrop-filter:blur(12px)}
-.bw:hover{background:rgba(255,255,255,.18);color:#fff}
-.bo{display:inline-flex;align-items:center;gap:.5rem;background:transparent;color:var(--ac);border:1px solid var(--ac);padding:.65rem 1.5rem;border-radius:980px;font-weight:600;font-size:.88rem;cursor:pointer;transition:all .2s}
-.bo:hover{background:rgba(var(--ar),.06)}
-
-/* ── Scroll reveal ── */
-.rv{opacity:0;transform:translateY(50px);transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1)}
-.rv.v{opacity:1;transform:none}
-.rv-s{opacity:0;transform:scale(.92);transition:opacity .9s ease,transform .9s ease}
-.rv-s.v{opacity:1;transform:none}
-
-/* ── Nav (Apple style: transparent → blur) ── */
-nav{position:fixed;top:0;left:0;right:0;z-index:200;transition:all .4s cubic-bezier(.16,1,.3,1)}
-nav.s{background:rgba(255,255,255,.72);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid rgba(0,0,0,.06)}
-.nv{max-width:100%;margin:0 auto;padding:.65rem 2.5rem;display:flex;align-items:center;justify-content:space-between}
-.nl{height:26px;transition:filter .3s}
-nav:not(.s) .nl{filter:brightness(0) invert(1)}
-.nr{display:flex;gap:1.5rem;align-items:center;font-size:.85rem;font-weight:400}
-.nr a.nx{color:rgba(255,255,255,.75);transition:color .2s}
-nav.s .nr a.nx{color:var(--t2)}
-.nr a.nx:hover{color:#fff}nav.s .nr a.nx:hover{color:var(--t)}
-.nr .bo{border-color:rgba(255,255,255,.25);color:rgba(255,255,255,.85);font-size:.82rem;padding:.45rem 1.1rem}
-nav.s .nr .bo{border-color:var(--ac);color:var(--ac)}
-
-/* ── Hero: full viewport, cinematic ── */
-.hw{position:relative;height:100vh;min-height:700px;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden}
-.hv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.2;transform:scale(1.05);transition:transform 8s ease}
+{% block extra_css %}
+/* Hero overrides */
+.hw{position:relative;height:100vh;min-height:700px;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden;margin-top:-80px;padding-top:80px}
+.hv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.15;transform:scale(1.05);transition:transform 8s ease}
 .hw:hover .hv{transform:scale(1)}
-.ho{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 80%,rgba(0,0,0,.3) 0%,rgba(0,0,0,.85) 100%)}
+.ho{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 80%,rgba(0,0,0,.3),rgba(0,0,0,.85))}
 .hc{position:relative;z-index:1;text-align:center;padding:0 2rem;max-width:920px}
 .hc h1{font-size:clamp(2.5rem,6vw,4.5rem);font-weight:700;line-height:1.06;letter-spacing:-.03em;color:#fff;margin-bottom:1.5rem}
 .hc h1 em{font-style:normal;background:linear-gradient(135deg,#64B5F6,#CE93D8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.hc p{font-size:clamp(1rem,2vw,1.25rem);color:rgba(255,255,255,.55);max-width:620px;margin:0 auto 2.5rem;line-height:1.65;font-weight:300}
+.hc p{font-size:clamp(1rem,2vw,1.2rem);color:rgba(255,255,255,.5);max-width:600px;margin:0 auto 2.5rem;line-height:1.65;font-weight:300}
 .hb{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
 
-/* ── Full-width sections (Apple style) ── */
-.sc{width:100%;padding:8rem 2.5rem}
-.sc-dark{background:#000;color:#fff}
-.sc-light{background:var(--bg)}
-.sc-white{background:#fff}
-.si{max-width:980px;margin:0 auto}
-.si-wide{max-width:1280px;margin:0 auto}
-.sh{text-align:center;margin-bottom:4rem}
-.sh h2{font-size:clamp(1.8rem,4vw,3.2rem);font-weight:700;letter-spacing:-.02em;line-height:1.1}
-.sh p{font-size:clamp(.95rem,1.5vw,1.15rem);color:var(--t2);max-width:560px;margin:1rem auto 0;line-height:1.65;font-weight:300}
-.sc-dark .sh p{color:rgba(255,255,255,.5)}
+/* Eco grid */
+.eg{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--bd)}
+.ei{padding:3rem 2rem;border-bottom:1px solid var(--bd);border-right:1px solid var(--bd)}
+.ei:nth-child(3n){border-right:none}
+.en{font-size:clamp(2.5rem,5vw,3.5rem);font-weight:700;color:var(--ac);line-height:1;margin-bottom:.5rem}
+.ei h3{font-size:1rem;font-weight:600;margin-bottom:.4rem}.ei p{font-size:.88rem;color:var(--t2);line-height:1.6}
 
-/* ── Feature showcase (Apple product-page style) ── */
-.feat-row{display:flex;align-items:center;gap:4rem;margin-bottom:6rem}
-.feat-row:nth-child(even){flex-direction:row-reverse}
-.feat-visual{flex:1.2;min-width:0}
-.feat-mock{background:#111;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06);box-shadow:0 20px 60px rgba(0,0,0,.5)}
-.feat-bar{height:32px;background:#1A1A1A;border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:center;padding:0 12px;gap:6px}
-.feat-bar i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.1)}
-.feat-bar i:first-child{background:#FF5F57}.feat-bar i:nth-child(2){background:#FFBD2E}.feat-bar i:nth-child(3){background:#28CA41}
-.feat-body{padding:1.5rem;min-height:240px}
-.mc{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:.85rem 1rem;margin-bottom:.6rem;display:flex;align-items:center;gap:.85rem;animation:mcIn .6s ease backwards}
-.mc:nth-child(2){animation-delay:.15s}.mc:nth-child(3){animation-delay:.3s}
-@keyframes mcIn{from{opacity:0;transform:translateX(-24px)}to{opacity:1;transform:none}}
-.mc-d{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.9rem;flex-shrink:0}
-.mc-i{flex:1;min-width:0}
-.mc-t{font-weight:600;font-size:.82rem;color:#fff}.mc-s{font-size:.72rem;color:rgba(255,255,255,.4)}
-.mc-v{font-weight:700;font-size:.9rem;white-space:nowrap}
-.feat-text{flex:1;min-width:0}
-.feat-text .label{font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--ac);margin-bottom:.75rem}
-.feat-text h3{font-size:clamp(1.4rem,2.5vw,2rem);font-weight:700;letter-spacing:-.02em;margin-bottom:1rem;color:#fff}
-.feat-text p{color:rgba(255,255,255,.5);font-size:.95rem;line-height:1.7;margin-bottom:1.5rem;font-weight:300}
-.feat-list{list-style:none;font-size:.9rem}
-.feat-list li{padding:.45rem 0;display:flex;align-items:center;gap:.6rem;color:rgba(255,255,255,.65)}
-.feat-list .bi-check-circle-fill{color:var(--ac)}
-
-/* ── Ecosystem (big numbers, Apple style) ── */
-.eco-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--bd)}
-.eco-item{padding:3rem 2rem;border-bottom:1px solid var(--bd);border-right:1px solid var(--bd)}
-.eco-item:nth-child(3n){border-right:none}
-.eco-n{font-size:clamp(2.5rem,5vw,4rem);font-weight:700;color:var(--ac);line-height:1;margin-bottom:.75rem}
-.eco-item h3{font-size:1.05rem;font-weight:600;margin-bottom:.5rem}
-.eco-item p{font-size:.88rem;color:var(--t2);line-height:1.6}
-
-/* ── Pricing ── */
+/* Pricing */
 .pg{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--bd);border-radius:20px;overflow:hidden;max-width:1000px;margin:0 auto}
-.pc{background:#fff;padding:3rem 2rem;text-align:center}
-.pc.feat{background:linear-gradient(180deg,#EBF4FF,#fff)}
-.pc h3{font-size:1rem;font-weight:600;margin:.5rem 0}
+.pc{background:#fff;padding:3rem 2rem;text-align:center}.pc.ft{background:linear-gradient(180deg,#EBF4FF,#fff)}
 .pp{font-size:clamp(2rem,4vw,2.8rem);font-weight:700;margin:.5rem 0 .25rem}.pp span{font-size:.85rem;font-weight:400;color:var(--t2)}
+.pc h3{font-size:1rem;font-weight:600;margin:.5rem 0}
 .pc ul{text-align:left;list-style:none;margin:1.5rem 0;font-size:.88rem}
-.pc ul li{padding:.4rem 0;display:flex;align-items:center;gap:.5rem}
+.pc ul li{padding:.35rem 0;display:flex;align-items:center;gap:.5rem}
 .pc ul .bi-check-lg{color:var(--gn)}.pc ul .bi-x-lg{color:var(--t2);opacity:.2}
 
-/* ── FAQ ── */
-.fq{border-top:1px solid var(--bd);max-width:700px;margin:0 auto}
-.fi{border-bottom:1px solid var(--bd);padding:1.5rem 0;cursor:pointer}
-.fi-q{display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:1.05rem}
-.fi-q i{transition:transform .3s;color:var(--t2)}
-.fi.open .fi-q i{transform:rotate(45deg)}
-.fi-a{max-height:0;overflow:hidden;transition:max-height .4s ease,padding .4s;font-size:.95rem;color:var(--t2);line-height:1.7}
-.fi.open .fi-a{max-height:400px;padding-top:1rem}
+/* FAQ */
+.fq{max-width:700px;margin:0 auto;border-top:1px solid var(--bd)}
+.fi{border-bottom:1px solid var(--bd);padding:1.25rem 0;cursor:pointer}
+.fi-q{display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:1rem}
+.fi-q i{transition:transform .3s;color:var(--t2)}.fi.op .fi-q i{transform:rotate(45deg)}
+.fi-a{max-height:0;overflow:hidden;transition:max-height .4s ease,padding .4s;font-size:.92rem;color:var(--t2);line-height:1.7}
+.fi.op .fi-a{max-height:400px;padding-top:.75rem}
 
-/* ── CTA ── */
-.cta-sec{position:relative;overflow:hidden;background:#000;padding:10rem 2rem;text-align:center}
-.cta-sec::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 60%,rgba(var(--ar),.15) 0%,transparent 70%)}
-.cta-sec h2{font-size:clamp(2rem,5vw,3.5rem);font-weight:700;color:#fff;letter-spacing:-.02em;margin-bottom:1rem;position:relative;z-index:1}
-.cta-sec p{color:rgba(255,255,255,.45);font-size:1.1rem;max-width:480px;margin:0 auto 2.5rem;position:relative;z-index:1;font-weight:300;line-height:1.65}
+/* CTA dark */
+.ct{position:relative;overflow:hidden;background:#000;padding:10rem 2rem;text-align:center}
+.ct::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 60%,rgba(var(--ar),.15),transparent 70%)}
+.ct h2{font-size:clamp(2rem,5vw,3.5rem);font-weight:700;color:#fff;letter-spacing:-.02em;margin-bottom:1rem;position:relative;z-index:1}
+.ct p{color:rgba(255,255,255,.4);font-size:1.1rem;max-width:480px;margin:0 auto 2.5rem;position:relative;z-index:1;font-weight:300;line-height:1.65}
 
-/* ── Footer ── */
-footer{background:#000;color:rgba(255,255,255,.4);text-align:center;padding:3rem 2rem;font-size:.8rem;border-top:1px solid rgba(255,255,255,.06)}
-footer a{color:rgba(255,255,255,.5)}footer a:hover{color:#fff}
-
-/* ── Toast ── */
-.tl{position:fixed;top:80px;right:20px;z-index:1080;padding:14px 22px;border-radius:14px;font-size:.9rem;color:#fff;box-shadow:0 12px 40px rgba(0,0,0,.2);animation:tIn .35s ease;display:flex;align-items:center;gap:10px;backdrop-filter:blur(12px)}
-@keyframes tIn{from{transform:translateY(-20px);opacity:0}to{transform:none;opacity:1}}
-
-/* ── Mobile ── */
 @media(max-width:768px){
-  .nv{padding:.65rem 1.25rem}
-  .nr .nx{display:none}
-  .hc{padding:0 1.25rem}.hc h1{font-size:2.2rem}
-  .sc{padding:5rem 1.25rem}
-  .feat-row,.feat-row:nth-child(even){flex-direction:column;gap:2rem;margin-bottom:4rem}
-  .eco-grid{grid-template-columns:1fr}.eco-item{border-right:none}
+  .hw{min-height:600px}.hc h1{font-size:2.2rem}
+  .eg{grid-template-columns:1fr}.ei{border-right:none}
   .pg{grid-template-columns:1fr}
-  .sh{margin-bottom:2.5rem}
-  .cta-sec{padding:6rem 1.25rem}
+  .ct{padding:6rem 1.25rem}
 }
-</style>
-</head>
-<body>
+{% endblock %}
 
-<!-- Nav -->
-<nav id="n"><div class="nv">
-  <a href="/inicio"><img src="/static/img/evore-logo-blue.svg" alt="Evore" class="nl"></a>
-  <div class="nr">
-    <a href="#funciones" class="nx">Funciones</a>
-    <a href="#ecosistema" class="nx">Ecosistema</a>
-    <a href="#precios" class="nx">Precios</a>
-    <a href="/login" class="bo">Iniciar sesión</a>
-    <a href="#" class="ba" onclick="event.preventDefault();openM('starter')">Empezar gratis</a>
-  </div>
-</div></nav>
+{% block content %}
 
 <!-- Hero -->
 <div class="hw">
@@ -166,172 +61,138 @@ footer a{color:rgba(255,255,255,.5)}footer a:hover{color:#fff}
     <h1>El ERP que<br><em>conecta</em> a las empresas<br>manufactureras.</h1>
     <p>Gestiona ventas, producción, inventario y contabilidad. Conecta con clientes y proveedores. Crece con un marketplace donde tu reputación habla por ti.</p>
     <div class="hb">
-      <a href="#" class="ba" style="padding:.85rem 2.2rem;font-size:1rem" onclick="event.preventDefault();openM('starter')"><i class="bi bi-arrow-right"></i>Empezar gratis</a>
+      <a href="/login" class="ba" style="padding:.85rem 2.2rem;font-size:1rem"><i class="bi bi-arrow-right"></i>Empezar gratis</a>
       <a href="#funciones" class="bw"><i class="bi bi-play-circle"></i>Ver cómo funciona</a>
     </div>
   </div>
 </div>
 
-<!-- Features (dark, Apple product-page style) -->
-<section class="sc sc-dark" id="funciones">
-  <div class="si-wide">
+<!-- Feature showcase (dark, with CRM mockups) -->
+<section class="sc sc-d" id="funciones">
+  <div class="sw">
     <div class="sh rv"><h2>Diseñado para<br>manufactura real.</h2><p>Cada módulo resuelve un problema concreto de tu operación diaria.</p></div>
 
-    <div class="feat-row rv">
-      <div class="feat-visual"><div class="feat-mock"><div class="feat-bar"><i></i><i></i><i></i></div><div class="feat-body">
-        <div class="mc"><div class="mc-d" style="background:var(--og)"><i class="bi bi-bag"></i></div><div class="mc-i"><div class="mc-t">Textiles del Norte S.A.S.</div><div class="mc-s">Negociación · 3 productos</div></div><div class="mc-v" style="color:var(--og)">$12.5M</div></div>
-        <div class="mc"><div class="mc-d" style="background:var(--ac)"><i class="bi bi-bag-check"></i></div><div class="mc-i"><div class="mc-t">Industrias MakerCo</div><div class="mc-s">Anticipo pagado · En producción</div></div><div class="mc-v" style="color:var(--ac)">$8.2M</div></div>
-        <div class="mc"><div class="mc-d" style="background:var(--gn)"><i class="bi bi-check-circle"></i></div><div class="mc-i"><div class="mc-t">Cosméticos Luna</div><div class="mc-s">Entregado · Pagado completo</div></div><div class="mc-v" style="color:var(--gn)">$5.8M</div></div>
-      </div></div></div>
-      <div class="feat-text">
-        <div class="label">Ventas y CRM</div>
-        <h3>De prospecto a entrega, sin perder un peso.</h3>
-        <p>Pipeline visual con tarjetas. Al confirmar anticipo, el sistema reserva inventario, genera órdenes de compra y crea documentos legales automáticamente.</p>
-        <ul class="feat-list"><li><i class="bi bi-check-circle-fill"></i>Cotizaciones con PDF automático</li><li><i class="bi bi-check-circle-fill"></i>Reserva de stock al confirmar anticipo</li><li><i class="bi bi-check-circle-fill"></i>Comisiones por vendedor</li></ul>
+    <div class="fr rv">
+      <div class="fr-v">
+        <div class="mock mock-shimmer">
+          <div class="mock-t"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span>evore.co/ventas</span></div>
+          <div class="mock-b">
+            <div class="crm-card"><div class="crm-bar" style="background:var(--og)"></div><div class="crm-body"><div class="crm-av" style="background:var(--og)"><i class="bi bi-bag"></i></div><div class="crm-info"><div class="crm-name">Textiles del Norte S.A.S.</div><div class="crm-sub">Negociación · 3 productos</div></div><div class="crm-val" style="color:var(--og)">$12.5M</div></div></div>
+            <div class="crm-card"><div class="crm-bar" style="background:var(--ac)"></div><div class="crm-body"><div class="crm-av" style="background:var(--ac)"><i class="bi bi-bag-check"></i></div><div class="crm-info"><div class="crm-name">Industrias MakerCo</div><div class="crm-sub">Anticipo pagado · En producción</div></div><div class="crm-val" style="color:var(--ac)">$8.2M</div></div></div>
+            <div class="crm-card"><div class="crm-bar" style="background:var(--gn)"></div><div class="crm-body"><div class="crm-av" style="background:var(--gn)"><i class="bi bi-check-circle"></i></div><div class="crm-info"><div class="crm-name">Cosméticos Luna</div><div class="crm-sub">Entregado · Pagado completo</div></div><div class="crm-val" style="color:var(--gn)">$5.8M</div></div></div>
+          </div>
+        </div>
       </div>
+      <div class="fr-t"><div class="lb">Ventas y CRM</div><h3>De prospecto a entrega, sin perder un peso.</h3><p>Pipeline visual con tarjetas. Al confirmar anticipo, el sistema reserva inventario, genera OC y crea documentos legales.</p><ul class="fl"><li><i class="bi bi-check-circle-fill"></i>Cotizaciones con PDF automático</li><li><i class="bi bi-check-circle-fill"></i>Reserva de stock al confirmar</li><li><i class="bi bi-check-circle-fill"></i>Comisiones por vendedor</li></ul><a href="/modulo/ventas" class="bo" style="color:#64B5F6;border:none;padding:0;margin-top:.5rem">Conocer más <i class="bi bi-arrow-right"></i></a></div>
     </div>
 
-    <div class="feat-row rv">
-      <div class="feat-visual"><div class="feat-mock"><div class="feat-bar"><i></i><i></i><i></i></div><div class="feat-body">
-        <div class="mc"><div class="mc-d" style="background:#7C3AED"><i class="bi bi-diagram-3"></i></div><div class="mc-i"><div class="mc-t">Crema Hidratante 250ml</div><div class="mc-s">BOM: 8 ingredientes · Margen 42%</div></div><div class="mc-v">$18.500</div></div>
-        <div class="mc"><div class="mc-d" style="background:var(--ac)"><i class="bi bi-gear-wide-connected"></i></div><div class="mc-i"><div class="mc-t">OP-2026-0047</div><div class="mc-s">En producción · Carlos M.</div></div><div class="mc-v" style="color:var(--ac)">500 uds</div></div>
-        <div class="mc"><div class="mc-d" style="background:var(--gn)"><i class="bi bi-check-all"></i></div><div class="mc-i"><div class="mc-t">OP-2026-0045 Completado</div><div class="mc-s">Lote L-0045 registrado</div></div><div class="mc-v" style="color:var(--gn)">1.200</div></div>
-      </div></div></div>
-      <div class="feat-text">
-        <div class="label">Producción</div>
-        <h3>Recetas, órdenes y trazabilidad. Todo conectado.</h3>
-        <p>Define recetas BOM con costos automáticos. Crea órdenes de producción, asigna operarios, y controla el consumo de materia prima con lotes FIFO.</p>
-        <ul class="feat-list"><li><i class="bi bi-check-circle-fill"></i>Gantt de carga de planta</li><li><i class="bi bi-check-circle-fill"></i>Consumo FIFO con lotes</li><li><i class="bi bi-check-circle-fill"></i>Maquila y tercerización</li></ul>
+    <div class="fr rv">
+      <div class="fr-v">
+        <div class="mock mock-shimmer">
+          <div class="mock-t"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span>evore.co/produccion</span></div>
+          <div class="mock-b">
+            <div class="crm-card"><div class="crm-bar" style="background:#7C3AED"></div><div class="crm-body"><div class="crm-av" style="background:#7C3AED"><i class="bi bi-diagram-3"></i></div><div class="crm-info"><div class="crm-name">Crema Hidratante 250ml</div><div class="crm-sub">BOM: 8 ingredientes · Margen 42%</div></div><div class="crm-val">$18.500</div></div></div>
+            <div class="crm-card"><div class="crm-bar" style="background:var(--ac)"></div><div class="crm-body"><div class="crm-av" style="background:var(--ac)"><i class="bi bi-gear-wide-connected"></i></div><div class="crm-info"><div class="crm-name">OP-2026-0047</div><div class="crm-sub">En producción · Carlos M.</div></div><div class="crm-val" style="color:var(--ac)">500 uds</div></div></div>
+            <div class="crm-card"><div class="crm-bar" style="background:var(--gn)"></div><div class="crm-body"><div class="crm-av" style="background:var(--gn)"><i class="bi bi-check-all"></i></div><div class="crm-info"><div class="crm-name">OP-2026-0045</div><div class="crm-sub">Completado · Lote L-0045</div></div><div class="crm-val" style="color:var(--gn)">1.200</div></div></div>
+          </div>
+        </div>
       </div>
+      <div class="fr-t"><div class="lb">Producción</div><h3>Recetas, órdenes y trazabilidad total.</h3><p>Define recetas BOM, crea órdenes, asigna operarios y controla cada gramo con lotes FIFO.</p><ul class="fl"><li><i class="bi bi-check-circle-fill"></i>Gantt de carga de planta</li><li><i class="bi bi-check-circle-fill"></i>Consumo FIFO con lotes</li><li><i class="bi bi-check-circle-fill"></i>Maquila y tercerización</li></ul><a href="/modulo/produccion" class="bo" style="color:#64B5F6;border:none;padding:0;margin-top:.5rem">Conocer más <i class="bi bi-arrow-right"></i></a></div>
     </div>
 
-    <div class="feat-row rv">
-      <div class="feat-visual"><div class="feat-mock"><div class="feat-bar"><i></i><i></i><i></i></div><div class="feat-body">
-        <div class="mc"><div class="mc-d" style="background:var(--gn)"><i class="bi bi-box-seam"></i></div><div class="mc-i"><div class="mc-t">Glicerina vegetal</div><div class="mc-s">3 lotes · Min: 50kg</div></div><div class="mc-v" style="color:var(--gn)">128.5 kg</div></div>
-        <div class="mc"><div class="mc-d" style="background:#C23934"><i class="bi bi-exclamation-triangle"></i></div><div class="mc-i"><div class="mc-t">Fragancia lavanda</div><div class="mc-s">Vence en 15 días</div></div><div class="mc-v" style="color:#C23934">2.3 lt</div></div>
-        <div class="mc"><div class="mc-d" style="background:var(--og)"><i class="bi bi-layers"></i></div><div class="mc-i"><div class="mc-t">Envase 250ml + tapa</div><div class="mc-s">Reservado: 500 uds</div></div><div class="mc-v" style="color:var(--og)">1.200</div></div>
-      </div></div></div>
-      <div class="feat-text">
-        <div class="label">Inventario</div>
-        <h3>Cada gramo, cada lote, cada vencimiento.</h3>
-        <p>Control de stock en tiempo real con alertas automáticas. Lotes con fecha de vencimiento. Reservas vinculadas a ventas.</p>
-        <ul class="feat-list"><li><i class="bi bi-check-circle-fill"></i>Alertas de stock bajo</li><li><i class="bi bi-check-circle-fill"></i>Control de lotes y vencimiento</li><li><i class="bi bi-check-circle-fill"></i>Reservas automáticas</li></ul>
+    <div class="fr rv">
+      <div class="fr-v">
+        <div class="mock mock-shimmer">
+          <div class="mock-t"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span>evore.co/inventario</span></div>
+          <div class="mock-b">
+            <div class="crm-card"><div class="crm-bar" style="background:var(--gn)"></div><div class="crm-body"><div class="crm-av" style="background:var(--gn)"><i class="bi bi-box-seam"></i></div><div class="crm-info"><div class="crm-name">Glicerina vegetal</div><div class="crm-sub">3 lotes · Mín: 50kg</div></div><div class="crm-val" style="color:var(--gn)">128.5 kg</div></div></div>
+            <div class="crm-card"><div class="crm-bar" style="background:#C23934"></div><div class="crm-body"><div class="crm-av" style="background:#C23934"><i class="bi bi-exclamation-triangle"></i></div><div class="crm-info"><div class="crm-name">Fragancia lavanda</div><div class="crm-sub">1 lote · Vence en 15 días</div></div><div class="crm-val" style="color:#C23934">2.3 lt</div></div></div>
+            <div class="crm-card"><div class="crm-bar" style="background:var(--og)"></div><div class="crm-body"><div class="crm-av" style="background:var(--og)"><i class="bi bi-layers"></i></div><div class="crm-info"><div class="crm-name">Envase 250ml + tapa</div><div class="crm-sub">Reservado: 500 uds</div></div><div class="crm-val" style="color:var(--og)">1.200</div></div></div>
+          </div>
+        </div>
       </div>
+      <div class="fr-t"><div class="lb">Inventario</div><h3>Cada gramo, cada lote, cada vencimiento.</h3><p>Control de stock en tiempo real con alertas, lotes con vencimiento y reservas vinculadas a ventas.</p><ul class="fl"><li><i class="bi bi-check-circle-fill"></i>Alertas de stock bajo</li><li><i class="bi bi-check-circle-fill"></i>Control de lotes FIFO</li><li><i class="bi bi-check-circle-fill"></i>Reservas automáticas</li></ul><a href="/modulo/inventario" class="bo" style="color:#64B5F6;border:none;padding:0;margin-top:.5rem">Conocer más <i class="bi bi-arrow-right"></i></a></div>
     </div>
   </div>
 </section>
 
-<!-- More modules (compact grid, light) -->
-<section class="sc sc-white">
+<!-- More modules (light, compact grid) -->
+<section class="sc sc-w">
   <div class="si">
     <div class="sh rv"><h2>Y mucho más.</h2><p>Contabilidad, nómina, documentos legales, chat y un marketplace completo.</p></div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem">
-      <div class="rv" style="background:var(--bg);border-radius:16px;padding:2rem"><div style="font-size:1.5rem;color:var(--ac);margin-bottom:.75rem"><i class="bi bi-calculator-fill"></i></div><h4 style="font-weight:700;font-size:1rem;margin-bottom:.4rem">Contabilidad PUC</h4><p style="font-size:.88rem;color:var(--t2);line-height:1.6">102 cuentas Decreto 2650/1993. Asientos automáticos, balances, IVA, retenciones, flujo de caja.</p></div>
-      <div class="rv" style="background:var(--bg);border-radius:16px;padding:2rem"><div style="font-size:1.5rem;color:#EC4899;margin-bottom:.75rem"><i class="bi bi-people-fill"></i></div><h4 style="font-weight:700;font-size:1rem;margin-bottom:.4rem">Nómina colombiana</h4><p style="font-size:.88rem;color:var(--t2);line-height:1.6">Art. 383 ET, cesantías, prima, vacaciones, ARL, SENA, ICBF. Liquidación de contrato automática.</p></div>
-      <div class="rv" style="background:var(--bg);border-radius:16px;padding:2rem"><div style="font-size:1.5rem;color:#F59E0B;margin-bottom:.75rem"><i class="bi bi-shield-check"></i></div><h4 style="font-weight:700;font-size:1rem;margin-bottom:.4rem">Documentos legales</h4><p style="font-size:.88rem;color:var(--t2);line-height:1.6">9 plantillas colombianas auto-generadas. Firma digital con selfie. Ley 527/1999.</p></div>
-      <div class="rv" style="background:var(--bg);border-radius:16px;padding:2rem"><div style="font-size:1.5rem;color:#06B6D4;margin-bottom:.75rem"><i class="bi bi-chat-dots-fill"></i></div><h4 style="font-weight:700;font-size:1rem;margin-bottom:.4rem">Chat integrado</h4><p style="font-size:.88rem;color:var(--t2);line-height:1.6">Chat interno y entre empresas. Panel flotante con pestañas. Notificaciones automáticas de MyEvore.</p></div>
-      <div class="rv" style="background:var(--bg);border-radius:16px;padding:2rem"><div style="font-size:1.5rem;color:#8B5CF6;margin-bottom:.75rem"><i class="bi bi-shop"></i></div><h4 style="font-weight:700;font-size:1rem;margin-bottom:.4rem">Marketplace</h4><p style="font-size:.88rem;color:var(--t2);line-height:1.6">Publica productos, conecta con un clic, construye reputación con valoraciones de la comunidad.</p></div>
-      <div class="rv" style="background:var(--bg);border-radius:16px;padding:2rem"><div style="font-size:1.5rem;color:var(--gn);margin-bottom:.75rem"><i class="bi bi-cart-check-fill"></i></div><h4 style="font-weight:700;font-size:1rem;margin-bottom:.4rem">Compras</h4><p style="font-size:.88rem;color:var(--t2);line-height:1.6">Órdenes de compra, cotizaciones comparativas, aprobaciones, calificación de proveedores.</p></div>
+      {% for mod in [
+        {'icon':'bi-calculator-fill','color':'var(--ac)','name':'Contabilidad PUC','desc':'102 cuentas Decreto 2650/1993. Asientos automáticos, balances, IVA, retenciones, flujo de caja.','link':'/modulo/contabilidad'},
+        {'icon':'bi-people-fill','color':'#EC4899','name':'Nómina colombiana','desc':'Art. 383 ET, cesantías, prima, vacaciones, ARL, SENA, ICBF. Liquidación automática.','link':'/modulo/nomina'},
+        {'icon':'bi-shield-check','color':'#F59E0B','name':'Documentos legales','desc':'9 plantillas colombianas auto-generadas. Firma digital con selfie. Ley 527/1999.','link':'/modulo/legal'},
+        {'icon':'bi-chat-dots-fill','color':'#06B6D4','name':'Chat integrado','desc':'Chat interno y entre empresas. Panel flotante. Notificaciones automáticas de MyEvore.','link':'/modulo/chat'},
+        {'icon':'bi-shop','color':'#8B5CF6','name':'Marketplace','desc':'Publica productos, conecta con un clic, construye reputación con valoraciones.','link':'/modulo/marketplace'},
+        {'icon':'bi-cart-check-fill','color':'var(--gn)','name':'Compras','desc':'Órdenes de compra, cotizaciones comparativas, aprobaciones, calificación de proveedores.','link':'/modulo/compras'}
+      ] %}
+      <a href="{{ mod.link }}" class="rv" style="background:var(--bg);border-radius:16px;padding:2rem;display:block;transition:transform .2s,box-shadow .2s" onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.06)'" onmouseleave="this.style.transform='';this.style.boxShadow=''">
+        <div style="font-size:1.5rem;color:{{ mod.color }};margin-bottom:.75rem"><i class="bi {{ mod.icon }}"></i></div>
+        <h4 style="font-weight:700;font-size:1rem;margin-bottom:.4rem;color:var(--t)">{{ mod.name }}</h4>
+        <p style="font-size:.88rem;color:var(--t2);line-height:1.6;margin-bottom:.75rem">{{ mod.desc }}</p>
+        <span style="font-size:.82rem;color:var(--ac);font-weight:600">Conocer más <i class="bi bi-arrow-right"></i></span>
+      </a>
+      {% endfor %}
     </div>
   </div>
 </section>
 
-<!-- Ecosystem (numbers grid, Apple style) -->
-<section class="sc sc-light" id="ecosistema">
+<!-- Ecosystem -->
+<section class="sc sc-g" id="ecosistema">
   <div class="si">
-    <div class="sh rv"><h2>No es solo un ERP.<br>Es un ecosistema.</h2><p>Cada empresa que entra se convierte en un nodo de una red comercial viva.</p></div>
-    <div class="eco-grid rv">
-      <div class="eco-item"><div class="eco-n">01</div><h3>Registras un cliente</h3><p>Con NIT o cédula. Evore detecta si ya existe en la plataforma. Si no, le crea una cuenta gratuita automáticamente.</p></div>
-      <div class="eco-item"><div class="eco-n">02</div><h3>Conexión instantánea</h3><p>Relación comercial, chat dedicado, tarjetas mutuas y acceso al portal con pedidos y documentos.</p></div>
-      <div class="eco-item"><div class="eco-n">03</div><h3>La red crece</h3><p>En Somos Evore, las empresas publican productos, se descubren y la comunidad califica con estrellas.</p></div>
-      <div class="eco-item"><div class="eco-n" style="color:var(--gn)">$0</div><h3>Costo para tu contraparte</h3><p>Tu cliente o proveedor entra gratis. Ve sus pedidos y documentos sin pagar. Zero fricción.</p></div>
-      <div class="eco-item"><div class="eco-n" style="color:#7C3AED">30</div><h3>Industrias</h3><p>Alimentos, textil, cosméticos, metalmecánica, químicos, logística, plásticos, madera, cuero y más.</p></div>
-      <div class="eco-item"><div class="eco-n" style="color:var(--og)">1 clic</div><h3>Para conectar</h3><p>"Hacerme cliente" crea todo: relación, chat, tarjetas de cliente y proveedor en ambas empresas.</p></div>
+    <div class="sh rv"><h2>No es solo un ERP.<br>Es un ecosistema.</h2><p>Cada empresa que entra se convierte en un nodo de una red comercial.</p></div>
+    <div class="eg rv">
+      <div class="ei"><div class="en">01</div><h3>Registras un cliente</h3><p>Con NIT o cédula. Si no existe, Evore le crea una cuenta gratuita automáticamente.</p></div>
+      <div class="ei"><div class="en">02</div><h3>Conexión instantánea</h3><p>Chat dedicado, tarjetas mutuas y acceso al portal con pedidos y documentos.</p></div>
+      <div class="ei"><div class="en">03</div><h3>La red crece</h3><p>En Somos Evore, las empresas se descubren y la comunidad califica con estrellas.</p></div>
+      <div class="ei"><div class="en" style="color:var(--gn)">$0</div><h3>Para tu contraparte</h3><p>Tu cliente entra gratis. Ve pedidos y documentos sin pagar.</p></div>
+      <div class="ei"><div class="en" style="color:#7C3AED">30</div><h3>Industrias</h3><p>Alimentos, textil, cosméticos, metalmecánica, químicos, logística y más.</p></div>
+      <div class="ei"><div class="en" style="color:var(--og)">1 clic</div><h3>Para conectar</h3><p>"Hacerme cliente" crea relación, chat y tarjetas mutuamente.</p></div>
     </div>
   </div>
 </section>
 
 <!-- Pricing -->
-<section class="sc sc-white" id="precios">
+<section class="sc sc-w" id="precios">
   <div class="si">
-    <div class="sh rv"><h2>Precios simples.</h2><p>Sin cargos ocultos. Sin permanencia. Empieza gratis, crece cuando estés listo.</p></div>
-    <div class="pg rv-s">
-      <div class="pc"><div style="font-size:2rem;color:var(--t2)"><i class="bi bi-box-seam"></i></div><h3>Gratuito</h3><div class="pp">$0</div><div style="color:var(--t2);font-size:.82rem">Para siempre</div><ul><li><i class="bi bi-check-lg"></i>Portal cliente/proveedor</li><li><i class="bi bi-check-lg"></i>Ver pedidos y documentos</li><li><i class="bi bi-check-lg"></i>Chat con empresas</li><li><i class="bi bi-check-lg"></i>1 usuario</li><li><i class="bi bi-x-lg"></i><span style="opacity:.35">CRM completo</span></li></ul><a href="/login" class="bo" style="width:100%;justify-content:center">Empezar</a></div>
-      <div class="pc feat"><div style="font-size:2rem;color:var(--ac)"><i class="bi bi-building"></i></div><h3>Starter</h3><div class="pp">$39.900 <span>/ mes</span></div><div style="color:var(--t2);font-size:.82rem">COP · 3 usuarios · Anual -10%</div><ul><li><i class="bi bi-check-lg"></i>CRM completo (9 módulos)</li><li><i class="bi bi-check-lg"></i>Contabilidad + Nómina</li><li><i class="bi bi-check-lg"></i>Documentos legales</li><li><i class="bi bi-check-lg"></i>Marketplace</li><li><i class="bi bi-check-lg"></i>Hasta 3 usuarios</li></ul><button class="ba" style="width:100%;justify-content:center" onclick="openM('starter')">Activar Starter</button></div>
-      <div class="pc"><div style="font-size:2rem;color:#7C3AED"><i class="bi bi-building-gear"></i></div><h3>Profesional</h3><div class="pp" style="font-size:2rem">$39.900 <span>+ $5.900/extra</span></div><div style="color:var(--t2);font-size:.82rem">COP / mes · 3 incluidos</div><ul><li><i class="bi bi-check-lg"></i>Todo lo del Starter</li><li><i class="bi bi-check-lg"></i>Usuarios adicionales</li><li><i class="bi bi-check-lg"></i>Soporte prioritario</li><li><i class="bi bi-check-lg"></i>Reportes avanzados</li></ul><button class="bo" style="width:100%;justify-content:center" onclick="openM('pro')">Contactar</button></div>
+    <div class="sh rv"><h2>Precios simples.</h2><p>Sin cargos ocultos. Sin permanencia.</p></div>
+    <div class="pg rv">
+      <div class="pc"><div style="font-size:2rem;color:var(--t2)"><i class="bi bi-box-seam"></i></div><h3>Gratuito</h3><div class="pp">$0</div><div style="color:var(--t2);font-size:.82rem">Para siempre</div><ul><li><i class="bi bi-check-lg"></i>Portal cliente/proveedor</li><li><i class="bi bi-check-lg"></i>Ver pedidos y documentos</li><li><i class="bi bi-check-lg"></i>Chat con empresas</li><li><i class="bi bi-check-lg"></i>1 usuario</li></ul><a href="/login" class="bo" style="width:100%;justify-content:center">Empezar</a></div>
+      <div class="pc ft"><div style="font-size:2rem;color:var(--ac)"><i class="bi bi-building"></i></div><h3>Starter</h3><div class="pp">$39.900 <span>/ mes</span></div><div style="color:var(--t2);font-size:.82rem">3 usuarios · Anual -10%</div><ul><li><i class="bi bi-check-lg"></i>CRM completo</li><li><i class="bi bi-check-lg"></i>Contabilidad + Nómina</li><li><i class="bi bi-check-lg"></i>Documentos legales</li><li><i class="bi bi-check-lg"></i>Marketplace</li></ul><a href="/login" class="ba" style="width:100%;justify-content:center">Activar Starter</a></div>
+      <div class="pc"><div style="font-size:2rem;color:#7C3AED"><i class="bi bi-building-gear"></i></div><h3>Profesional</h3><div class="pp" style="font-size:2rem">$39.900 <span>+ $5.900/extra</span></div><div style="color:var(--t2);font-size:.82rem">3 incluidos</div><ul><li><i class="bi bi-check-lg"></i>Todo lo del Starter</li><li><i class="bi bi-check-lg"></i>Usuarios adicionales</li><li><i class="bi bi-check-lg"></i>Soporte prioritario</li></ul><a href="/login" class="bo" style="width:100%;justify-content:center">Contactar</a></div>
     </div>
   </div>
 </section>
 
 <!-- FAQ -->
-<section class="sc sc-light" id="faq">
+<section class="sc sc-g" id="faq">
   <div class="si" style="max-width:700px">
     <div class="sh rv"><h2>Preguntas frecuentes.</h2></div>
     <div class="fq rv">
-      <div class="fi" onclick="this.classList.toggle('open')"><div class="fi-q">¿Necesito instalar algo?<i class="bi bi-plus-lg"></i></div><div class="fi-a">No. Evore es 100% web. Funciona desde cualquier navegador. También puedes instalarlo como app (PWA).</div></div>
-      <div class="fi" onclick="this.classList.toggle('open')"><div class="fi-q">¿Mis datos están seguros?<i class="bi bi-plus-lg"></i></div><div class="fi-a">Sí. PostgreSQL con cifrado en tránsito. Multi-tenancy a nivel de fila. Tus datos nunca se comparten con otras empresas.</div></div>
-      <div class="fi" onclick="this.classList.toggle('open')"><div class="fi-q">¿Qué pasa si no pago a tiempo?<i class="bi bi-plus-lg"></i></div><div class="fi-a">3 días de gracia. Después el CRM se bloquea temporalmente pero tus datos se mantienen hasta 1 año. Al pagar, todo se reactiva.</div></div>
-      <div class="fi" onclick="this.classList.toggle('open')"><div class="fi-q">¿Funciona para mi industria?<i class="bi bi-plus-lg"></i></div><div class="fi-a">Evore cubre 30 industrias: textiles, cosméticos, alimentos, metalmecánica, plásticos, químicos, madera, cuero, empaques y más.</div></div>
-      <div class="fi" onclick="this.classList.toggle('open')"><div class="fi-q">¿Cómo funciona el plan gratuito?<i class="bi bi-plus-lg"></i></div><div class="fi-a">Se crea automáticamente cuando otra empresa te registra. Ves pedidos, documentos y chateas. Para CRM completo, activas Starter.</div></div>
-      <div class="fi" onclick="this.classList.toggle('open')"><div class="fi-q">¿Puedo migrar desde Excel?<i class="bi bi-plus-lg"></i></div><div class="fi-a">Sí. Importación CSV para clientes, productos y materias primas. Te ayudamos en la migración inicial.</div></div>
+      <div class="fi" onclick="this.classList.toggle('op')"><div class="fi-q">¿Necesito instalar algo?<i class="bi bi-plus-lg"></i></div><div class="fi-a">No. Evore es 100% web. Funciona desde cualquier navegador. También puedes instalarlo como app (PWA).</div></div>
+      <div class="fi" onclick="this.classList.toggle('op')"><div class="fi-q">¿Mis datos están seguros?<i class="bi bi-plus-lg"></i></div><div class="fi-a">Sí. PostgreSQL con cifrado en tránsito. Multi-tenancy a nivel de fila. Tus datos nunca se comparten.</div></div>
+      <div class="fi" onclick="this.classList.toggle('op')"><div class="fi-q">¿Qué pasa si no pago a tiempo?<i class="bi bi-plus-lg"></i></div><div class="fi-a">3 días de gracia, luego CRM bloqueado temporalmente. Datos seguros hasta 1 año. Al pagar, todo se reactiva.</div></div>
+      <div class="fi" onclick="this.classList.toggle('op')"><div class="fi-q">¿Funciona para mi industria?<i class="bi bi-plus-lg"></i></div><div class="fi-a">Evore cubre 30 industrias: textiles, cosméticos, alimentos, metalmecánica, plásticos, químicos, madera, cuero y más.</div></div>
+      <div class="fi" onclick="this.classList.toggle('op')"><div class="fi-q">¿Puedo migrar desde Excel?<i class="bi bi-plus-lg"></i></div><div class="fi-a">Sí. Importación CSV para clientes, productos y materias primas. Te ayudamos en la migración.</div></div>
     </div>
   </div>
 </section>
 
-<!-- CTA -->
-<div class="cta-sec">
+<!-- CTA dark -->
+<div class="ct">
   <h2 class="rv">Tu empresa merece<br>un sistema que crezca contigo.</h2>
   <p class="rv">Empieza gratis. Sin tarjeta. Sin compromisos.</p>
-  <button class="ba rv" style="padding:.9rem 2.5rem;font-size:1.05rem;position:relative;z-index:1" onclick="openM('starter')"><i class="bi bi-arrow-right"></i>Crear cuenta gratis</button>
+  <a href="/login" class="ba rv" style="padding:.9rem 2.5rem;font-size:1.05rem;position:relative;z-index:1"><i class="bi bi-arrow-right"></i>Crear cuenta gratis</a>
 </div>
 
-<!-- Footer -->
-<footer>
-  <img src="/static/img/evore-logo-white.svg" alt="Evore" style="height:20px;margin-bottom:1rem;display:block;margin-left:auto;margin-right:auto;filter:opacity(.5)">
-  <div style="margin-bottom:1rem;display:flex;gap:2rem;justify-content:center;flex-wrap:wrap">
-    <a href="#funciones">Funciones</a><a href="#ecosistema">Ecosistema</a><a href="#precios">Precios</a><a href="#faq">FAQ</a><a href="/login">Iniciar sesión</a>
-  </div>
-  <div>Evore &copy; 2026</div>
-</footer>
+{% endblock %}
 
-<!-- Contact Modal -->
-<div class="modal fade" id="cM" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content" style="border:none;border-radius:20px;box-shadow:0 24px 80px rgba(0,0,0,.25);overflow:hidden">
-  <div style="height:3px;background:linear-gradient(90deg,var(--ac),#7C3AED)"></div>
-  <div class="modal-body" style="padding:2.5rem">
-    <div class="text-center mb-3">
-      <div style="font-size:2rem;color:var(--ac)"><i class="bi bi-rocket-takeoff"></i></div>
-      <h5 style="font-weight:700;margin:.5rem 0 .25rem" id="mT">Empezar con Evore</h5>
-      <p style="font-size:.85rem;color:var(--t2)" id="mD">Completa tus datos y te contactamos para activar tu cuenta.</p>
-    </div>
-    <form method="POST" action="/contacto">
-      <input type="hidden" name="plan" id="mP" value="starter">
-      <div class="mb-3"><label style="font-weight:600;font-size:.82rem;display:block;margin-bottom:.3rem">Nombre *</label><input type="text" name="nombre" class="form-control" required placeholder="Tu nombre completo" style="border-radius:10px;padding:.65rem 1rem"></div>
-      <div class="mb-3"><label style="font-weight:600;font-size:.82rem;display:block;margin-bottom:.3rem">Email *</label><input type="email" name="email" class="form-control" required placeholder="tu@empresa.com" style="border-radius:10px;padding:.65rem 1rem"></div>
-      <div class="row g-3 mb-3">
-        <div class="col-7"><label style="font-weight:600;font-size:.82rem;display:block;margin-bottom:.3rem">Empresa</label><input type="text" name="empresa" class="form-control" placeholder="Nombre de tu empresa" style="border-radius:10px;padding:.65rem 1rem"></div>
-        <div class="col-5"><label style="font-weight:600;font-size:.82rem;display:block;margin-bottom:.3rem">Teléfono</label><input type="text" name="telefono" class="form-control" placeholder="+57 300..." style="border-radius:10px;padding:.65rem 1rem"></div>
-      </div>
-      <div class="mb-3"><label style="font-weight:600;font-size:.82rem;display:block;margin-bottom:.3rem">Mensaje</label><textarea name="mensaje" class="form-control" rows="2" placeholder="¿En qué industria estás? ¿Cuántos usuarios necesitas?" style="border-radius:10px;padding:.65rem 1rem"></textarea></div>
-      <button type="submit" class="ba" style="width:100%;justify-content:center;padding:.8rem"><i class="bi bi-send"></i>Enviar solicitud</button>
-      <div style="text-align:center;margin-top:.75rem;font-size:.75rem;color:var(--t2)">Sin compromiso · Respuesta en menos de 24h</div>
-    </form>
-  </div>
-</div></div></div>
-
-{% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for cat, msg in messages %}
-<div class="tl" style="background:{% if cat=='success' %}var(--gn){% elif cat=='danger' %}#C23934{% else %}var(--ac){% endif %}" onclick="this.remove()"><i class="bi {% if cat=='success' %}bi-check-circle-fill{% else %}bi-info-circle-fill{% endif %}"></i>{{ msg }}</div>
-<script>setTimeout(function(){var t=document.querySelector('.tl');if(t)t.remove()},6000)</script>
-{% endfor %}{% endif %}{% endwith %}
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}
 <script>
-var n=document.getElementById('n');
-window.addEventListener('scroll',function(){n.classList.toggle('s',scrollY>50)});
-var ob=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('v');ob.unobserve(x.target)}})},{threshold:.1,rootMargin:'0px 0px -60px 0px'});
-document.querySelectorAll('.rv,.rv-s,.rv-l,.rv-r').forEach(function(e){ob.observe(e)});
-document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();var t=document.querySelector(this.getAttribute('href'));if(t)t.scrollIntoView({behavior:'smooth',block:'start'})})});
+// Hero parallax
 window.addEventListener('scroll',function(){var s=scrollY,h=document.querySelector('.hc');if(h&&s<innerHeight){h.style.transform='translateY('+s*.2+'px)';h.style.opacity=1-s/(innerHeight*.7)}});
-function openM(p){document.getElementById('mP').value=p;var t={'starter':'Activar plan Starter','pro':'Plan Profesional','free':'Empezar gratis'};document.getElementById('mT').textContent=t[p]||'Empezar con Evore';new bootstrap.Modal(document.getElementById('cM')).show()}
 </script>
-</body>
-</html>
+{% endblock %}
