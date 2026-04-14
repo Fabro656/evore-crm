@@ -463,7 +463,10 @@ html[data-theme="dark"] .skeleton{background:linear-gradient(90deg,var(--surface
    ══════════════════════════════════════════════════ */
 @media(max-width:768px){
   #sb{display:none}
-  #sb.sb-open{display:flex;position:fixed;top:0;left:0;height:100dvh;width:64px;z-index:1050;transform:none;box-shadow:6px 0 40px rgba(0,0,0,.3)}
+  #sb.sb-open{display:flex;position:fixed;top:0;left:0;height:100dvh;width:64px;z-index:1050;transform:none;box-shadow:6px 0 40px rgba(0,0,0,.3);padding-bottom:calc(80px + env(safe-area-inset-bottom,0))}
+  #sb .sb-foot .rounded-circle{display:none!important}
+  #sb .sb-foot .ui{display:none!important}
+  #sb .sb-foot{padding:4px 0;gap:2px}
   #sb-tog{display:flex}
   #main{margin-left:0!important;width:100%;padding-bottom:calc(120px + env(safe-area-inset-bottom,0))}
   .fab,#diagBtn,#aiFab{display:none!important}
