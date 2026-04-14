@@ -43,7 +43,11 @@ def register(app):
         if estado_rel_f: q = q.filter_by(estado_relacion=estado_rel_f)
         tier_f = request.args.get('tier','')
         if tier_f: q = q.filter_by(tier=tier_f)
-        items = q.order_by(Cliente.empresa, Cliente.nombre).all()
+
+        page = request.args.get('page', 1, type=int)
+        per_page = 25
+        pagination = q.order_by(Cliente.empresa, Cliente.nombre).paginate(page=page, per_page=per_page, error_out=False)
+        items = pagination.items
 
         # Auto-update client tiers based on total revenue
         try:
@@ -67,7 +71,9 @@ def register(app):
             pass
 
         return render_template('clientes/index.html', items=items,
-                               busqueda=busqueda, estado_rel_f=estado_rel_f)
+                               busqueda=busqueda, estado_rel_f=estado_rel_f,
+                               page=page, total_pages=pagination.pages,
+                               total_items=pagination.total)
     
 
     # ── clientes_export_csv (/clientes/export-csv)

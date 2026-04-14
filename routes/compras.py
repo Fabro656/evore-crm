@@ -306,9 +306,14 @@ def register(app):
         estado_f = request.args.get('estado','')
         q = OrdenCompra.query
         if estado_f: q = q.filter_by(estado=estado_f)
+        page = request.args.get('page', 1, type=int)
+        per_page = 25
+        pagination = q.order_by(OrdenCompra.creado_en.desc()).paginate(page=page, per_page=per_page, error_out=False)
+        items = pagination.items
         return render_template('ordenes_compra/index.html',
-                               items=q.order_by(OrdenCompra.creado_en.desc()).all(),
-                               estado_f=estado_f)
+                               items=items, estado_f=estado_f,
+                               page=page, total_pages=pagination.pages,
+                               total_items=pagination.total)
 
 
     # ── oc_pdf (/ordenes_compra/<int:id>/pdf)

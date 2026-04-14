@@ -12,6 +12,18 @@ _RATE_LIMIT_WINDOW  = 60   # seconds
 
 logging.basicConfig(level=logging.INFO)
 
+# ── Sentry error monitoring ──────────────────────────────────────────────
+_sentry_dsn = os.environ.get('SENTRY_DSN')
+if _sentry_dsn:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.flask import FlaskIntegration
+        sentry_sdk.init(dsn=_sentry_dsn, integrations=[FlaskIntegration()],
+                        traces_sample_rate=0.1, send_default_pii=False)
+        logging.info('Sentry initialized')
+    except ImportError:
+        logging.info('sentry-sdk not installed — error monitoring disabled')
+
 
 def create_app():
     app = Flask(__name__, template_folder='templates')

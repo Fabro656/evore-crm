@@ -11,3 +11,4 @@ psycopg2-binary==2.9.9
 anthropic==0.25.0
 openai==1.14.0
 flask-compress==1.14
+sentry-sdk[flask]==1.40.0

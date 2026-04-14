@@ -250,10 +250,15 @@ def register(app):
     def ventas():
         from datetime import date, timedelta
         estado_f = request.args.get('estado','')
+        page = request.args.get('page', 1, type=int)
+        per_page = 25
         q = Venta.query
         if estado_f:
             q = q.filter_by(estado=estado_f)
-        items = q.order_by(Venta.creado_en.desc()).all()
+        pagination = q.order_by(Venta.creado_en.desc()).paginate(page=page, per_page=per_page, error_out=False)
+        items = pagination.items
+        total_pages = pagination.pages
+        total_items = pagination.total
 
         # Alertas internas: materias primas próximas a vencer (< 90 días) con stock > 0
         hoy = date.today()
@@ -287,7 +292,9 @@ def register(app):
         return render_template('ventas/index.html', items=items, estado_f=estado_f,
                                proximas_vencer=proximas_vencer, today_date=hoy,
                                transportistas_list=transportistas_list,
-                               docs_por_cliente=docs_por_cliente)
+                               docs_por_cliente=docs_por_cliente,
+                               page=page, total_pages=total_pages,
+                               total_items=total_items)
 
 
     # ── ventas_export_csv (/ventas/export-csv)
