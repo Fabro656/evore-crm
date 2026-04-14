@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}Error del servidor{% endblock %}
+{% block page_title %}Error{% endblock %}
+{% block content %}
+<div class="text-center py-5" style="max-width:480px;margin:0 auto">
+  <img src="/static/img/error-text.png" alt="Evore - error del servidor" style="max-width:280px;opacity:.9;margin-bottom:1.5rem">
+  <h4 class="fw-bold mb-2">Algo salio mal</h4>
+  <p class="text-muted mb-4" style="font-size:.92rem">Hubo un error inesperado. Nuestro equipo ya fue notificado. Intenta de nuevo en unos minutos.</p>
+  <div class="d-flex gap-2 justify-content-center">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-primary"><i class="bi bi-house me-1"></i>Ir al inicio</a>
+    <button onclick="location.reload()" class="btn btn-outline-secondary"><i class="bi bi-arrow-clockwise me-1"></i>Reintentar</button>
+  </div>
+</div>
+{% endblock %}
