@@ -465,7 +465,7 @@ html[data-theme="dark"] .skeleton{background:linear-gradient(90deg,var(--surface
   #sb{display:none}
   #sb.sb-open{display:flex;position:fixed;top:0;left:0;height:100dvh;width:64px;z-index:1050;transform:none;box-shadow:6px 0 40px rgba(0,0,0,.3)}
   #sb-tog{display:flex}
-  #main{margin-left:0!important;width:100%;padding-bottom:calc(90px + env(safe-area-inset-bottom,0))}
+  #main{margin-left:0!important;width:100%;padding-bottom:calc(120px + env(safe-area-inset-bottom,0))}
   .fab,#diagBtn,#aiFab{display:none!important}
   #chatPanel{width:100%!important;height:100%!important;bottom:0!important;left:0!important;border-radius:0!important;z-index:1055!important}
   #sb.sb-expanded+#main,#sb.sb-expanded~#main{margin-left:0!important}
@@ -495,7 +495,7 @@ html[data-theme="dark"] .skeleton{background:linear-gradient(90deg,var(--surface
   .sc{padding:var(--sp-3)}
   .tc{border-radius:var(--radius-sm)}
   #diagPanel{width:calc(100vw - 32px);right:16px}
-  .notif-dd{width:calc(100vw - 32px);left:16px}
+  .notif-dd{width:calc(100vw - 32px);left:16px;bottom:calc(100px + env(safe-area-inset-bottom,0))!important}
   .dock-panel{left:12px!important;width:calc(100vw - 24px)!important;max-height:calc(100dvh - 160px)!important;bottom:calc(90px + env(safe-area-inset-bottom,0))!important;top:auto!important}
   .dock-panel-body{max-height:calc(100dvh - 240px)}
   #obCtxTip{width:calc(100vw - 24px)!important}
@@ -1139,8 +1139,8 @@ function toggleSidebar(){
           <li><div style="padding:.3rem 1rem .1rem;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Cambiar rol</div></li>
           {% for r in roles_disponibles %}
           {% if r != rol_activo %}
-          <li><a href="#" class="dropdown-item d-flex align-items-center gap-2" style="font-size:.83rem;padding:.4rem 1rem"
-                 onclick="event.preventDefault();var f=document.createElement('form');f.method='POST';f.action='{{ url_for("cambiar_rol") }}';var r=document.createElement('input');r.type='hidden';r.name='rol';r.value='{{ r }}';f.appendChild(r);var c=document.createElement('input');c.type='hidden';c.name='_csrf_token';c.value=document.querySelector('meta[name=csrf-token]').content;f.appendChild(c);document.body.appendChild(f);f.submit();">
+          <li><a href="{{ url_for('cambiar_rol') }}" class="dropdown-item d-flex align-items-center gap-2" style="font-size:.83rem;padding:.4rem 1rem"
+                 onclick="event.preventDefault();var _r='{{ r }}';setTimeout(function(){var f=document.createElement('form');f.method='POST';f.action='{{ url_for("cambiar_rol") }}';var ri=document.createElement('input');ri.type='hidden';ri.name='rol';ri.value=_r;f.appendChild(ri);var c=document.createElement('input');c.type='hidden';c.name='_csrf_token';c.value=document.querySelector('meta[name=csrf-token]').content;f.appendChild(c);document.body.appendChild(f);f.submit();},50);">
               <i class="bi {{ rol_icons.get(r, 'bi-person') }}" style="color:var(--ac);font-size:.9rem"></i>{{ rol_labels.get(r, r) }}
           </a></li>
           {% endif %}
