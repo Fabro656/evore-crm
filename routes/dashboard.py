@@ -11,12 +11,61 @@ import json, os, re, io, logging
 
 def register(app):
 
-    # ── landing page (public)
+    # ── landing page (public) — also serves as /
     @app.route('/inicio')
     def landing():
         if current_user.is_authenticated:
             return redirect(url_for('dashboard'))
         return render_template('landing.html')
+
+    # ── contact/purchase form (public)
+    @app.route('/contacto', methods=['POST'])
+    def landing_contacto():
+        nombre = request.form.get('nombre', '').strip()
+        email = request.form.get('email', '').strip()
+        empresa = request.form.get('empresa', '').strip()
+        telefono = request.form.get('telefono', '').strip()
+        plan = request.form.get('plan', '').strip()
+        mensaje = request.form.get('mensaje', '').strip()
+        if not nombre or not email:
+            flash('Nombre y email son obligatorios.', 'danger')
+            return redirect(url_for('landing'))
+        # Create ticket for Evore admin
+        try:
+            evore = Company.query.filter_by(es_principal=True).first()
+            admin_user = User.query.filter_by(rol='admin').first()
+            if evore and admin_user:
+                plan_label = {'starter': 'Starter ($39.900/mes)', 'pro': 'Profesional', 'free': 'Gratuito', 'demo': 'Demo'}.get(plan, plan or 'No especificado')
+                desc = (f'Solicitud desde landing page\n\n'
+                        f'Nombre: {nombre}\n'
+                        f'Email: {email}\n'
+                        f'Empresa: {empresa or "No indicada"}\n'
+                        f'Teléfono: {telefono or "No indicado"}\n'
+                        f'Plan interesado: {plan_label}\n'
+                        f'Mensaje: {mensaje or "Sin mensaje adicional"}')
+                db.session.add(Notificacion(
+                    usuario_id=admin_user.id,
+                    tipo='contacto',
+                    mensaje=f'Nueva solicitud de {nombre} ({email}) — Plan: {plan_label}',
+                    url='/admin/usuarios'))
+                tarea = Tarea(
+                    titulo=f'Lead: {empresa or nombre} — {plan_label}',
+                    descripcion=desc,
+                    prioridad='alta',
+                    estado='pendiente',
+                    creador_id=admin_user.id,
+                    company_id=evore.id)
+                db.session.add(tarea)
+                db.session.commit()
+                # Send email notification
+                _send_email(admin_user.email,
+                    f'Nuevo lead desde evore.co: {empresa or nombre}', desc)
+        except Exception as e:
+            logging.warning(f'Landing contact error: {e}')
+            try: db.session.rollback()
+            except: pass
+        flash('Solicitud enviada. Nuestro equipo te contactará pronto.', 'success')
+        return redirect(url_for('landing'))
 
     # ── dashboard (/)
     @app.route('/')
