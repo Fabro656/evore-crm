@@ -15,11 +15,12 @@
   --bg:#F3F5F9;--surface:#FFFFFF;--surface2:#EEF2F8;
   --border:#D5DFF0;--text:#1A2536;--text2:#5A6A85;
   --topbar-bg:#FFFFFF;--topbar-border:#E2E8F0;--input-bg:#FFFFFF;
-  --shadow:0 1px 4px rgba(0,0,0,.06);--radius:10px;
-  --green:#2E844A;--red:#C23934;--orange:#DD7A01;
-  --sb:#1A1F2E;
+  --shadow:0 1px 4px rgba(0,0,0,.06);--shadow-md:0 4px 12px rgba(0,0,0,.08);--shadow-lg:0 8px 24px rgba(0,0,0,.15);--radius:10px;
+  --green:#2E844A;--red:#C23934;--orange:#DD7A01;--yellow:#DD7A01;
+  --sb:#1A1F2E;--sb-text:#9CA3B4;--sb-active:#5BAFFA;
+  --border2:#B8C9E0;
   --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:24px;--sp-6:32px;--sp-7:48px;
-  --font-micro:.69rem;--font-caption:.75rem;--font-small:.82rem;--font-body:.875rem;--font-title:1rem;--font-display:1.25rem;
+  --font-micro:.69rem;--font-caption:.75rem;--font-small:.82rem;--font-body:.875rem;--font-title:1rem;--font-display:1.25rem;--font-hero:1.75rem;
 }
 html[data-theme="dark"]{
   --ac:#1589EE;--ac2:#0E6BBD;--ac-rgb:21,137,238;
@@ -39,14 +40,14 @@ body{background:var(--surface);font-family:-apple-system,BlinkMacSystemFont,'Seg
 .portal-sb-brand span{font-weight:800;font-size:1rem;color:#fff;letter-spacing:-.3px}
 .portal-sb-brand small{font-size:.6rem;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px}
 .portal-sb nav{padding:.5rem;flex:1}
-.portal-sb .nav-link{color:#9CA3B4;padding:.5rem .75rem;border-radius:8px;font-size:.84rem;font-weight:500;display:flex;align-items:center;gap:.5rem;text-decoration:none;transition:all .12s;margin-bottom:2px}
+.portal-sb .nav-link{color:var(--sb-text);padding:var(--sp-2) var(--sp-3);border-radius:8px;font-size:var(--font-body);font-weight:500;display:flex;align-items:center;gap:var(--sp-2);text-decoration:none;transition:all .12s;margin-bottom:2px}
 .portal-sb .nav-link:hover{background:rgba(255,255,255,.08);color:#fff}
-.portal-sb .nav-link.active{background:rgba(91,175,250,.15);color:#5BAFFA;font-weight:600}
+.portal-sb .nav-link.active{background:rgba(91,175,250,.15);color:var(--sb-active);font-weight:600}
 .portal-sb .nav-link i{font-size:.95rem;width:18px;opacity:.7}
 .portal-sb-foot{padding:.75rem;border-top:1px solid rgba(255,255,255,.08);margin-top:auto}
 .portal-sb-foot .user-info{display:flex;align-items:center;gap:.5rem}
 .portal-sb-foot .user-name{color:#fff;font-size:.82rem;font-weight:600}
-.portal-sb-foot .user-role{color:#5BAFFA;font-size:.65rem;background:rgba(91,175,250,.15);padding:1px 6px;border-radius:3px}
+.portal-sb-foot .user-role{color:var(--sb-active);font-size:var(--font-caption);background:rgba(91,175,250,.15);padding:1px 6px;border-radius:3px}
 
 /* Main content */
 .portal-main{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--surface)}
@@ -96,18 +97,18 @@ html[data-theme="dark"] .table td{border-color:var(--border)!important}
 .breadcrumb{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:4px}
 .breadcrumb-item+.breadcrumb-item::before{content:"›";color:var(--text2);padding:0 4px}
 @media(max-width:768px){
-  .portal-sb{position:fixed;left:0;top:0;height:100vh;height:100dvh;width:240px;z-index:1050;transform:translateX(-100%);transition:transform .25s ease}
+  .portal-sb{position:fixed;left:0;top:0;height:100vh;height:100dvh;width:240px;z-index:1050;transform:translateX(-100%);transition:transform .25s ease;padding-bottom:env(safe-area-inset-bottom,0)}
   .portal-sb.portal-sb-open{transform:translateX(0);box-shadow:6px 0 40px rgba(0,0,0,.3)}
-  .portal-content{padding:1rem}
-  .portal-topbar{flex-wrap:wrap;gap:.4rem}
-  .portal-topbar h1{font-size:.88rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .portal-content{padding:var(--sp-4)}
+  .portal-topbar{flex-wrap:wrap;gap:var(--sp-1)}
+  .portal-topbar h1{font-size:var(--font-body);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .portal-mobile-nav{display:flex!important}
-  .table th{font-size:.62rem;padding:.4rem .5rem}
-  .table td{padding:.4rem .5rem;font-size:.8rem}
+  .table th{font-size:.62rem;padding:var(--sp-2) var(--sp-2)}
+  .table td{padding:var(--sp-2) var(--sp-2);font-size:var(--font-small)}
   .tc{border-radius:8px}
-  .form-control,.form-select{min-height:42px;font-size:16px}
-  .btn{min-height:38px}
-  .sc{padding:.75rem}
+  .form-control,.form-select{min-height:44px;font-size:16px}
+  .btn{min-height:44px}
+  .sc{padding:var(--sp-3)}
 }
 @media(min-width:769px){.portal-mobile-nav{display:none!important}}
 </style>
