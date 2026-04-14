@@ -1878,6 +1878,12 @@ def init_db():
         db.session.add(default_company)
         db.session.commit()
         logging.info(f'Default company created: {default_company.nombre} (id={default_company.id})')
+    # Ensure first company is always marked as principal
+    if default_company and not default_company.es_principal:
+        default_company.es_principal = True
+        default_company.max_users = 999
+        db.session.commit()
+        logging.info(f'Company {default_company.nombre} marked as es_principal=True')
     # ── Assign existing users to default company if not assigned ──
     unassigned = User.query.filter(User.company_id.is_(None)).all()
     if unassigned:

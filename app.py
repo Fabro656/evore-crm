@@ -229,14 +229,24 @@ def create_app():
             pass
         g.company_id = None
         if current_user and current_user.is_authenticated:
-            g.company_id = session.get('active_company_id') or getattr(current_user, 'company_id', None)
+            g.company_id = session.get('active_company_id')
             if not g.company_id:
                 try:
-                    if current_user.company_id:
-                        g.company_id = current_user.company_id
-                        session['active_company_id'] = g.company_id
+                    cid = getattr(current_user, 'company_id', None)
+                    if cid:
+                        g.company_id = cid
+                    else:
+                        # Fallback: find first company and assign
+                        from models import Company
+                        first = Company.query.first()
+                        if first:
+                            g.company_id = first.id
+                            current_user.company_id = first.id
+                            db.session.commit()
                 except Exception:
                     pass
+            if g.company_id:
+                session['active_company_id'] = g.company_id
 
     # ── App-level hooks ───────────────────────────────────────────────
     @app.before_request
