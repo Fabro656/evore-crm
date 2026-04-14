@@ -149,6 +149,9 @@ def register(app):
     @login_required
     def dashboard_lazy():
         """Returns heavy dashboard data as JSON for lazy loading."""
+        from routes.api import _check_api_rate
+        if _check_api_rate(request.remote_addr):
+            return jsonify({'error': 'rate limit'}), 429
         try:
             hoy = date_type.today()
             hace_7d = hoy - timedelta(days=7)

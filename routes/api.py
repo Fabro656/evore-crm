@@ -8,12 +8,30 @@ from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
 import json, os, re, io, logging
+from collections import defaultdict
+import time as _time
+
+_api_calls = defaultdict(list)
+_API_RATE_LIMIT = 60  # max calls per window
+_API_RATE_WINDOW = 60  # seconds
+
+
+def _check_api_rate(ip):
+    """Returns True if rate limit exceeded."""
+    now = _time.time()
+    _api_calls[ip] = [t for t in _api_calls[ip] if now - t < _API_RATE_WINDOW]
+    if len(_api_calls[ip]) >= _API_RATE_LIMIT:
+        return True
+    _api_calls[ip].append(now)
+    return False
 
 
 def register(app):
     @app.route('/api/buscar')
     def api_buscar():
         """JSON search API for the overlay search."""
+        if _check_api_rate(request.remote_addr):
+            return jsonify({'error': 'rate limit'}), 429
         if not current_user.is_authenticated:
             return jsonify({'results':[], 'error':'not_authenticated'}), 401
         q = request.args.get('q','').strip()
@@ -217,6 +235,8 @@ def register(app):
     @login_required
     def api_notif_count():
         """Lightweight endpoint for notification badge polling."""
+        if _check_api_rate(request.remote_addr):
+            return jsonify({'error': 'rate limit'}), 429
         try:
             count = Notificacion.query.filter_by(usuario_id=current_user.id, leida=False).count()
             return jsonify({'count': count})

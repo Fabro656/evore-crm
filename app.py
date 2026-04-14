@@ -22,9 +22,10 @@ def create_app():
     app.config['COMPANY_ID'] = COMPANY_ID
 
     # ── Config ────────────────────────────────────────────────────────
-    _secret_key = os.environ.get('SECRET_KEY', 'evore-crm-stable-fallback-key-2026-xK9mP')
-    if _secret_key == 'evore-crm-stable-fallback-key-2026-xK9mP':
-        logging.warning('SECRET_KEY not set — using fallback. Set SECRET_KEY in Railway.')
+    _secret_key = os.environ.get('SECRET_KEY')
+    if not _secret_key:
+        logging.warning('SECRET_KEY not set — generating random key. Sessions will reset on restart. Set SECRET_KEY in Railway.')
+        _secret_key = secrets.token_hex(32)
     app.config['SECRET_KEY'] = _secret_key
 
     _db_url = os.environ.get('DATABASE_URL', 'sqlite:///crm.db')
@@ -212,6 +213,11 @@ def create_app():
             else:
                 # Reject cross-origin by not echoing the Origin back
                 response.headers['Access-Control-Allow-Origin'] = 'null'
+
+        # ── API responses: prevent caching + enforce content type ────────
+        if request.path.startswith('/api/'):
+            response.headers['X-Content-Type-Options'] = 'nosniff'
+            response.headers['Cache-Control'] = 'no-store'
 
         # ── Cache-Control: no-store for authenticated pages ───────────────
         from flask_login import current_user
