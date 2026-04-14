@@ -107,6 +107,40 @@ def register(app):
         """Railway healthcheck — must respond fast without DB queries."""
         return 'OK', 200
 
+    @app.route('/api/tasa-usd')
+    def api_tasa_usd():
+        """Tasa de cambio USD desde backend (sin CORS issues)."""
+        import urllib.request
+        currency = 'COP'
+        try:
+            from company_config import COMPANY
+            currency = COMPANY.get('currency_code', 'COP')
+        except Exception:
+            pass
+        # Try primary API
+        try:
+            req = urllib.request.Request('https://open.er-api.com/v6/latest/USD', headers={'User-Agent': 'Evore-CRM/1.0'})
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                import json as _json
+                data = _json.loads(resp.read())
+                rate = data.get('rates', {}).get(currency)
+                if rate:
+                    return jsonify({'rate': rate, 'currency': currency, 'source': 'open.er-api.com'})
+        except Exception:
+            pass
+        # Try backup API
+        try:
+            req2 = urllib.request.Request(f'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json', headers={'User-Agent': 'Evore-CRM/1.0'})
+            with urllib.request.urlopen(req2, timeout=5) as resp2:
+                import json as _json2
+                data2 = _json2.loads(resp2.read())
+                rate2 = data2.get('usd', {}).get(currency.lower())
+                if rate2:
+                    return jsonify({'rate': rate2, 'currency': currency, 'source': 'fawazahmed0'})
+        except Exception:
+            pass
+        return jsonify({'rate': None, 'currency': currency, 'source': 'none', 'error': 'APIs no disponibles'})
+
     @app.route('/sw.js')
     def pwa_service_worker():
         resp = make_response(send_file('static/sw.js', mimetype='application/javascript', max_age=0))
