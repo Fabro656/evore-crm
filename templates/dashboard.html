@@ -7,53 +7,19 @@
 {% endblock %}
 {% block content %}
 
-{# ── Banner bienvenida / onboarding interactivo por rol ────── #}
+{# ── Compact onboarding progress indicator ────── #}
 {% if onboarding and onboarding.pending %}
-<div style="border-radius:var(--radius);border:1px solid var(--border);background:linear-gradient(135deg,#0B2D61,#0176D3);color:#fff;padding:1.5rem;margin-bottom:1.5rem">
-  <div class="d-flex justify-content-between align-items-start mb-3">
-    <div>
-      <h5 style="margin:0;font-weight:700"><i class="bi bi-rocket-takeoff me-2" style="opacity:.8"></i>Bienvenido a Evore CRM</h5>
-      <p style="margin:.3rem 0 0;opacity:.8;font-size:.85rem">Completa estos pasos para configurar tu espacio de trabajo</p>
+<div class="d-flex align-items-center gap-3 mb-3" style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);padding:.65rem 1rem">
+  <i class="bi bi-rocket-takeoff" style="font-size:1.1rem;color:var(--ac)"></i>
+  <div style="flex:1;min-width:0">
+    <div class="d-flex align-items-center gap-2">
+      <span style="font-size:.82rem;font-weight:600;color:var(--text)">Configuracion: {{ onboarding.done }} de {{ onboarding.total }} completados</span>
     </div>
-    <div style="text-align:right">
-      <div style="font-size:1.5rem;font-weight:800">{{ onboarding.done }}/{{ onboarding.total }}</div>
-      <div style="font-size:.7rem;opacity:.6">completados</div>
+    <div style="background:var(--surface2);border-radius:10px;height:5px;margin-top:4px;overflow:hidden">
+      <div style="background:var(--green);height:100%;border-radius:10px;width:{{ (onboarding.done / onboarding.total * 100)|int }}%;transition:width .5s"></div>
     </div>
   </div>
-  {# ── Progress bar ── #}
-  <div style="background:rgba(255,255,255,.15);border-radius:10px;height:8px;margin-bottom:1rem;overflow:hidden">
-    <div style="background:#2dce89;height:100%;border-radius:10px;width:{{ (onboarding.done / onboarding.total * 100)|int }}%;transition:width .5s"></div>
-  </div>
-  {# ── Steps grid ── #}
-  <div class="row g-2">
-    {% for step in onboarding.steps %}
-    {% set done = step.key in onboarding.completed %}
-    <div class="col-12 col-sm-6 col-lg-4">
-      <div style="background:rgba(255,255,255,{% if done %}.05{% else %}.12{% endif %});border:1px solid rgba(255,255,255,{% if done %}.05{% else %}.15{% endif %});border-radius:10px;padding:.75rem;{% if done %}opacity:.6{% endif %}">
-        <div class="d-flex align-items-start gap-2">
-          <div style="width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            {% if done %}<i class="bi bi-check-lg" style="color:#2dce89;font-size:1rem"></i>
-            {% else %}<i class="bi {{ step.icon }}" style="font-size:.9rem"></i>{% endif %}
-          </div>
-          <div style="flex:1;min-width:0">
-            <div style="font-weight:600;font-size:.82rem;{% if done %}text-decoration:line-through{% endif %}">{{ step.titulo }}</div>
-            <div style="font-size:.72rem;opacity:.7;margin-top:1px">{{ step.desc }}</div>
-          </div>
-          {% if not done %}
-          <a href="{{ url_for(step.url) }}"
-             onclick="fetch('/onboarding/complete-step',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:'{{ step.key }}'})}).catch(function(){})"
-             style="background:rgba(255,255,255,.2);color:#fff;border:none;padding:4px 12px;border-radius:6px;font-size:.72rem;font-weight:600;text-decoration:none;white-space:nowrap;flex-shrink:0">Ir &rarr;</a>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-  <div style="margin-top:1rem;text-align:right">
-    <form method="POST" action="{{ url_for('onboarding_dismiss') }}" class="d-inline">
-      <button type="submit" style="background:rgba(255,255,255,.15);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.15);padding:4px 14px;border-radius:6px;font-size:.75rem;cursor:pointer">Completar tutorial</button>
-    </form>
-  </div>
+  <button class="btn btn-sm btn-primary" onclick="sessionStorage.removeItem('evore_onboarding_seen');location.reload();" style="font-size:.78rem;white-space:nowrap"><i class="bi bi-list-check me-1"></i>Ver pasos</button>
 </div>
 {% else %}
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem;flex-wrap:wrap;gap:.5rem">
@@ -98,6 +64,20 @@
   <a href="{{ url_for('wiki') }}" class="qa-btn"><i class="bi bi-book"></i> Wiki</a>
   {% endif %}
 </div>
+
+{# ── Foro introduction banner ────────────────────────── #}
+{% if not request.args.get('_embed') %}
+<div id="foroBanner" class="alert d-flex align-items-center gap-3 mb-3" style="background:linear-gradient(135deg,#EEF6FF,#E8F5E9);border:1px solid #B8D4F0;border-radius:var(--br)">
+  <div style="font-size:2rem"><i class="bi bi-shop text-primary"></i></div>
+  <div style="flex:1">
+    <div class="fw-bold" style="font-size:.92rem">Somos Evore — tu marketplace</div>
+    <div style="font-size:.8rem;color:var(--text2)">Publica tus productos y servicios, conecta con nuevos clientes y proveedores, y construye tu reputacion.</div>
+  </div>
+  <a href="{{ url_for('foro') }}" class="btn btn-primary btn-sm flex-shrink-0"><i class="bi bi-shop me-1"></i>Explorar</a>
+  <button type="button" class="btn-close flex-shrink-0" onclick="this.closest('#foroBanner').remove();localStorage.setItem('evore_foro_banner_dismissed','1')"></button>
+</div>
+<script>if(localStorage.getItem('evore_foro_banner_dismissed')==='1'){var fb=document.getElementById('foroBanner');if(fb)fb.remove();}</script>
+{% endif %}
 
 {# ── Fila 1: métricas operativas ───────────────────── #}
 {% if r in ('admin','director_operativo','director_financiero','contador','vendedor','sales_manager') %}

@@ -61,9 +61,9 @@
         <input type="hidden" name="publicacion_id" value="{{ pub.id }}">
         <input type="hidden" name="redirect_url" value="{{ url_for('foro_ver', id=pub.id) }}">
         <div class="mb-2">
-          <div class="d-flex gap-1" id="starRating">
+          <div class="d-flex gap-1" id="starRating" role="radiogroup" aria-label="Valoracion">
             {% for i in range(1,6) %}
-            <label style="cursor:pointer;font-size:1.5rem" class="text-muted star-label" data-star="{{ i }}">
+            <label style="cursor:pointer;font-size:1.5rem" class="text-muted star-label" data-star="{{ i }}" tabindex="0" role="radio" aria-label="{{ i }} estrellas">
               <input type="radio" name="estrellas" value="{{ i }}" class="d-none">
               <i class="bi bi-star"></i>
             </label>
@@ -76,16 +76,21 @@
         <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-star me-1"></i>Enviar valoracion</button>
       </form>
       <script>
+      function selectStar(el){
+        var s=parseInt(el.dataset.star);
+        el.querySelector('input').checked=true;
+        document.querySelectorAll('.star-label').forEach(function(e){
+          var n=parseInt(e.dataset.star);
+          e.querySelector('i').className='bi bi-star'+(n<=s?'-fill':'');
+          e.classList.toggle('text-warning',n<=s);
+          e.classList.toggle('text-muted',n>s);
+          e.setAttribute('aria-checked', n<=s ? 'true' : 'false');
+        });
+      }
       document.querySelectorAll('.star-label').forEach(function(el){
-        el.addEventListener('click',function(){
-          var s=parseInt(this.dataset.star);
-          this.querySelector('input').checked=true;
-          document.querySelectorAll('.star-label').forEach(function(e){
-            var n=parseInt(e.dataset.star);
-            e.querySelector('i').className='bi bi-star'+(n<=s?'-fill':'');
-            e.classList.toggle('text-warning',n<=s);
-            e.classList.toggle('text-muted',n>s);
-          });
+        el.addEventListener('click',function(){ selectStar(this); });
+        el.addEventListener('keydown',function(ev){
+          if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();selectStar(this);}
         });
       });
       </script>

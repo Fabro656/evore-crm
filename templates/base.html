@@ -48,6 +48,9 @@
   --font-micro:.69rem;--font-caption:.75rem;--font-small:.82rem;--font-body:.875rem;--font-title:1rem;--font-display:1.25rem;--font-hero:1.75rem;
 }
 
+/* Accessibility: visually hidden but screen-reader accessible */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
 /* ── Base reset ──────────────────────────────────── */
 *{box-sizing:border-box}
 body{background:var(--surface);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;font-size:14px;line-height:1.57;color:var(--text);transition:background-color .2s,color .2s}
@@ -557,7 +560,7 @@ img,svg{max-width:100%;height:auto}
 .logo-area svg{max-height:40px!important}
 </style>{% endraw %}
 </head><body class="{% if request.args.get('_embed') == '1' %}embed-mode{% endif %}">
-<a href="#main" class="visually-hidden-focusable" style="position:absolute;top:-100px;z-index:9999;background:var(--ac);color:#fff;padding:8px 16px;border-radius:0 0 8px 8px;transition:top .2s" onfocus="this.style.top='0'" onblur="this.style.top='-100px'">Ir al contenido</a>
+<a href="#main" class="sr-only" style="position:absolute;top:-100px;left:0;z-index:99999;background:var(--ac);color:#fff;padding:8px 16px;border-radius:0 0 8px 0" onfocus="this.style.top='0'" onblur="this.style.top='-100px'">Saltar al contenido</a>
 <script>
 // Auto-detect: si estamos en un iframe pero sin _embed=1, redirigir con el parametro
 (function(){
@@ -2598,5 +2601,70 @@ document.addEventListener('submit',function(e){
     setTimeout(function(){btn.disabled=false;btn.innerHTML=btn.dataset.originalText||'Enviar';},8000);
   });
 });
+</script>
+{% if request.endpoint == 'dashboard' and onboarding and onboarding.pending %}
+<div id="obWizard" class="modal fade" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:440px">
+    <div class="modal-content" style="border-radius:16px;overflow:hidden;border:none;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+      <div style="height:4px;background:var(--ac)">
+        <div id="obProgress" style="height:100%;background:var(--green);transition:width .3s;width:0%"></div>
+      </div>
+      <div class="modal-body text-center" style="padding:2rem 2rem 1.5rem">
+        <div id="obIcon" style="font-size:2.5rem;color:var(--ac);margin-bottom:1rem"></div>
+        <h5 id="obTitle" class="fw-bold mb-2"></h5>
+        <p id="obDesc" class="text-muted mb-3" style="font-size:.88rem"></p>
+        <a id="obAction" href="#" class="btn btn-primary mb-2"><i class="bi bi-arrow-right me-1"></i>Ir ahora</a>
+        <div class="d-flex justify-content-between mt-3">
+          <button class="btn btn-sm btn-outline-secondary" onclick="obSkip()">Hacer despues</button>
+          <span id="obCounter" class="text-muted" style="font-size:.78rem"></span>
+          <button class="btn btn-sm btn-primary" id="obNext" onclick="obNext()">Siguiente <i class="bi bi-arrow-right"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+var _obSteps=[{% for s in onboarding.pending %}
+{icon:'bi-{{s.icon}}',title:'{{s.titulo}}',desc:'{{s.desc}}',url:'{{url_for(s.url)}}'}{% if not loop.last %},{% endif %}
+{% endfor %}];
+var _obIdx=0;
+function obRender(){
+  if(_obIdx>=_obSteps.length){bootstrap.Modal.getInstance(document.getElementById('obWizard')).hide();return;}
+  var s=_obSteps[_obIdx];
+  document.getElementById('obIcon').innerHTML='<i class="bi '+s.icon+'"></i>';
+  document.getElementById('obTitle').textContent=s.title;
+  document.getElementById('obDesc').textContent=s.desc;
+  document.getElementById('obAction').href=s.url;
+  document.getElementById('obCounter').textContent='Paso '+(_obIdx+1)+' de '+_obSteps.length;
+  document.getElementById('obProgress').style.width=((_obIdx+1)/_obSteps.length*100)+'%';
+  document.getElementById('obNext').style.display=_obIdx<_obSteps.length-1?'':'none';
+}
+function obNext(){_obIdx++;obRender();}
+function obSkip(){sessionStorage.setItem('evore_onboarding_seen','1');bootstrap.Modal.getInstance(document.getElementById('obWizard')).hide();}
+if(!sessionStorage.getItem('evore_onboarding_seen')&&_obSteps.length){
+  document.addEventListener('DOMContentLoaded',function(){obRender();new bootstrap.Modal(document.getElementById('obWizard')).show();});
+}
+</script>
+{% endif %}
+<script>
+// Auto-link form-text helpers to their inputs via aria-describedby
+document.querySelectorAll('.form-text').forEach(function(el,i){
+  var input = el.previousElementSibling || el.parentElement.querySelector('input,select,textarea');
+  if(input && !input.getAttribute('aria-describedby')){
+    var id = 'ft_' + i;
+    el.id = id;
+    input.setAttribute('aria-describedby', id);
+  }
+});
+// Sync aria-invalid with Bootstrap .is-invalid class
+new MutationObserver(function(mutations){
+  mutations.forEach(function(m){
+    if(m.type==='attributes'&&m.attributeName==='class'){
+      var el=m.target;
+      if(el.classList.contains('is-invalid')) el.setAttribute('aria-invalid','true');
+      else el.removeAttribute('aria-invalid');
+    }
+  });
+}).observe(document.body,{attributes:true,subtree:true,attributeFilter:['class']});
 </script>
 </body></html>
