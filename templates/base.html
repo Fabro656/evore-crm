@@ -19,8 +19,8 @@
 
 /* ── Light theme (default) ───────────────────────── */
 :root{
-  /* Sidebar */
-  --sb:#1A1F2E;--sb-text:#9CA3B4;--sb-active:#5BAFFA;
+  /* Sidebar (light) */
+  --sb:#FFFFFF;--sb-text:#5A6A85;--sb-active:#0176D3;--sb-hover:#EBF4FF;--sb-border:#E2E8F0;
   /* Brand accent */
   --ac:#0176D3;--ac2:#0047A1;--ac-rgb:1,118,211;
   /* Page surfaces */
@@ -67,23 +67,23 @@ body{background:var(--surface);font-family:-apple-system,BlinkMacSystemFont,'Seg
 
 /* ── Sidebar ───────────────────────────────────── */
 /* ── Dock Sidebar (lite=64px, expanded=240px) ── */
-#sb{position:fixed;top:0;left:0;height:100vh;height:100dvh;width:64px;background:var(--sb);display:flex;flex-direction:column;align-items:center;z-index:1050;padding:6px 0;overflow:visible;transition:width .25s cubic-bezier(.4,0,.2,1)}
-.sb-brand{padding:8px;display:flex;align-items:center;justify-content:center;width:100%;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:4px;gap:8px}
+#sb{position:fixed;top:0;left:0;height:100vh;height:100dvh;width:64px;background:var(--sb);border-right:1px solid var(--sb-border);display:flex;flex-direction:column;align-items:center;z-index:1050;padding:6px 0;overflow:visible;transition:width .25s cubic-bezier(.4,0,.2,1)}
+.sb-brand{padding:8px;display:flex;align-items:center;justify-content:center;width:100%;flex-shrink:0;border-bottom:1px solid var(--sb-border);margin-bottom:4px;gap:8px}
 #sb.sb-expanded .sb-brand{justify-content:flex-start;padding:8px 10px}
 .sb-brand a,.sb-brand img,.sb-brand>span{display:none!important}
 /* Toggle button replaces logo */
-#sb-expand{width:36px;height:36px;border-radius:8px;border:none;background:rgba(255,255,255,.06);color:var(--sb-text);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
-#sb-expand:hover{background:rgba(255,255,255,.12);color:#fff}
+#sb-expand{width:36px;height:36px;border-radius:8px;border:none;background:var(--sb-hover);color:var(--sb-text);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+#sb-expand:hover{background:var(--ac);color:#fff}
 .sb-sec{display:none}
 .sb-nav{overflow-y:auto;overflow-x:visible;flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 0;width:100%;scrollbar-width:none}
 .sb-nav::-webkit-scrollbar{display:none}
 .sb-nav .nav-link{color:var(--sb-text);width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;padding:0!important;margin:0;transition:all .2s cubic-bezier(.34,1.56,.64,1);text-decoration:none;position:relative;border:none!important;flex-shrink:0;gap:0;overflow:hidden}
 .sb-nav .nav-link span{display:none!important;white-space:nowrap;font-size:.82rem;font-weight:500}
 .sb-nav .nav-link i{font-size:1.15rem;width:auto;opacity:.7;transition:all .2s;flex-shrink:0}
-.sb-nav .nav-link:hover{background:rgba(255,255,255,.12);color:#fff;transform:scale(1.18)}
+.sb-nav .nav-link:hover{background:var(--sb-hover);color:var(--sb-active);transform:scale(1.18)}
 .sb-nav .nav-link:hover i{opacity:1}
-.sb-nav .nav-link.active{background:rgba(91,175,250,.2);color:var(--sb-active)}
-.sb-nav .nav-link.active i{opacity:1}
+.sb-nav .nav-link.active{background:var(--sb-hover);color:var(--sb-active)}
+.sb-nav .nav-link.active i{opacity:1;color:var(--sb-active)}
 .sb-nav .nav-link.active::before{content:'';position:absolute;left:0;width:3px;height:20px;background:var(--sb-active);border-radius:0 3px 3px 0}
 /* ── Expanded mode ── */
 #sb.sb-expanded{width:240px;align-items:stretch}
@@ -100,16 +100,16 @@ body{background:var(--surface);font-family:-apple-system,BlinkMacSystemFont,'Seg
 #sb.sb-expanded .sb-foot{align-items:stretch;padding:8px 10px}
 #sb.sb-expanded .sb-foot .d-flex{flex-direction:row!important;align-items:center!important}
 #sb.sb-expanded .sb-foot .ui{display:block!important}
-#sb.sb-expanded .sb-foot .u-name{display:block!important;font-size:.8rem;color:#fff}
-#sb.sb-expanded .sb-foot .u-rol{display:inline-block!important;color:var(--sb-active);background:rgba(91,175,250,.15)}
+#sb.sb-expanded .sb-foot .u-name{display:block!important;font-size:.8rem;color:var(--text)}
+#sb.sb-expanded .sb-foot .u-rol{display:inline-block!important;color:var(--sb-active);background:var(--sb-hover)}
 #sb.sb-expanded+#main,.sb-expanded~#main{margin-left:240px!important}
 #sb.sb-expanded~.dock-panel,.sb-expanded~.dock-panel{left:244px!important}
 /* Dock tooltip */
-.dock-tip{position:fixed;background:rgba(15,23,42,.92);color:#fff;padding:6px 14px;border-radius:10px;font-size:.78rem;font-weight:600;white-space:nowrap;pointer-events:none;z-index:1065;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);opacity:0;transition:opacity .15s;box-shadow:0 4px 16px rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08)}
+.dock-tip{position:fixed;background:var(--text);color:#fff;padding:6px 14px;border-radius:10px;font-size:.78rem;font-weight:600;white-space:nowrap;pointer-events:none;z-index:1065;opacity:0;transition:opacity .15s;box-shadow:var(--shadow-md)}
 .dock-tip.show{opacity:1}
 .sb-expanded .dock-tip{display:none!important}
-.dock-div{width:28px;height:1px;background:rgba(255,255,255,.12);margin:3px 0;flex-shrink:0}
-.sb-foot{padding:8px 0 6px;display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:auto;width:100%;border-top:1px solid rgba(255,255,255,.08)}
+.dock-div{width:28px;height:1px;background:var(--sb-border);margin:3px 0;flex-shrink:0}
+.sb-foot{padding:8px 0 6px;display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:auto;width:100%;border-top:1px solid var(--sb-border)}
 .sb-foot>.d-flex{flex-direction:column!important;gap:4px!important;align-items:center!important;width:100%}
 .sb-foot>.d-flex>.d-flex{justify-content:center!important}
 .sb-foot .ui,.sb-foot .u-name,.sb-foot .u-rol{display:none!important}
@@ -117,19 +117,19 @@ body{background:var(--surface);font-family:-apple-system,BlinkMacSystemFont,'Seg
 .sb-foot .notif-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;font-size:.9rem}
 
 /* ── Dock flyout panel (hold to open) ────────── */
-.dock-panel{position:fixed;left:68px;width:260px;max-height:calc(100vh - 24px);background:rgba(15,23,42,.94);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:16px;border:1px solid rgba(255,255,255,.08);box-shadow:0 20px 60px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.05) inset;z-index:1060;display:none;overflow:hidden;color:#fff;animation:dockIn .18s ease}
+.dock-panel{position:fixed;left:68px;width:260px;max-height:calc(100vh - 24px);background:var(--surface);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-radius:var(--radius-lg);border:1px solid var(--border);box-shadow:var(--shadow-lg);z-index:1060;display:none;overflow:hidden;color:var(--text);animation:dockIn .18s ease}
 @keyframes dockIn{from{opacity:0;transform:translateX(-8px) scale(.95)}to{opacity:1;transform:none}}
-.dock-panel-head{padding:12px 14px 10px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.06);text-decoration:none;color:#fff;transition:background .12s;cursor:pointer}
-.dock-panel-head:hover{background:rgba(255,255,255,.06);color:#fff}
+.dock-panel-head{padding:12px 14px 10px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);text-decoration:none;color:var(--text);transition:background .12s;cursor:pointer}
+.dock-panel-head:hover{background:var(--surface2);color:var(--text)}
 .dock-panel-head i{font-size:1.05rem;color:var(--sb-active)}
 .dock-panel-head span{font-size:.82rem;font-weight:700;letter-spacing:.3px}
 .dock-panel-head .dp-arrow{margin-left:auto;font-size:.7rem;opacity:.4}
 .dock-panel-body{padding:6px;max-height:calc(100vh - 100px);overflow-y:auto;-webkit-overflow-scrolling:touch}
-.dock-panel-link{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:10px;color:rgba(255,255,255,.75);font-size:.83rem;text-decoration:none;transition:all .12s}
-.dock-panel-link:hover{background:rgba(255,255,255,.08);color:#fff}
-.dock-panel-link.dp-active{background:rgba(91,175,250,.15);color:var(--sb-active)}
+.dock-panel-link{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:var(--radius);color:var(--text2);font-size:.83rem;text-decoration:none;transition:all .12s}
+.dock-panel-link:hover{background:var(--sb-hover);color:var(--sb-active)}
+.dock-panel-link.dp-active{background:var(--sb-hover);color:var(--sb-active)}
 .dock-panel-link i{font-size:.9rem;width:18px;text-align:center;opacity:.6}
-.dock-panel-link:hover i{opacity:1}
+.dock-panel-link:hover i{opacity:1;color:var(--sb-active)}
 
 /* ── Overlay ─────────────────────────────────── */
 #sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1040}
@@ -326,8 +326,8 @@ body{background:var(--surface);font-family:-apple-system,BlinkMacSystemFont,'Seg
 .mnav-tab.mnav-active i{color:var(--ac)}
 .mnav-badge{position:absolute;top:2px;right:50%;transform:translateX(16px);background:var(--red);color:#fff;font-size:.58rem;padding:1px 5px;border-radius:10px;font-weight:700;min-width:16px;text-align:center}
 /* ── Notifications ───────────────────────────────── */
-.notif-btn{position:relative;background:none;border:none;color:rgba(255,255,255,.6);font-size:1.05rem;padding:.3rem .45rem;border-radius:3px;cursor:pointer;transition:color .15s}
-.notif-btn:hover{color:#fff;background:rgba(255,255,255,.1)}
+.notif-btn{position:relative;background:none;border:none;color:var(--sb-text);font-size:1.05rem;padding:.3rem .45rem;border-radius:8px;cursor:pointer;transition:color .15s,background .15s}
+.notif-btn:hover{color:var(--sb-active);background:var(--sb-hover)}
 .notif-badge{position:absolute;top:0;right:0;background:var(--red);color:#fff;font-size:.6rem;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px;line-height:1}
 .notif-badge,.mnav-badge{transition:transform var(--transition-fast),opacity var(--transition-fast)}
 .notif-badge.hide,.mnav-badge.hide{transform:scale(0);opacity:0}
@@ -385,7 +385,7 @@ body{background:var(--surface);font-family:-apple-system,BlinkMacSystemFont,'Seg
    DARK THEME
    ══════════════════════════════════════════════════ */
 html[data-theme="dark"]{
-  --sb:#141414;--sb-text:#8A8F9C;--sb-active:#4BAEFF;
+  --sb:#141414;--sb-text:#8A8F9C;--sb-active:#4BAEFF;--sb-hover:rgba(255,255,255,.08);--sb-border:#2A2A2A;
   --ac:#1589EE;--ac2:#0E6BBD;--ac-rgb:21,137,238;
   --bg:#161616;--surface:#1E1E1E;--surface2:#262626;
   --border:#323232;--border2:#484848;
@@ -2284,33 +2284,33 @@ if('serviceWorker' in navigator){
 
 {# ── CHAT FLOATING PANEL (iMessage style) ── #}
 {% if current_user.is_authenticated %}
-<div id="chatPanel" style="display:none;position:fixed;top:12px;left:68px;width:340px;max-height:calc(100vh - 24px);background:rgba(15,23,42,.94);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:16px;border:1px solid rgba(255,255,255,.08);box-shadow:0 20px 60px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.05) inset;z-index:1060;flex-direction:column;overflow:hidden;color:#fff;animation:dockIn .18s ease">
+<div id="chatPanel" style="display:none;position:fixed;top:12px;left:68px;width:340px;max-height:calc(100vh - 24px);background:var(--surface);border-radius:16px;border:1px solid var(--border);box-shadow:var(--shadow-lg);z-index:1060;flex-direction:column;overflow:hidden;color:var(--text);animation:dockIn .18s ease">
   {# Header #}
-  <div style="padding:12px 14px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0">
+  <div style="padding:12px 14px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0">
     <div class="d-flex align-items-center gap-2">
       <i class="bi bi-chat-dots-fill" style="color:var(--sb-active)"></i>
       <span style="font-weight:700;font-size:.88rem">Chat</span>
     </div>
     <div class="d-flex gap-1">
-      <button onclick="chatCreateInline()" style="background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:.68rem;padding:3px 10px;border-radius:6px"><i class="bi bi-plus-lg me-1"></i>Nuevo</button>
-      <button onclick="toggleChatPanel()" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:1rem;padding:2px 6px">&times;</button>
+      <button onclick="chatCreateInline()" style="background:var(--sb-hover);border:none;color:var(--sb-active);cursor:pointer;font-size:.68rem;padding:3px 10px;border-radius:6px"><i class="bi bi-plus-lg me-1"></i>Nuevo</button>
+      <button onclick="toggleChatPanel()" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:1rem;padding:2px 6px">&times;</button>
     </div>
   </div>
   {# Room tabs #}
-  <div id="chatRoomTabs" style="display:flex;overflow-x:auto;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0;scrollbar-width:none;gap:0"></div>
+  <div id="chatRoomTabs" style="display:flex;overflow-x:auto;border-bottom:1px solid var(--border);flex-shrink:0;scrollbar-width:none;gap:0"></div>
   {# Messages area #}
-  <div id="chatMsgs" style="flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:5px;min-height:200px;max-height:calc(100vh - 180px)">
-    <div style="padding:30px 16px;text-align:center;color:rgba(255,255,255,.3)"><i class="bi bi-chat-dots" style="font-size:1.8rem;display:block;margin-bottom:6px"></i><span style="font-size:.78rem">Selecciona o crea una conversacion</span></div>
+  <div id="chatMsgs" style="flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:5px;min-height:200px;max-height:calc(100vh - 180px);background:var(--surface2)">
+    <div style="padding:30px 16px;text-align:center;color:var(--text2)"><i class="bi bi-chat-dots" style="font-size:1.8rem;display:block;margin-bottom:6px"></i><span style="font-size:.78rem">Selecciona o crea una conversación</span></div>
   </div>
   {# Input #}
-  <div id="chatInput" style="display:none;padding:8px 10px;border-top:1px solid rgba(255,255,255,.06);flex-shrink:0">
+  <div id="chatInput" style="display:none;padding:8px 10px;border-top:1px solid var(--border);flex-shrink:0">
     <form onsubmit="chatSend(event)" style="display:flex;gap:6px;align-items:center">
-      <label style="cursor:pointer;color:rgba(255,255,255,.4);font-size:1.1rem;flex-shrink:0;padding:0 4px" title="Adjuntar archivo">
+      <label style="cursor:pointer;color:var(--text2);font-size:1.1rem;flex-shrink:0;padding:0 4px" title="Adjuntar archivo">
         <i class="bi bi-paperclip"></i>
         <input type="file" id="chatFileInput" style="display:none" onchange="chatSendFile(this)">
       </label>
-      <input type="text" id="chatMsgInput" placeholder="Mensaje..." style="flex:1;border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:7px 14px;font-size:.82rem;background:rgba(255,255,255,.08);color:#fff;outline:none" autocomplete="off">
-      <button type="submit" style="width:32px;height:32px;border-radius:50%;background:var(--sb-active);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.85rem"><i class="bi bi-arrow-up"></i></button>
+      <input type="text" id="chatMsgInput" placeholder="Mensaje..." style="flex:1;border:1.5px solid var(--border);border-radius:18px;padding:7px 14px;font-size:.82rem;background:var(--surface);color:var(--text);outline:none" autocomplete="off">
+      <button type="submit" style="width:32px;height:32px;border-radius:50%;background:var(--ac);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.85rem"><i class="bi bi-arrow-up"></i></button>
     </form>
   </div>
 </div>
@@ -2358,9 +2358,12 @@ function chatRenderTabs(){
   var html = '';
   _chatRooms.forEach(function(r){
     var active = r.id === _chatRoomId;
-    html += '<div style="display:flex;align-items:center;border-bottom:2px solid '+(active?'#5BAFFA':'transparent')+';flex-shrink:0;transition:all .12s;background:'+(active?'rgba(91,175,250,.12)':'transparent')+'">'
-      +'<button onclick="chatOpenRoom('+r.id+')" style="padding:7px 10px 7px 12px;font-size:.72rem;font-weight:'+(active?'700':'400')+';color:'+(active?'#5BAFFA':'rgba(255,255,255,.5)')+';background:transparent;border:none;cursor:pointer;white-space:nowrap">'+r.name+'</button>'
-      +'<button onclick="event.stopPropagation();chatCloseTab('+r.id+')" style="padding:2px 6px 2px 0;font-size:.6rem;color:rgba(255,255,255,.25);background:none;border:none;cursor:pointer;line-height:1" title="Cerrar">&times;</button>'
+    var acColor = getComputedStyle(document.documentElement).getPropertyValue('--ac').trim();
+    var txtMuted = getComputedStyle(document.documentElement).getPropertyValue('--text2').trim();
+    var hoverBg = getComputedStyle(document.documentElement).getPropertyValue('--sb-hover').trim();
+    html += '<div style="display:flex;align-items:center;border-bottom:2px solid '+(active?acColor:'transparent')+';flex-shrink:0;transition:all .12s;background:'+(active?hoverBg:'transparent')+'">'
+      +'<button onclick="chatOpenRoom('+r.id+')" style="padding:7px 10px 7px 12px;font-size:.72rem;font-weight:'+(active?'700':'400')+';color:'+(active?acColor:txtMuted)+';background:transparent;border:none;cursor:pointer;white-space:nowrap">'+r.name+'</button>'
+      +'<button onclick="event.stopPropagation();chatCloseTab('+r.id+')" style="padding:2px 6px 2px 0;font-size:.6rem;color:'+txtMuted+';background:none;border:none;cursor:pointer;line-height:1" title="Cerrar">&times;</button>'
       +'</div>';
   });
   tabs.innerHTML = html;
@@ -2415,7 +2418,7 @@ function chatSendFile(input){
   var container = document.getElementById('chatMsgs');
   var div = document.createElement('div');
   div.style='display:flex;justify-content:flex-end';
-  div.innerHTML='<div style="max-width:80%;padding:8px 12px;border-radius:16px 16px 4px 16px;font-size:.82rem;background:#1589EE;color:#fff;opacity:.7"><i class="bi bi-paperclip me-1"></i>'+file.name+'</div>';
+  div.innerHTML='<div style="max-width:80%;padding:8px 12px;border-radius:16px 16px 4px 16px;font-size:.82rem;background:var(--ac);color:#fff;opacity:.7"><i class="bi bi-paperclip me-1"></i>'+file.name+'</div>';
   container.appendChild(div);
   container.scrollTop=container.scrollHeight;
   // Send
@@ -2450,7 +2453,7 @@ function chatOpenRoom(roomId){
   localStorage.setItem('evore_last_chat', roomId);
   chatRenderTabs();
   document.getElementById('chatInput').style.display = '';
-  document.getElementById('chatMsgs').innerHTML = '<div style="padding:20px;text-align:center;color:rgba(255,255,255,.3);font-size:.82rem">Cargando...</div>';
+  document.getElementById('chatMsgs').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text2);font-size:.82rem">Cargando...</div>';
   chatPollMessages();
   if(_chatPollTimer) clearInterval(_chatPollTimer);
   _chatPollTimer = setInterval(chatPollMessages, 3000);
@@ -2483,11 +2486,11 @@ function chatPollMessages(){
         var bubble = document.createElement('div');
         bubble.style = 'max-width:80%;padding:8px 12px;border-radius:' +
           (m.is_mine ? '16px 16px 4px 16px' : '16px 16px 16px 4px') + ';font-size:.85rem;' +
-          (m.tipo === 'sistema' ? 'background:transparent;color:rgba(255,255,255,.35);font-size:.72rem;text-align:center;max-width:100%;font-style:italic' :
-           m.is_mine ? 'background:#1589EE;color:#fff' : 'background:rgba(255,255,255,.08);color:#e4e4e4');
+          (m.tipo === 'sistema' ? 'background:transparent;color:var(--text2);font-size:.72rem;text-align:center;max-width:100%;font-style:italic' :
+           m.is_mine ? 'background:var(--ac);color:#fff' : 'background:var(--surface);color:var(--text);border:1px solid var(--border)');
         var html = '';
         if(m.tipo !== 'sistema' && !m.is_mine)
-          html += '<div style="font-size:.68rem;font-weight:600;color:#5BAFFA;margin-bottom:2px">'+m.user_name+'</div>';
+          html += '<div style="font-size:.68rem;font-weight:600;color:var(--ac);margin-bottom:2px">'+m.user_name+'</div>';
         html += m.contenido;
         html += '<div style="font-size:.6rem;margin-top:3px;'+(m.is_mine?'color:rgba(255,255,255,.5);text-align:right':'color:var(--text2)')+'">'+m.creado_en+'</div>';
         bubble.innerHTML = html;
