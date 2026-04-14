@@ -467,6 +467,7 @@ html[data-theme="dark"] .skeleton{background:linear-gradient(90deg,var(--surface
   #sb-tog{display:flex}
   #main{margin-left:0!important;width:100%;padding-bottom:calc(90px + env(safe-area-inset-bottom,0))}
   .fab,#diagBtn,#aiFab{display:none!important}
+  #chatPanel{width:100%!important;height:100%!important;bottom:0!important;right:0!important;border-radius:0!important}
   #sb.sb-expanded+#main,#sb.sb-expanded~#main{margin-left:0!important}
   .content{padding:var(--sp-4) var(--sp-3)}
   .topbar{padding:var(--sp-2) var(--sp-3);gap:var(--sp-1);overflow:hidden}
@@ -657,7 +658,7 @@ img,svg{max-width:100%;height:auto}
     <a href="#" class="nav-link dock-group {% if 'aprobacion' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Aprobaciones" aria-label="Aprobaciones" data-dock-panel="aprobaciones" style="position:relative"><i class="bi bi-clipboard-check"></i>{% if aprob_pend %}<span style="position:absolute;top:2px;right:2px;background:var(--orange);color:#fff;font-size:.55rem;padding:1px 4px;border-radius:8px;line-height:1.2">{{ aprob_pend }}</span>{% endif %}<span>Aprobaciones</span></a>
     {% endif %}
     {# ── Wiki + Buscador ── #}
-    <a href="{{ url_for('chat_index') }}" class="nav-link {% if 'chat' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Chat" aria-label="Chat" style="position:relative"><i class="bi bi-chat-dots-fill"></i><span>Chat</span></a>
+    <a href="#" onclick="event.preventDefault();toggleChatPanel()" class="nav-link" data-tip="Chat" aria-label="Chat" style="position:relative"><i class="bi bi-chat-dots-fill"></i><span>Chat</span><span id="chatBadge" style="display:none;position:absolute;top:2px;right:2px;background:var(--red);color:#fff;font-size:.55rem;padding:1px 4px;border-radius:8px;line-height:1.2"></span></a>
     <a href="{{ url_for('portal_mis_relaciones') }}" class="nav-link {% if request.endpoint=='portal_mis_relaciones' or request.endpoint=='portal_interempresa' %}active" aria-current="page{% endif %}" data-tip="Relaciones" aria-label="Relaciones comerciales"><i class="bi bi-building"></i><span>Relaciones</span></a>
     <a href="{{ url_for('wiki') }}" class="nav-link {% if request.endpoint=='wiki' %}active" aria-current="page{% endif %}" data-tip="Wiki" aria-label="Wiki" data-dock-panel="wiki_page"><i class="bi bi-book"></i><span>Wiki</span></a>
     <a href="{{ url_for('buscador') }}" class="nav-link {% if request.endpoint=='buscador' %}active" aria-current="page{% endif %}" data-tip="Buscador" aria-label="Buscador" data-dock-panel="buscador"><i class="bi bi-search"></i><span>Buscador</span></a>
@@ -2184,6 +2185,178 @@ if('serviceWorker' in navigator){
 }
 
 </script>
+
+{# ── CHAT FLOATING PANEL (iMessage style) ── #}
+{% if current_user.is_authenticated %}
+<div id="chatPanel" style="display:none;position:fixed;bottom:24px;right:24px;width:380px;height:560px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 16px 48px rgba(0,0,0,.2);z-index:1050;flex-direction:column;overflow:hidden">
+  {# Header #}
+  <div style="background:var(--sb);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-chat-dots-fill" style="font-size:1.1rem"></i>
+      <span id="chatPanelTitle" style="font-weight:700;font-size:.95rem">Chat</span>
+    </div>
+    <div class="d-flex gap-2">
+      <button onclick="chatShowList()" style="background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-size:.85rem;padding:2px 6px" title="Lista de chats"><i class="bi bi-list"></i></button>
+      <button onclick="toggleChatPanel()" style="background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-size:1rem;padding:2px 6px" title="Cerrar">&times;</button>
+    </div>
+  </div>
+  {# Body: list or conversation #}
+  <div id="chatBody" style="flex:1;overflow-y:auto;display:flex;flex-direction:column">
+    <div id="chatList" style="flex:1;overflow-y:auto"></div>
+    <div id="chatConvo" style="display:none;flex:1;overflow-y:auto;flex-direction:column">
+      <div id="chatMsgs" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+  </div>
+  {# Input (hidden until in conversation) #}
+  <div id="chatInput" style="display:none;padding:10px 12px;border-top:1px solid var(--border);flex-shrink:0">
+    <form onsubmit="chatSend(event)" style="display:flex;gap:8px">
+      <input type="text" id="chatMsgInput" placeholder="Mensaje..." style="flex:1;border:1.5px solid var(--border);border-radius:20px;padding:8px 14px;font-size:.85rem;background:var(--input-bg);color:var(--text);outline:none" autocomplete="off">
+      <button type="submit" style="width:36px;height:36px;border-radius:50%;background:var(--ac);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-arrow-up" style="font-size:1rem"></i></button>
+    </form>
+  </div>
+  {# New chat button #}
+  <div id="chatNewBtn" style="padding:8px 12px;border-top:1px solid var(--border);flex-shrink:0">
+    <button onclick="chatShowNew()" style="width:100%;padding:8px;background:var(--ac);color:#fff;border:none;border-radius:10px;font-size:.82rem;font-weight:600;cursor:pointer"><i class="bi bi-plus-lg me-1"></i>Nueva conversacion</button>
+  </div>
+</div>
+
+<script>
+var _chatOpen = false;
+var _chatRoomId = null;
+var _chatLastMsgId = 0;
+var _chatPollTimer = null;
+
+function toggleChatPanel(){
+  var p = document.getElementById('chatPanel');
+  _chatOpen = !_chatOpen;
+  p.style.display = _chatOpen ? 'flex' : 'none';
+  if(_chatOpen) chatLoadList();
+}
+
+function chatShowList(){
+  document.getElementById('chatList').style.display = '';
+  document.getElementById('chatConvo').style.display = 'none';
+  document.getElementById('chatInput').style.display = 'none';
+  document.getElementById('chatNewBtn').style.display = '';
+  document.getElementById('chatPanelTitle').textContent = 'Chat';
+  _chatRoomId = null;
+  if(_chatPollTimer) clearInterval(_chatPollTimer);
+  chatLoadList();
+}
+
+function chatLoadList(){
+  fetch('/chat').then(r => r.text()).then(html => {
+    // Extract room links from the full page HTML
+    var tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    var rooms = tmp.querySelectorAll('a[href*="/chat/"]');
+    var list = document.getElementById('chatList');
+    if(rooms.length === 0){
+      list.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--text2)"><i class="bi bi-chat-dots" style="font-size:2rem;display:block;margin-bottom:8px"></i>Sin conversaciones</div>';
+      return;
+    }
+    var listHtml = '';
+    rooms.forEach(function(a){
+      var href = a.getAttribute('href');
+      var match = href.match(/\/chat\/(\d+)/);
+      if(!match) return;
+      var roomId = match[1];
+      // Clone the link content
+      listHtml += '<div onclick="chatOpenRoom('+roomId+')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;transition:background .12s;border-bottom:1px solid var(--border)" onmouseover="this.style.background=\'var(--surface2)\'" onmouseout="this.style.background=\'transparent\'">' + a.innerHTML + '</div>';
+    });
+    list.innerHTML = listHtml;
+  }).catch(function(){
+    document.getElementById('chatList').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text2)">Error cargando chats</div>';
+  });
+}
+
+function chatOpenRoom(roomId){
+  _chatRoomId = roomId;
+  _chatLastMsgId = 0;
+  document.getElementById('chatList').style.display = 'none';
+  document.getElementById('chatConvo').style.display = 'flex';
+  document.getElementById('chatInput').style.display = '';
+  document.getElementById('chatNewBtn').style.display = 'none';
+  document.getElementById('chatMsgs').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text2);font-size:.82rem">Cargando...</div>';
+  // Load messages via API
+  chatPollMessages();
+  if(_chatPollTimer) clearInterval(_chatPollTimer);
+  _chatPollTimer = setInterval(chatPollMessages, 3000);
+  // Update title
+  document.getElementById('chatPanelTitle').textContent = 'Chat';
+  document.getElementById('chatMsgInput').focus();
+}
+
+function chatPollMessages(){
+  if(!_chatRoomId) return;
+  fetch('/api/chat/'+_chatRoomId+'/mensajes?after='+_chatLastMsgId)
+    .then(r => r.json())
+    .then(data => {
+      if(!data.messages) return;
+      var container = document.getElementById('chatMsgs');
+      if(_chatLastMsgId === 0) container.innerHTML = '';
+      data.messages.forEach(function(m){
+        if(m.id <= _chatLastMsgId) return;
+        _chatLastMsgId = m.id;
+        var div = document.createElement('div');
+        div.style = 'display:flex;' + (m.is_mine ? 'justify-content:flex-end' : 'justify-content:flex-start');
+        var bubble = document.createElement('div');
+        bubble.style = 'max-width:80%;padding:8px 12px;border-radius:' +
+          (m.is_mine ? '16px 16px 4px 16px' : '16px 16px 16px 4px') + ';font-size:.85rem;' +
+          (m.tipo === 'sistema' ? 'background:transparent;color:var(--text2);font-size:.75rem;text-align:center;max-width:100%;font-style:italic' :
+           m.is_mine ? 'background:var(--ac);color:#fff' : 'background:var(--surface2);color:var(--text)');
+        var html = '';
+        if(m.tipo !== 'sistema' && !m.is_mine)
+          html += '<div style="font-size:.7rem;font-weight:600;color:var(--ac);margin-bottom:2px">'+m.user_name+'</div>';
+        html += m.contenido;
+        html += '<div style="font-size:.6rem;margin-top:3px;'+(m.is_mine?'color:rgba(255,255,255,.5);text-align:right':'color:var(--text2)')+'">'+m.creado_en+'</div>';
+        bubble.innerHTML = html;
+        div.appendChild(bubble);
+        container.appendChild(div);
+      });
+      container.scrollTop = container.scrollHeight;
+    }).catch(function(){});
+}
+
+function chatSend(e){
+  e.preventDefault();
+  var input = document.getElementById('chatMsgInput');
+  var text = input.value.trim();
+  if(!text || !_chatRoomId) return;
+  input.value = '';
+  // Optimistic: show message immediately
+  var container = document.getElementById('chatMsgs');
+  var div = document.createElement('div');
+  div.style = 'display:flex;justify-content:flex-end';
+  div.innerHTML = '<div style="max-width:80%;padding:8px 12px;border-radius:16px 16px 4px 16px;font-size:.85rem;background:var(--ac);color:#fff;opacity:.7">'+text+'</div>';
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  // Send
+  var fd = new FormData();
+  fd.append('contenido', text);
+  fd.append('_csrf_token', document.querySelector('meta[name=csrf-token]').content);
+  fetch('/chat/'+_chatRoomId+'/enviar', {method:'POST', body:fd, headers:{'X-Requested-With':'XMLHttpRequest'}})
+    .then(function(){ div.querySelector('div').style.opacity='1'; })
+    .catch(function(){ div.querySelector('div').style.background='var(--red)'; });
+}
+
+function chatShowNew(){
+  window.location.href = '/chat/nuevo';
+}
+
+// Poll unread count
+setInterval(function(){
+  fetch('/api/chat/unread').then(r=>r.json()).then(d=>{
+    var badge = document.getElementById('chatBadge');
+    if(badge){
+      if(d.count > 0){ badge.textContent=d.count; badge.style.display=''; }
+      else { badge.style.display='none'; }
+    }
+  }).catch(function(){});
+}, 15000);
+</script>
+{% endif %}
+
 <script>
 // ── Global keyboard shortcuts ──
 document.addEventListener('keydown', function(e) {
