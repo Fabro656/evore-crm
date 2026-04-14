@@ -72,7 +72,7 @@ body{background:var(--surface);font-family:-apple-system,BlinkMacSystemFont,'Seg
 /* ── Sidebar ───────────────────────────────────── */
 /* ── Dock Sidebar (lite=64px, expanded=240px) ── */
 #sb{position:fixed;top:0;left:0;height:100vh;height:100dvh;width:64px;background:var(--sb);border-right:1px solid var(--sb-border);box-shadow:2px 0 8px rgba(0,0,0,.04);display:flex;flex-direction:column;align-items:center;z-index:1050;padding:6px 0;overflow:visible;transition:width .25s cubic-bezier(.4,0,.2,1)}
-.sb-brand{padding:8px;display:flex;align-items:center;justify-content:center;width:100%;flex-shrink:0;border-bottom:1px solid var(--sb-border);margin-bottom:4px;gap:8px;position:relative}
+.sb-brand{padding:8px;display:flex;align-items:center;justify-content:center;width:100%;flex-shrink:0;border-bottom:1px solid var(--sb-border);margin-bottom:4px;gap:8px}
 #sb.sb-expanded .sb-brand{justify-content:flex-start;padding:8px 10px}
 .sb-brand a,.sb-brand img,.sb-brand>span{display:none!important}
 /* Toggle button replaces logo */
@@ -91,10 +91,9 @@ body{background:var(--surface);font-family:-apple-system,BlinkMacSystemFont,'Seg
 .sb-nav .nav-link.active::before{content:'';position:absolute;left:0;width:3px;height:20px;background:var(--sb-active);border-radius:0 3px 3px 0}
 /* ── Expanded mode ── */
 #sb.sb-expanded{width:240px;align-items:stretch}
-#sb.sb-expanded .sb-brand{gap:0;justify-content:center}
-#sb.sb-expanded .sb-brand #sb-expand{position:absolute;right:8px;top:8px}
-#sb.sb-expanded .sb-brand a{display:flex!important;align-items:center;justify-content:center;overflow:hidden}
-#sb.sb-expanded .sb-brand img.logo-light,#sb.sb-expanded .sb-brand img.logo-dark{width:auto!important;max-width:160px!important;height:28px!important;object-fit:contain!important}
+#sb.sb-expanded .sb-brand{gap:10px;justify-content:flex-start;padding:8px 12px}
+#sb.sb-expanded .sb-brand a{display:flex!important;flex:1;align-items:center;min-width:0;overflow:hidden}
+#sb.sb-expanded .sb-brand img.logo-light,#sb.sb-expanded .sb-brand img.logo-dark{width:100%!important;max-width:170px!important;height:26px!important;object-fit:contain!important;object-position:left!important}
 #sb.sb-expanded .sb-brand img.logo-light{display:block!important}
 #sb.sb-expanded .sb-brand img.logo-dark{display:none!important}
 html[data-theme="dark"] #sb.sb-expanded .sb-brand img.logo-light{display:none!important}
