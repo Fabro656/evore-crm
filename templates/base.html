@@ -2249,7 +2249,11 @@ function chatLoadRooms(){
       _chatRooms.push({id: parseInt(match[1]), name: name.substring(0, 20)});
     });
     chatRenderTabs();
-    if(_chatRooms.length && !_chatRoomId) chatOpenRoom(_chatRooms[0].id);
+    if(_chatRooms.length && !_chatRoomId){
+      var lastChat = parseInt(localStorage.getItem('evore_last_chat'));
+      var found = lastChat && _chatRooms.find(function(r){return r.id===lastChat;});
+      chatOpenRoom(found ? lastChat : _chatRooms[0].id);
+    }
   }).catch(function(){});
 }
 
@@ -2329,9 +2333,10 @@ function chatCreateSubmit(){
 function chatOpenRoom(roomId){
   _chatRoomId = roomId;
   _chatLastMsgId = 0;
+  localStorage.setItem('evore_last_chat', roomId);
   chatRenderTabs();
   document.getElementById('chatInput').style.display = '';
-  document.getElementById('chatMsgs').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text2);font-size:.82rem">Cargando...</div>';
+  document.getElementById('chatMsgs').innerHTML = '<div style="padding:20px;text-align:center;color:rgba(255,255,255,.3);font-size:.82rem">Cargando...</div>';
   chatPollMessages();
   if(_chatPollTimer) clearInterval(_chatPollTimer);
   _chatPollTimer = setInterval(chatPollMessages, 3000);
