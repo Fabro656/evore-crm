@@ -41,40 +41,47 @@
 </form></div></div>
 <div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-receipt me-2"></i>{{ items|length }} gasto(s)</div>
 {% if items %}
-<div style="overflow-x:auto;width:100%">
-<table class="table table-cards" style="width:100%;min-width:750px;margin:0">
-  <thead><tr><th>Fecha</th><th>Tipo</th><th>Descripcion</th><th>Monto</th><th>Pago</th><th></th></tr></thead>
-  <tbody>{% for g in items %}{% if not g.es_plantilla %}<tr>
-    <td data-label="Fecha"><small>{{ g.fecha.strftime('%d/%m/%Y') }}</small></td>
-    <td data-label="Tipo"><span class="badge bg-secondary">{{ g.tipo_custom if g.tipo=='Otro' and g.tipo_custom else g.tipo }}</span></td>
-    <td data-label="Descripcion">{{ g.descripcion or '--' }}{% if g.notas %}<br><small class="text-muted">{{ g.notas[:60] }}</small>{% endif %}</td>
-    <td data-label="Monto" class="fw-semibold">{{ moneda(g.monto) }}</td>
-    <td data-label="Pago">
-      {% if g.estado_pago is defined and g.estado_pago == 'pagado' %}
-        <span class="badge bg-success">Pagado</span>
-      {% else %}
-        <span class="badge bg-warning text-dark">Pendiente</span>
-      {% endif %}
-    </td>
-    <td>
-      <div class="dropdown">
-        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.78rem"><i class="bi bi-three-dots"></i></button>
-        <ul class="dropdown-menu dropdown-menu-end" style="font-size:.83rem">
-          {% if not (g.estado_pago is defined and g.estado_pago == 'pagado') %}
-          <li><form method="POST" action="{{ url_for('gasto_marcar_pagado', id=g.id) }}" class="px-0 m-0">
-            <button class="dropdown-item text-success" type="submit"><i class="bi bi-check-circle me-2"></i>Marcar pagado</button>
-          </form></li>
+<div class="row g-3">
+  {% for g in items %}{% if not g.es_plantilla %}
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="fc h-100" style="padding:0;overflow:hidden;transition:box-shadow .15s,transform .15s" onmouseenter="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)';this.style.transform='translateY(-1px)'" onmouseleave="this.style.boxShadow='';this.style.transform=''">
+      {# Color bar by tipo #}
+      <div style="height:4px;background:{% if g.tipo in ['Nomina','Salarios'] %}#0d6efd{% elif g.tipo in ['Arriendo','Servicios','Servicios Publicos'] %}#6f42c1{% elif g.tipo in ['Materia Prima','Insumos'] %}#fd7e14{% elif g.tipo == 'Otro' %}#adb5bd{% else %}#20c997{% endif %}"></div>
+      <div style="padding:1rem 1.15rem">
+        <div class="d-flex align-items-start justify-content-between mb-2">
+          <span class="badge bg-secondary">{{ g.tipo_custom if g.tipo=='Otro' and g.tipo_custom else g.tipo }}</span>
+          {% if g.estado_pago is defined and g.estado_pago == 'pagado' %}
+            <span class="badge bg-success">Pagado</span>
+          {% else %}
+            <span class="badge bg-warning text-dark">Pendiente</span>
           {% endif %}
-          <li><a class="dropdown-item" href="{{ url_for('gasto_editar', id=g.id) }}"><i class="bi bi-pencil me-2"></i>Editar</a></li>
-          <li><hr class="dropdown-divider"></li>
-          <li><form method="POST" action="{{ url_for('gasto_eliminar', id=g.id) }}" onsubmit="return confirm('Eliminar?')" class="px-0 m-0">
-            <button class="dropdown-item text-danger" type="submit"><i class="bi bi-trash me-2"></i>Eliminar</button>
-          </form></li>
-        </ul>
+        </div>
+        <div class="mb-2">
+          <div class="fw-semibold" style="color:var(--text);font-size:.9rem">{{ g.descripcion or '--' }}</div>
+          {% if g.notas %}<small class="text-muted">{{ g.notas[:80] }}</small>{% endif %}
+        </div>
+        <div class="mb-2" style="font-size:1.35rem;font-weight:700;color:var(--text)">{{ moneda(g.monto) }}</div>
+        <div class="d-flex justify-content-between align-items-center" style="font-size:.8rem;color:var(--text2)">
+          <div><i class="bi bi-calendar-event me-1"></i>{{ g.fecha.strftime('%d/%m/%Y') }}</div>
+          {% if g.proveedor_rel is defined and g.proveedor_rel %}
+          <div><i class="bi bi-building me-1"></i>{{ g.proveedor_rel.nombre }}</div>
+          {% endif %}
+        </div>
       </div>
-    </td>
-  </tr>{% endif %}{% endfor %}</tbody>
-</table>
+      <div style="border-top:1px solid var(--border);padding:.65rem 1.15rem;display:flex;align-items:center;gap:.5rem">
+        {% if not (g.estado_pago is defined and g.estado_pago == 'pagado') %}
+        <form method="POST" action="{{ url_for('gasto_marcar_pagado', id=g.id) }}" class="m-0 p-0">
+          <button class="btn btn-sm btn-outline-success" type="submit" style="font-size:.78rem"><i class="bi bi-check-circle me-1"></i>Pagado</button>
+        </form>
+        {% endif %}
+        <a href="{{ url_for('gasto_editar', id=g.id) }}" class="btn btn-sm btn-outline-secondary" style="font-size:.78rem"><i class="bi bi-pencil me-1"></i>Editar</a>
+        <form method="POST" action="{{ url_for('gasto_eliminar', id=g.id) }}" onsubmit="return confirm('Eliminar?')" class="ms-auto m-0 p-0">
+          <button class="btn btn-sm btn-outline-danger" type="submit" style="font-size:.78rem"><i class="bi bi-trash me-1"></i>Eliminar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}{% endfor %}
 </div>
 {% else %}<div class="text-center text-muted py-5"><i class="bi bi-receipt" style="font-size:3rem"></i>
   <p class="mt-3">Sin gastos.</p><a href="{{ url_for('gasto_nuevo') }}" class="btn btn-primary">Agregar primero</a></div>

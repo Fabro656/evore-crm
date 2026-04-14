@@ -318,6 +318,17 @@ def register(app):
                 room_id=chat_room.id, user_id=current_user.id,
                 rol='admin', agregado_por=current_user.id
             ))
+            # Handle logo upload
+            logo_file = request.files.get('logo')
+            if logo_file and logo_file.filename:
+                ext = logo_file.filename.rsplit('.', 1)[-1].lower()
+                if ext in ('png', 'jpg', 'jpeg', 'webp'):
+                    from werkzeug.utils import secure_filename as _sf
+                    logo_dir = os.path.join(current_app.root_path, 'static', 'logos')
+                    os.makedirs(logo_dir, exist_ok=True)
+                    fname = _sf(f'company_{emp.id}.{ext}')
+                    logo_file.save(os.path.join(logo_dir, fname))
+                    emp.logo_url = f'static/logos/{fname}'
             # Commit company + relationship + chat FIRST (critical path)
             db.session.commit()
             # Seed PUC as separate operation (non-critical, may fail on local SQLite)
@@ -360,6 +371,16 @@ def register(app):
             emp.max_users = int(request.form.get('max_users', emp.max_users))
             emp.plan = request.form.get('plan', emp.plan)
             emp.activo = request.form.get('activo') == 'on'
+            logo_file = request.files.get('logo')
+            if logo_file and logo_file.filename:
+                ext = logo_file.filename.rsplit('.', 1)[-1].lower()
+                if ext in ('png', 'jpg', 'jpeg', 'webp'):
+                    from werkzeug.utils import secure_filename as _sf
+                    logo_dir = os.path.join(current_app.root_path, 'static', 'logos')
+                    os.makedirs(logo_dir, exist_ok=True)
+                    fname = _sf(f'company_{emp.id}.{ext}')
+                    logo_file.save(os.path.join(logo_dir, fname))
+                    emp.logo_url = f'static/logos/{fname}'
             _log('editar', 'empresa', emp.id, f'Empresa editada: {emp.nombre}')
             db.session.commit()
             flash(f'Empresa "{emp.nombre}" actualizada.', 'success')

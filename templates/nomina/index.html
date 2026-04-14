@@ -72,37 +72,45 @@
       </div>
     </form>
   </div>
-  <div class="table-responsive mt-3" style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface)">
-    <table class="table table-sm table-hover" style="margin:0">
-      <thead>
-        <tr>
-          <th>Nombre</th>
-          <th>Cédula</th>
-          <th>Cargo</th>
-          <th>Tipo contrato</th>
-          <th>Salario bruto</th>
-          <th>Salario neto</th>
-          <th>Fecha ingreso</th>
-          <th>Estado</th>
-          <th style="width:80px">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for e in empleados %}
-        <tr>
-          <td><strong>{{ e.nombre }} {{ e.apellido }}</strong></td>
-          <td>{{ e.cedula or '—' }}</td>
-          <td>{{ e.cargo or '—' }}</td>
-          <td><span class="b" style="background:{% if e.tipo_contrato=='indefinido' %}var(--ac){% elif e.tipo_contrato=='fijo' %}var(--green){% elif e.tipo_contrato=='obra_labor' %}var(--orange){% else %}#6D42C8{% endif %}">{{ e.tipo_contrato }}</span></td>
-          <td>{{ e.salario_base|cop }}</td>
-          <td>{{ ((e.salario_base or 0) * 0.92)|round(0)|int|cop }}</td>
-          <td>{{ e.fecha_ingreso.strftime('%d/%m/%Y') if e.fecha_ingreso else '—' }}</td>
-          <td><span class="b" style="background:{% if e.estado=='activo' %}var(--green){% elif e.estado=='inactivo' %}var(--orange){% else %}#6D42C8{% endif %}">{{ e.estado }}</span></td>
-          <td><a href="{{ url_for('empleado_ver', id=e.id) }}" class="btn btn-xs btn-outline-secondary" style="padding:3px 8px;font-size:.75rem"><i class="bi bi-eye me-1"></i>Ver</a></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="row g-3 mt-1">
+    {% for e in empleados %}
+    {% if e.estado == 'activo' %}
+      {% set bar_color = '#198754' %}
+    {% elif e.estado == 'inactivo' or e.estado == 'despedido' %}
+      {% set bar_color = '#dc3545' %}
+    {% elif e.estado == 'vacaciones' %}
+      {% set bar_color = '#0d6efd' %}
+    {% else %}
+      {% set bar_color = '#6c757d' %}
+    {% endif %}
+    <div class="col-12 col-md-6 col-xl-4">
+      <div class="fc h-100" style="padding:0;overflow:hidden;transition:box-shadow .15s,transform .15s" onmouseenter="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)';this.style.transform='translateY(-1px)'" onmouseleave="this.style.boxShadow='';this.style.transform=''">
+        <div style="height:4px;background:{{ bar_color }}"></div>
+        <div style="padding:1rem 1.15rem">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <h6 class="mb-0 fw-semibold">{{ e.nombre }} {{ e.apellido }}</h6>
+            <span class="b" style="background:{% if e.estado=='activo' %}var(--green){% elif e.estado=='inactivo' %}var(--orange){% elif e.estado=='despedido' %}var(--red){% else %}#6D42C8{% endif %}">{{ e.estado }}</span>
+          </div>
+          {% if e.cargo %}<div class="mb-2" style="font-size:.85rem;color:var(--text2)"><i class="bi bi-briefcase me-1"></i>{{ e.cargo }}</div>{% endif %}
+          <div style="font-size:.85rem;color:var(--text2)">
+            <div class="mb-1"><i class="bi bi-person-vcard me-1"></i>CC: {{ e.cedula or '---' }}</div>
+            <div class="mb-1"><i class="bi bi-calendar-event me-1"></i>Ingreso: {{ e.fecha_ingreso.strftime('%d/%m/%Y') if e.fecha_ingreso else '---' }}</div>
+            <div class="mb-1"><i class="bi bi-cash-stack me-1"></i>Salario: {{ e.salario_base|cop }}</div>
+            {% if e.tipo_contrato %}
+            <div class="mb-1">
+              <span class="b" style="font-size:.7rem;background:{% if e.tipo_contrato=='indefinido' %}var(--ac){% elif e.tipo_contrato=='fijo' %}var(--green){% elif e.tipo_contrato=='obra_labor' %}var(--orange){% else %}#6D42C8{% endif %}">{{ e.tipo_contrato }}</span>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--border);padding:.65rem 1.15rem;display:flex;gap:.5rem;align-items:center">
+          <a href="{{ url_for('empleado_ver', id=e.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye me-1"></i>Ver</a>
+          <a href="{{ url_for('empleado_editar', id=e.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil me-1"></i>Editar</a>
+          <a href="{{ url_for('empleado_liquidacion', id=e.id) }}" class="btn btn-sm btn-outline-warning ms-auto"><i class="bi bi-calculator me-1"></i>Liquidar</a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
   </div>
   {% if total_pages > 1 %}
   <div class="d-flex justify-content-between align-items-center mt-3" style="font-size:var(--font-small)">

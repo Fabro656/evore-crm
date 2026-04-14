@@ -9,7 +9,7 @@
     <i class="bi bi-info-circle me-1"></i>Selecciona la industria de tu empresa. Esto ayuda a que otros usuarios encuentren tus publicaciones.
   </div>
   {% endif %}
-  <form method="POST">
+  <form method="POST" enctype="multipart/form-data">
     <div class="row g-3">
       <div class="col-12">
         <label class="form-label">Tipo de publicacion</label>
@@ -59,6 +59,14 @@
           <option value="{{ u }}" {% if obj and obj.unidad == u %}selected{% endif %}>{{ u.title() }}</option>
           {% endfor %}
         </select>
+      </div>
+      <div class="col-12">
+        <label class="form-label">Imagen del producto/servicio</label>
+        <input type="file" name="imagen" class="form-control" accept="image/png,image/jpeg,image/webp">
+        <div class="form-text">PNG, JPG o WebP. Max 2MB. Aparece en la tarjeta del foro.</div>
+        {% if obj and obj.imagen_url %}
+        <div class="mt-2"><img src="/{{ obj.imagen_url }}" style="max-height:100px;border-radius:8px;border:1px solid var(--border)"></div>
+        {% endif %}
       </div>
     </div>
     <div class="d-flex gap-2 mt-4">

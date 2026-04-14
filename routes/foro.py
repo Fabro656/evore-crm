@@ -1,8 +1,10 @@
 # routes/foro.py — Somos Evore: foro de productos y servicios
-from flask import render_template, redirect, url_for, flash, request, g
+from flask import render_template, redirect, url_for, flash, request, g, current_app
 from flask_login import login_required, current_user
+from werkzeug.utils import secure_filename
 from extensions import db
 from models import *
+import os
 from utils import *
 from datetime import datetime
 from sqlalchemy import func, case
@@ -117,6 +119,17 @@ def register(app):
             if industria and not company.industria:
                 company.industria = industria
 
+            imagen_url = None
+            img_file = request.files.get('imagen')
+            if img_file and img_file.filename:
+                ext = img_file.filename.rsplit('.', 1)[-1].lower()
+                if ext in ('png', 'jpg', 'jpeg', 'webp') and img_file.content_length < 2 * 1024 * 1024:
+                    img_dir = os.path.join(current_app.root_path, 'static', 'foro')
+                    os.makedirs(img_dir, exist_ok=True)
+                    fname = secure_filename(f'pub_{my_company_id}_{datetime.utcnow().strftime("%Y%m%d%H%M%S")}.{ext}')
+                    img_file.save(os.path.join(img_dir, fname))
+                    imagen_url = f'static/foro/{fname}'
+
             pub = ForoPublicacion(
                 company_id=my_company_id, user_id=current_user.id,
                 tipo=request.form.get('tipo', 'producto'),
@@ -124,6 +137,7 @@ def register(app):
                 industria=industria or company.industria,
                 precio_referencia=float(request.form.get('precio_referencia') or 0) or None,
                 unidad=request.form.get('unidad', '').strip() or None,
+                imagen_url=imagen_url,
                 activo=True)
             db.session.add(pub)
             db.session.commit()
@@ -150,6 +164,15 @@ def register(app):
             pub.precio_referencia = float(request.form.get('precio_referencia') or 0) or None
             pub.unidad = request.form.get('unidad', '').strip() or None
             pub.actualizado_en = datetime.utcnow()
+            img_file = request.files.get('imagen')
+            if img_file and img_file.filename:
+                ext = img_file.filename.rsplit('.', 1)[-1].lower()
+                if ext in ('png', 'jpg', 'jpeg', 'webp'):
+                    img_dir = os.path.join(current_app.root_path, 'static', 'foro')
+                    os.makedirs(img_dir, exist_ok=True)
+                    fname = secure_filename(f'pub_{pub.company_id}_{datetime.utcnow().strftime("%Y%m%d%H%M%S")}.{ext}')
+                    img_file.save(os.path.join(img_dir, fname))
+                    pub.imagen_url = f'static/foro/{fname}'
             db.session.commit()
             flash('Publicacion actualizada.', 'success')
             return redirect(url_for('foro_ver', id=pub.id))

@@ -102,16 +102,22 @@ def register(app):
     def cotizaciones_proveedor():
         estado_f = request.args.get('estado','')
         tipo_f   = request.args.get('tipo','')   # maquila / general
+        buscar   = request.args.get('buscar','').strip()
         q = CotizacionProveedor.query
         if estado_f: q = q.filter_by(estado=estado_f)
         if tipo_f:   q = q.filter_by(tipo_cotizacion=tipo_f)
+        if buscar:
+            q = q.outerjoin(Proveedor, CotizacionProveedor.proveedor_id == Proveedor.id).filter(
+                db.or_(CotizacionProveedor.nombre_producto.ilike(f'%{buscar}%'),
+                        Proveedor.empresa.ilike(f'%{buscar}%'),
+                        Proveedor.nombre.ilike(f'%{buscar}%')))
         items = q.order_by(CotizacionProveedor.creado_en.desc()).all()
         totales = {
             'maquila': CotizacionProveedor.query.filter_by(tipo_cotizacion='maquila').count(),
             'general': CotizacionProveedor.query.filter_by(tipo_cotizacion='general').count(),
         }
         return render_template('proveedores/cotizaciones.html',
-                               items=items, estado_f=estado_f, tipo_f=tipo_f, totales=totales)
+                               items=items, estado_f=estado_f, tipo_f=tipo_f, totales=totales, buscar=buscar)
 
 
     # ── cotizacion_proveedor_json (/cotizaciones-proveedor/<int:id>/json)

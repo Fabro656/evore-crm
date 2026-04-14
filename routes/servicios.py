@@ -14,11 +14,22 @@ def register(app):
     @requiere_modulo('ventas')
     def servicios():
         """Lista todos los servicios con estadísticas."""
-        items = Servicio.query.order_by(Servicio.nombre).all()
+        buscar = request.args.get('buscar', '').strip()
+        activo_f = request.args.get('activo', '')
+        q = Servicio.query
+        if buscar:
+            q = q.filter(db.or_(Servicio.nombre.ilike(f'%{buscar}%'),
+                                 Servicio.descripcion.ilike(f'%{buscar}%')))
+        if activo_f == '1':
+            q = q.filter_by(activo=True)
+        elif activo_f == '0':
+            q = q.filter_by(activo=False)
+        items = q.order_by(Servicio.nombre).all()
 
-        # Estadísticas
-        activos_count = len([s for s in items if s.activo])
-        precios = [s.precio_venta for s in items if s.activo and s.precio_venta]
+        # Estadísticas (sobre todos, no filtrados)
+        all_items = Servicio.query.all()
+        activos_count = len([s for s in all_items if s.activo])
+        precios = [s.precio_venta for s in all_items if s.activo and s.precio_venta]
         precio_min = min(precios) if precios else 0
         precio_max = max(precios) if precios else 0
 
@@ -26,7 +37,9 @@ def register(app):
                                items=items,
                                activos_count=activos_count,
                                precio_min=precio_min,
-                               precio_max=precio_max)
+                               precio_max=precio_max,
+                               buscar=buscar,
+                               activo_f=activo_f)
 
 
     # ── servicios_nuevo (/servicios/nuevo)

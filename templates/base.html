@@ -2560,4 +2560,22 @@ document.addEventListener('keydown', function(e) {
   setInterval(poll, 30000);
 })();
 </script>
+<script>
+// ── Anti-double-click: disable submit buttons on form submit ──
+document.addEventListener('submit',function(e){
+  var form=e.target;
+  if(form.tagName!=='FORM') return;
+  // Skip search forms (GET) and inline status selects
+  if(form.method.toUpperCase()==='GET') return;
+  var btns=form.querySelectorAll('button[type="submit"],input[type="submit"]');
+  btns.forEach(function(btn){
+    if(btn.disabled) return;
+    btn.disabled=true;
+    btn.dataset.originalText=btn.innerHTML;
+    btn.innerHTML='<span class="spinner-border spinner-border-sm me-1" role="status"></span>Procesando...';
+    // Re-enable after 8s as safety net
+    setTimeout(function(){btn.disabled=false;btn.innerHTML=btn.dataset.originalText||'Enviar';},8000);
+  });
+});
+</script>
 </body></html>

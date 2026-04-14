@@ -13,7 +13,7 @@
 {% endblock %}
 {% block content %}
 <div class="fc" style="max-width:600px;width:100%">
-<form method="POST">
+<form method="POST" enctype="multipart/form-data">
   <div class="row g-3">
     <div class="col-12"><label class="form-label">Nombre de la empresa <span class="req">*</span></label>
       <input type="text" name="nombre" class="form-control" value="{{ obj.nombre if obj else '' }}" required></div>
@@ -60,6 +60,13 @@
       <div class="form-text">Si seleccionas una relacion, la empresa podra ver sus pedidos/OC contigo desde su portal.</div>
     </div>
     {% endif %}
+    <div class="col-12 col-md-6"><label class="form-label">Logo o foto</label>
+      <input type="file" name="logo" class="form-control" accept="image/png,image/jpeg,image/webp">
+      <div class="form-text">Logo de empresa o foto de persona (PNG, JPG, WebP).</div>
+      {% if obj and obj.logo_url %}
+      <div class="mt-2"><img src="/{{ obj.logo_url }}" style="max-height:60px;border-radius:8px"></div>
+      {% endif %}
+    </div>
     {% if obj %}
     <div class="col-12 col-md-6"><label class="form-label">Estado</label>
       <div class="form-check form-switch mt-2">

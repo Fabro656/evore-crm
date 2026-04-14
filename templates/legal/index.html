@@ -22,65 +22,77 @@
 </div>
 <div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-shield-check me-2"></i>{{ items|length }} documento(s)</div>
 {% if items %}
-<div style="overflow-x:auto;width:100%">
-<table class="table" style="width:100%;min-width:1000px;margin:0">
-  <thead><tr><th>Tipo</th><th>Titulo</th><th>N°</th><th>Entidad</th><th>Emision</th><th>Vencimiento</th><th>Estado</th><th>Firmas</th><th></th></tr></thead>
-  <tbody>{% for d in items %}
+<div class="row g-3">
+  {% for d in items %}
   {% set dias_venc = (d.fecha_vencimiento - now.date()).days if d.fecha_vencimiento else 999 %}
-  <tr class="{{ 'table-danger' if dias_venc < 0 and d.estado=='vigente' else ('table-warning' if dias_venc <= d.recordatorio_dias and d.estado=='vigente' else '') }}">
-    <td><span class="badge bg-light text-dark border">{{ d.tipo.replace('_',' ').title() }}</span></td>
-    <td class="fw-semibold">{{ d.titulo }}</td>
-    <td><small class="text-muted">{{ d.numero or '—' }}</small></td>
-    <td><small>{{ d.entidad or '—' }}</small></td>
-    <td><small>{{ d.fecha_emision.strftime('%d/%m/%Y') if d.fecha_emision else '—' }}</small></td>
-    <td>
-      {% if d.fecha_vencimiento %}
-        <small class="{{ 'text-danger fw-semibold' if dias_venc < 0 else ('text-warning fw-semibold' if dias_venc <= d.recordatorio_dias else 'text-muted') }}">
-          {{ d.fecha_vencimiento.strftime('%d/%m/%Y') }}
-          {% if dias_venc >= 0 and dias_venc <= d.recordatorio_dias %}
-            <span class="badge bg-warning text-dark ms-1">{{ dias_venc }}d</span>
-          {% elif dias_venc < 0 %}
-            <span class="badge bg-danger ms-1">VENCIDO</span>
+  {% if d.firma_empresa_data and (not d.requiere_firma_portal or d.firma_portal_data) %}
+    {% set bar_color = '#198754' %}
+  {% elif d.estado == 'en_tramite' or d.requiere_firma_portal and not d.firma_portal_data %}
+    {% set bar_color = '#fd7e14' %}
+  {% else %}
+    {% set bar_color = '#6c757d' %}
+  {% endif %}
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="fc h-100" style="padding:0;overflow:hidden;transition:box-shadow .15s,transform .15s" onmouseenter="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)';this.style.transform='translateY(-1px)'" onmouseleave="this.style.boxShadow='';this.style.transform=''">
+      <div style="height:4px;background:{{ bar_color }}"></div>
+      <div style="padding:1rem 1.15rem">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <h6 class="mb-0 fw-semibold" style="line-height:1.3">{{ d.titulo }}</h6>
+          {% if d.estado=='vigente' %}<span class="badge bg-success">Vigente</span>
+          {% elif d.estado=='vencido' %}<span class="badge bg-danger">Vencido</span>
+          {% elif d.estado=='en_tramite' %}<span class="badge bg-warning text-dark">En tramite</span>
+          {% else %}<span class="badge bg-secondary">{{ d.estado.title() }}</span>{% endif %}
+        </div>
+        <div class="mb-2">
+          <span class="badge bg-light text-dark border">{{ d.tipo.replace('_',' ').title() }}</span>
+          {% if d.numero %}<small class="text-muted ms-2">N° {{ d.numero }}</small>{% endif %}
+        </div>
+        <div style="font-size:.85rem;color:var(--text2)">
+          {% if d.entidad %}<div class="mb-1"><i class="bi bi-building me-1"></i>{{ d.entidad }}</div>{% endif %}
+          <div class="mb-1"><i class="bi bi-calendar-event me-1"></i>Creado: {{ d.fecha_emision.strftime('%d/%m/%Y') if d.fecha_emision else '—' }}</div>
+          {% if d.fecha_vencimiento %}
+          <div class="mb-1">
+            <i class="bi bi-calendar-x me-1"></i>Vence:
+            <span class="{{ 'text-danger fw-semibold' if dias_venc < 0 else ('text-warning fw-semibold' if dias_venc <= d.recordatorio_dias else '') }}">
+              {{ d.fecha_vencimiento.strftime('%d/%m/%Y') }}
+            </span>
+            {% if dias_venc >= 0 and dias_venc <= d.recordatorio_dias %}
+              <span class="badge bg-warning text-dark ms-1">{{ dias_venc }}d</span>
+            {% elif dias_venc < 0 %}
+              <span class="badge bg-danger ms-1">VENCIDO</span>
+            {% endif %}
+          </div>
           {% endif %}
-        </small>
-      {% else %}—{% endif %}
-    </td>
-    <td>
-      {% if d.estado=='vigente' %}<span class="badge bg-success">Vigente</span>
-      {% elif d.estado=='vencido' %}<span class="badge bg-danger">Vencido</span>
-      {% elif d.estado=='en_tramite' %}<span class="badge bg-warning text-dark">En tramite</span>
-      {% else %}<span class="badge bg-secondary">{{ d.estado.title() }}</span>{% endif %}
-    </td>
-    <td style="font-size:.75rem">
-      {# Firma empresa #}
-      {% if d.firma_empresa_data %}
-        <span class="badge bg-success mb-1" style="font-size:.65rem"><i class="bi bi-check me-1"></i>Empresa{% if d.selfie_empresa_data %} + foto{% endif %}</span><br>
-        <small class="text-muted">{{ d.firma_empresa_por or '' }}</small>
-      {% elif d.requiere_firma_portal %}
-        <span class="badge bg-secondary mb-1" style="font-size:.65rem"><i class="bi bi-clock me-1"></i>Empresa pendiente</span>
-      {% endif %}
-      {# Firma portal #}
-      {% if d.requiere_firma_portal %}
-        {% if d.firma_portal_data %}
-          <br><span class="badge bg-success" style="font-size:.65rem"><i class="bi bi-check me-1"></i>Portal{% if d.selfie_portal_data %} + foto{% endif %}</span>
-          <br><small class="text-muted">{{ d.firma_portal_por or '' }} {{ d.firma_portal_en.strftime('%d/%m') if d.firma_portal_en else '' }}</small>
-        {% else %}
-          <br><span class="badge bg-warning text-dark" style="font-size:.65rem"><i class="bi bi-exclamation-triangle me-1"></i>Falta firma portal</span>
-        {% endif %}
-      {% endif %}
-      {% if not d.requiere_firma_portal and not d.firma_empresa_data %}
-        <small class="text-muted">—</small>
-      {% endif %}
-    </td>
-    <td><div class="d-flex gap-1">
-      <a href="{{ url_for('legal_editar', id=d.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
-      {% if d.archivo_url %}<a href="{{ d.archivo_url }}" target="_blank" class="btn btn-sm btn-outline-info" title="Ver archivo"><i class="bi bi-file-earmark-arrow-down"></i></a>{% endif %}
-      {% if d.selfie_portal_data %}<button type="button" class="btn btn-sm btn-outline-success" title="Ver selfie" onclick="window.open().document.write('<img src=\'{{ d.selfie_portal_data }}\' style=\'max-width:400px\'>')"><i class="bi bi-person-badge"></i></button>{% endif %}
-      <form method="POST" action="{{ url_for('legal_eliminar', id=d.id) }}" onsubmit="return confirm('¿Eliminar?')">
-        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
-    </div></td>
-  </tr>{% endfor %}</tbody>
-</table>
+        </div>
+        <div class="mt-2" style="font-size:.75rem">
+          {% if d.firma_empresa_data %}
+            <span class="badge bg-success" style="font-size:.65rem"><i class="bi bi-check me-1"></i>Empresa{% if d.selfie_empresa_data %} + foto{% endif %}</span>
+          {% elif d.requiere_firma_portal %}
+            <span class="badge bg-secondary" style="font-size:.65rem"><i class="bi bi-clock me-1"></i>Empresa pendiente</span>
+          {% endif %}
+          {% if d.requiere_firma_portal %}
+            {% if d.firma_portal_data %}
+              <span class="badge bg-success ms-1" style="font-size:.65rem"><i class="bi bi-check me-1"></i>Portal{% if d.selfie_portal_data %} + foto{% endif %}</span>
+            {% else %}
+              <span class="badge bg-warning text-dark ms-1" style="font-size:.65rem"><i class="bi bi-exclamation-triangle me-1"></i>Falta firma portal</span>
+            {% endif %}
+          {% endif %}
+          {% if not d.requiere_firma_portal and not d.firma_empresa_data %}
+            <small class="text-muted">Sin firmas</small>
+          {% endif %}
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding:.65rem 1.15rem;display:flex;gap:.5rem;align-items:center">
+        <a href="{{ url_for('legal_editar', id=d.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil me-1"></i>Editar</a>
+        {% if d.archivo_url %}<a href="{{ d.archivo_url }}" target="_blank" class="btn btn-sm btn-outline-info" title="Ver archivo"><i class="bi bi-file-earmark-arrow-down"></i></a>{% endif %}
+        {% if d.selfie_portal_data %}<button type="button" class="btn btn-sm btn-outline-success" title="Ver selfie" onclick="window.open().document.write('<img src=\'{{ d.selfie_portal_data }}\' style=\'max-width:400px\'>')"><i class="bi bi-person-badge"></i></button>{% endif %}
+        <form method="POST" action="{{ url_for('legal_eliminar', id=d.id) }}" onsubmit="return confirm('¿Eliminar?')" class="ms-auto">
+          <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash me-1"></i>Eliminar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
 </div>
 {% else %}<div class="text-center text-muted py-5"><i class="bi bi-shield-check" style="font-size:3rem"></i>
   <p class="mt-3">Sin documentos legales.</p><a href="{{ url_for('legal_nuevo') }}" class="btn btn-primary">Agregar</a></div>

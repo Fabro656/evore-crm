@@ -361,10 +361,14 @@ def register(app):
     @login_required
     def maquila():
         estado_f=request.args.get('estado','')
+        buscar = request.args.get('buscar', '').strip()
         q=CotizacionGranel.query
         if estado_f: q=q.filter_by(estado=estado_f)
+        if buscar:
+            q=q.filter(db.or_(CotizacionGranel.nombre_producto.ilike(f'%{buscar}%'),
+                               CotizacionGranel.proveedor.ilike(f'%{buscar}%')))
         return render_template('produccion/maquila.html', items=q.order_by(CotizacionGranel.creado_en.desc()).all(),
-                               estado_f=estado_f)
+                               estado_f=estado_f, buscar=buscar)
 
     # ── maquila_nuevo (/produccion/maquila/nueva)
     @app.route('/produccion/maquila/nueva', methods=['GET','POST'])
@@ -441,9 +445,20 @@ def register(app):
     @requiere_modulo('produccion')
     def materias():
         from datetime import date
+        buscar = request.args.get('buscar', '').strip()
+        unidad_f = request.args.get('unidad', '').strip()
         page = request.args.get('page', 1, type=int)
-        pagination = MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).paginate(page=page, per_page=25, error_out=False)
-        return render_template('produccion/materias.html', materias=pagination.items, today=date.today(), pagination=pagination)
+        q = MateriaPrima.query.filter_by(activo=True)
+        if buscar:
+            q = q.filter(MateriaPrima.nombre.ilike(f'%{buscar}%'))
+        if unidad_f:
+            q = q.filter_by(unidad=unidad_f)
+        # Obtener unidades distintas para el dropdown
+        unidades = db.session.query(MateriaPrima.unidad).filter_by(activo=True).distinct().order_by(MateriaPrima.unidad).all()
+        unidades = [u[0] for u in unidades if u[0]]
+        pagination = q.order_by(MateriaPrima.nombre).paginate(page=page, per_page=25, error_out=False)
+        return render_template('produccion/materias.html', materias=pagination.items, today=date.today(),
+                               pagination=pagination, buscar=buscar, unidad_f=unidad_f, unidades=unidades)
     
 
     def _save_materia_m2m(m, form):

@@ -7,6 +7,22 @@
 {% block content %}
 <div>
 
+<div class="fc mb-3">
+  <form method="GET" class="row g-2 align-items-end">
+    <div class="col-sm-4"><input type="text" name="buscar" class="form-control form-control-sm" placeholder="Buscar por nombre..." value="{{ buscar }}"></div>
+    <div class="col-sm-3">
+      <select name="unidad" class="form-select form-select-sm">
+        <option value="">— Todas las unidades —</option>
+        {% for u in unidades %}<option value="{{ u }}" {% if unidad_f == u %}selected{% endif %}>{{ u }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
+      <a href="{{ url_for('materias') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
+    </div>
+  </form>
+</div>
+
 <div style="overflow-x:auto;width:100%">
 <table class="table table-cards" style="width:100%;margin:0">
   <thead><tr>

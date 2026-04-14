@@ -1173,13 +1173,18 @@ def register(app):
     @requiere_modulo('ventas')
     def ventas_comisiones():
         from datetime import datetime as _dt
+        buscar     = request.args.get('buscar', '').strip()
         vendedor_f = request.args.get('vendedor_id', type=int)
         estado_f   = request.args.get('estado', '')
         periodo_f  = request.args.get('periodo', '')
 
         q = Comision.query
+        if buscar:
+            q = q.outerjoin(User, Comision.vendedor_id == User.id).outerjoin(Venta, Comision.venta_id == Venta.id).filter(
+                db.or_(User.nombre.ilike(f'%{buscar}%'),
+                        Venta.titulo.ilike(f'%{buscar}%')))
         if vendedor_f:
-            q = q.filter_by(vendedor_id=vendedor_f)
+            q = q.filter(Comision.vendedor_id == vendedor_f)
         if estado_f:
             q = q.filter_by(estado=estado_f)
         if periodo_f:
@@ -1204,6 +1209,7 @@ def register(app):
                                total_pendiente=total_pendiente,
                                total_pagada=total_pagada,
                                vendedores=vendedores,
+                               buscar=buscar,
                                vendedor_f=vendedor_f,
                                estado_f=estado_f,
                                periodo_f=periodo_f)

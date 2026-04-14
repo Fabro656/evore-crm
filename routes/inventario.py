@@ -85,8 +85,14 @@ def register(app):
     @login_required
     @requiere_modulo('inventario')
     def lotes():
-        items = LoteProducto.query.order_by(LoteProducto.creado_en.desc()).all()
-        return render_template('inventario/lotes.html', lotes=items)
+        buscar = request.args.get('buscar', '').strip()
+        q = LoteProducto.query
+        if buscar:
+            q = q.join(LoteProducto.producto).filter(
+                db.or_(Producto.nombre.ilike(f'%{buscar}%'),
+                        LoteProducto.numero_lote.ilike(f'%{buscar}%')))
+        items = q.order_by(LoteProducto.creado_en.desc()).all()
+        return render_template('inventario/lotes.html', lotes=items, buscar=buscar)
     
 
     # ── lote_nuevo (/inventario/lotes/nuevo)

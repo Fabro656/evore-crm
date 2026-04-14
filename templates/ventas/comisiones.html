@@ -39,6 +39,10 @@
 {# -- Filtros -- #}
 <form method="GET" action="{{ url_for('ventas_comisiones') }}" class="d-flex flex-wrap gap-2 align-items-end mb-3">
   <div>
+    <label class="form-label mb-1" style="font-size:.75rem;font-weight:600;color:var(--text2)">Buscar</label>
+    <input type="text" name="buscar" class="form-control form-control-sm" placeholder="Vendedor o venta..." value="{{ buscar }}" style="min-width:160px">
+  </div>
+  <div>
     <label class="form-label mb-1" style="font-size:.75rem;font-weight:600;color:var(--text2)">Vendedor</label>
     <select name="vendedor_id" class="form-select form-select-sm" style="min-width:160px">
       <option value="">— Todos —</option>
@@ -61,7 +65,7 @@
            value="{{ periodo_f }}" style="min-width:140px">
   </div>
   <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-funnel me-1"></i>Filtrar</button>
-  {% if vendedor_f or estado_f or periodo_f %}
+  {% if buscar or vendedor_f or estado_f or periodo_f %}
   <a href="{{ url_for('ventas_comisiones') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
   {% endif %}
 </form>

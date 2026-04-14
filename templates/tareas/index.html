@@ -25,40 +25,51 @@
 </div>
 <div class="count-label"><i class="bi bi-check2-square me-2"></i>{{ total_items }} ticket(s)</div>
 {% if items %}
-<div style="overflow-x:auto;width:100%">
-<table class="table table-cards" style="width:100%;min-width:750px;margin:0">
-  <thead><tr><th>Ticket</th><th>Prioridad</th><th>Estado</th><th>Asignada a</th><th>Vence</th><th></th></tr></thead>
-  <tbody>{% for t in items %}<tr {% if t.estado=='completada' %}style="opacity:.6"{% endif %}>
-    <td data-label="Ticket"><a href="{{ url_for('tarea_ver', id=t.id) }}" class="fw-semibold text-decoration-none {% if t.estado=='completada' %}text-decoration-line-through{% endif %}" style="color:var(--text)">{{ t.titulo }}</a>
-      {% if t.tarea_tipo == 'notificacion' %}<span class="badge bg-info ms-1" style="font-size:.6rem">Info</span>{% endif %}
-      {% if t.categoria and t.categoria != 'general' %}<span class="badge bg-light text-dark ms-1" style="font-size:.6rem">{{ t.categoria }}</span>{% endif %}
-      {% if t.comentarios %}<span class="badge bg-light text-secondary ms-1" style="font-size:.65rem"><i class="bi bi-chat-dots"></i> {{ t.comentarios|length }}</span>{% endif %}</td>
-    <td data-label="Prioridad"><span class="b b-{{ t.prioridad }}">{{ t.prioridad.title() }}</span></td>
-    <td data-label="Estado"><span class="b b-{{ t.estado }}">{{ t.estado.replace('_',' ').title() }}</span></td>
-    <td data-label="Asignado">{{ t.asignado_user.nombre if t.asignado_user else '—' }}</td>
-    <td data-label="Vence">{% if t.fecha_vencimiento %}
-      <small class="{{ 'text-danger fw-bold' if t.estado!='completada' and t.fecha_vencimiento < now.date() else 'text-muted' }}">{{ t.fecha_vencimiento.strftime('%d/%m/%Y') }}</small>
-      {% else %}—{% endif %}</td>
-    <td><div class="dropdown">
-      <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.78rem">
-        <i class="bi bi-three-dots me-1"></i>Acciones
-      </button>
-      <ul class="dropdown-menu dropdown-menu-end" style="font-size:.83rem;min-width:180px">
-        <li><a class="dropdown-item" href="{{ url_for('tarea_ver', id=t.id) }}"><i class="bi bi-chat-dots me-2 text-primary"></i>Ver / Chat</a></li>
-        <li><a class="dropdown-item" href="{{ url_for('tarea_editar', id=t.id) }}"><i class="bi bi-pencil me-2 text-secondary"></i>Editar</a></li>
+<div class="row g-3">
+  {% for t in items %}
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="fc h-100" style="padding:0;overflow:hidden;transition:box-shadow .15s,transform .15s" onmouseenter="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)';this.style.transform='translateY(-1px)'" onmouseleave="this.style.boxShadow='';this.style.transform=''">
+      {# Color bar by prioridad #}
+      <div style="height:4px;background:{% if t.prioridad=='alta' %}#dc3545{% elif t.prioridad=='media' %}#fd7e14{% elif t.prioridad=='baja' %}#198754{% else %}#adb5bd{% endif %}"></div>
+      <div style="padding:1rem 1.15rem">
+        <div class="d-flex align-items-start justify-content-between mb-2">
+          <div style="min-width:0;flex:1">
+            <a href="{{ url_for('tarea_ver', id=t.id) }}" class="fw-semibold text-decoration-none d-block text-truncate {% if t.estado=='completada' %}text-decoration-line-through{% endif %}" style="color:var(--text);font-size:.95rem">{{ t.titulo }}</a>
+            <div class="mt-1" style="font-size:.75rem">
+              {% if t.tarea_tipo == 'notificacion' %}<span class="badge bg-info" style="font-size:.6rem">Info</span>{% endif %}
+              {% if t.categoria and t.categoria != 'general' %}<span class="badge bg-light text-dark" style="font-size:.6rem">{{ t.categoria }}</span>{% endif %}
+              {% if t.comentarios %}<span class="badge bg-light text-secondary" style="font-size:.65rem"><i class="bi bi-chat-dots"></i> {{ t.comentarios|length }}</span>{% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2 align-items-center mb-2" style="font-size:.8rem">
+          <span class="b b-{{ t.prioridad }}">{{ t.prioridad.title() }}</span>
+          <span class="b b-{{ t.estado }}">{{ t.estado.replace('_',' ').title() }}</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center" style="font-size:.8rem;color:var(--text2)">
+          <div>
+            <i class="bi bi-person me-1"></i>{{ t.asignado_user.nombre if t.asignado_user else '—' }}
+          </div>
+          <div>
+            {% if t.fecha_vencimiento %}
+            <i class="bi bi-calendar-event me-1"></i>
+            <span class="{{ 'text-danger fw-bold' if t.estado!='completada' and t.fecha_vencimiento < now.date() else '' }}">{{ t.fecha_vencimiento.strftime('%d/%m/%Y') }}</span>
+            {% else %}—{% endif %}
+          </div>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding:.65rem 1.15rem;display:flex;align-items:center;gap:.5rem">
+        <a href="{{ url_for('tarea_ver', id=t.id) }}" class="btn btn-sm btn-outline-primary" style="font-size:.78rem"><i class="bi bi-chat-dots me-1"></i>Ver</a>
+        <a href="{{ url_for('tarea_editar', id=t.id) }}" class="btn btn-sm btn-outline-secondary" style="font-size:.78rem"><i class="bi bi-pencil me-1"></i>Editar</a>
         {% if t.estado!='completada' %}
-        <li><form method="POST" action="{{ url_for('tarea_completar', id=t.id) }}" class="px-0 m-0">
-          <button class="dropdown-item text-success" type="submit"><i class="bi bi-check2 me-2"></i>Completar</button>
-        </form></li>
+        <form method="POST" action="{{ url_for('tarea_completar', id=t.id) }}" class="ms-auto m-0 p-0">
+          <button class="btn btn-sm btn-outline-success" type="submit" style="font-size:.78rem"><i class="bi bi-check2 me-1"></i>Completar</button>
+        </form>
         {% endif %}
-        <li><hr class="dropdown-divider"></li>
-        <li><form method="POST" action="{{ url_for('tarea_eliminar', id=t.id) }}" onsubmit="return confirm('¿Eliminar?')" class="px-0 m-0">
-          <button class="dropdown-item text-danger" type="submit"><i class="bi bi-trash me-2"></i>Eliminar</button>
-        </form></li>
-      </ul>
-    </div></td>
-  </tr>{% endfor %}</tbody>
-</table>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
 </div>
 {% if total_pages > 1 %}
 <div class="d-flex justify-content-between align-items-center mt-3" style="font-size:var(--font-small)">
