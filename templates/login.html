@@ -33,7 +33,7 @@ body{background:var(--login-bg);min-height:100vh;display:flex;align-items:center
 <div class="card">
   <div class="text-center mb-4">
     {% if config.get('COMPANY_NAME') == 'Evore' %}
-    <img src="{{ url_for('static', filename='img/evore-vertical.svg') }}" alt="Evore" width="170" height="130" style="display:block;margin:0 auto">
+    <img src="{{ url_for('static', filename='img/evore-vertical.png') }}" alt="Evore" style="display:block;margin:0 auto;max-width:180px;height:auto">
     {% else %}
     <div style="font-size:2.8rem;font-weight:800;letter-spacing:-1.5px;color:var(--text);line-height:1;margin-bottom:.3rem;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif">{{ config.get('COMPANY_NAME', 'ERP') }}</div>
     {% endif %}

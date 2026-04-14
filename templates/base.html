@@ -58,6 +58,10 @@
   --topbar-height:52px;--sb-width:64px;--sb-expanded-width:240px;
 }
 
+/* Logo theme toggle */
+.logo-light{display:block}.logo-dark{display:none!important}
+html[data-theme="dark"] .logo-light{display:none!important}
+html[data-theme="dark"] .logo-dark{display:block!important}
 /* Accessibility: visually hidden but screen-reader accessible */
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
@@ -699,7 +703,8 @@ img,svg{max-width:100%;height:auto}
     {% if current_user.is_authenticated %}
       {% if company_config and 'evore' in (company_config.get('name','') or '').lower() %}
       <a href="/" style="text-decoration:none;display:none;overflow:hidden">
-        <img src="{{ url_for('static', filename='img/evore-horizontal.svg') }}" alt="Evore CRM logo" style="filter:brightness(0) invert(1);opacity:.92;display:block;max-width:140px;height:auto">
+        <img src="{{ url_for('static', filename='img/evore-horizontal.png') }}" alt="Evore CRM logo" class="logo-light" style="display:block;max-width:140px;height:auto">
+        <img src="{{ url_for('static', filename='img/evore-horizontal-dark.png') }}" alt="Evore CRM logo" class="logo-dark" style="display:none;max-width:140px;height:auto">
       </a>
       {% else %}
       <a href="/" style="text-decoration:none;color:#fff;display:none;align-items:center;gap:.5rem;overflow:hidden">
