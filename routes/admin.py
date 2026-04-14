@@ -318,18 +318,22 @@ def register(app):
                 room_id=chat_room.id, user_id=current_user.id,
                 rol='admin', agregado_por=current_user.id
             ))
-            # Seed PUC for new company
+            # Commit company + relationship + chat FIRST (critical path)
+            db.session.commit()
+            # Seed PUC as separate operation (non-critical, may fail on local SQLite)
             try:
                 from company_config import COMPANY as _CC
                 if _CC.get('chart_of_accounts') == 'co_puc':
-                    for cuenta in CuentaPUC.query.filter_by(company_id=company.id).all():
-                        new_cuenta = CuentaPUC(codigo=cuenta.codigo, nombre=cuenta.nombre,
-                                               tipo=cuenta.tipo, nivel=cuenta.nivel,
-                                               company_id=emp.id)
-                        db.session.add(new_cuenta)
-            except Exception:
-                pass
-            db.session.commit()
+                    cuentas_src = CuentaPUC.query.filter_by(company_id=company.id).all()
+                    for cuenta in cuentas_src:
+                        db.session.add(CuentaPUC(codigo=cuenta.codigo, nombre=cuenta.nombre,
+                                                 tipo=cuenta.tipo, nivel=cuenta.nivel,
+                                                 company_id=emp.id))
+                    db.session.commit()
+            except Exception as puc_err:
+                logging.warning(f'PUC seeding skipped: {puc_err}')
+                try: db.session.rollback()
+                except Exception: pass
             try:
                 _log('crear', 'empresa', emp.id, f'Empresa creada: {emp.nombre} (max_users={max_users})')
                 db.session.commit()

@@ -507,6 +507,25 @@ html[data-theme="dark"] .skeleton{background:linear-gradient(90deg,var(--surface
   .filter-bar .btn,.filter-bar .b{font-size:var(--font-caption);padding:2px 8px;min-height:32px}
   .row>[class*='col-lg']{width:100%}
 }
+/* ── Tablet / small laptop (769px – 1024px) ── */
+@media(min-width:769px) and (max-width:1024px){
+  .topbar{padding:.4rem .75rem;gap:.5rem}
+  .topbar .pg-title{font-size:.88rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .topbar-right{gap:4px!important;flex-wrap:wrap;justify-content:flex-end;max-width:55vw}
+  .topbar-right .btn{font-size:.7rem;padding:2px 8px;min-height:28px}
+  .topbar-right .text-muted.d-none.d-md-inline{display:none!important}
+  .topbar-right [onclick="toggleTheme()"]{padding:2px 6px!important}
+  .topbar-right [title="Ver tutorial"]{display:none!important}
+  #pwaInstallBtn{display:none!important}
+  .topbar-right .d-none.d-md-flex.align-items-center.gap-1{flex-wrap:wrap;gap:2px!important;max-width:200px}
+  .topbar-right .d-none.d-md-flex .btn{font-size:.65rem;padding:1px 7px}
+  #sb:not(.sb-expanded){width:52px}
+  #sb:not(.sb-expanded) .nav-link{padding:.5rem}
+  #sb:not(.sb-expanded) .nav-link span{display:none}
+  #sb.sb-expanded+#main{margin-left:200px}
+  .dock-panel{width:280px}
+  .content{padding:var(--sp-4)}
+}
 @media(max-width:480px){
   .sv{font-size:var(--font-title)}
   .qa-bar{grid-template-columns:1fr}

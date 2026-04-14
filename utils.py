@@ -594,7 +594,10 @@ def _auto_provision_company(nombre_empresa, nit, tipo_rel, my_company_id,
             room_id=chat_room.id, user_id=admin_user.id,
             rol='miembro', agregado_por=current_user.id))
 
-    # Seed PUC
+    # Commit critical data first, then try PUC as separate operation
+    db.session.commit()
+
+    # Seed PUC (non-critical — may fail on local SQLite if company_id column missing)
     try:
         from company_config import COMPANY as _CC
         if _CC.get('chart_of_accounts') == 'co_puc' and evore:
@@ -602,8 +605,10 @@ def _auto_provision_company(nombre_empresa, nit, tipo_rel, my_company_id,
                 db.session.add(CuentaPUC(codigo=cuenta.codigo, nombre=cuenta.nombre,
                                          tipo=cuenta.tipo, nivel=cuenta.nivel,
                                          company_id=emp.id))
+            db.session.commit()
     except Exception:
-        pass
+        try: db.session.rollback()
+        except Exception: pass
 
     return emp, admin_user, rel
 
