@@ -304,7 +304,7 @@ def register(app):
             }), 200
 
         except (ValueError, TypeError) as e:
-            return jsonify({'error': f'Valores inválidos: {str(e)}'}), 400
+            return jsonify({'error': 'Valores invalidos en el formulario'}), 400
 
 
     # ── empaques_aprobar (/empaques/<int:id>/aprobar)
