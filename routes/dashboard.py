@@ -208,7 +208,8 @@ def register(app):
 
             return jsonify(data)
         except Exception as e:
-            return jsonify({'error': str(e)}), 500
+            logging.warning(f'dashboard_lazy error: {e}')
+            return jsonify({'error': 'Error interno'}), 500
 
 
     # ── wiki (/wiki)
@@ -533,8 +534,12 @@ def register(app):
     # ── evento_eliminar (/eventos/<int:id>/eliminar)
     @app.route('/eventos/<int:id>/eliminar', methods=['POST'])
     @login_required
+    @requiere_modulo('calendario')
     def evento_eliminar(id):
         obj = Evento.query.get_or_404(id)
+        if obj.usuario_id != current_user.id and current_user.rol != 'admin':
+            flash('No puedes eliminar eventos de otro usuario.', 'danger')
+            return redirect(url_for('calendario'))
         db.session.delete(obj); db.session.commit()
         flash('Evento eliminado.','info')
         return redirect(url_for('calendario'))
@@ -674,7 +679,8 @@ def register(app):
             flash(f'Asiento {a.numero} registrado.','success')
             return redirect(url_for('contable_libro_diario'))
         asientos = AsientoContable.query.order_by(AsientoContable.fecha.desc(), AsientoContable.id.desc()).limit(100).all()
-        return render_template('contable/libro_diario.html', asientos=asientos)
+        from datetime import date as _d
+        return render_template('contable/libro_diario.html', asientos=asientos, today=_d.today().strftime('%Y-%m-%d'))
     
 
     # ── contable_exportar (/contable/exportar)

@@ -19,10 +19,10 @@ def register(app):
         mes_ini = date.today().replace(day=1)
         total_compras  = db.session.query(db.func.sum(CompraMateria.costo_total)).scalar() or 0
         compras_mes    = db.session.query(db.func.sum(CompraMateria.costo_total)).filter(CompraMateria.fecha >= mes_ini).scalar() or 0
-        cotizaciones_vigentes = CotizacionGranel.query.filter_by(estado='vigente').count()
+        cotizaciones_vigentes = CotizacionGranel.query.filter_by(estado='vigente').count()  # maquila
         ordenes_activas = OrdenCompra.query.filter(OrdenCompra.estado.in_(['borrador','enviada','en_transito'])).count()
         compras_recientes = CompraMateria.query.order_by(CompraMateria.fecha.desc()).limit(5).all()
-        granel_recientes  = CotizacionGranel.query.order_by(CotizacionGranel.creado_en.desc()).limit(5).all()
+        maquila_recientes  = CotizacionGranel.query.order_by(CotizacionGranel.creado_en.desc()).limit(5).all()
         # Supplier quality scorecard
         try:
             proveedores_score = db.session.query(
@@ -61,7 +61,7 @@ def register(app):
         return render_template('produccion/index.html',
             total_compras=total_compras, compras_mes=compras_mes,
             cotizaciones_vigentes=cotizaciones_vigentes, ordenes_activas=ordenes_activas,
-            compras_recientes=compras_recientes, granel_recientes=granel_recientes,
+            compras_recientes=compras_recientes, maquila_recientes=maquila_recientes,
             proveedores_score=proveedores_score, operarios_carga=operarios_carga)
     
 
@@ -304,6 +304,7 @@ def register(app):
     # ── compra_eliminar (/produccion/compras/<int:id>/eliminar)
     @app.route('/produccion/compras/<int:id>/eliminar', methods=['POST'])
     @login_required
+    @requiere_modulo('produccion')
     def compra_eliminar(id):
         obj=CompraMateria.query.get_or_404(id)
         # Buscar y eliminar GastoOperativo y AsientoContable vinculados
@@ -355,21 +356,20 @@ def register(app):
         return redirect(url_for('compras'))
 
 
-    # ── granel (/produccion/granel)
-    @app.route('/produccion/granel')
+    # ── maquila (/produccion/maquila)
+    @app.route('/produccion/maquila')
     @login_required
-    def granel():
+    def maquila():
         estado_f=request.args.get('estado','')
         q=CotizacionGranel.query
         if estado_f: q=q.filter_by(estado=estado_f)
-        return render_template('produccion/granel.html', items=q.order_by(CotizacionGranel.creado_en.desc()).all(),
+        return render_template('produccion/maquila.html', items=q.order_by(CotizacionGranel.creado_en.desc()).all(),
                                estado_f=estado_f)
-    
 
-    # ── granel_nuevo (/produccion/granel/nueva)
-    @app.route('/produccion/granel/nueva', methods=['GET','POST'])
+    # ── maquila_nuevo (/produccion/maquila/nueva)
+    @app.route('/produccion/maquila/nueva', methods=['GET','POST'])
     @login_required
-    def granel_nuevo():
+    def maquila_nuevo():
         if request.method == 'POST':
             fc = request.form.get('fecha_cotizacion')
             fv = request.form.get('vigencia')
@@ -391,17 +391,16 @@ def register(app):
                 prod = db.session.get(Producto, int(pid))
                 if prod: prod.costo = precio_u
             db.session.commit()
-            flash('Cotización guardada.','success')
-            return redirect(url_for('granel'))
-        return render_template('produccion/granel_form.html', obj=None, titulo='Nueva Cotización Granel',
+            flash('Cotizacion guardada.','success')
+            return redirect(url_for('maquila'))
+        return render_template('produccion/maquila_form.html', obj=None, titulo='Nueva Cotizacion Maquila',
                                productos=Producto.query.filter_by(activo=True).order_by(Producto.nombre).all(),
                                today=datetime.utcnow().strftime('%Y-%m-%d'))
-    
 
-    # ── granel_editar (/produccion/granel/<int:id>/editar)
-    @app.route('/produccion/granel/<int:id>/editar', methods=['GET','POST'])
+    # ── maquila_editar (/produccion/maquila/<int:id>/editar)
+    @app.route('/produccion/maquila/<int:id>/editar', methods=['GET','POST'])
     @login_required
-    def granel_editar(id):
+    def maquila_editar(id):
         obj=CotizacionGranel.query.get_or_404(id)
         if request.method == 'POST':
             fc = request.form.get('fecha_cotizacion')
@@ -421,19 +420,19 @@ def register(app):
                 prod = db.session.get(Producto, int(pid))
                 if prod: prod.costo = precio_u
             db.session.commit()
-            flash('Cotización actualizada.','success')
-            return redirect(url_for('granel'))
-        return render_template('produccion/granel_form.html', obj=obj, titulo='Editar Cotización Granel',
+            flash('Cotizacion actualizada.','success')
+            return redirect(url_for('maquila'))
+        return render_template('produccion/maquila_form.html', obj=obj, titulo='Editar Cotizacion Maquila',
                                productos=Producto.query.filter_by(activo=True).order_by(Producto.nombre).all(),
                                today=datetime.utcnow().strftime('%Y-%m-%d'))
-    
 
-    # ── granel_eliminar (/produccion/granel/<int:id>/eliminar)
-    @app.route('/produccion/granel/<int:id>/eliminar', methods=['POST'])
+    # ── maquila_eliminar (/produccion/maquila/<int:id>/eliminar)
+    @app.route('/produccion/maquila/<int:id>/eliminar', methods=['POST'])
     @login_required
-    def granel_eliminar(id):
+    @requiere_modulo('produccion')
+    def maquila_eliminar(id):
         obj=CotizacionGranel.query.get_or_404(id); db.session.delete(obj); db.session.commit()
-        flash('Cotización eliminada.','info'); return redirect(url_for('granel'))
+        flash('Cotizacion eliminada.','info'); return redirect(url_for('maquila'))
     
 
     # ── materias (/produccion/materias)
@@ -618,7 +617,7 @@ def register(app):
         # Auto-crear cotización pendiente en módulo Compras
         db.session.add(CotizacionProveedor(
             nombre_producto=nombre,
-            tipo_cotizacion='granel',
+            tipo_cotizacion='maquila',
             tipo_producto_servicio='materia prima',
             unidad=unidad,
             estado='en_revision',
@@ -753,7 +752,7 @@ def register(app):
                     nombre_cot = f'{mp.nombre} — {prod_obj.nombre}' if prod_obj else mp.nombre
                     db.session.add(CotizacionProveedor(
                         nombre_producto=nombre_cot,
-                        tipo_cotizacion='granel',
+                        tipo_cotizacion='maquila',
                         tipo_producto_servicio='materia prima',
                         unidad=mp.unidad,
                         estado='en_revision',

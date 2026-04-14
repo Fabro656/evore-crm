@@ -1,6 +1,6 @@
 # routes/portal.py — reconstruido desde v27 con CRUD completo
 from flask import render_template, redirect, url_for, flash, request, \
-                  jsonify, send_file, make_response, current_app
+                  jsonify, send_file, make_response, current_app, g
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
 from extensions import db
@@ -695,3 +695,200 @@ def register(app):
             if other and other.activo:
                 empresas_rel.append({'company': other, 'tipo': tipo_display})
         return render_template('portal/mis_relaciones.html', empresas=empresas_rel)
+
+    # ── Planes y precios (/planes)
+    @app.route('/planes')
+    @login_required
+    def planes():
+        my_company_id = getattr(g, 'company_id', None)
+        company = db.session.get(Company, my_company_id) if my_company_id else None
+        # Get Evore bank details
+        evore_company = Company.query.filter_by(es_principal=True).first()
+        evore_config = ConfigEmpresa.query.filter_by(company_id=evore_company.id).first() if evore_company else None
+        # Active subscription
+        sub_activa = Suscripcion.query.filter_by(
+            company_id=my_company_id, estado='activa'
+        ).first() if my_company_id else None
+        return render_template('portal/planes.html', company=company,
+                               evore_config=evore_config, sub_activa=sub_activa)
+
+    # ── Suscribir plan (/planes/suscribir)
+    @app.route('/planes/suscribir', methods=['POST'])
+    @login_required
+    def planes_suscribir():
+        my_company_id = getattr(g, 'company_id', None)
+        if not my_company_id:
+            flash('No se pudo identificar tu empresa.', 'danger')
+            return redirect(url_for('planes'))
+        company = db.session.get(Company, my_company_id)
+        plan = request.form.get('plan', 'starter')
+        periodo = request.form.get('periodo', 'mensual')
+        usuarios_extra = int(request.form.get('usuarios_extra', 0) or 0)
+        if plan not in ('starter', 'pro'):
+            flash('Plan no valido.', 'danger')
+            return redirect(url_for('planes'))
+        if plan == 'starter':
+            usuarios_extra = 0
+
+        # Calculate amount
+        base = 39900
+        extra = usuarios_extra * 5900 if plan == 'pro' else 0
+        mensual = base + extra
+        if periodo == 'anual':
+            monto_cobrado = round(mensual * 12 * 0.9)  # 10% discount
+        else:
+            monto_cobrado = mensual
+
+        today = date_type.today()
+        if periodo == 'anual':
+            next_pay = today + timedelta(days=365)
+        else:
+            next_pay = today + timedelta(days=30)
+
+        # Create subscription (pending until payment confirmed)
+        sub = Suscripcion(
+            company_id=my_company_id, plan=plan, periodo=periodo,
+            usuarios_extra=usuarios_extra, monto_mensual=mensual,
+            monto_cobrado=monto_cobrado, estado='pendiente',
+            fecha_inicio=today, fecha_proximo_pago=next_pay,
+            fecha_vencimiento=next_pay,
+            creado_por=current_user.id)
+        db.session.add(sub)
+        db.session.flush()
+
+        # Create asiento contable (pending income for Evore)
+        evore = Company.query.filter_by(es_principal=True).first()
+        if evore:
+            periodo_label = '12 meses' if periodo == 'anual' else '1 mes'
+            extras_label = f' + {usuarios_extra} usuarios extra' if usuarios_extra else ''
+            asiento = AsientoContable(
+                company_id=evore.id,
+                descripcion=f'Suscripcion {plan.capitalize()} ({periodo_label}{extras_label}) — {company.nombre}',
+                haber=monto_cobrado, debe=0,
+                estado_pago='pendiente', estado_asiento='borrador',
+                fecha=today, tipo_documento='factura_venta',
+                tercero_nit=company.nit or '',
+                banco_nombre='Pendiente transferencia',
+                beneficiario=company.nombre)
+            db.session.add(asiento)
+            db.session.flush()
+            sub.asiento_id = asiento.id
+
+        db.session.commit()
+
+        # Send chat message from MyEvore
+        _send_myevore_message(my_company_id,
+            f'Has solicitado el plan {plan.capitalize()} ({periodo}). '
+            f'Monto: ${monto_cobrado:,.0f} COP. '
+            f'Realiza la transferencia y envia el comprobante por este chat. '
+            f'Tu plan se activara cuando finanzas confirme el pago.')
+
+        flash(f'Solicitud de plan {plan.capitalize()} creada. Realiza la transferencia y envia el comprobante por el chat con Evore.', 'success')
+        return redirect(url_for('planes'))
+
+    def _get_or_create_myevore_user():
+        """Get or create the MyEvore system notification account."""
+        myevore = User.query.filter_by(email='myevore@evore.system').first()
+        if not myevore:
+            evore = Company.query.filter_by(es_principal=True).first()
+            myevore = User(nombre='MyEvore', email='myevore@evore.system',
+                           rol='admin', activo=True,
+                           company_id=evore.id if evore else None)
+            myevore.set_password('SYSTEM_ACCOUNT_NO_LOGIN_' + str(datetime.utcnow().timestamp()))
+            db.session.add(myevore)
+            db.session.flush()
+            if evore:
+                existing_uc = UserCompany.query.filter_by(user_id=myevore.id, company_id=evore.id).first()
+                if not existing_uc:
+                    db.session.add(UserCompany(user_id=myevore.id, company_id=evore.id, rol='admin'))
+        return myevore
+
+    def _send_myevore_message(target_company_id, text):
+        """Send a message from MyEvore to the target company's chat with Evore."""
+        try:
+            myevore = _get_or_create_myevore_user()
+            evore = Company.query.filter_by(es_principal=True).first()
+            if not evore:
+                return
+            # Find the chat room between Evore and target company
+            rel = CompanyRelationship.query.filter(
+                db.or_(
+                    db.and_(CompanyRelationship.company_from_id == evore.id,
+                            CompanyRelationship.company_to_id == target_company_id),
+                    db.and_(CompanyRelationship.company_from_id == target_company_id,
+                            CompanyRelationship.company_to_id == evore.id)
+                )).first()
+            if not rel:
+                return
+            room = ChatRoom.query.filter_by(company_relationship_id=rel.id, activo=True).first()
+            if not room:
+                return
+            # Ensure MyEvore is participant
+            part = ChatParticipant.query.filter_by(room_id=room.id, user_id=myevore.id).first()
+            if not part:
+                db.session.add(ChatParticipant(room_id=room.id, user_id=myevore.id,
+                               rol='admin', agregado_por=myevore.id))
+            db.session.add(ChatMessage(room_id=room.id, user_id=myevore.id,
+                           contenido=text, tipo='texto'))
+            db.session.commit()
+        except Exception as e:
+            logging.warning(f'MyEvore message error: {e}')
+            try: db.session.rollback()
+            except Exception: pass
+
+    # ── Subscription lifecycle: reminders, grace period, soft-block
+    @app.before_request
+    def _check_subscription_lifecycle():
+        """7-day reminder, 3-day grace, soft-block after expiry. Runs once per session."""
+        if not hasattr(g, 'company_id') or not g.company_id:
+            return
+        try:
+            if flask_session.get('_sub_lifecycle_checked'):
+                return
+            flask_session['_sub_lifecycle_checked'] = True
+            today = date_type.today()
+            changed = False
+
+            # 1) Reminder: 7 days before due date (current company only)
+            reminder_date = today + timedelta(days=7)
+            for sub in Suscripcion.query.filter(
+                Suscripcion.company_id == g.company_id,
+                Suscripcion.estado == 'activa',
+                Suscripcion.recordatorio_enviado == False,
+                Suscripcion.fecha_proximo_pago <= reminder_date,
+                Suscripcion.fecha_proximo_pago >= today
+            ).all():
+                _send_myevore_message(sub.company_id,
+                    f'Recordatorio: tu suscripcion {sub.plan.capitalize()} vence el '
+                    f'{sub.fecha_proximo_pago.strftime("%d/%m/%Y")}. '
+                    f'Monto a pagar: ${sub.monto_cobrado:,.0f} COP. '
+                    f'Realiza la transferencia y envia el comprobante por este chat.')
+                sub.recordatorio_enviado = True
+                db.session.add(Notificacion(
+                    usuario_id=sub.creado_por or current_user.id,
+                    tipo='pago',
+                    mensaje=f'Tu suscripcion {sub.plan.capitalize()} vence el {sub.fecha_proximo_pago.strftime("%d/%m/%Y")}. Realiza el pago.',
+                    url='/planes'))
+                changed = True
+
+            # 2) Grace period expired (3 days after due) → soft-block
+            grace_limit = today - timedelta(days=3)
+            for sub in Suscripcion.query.filter(
+                Suscripcion.estado == 'activa',
+                Suscripcion.fecha_proximo_pago < grace_limit
+            ).all():
+                sub.estado = 'vencida'
+                comp = db.session.get(Company, sub.company_id)
+                if comp and comp.plan not in ('free',):
+                    comp.plan = 'bloqueado'
+                    _send_myevore_message(sub.company_id,
+                        f'Tu suscripcion ha vencido. Tu acceso al CRM esta temporalmente suspendido. '
+                        f'Tus datos se mantienen seguros. Realiza el pago para reactivar tu plan. '
+                        f'Monto: ${sub.monto_cobrado:,.0f} COP.')
+                changed = True
+
+            if changed:
+                db.session.commit()
+        except Exception:
+            try: db.session.rollback()
+            except Exception: pass

@@ -17,8 +17,14 @@
   <div class="row g-3">
     <div class="col-12"><label class="form-label">Nombre de la empresa <span class="req">*</span></label>
       <input type="text" name="nombre" class="form-control" value="{{ obj.nombre if obj else '' }}" required></div>
-    <div class="col-12 col-md-6"><label class="form-label">NIT</label>
-      <input type="text" name="nit" class="form-control" value="{{ obj.nit if obj else '' }}" placeholder="900.123.456-7"></div>
+    <div class="col-12 col-md-6"><label class="form-label">NIT / Cedula</label>
+      <div class="input-group">
+        <select name="tipo_documento" class="form-select" style="max-width:85px;font-size:.82rem">
+          {% for td,lbl in [('NIT','NIT'),('CC','C.C.'),('CE','C.E.'),('PP','Pasap.')] %}
+          <option value="{{ td }}" {% if obj and obj.tipo_documento==td %}selected{% elif not obj and td=='NIT' %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
+        </select>
+        <input type="text" name="nit" class="form-control" value="{{ obj.nit if obj else '' }}" placeholder="900.123.456-7">
+      </div></div>
     <div class="col-12 col-md-6"><label class="form-label">Maximo de usuarios</label>
       <select name="max_users" class="form-select">
         {% for n in [3,5,10,20,50,100,999] %}
@@ -26,11 +32,23 @@
         {% endfor %}
       </select></div>
     <div class="col-12 col-md-6"><label class="form-label">Plan</label>
-      <select name="plan" class="form-select">
-        {% for p,l in [('free','Gratuito'),('starter','Starter'),('pro','Profesional')] %}
-        <option value="{{ p }}" {% if obj and obj.plan==p %}selected{% endif %}>{{ l }}</option>
-        {% endfor %}
-      </select></div>
+      <select name="plan" class="form-select" onchange="updatePlanInfo(this)">
+        <option value="free" {% if obj and obj.plan=='free' %}selected{% endif %}>Gratuito — Solo portal (cliente/proveedor)</option>
+        <option value="starter" {% if obj and obj.plan=='starter' %}selected{% endif %}>Starter — CRM completo (max 3 usuarios)</option>
+        <option value="pro" {% if obj and obj.plan=='pro' %}selected{% endif %}>Profesional — CRM completo (3 + extras a $5.900/mes c/u)</option>
+      </select>
+      <div class="form-text" id="planInfo" style="font-size:.75rem"></div>
+      </div>
+    <script>
+    function updatePlanInfo(sel){
+      var info={'free':'Solo ve datos de su relacion con tu empresa. No tiene CRM propio.','starter':'CRM completo, maximo 3 usuarios. $39.900/mes.','pro':'CRM completo, 3 incluidos + $5.900/mes por cada usuario extra. $39.900 base/mes.'};
+      document.getElementById('planInfo').textContent=info[sel.value]||'';
+      var mu=document.querySelector('[name=max_users]');
+      if(sel.value==='free'&&mu)mu.value='1';
+      if(sel.value==='starter'&&mu)mu.value='3';
+    }
+    document.addEventListener('DOMContentLoaded',function(){var s=document.querySelector('[name=plan]');if(s)updatePlanInfo(s);});
+    </script>
     {% if not obj %}
     <div class="col-12 col-md-6"><label class="form-label">Relacion con tu empresa</label>
       <select name="tipo_relacion" class="form-select">

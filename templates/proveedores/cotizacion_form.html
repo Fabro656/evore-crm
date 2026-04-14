@@ -7,8 +7,8 @@
   <div class="col-12">
     <label class="form-label fw-bold">Tipo de cotización *</label>
     <div class="d-flex gap-3 mt-1" id="tipoBtns">
-      <label class="d-flex align-items-center gap-2 p-3 rounded border cursor-pointer tipo-opt {{ 'border-warning bg-warning bg-opacity-10' if (obj and obj.tipo_cotizacion=='granel') or (not obj and tipo_default=='granel') else '' }}" style="cursor:pointer;flex:1;max-width:240px" onclick="setTipo('granel',this)">
-        <input type="radio" name="tipo_cotizacion" value="granel" class="d-none" {% if (obj and obj.tipo_cotizacion=='granel') or (not obj and tipo_default=='granel') %}checked{% endif %}>
+      <label class="d-flex align-items-center gap-2 p-3 rounded border cursor-pointer tipo-opt {{ 'border-warning bg-warning bg-opacity-10' if (obj and obj.tipo_cotizacion=='maquila') or (not obj and tipo_default=='maquila') else '' }}" style="cursor:pointer;flex:1;max-width:240px" onclick="setTipo('maquila',this)">
+        <input type="radio" name="tipo_cotizacion" value="maquila" class="d-none" {% if (obj and obj.tipo_cotizacion=='maquila') or (not obj and tipo_default=='maquila') %}checked{% endif %}>
         <i class="bi bi-building text-warning" style="font-size:1.4rem"></i>
         <div><div class="fw-semibold">Materia Prima</div><small class="text-muted">Compras de materias primas o insumos de producción</small></div>
       </label>
@@ -133,7 +133,7 @@ function setTipo(val, el){
   document.querySelectorAll('.tipo-opt').forEach(function(e){
     e.classList.remove('border-warning','bg-warning','bg-opacity-10','border-info','bg-info');
   });
-  if(val==='granel'){ el.classList.add('border-warning','bg-warning','bg-opacity-10'); }
+  if(val==='maquila'){ el.classList.add('border-warning','bg-warning','bg-opacity-10'); }
   else { el.classList.add('border-info','bg-info','bg-opacity-10'); }
   el.querySelector('input[type=radio]').checked=true;
 }

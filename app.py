@@ -124,7 +124,7 @@ def create_app():
         try:
             for mapper in execute_state.all_mappers:
                 entity = mapper.entity
-                if entity.__tablename__ in ('companies', 'user_companies', 'company_relationships', 'users', 'chat_rooms', 'chat_participants', 'chat_messages'):
+                if entity.__tablename__ in ('companies', 'user_companies', 'company_relationships', 'users', 'chat_rooms', 'chat_participants', 'chat_messages', 'suscripciones', 'foro_valoraciones', 'foro_apelaciones'):
                     continue
                 # Check model has company_id AND it's a real DB column (not just defined in Python)
                 if hasattr(entity, 'company_id'):

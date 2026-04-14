@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}Apelaciones — Somos Evore{% endblock %}
+{% block page_title %}Apelaciones{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('foro') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Foro</a>{% endblock %}
+{% block content %}
+<div style="max-width:900px;margin:0 auto">
+  {% if apelaciones %}
+  {% for a in apelaciones %}
+  <div class="fc mb-3 {% if a.estado == 'pendiente' %}border-start border-warning border-3{% endif %}">
+    <div class="d-flex align-items-center gap-2 mb-2">
+      <span class="badge {% if a.estado == 'pendiente' %}bg-warning text-dark{% elif a.estado == 'favor_cliente' %}bg-info{% else %}bg-success{% endif %}">
+        {{ 'Pendiente' if a.estado == 'pendiente' else ('A favor del cliente' if a.estado == 'favor_cliente' else 'A favor del proveedor') }}
+      </span>
+      <small class="text-muted">{{ a.creado_en.strftime('%d/%m/%Y %H:%M') }}</small>
+    </div>
+
+    <div class="row g-3 mb-3" style="font-size:.88rem">
+      <div class="col-md-6">
+        <strong>Proveedor:</strong> {{ a.valoracion.proveedor.nombre }}<br>
+        <strong>Cliente:</strong> {{ a.valoracion.cliente.nombre }}<br>
+        <strong>Valoracion:</strong>
+        <span class="text-warning">{% for i in range(1,6) %}<i class="bi bi-star{% if i <= a.valoracion.estrellas %}-fill{% endif %}"></i>{% endfor %}</span>
+      </div>
+      <div class="col-md-6">
+        {% if a.valoracion.comentario %}
+        <strong>Comentario del cliente:</strong><br>
+        <em>"{{ a.valoracion.comentario }}"</em>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="p-2 rounded mb-3" style="background:var(--surface2);font-size:.88rem">
+      <strong>Motivo de apelacion:</strong> {{ a.motivo }}
+    </div>
+
+    {% if a.estado == 'pendiente' %}
+    <form method="POST" action="{{ url_for('foro_resolver_apelacion', id=a.id) }}">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+      <div class="mb-2">
+        <textarea name="notas" class="form-control form-control-sm" rows="2" placeholder="Notas del mediador (opcional)"></textarea>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="submit" name="decision" value="favor_cliente" class="btn btn-outline-info btn-sm" onclick="return confirm('Resolver a favor del cliente? La valoracion se mantiene.')">
+          <i class="bi bi-person-check me-1"></i>A favor del cliente</button>
+        <button type="submit" name="decision" value="favor_proveedor" class="btn btn-outline-success btn-sm" onclick="return confirm('Resolver a favor del proveedor? La valoracion sera eliminada.')">
+          <i class="bi bi-building-check me-1"></i>A favor del proveedor</button>
+      </div>
+    </form>
+    {% else %}
+    {% if a.notas_admin %}<div class="text-muted" style="font-size:.82rem"><strong>Notas:</strong> {{ a.notas_admin }}</div>{% endif %}
+    {% if a.admin_resolver %}<div class="text-muted" style="font-size:.78rem">Resuelto por {{ a.admin_resolver.nombre }} el {{ a.resuelto_en.strftime('%d/%m/%Y') if a.resuelto_en else '—' }}</div>{% endif %}
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="text-center text-muted py-5">
+    <i class="bi bi-check-circle" style="font-size:3rem"></i>
+    <p class="mt-3">No hay apelaciones.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

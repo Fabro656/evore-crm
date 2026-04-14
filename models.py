@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date as date_type
 import json, secrets, os, logging
 
-__all__ = ['Company', 'UserCompany', 'ChatRoom', 'ChatParticipant', 'ChatMessage', 'User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'MovimientoBancario', 'NotaContable', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'MovimientoInventario', 'Notificacion', 'Empleado', 'HoraExtra', 'Comision', 'Incapacidad', 'VacacionTomada', 'Requisicion', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'HistorialPrecio', 'HistorialCotizacion', 'CompanyRelationship', 'load_user', '_migrate', 'init_db']
+__all__ = ['Company', 'UserCompany', 'ChatRoom', 'ChatParticipant', 'ChatMessage', 'User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'MovimientoBancario', 'NotaContable', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'MovimientoInventario', 'Notificacion', 'Empleado', 'HoraExtra', 'Comision', 'Incapacidad', 'VacacionTomada', 'Requisicion', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'HistorialPrecio', 'HistorialCotizacion', 'CompanyRelationship', 'Suscripcion', 'ForoPublicacion', 'ForoValoracion', 'ForoApelacion', 'load_user', '_migrate', 'init_db']
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -18,12 +18,14 @@ class Company(db.Model):
     id              = db.Column(db.Integer, primary_key=True)
     nombre          = db.Column(db.String(200), nullable=False)
     slug            = db.Column(db.String(100), unique=True)
-    nit             = db.Column(db.String(30))
+    tipo_documento  = db.Column(db.String(10), default='NIT')  # NIT, CC, CE, PP, TI
+    nit             = db.Column(db.String(30))  # stores NIT or CC number
     logo_url        = db.Column(db.String(500))
     plan            = db.Column(db.String(20), default='free')  # free, starter, pro
     max_users       = db.Column(db.Integer, default=3)  # limite de usuarios, controlado por admin Evore
     activo          = db.Column(db.Boolean, default=True)
     es_principal    = db.Column(db.Boolean, default=False)  # True solo para Evore (Company #1)
+    industria       = db.Column(db.String(100))  # Foro: industria de la empresa
     config          = db.Column(db.Text, default='{}')  # JSON: pais, moneda, parametros
     creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
     creado_por      = db.Column(db.Integer, nullable=True)
@@ -488,7 +490,7 @@ class CotizacionProveedor(db.Model):
     company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     numero                = db.Column(db.String(20))               # CP-YYYY-NNN
     proveedor_id          = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
-    tipo_cotizacion       = db.Column(db.String(20), default='general')  # granel, general
+    tipo_cotizacion       = db.Column(db.String(20), default='general')  # maquila, general
     tipo_producto_servicio= db.Column(db.String(100))  # ej: materia prima, servicio logístico, empaque
     nombre_producto       = db.Column(db.String(200), nullable=False)
     descripcion           = db.Column(db.Text)
@@ -515,6 +517,7 @@ class CotizacionProveedor(db.Model):
     materia               = db.relationship('MateriaPrima', foreign_keys=[materia_prima_id])
 
 class CotizacionGranel(db.Model):
+    """Cotizaciones de maquila/tercerizacion (tabla legacy: cotizaciones_granel)."""
     __tablename__ = 'cotizaciones_granel'
     id               = db.Column(db.Integer, primary_key=True)
     company_id       = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
@@ -692,7 +695,7 @@ class ReglaTributaria(db.Model):
     nombre           = db.Column(db.String(100), nullable=False)
     descripcion      = db.Column(db.Text)
     porcentaje       = db.Column(db.Float, default=0)
-    aplica_a         = db.Column(db.String(30), default='ventas')  # ventas, ingresos, profit, proveedor_producto, proveedor_granel
+    aplica_a         = db.Column(db.String(30), default='ventas')  # ventas, ingresos, profit, proveedor_producto, proveedor_maquila
     proveedor_nombre = db.Column(db.String(200))
     activo           = db.Column(db.Boolean, default=True)
     creado_en        = db.Column(db.DateTime, default=datetime.utcnow)
@@ -782,6 +785,12 @@ class ConfigEmpresa(db.Model):
     ciudad     = db.Column(db.String(100))
     sitio_web  = db.Column(db.String(200))
     firma_path = db.Column(db.String(300), nullable=True)
+    # Datos bancarios (para mostrar a clientes que pagan suscripcion)
+    banco_nombre    = db.Column(db.String(120))
+    banco_tipo      = db.Column(db.String(40))     # Ahorros, Corriente
+    banco_cuenta    = db.Column(db.String(80))
+    banco_titular   = db.Column(db.String(120))
+    banco_nit       = db.Column(db.String(30))      # NIT del titular de la cuenta
     # v39 — Info legal completa (ley colombiana)
     representante_legal = db.Column(db.String(200), nullable=True)
     representante_cedula = db.Column(db.String(30), nullable=True)
@@ -992,7 +1001,7 @@ class RecetaItem(db.Model):
     rendimiento      = db.Column(db.Float, default=1)  # v41: unidades de producto que cubre 1 unidad de este insumo
     # Ejemplo: caja de 250 uds → rendimiento=250, cinta para 100 cajas de 250 → rendimiento=25000
     clasificacion    = db.Column(db.String(30), default='materia_prima')
-    # clasificacion: materia_prima | granel | empaque_primario | empaque_secundario
+    # clasificacion: materia_prima | maquila | empaque_primario | empaque_secundario
     materia          = db.relationship('MateriaPrima', foreign_keys=[materia_prima_id])
 
 class ReservaProduccion(db.Model):
@@ -1262,6 +1271,80 @@ class EmpaqueSecundario(db.Model):
             return 0
         import math
         return math.ceil(cantidad_pedido / self.unidades_por_caja)
+
+
+class ForoPublicacion(db.Model):
+    """Publicacion en el foro Somos Evore."""
+    __tablename__ = 'foro_publicaciones'
+    id              = db.Column(db.Integer, primary_key=True)
+    company_id      = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=False, index=True)
+    user_id         = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    tipo            = db.Column(db.String(20), default='producto')  # producto, servicio
+    titulo          = db.Column(db.String(200), nullable=False)
+    descripcion     = db.Column(db.Text, nullable=False)
+    industria       = db.Column(db.String(100))
+    imagen_url      = db.Column(db.String(500))
+    precio_referencia = db.Column(db.Float, nullable=True)
+    unidad          = db.Column(db.String(50))  # unidad, kg, litro, servicio, etc.
+    activo          = db.Column(db.Boolean, default=True)
+    creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
+    actualizado_en  = db.Column(db.DateTime, default=datetime.utcnow)
+    company         = db.relationship('Company', backref=db.backref('publicaciones_foro', lazy=True))
+    user            = db.relationship('User', foreign_keys=[user_id])
+
+class ForoValoracion(db.Model):
+    """Valoracion de 1-5 estrellas tras una venta confirmada."""
+    __tablename__ = 'foro_valoraciones'
+    id              = db.Column(db.Integer, primary_key=True)
+    proveedor_company_id = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=False, index=True)
+    cliente_company_id   = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=False, index=True)
+    cliente_user_id      = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    publicacion_id       = db.Column(db.Integer, db.ForeignKey('foro_publicaciones.id'), nullable=True)
+    estrellas       = db.Column(db.Integer, nullable=False)  # 1-5
+    comentario      = db.Column(db.Text)
+    estado          = db.Column(db.String(20), default='activa', index=True)  # activa, apelada, eliminada
+    creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
+    proveedor       = db.relationship('Company', foreign_keys=[proveedor_company_id])
+    cliente         = db.relationship('Company', foreign_keys=[cliente_company_id])
+    cliente_user    = db.relationship('User', foreign_keys=[cliente_user_id])
+    publicacion     = db.relationship('ForoPublicacion', backref=db.backref('valoraciones', lazy=True))
+
+class ForoApelacion(db.Model):
+    """Apelacion de una valoracion — mediada por admin Evore."""
+    __tablename__ = 'foro_apelaciones'
+    id              = db.Column(db.Integer, primary_key=True)
+    valoracion_id   = db.Column(db.Integer, db.ForeignKey('foro_valoraciones.id'), nullable=False)
+    solicitado_por  = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    motivo          = db.Column(db.Text, nullable=False)
+    estado          = db.Column(db.String(30), default='pendiente')  # pendiente, favor_cliente, favor_proveedor
+    notas_admin     = db.Column(db.Text)
+    resuelto_por    = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    resuelto_en     = db.Column(db.DateTime, nullable=True)
+    creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
+    valoracion      = db.relationship('ForoValoracion', backref=db.backref('apelacion', uselist=False))
+    solicitante     = db.relationship('User', foreign_keys=[solicitado_por])
+    admin_resolver  = db.relationship('User', foreign_keys=[resuelto_por])
+
+
+class Suscripcion(db.Model):
+    """Suscripcion mensual/anual a un plan de Evore."""
+    __tablename__ = 'suscripciones'
+    id              = db.Column(db.Integer, primary_key=True)
+    company_id      = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=False, index=True)
+    plan            = db.Column(db.String(20), nullable=False)          # starter, pro
+    periodo         = db.Column(db.String(10), default='mensual')       # mensual, anual
+    usuarios_extra  = db.Column(db.Integer, default=0)                  # solo pro: extras sobre 3
+    monto_mensual   = db.Column(db.Float, default=0)                    # valor mensual real
+    monto_cobrado   = db.Column(db.Float, default=0)                    # monto del ultimo cobro
+    estado          = db.Column(db.String(20), default='pendiente', index=True)  # pendiente, activa, vencida, cancelada
+    fecha_inicio    = db.Column(db.Date, nullable=True)
+    fecha_proximo_pago = db.Column(db.Date, nullable=True)
+    fecha_vencimiento  = db.Column(db.Date, nullable=True)
+    asiento_id      = db.Column(db.Integer, db.ForeignKey('asientos_contables.id'), nullable=True)
+    recordatorio_enviado = db.Column(db.Boolean, default=False)
+    creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
+    creado_por      = db.Column(db.Integer, nullable=True)
+    company         = db.relationship('Company', backref=db.backref('suscripciones', lazy=True))
 
 
 @login_manager.user_loader
@@ -1799,6 +1882,8 @@ def _migrate(conn):
         ("ALTER TABLE companies ADD COLUMN max_users INTEGER DEFAULT 3"),
         ("ALTER TABLE companies ADD COLUMN IF NOT EXISTS es_principal BOOLEAN DEFAULT FALSE"),
         ("ALTER TABLE companies ADD COLUMN es_principal BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE companies ADD COLUMN IF NOT EXISTS tipo_documento VARCHAR(10) DEFAULT 'NIT'"),
+        ("ALTER TABLE companies ADD COLUMN tipo_documento VARCHAR(10) DEFAULT 'NIT'"),
         # ══════════════════════════════════════════════════
         # MULTI-TENANCY — Phase 2: company_id on all tables
         # ══════════════════════════════════════════════════
@@ -1852,6 +1937,24 @@ def _migrate(conn):
         ("CREATE INDEX IF NOT EXISTS idx_gastos_operativos_company ON gastos_operativos(company_id)"),
         ("CREATE INDEX IF NOT EXISTS idx_empleados_company ON empleados(company_id)"),
         ("CREATE INDEX IF NOT EXISTS idx_cotizaciones_company ON cotizaciones(company_id)"),
+        # ── Suscripciones y datos bancarios empresa ──
+        ("CREATE TABLE IF NOT EXISTS suscripciones (id INTEGER PRIMARY KEY AUTOINCREMENT, company_id INTEGER NOT NULL REFERENCES companies(id), plan VARCHAR(20) NOT NULL, periodo VARCHAR(10) DEFAULT 'mensual', usuarios_extra INTEGER DEFAULT 0, monto_mensual FLOAT DEFAULT 0, monto_cobrado FLOAT DEFAULT 0, estado VARCHAR(20) DEFAULT 'pendiente', fecha_inicio DATE, fecha_proximo_pago DATE, fecha_vencimiento DATE, asiento_id INTEGER REFERENCES asientos_contables(id), recordatorio_enviado BOOLEAN DEFAULT FALSE, creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP, creado_por INTEGER)"),
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS banco_nombre VARCHAR(120)"),
+        ("ALTER TABLE config_empresa ADD COLUMN banco_nombre VARCHAR(120)"),
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS banco_tipo VARCHAR(40)"),
+        ("ALTER TABLE config_empresa ADD COLUMN banco_tipo VARCHAR(40)"),
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS banco_cuenta VARCHAR(80)"),
+        ("ALTER TABLE config_empresa ADD COLUMN banco_cuenta VARCHAR(80)"),
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS banco_titular VARCHAR(120)"),
+        ("ALTER TABLE config_empresa ADD COLUMN banco_titular VARCHAR(120)"),
+        ("ALTER TABLE config_empresa ADD COLUMN IF NOT EXISTS banco_nit VARCHAR(30)"),
+        ("ALTER TABLE config_empresa ADD COLUMN banco_nit VARCHAR(30)"),
+        # ── Foro Somos Evore ──
+        ("ALTER TABLE companies ADD COLUMN IF NOT EXISTS industria VARCHAR(100)"),
+        ("ALTER TABLE companies ADD COLUMN industria VARCHAR(100)"),
+        ("CREATE TABLE IF NOT EXISTS foro_publicaciones (id INTEGER PRIMARY KEY AUTOINCREMENT, company_id INTEGER NOT NULL REFERENCES companies(id), user_id INTEGER NOT NULL REFERENCES users(id), tipo VARCHAR(20) DEFAULT 'producto', titulo VARCHAR(200) NOT NULL, descripcion TEXT NOT NULL, industria VARCHAR(100), imagen_url VARCHAR(500), precio_referencia FLOAT, unidad VARCHAR(50), activo BOOLEAN DEFAULT TRUE, creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP, actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"),
+        ("CREATE TABLE IF NOT EXISTS foro_valoraciones (id INTEGER PRIMARY KEY AUTOINCREMENT, proveedor_company_id INTEGER NOT NULL REFERENCES companies(id), cliente_company_id INTEGER NOT NULL REFERENCES companies(id), cliente_user_id INTEGER NOT NULL REFERENCES users(id), publicacion_id INTEGER REFERENCES foro_publicaciones(id), estrellas INTEGER NOT NULL, comentario TEXT, estado VARCHAR(20) DEFAULT 'activa', creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"),
+        ("CREATE TABLE IF NOT EXISTS foro_apelaciones (id INTEGER PRIMARY KEY AUTOINCREMENT, valoracion_id INTEGER NOT NULL REFERENCES foro_valoraciones(id), solicitado_por INTEGER NOT NULL REFERENCES users(id), motivo TEXT NOT NULL, estado VARCHAR(30) DEFAULT 'pendiente', notas_admin TEXT, resuelto_por INTEGER REFERENCES users(id), resuelto_en TIMESTAMP, creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"),
     ]
     # Execute ALL migrations individually with rollback on each failure
     # This prevents one failed migration from aborting the entire transaction

@@ -1,16 +1,16 @@
 {% extends 'base.html' %}
 {% block title %}Cotizaciones Proveedores{% endblock %}{% block page_title %}Cotizaciones de Proveedores{% endblock %}
 {% block topbar_actions %}
-<a href="{{ url_for('cotizacion_proveedor_nueva', tipo='granel') }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva Granel</a>
+<a href="{{ url_for('cotizacion_proveedor_nueva', tipo='maquila') }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva Maquila</a>
 <a href="{{ url_for('cotizacion_proveedor_nueva', tipo='general') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva General</a>
 {% endblock %}
 {% block content %}
-<!-- Tabs Granel / General -->
+<!-- Tabs Maquila / General -->
 <div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
   <a href="{{ url_for('cotizaciones_proveedor') }}" class="btn btn-sm {{ 'btn-dark' if not tipo_f else 'btn-outline-secondary' }}">
-    <i class="bi bi-grid me-1"></i>Todas <span class="badge bg-secondary ms-1">{{ (totales.granel or 0) + (totales.general or 0) }}</span></a>
-  <a href="{{ url_for('cotizaciones_proveedor', tipo='granel') }}" class="btn btn-sm {{ 'btn-warning' if tipo_f=='granel' else 'btn-outline-warning' }}">
-    <i class="bi bi-building me-1"></i>Granel <span class="badge bg-secondary ms-1">{{ totales.granel or 0 }}</span></a>
+    <i class="bi bi-grid me-1"></i>Todas <span class="badge bg-secondary ms-1">{{ (totales.maquila or 0) + (totales.general or 0) }}</span></a>
+  <a href="{{ url_for('cotizaciones_proveedor', tipo='maquila') }}" class="btn btn-sm {{ 'btn-warning' if tipo_f=='maquila' else 'btn-outline-warning' }}">
+    <i class="bi bi-building me-1"></i>Maquila <span class="badge bg-secondary ms-1">{{ totales.maquila or 0 }}</span></a>
   <a href="{{ url_for('cotizaciones_proveedor', tipo='general') }}" class="btn btn-sm {{ 'btn-info' if tipo_f=='general' else 'btn-outline-info' }}">
     <i class="bi bi-box me-1"></i>General <span class="badge bg-secondary ms-1">{{ totales.general or 0 }}</span></a>
   <span class="text-muted ms-2" style="font-size:.8rem">|</span>
@@ -18,13 +18,13 @@
   <a href="{{ url_for('cotizaciones_proveedor', tipo=tipo_f, estado=est) }}" class="btn btn-sm {{ 'btn-primary' if estado_f==est else 'btn-outline-secondary' }}">{{ lbl }}</a>{% endfor %}
 </div>
 <div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-file-earmark-check me-2"></i>{{ items|length }} cotización(es)
-  {% if tipo_f %}<span class="badge {{ 'bg-warning text-dark' if tipo_f=='granel' else 'bg-info text-dark' }} ms-2">{{ tipo_f.title() }}</span>{% endif %}
+  {% if tipo_f %}<span class="badge {{ 'bg-warning text-dark' if tipo_f=='maquila' else 'bg-info text-dark' }} ms-2">{{ tipo_f.title() }}</span>{% endif %}
 </div>
 {% if items %}<div style="overflow-x:auto;width:100%"><table class="table table-cards" style="width:100%;margin:0">
   <thead><tr><th>N°</th><th>Tipo</th><th>Producto / Servicio</th><th>Proveedor</th><th>P. Unit.</th><th>Plazo</th><th>Condición Pago</th><th>Vigencia</th><th>Estado</th><th></th></tr></thead>
   <tbody>{% for c in items %}<tr>
     <td><small class="fw-semibold text-muted">{{ c.numero or '—' }}</small></td>
-    <td><span class="badge {{ 'bg-warning text-dark' if c.tipo_cotizacion=='granel' else 'bg-info text-dark' }}">{{ c.tipo_cotizacion.title() }}</span>
+    <td><span class="badge {{ 'bg-warning text-dark' if c.tipo_cotizacion=='maquila' else 'bg-info text-dark' }}">{{ c.tipo_cotizacion.title() }}</span>
       {% if c.tipo_producto_servicio %}<div><small class="text-muted">{{ c.tipo_producto_servicio }}</small></div>{% endif %}</td>
     <td><span class="fw-semibold">{{ c.nombre_producto }}</span>{% if c.sku %}<div><small class="text-muted">SKU: {{ c.sku }}</small></div>{% endif %}</td>
     <td>{{ c.proveedor.empresa or c.proveedor.nombre if c.proveedor else '—' }}</td>

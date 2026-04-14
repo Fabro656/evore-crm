@@ -65,7 +65,8 @@ def register(app):
             flask_session.modified = True
             return jsonify({'ok': True, 'id': nuevo_id})
         except Exception as e:
-            return jsonify({'ok': False, 'error': str(e)}), 500
+            logging.warning(f'producto_rapido error: {e}')
+            return jsonify({'ok': False, 'error': 'Error interno'}), 500
 
 
     # ── empaques (/empaques)
@@ -419,7 +420,7 @@ def register(app):
             if not tiene_cot_caja:
                 db.session.add(CotizacionProveedor(
                     nombre_producto=f'{mp.nombre} — {prod_nombre}',
-                    tipo_cotizacion='granel',
+                    tipo_cotizacion='maquila',
                     tipo_producto_servicio='empaque secundario',
                     unidad='unidades',
                     estado='en_revision',
@@ -439,7 +440,7 @@ def register(app):
             if not tiene_cot_cinta:
                 db.session.add(CotizacionProveedor(
                     nombre_producto='Cinta de embalaje — Rollo 100m',
-                    tipo_cotizacion='granel',
+                    tipo_cotizacion='maquila',
                     tipo_producto_servicio='empaque secundario',
                     unidad='metros',
                     unidades_minimas=100,

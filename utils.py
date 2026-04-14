@@ -26,6 +26,8 @@ __all__ = [
     'register_app_hooks', '_registrar_movimiento', '_actualizar_score_proveedor',
     '_calcular_costo_receta', '_precio_minimo_venta',
     'ONBOARDING_STEPS',
+    '_auto_provision_company',
+    'generar_csv_response',
 ]
 
 # ── Module constants (originally in app.py global scope)
@@ -343,12 +345,31 @@ def moneda(value):
 def moneda0(value):
     return _format_currency(value, 0)
 
+_PORTAL_MODULOS = {'portal_cliente', 'portal_proveedor'}
+
 def requiere_modulo(modulo):
     def decorator(f):
         @wraps(f)
         def wrapped(*a, **kw):
             if not current_user.is_authenticated:
                 return redirect(url_for('login'))
+            # Plan enforcement: free/bloqueado plan only gets portal modules
+            if modulo not in _PORTAL_MODULOS:
+                try:
+                    from flask import g
+                    from models import Company
+                    cid = getattr(g, 'company_id', None)
+                    if cid:
+                        comp = db.session.get(Company, cid)
+                        if comp and not comp.es_principal:
+                            if comp.plan == 'free':
+                                flash('Tu plan actual es gratuito y solo incluye acceso al portal.', 'warning')
+                                return redirect(url_for('dashboard'))
+                            elif comp.plan == 'bloqueado':
+                                flash('Tu suscripcion esta vencida. Renueva tu plan para acceder al CRM. Tus datos estan seguros.', 'danger')
+                                return redirect(url_for('planes'))
+                except Exception:
+                    pass
             rol_activo = _get_rol_activo(current_user)
             if rol_activo == 'admin' or modulo in _modulos_user(current_user):
                 return f(*a, **kw)
@@ -488,6 +509,104 @@ def _send_email(to, subject, body):
         _mail_ext.send(msg)
     except Exception as e:
         logging.warning(f'Email error: {e}')
+
+def _auto_provision_company(nombre_empresa, nit, tipo_rel, my_company_id,
+                            cliente_id=None, proveedor_id=None, tipo_documento='NIT'):
+    """Auto-create a free Company + admin user when registering a client/supplier not in Evore.
+
+    Returns (company, user, relationship) or (None, None, None) on failure.
+    The caller is responsible for calling db.session.commit().
+    """
+    from models import Company, User, UserCompany, CompanyRelationship, \
+                       ConfigEmpresa, ChatRoom, ChatParticipant, CuentaPUC
+    if not nombre_empresa or not nit or not my_company_id:
+        return None, None, None
+
+    nit = nit.strip()
+    # Build slug
+    slug = re.sub(r'[^a-z0-9]+', '-', nombre_empresa.lower()).strip('-')
+    if Company.query.filter_by(slug=slug).first():
+        slug = f'{slug}-{Company.query.count()}'
+
+    # Create company (free plan, max 1 user)
+    emp = Company(nombre=nombre_empresa, slug=slug,
+                  tipo_documento=tipo_documento, nit=nit,
+                  plan='free', max_users=1, activo=True,
+                  creado_por=current_user.id)
+    db.session.add(emp)
+    db.session.flush()
+
+    # ConfigEmpresa
+    db.session.add(ConfigEmpresa(nombre=nombre_empresa, company_id=emp.id))
+
+    # Create admin user: admin@{slug} / password = NIT
+    admin_email = f'admin@{slug}'
+    existing_user = User.query.filter_by(email=admin_email).first()
+    admin_user = None
+    if not existing_user:
+        admin_user = User(nombre=f'Admin {nombre_empresa}', email=admin_email,
+                          rol='admin', activo=True, company_id=emp.id)
+        admin_user.set_password(nit)
+        db.session.add(admin_user)
+        db.session.flush()
+        # UserCompany membership
+        db.session.add(UserCompany(user_id=admin_user.id, company_id=emp.id,
+                                   rol='admin', activo=True))
+    else:
+        admin_user = existing_user
+
+    # Relationship with Evore (Company #1) — always
+    evore = Company.query.filter_by(es_principal=True).first()
+    if evore and evore.id != emp.id:
+        evore_rel_exists = CompanyRelationship.query.filter(
+            db.or_(
+                db.and_(CompanyRelationship.company_from_id == evore.id,
+                        CompanyRelationship.company_to_id == emp.id),
+                db.and_(CompanyRelationship.company_from_id == emp.id,
+                        CompanyRelationship.company_to_id == evore.id)
+            )).first()
+        if not evore_rel_exists:
+            db.session.add(CompanyRelationship(
+                company_from_id=evore.id, company_to_id=emp.id,
+                tipo=tipo_rel, activo=True))
+
+    # Relationship between caller company and new company
+    rel = CompanyRelationship(
+        company_from_id=my_company_id, company_to_id=emp.id,
+        tipo=tipo_rel, cliente_id=cliente_id, proveedor_id=proveedor_id,
+        activo=True)
+    db.session.add(rel)
+    db.session.flush()
+
+    # Chat room for the relationship
+    chat_room = ChatRoom(
+        company_id=my_company_id, tipo=tipo_rel,
+        nombre=f'{tipo_rel.capitalize()}: {nombre_empresa}',
+        company_relationship_id=rel.id,
+        creado_por=current_user.id)
+    db.session.add(chat_room)
+    db.session.flush()
+    db.session.add(ChatParticipant(
+        room_id=chat_room.id, user_id=current_user.id,
+        rol='admin', agregado_por=current_user.id))
+    if admin_user:
+        db.session.add(ChatParticipant(
+            room_id=chat_room.id, user_id=admin_user.id,
+            rol='miembro', agregado_por=current_user.id))
+
+    # Seed PUC
+    try:
+        from company_config import COMPANY as _CC
+        if _CC.get('chart_of_accounts') == 'co_puc' and evore:
+            for cuenta in CuentaPUC.query.filter_by(company_id=evore.id).all():
+                db.session.add(CuentaPUC(codigo=cuenta.codigo, nombre=cuenta.nombre,
+                                         tipo=cuenta.tipo, nivel=cuenta.nivel,
+                                         company_id=emp.id))
+    except Exception:
+        pass
+
+    return emp, admin_user, rel
+
 
 def _log(tipo, entidad, entidad_id, descripcion):
     try:
@@ -1098,7 +1217,7 @@ def _calcular_impuestos(ingresos, utilidad):
     total = 0.0
     detalle = []
     for r in reglas:
-        if r.aplica_a in ('proveedor_producto', 'proveedor_granel'):
+        if r.aplica_a in ('proveedor_producto', 'proveedor_maquila'):
             continue  # estas aplican por compra, no de forma global
         base_label = ''
         base_monto = 0.0

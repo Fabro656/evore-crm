@@ -5,7 +5,7 @@
 <nav aria-label="breadcrumb" style="margin-bottom:.75rem">
   <ol class="breadcrumb" style="font-size:.78rem;margin:0">
     <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}" style="color:var(--ac);text-decoration:none">Home</a></li>
-    <li class="breadcrumb-item"><a href="{{ url_for('nomina') }}" style="color:var(--ac);text-decoration:none">Nomina</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('nomina_index') }}" style="color:var(--ac);text-decoration:none">Nomina</a></li>
     <li class="breadcrumb-item active" aria-current="page">{{ 'Editar' if empleado else 'Nuevo' }}</li>
   </ol>
 </nav>

@@ -26,7 +26,7 @@
       {% elif r.aplica_a=='retencion_honorarios' %}Retención honorarios
       {% elif r.aplica_a=='reteiva' %}ReteIVA
       {% elif r.aplica_a=='proveedor_producto' %}Proveedor producto{% if r.proveedor_nombre %}: {{ r.proveedor_nombre }}{% endif %}
-      {% elif r.aplica_a=='proveedor_granel' %}Proveedor granel{% if r.proveedor_nombre %}: {{ r.proveedor_nombre }}{% endif %}
+      {% elif r.aplica_a=='proveedor_maquila' %}Proveedor maquila{% if r.proveedor_nombre %}: {{ r.proveedor_nombre }}{% endif %}
       {% else %}{{ r.aplica_a or '—' }}{% endif %}
     </span></td>
     <td><span class="b b-{{ 'activo' if r.activo else 'inactivo' }}">{{ 'Activa' if r.activo else 'Inactiva' }}</span></td>

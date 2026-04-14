@@ -20,10 +20,16 @@
       <input type="text" name="empresa" class="form-control" value="{{ obj.empresa if obj else '' }}" required placeholder="Ej: Textiles del Norte S.A.S.">
       <div class="form-text">Razón social o nombre comercial del cliente.</div>
     </div>
-    <div class="col-md-3">
-      <label class="form-label">NIT</label>
-      <input type="text" name="nit" class="form-control" placeholder="900.123.456-7" value="{{ obj.nit if obj else '' }}">
-      <div class="form-text">Déjalo vacío si aún no lo tienes.</div>
+    <div class="col-md-4">
+      <label class="form-label">NIT / Cedula</label>
+      <div class="input-group">
+        <select name="tipo_documento" class="form-select" style="max-width:90px;font-size:.82rem">
+          {% for td,lbl in [('NIT','NIT'),('CC','C.C.'),('CE','C.E.'),('PP','Pasap.'),('TI','T.I.')] %}
+          <option value="{{ td }}" {% if obj and obj.tipo_documento==td %}selected{% elif not obj and td=='NIT' %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
+        </select>
+        <input type="text" name="nit" class="form-control" placeholder="900.123.456-7" value="{{ obj.nit if obj else '' }}">
+      </div>
+      <div class="form-text">Dejalo vacio si aun no lo tienes.</div>
     </div>
     <div class="col-md-3">
       <label class="form-label">Estado relación</label>

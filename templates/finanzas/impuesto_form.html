@@ -22,7 +22,7 @@
       <option value="retencion_honorarios" {% if obj and obj.aplica_a=='retencion_honorarios' %}selected{% endif %}>Retención honorarios (11%)</option>
       <option value="reteiva" {% if obj and obj.aplica_a=='reteiva' %}selected{% endif %}>ReteIVA (15%)</option>
       <option value="proveedor_producto" {% if obj and obj.aplica_a=='proveedor_producto' %}selected{% endif %}>Proveedor de productos</option>
-      <option value="proveedor_granel" {% if obj and obj.aplica_a=='proveedor_granel' %}selected{% endif %}>Proveedor de granel</option>
+      <option value="proveedor_maquila" {% if obj and obj.aplica_a=='proveedor_maquila' %}selected{% endif %}>Proveedor de maquila</option>
     </select></div>
   <div class="col-md-6" id="divProveedor" style="display:{% if obj and 'proveedor' in (obj.aplica_a or '') %}block{% else %}none{% endif %}">
     <label class="form-label">Nombre del proveedor</label>

@@ -1,0 +1,314 @@
+{% extends 'base.html' %}
+{% block title %}Planes Evore{% endblock %}
+{% block page_title %}Planes y Precios{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
+{% block content %}
+<div style="max-width:960px;margin:0 auto">
+
+  {% if sub_activa %}
+  <div class="alert alert-success d-flex align-items-center gap-2 mb-4">
+    <i class="bi bi-check-circle-fill"></i>
+    <div>
+      <strong>Plan {{ 'Starter' if sub_activa.plan == 'starter' else 'Profesional' }} activo</strong>
+      — Proximo pago: {{ sub_activa.fecha_proximo_pago.strftime('%d/%m/%Y') if sub_activa.fecha_proximo_pago else '—' }}
+      {% if sub_activa.usuarios_extra > 0 %} ({{ 3 + sub_activa.usuarios_extra }} usuarios){% endif %}
+    </div>
+  </div>
+  {% elif company and company.plan != 'free' %}
+  <div class="alert alert-info d-flex align-items-center gap-2 mb-4">
+    <i class="bi bi-info-circle-fill"></i>
+    <span>Tu empresa tiene el plan <strong>{{ 'Starter' if company.plan == 'starter' else 'Profesional' }}</strong>.</span>
+  </div>
+  {% endif %}
+
+  <!-- Toggle mensual / anual -->
+  <div class="text-center mb-4">
+    <div class="btn-group" role="group">
+      <input type="radio" class="btn-check" name="periodo" id="periodoMensual" value="mensual" checked onchange="togglePeriodo()">
+      <label class="btn btn-outline-primary" for="periodoMensual">Mensual</label>
+      <input type="radio" class="btn-check" name="periodo" id="periodoAnual" value="anual" onchange="togglePeriodo()">
+      <label class="btn btn-outline-primary" for="periodoAnual">Anual <span class="badge bg-success ms-1">-10%</span></label>
+    </div>
+  </div>
+
+  <div class="row g-4 mb-4">
+    <!-- FREE -->
+    <div class="col-md-4">
+      <div class="fc h-100" style="position:relative">
+        {% if company and company.plan == 'free' %}
+        <span class="badge bg-primary" style="position:absolute;top:-10px;right:12px">Plan actual</span>
+        {% endif %}
+        <div class="text-center mb-3">
+          <div style="font-size:2rem"><i class="bi bi-box-seam text-muted"></i></div>
+          <h5 class="fw-bold mb-1">Gratuito</h5>
+          <div style="font-size:2rem;font-weight:700;color:var(--text1)">$0</div>
+          <div class="text-muted" style="font-size:.8rem">Para siempre</div>
+        </div>
+        <hr>
+        <ul class="list-unstyled" style="font-size:.88rem">
+          <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Portal de cliente/proveedor</li>
+          <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Ver pedidos y documentos</li>
+          <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Chat con empresas relacionadas</li>
+          <li class="mb-2"><i class="bi bi-check text-success me-2"></i>1 usuario</li>
+          <li class="mb-2 text-muted"><i class="bi bi-x me-2"></i>CRM completo</li>
+          <li class="mb-2 text-muted"><i class="bi bi-x me-2"></i>Ventas y cotizaciones</li>
+          <li class="mb-2 text-muted"><i class="bi bi-x me-2"></i>Inventario y produccion</li>
+          <li class="mb-2 text-muted"><i class="bi bi-x me-2"></i>Contabilidad PUC</li>
+          <li class="mb-2 text-muted"><i class="bi bi-x me-2"></i>Nomina</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- STARTER -->
+    <div class="col-md-4">
+      <div class="fc h-100" style="position:relative;border:2px solid var(--ac)">
+        {% if company and company.plan == 'starter' %}
+        <span class="badge bg-primary" style="position:absolute;top:-10px;right:12px">Plan actual</span>
+        {% else %}
+        <span class="badge bg-warning text-dark" style="position:absolute;top:-10px;right:12px">Mas popular</span>
+        {% endif %}
+        <div class="text-center mb-3">
+          <div style="font-size:2rem"><i class="bi bi-building text-primary"></i></div>
+          <h5 class="fw-bold mb-1">Starter</h5>
+          <div id="starterPrice" style="font-size:2rem;font-weight:700;color:var(--ac)">$39.900</div>
+          <div id="starterPeriod" class="text-muted" style="font-size:.8rem">COP / mes</div>
+        </div>
+        <hr>
+        <ul class="list-unstyled" style="font-size:.88rem">
+          <li class="mb-2"><i class="bi bi-check text-success me-2"></i><strong>Todo lo del plan gratuito</strong></li>
+          <li class="mb-2"><i class="bi bi-check text-success me-2"></i>CRM completo</li>
+          <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Ventas, cotizaciones, clientes</li>
+          <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Inventario y produccion</li>
+          <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Ordenes de compra</li>
+          <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Contabilidad PUC</li>
+          <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Nomina colombiana</li>
+          <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Documentos legales</li>
+          <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Hasta <strong>3 usuarios</strong></li>
+        </ul>
+        {% if not company or company.plan == 'free' %}
+        <button type="button" class="btn btn-primary w-100 mt-2" onclick="openPayment('starter')"><i class="bi bi-arrow-up-circle me-1"></i>Activar Starter</button>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- PRO -->
+    <div class="col-md-4">
+      <div class="fc h-100" style="position:relative">
+        {% if company and company.plan == 'pro' %}
+        <span class="badge bg-primary" style="position:absolute;top:-10px;right:12px">Plan actual</span>
+        {% endif %}
+        <div class="text-center mb-3">
+          <div style="font-size:2rem"><i class="bi bi-building-gear text-primary"></i></div>
+          <h5 class="fw-bold mb-1">Profesional</h5>
+          <div id="proPrice" style="font-size:1.3rem;font-weight:700;color:var(--ac)">$39.900 <span style="font-size:.85rem;font-weight:400">+ $5.900/usr extra</span></div>
+          <div id="proPeriod" class="text-muted" style="font-size:.8rem">COP / mes — 3 usuarios incluidos</div>
+        </div>
+        <hr>
+        <ul class="list-unstyled" style="font-size:.88rem">
+          <li class="mb-2"><i class="bi bi-check text-success me-2"></i><strong>Todo lo del plan Starter</strong></li>
+          <li class="mb-2"><i class="bi bi-check text-success me-2"></i><strong>3 usuarios</strong> incluidos</li>
+          <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Usuarios adicionales a <strong>$5.900/mes</strong> c/u</li>
+          <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Soporte prioritario</li>
+          <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Reportes avanzados</li>
+        </ul>
+        <!-- Pro user calculator -->
+        <div class="p-3 rounded" style="background:var(--surface2);font-size:.85rem">
+          <label class="form-label fw-semibold mb-1">Cuantos usuarios extra necesitas?</label>
+          <input type="number" id="proExtras" min="0" max="100" value="0" class="form-control form-control-sm mb-2" oninput="calcPro()">
+          <div class="d-flex justify-content-between">
+            <span>Total usuarios:</span><strong id="proTotalUsers">3</strong>
+          </div>
+          <div class="d-flex justify-content-between mt-1">
+            <span>Valor <span id="proCalcPeriod">mensual</span>:</span><strong id="proTotal" class="text-primary">$39.900</strong>
+          </div>
+        </div>
+        {% if not company or company.plan in ('free', 'starter') %}
+        <button type="button" class="btn btn-outline-primary w-100 mt-3" onclick="openPayment('pro')"><i class="bi bi-arrow-up-circle me-1"></i>Activar Profesional</button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Comparison table -->
+  <div class="fc">
+    <h6 class="fw-bold mb-3"><i class="bi bi-table me-2"></i>Comparacion detallada</h6>
+    <div class="table-responsive">
+    <table class="table table-sm" style="font-size:.85rem">
+      <thead><tr>
+        <th>Caracteristica</th>
+        <th class="text-center">Gratuito</th>
+        <th class="text-center" style="background:rgba(1,118,211,.05)">Starter</th>
+        <th class="text-center">Profesional</th>
+      </tr></thead>
+      <tbody>
+        <tr><td>Portal cliente/proveedor</td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td></tr>
+        <tr><td>Chat inter-empresa</td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td></tr>
+        <tr><td>Gestion de clientes</td><td class="text-center text-muted"><i class="bi bi-x-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td></tr>
+        <tr><td>Ventas y cotizaciones</td><td class="text-center text-muted"><i class="bi bi-x-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td></tr>
+        <tr><td>Inventario y produccion</td><td class="text-center text-muted"><i class="bi bi-x-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td></tr>
+        <tr><td>Ordenes de compra</td><td class="text-center text-muted"><i class="bi bi-x-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td></tr>
+        <tr><td>Contabilidad PUC</td><td class="text-center text-muted"><i class="bi bi-x-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td></tr>
+        <tr><td>Nomina colombiana</td><td class="text-center text-muted"><i class="bi bi-x-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td></tr>
+        <tr><td>Documentos legales</td><td class="text-center text-muted"><i class="bi bi-x-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td></tr>
+        <tr><td>Asistente IA</td><td class="text-center text-muted"><i class="bi bi-x-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td></tr>
+        <tr class="fw-semibold"><td>Usuarios incluidos</td><td class="text-center">1</td><td class="text-center" style="background:rgba(1,118,211,.05)">3</td><td class="text-center">3 + extras</td></tr>
+        <tr><td>Usuario adicional</td><td class="text-center text-muted">—</td><td class="text-center text-muted" style="background:rgba(1,118,211,.05)">—</td><td class="text-center">$5.900/mes</td></tr>
+        <tr class="fw-semibold"><td>Precio mensual</td><td class="text-center">$0</td><td class="text-center" style="background:rgba(1,118,211,.05)">$39.900</td><td class="text-center">Desde $39.900</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- Metodos de pago -->
+  <div class="fc mt-4">
+    <h6 class="fw-bold mb-3"><i class="bi bi-credit-card me-2"></i>Metodos de pago</h6>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="p-3 rounded h-100" style="background:var(--surface2)">
+          <div class="fw-semibold mb-2"><i class="bi bi-bank me-2 text-primary"></i>Transferencia bancaria</div>
+          {% if evore_config and evore_config.banco_nombre %}
+          <dl class="mb-0" style="font-size:.85rem">
+            <dt class="text-muted">Banco</dt><dd>{{ evore_config.banco_nombre }}</dd>
+            <dt class="text-muted">Tipo</dt><dd>{{ evore_config.banco_tipo or '—' }}</dd>
+            <dt class="text-muted">No. Cuenta</dt><dd class="fw-semibold">{{ evore_config.banco_cuenta or '—' }}</dd>
+            <dt class="text-muted">Titular</dt><dd>{{ evore_config.banco_titular or '—' }}</dd>
+            <dt class="text-muted">NIT</dt><dd>{{ evore_config.banco_nit or '—' }}</dd>
+          </dl>
+          <div class="form-text mt-2"><i class="bi bi-chat-dots me-1"></i>Despues de transferir, envia el comprobante por el <strong>chat con Evore</strong>.</div>
+          {% else %}
+          <p class="text-muted mb-0" style="font-size:.85rem">Datos bancarios no configurados. Contacta a Evore.</p>
+          {% endif %}
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="p-3 rounded h-100" style="background:var(--surface2)">
+          <div class="fw-semibold mb-2"><i class="bi bi-phone me-2 text-primary"></i>Otros metodos</div>
+          <p class="text-muted mb-0" style="font-size:.85rem">Proximamente: Nequi, Daviplata, tarjeta de credito. Por ahora solo transferencia bancaria.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="text-center mt-4 mb-3" style="font-size:.85rem;color:var(--text2)">
+    <i class="bi bi-question-circle me-1"></i>Tienes preguntas? Escribenos por el chat con Evore o al correo <strong>ventas@evore.co</strong>
+  </div>
+</div>
+
+<!-- Payment modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title fw-bold"><i class="bi bi-arrow-up-circle me-2"></i>Activar plan</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('planes_suscribir') }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="plan" id="modalPlan" value="starter">
+        <input type="hidden" name="periodo" id="modalPeriodo" value="mensual">
+        <input type="hidden" name="usuarios_extra" id="modalExtras" value="0">
+        <div class="modal-body">
+          <div class="mb-3">
+            <div class="fw-semibold" id="modalPlanName">Plan Starter</div>
+            <div class="text-muted" id="modalPlanDesc" style="font-size:.85rem">CRM completo — 3 usuarios</div>
+          </div>
+          <div id="modalExtrasSection" style="display:none" class="mb-3">
+            <label class="form-label">Usuarios extra (ademas de los 3 incluidos):</label>
+            <input type="number" id="modalExtrasInput" min="0" max="100" value="0" class="form-control" onchange="updateModalTotal()">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Periodo:</label>
+            <div class="btn-group w-100" role="group">
+              <input type="radio" class="btn-check" name="modal_periodo" id="mMensual" value="mensual" checked onchange="updateModalTotal()">
+              <label class="btn btn-outline-primary" for="mMensual">Mensual</label>
+              <input type="radio" class="btn-check" name="modal_periodo" id="mAnual" value="anual" onchange="updateModalTotal()">
+              <label class="btn btn-outline-primary" for="mAnual">Anual (-10%)</label>
+            </div>
+          </div>
+          <div class="p-3 rounded" style="background:var(--surface2)">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="fw-semibold">Total a pagar:</span>
+              <span class="fw-bold fs-5 text-primary" id="modalTotal">$39.900</span>
+            </div>
+            <div class="text-muted" style="font-size:.78rem" id="modalTotalDesc">Mensual</div>
+          </div>
+          <hr>
+          <div style="font-size:.85rem">
+            <div class="fw-semibold mb-2"><i class="bi bi-bank me-2"></i>Pago por transferencia</div>
+            {% if evore_config and evore_config.banco_nombre %}
+            <div class="text-muted">{{ evore_config.banco_nombre }} — {{ evore_config.banco_tipo or '' }} <strong>{{ evore_config.banco_cuenta or '' }}</strong></div>
+            <div class="text-muted">{{ evore_config.banco_titular or '' }} — NIT {{ evore_config.banco_nit or '' }}</div>
+            {% endif %}
+            <div class="mt-2 text-muted"><i class="bi bi-info-circle me-1"></i>Al confirmar, se crea tu solicitud. Realiza la transferencia y envia el comprobante por el chat con Evore. El plan se activa cuando finanzas confirme el pago.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Confirmar solicitud</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+var BASE=39900, EXTRA=5900;
+function fmt(n){return '$'+n.toLocaleString('es-CO')}
+
+function togglePeriodo(){
+  calcPro();
+  var anual=document.getElementById('periodoAnual').checked;
+  if(anual){
+    document.getElementById('starterPrice').textContent=fmt(Math.round(39900*12*0.9));
+    document.getElementById('starterPeriod').textContent='COP / año (10% dcto)';
+  } else {
+    document.getElementById('starterPrice').textContent='$39.900';
+    document.getElementById('starterPeriod').textContent='COP / mes';
+  }
+}
+
+function calcPro(){
+  var extras=parseInt(document.getElementById('proExtras').value)||0;
+  var anual=document.getElementById('periodoAnual').checked;
+  var mensual=BASE+(extras*EXTRA);
+  var total=anual?Math.round(mensual*12*0.9):mensual;
+  document.getElementById('proTotalUsers').textContent=3+extras;
+  document.getElementById('proTotal').textContent=fmt(total);
+  document.getElementById('proCalcPeriod').textContent=anual?'anual':'mensual';
+}
+
+function openPayment(plan){
+  document.getElementById('modalPlan').value=plan;
+  var anual=document.getElementById('periodoAnual').checked;
+  document.getElementById('modalPeriodo').value=anual?'anual':'mensual';
+  if(anual){document.getElementById('mAnual').checked=true}else{document.getElementById('mMensual').checked=true}
+
+  if(plan==='pro'){
+    document.getElementById('modalPlanName').textContent='Plan Profesional';
+    document.getElementById('modalPlanDesc').textContent='CRM completo — 3 usuarios incluidos + extras';
+    document.getElementById('modalExtrasSection').style.display='block';
+    var e=parseInt(document.getElementById('proExtras').value)||0;
+    document.getElementById('modalExtrasInput').value=e;
+  } else {
+    document.getElementById('modalPlanName').textContent='Plan Starter';
+    document.getElementById('modalPlanDesc').textContent='CRM completo — 3 usuarios';
+    document.getElementById('modalExtrasSection').style.display='none';
+    document.getElementById('modalExtrasInput').value=0;
+  }
+  updateModalTotal();
+  new bootstrap.Modal(document.getElementById('paymentModal')).show();
+}
+
+function updateModalTotal(){
+  var plan=document.getElementById('modalPlan').value;
+  var anual=document.getElementById('mAnual').checked;
+  var extras=plan==='pro'?parseInt(document.getElementById('modalExtrasInput').value)||0:0;
+  var mensual=BASE+(extras*EXTRA);
+  var total=anual?Math.round(mensual*12*0.9):mensual;
+  document.getElementById('modalTotal').textContent=fmt(total);
+  document.getElementById('modalTotalDesc').textContent=anual?'Pago anual (10% descuento)':'Pago mensual';
+  document.getElementById('modalPeriodo').value=anual?'anual':'mensual';
+  document.getElementById('modalExtras').value=extras;
+}
+</script>
+{% endblock %}

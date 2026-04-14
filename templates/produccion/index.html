@@ -7,7 +7,7 @@
   <div class="col-md-3"><div class="sc"><div class="sv valor-cop" data-cop="{{ compras_mes }}">$ {{ '{:,.0f}'.format(compras_mes).replace(',','.') }}</div>
     <div class="sl">Compras este mes</div></div></div>
   <div class="col-md-3"><div class="sc"><div class="sv">{{ cotizaciones_vigentes }}</div>
-    <div class="sl">Cotizaciones granel vigentes</div></div></div>
+    <div class="sl">Cotizaciones maquila vigentes</div></div></div>
   <div class="col-md-3"><div class="sc"><div class="sv">{{ ordenes_activas }}</div>
     <div class="sl">Órdenes de compra activas</div></div></div>
 </div>
@@ -27,16 +27,16 @@
   </div></div>
   <div class="col-md-6"><div class="tc">
     <div class="ch d-flex justify-content-between align-items-center">
-      <span><i class="bi bi-building me-2 text-success"></i>Cotizaciones Granel</span>
-      <a href="{{ url_for('granel') }}" class="btn btn-sm btn-outline-success">Ver todas</a></div>
-    {% if granel_recientes %}<table class="table"><tbody>
-    {% for g in granel_recientes %}<tr>
+      <span><i class="bi bi-building me-2 text-success"></i>Cotizaciones Maquila</span>
+      <a href="{{ url_for('maquila') }}" class="btn btn-sm btn-outline-success">Ver todas</a></div>
+    {% if maquila_recientes %}<table class="table"><tbody>
+    {% for g in maquila_recientes %}<tr>
       <td><div class="fw-semibold" style="font-size:.88rem;color:var(--text)">{{ g.nombre_producto }}</div>
         <small class="text-muted">SKU: {{ g.sku or '—' }} · NSO: {{ g.nso or '—' }}</small></td>
       <td><span class="b b-{{ g.estado }}">{{ g.estado.title() }}</span></td>
     </tr>{% endfor %}</tbody></table>
     {% else %}<div class="text-center text-muted py-3"><p class="mb-2">Sin cotizaciones</p>
-      <a href="{{ url_for('granel_nuevo') }}" class="btn btn-sm btn-success">Agregar</a></div>{% endif %}
+      <a href="{{ url_for('maquila_nuevo') }}" class="btn btn-sm btn-success">Agregar</a></div>{% endif %}
   </div></div>
 </div>
 <div class="row g-3 mt-2">

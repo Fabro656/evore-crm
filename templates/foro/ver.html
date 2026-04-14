@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% block title %}{{ pub.titulo }}{% endblock %}
+{% block page_title %}{{ pub.titulo }}{% endblock %}
+{% block topbar_actions %}
+{% if es_mio %}<a href="{{ url_for('foro_editar', id=pub.id) }}" class="btn btn-primary btn-sm"><i class="bi bi-pencil me-1"></i>Editar</a>{% endif %}
+<a href="{{ url_for('foro') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Foro</a>
+{% endblock %}
+{% block content %}
+<div class="row g-4" style="max-width:1000px">
+  <!-- Main content -->
+  <div class="col-lg-8">
+    <div class="fc">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <span class="badge {{ 'bg-primary' if pub.tipo == 'producto' else 'bg-success' }}">{{ pub.tipo.title() }}</span>
+        {% if pub.industria %}<span class="badge bg-secondary">{{ pub.industria }}</span>{% endif %}
+        <small class="text-muted ms-auto">{{ pub.creado_en.strftime('%d/%m/%Y') }}</small>
+      </div>
+      <p style="font-size:.95rem;line-height:1.6">{{ pub.descripcion }}</p>
+      {% if pub.precio_referencia %}
+      <div class="mt-3 p-3 rounded" style="background:var(--surface2)">
+        <span class="text-muted" style="font-size:.8rem">Precio de referencia</span>
+        <div class="fw-bold text-primary" style="font-size:1.3rem">$ {{ '{:,.0f}'.format(pub.precio_referencia).replace(',','.') }}{% if pub.unidad %} <span class="fw-normal text-muted" style="font-size:.85rem">/ {{ pub.unidad }}</span>{% endif %}</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Valoraciones -->
+    <div class="fc mt-3">
+      <h6 class="fw-bold mb-3"><i class="bi bi-star me-2"></i>Valoraciones de {{ company.nombre }} ({{ valoraciones|length }})</h6>
+      {% if valoraciones %}
+        {% for v in valoraciones %}
+        <div class="mb-3 pb-3 {% if not loop.last %}border-bottom{% endif %}">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="text-warning">{% for i in range(1,6) %}<i class="bi bi-star{% if i <= v.estrellas %}-fill{% endif %}"></i>{% endfor %}</span>
+            <span class="fw-semibold" style="font-size:.85rem">{{ v.cliente.nombre }}</span>
+            <small class="text-muted ms-auto">{{ v.creado_en.strftime('%d/%m/%Y') }}</small>
+          </div>
+          {% if v.comentario %}<p class="mb-1" style="font-size:.88rem">{{ v.comentario }}</p>{% endif %}
+          {% if v.estado == 'apelada' %}<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>En apelacion</span>{% endif %}
+          {% if es_mio and v.estado == 'activa' and not v.apelacion %}
+          <form method="POST" action="{{ url_for('foro_apelar', valoracion_id=v.id) }}" class="mt-2">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <div class="input-group input-group-sm">
+              <input type="text" name="motivo" class="form-control" placeholder="Motivo de la apelacion..." required>
+              <button type="submit" class="btn btn-outline-warning btn-sm" onclick="return confirm('Enviar apelacion al admin de Evore?')"><i class="bi bi-flag me-1"></i>Apelar</button>
+            </div>
+          </form>
+          {% endif %}
+        </div>
+        {% endfor %}
+      {% else %}
+      <p class="text-muted mb-0">Sin valoraciones aun.</p>
+      {% endif %}
+
+      <!-- Form to rate (only if related and not own company and hasn't rated) -->
+      {% if not es_mio and ya_relacionado and not ya_valorado %}
+      <hr>
+      <h6 class="fw-semibold mb-2" style="font-size:.88rem">Valora a {{ company.nombre }}</h6>
+      <form method="POST" action="{{ url_for('foro_valorar', company_id=pub.company_id) }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="publicacion_id" value="{{ pub.id }}">
+        <input type="hidden" name="redirect_url" value="{{ url_for('foro_ver', id=pub.id) }}">
+        <div class="mb-2">
+          <div class="d-flex gap-1" id="starRating">
+            {% for i in range(1,6) %}
+            <label style="cursor:pointer;font-size:1.5rem" class="text-muted star-label" data-star="{{ i }}">
+              <input type="radio" name="estrellas" value="{{ i }}" class="d-none">
+              <i class="bi bi-star"></i>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="mb-2">
+          <textarea name="comentario" class="form-control form-control-sm" rows="2" placeholder="Tu opinion (opcional)"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-star me-1"></i>Enviar valoracion</button>
+      </form>
+      <script>
+      document.querySelectorAll('.star-label').forEach(function(el){
+        el.addEventListener('click',function(){
+          var s=parseInt(this.dataset.star);
+          this.querySelector('input').checked=true;
+          document.querySelectorAll('.star-label').forEach(function(e){
+            var n=parseInt(e.dataset.star);
+            e.querySelector('i').className='bi bi-star'+(n<=s?'-fill':'');
+            e.classList.toggle('text-warning',n<=s);
+            e.classList.toggle('text-muted',n>s);
+          });
+        });
+      });
+      </script>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Sidebar: company info -->
+  <div class="col-lg-4">
+    <div class="fc">
+      <div class="text-center mb-3">
+        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold mx-auto"
+             style="width:60px;height:60px;background:var(--ac);font-size:1.5rem">{{ company.nombre[0].upper() }}</div>
+        <h6 class="fw-bold mt-2 mb-0">{{ company.nombre }}</h6>
+        {% if company.industria %}<div class="text-muted" style="font-size:.8rem">{{ company.industria }}</div>{% endif %}
+        {% if company.nit %}<div class="text-muted" style="font-size:.78rem">{{ company.tipo_documento or 'NIT' }}: {{ company.nit }}</div>{% endif %}
+      </div>
+
+      <div class="text-center mb-3">
+        <span class="text-warning" style="font-size:1.2rem">
+          {% for i in range(1,6) %}<i class="bi bi-star{% if i <= avg_rating|round %}-fill{% elif i - 0.5 <= avg_rating %}-half{% endif %}"></i>{% endfor %}
+        </span>
+        <div style="font-size:.82rem;color:var(--text2)">{{ avg_rating }} / 5 ({{ valoraciones|length }} valoraciones)</div>
+        <div style="font-size:.78rem;color:var(--text2)">{{ ventas_conf }} ventas confirmadas</div>
+      </div>
+
+      <a href="{{ url_for('foro_empresa', id=company.id) }}" class="btn btn-outline-secondary btn-sm w-100 mb-2"><i class="bi bi-building me-1"></i>Ver perfil completo</a>
+
+      {% if not es_mio %}
+        {% if ya_relacionado %}
+        <a href="{{ url_for('foro_contactar', id=pub.id) }}" class="btn btn-primary btn-sm w-100 mb-2"><i class="bi bi-chat-dots me-1"></i>Chatear</a>
+        {% else %}
+        <form method="POST" action="{{ url_for('foro_hacerme_cliente', id=pub.id) }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+          <button type="submit" class="btn btn-success btn-sm w-100 mb-2" onclick="return confirm('Esto creara una relacion comercial con {{ company.nombre }}. Tu empresa sera registrada como su cliente y ellos como tu proveedor.')"><i class="bi bi-link-45deg me-1"></i>Hacerme cliente</button>
+        </form>
+        <div class="form-text text-center" style="font-size:.72rem">Se crearan tarjetas de cliente y proveedor mutuamente y un canal de chat.</div>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

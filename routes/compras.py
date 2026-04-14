@@ -101,13 +101,13 @@ def register(app):
     @requiere_modulo('ordenes_compra')
     def cotizaciones_proveedor():
         estado_f = request.args.get('estado','')
-        tipo_f   = request.args.get('tipo','')   # granel / general
+        tipo_f   = request.args.get('tipo','')   # maquila / general
         q = CotizacionProveedor.query
         if estado_f: q = q.filter_by(estado=estado_f)
         if tipo_f:   q = q.filter_by(tipo_cotizacion=tipo_f)
         items = q.order_by(CotizacionProveedor.creado_en.desc()).all()
         totales = {
-            'granel':  CotizacionProveedor.query.filter_by(tipo_cotizacion='granel').count(),
+            'maquila': CotizacionProveedor.query.filter_by(tipo_cotizacion='maquila').count(),
             'general': CotizacionProveedor.query.filter_by(tipo_cotizacion='general').count(),
         }
         return render_template('proveedores/cotizaciones.html',

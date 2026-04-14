@@ -1,6 +1,6 @@
 # routes/proveedores.py — reconstruido desde v27 con CRUD completo
 from flask import render_template, redirect, url_for, flash, request, \
-                  jsonify, send_file, make_response, current_app
+                  jsonify, send_file, make_response, current_app, g
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
 from extensions import db
@@ -48,7 +48,50 @@ def register(app):
                 tipo_vehiculo=request.form.get('tipo_vehiculo','') or None,
                 capacidad_vehiculo_kg=float(request.form.get('capacidad_vehiculo_kg') or 0),
                 capacidad_vehiculo_m3=float(request.form.get('capacidad_vehiculo_m3') or 0))
-            db.session.add(p); db.session.commit()
+            db.session.add(p); db.session.flush()
+
+            # ── Counter-party detection / auto-provision
+            my_company_id = getattr(g, 'company_id', None)
+            nit_prov = (p.nit or '').strip()
+            nombre_empresa = (p.empresa or p.nombre or '').strip()
+            if nit_prov and my_company_id and nombre_empresa:
+                matched = Company.query.filter(
+                    Company.nit == nit_prov,
+                    Company.id != my_company_id,
+                    Company.activo == True
+                ).first()
+                if matched:
+                    existing_rel = CompanyRelationship.query.filter(
+                        db.or_(
+                            db.and_(CompanyRelationship.company_from_id == my_company_id,
+                                    CompanyRelationship.company_to_id == matched.id),
+                            db.and_(CompanyRelationship.company_from_id == matched.id,
+                                    CompanyRelationship.company_to_id == my_company_id)
+                        )).first()
+                    if not existing_rel:
+                        rel = CompanyRelationship(
+                            company_from_id=my_company_id, company_to_id=matched.id,
+                            tipo='proveedor', proveedor_id=p.id, activo=True)
+                        db.session.add(rel); db.session.flush()
+                        chat_room = ChatRoom(company_id=my_company_id, tipo='proveedor',
+                            nombre=f'Proveedor: {matched.nombre}',
+                            company_relationship_id=rel.id, creado_por=current_user.id)
+                        db.session.add(chat_room); db.session.flush()
+                        db.session.add(ChatParticipant(room_id=chat_room.id,
+                            user_id=current_user.id, rol='admin', agregado_por=current_user.id))
+                        flash(f'{matched.nombre} ya esta en Evore — conexion creada.', 'info')
+                    else:
+                        flash(f'Ya existe una relacion con {matched.nombre}.', 'info')
+                else:
+                    tipo_doc = request.form.get('tipo_documento', 'NIT')
+                    emp, admin_user, rel = _auto_provision_company(
+                        nombre_empresa, nit_prov, 'proveedor', my_company_id,
+                        proveedor_id=p.id, tipo_documento=tipo_doc)
+                    if emp and admin_user:
+                        flash(f'Se creo cuenta Evore para {emp.nombre}. '
+                              f'Acceso: {admin_user.email} / contrasena: {nit_prov}', 'success')
+
+            db.session.commit()
             flash('Registro creado.','success'); return redirect(url_for('proveedores'))
         return render_template('proveedores/form.html', obj=None, titulo='Nuevo Proveedor / Transportista')
     

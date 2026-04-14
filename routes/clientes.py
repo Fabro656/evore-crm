@@ -1,6 +1,6 @@
 # routes/clientes.py — reconstruido desde v27 con CRUD completo
 from flask import render_template, redirect, url_for, flash, request, \
-                  jsonify, send_file, make_response, current_app
+                  jsonify, send_file, make_response, current_app, g
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
 from extensions import db
@@ -121,7 +121,9 @@ def register(app):
             except (ValueError, TypeError):
                 minimo_pedido = None
             c = Cliente(nombre=request.form.get('empresa','') or request.form.get('nombre',''),
-                empresa=request.form.get('empresa',''), nit=request.form.get('nit',''),
+                empresa=request.form.get('empresa',''),
+                tipo_documento=request.form.get('tipo_documento','NIT'),
+                nit=request.form.get('nit',''),
                 estado_relacion=request.form.get('estado_relacion','prospecto'),
                 dir_comercial=request.form.get('dir_comercial',''),
                 dir_entrega=request.form.get('dir_entrega',''),
@@ -136,7 +138,53 @@ def register(app):
                 minimo_pedido=minimo_pedido)
             db.session.add(c); db.session.flush()
             _save_contactos(c)
-            _log('crear','cliente',c.id,f'Cliente creado: {c.empresa or c.nombre}'); db.session.commit()
+            _log('crear','cliente',c.id,f'Cliente creado: {c.empresa or c.nombre}')
+
+            # ── Counter-party detection / auto-provision
+            my_company_id = getattr(g, 'company_id', None)
+            nit_cliente = (c.nit or '').strip()
+            nombre_empresa = (c.empresa or c.nombre or '').strip()
+            if nit_cliente and my_company_id and nombre_empresa:
+                # Check if already exists by NIT
+                matched = Company.query.filter(
+                    Company.nit == nit_cliente,
+                    Company.id != my_company_id,
+                    Company.activo == True
+                ).first()
+                if matched:
+                    # Link if no relationship yet
+                    existing_rel = CompanyRelationship.query.filter(
+                        db.or_(
+                            db.and_(CompanyRelationship.company_from_id == my_company_id,
+                                    CompanyRelationship.company_to_id == matched.id),
+                            db.and_(CompanyRelationship.company_from_id == matched.id,
+                                    CompanyRelationship.company_to_id == my_company_id)
+                        )).first()
+                    if not existing_rel:
+                        rel = CompanyRelationship(
+                            company_from_id=my_company_id, company_to_id=matched.id,
+                            tipo='cliente', cliente_id=c.id, activo=True)
+                        db.session.add(rel); db.session.flush()
+                        chat_room = ChatRoom(company_id=my_company_id, tipo='cliente',
+                            nombre=f'Cliente: {matched.nombre}',
+                            company_relationship_id=rel.id, creado_por=current_user.id)
+                        db.session.add(chat_room); db.session.flush()
+                        db.session.add(ChatParticipant(room_id=chat_room.id,
+                            user_id=current_user.id, rol='admin', agregado_por=current_user.id))
+                        flash(f'{matched.nombre} ya esta en Evore — conexion creada.', 'info')
+                    else:
+                        flash(f'Ya existe una relacion con {matched.nombre}.', 'info')
+                else:
+                    # Auto-provision free company + admin user
+                    tipo_doc = request.form.get('tipo_documento', 'NIT')
+                    emp, admin_user, rel = _auto_provision_company(
+                        nombre_empresa, nit_cliente, 'cliente', my_company_id,
+                        cliente_id=c.id, tipo_documento=tipo_doc)
+                    if emp and admin_user:
+                        flash(f'Se creo cuenta Evore para {emp.nombre}. '
+                              f'Acceso: {admin_user.email} / contrasena: {nit_cliente}', 'success')
+
+            db.session.commit()
             flash('Cliente creado.','success'); return redirect(url_for('clientes'))
         sales_managers = User.query.filter(User.rol.in_(['sales_manager','admin']), User.activo==True).order_by(User.nombre).all()
         return render_template('clientes/form.html', obj=None, titulo='Nuevo Cliente', sales_managers=sales_managers)
@@ -147,8 +195,19 @@ def register(app):
     @login_required
     @requiere_modulo('clientes')
     def cliente_ver(id):
-        return render_template('clientes/ver.html', obj=Cliente.query.get_or_404(id))
-    
+        obj = Cliente.query.get_or_404(id)
+        # Check if this client is linked to an Evore company
+        my_company_id = getattr(g, 'company_id', None)
+        linked_company = None
+        if my_company_id:
+            rel = CompanyRelationship.query.filter(
+                CompanyRelationship.company_from_id == my_company_id,
+                CompanyRelationship.cliente_id == obj.id,
+                CompanyRelationship.activo == True
+            ).first()
+            if rel:
+                linked_company = Company.query.get(rel.company_to_id)
+        return render_template('clientes/ver.html', obj=obj, linked_company=linked_company)
 
     # ── cliente_editar (/clientes/<int:id>/editar)
     @app.route('/clientes/<int:id>/editar', methods=['GET','POST'])
@@ -157,7 +216,8 @@ def register(app):
     def cliente_editar(id):
         obj = Cliente.query.get_or_404(id)
         if request.method == 'POST':
-            obj.empresa=request.form.get('empresa',''); obj.nit=request.form.get('nit','')
+            obj.empresa=request.form.get('empresa','')
+            obj.tipo_documento=request.form.get('tipo_documento','NIT'); obj.nit=request.form.get('nit','')
             obj.nombre=request.form.get('empresa','') or obj.nombre
             obj.estado_relacion=request.form.get('estado_relacion','prospecto')
             obj.dir_comercial=request.form.get('dir_comercial','')

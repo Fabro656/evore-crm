@@ -5,7 +5,7 @@
 <nav aria-label="breadcrumb" style="margin-bottom:.75rem">
   <ol class="breadcrumb" style="font-size:.78rem;margin:0">
     <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}" style="color:var(--ac);text-decoration:none">Home</a></li>
-    <li class="breadcrumb-item"><a href="{{ url_for('produccion') }}" style="color:var(--ac);text-decoration:none">Produccion</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('produccion_index') }}" style="color:var(--ac);text-decoration:none">Produccion</a></li>
     <li class="breadcrumb-item"><a href="{{ url_for('recetas') }}" style="color:var(--ac);text-decoration:none">Recetas</a></li>
     <li class="breadcrumb-item active" aria-current="page">{{ 'Editar' if obj else 'Nueva' }}</li>
   </ol>
@@ -60,7 +60,7 @@
   </button>
 </div>
 <div class="d-flex gap-1 mb-3 flex-wrap" style="font-size:.78rem">
-  <span class="b b-negociacion">Materia prima / Granel</span>
+  <span class="b b-negociacion">Materia prima / Maquila</span>
   <span class="b b-pendiente">Empaque primario (frasco, etiqueta)</span>
   <span class="b b-en_produccion">Empaque secundario (caja de envio)</span>
   <small style="color:var(--text2);margin-left:.5rem">Clasifica cada ingrediente al agregarlo. Los empaques aprobados se agregan automaticamente.</small>
@@ -80,7 +80,7 @@
           {% endfor %}
         </select>
         {% if item.materia_prima_id in sin_cot_ids %}
-        <a href="{{ url_for('cotizacion_proveedor_nueva', nombre=item.materia.nombre if item.materia else '', tipo='granel') }}"
+        <a href="{{ url_for('cotizacion_proveedor_nueva', nombre=item.materia.nombre if item.materia else '', tipo='maquila') }}"
            class="btn btn-xs btn-warning btn-sm" title="Sin cotización vigente — crear cotización" target="_blank">
           <i class="bi bi-tag"></i>
         </a>
@@ -98,7 +98,7 @@
     </div>
     <div class="col-6 col-md-2">
       <select name="clasificacion[]" class="form-select form-select-sm" onchange="toggleRendimiento(this)">
-        <option value="materia_prima" {% if item.clasificacion=='materia_prima' %}selected{% endif %}>MP / Granel</option>
+        <option value="materia_prima" {% if item.clasificacion=='materia_prima' %}selected{% endif %}>MP / Maquila</option>
         <option value="empaque_primario" {% if item.clasificacion=='empaque_primario' %}selected{% endif %}>Empaque primario</option>
         <option value="empaque_secundario" {% if item.clasificacion=='empaque_secundario' %}selected{% endif %}>Empaque secundario</option>
       </select>
@@ -204,7 +204,7 @@ function makeMpSelect(selectedId) {
     var cotBtn = row.querySelector('.cot-btn');
     if (cotBtn) cotBtn.style.display = sinCot ? '' : 'none';
     var cotNombre = opt.textContent.replace(' ⚠','').replace(/\s*\(.*\)$/,'').trim();
-    if (cotBtn) cotBtn.href = '{{ url_for("cotizacion_proveedor_nueva") }}?nombre=' + encodeURIComponent(cotNombre) + '&tipo=granel';
+    if (cotBtn) cotBtn.href = '{{ url_for("cotizacion_proveedor_nueva") }}?nombre=' + encodeURIComponent(cotNombre) + '&tipo=maquila';
   });
   return sel;
 }
@@ -241,7 +241,7 @@ function addItem(selectedId){
   var colClas=document.createElement('div'); colClas.className='col-6 col-md-2';
   var selClas=document.createElement('select');
   selClas.name='clasificacion[]'; selClas.className='form-select form-select-sm';
-  selClas.innerHTML='<option value="materia_prima">MP / Granel</option><option value="empaque_primario">Empaque primario</option><option value="empaque_secundario">Empaque secundario</option>';
+  selClas.innerHTML='<option value="materia_prima">MP / Maquila</option><option value="empaque_primario">Empaque primario</option><option value="empaque_secundario">Empaque secundario</option>';
   selClas.addEventListener('change',function(){toggleRendimiento(this);});
   colClas.appendChild(selClas);
 

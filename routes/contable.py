@@ -521,6 +521,23 @@ def register(app):
                         except Exception as ex_inv:
                             logging.warning(f'confirmar_ingreso: reservar_stock error: {ex_inv}')
 
+        # ── Subscription activation: if this asiento is linked to a Suscripcion
+        if asiento.estado_pago == 'completo':
+            try:
+                sub = Suscripcion.query.filter_by(asiento_id=asiento.id).first()
+                if sub and sub.estado in ('pendiente', 'vencida'):
+                    sub.estado = 'activa'
+                    sub.recordatorio_enviado = False
+                    # Activate the company plan
+                    comp = db.session.get(Company, sub.company_id)
+                    if comp:
+                        comp.plan = sub.plan
+                        comp.max_users = 3 + sub.usuarios_extra
+                        _log('activar', 'suscripcion', sub.id,
+                             f'Plan {sub.plan} activado para {comp.nombre}')
+            except Exception as ex_sub:
+                logging.warning(f'confirmar_ingreso: subscription activation error: {ex_sub}')
+
         _log('confirmar', 'ingreso', asiento.id, f'Ingreso confirmado: {moneda(monto)} en asiento {asiento.numero} (estado={asiento.estado_pago})')
         db.session.commit()
         flash(f'Cobro de {moneda(monto)} confirmado para asiento {asiento.numero}.', 'success')

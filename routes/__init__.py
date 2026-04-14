@@ -19,6 +19,7 @@ from routes import empaques
 from routes import servicios
 from routes import aprobaciones
 from routes import chat
+from routes import foro
 
 def register_all(app):
     auth.register(app)
@@ -41,3 +42,4 @@ def register_all(app):
     servicios.register(app)
     aprobaciones.register(app)
     chat.register(app)
+    foro.register(app)

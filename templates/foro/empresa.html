@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}{{ company.nombre }} — Somos Evore{% endblock %}
+{% block page_title %}{{ company.nombre }}{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('foro') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Foro</a>{% endblock %}
+{% block content %}
+<div style="max-width:900px;margin:0 auto">
+  <!-- Company header -->
+  <div class="fc mb-3">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
+           style="width:64px;height:64px;background:var(--ac);font-size:1.6rem;flex-shrink:0">{{ company.nombre[0].upper() }}</div>
+      <div style="flex:1">
+        <h5 class="fw-bold mb-0">{{ company.nombre }}</h5>
+        {% if company.industria %}<div class="text-muted">{{ company.industria }}</div>{% endif %}
+        {% if company.nit %}<div class="text-muted" style="font-size:.82rem">{{ company.tipo_documento or 'NIT' }}: {{ company.nit }}</div>{% endif %}
+      </div>
+      <div class="text-end">
+        <div class="text-warning" style="font-size:1.3rem">
+          {% for i in range(1,6) %}<i class="bi bi-star{% if i <= avg_rating|round %}-fill{% elif i - 0.5 <= avg_rating %}-half{% endif %}"></i>{% endfor %}
+        </div>
+        <div style="font-size:.85rem;color:var(--text2)">{{ avg_rating }} / 5 — {{ valoraciones|length }} valoraciones</div>
+        <div style="font-size:.82rem;color:var(--text2)">{{ ventas_conf }} ventas confirmadas</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Publications -->
+  <h6 class="fw-bold mb-3"><i class="bi bi-shop me-2"></i>Publicaciones ({{ publicaciones|length }})</h6>
+  {% if publicaciones %}
+  <div class="row g-3 mb-4">
+    {% for pub in publicaciones %}
+    <div class="col-md-6">
+      <a href="{{ url_for('foro_ver', id=pub.id) }}" class="text-decoration-none">
+      <div class="fc h-100" style="cursor:pointer">
+        <span class="badge {{ 'bg-primary' if pub.tipo == 'producto' else 'bg-success' }} mb-2">{{ pub.tipo.title() }}</span>
+        <h6 class="fw-bold mb-1" style="color:var(--text1);font-size:.9rem">{{ pub.titulo }}</h6>
+        <p class="text-muted mb-2" style="font-size:.82rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ pub.descripcion }}</p>
+        {% if pub.precio_referencia %}
+        <span class="fw-bold text-primary" style="font-size:.88rem">$ {{ '{:,.0f}'.format(pub.precio_referencia).replace(',','.') }}{% if pub.unidad %} / {{ pub.unidad }}{% endif %}</span>
+        {% endif %}
+      </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="text-center text-muted py-4 mb-4">Sin publicaciones.</div>
+  {% endif %}
+
+  <!-- Reviews -->
+  <h6 class="fw-bold mb-3"><i class="bi bi-star me-2"></i>Valoraciones ({{ valoraciones|length }})</h6>
+  {% if valoraciones %}
+  <div class="fc">
+    {% for v in valoraciones %}
+    <div class="mb-3 pb-3 {% if not loop.last %}border-bottom{% endif %}">
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <span class="text-warning">{% for i in range(1,6) %}<i class="bi bi-star{% if i <= v.estrellas %}-fill{% endif %}"></i>{% endfor %}</span>
+        <span class="fw-semibold" style="font-size:.85rem">{{ v.cliente.nombre }}</span>
+        <small class="text-muted ms-auto">{{ v.creado_en.strftime('%d/%m/%Y') }}</small>
+      </div>
+      {% if v.comentario %}<p class="mb-0" style="font-size:.88rem">{{ v.comentario }}</p>{% endif %}
+      {% if v.estado == 'apelada' %}<span class="badge bg-warning text-dark mt-1"><i class="bi bi-exclamation-triangle me-1"></i>En apelacion</span>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="text-center text-muted py-4">Sin valoraciones aun.</div>
+  {% endif %}
+</div>
+{% endblock %}

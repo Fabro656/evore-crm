@@ -287,37 +287,37 @@ def register(app):
             if Company.query.filter_by(slug=slug).first():
                 slug = f'{slug}-{Company.query.count()}'
             tipo_relacion = request.form.get('tipo_relacion', '')
-            emp = Company(nombre=nombre, slug=slug, nit=nit, max_users=max_users,
-                          plan=plan, activo=True, creado_por=current_user.id)
+            tipo_doc = request.form.get('tipo_documento', 'NIT')
+            emp = Company(nombre=nombre, slug=slug, tipo_documento=tipo_doc, nit=nit,
+                          max_users=max_users, plan=plan, activo=True, creado_por=current_user.id)
             db.session.add(emp)
             db.session.flush()
             # Create ConfigEmpresa for the new company
             db.session.add(ConfigEmpresa(nombre=nombre, company_id=emp.id))
-            # Create relationship with platform company
-            if tipo_relacion in ('cliente', 'proveedor', 'ambos'):
-                rel = CompanyRelationship(
-                    company_from_id=company.id,
-                    company_to_id=emp.id,
-                    tipo=tipo_relacion,
-                    activo=True
-                )
-                db.session.add(rel)
-                db.session.flush()
-                # Auto-create chat room for the relationship
-                chat_room = ChatRoom(
-                    company_id=company.id,
-                    tipo=tipo_relacion,
-                    nombre=f'{tipo_relacion.capitalize()}: {nombre}',
-                    company_relationship_id=rel.id,
-                    creado_por=current_user.id
-                )
-                db.session.add(chat_room)
-                db.session.flush()
-                # Add admin as participant
-                db.session.add(ChatParticipant(
-                    room_id=chat_room.id, user_id=current_user.id,
-                    rol='admin', agregado_por=current_user.id
-                ))
+            # ALWAYS create relationship with Evore (platform company)
+            tipo_rel = tipo_relacion if tipo_relacion in ('cliente', 'proveedor', 'ambos') else 'cliente'
+            rel = CompanyRelationship(
+                company_from_id=company.id,
+                company_to_id=emp.id,
+                tipo=tipo_rel,
+                activo=True
+            )
+            db.session.add(rel)
+            db.session.flush()
+            # Auto-create chat room for the relationship
+            chat_room = ChatRoom(
+                company_id=company.id,
+                tipo=tipo_rel,
+                nombre=f'{tipo_rel.capitalize()}: {nombre}',
+                company_relationship_id=rel.id,
+                creado_por=current_user.id
+            )
+            db.session.add(chat_room)
+            db.session.flush()
+            db.session.add(ChatParticipant(
+                room_id=chat_room.id, user_id=current_user.id,
+                rol='admin', agregado_por=current_user.id
+            ))
             # Seed PUC for new company
             try:
                 from company_config import COMPANY as _CC
@@ -351,6 +351,7 @@ def register(app):
         emp = Company.query.get_or_404(id)
         if request.method == 'POST':
             emp.nombre = request.form.get('nombre', emp.nombre).strip()
+            emp.tipo_documento = request.form.get('tipo_documento', emp.tipo_documento or 'NIT')
             emp.nit = request.form.get('nit', '').strip()
             emp.max_users = int(request.form.get('max_users', emp.max_users))
             emp.plan = request.form.get('plan', emp.plan)
@@ -374,9 +375,17 @@ def register(app):
         # Check user limit
         current_count = UserCompany.query.filter_by(company_id=emp.id, activo=True).count()
         if request.method == 'POST':
-            if current_count >= emp.max_users:
+            if emp.plan == 'free' and current_count >= 1:
+                flash(f'Plan gratuito: solo permite 1 usuario. Cambia el plan a Starter o Pro.', 'danger')
+                return redirect(url_for('admin_empresas'))
+            if current_count >= emp.max_users and emp.plan != 'pro':
                 flash(f'Limite alcanzado: {emp.nombre} tiene {current_count}/{emp.max_users} usuarios.', 'danger')
                 return redirect(url_for('admin_empresas'))
+            # Auto-upgrade starter→pro when adding 4th user
+            if emp.plan == 'starter' and current_count >= 3:
+                emp.plan = 'pro'
+                emp.max_users = max(emp.max_users, current_count + 1)
+                flash(f'{emp.nombre} paso automaticamente a plan Profesional (+$5.900/mes por usuario extra).', 'info')
             email = request.form.get('email', '').strip()
             nombre = request.form.get('nombre', '').strip()
             rol = request.form.get('rol', 'usuario')
@@ -393,6 +402,11 @@ def register(app):
                     flash(f'{email} ya pertenece a {emp.nombre}.', 'warning')
                 else:
                     db.session.add(UserCompany(user_id=existing.id, company_id=emp.id, rol=rol))
+                    # Pro: auto-expand max_users
+                    if emp.plan == 'pro':
+                        new_count = current_count + 1
+                        if new_count > emp.max_users:
+                            emp.max_users = new_count
                     db.session.commit()
                     flash(f'{existing.nombre} agregado a {emp.nombre} como {rol}.', 'success')
             else:
@@ -402,6 +416,11 @@ def register(app):
                 db.session.add(u)
                 db.session.flush()
                 db.session.add(UserCompany(user_id=u.id, company_id=emp.id, rol=rol))
+                # Pro: auto-expand max_users
+                if emp.plan == 'pro':
+                    new_count = current_count + 1
+                    if new_count > emp.max_users:
+                        emp.max_users = new_count
                 db.session.commit()
                 flash(f'Usuario {nombre} creado en {emp.nombre}.', 'success')
             return redirect(url_for('admin_empresas'))
@@ -532,6 +551,11 @@ def register(app):
             obj.email    = request.form.get('email','')
             obj.sitio_web= request.form.get('sitio_web','')
             obj.direccion= request.form.get('direccion','')
+            obj.banco_nombre  = request.form.get('banco_nombre','').strip() or None
+            obj.banco_tipo    = request.form.get('banco_tipo','').strip() or None
+            obj.banco_cuenta  = request.form.get('banco_cuenta','').strip() or None
+            obj.banco_titular = request.form.get('banco_titular','').strip() or None
+            obj.banco_nit     = request.form.get('banco_nit','').strip() or None
 
             # ── BLOQUE 6: Manejar upload de firma digital ──
             firma_file = request.files.get('firma_imagen')

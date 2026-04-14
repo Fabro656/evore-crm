@@ -457,7 +457,7 @@ RESTRICCIONES DE IA:
 
         except Exception as e:
             logging.warning(f'ai_data error: {e}')
-            return jsonify({'error': str(e)}), 500
+            return jsonify({'error': 'Error interno'}), 500
 
 
 def _execute_ai_action(action_data):

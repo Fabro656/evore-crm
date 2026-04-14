@@ -124,7 +124,7 @@
           <td class="text-end fw-semibold" style="font-size:.9rem">{{ moneda(n.monto) }}</td>
           <td style="font-size:.82rem">
             {% if n.venta %}
-              <a href="{{ url_for('venta_detalle', id=n.venta_id) }}" style="color:var(--ac)">
+              <a href="{{ url_for('venta_ver', id=n.venta_id) }}" style="color:var(--ac)">
                 {{ n.venta.numero or ('#' ~ n.venta_id) }}
               </a>
             {% else %}
