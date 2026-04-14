@@ -397,7 +397,7 @@ def _send_email(to, subject, body):
         msg = MailMessage(subject, recipients=[to], body=body)
         _mail_ext.send(msg)
     except Exception as e:
-        print(f'Email error: {e}')
+        logging.warning(f'Email error: {e}')
 
 def _log(tipo, entidad, entidad_id, descripcion):
     try:
@@ -658,7 +658,7 @@ def _crear_notificacion(usuario_id, tipo, titulo, mensaje, url=None):
         db.session.commit()
     except Exception as e:
         db.session.rollback()
-        print(f'Notificacion error: {e}')
+        logging.warning(f'Notificacion error: {e}')
 
 
 def _calcular_nomina_co(empleado):
@@ -1096,7 +1096,7 @@ def _descontar_stock_venta(venta):
             cant = item.cantidad
             prod.stock = max(0, (prod.stock or 0) - cant)
     except Exception as ex:
-        print(f'_descontar_stock_venta error: {ex}')
+        logging.warning(f'_descontar_stock_venta error: {ex}')
 
 def _save_contactos(cliente_obj):
     ContactoCliente.query.filter_by(cliente_id=cliente_obj.id).delete()
@@ -1584,7 +1584,7 @@ def _procesar_venta_produccion(venta):
                     )
     except Exception as ex:
         db.session.rollback()
-        print(f'_procesar_venta_produccion error: {ex}')
+        logging.warning(f'_procesar_venta_produccion error: {ex}')
 
 def _modulos_user(user):
     if not user or not user.is_authenticated: return []

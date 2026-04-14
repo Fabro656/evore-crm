@@ -7,7 +7,7 @@ from extensions import db
 from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
-import json, os, re, io, secrets, logging
+import json, os, re, io, logging
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -302,7 +302,6 @@ def register(app):
             db.session.flush()
             # cascade='all, delete-orphan' on asignados/comentarios handles those automatically
             db.session.delete(obj)
-            db.session.commit()
             _log('eliminar', 'tarea', id, 'Tarea eliminada')
             db.session.commit()
             flash('Ticket eliminado.', 'info')

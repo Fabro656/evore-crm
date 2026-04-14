@@ -7,7 +7,7 @@ from extensions import db
 from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
-import json, os, re, io, secrets, logging
+import json, os, re, io, logging
 from models import HistorialPrecio, HistorialCotizacion
 
 def register(app):
@@ -1596,7 +1596,7 @@ def register(app):
                     db.session.commit()
                 except Exception as ep:
                     db.session.rollback()
-                    print(f'_procesar_orden_produccion error: {ep}')
+                    logging.warning(f'_procesar_orden_produccion error: {ep}')
             flash(f'Estado actualizado a: {nuevo}.','success')
         return redirect(url_for('cotizacion_ver', id=id))
 

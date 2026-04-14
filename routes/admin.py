@@ -7,7 +7,7 @@ from extensions import db
 from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
-import json, os, re, io, secrets, logging
+import json, os, re, io, logging
 
 def register(app):
 
@@ -282,8 +282,7 @@ def register(app):
                 if rol == 'proveedor':
                     prov_id = request.form.get('proveedor_id')
                     u.proveedor_id = int(prov_id) if prov_id else None
-                u.set_password(_pwd); db.session.add(u); db.session.commit()
-                _log('crear', 'usuario', u.id, f'Usuario creado: {u.nombre} ({u.email}), rol={u.rol}')
+                u.set_password(_pwd); db.session.add(u); _log('crear', 'usuario', u.id, f'Usuario creado: {u.nombre} ({u.email}), rol={u.rol}')
                 db.session.commit()
                 flash('Usuario creado.','success'); return redirect(url_for('admin_usuarios'))
         clientes_list  = Cliente.query.filter_by(estado='activo').order_by(Cliente.empresa, Cliente.nombre).all()
@@ -300,8 +299,7 @@ def register(app):
             flash('Sin permisos.','danger'); return redirect(url_for('dashboard'))
         u=User.query.get_or_404(id)
         if u.id != current_user.id:
-            u.activo=not u.activo; db.session.commit()
-            _log('editar', 'usuario', u.id, f'Usuario {"activado" if u.activo else "desactivado"}: {u.nombre} ({u.email})')
+            u.activo=not u.activo; _log('editar', 'usuario', u.id, f'Usuario {"activado" if u.activo else "desactivado"}: {u.nombre} ({u.email})')
             db.session.commit()
             flash(f'Usuario {"activado" if u.activo else "desactivado"}.','info')
         return redirect(url_for('admin_usuarios'))
@@ -387,7 +385,6 @@ def register(app):
                 else:
                     flash('Formato de imagen no válido (PNG, JPG, JPEG, GIF).', 'warning')
 
-            db.session.commit()
             _log('editar', 'config_empresa', obj.id, f'Configuración empresa actualizada: {obj.nombre}')
             db.session.commit()
             flash('Configuración guardada.','success')
@@ -426,7 +423,6 @@ def register(app):
             u.modulos_permitidos = json.dumps(modulos_sel) if modulos_sel else '[]'
             roles_extra = request.form.getlist('roles_extra')
             u.roles_asignados = json.dumps(roles_extra) if roles_extra else '[]'
-            db.session.commit()
             _log('editar', 'usuario', u.id, f'Usuario editado: {u.nombre} ({u.email}), rol={u.rol}')
             db.session.commit()
             flash('Usuario actualizado.','success'); return redirect(url_for('admin_usuarios'))
@@ -967,7 +963,6 @@ def register(app):
             # ── Nivel 1: sesiones y usuarios ──
             _safe_delete('DELETE FROM user_sesiones')
             _safe_delete(f'DELETE FROM users WHERE id != {admin_id}')
-            db.session.commit()
             _log('eliminar', 'sistema', 0, f'RESET TOTAL ejecutado por {current_user.email}')
             db.session.commit()
             logging.warning(f'RESET TOTAL ejecutado por user_id={current_user.id} ({current_user.email})')

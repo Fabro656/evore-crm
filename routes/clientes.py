@@ -8,7 +8,7 @@ from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
 from sqlalchemy import func
-import json, os, re, io, secrets, logging
+import json, os, re, io, logging
 
 def register(app):
 

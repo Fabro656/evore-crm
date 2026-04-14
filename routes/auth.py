@@ -7,7 +7,7 @@ from extensions import db
 from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
-import json, os, re, io, secrets, logging
+import json, os, re, io, logging
 
 def register(app):
 

@@ -266,7 +266,6 @@ def register(app):
                 creado_por=current_user.id
             )
             db.session.add(asiento)
-            db.session.commit()
             _log('crear', 'asiento_contable', asiento.id, f'Asiento {numero} creado: {descripcion[:80]} ({clasificacion}, ${monto:,.0f})')
             db.session.commit()
             flash(f'Asiento {numero} creado correctamente.', 'success')
@@ -467,7 +466,6 @@ def register(app):
                     oc.estado = 'anticipo_pagado'
                     oc.estado_proveedor = 'anticipo_enviado'
 
-        db.session.commit()
         _log('confirmar', 'pago', asiento.id, f'Pago confirmado: {moneda(monto)} en asiento {asiento.numero} (estado={asiento.estado_pago})')
         db.session.commit()
         flash(f'Pago de {moneda(monto)} confirmado para asiento {asiento.numero}.', 'success')
@@ -510,7 +508,6 @@ def register(app):
                         except Exception as ex_inv:
                             logging.warning(f'confirmar_ingreso: reservar_stock error: {ex_inv}')
 
-        db.session.commit()
         _log('confirmar', 'ingreso', asiento.id, f'Ingreso confirmado: {moneda(monto)} en asiento {asiento.numero} (estado={asiento.estado_pago})')
         db.session.commit()
         flash(f'Cobro de {moneda(monto)} confirmado para asiento {asiento.numero}.', 'success')
@@ -1189,7 +1186,6 @@ def register(app):
                 mov.conciliado = True
                 conciliados += 1
 
-        db.session.commit()
         _log('conciliar', 'movimiento_bancario', 0, f'Conciliación automática: {conciliados} movimiento(s) conciliado(s)')
         db.session.commit()
         flash(f'Conciliación automática completada: {conciliados} movimiento(s) conciliado(s).', 'success')
@@ -1209,7 +1205,6 @@ def register(app):
         asiento = AsientoContable.query.get_or_404(int(asiento_id_raw))
         mov.asiento_id = asiento.id
         mov.conciliado = True
-        db.session.commit()
         _log('conciliar', 'movimiento_bancario', mov.id, f'Movimiento #{mov.id} vinculado manualmente a asiento {asiento.numero}')
         db.session.commit()
         flash(f'Movimiento vinculado al asiento {asiento.numero}.', 'success')
@@ -1224,7 +1219,6 @@ def register(app):
         mov = MovimientoBancario.query.get_or_404(id)
         mov.asiento_id = None
         mov.conciliado = False
-        db.session.commit()
         _log('conciliar', 'movimiento_bancario', mov.id, f'Conciliación deshecha para movimiento #{mov.id}')
         db.session.commit()
         flash('Conciliación deshecha.', 'info')
