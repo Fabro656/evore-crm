@@ -112,7 +112,7 @@ def register(app):
             flash('Acceso denegado.', 'danger')
             return redirect(url_for('dashboard'))
         if not current_user.cliente_id:
-            flash('Tu cuenta no esta vinculada a una empresa.', 'danger')
+            flash('Tu cuenta no está vinculada a una empresa.', 'danger')
             return redirect(url_for('portal_cliente'))
         venta = Venta.query.get_or_404(id)
         if venta.cliente_id != current_user.cliente_id:
@@ -131,7 +131,7 @@ def register(app):
             if monto > max_permitido:
                 monto = max_permitido
                 if monto <= 0:
-                    flash('Esta venta ya esta completamente pagada.', 'info')
+                    flash('Esta venta ya está completamente pagada.', 'info')
                     return redirect(url_for('portal_cliente'))
             venta.estado_cliente_pago = 'enviado'
             # Registrar pago pendiente de confirmación

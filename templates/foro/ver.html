@@ -36,20 +36,20 @@
             <small class="text-muted ms-auto">{{ v.creado_en.strftime('%d/%m/%Y') }}</small>
           </div>
           {% if v.comentario %}<p class="mb-1" style="font-size:.88rem">{{ v.comentario }}</p>{% endif %}
-          {% if v.estado == 'apelada' %}<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>En apelacion</span>{% endif %}
+          {% if v.estado == 'apelada' %}<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>En apelación</span>{% endif %}
           {% if es_mio and v.estado == 'activa' and not v.apelacion %}
           <form method="POST" action="{{ url_for('foro_apelar', valoracion_id=v.id) }}" class="mt-2">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
             <div class="input-group input-group-sm">
-              <input type="text" name="motivo" class="form-control" placeholder="Motivo de la apelacion..." required>
-              <button type="submit" class="btn btn-outline-warning btn-sm" onclick="return confirm('Enviar apelacion al admin de Evore?')"><i class="bi bi-flag me-1"></i>Apelar</button>
+              <input type="text" name="motivo" class="form-control" placeholder="Motivo de la apelación..." required>
+              <button type="submit" class="btn btn-outline-warning btn-sm" onclick="return confirm('Enviar apelación al admin de Evore?')"><i class="bi bi-flag me-1"></i>Apelar</button>
             </div>
           </form>
           {% endif %}
         </div>
         {% endfor %}
       {% else %}
-      <p class="text-muted mb-0">Sin valoraciones aun.</p>
+      <p class="text-muted mb-0">Sin valoraciones aún.</p>
       {% endif %}
 
       <!-- Form to rate (only if related and not own company and hasn't rated) -->
@@ -73,7 +73,7 @@
         <div class="mb-2">
           <textarea name="comentario" class="form-control form-control-sm" rows="2" placeholder="Tu opinion (opcional)"></textarea>
         </div>
-        <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-star me-1"></i>Enviar valoracion</button>
+        <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-star me-1"></i>Enviar valoración</button>
       </form>
       <script>
       function selectStar(el){
@@ -125,9 +125,9 @@
         {% else %}
         <form method="POST" action="{{ url_for('foro_hacerme_cliente', id=pub.id) }}">
           <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-          <button type="submit" class="btn btn-success btn-sm w-100 mb-2" onclick="return confirm('Esto creara una relacion comercial con {{ company.nombre }}. Tu empresa sera registrada como su cliente y ellos como tu proveedor.')"><i class="bi bi-link-45deg me-1"></i>Hacerme cliente</button>
+          <button type="submit" class="btn btn-success btn-sm w-100 mb-2" onclick="return confirm('Esto creará una relación comercial con {{ company.nombre }}. Tu empresa será registrada como su cliente y ellos como tu proveedor.')"><i class="bi bi-link-45deg me-1"></i>Hacerme cliente</button>
         </form>
-        <div class="form-text text-center" style="font-size:.72rem">Se crearan tarjetas de cliente y proveedor mutuamente y un canal de chat.</div>
+        <div class="form-text text-center" style="font-size:.72rem">Se crearán tarjetas de cliente y proveedor mutuamente y un canal de chat.</div>
         {% endif %}
       {% endif %}
     </div>

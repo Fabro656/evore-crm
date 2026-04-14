@@ -358,7 +358,7 @@ def register(app):
                 return redirect(url_for('orden_compra_nueva'))
             prov_check = db.session.get(Proveedor, int(prov_id_raw))
             if not prov_check or not prov_check.activo:
-                flash('El proveedor seleccionado no existe o no esta activo.', 'danger')
+                flash('El proveedor seleccionado no existe o no está activo.', 'danger')
                 return redirect(url_for('orden_compra_nueva'))
             total_oc = float(request.form.get('total_calc') or 0)
             if total_oc <= 0:
@@ -404,7 +404,7 @@ def register(app):
             saved_items = _oc_save_items(oc.id)
             if not saved_items:
                 db.session.rollback()
-                flash('La OC debe tener al menos un item con cantidad y precio validos.', 'danger')
+                flash('La OC debe tener al menos un item con cantidad y precio válidos.', 'danger')
                 return redirect(url_for('orden_compra_nueva'))
             for it in saved_items: db.session.add(it)
             # Auto-tarea para transportista
@@ -715,7 +715,7 @@ def register(app):
             subtotal=0,
             iva=0,
             total=0,
-            notas=f'Generada desde requisicion {req.numero}. {req.descripcion}',
+            notas=f'Generada desde requisición {req.numero}. {req.descripcion}',
             creado_por=current_user.id
         )
         db.session.add(oc)
@@ -724,5 +724,5 @@ def register(app):
         req.orden_compra_id = oc.id
         req.estado = 'convertida'
         db.session.commit()
-        flash(f'OC {oc.numero} creada desde requisicion {req.numero}. Complete los datos de la orden.', 'success')
+        flash(f'OC {oc.numero} creada desde requisición {req.numero}. Complete los datos de la orden.', 'success')
         return redirect(url_for('orden_compra_editar', id=oc.id))

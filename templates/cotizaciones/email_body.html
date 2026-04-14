@@ -54,7 +54,7 @@ tr:nth-child(even) td{background:#f8f9fe}
         <p>
           Emision: {{ obj.fecha_emision.strftime('%d/%m/%Y') }}<br>
           Valida hasta: {{ obj.fecha_validez.strftime('%d/%m/%Y') if obj.fecha_validez else '—' }}<br>
-          Entrega: {{ obj.dias_entrega or '—' }} dias hábiles
+          Entrega: {{ obj.dias_entrega or '—' }} días hábiles
         </p>
       </div>
     </div>

@@ -60,7 +60,7 @@
     <tr><td>Salud (4%)</td><td class="monto">$ {{ '{:,.0f}'.format(calc.deduccion_salud) }}</td></tr>
     <tr><td>Pension (4%)</td><td class="monto">$ {{ '{:,.0f}'.format(calc.deduccion_pension) }}</td></tr>
     {% if calc.fondo_solidaridad > 0 %}<tr><td>Fondo solidaridad</td><td class="monto">$ {{ '{:,.0f}'.format(calc.fondo_solidaridad) }}</td></tr>{% endif %}
-    {% if calc.retencion_fuente > 0 %}<tr><td>Retencion en la fuente</td><td class="monto">$ {{ '{:,.0f}'.format(calc.retencion_fuente) }}</td></tr>{% endif %}
+    {% if calc.retencion_fuente > 0 %}<tr><td>Retención en la fuente</td><td class="monto">$ {{ '{:,.0f}'.format(calc.retencion_fuente) }}</td></tr>{% endif %}
     <tr class="total-row"><td><strong>TOTAL DEDUCCIONES</strong></td><td class="monto"><strong>$ {{ '{:,.0f}'.format(calc.total_deducciones) }}</strong></td></tr>
   </table>
 

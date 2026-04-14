@@ -30,17 +30,17 @@
   <button onclick="window.print()" class="btn btn-outline-primary btn-sm"><i class="bi bi-printer me-1"></i>Imprimir / PDF</button>
   {% if empleado.estado == 'activo' %}
   <form method="POST" action="{{ url_for('empleado_retirar', id=empleado.id) }}" class="d-inline"
-        onsubmit="return confirm('CONFIRMAR {{ motivo_label|upper }}: {{ empleado.nombre }} {{ empleado.apellido }}.\n\nSe registrara la liquidacion por {{ (liq.total|cop) }} como gasto y asiento contable.\n\nEsta accion NO se puede deshacer.')">
+        onsubmit="return confirm('CONFIRMAR {{ motivo_label|upper }}: {{ empleado.nombre }} {{ empleado.apellido }}.\n\nSe registrará la liquidación por {{ (liq.total|cop) }} como gasto y asiento contable.\n\nEsta acción NO se puede deshacer.')">
     <input type="hidden" name="motivo" value="{{ motivo }}">
     <input type="hidden" name="fecha_retiro" value="{{ liq.fecha_retiro.strftime('%Y-%m-%d') }}">
-    <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-check-circle me-1"></i>Confirmar {{ motivo_label }} y registrar liquidacion</button>
+    <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-check-circle me-1"></i>Confirmar {{ motivo_label }} y registrar liquidación</button>
   </form>
   {% else %}
-  <span class="badge bg-secondary" style="font-size:.82rem"><i class="bi bi-check me-1"></i>Liquidacion ya ejecutada — empleado {{ empleado.estado }}</span>
+  <span class="badge bg-secondary" style="font-size:.82rem"><i class="bi bi-check me-1"></i>Liquidación ya ejecutada — empleado {{ empleado.estado }}</span>
   {% endif %}
 </div>
 
-{# ── Documento de liquidacion (imprimible) ── #}
+{# ── Documento de liquidación (imprimible) ── #}
 <div class="liq-doc" style="max-width:800px;border:1px solid var(--border);border-radius:8px;background:#fff;padding:2rem;box-shadow:0 2px 8px rgba(0,0,0,.06)">
   {# Encabezado empresa #}
   <div style="text-align:center;margin-bottom:1.5rem;border-bottom:2px solid #333;padding-bottom:1rem">
@@ -85,7 +85,7 @@
     </tr>
     <tr>
       <td style="padding:6px 8px;color:#666">Tiempo laborado:</td>
-      <td style="padding:6px 8px;font-weight:600">{{ liq.dias_trabajados }} dias ({{ liq.anios }} anos)</td>
+      <td style="padding:6px 8px;font-weight:600">{{ liq.dias_trabajados }} días ({{ liq.anios }} años)</td>
     </tr>
   </table>
 

@@ -6,10 +6,10 @@
     <input type="text" name="titulo" class="form-control" value="{{ obj.titulo if obj else '' }}" required></div>
   <div class="col-md-4"><label class="form-label">Tipo</label>
     <select name="tarea_tipo" class="form-select" onchange="toggleTipoTicket()">
-      <option value="" {% if not obj or not obj.tarea_tipo or obj.tarea_tipo not in ('notificacion',) %}selected{% endif %}>Ticket (requiere accion)</option>
-      <option value="notificacion" {% if obj and obj.tarea_tipo=='notificacion' %}selected{% endif %}>Notificacion (solo informativa)</option>
+      <option value="" {% if not obj or not obj.tarea_tipo or obj.tarea_tipo not in ('notificacion',) %}selected{% endif %}>Ticket (requiere acción)</option>
+      <option value="notificacion" {% if obj and obj.tarea_tipo=='notificacion' %}selected{% endif %}>Notificación (solo informativa)</option>
     </select>
-    <div class="form-text">Las notificaciones no requieren accion, solo informan.</div></div>
+    <div class="form-text">Las notificaciones no requieren acción, solo informan.</div></div>
   <div class="col-md-4"><label class="form-label">Categoria</label>
     <select name="categoria" class="form-select">
       <option value="general" {% if not obj or obj.categoria=='general' %}selected{% endif %}>General</option>

@@ -30,7 +30,7 @@
     </div>
 
     <div class="p-2 rounded mb-3" style="background:var(--surface2);font-size:.88rem">
-      <strong>Motivo de apelacion:</strong> {{ a.motivo }}
+      <strong>Motivo de apelación:</strong> {{ a.motivo }}
     </div>
 
     {% if a.estado == 'pendiente' %}
@@ -40,9 +40,9 @@
         <textarea name="notas" class="form-control form-control-sm" rows="2" placeholder="Notas del mediador (opcional)"></textarea>
       </div>
       <div class="d-flex gap-2">
-        <button type="submit" name="decision" value="favor_cliente" class="btn btn-outline-info btn-sm" onclick="return confirm('Resolver a favor del cliente? La valoracion se mantiene.')">
+        <button type="submit" name="decision" value="favor_cliente" class="btn btn-outline-info btn-sm" onclick="return confirm('Resolver a favor del cliente? La valoración se mantiene.')">
           <i class="bi bi-person-check me-1"></i>A favor del cliente</button>
-        <button type="submit" name="decision" value="favor_proveedor" class="btn btn-outline-success btn-sm" onclick="return confirm('Resolver a favor del proveedor? La valoracion sera eliminada.')">
+        <button type="submit" name="decision" value="favor_proveedor" class="btn btn-outline-success btn-sm" onclick="return confirm('Resolver a favor del proveedor? La valoración será eliminada.')">
           <i class="bi bi-building-check me-1"></i>A favor del proveedor</button>
       </div>
     </form>

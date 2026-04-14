@@ -271,7 +271,7 @@ fetch('/api/dashboard/lazy').then(function(r){return r.json()}).then(function(d)
       </table>
       </div>
       {% else %}
-      <div style="padding:1.5rem;text-align:center;color:var(--text2);font-size:.85rem"><i class="bi bi-trophy me-1"></i>Sin ventas completadas aun. <a href="{{ url_for('ventas') }}">Ir a ventas</a></div>
+      <div style="padding:1.5rem;text-align:center;color:var(--text2);font-size:.85rem"><i class="bi bi-trophy me-1"></i>Sin ventas completadas aún. <a href="{{ url_for('ventas') }}">Ir a ventas</a></div>
       {% endif %}
     </div>
   </div>

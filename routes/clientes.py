@@ -171,9 +171,9 @@ def register(app):
                         db.session.add(chat_room); db.session.flush()
                         db.session.add(ChatParticipant(room_id=chat_room.id,
                             user_id=current_user.id, rol='admin', agregado_por=current_user.id))
-                        flash(f'{matched.nombre} ya esta en Evore — conexion creada.', 'info')
+                        flash(f'{matched.nombre} ya está en Evore — conexión creada.', 'info')
                     else:
-                        flash(f'Ya existe una relacion con {matched.nombre}.', 'info')
+                        flash(f'Ya existe una relación con {matched.nombre}.', 'info')
                 else:
                     # Auto-provision free company + admin user
                     tipo_doc = request.form.get('tipo_documento', 'NIT')

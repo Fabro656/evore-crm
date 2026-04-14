@@ -365,7 +365,7 @@ def register(app):
             if cot_id:
                 venta_dup = Venta.query.filter_by(cotizacion_id=int(cot_id)).first()
                 if venta_dup:
-                    flash(f'Ya existe una venta ({venta_dup.numero}) para esa cotizacion.', 'warning')
+                    flash(f'Ya existe una venta ({venta_dup.numero}) para esa cotización.', 'warning')
                     return redirect(url_for('ventas'))
             cliente_id = request.form.get('cliente_id') or None
             if not cliente_id:
@@ -860,7 +860,7 @@ def register(app):
     def venta_deshacer_estado(id):
         undo = flask_session.pop('undo_venta', None)
         if not undo or undo['id'] != id:
-            flash('No hay accion para deshacer.', 'warning')
+            flash('No hay acción para deshacer.', 'warning')
             return redirect(url_for('ventas'))
         # Expirar undo despues de 30 segundos
         from datetime import datetime as _dt

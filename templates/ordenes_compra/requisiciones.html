@@ -100,13 +100,13 @@
                 {% if r.estado == 'pendiente' %}
                 <form method="POST" action="{{ url_for('requisicion_aprobar', id=r.id) }}" class="d-inline">
                   <button type="submit" class="btn btn-xs btn-success" title="Aprobar"
-                    onclick="return confirm('Aprobar la requisicion {{ r.numero }}?')">
+                    onclick="return confirm('Aprobar la requisición {{ r.numero }}?')">
                     <i class="bi bi-check-lg"></i>
                   </button>
                 </form>
                 <form method="POST" action="{{ url_for('requisicion_rechazar', id=r.id) }}" class="d-inline">
                   <button type="submit" class="btn btn-xs btn-danger" title="Rechazar"
-                    onclick="return confirm('Rechazar la requisicion {{ r.numero }}?')">
+                    onclick="return confirm('Rechazar la requisición {{ r.numero }}?')">
                     <i class="bi bi-x-lg"></i>
                   </button>
                 </form>
@@ -114,7 +114,7 @@
                 {% if r.estado == 'aprobada' %}
                 <form method="POST" action="{{ url_for('requisicion_convertir', id=r.id) }}" class="d-inline">
                   <button type="submit" class="btn btn-xs btn-primary" title="Convertir a OC"
-                    onclick="return confirm('Crear una Orden de Compra desde esta requisicion?')">
+                    onclick="return confirm('Crear una Orden de Compra desde esta requisición?')">
                     <i class="bi bi-cart-plus"></i> OC
                   </button>
                 </form>

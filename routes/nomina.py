@@ -185,7 +185,7 @@ def register(app):
             db.session.flush()  # Si otro request ya creo el placeholder, flush falla en unique check
         except Exception:
             db.session.rollback()
-            flash(f'La nomina de {mes} esta siendo procesada por otro usuario.', 'warning')
+            flash(f'La nómina de {mes} está siendo procesada por otro usuario.', 'warning')
             return redirect(url_for('nomina_index'))
 
         # Incluir activos + retirados/despedidos en este mes (trabajaron parte del mes)

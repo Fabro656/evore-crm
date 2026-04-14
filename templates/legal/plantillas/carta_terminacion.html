@@ -38,7 +38,7 @@ C.C. {{ tercero_cedula }}<br>
 {% elif motivo == 'despido_sin_justa' %}
 <p>Por medio de la presente, le comunicamos la decision de dar por terminado su contrato laboral con <strong>{{ empresa_nombre }}</strong>, donde se desempenaba como <strong>{{ tercero_cargo or '[CARGO]' }}</strong>, sin justa causa, a partir de la fecha de la presente comunicacion.</p>
 
-<p>De conformidad con el articulo 64 del Codigo Sustantivo del Trabajo, {{ empresa_nombre }} reconocera y pagara la indemnizacion correspondiente por terminacion sin justa causa, la cual sera liquidada junto con las demas acreencias laborales.</p>
+<p>De conformidad con el articulo 64 del Codigo Sustantivo del Trabajo, {{ empresa_nombre }} reconocera y pagara la indemnizacion correspondiente por terminacion sin justa causa, la cual será liquidada junto con las demas acreencias laborales.</p>
 
 {% else %}
 <p>Por medio de la presente, le comunicamos la decision de dar por terminado su contrato laboral con <strong>{{ empresa_nombre }}</strong>, donde se desempenaba como <strong>{{ tercero_cargo or '[CARGO]' }}</strong>, a partir de la fecha de la presente comunicacion.</p>
@@ -48,10 +48,10 @@ C.C. {{ tercero_cedula }}<br>
 {% endif %}
 
 <div class="clausula"><strong>LIQUIDACION DE PRESTACIONES SOCIALES:</strong>
-{{ empresa_nombre }} procedera a liquidar y pagar todas las prestaciones sociales a que haya lugar de conformidad con la ley, incluyendo: salarios pendientes, vacaciones, prima de servicios proporcional, cesantias, intereses sobre cesantias y demas conceptos a que tenga derecho. La liquidacion definitiva sera puesta a su disposicion dentro de los quince (15) dias habiles siguientes a la fecha efectiva de terminacion.</div>
+{{ empresa_nombre }} procedera a liquidar y pagar todas las prestaciones sociales a que haya lugar de conformidad con la ley, incluyendo: salarios pendientes, vacaciones, prima de servicios proporcional, cesantias, intereses sobre cesantias y demas conceptos a que tenga derecho. La liquidación definitiva será puesta a su disposicion dentro de los quince (15) días habiles siguientes a la fecha efectiva de terminacion.</div>
 
 <div class="clausula"><strong>SEGURIDAD SOCIAL:</strong>
-Se le informa que los aportes a seguridad social (EPS, AFP y ARL) seran pagados hasta la fecha efectiva de terminacion del contrato. A partir de dicha fecha, {{ el_la }} {{ senor_senora }} {{ tercero_nombre }} debera proceder con su afiliacion como independiente o a traves de un nuevo empleador.</div>
+Se le informa que los aportes a seguridad social (EPS, AFP y ARL) serán pagados hasta la fecha efectiva de terminacion del contrato. A partir de dicha fecha, {{ el_la }} {{ senor_senora }} {{ tercero_nombre }} debera proceder con su afiliacion como independiente o a traves de un nuevo empleador.</div>
 
 <div class="clausula"><strong>DEVOLUCION DE BIENES:</strong>
 Le solicitamos que a la fecha efectiva de terminacion del contrato, proceda con la devolucion de todos los bienes, equipos, herramientas, documentos, tarjetas de acceso, uniformes y demas elementos de propiedad de la empresa que le hayan sido entregados para el ejercicio de sus funciones.</div>

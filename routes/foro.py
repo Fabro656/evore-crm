@@ -341,7 +341,7 @@ def register(app):
 
         estrellas = int(request.form.get('estrellas', 0))
         if estrellas < 1 or estrellas > 5:
-            flash('La valoracion debe ser entre 1 y 5 estrellas.', 'danger')
+            flash('La valoración debe ser entre 1 y 5 estrellas.', 'danger')
             return redirect(request.referrer or url_for('foro'))
 
         comentario = request.form.get('comentario', '').strip()
@@ -357,7 +357,7 @@ def register(app):
             estado='activa')
         db.session.add(val)
         db.session.commit()
-        flash('Valoracion registrada. Gracias por tu opinion.', 'success')
+        flash('Valoración registrada. Gracias por tu opinión.', 'success')
         return redirect(request.form.get('redirect_url') or url_for('foro'))
 
     # ── Apelar valoracion (/foro/apelar/<int:valoracion_id>)
@@ -367,23 +367,23 @@ def register(app):
         val = ForoValoracion.query.get_or_404(valoracion_id)
         my_company_id = getattr(g, 'company_id', None)
         if val.proveedor_company_id != my_company_id:
-            flash('Solo el proveedor puede apelar una valoracion.', 'danger')
+            flash('Solo el proveedor puede apelar una valoración.', 'danger')
             return redirect(url_for('foro'))
 
         if val.apelacion:
-            flash('Esta valoracion ya tiene una apelacion en curso.', 'warning')
+            flash('Esta valoración ya tiene una apelación en curso.', 'warning')
             return redirect(request.referrer or url_for('foro'))
 
         motivo = request.form.get('motivo', '').strip()
         if not motivo:
-            flash('Debes indicar el motivo de la apelacion.', 'danger')
+            flash('Debes indicar el motivo de la apelación.', 'danger')
             return redirect(request.referrer or url_for('foro'))
 
         val.estado = 'apelada'
         db.session.add(ForoApelacion(
             valoracion_id=val.id, solicitado_por=current_user.id, motivo=motivo))
         db.session.commit()
-        flash('Apelacion enviada. El administrador de Evore revisara el caso.', 'info')
+        flash('Apelación enviada. El administrador de Evore revisará el caso.', 'info')
         return redirect(request.referrer or url_for('foro'))
 
     # ── Admin: resolver apelacion (/foro/apelacion/<id>/resolver)
@@ -410,11 +410,11 @@ def register(app):
         if decision == 'favor_proveedor':
             # Remove the rating
             val.estado = 'eliminada'
-            flash('Apelacion resuelta a favor del proveedor. Valoracion eliminada.', 'success')
+            flash('Apelación resuelta a favor del proveedor. Valoración eliminada.', 'success')
         else:
             # Keep the rating
             val.estado = 'activa'
-            flash('Apelacion resuelta a favor del cliente. Valoracion se mantiene.', 'info')
+            flash('Apelación resuelta a favor del cliente. Valoración se mantiene.', 'info')
 
         db.session.commit()
         return redirect(url_for('foro_apelaciones'))

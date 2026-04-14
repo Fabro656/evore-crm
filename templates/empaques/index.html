@@ -1619,12 +1619,12 @@ function usarVarianteTruck(truckKey, vi) {
             <i class="bi bi-geo-alt-fill me-1 text-danger"></i>Calculadora de costo de envío
           </div>
 
-          {# Cantidad — manual o desde cotizacion/venta #}
+          {# Cantidad — manual o desde cotización/venta #}
           <div class="sim-sg mb-3">
             <div class="sim-st">📦 Cantidad a enviar</div>
             <div class="row g-2 align-items-end mt-1">
               <div class="col-sm-4">
-                <label style="font-size:.76rem;color:var(--text2)">Desde cotizacion o venta</label>
+                <label style="font-size:.76rem;color:var(--text2)">Desde cotización o venta</label>
                 <select id="envFromDoc" class="form-select form-select-sm" onchange="cargarCantidadDoc()">
                   <option value="">-- Manual --</option>
                   <optgroup label="Cotizaciones">
@@ -1645,8 +1645,8 @@ function usarVarianteTruck(truckKey, vi) {
               </div>
               <div class="col-sm-auto">
                 <label style="font-size:.76rem;color:transparent">_</label>
-                <button class="btn btn-sm btn-outline-secondary d-block" onclick="sincronizarCantidad()" title="Del analisis anterior">
-                  <i class="bi bi-arrow-left-square me-1"></i>Del analisis
+                <button class="btn btn-sm btn-outline-secondary d-block" onclick="sincronizarCantidad()" title="Del análisis anterior">
+                  <i class="bi bi-arrow-left-square me-1"></i>Del análisis
                 </button>
               </div>
             </div>

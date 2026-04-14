@@ -473,7 +473,7 @@ def register(app):
     def contable_confirmar_pago(id):
         asiento = AsientoContable.query.get_or_404(id)
         if asiento.estado_pago == 'completo':
-            flash('Este asiento ya esta completamente pagado.', 'warning')
+            flash('Este asiento ya está completamente pagado.', 'warning')
             return redirect(url_for('contable_asientos', vista='generados'))
 
         monto, error = _procesar_pago_asiento(asiento, 'debe')
@@ -510,7 +510,7 @@ def register(app):
     def contable_confirmar_ingreso(id):
         asiento = AsientoContable.query.get_or_404(id)
         if asiento.estado_pago == 'completo':
-            flash('Este asiento ya esta completamente cobrado.', 'warning')
+            flash('Este asiento ya está completamente cobrado.', 'warning')
             return redirect(url_for('contable_asientos', vista='generados'))
 
         monto, error = _procesar_pago_asiento(asiento, 'haber')

@@ -148,6 +148,17 @@ body{background:var(--surface);font-family:-apple-system,BlinkMacSystemFont,'Seg
 .content{padding:var(--sp-5);animation:fadeIn var(--transition-base) ease;flex:1;background:var(--surface)}
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 @keyframes toastIn{from{transform:translateX(100px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes cardIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.row.g-3>[class*="col-"]{animation:cardIn .3s ease backwards}
+.row.g-3>[class*="col-"]:nth-child(2){animation-delay:.04s}
+.row.g-3>[class*="col-"]:nth-child(3){animation-delay:.08s}
+.row.g-3>[class*="col-"]:nth-child(4){animation-delay:.12s}
+.row.g-3>[class*="col-"]:nth-child(5){animation-delay:.16s}
+.row.g-3>[class*="col-"]:nth-child(6){animation-delay:.2s}
+.row.g-3>[class*="col-"]:nth-child(n+7){animation-delay:.24s}
+.toast-close{background:none;border:none;color:rgba(255,255,255,.6);font-size:.9rem;cursor:pointer;padding:0 0 0 8px;line-height:1;transition:color .12s}
+.toast-close:hover{color:#fff}
 
 /* ── Skeleton loading ────────────────────────────── */
 .skeleton{background:linear-gradient(90deg,var(--surface2) 25%,var(--surface) 50%,var(--surface2) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;min-height:20px}
@@ -162,7 +173,7 @@ body{background:var(--surface);font-family:-apple-system,BlinkMacSystemFont,'Seg
 .sc:hover{box-shadow:var(--shadow-md)}
 .sc-accent{border-top:3px solid var(--ac)}
 .si{width:42px;height:42px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0}
-.sv{font-size:1.55rem;font-weight:700;color:var(--text);line-height:1.1}
+.sv{font-size:1.55rem;font-weight:700;color:var(--text);line-height:1.1;transition:color var(--transition-fast)}
 .sl{color:var(--text2);font-size:.77rem;margin-top:.15rem;font-weight:500}
 .sc-highlight{border:2px solid var(--ac)}
 
@@ -318,6 +329,8 @@ body{background:var(--surface);font-family:-apple-system,BlinkMacSystemFont,'Seg
 .notif-btn{position:relative;background:none;border:none;color:rgba(255,255,255,.6);font-size:1.05rem;padding:.3rem .45rem;border-radius:3px;cursor:pointer;transition:color .15s}
 .notif-btn:hover{color:#fff;background:rgba(255,255,255,.1)}
 .notif-badge{position:absolute;top:0;right:0;background:var(--red);color:#fff;font-size:.6rem;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px;line-height:1}
+.notif-badge,.mnav-badge{transition:transform var(--transition-fast),opacity var(--transition-fast)}
+.notif-badge.hide,.mnav-badge.hide{transform:scale(0);opacity:0}
 .notif-dd{position:fixed;bottom:70px;left:0;width:300px;max-height:400px;overflow-y:auto;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow-lg);z-index:1070}
 .notif-dd-head{padding:.7rem 1rem;font-size:.78rem;font-weight:700;color:var(--text);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
 .notif-item{padding:.6rem 1rem;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
@@ -715,7 +728,7 @@ img,svg{max-width:100%;height:auto}
     <a href="#" class="nav-link dock-group {% if 'aprobacion' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Aprobaciones" aria-label="Aprobaciones" data-dock-panel="aprobaciones" style="position:relative"><i class="bi bi-clipboard-check"></i>{% if aprob_pend %}<span style="position:absolute;top:2px;right:2px;background:var(--orange);color:#fff;font-size:.55rem;padding:1px 4px;border-radius:8px;line-height:1.2">{{ aprob_pend }}</span>{% endif %}<span>Aprobaciones</span></a>
     {% endif %}
     {# ── Wiki + Buscador ── #}
-    <a href="#" onclick="event.preventDefault();toggleChatPanel()" class="nav-link" data-tip="Chat" aria-label="Chat" style="position:relative"><i class="bi bi-chat-dots-fill"></i><span>Chat</span><span id="chatBadge" style="display:none;position:absolute;top:2px;right:2px;background:var(--red);color:#fff;font-size:.55rem;padding:1px 4px;border-radius:8px;line-height:1.2"></span></a>
+    <a href="#" onclick="event.preventDefault();toggleChatPanel()" class="nav-link" data-tip="Chat" aria-label="Chat" style="position:relative"><i class="bi bi-chat-dots-fill"></i><span>Chat</span><span id="chatBadge" class="mnav-badge hide" style="position:absolute;top:2px;right:2px;background:var(--red);color:#fff;font-size:.55rem;padding:1px 4px;border-radius:8px;line-height:1.2"></span></a>
     <a href="{{ url_for('foro') }}" class="nav-link {% if 'foro' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Somos Evore" aria-label="Somos Evore" style="position:relative"><i class="bi bi-shop"></i><span>Foro</span><span style="position:absolute;top:0;right:0;background:var(--red);color:#fff;font-size:.5rem;padding:1px 4px;border-radius:6px;font-weight:700">NEW</span></a>
     <a href="{{ url_for('portal_mis_relaciones') }}" class="nav-link {% if request.endpoint=='portal_mis_relaciones' or request.endpoint=='portal_interempresa' %}active" aria-current="page{% endif %}" data-tip="Relaciones" aria-label="Relaciones comerciales"><i class="bi bi-building"></i><span>Relaciones</span></a>
     <a href="{{ url_for('wiki') }}" class="nav-link {% if request.endpoint=='wiki' %}active" aria-current="page{% endif %}" data-tip="Wiki" aria-label="Wiki" data-dock-panel="wiki_page"><i class="bi bi-book"></i><span>Wiki</span></a>
@@ -880,7 +893,7 @@ img,svg{max-width:100%;height:auto}
     <div style="padding:4px 12px 2px;font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--sb-text);opacity:.4">Fiscal</div>
     <a href="{{ url_for('contable_iva') }}" class="dock-panel-link"><i class="bi bi-percent"></i>IVA (generado vs descontable)</a>
     <a href="{{ url_for('contable_retenciones') }}" class="dock-panel-link"><i class="bi bi-receipt-cutoff"></i>Retenciones en la fuente</a>
-    <a href="{{ url_for('contable_certificado_retencion') }}" class="dock-panel-link"><i class="bi bi-file-earmark-pdf"></i>Certificados retencion</a>
+    <a href="{{ url_for('contable_certificado_retencion') }}" class="dock-panel-link"><i class="bi bi-file-earmark-pdf"></i>Certificados retención</a>
     <a href="{{ url_for('contable_cierre_periodo') }}" class="dock-panel-link"><i class="bi bi-lock"></i>Cierre de periodo</a>
     <a href="{{ url_for('impuestos') }}" class="dock-panel-link"><i class="bi bi-sliders"></i>Reglas tributarias</a>
     <div style="padding:4px 12px 2px;font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--sb-text);opacity:.4">Notas</div>
@@ -1077,20 +1090,20 @@ img,svg{max-width:100%;height:auto}
 
   // ── Guias contextuales en cada dock panel ──
   var PANEL_GUIDES = {
-    'dp-home': '<strong>Home</strong> es tu centro de control.<br>• Revisa KPIs de ventas e ingresos<br>• Ve tickets pendientes y ventas recientes<br>• Aprobaciones que necesitan tu atencion<br>• Calendario del dia y proximos 7 dias<br>• Notas recientes de todo el equipo',
-    'dp-tickets': '<strong>Tickets</strong> organizan el trabajo.<br>• Crea tickets con prioridad y asignados<br>• Tipos: Ticket (requiere accion) o Notificacion (informativa)<br>• Categorias: calidad, logistica, pago, general<br>• Se crean automaticamente por problemas de calidad o nomina pendiente<br>• Cada ticket tiene comentarios para seguimiento',
-    'dp-calendario': '<strong>Calendario</strong> para eventos y recordatorios.<br>• Click en un dia para crear evento<br>• Navega por mes y ano con selectores<br>• Tipos: cita, reunion, recordatorio<br>• Los eventos de produccion se sincronizan automaticamente',
-    'dp-notas': '<strong>Notas</strong> vinculadas a entidades.<br>• Vincular a OC, ventas o proveedores<br>• Tipos: nota, alerta, seguimiento, resolucion<br>• Marcar como resuelta cuando se completa<br>• Filtrar por tipo, estado o entidad',
-    'dp-comercial': '<strong>Flujo comercial:</strong><br>1. Registra <strong>Clientes</strong> con contactos<br>2. Crea <strong>Cotizaciones</strong> con calculo IVA y PDF<br>3. Convierte cotizacion en <strong>Venta</strong><br>4. Al crear venta se genera asiento contable de ingreso<br>5. Anticipo solo se confirma desde Asientos Contables<br>6. Asigna transportista y envia con remision<br><br>• <strong>Productos</strong>: catalogo con recetas/BOM<br>• <strong>Servicios</strong>: sin inventario',
-    'dp-compras': '<strong>Flujo de compras:</strong><br>1. Registra <strong>Proveedores</strong> con datos de contacto<br>2. Crea <strong>Cotizaciones de proveedor</strong> con precios y plazos<br>3. Crea <strong>Orden de Compra</strong> seleccionando multiples cotizaciones<br>4. Se genera asiento contable de egreso automaticamente<br>5. Confirma pago desde Asientos Contables (parcial o total)<br>6. La OC cambia de estado automaticamente<br>7. Recibe material desde Produccion > Registro compras',
-    'dp-inventario': '<strong>Inventario</strong> de productos terminados.<br>• Stock con alertas de minimo<br>• Lotes con trazabilidad FIFO y vencimiento<br>• Multi-ingreso para registrar varios a la vez<br>• Al entregar venta, stock se descuenta automaticamente',
-    'dp-produccion': '<strong>Produccion</strong> y manufactura.<br>• <strong>Dashboard</strong>: estadisticas de compras y ordenes<br>• <strong>Ordenes</strong>: produccion pendiente y en curso<br>• <strong>Gantt</strong>: diagrama de tiempos<br>• <strong>Recepcion MP</strong>: recibir material de OC (auto-actualiza stock)<br>• Reportar problemas de calidad crea tickets automaticos',
-    'dp-logistica': '<strong>Logistica</strong> y transporte.<br>• <strong>Transportistas</strong>: registro con tipo de vehiculo y capacidad<br>• <strong>Empaques</strong>: simulador de caja y pallet<br>• <strong>Calculadora de envio</strong>: costo FTL vs paqueteria, tarifas editables, margen, transportistas compatibles',
-    'dp-finanzas': '<strong>Finanzas</strong> y contabilidad.<br>• <strong>Contabilidad</strong>: dashboard con ingresos/egresos/utilidad<br>• <strong>Asientos contables</strong>: generados (desde OC/ventas) y manuales. Confirmar pagos aqui cambia estado de OC/ventas<br>• <strong>PUC</strong>: Plan Unico de Cuentas colombiano (102 cuentas)<br>• <strong>Gastos</strong>: operativos con estado pagado/pendiente<br>• <strong>Balances</strong>: prueba, general, estado de resultados<br>• <strong>Reportes</strong>: exportables',
-    'dp-legal': '<strong>Legal</strong> y documentos.<br>• Permisos sanitarios, INVIMA, NSO, contratos, licencias<br>• Alertas de vencimiento con dias de anticipacion<br>• Busqueda por titulo, numero o entidad<br>• Vincular a clientes y proveedores',
-    'dp-nomina': '<strong>Nomina</strong> colombiana.<br>• Cerrar nomina con prorrateo por dias trabajados<br>• Retiro: renuncia, despido justificado, despido no justificado<br>• Liquidacion se registra como gasto de inmediato<br>• Ticket automatico si no se cierra nomina a tiempo<br>• Parametros: SMLMV, ARL, cesantias, etc.',
-    'dp-aprobaciones': '<strong>Aprobaciones</strong> de procesos.<br>• Solicitar aprobacion en OC, ventas, cotizaciones o asientos<br>• El proceso se BLOQUEA hasta aprobar<br>• Opciones: Aprobar, Enviar a revision, Rechazar<br>• Admin y Director Financiero se auto-aprueban<br>• Vista detallada con info del solicitante y entidad',
-    'dp-admin': '<strong>Administracion</strong> del sistema.<br>• <strong>Usuarios</strong>: crear con rol y modulos personalizados<br>• <strong>Actividad</strong>: log de todas las acciones del sistema<br>• <strong>Empresa</strong>: nombre, NIT, direccion, firma digital',
+    'dp-home': '<strong>Home</strong> es tu centro de control.<br>• Revisa KPIs de ventas e ingresos<br>• Ve tickets pendientes y ventas recientes<br>• Aprobaciones que necesitan tu atención<br>• Calendario del día y próximos 7 días<br>• Notas recientes de todo el equipo',
+    'dp-tickets': '<strong>Tickets</strong> organizan el trabajo.<br>• Crea tickets con prioridad y asignados<br>• Tipos: Ticket (requiere acción) o Notificación (informativa)<br>• Categorías: calidad, logística, pago, general<br>• Se crean automáticamente por problemas de calidad o nómina pendiente<br>• Cada ticket tiene comentarios para seguimiento',
+    'dp-calendario': '<strong>Calendario</strong> para eventos y recordatorios.<br>• Click en un día para crear evento<br>• Navega por mes y año con selectores<br>• Tipos: cita, reunión, recordatorio<br>• Los eventos de producción se sincronizan automáticamente',
+    'dp-notas': '<strong>Notas</strong> vinculadas a entidades.<br>• Vincular a OC, ventas o proveedores<br>• Tipos: nota, alerta, seguimiento, resolución<br>• Marcar como resuelta cuando se completa<br>• Filtrar por tipo, estado o entidad',
+    'dp-comercial': '<strong>Flujo comercial:</strong><br>1. Registra <strong>Clientes</strong> con contactos<br>2. Crea <strong>Cotizaciones</strong> con cálculo IVA y PDF<br>3. Convierte cotización en <strong>Venta</strong><br>4. Al crear venta se genera asiento contable de ingreso<br>5. Anticipo solo se confirma desde Asientos Contables<br>6. Asigna transportista y envía con remisión<br><br>• <strong>Productos</strong>: catálogo con recetas/BOM<br>• <strong>Servicios</strong>: sin inventario',
+    'dp-compras': '<strong>Flujo de compras:</strong><br>1. Registra <strong>Proveedores</strong> con datos de contacto<br>2. Crea <strong>Cotizaciones de proveedor</strong> con precios y plazos<br>3. Crea <strong>Orden de Compra</strong> seleccionando múltiples cotizaciones<br>4. Se genera asiento contable de egreso automáticamente<br>5. Confirma pago desde Asientos Contables (parcial o total)<br>6. La OC cambia de estado automáticamente<br>7. Recibe material desde Producción > Registro compras',
+    'dp-inventario': '<strong>Inventario</strong> de productos terminados.<br>• Stock con alertas de mínimo<br>• Lotes con trazabilidad FIFO y vencimiento<br>• Multi-ingreso para registrar varios a la vez<br>• Al entregar venta, stock se descuenta automáticamente',
+    'dp-produccion': '<strong>Producción</strong> y manufactura.<br>• <strong>Dashboard</strong>: estadísticas de compras y órdenes<br>• <strong>Órdenes</strong>: producción pendiente y en curso<br>• <strong>Gantt</strong>: diagrama de tiempos<br>• <strong>Recepción MP</strong>: recibir material de OC (auto-actualiza stock)<br>• Reportar problemas de calidad crea tickets automáticos',
+    'dp-logistica': '<strong>Logística</strong> y transporte.<br>• <strong>Transportistas</strong>: registro con tipo de vehículo y capacidad<br>• <strong>Empaques</strong>: simulador de caja y pallet<br>• <strong>Calculadora de envío</strong>: costo FTL vs paquetería, tarifas editables, margen, transportistas compatibles',
+    'dp-finanzas': '<strong>Finanzas</strong> y contabilidad.<br>• <strong>Contabilidad</strong>: dashboard con ingresos/egresos/utilidad<br>• <strong>Asientos contables</strong>: generados (desde OC/ventas) y manuales. Confirmar pagos aquí cambia estado de OC/ventas<br>• <strong>PUC</strong>: Plan Único de Cuentas colombiano (102 cuentas)<br>• <strong>Gastos</strong>: operativos con estado pagado/pendiente<br>• <strong>Balances</strong>: prueba, general, estado de resultados<br>• <strong>Reportes</strong>: exportables',
+    'dp-legal': '<strong>Legal</strong> y documentos.<br>• Permisos sanitarios, INVIMA, NSO, contratos, licencias<br>• Alertas de vencimiento con días de anticipación<br>• Búsqueda por título, número o entidad<br>• Vincular a clientes y proveedores',
+    'dp-nomina': '<strong>Nómina</strong> colombiana.<br>• Cerrar nómina con prorrateo por días trabajados<br>• Retiro: renuncia, despido justificado, despido no justificado<br>• Liquidación se registra como gasto de inmediato<br>• Ticket automático si no se cierra nómina a tiempo<br>• Parámetros: SMLMV, ARL, cesantías, etc.',
+    'dp-aprobaciones': '<strong>Aprobaciones</strong> de procesos.<br>• Solicitar aprobación en OC, ventas, cotizaciones o asientos<br>• El proceso se BLOQUEA hasta aprobar<br>• Opciones: Aprobar, Enviar a revisión, Rechazar<br>• Admin y Director Financiero se auto-aprueban<br>• Vista detallada con info del solicitante y entidad',
+    'dp-admin': '<strong>Administración</strong> del sistema.<br>• <strong>Usuarios</strong>: crear con rol y módulos personalizados<br>• <strong>Actividad</strong>: log de todas las acciones del sistema<br>• <strong>Empresa</strong>: nombre, NIT, dirección, firma digital',
   };
   // Inyectar guias en cada panel
   document.querySelectorAll('.dock-panel').forEach(function(panel){
@@ -1227,7 +1240,7 @@ function toggleSidebar(){
       tc.querySelectorAll('.toast-msg').forEach(function(t){
         var btn=document.createElement('button');
         btn.innerHTML='&times;';
-        btn.style.cssText='background:none;border:none;color:#fff;font-size:1.1rem;cursor:pointer;padding:0 0 0 8px;line-height:1;opacity:.7';
+        btn.className='toast-close';
         btn.addEventListener('click',function(){t.style.display='none';var visible=tc.querySelectorAll('.toast-msg');var allHidden=true;visible.forEach(function(v){if(v.style.display!=='none')allHidden=false;});if(allHidden)tc.remove();});
         t.appendChild(btn);
       });
@@ -1246,8 +1259,8 @@ function toggleSidebar(){
       <div class="alert alert-danger d-flex align-items-center gap-3 mb-3" style="border-radius:var(--br)">
         <div style="font-size:1.6rem"><i class="bi bi-lock-fill"></i></div>
         <div style="flex:1">
-          <div class="fw-semibold" style="font-size:.92rem">Suscripcion vencida</div>
-          <div style="font-size:.8rem">Tu acceso al CRM esta suspendido temporalmente. Tus datos estan seguros y se mantienen hasta por 1 ano. Renueva tu plan para continuar.</div>
+          <div class="fw-semibold" style="font-size:.92rem">Suscripción vencida</div>
+          <div style="font-size:.8rem">Tu acceso al CRM está suspendido temporalmente. Tus datos están seguros y se mantienen hasta por 1 ano. Renueva tu plan para continuar.</div>
         </div>
         <a href="{{ url_for('planes') }}" class="btn btn-danger btn-sm"><i class="bi bi-arrow-up-circle me-1"></i>Renovar plan</a>
       </div>
@@ -1629,7 +1642,7 @@ function copiarTexto(el,txt){
                   <li><strong>Asientos Manuales</strong>: caja chica, gastos, inversiones (con PDF imprimible).</li>
                   <li><strong>Confirmar pago</strong> desde asientos cambia el estado de OC y ventas.</li>
                   <li>Selector PUC con <strong>auto-clasificacion</strong> del tipo de pago.</li>
-                  <li>Nomina con <strong>prorrateo por dias</strong> y liquidacion automatica.</li>
+                  <li>Nómina con <strong>prorrateo por días</strong> y liquidación automática.</li>
                 </ul>
               </div>
             </div>
@@ -1793,19 +1806,19 @@ window.iniciarObContextual = function(){
       {icon:'bi-truck-front', color:'#10B981', title:'Logistica', desc:'Simulador envio, calculadora cajas, transportistas, tracking.'},
       {% endif %}
       {% if current_user.is_authenticated and (rol_activo == 'admin' or 'finanzas' in modulos_user) %}
-      {icon:'bi-currency-dollar', color:'#059669', title:'Finanzas', desc:'PUC, asientos, reconciliacion bancaria, IVA, retenciones, cierres.'},
+      {icon:'bi-currency-dollar', color:'#059669', title:'Finanzas', desc:'PUC, asientos, reconciliación bancaria, IVA, retenciones, cierres.'},
       {% endif %}
       {% if current_user.is_authenticated and (rol_activo == 'admin' or 'legal' in modulos_user) %}
       {icon:'bi-shield-check', color:'#0EA5E9', title:'Legal', desc:'9 plantillas colombianas. Firma digital + selfie. Auto-genera contratos.'},
       {% endif %}
       {% if current_user.is_authenticated and (rol_activo == 'admin' or 'nomina' in modulos_user) %}
-      {icon:'bi-people-fill', color:'#EC4899', title:'Nomina', desc:'Prorrateo, horas extra, retencion, parametros editables, liquidacion.'},
+      {icon:'bi-people-fill', color:'#EC4899', title:'Nomina', desc:'Prorrateo, horas extra, retención, parámetros editables, liquidación.'},
       {% endif %}
       {% if current_user.is_authenticated and (rol_activo == 'admin' or 'aprobaciones' in modulos_user) %}
       {icon:'bi-clipboard-check', color:'#EF4444', title:'Aprobaciones', desc:'Bloquea OC/ventas hasta aprobar o rechazar.'},
       {% endif %}
       // UI - siempre visibles
-      {t:'topbar', color:'#64748B', icon:'bi-layout-text-window', title:'Barra superior', desc:'Titulo de pagina, botones de accion, tema claro/oscuro, y fecha actual.'},
+      {t:'topbar', color:'#64748B', icon:'bi-layout-text-window', title:'Barra superior', desc:'Título de página, botones de acción, tema claro/oscuro, y fecha actual.'},
       {t:'foot', color:'#64748B', icon:'bi-grid-3x3-gap', title:'Pie del dock', desc:'Tu avatar, notificaciones, Wiki del sistema, y este boton Tutorial.'},
     ];
     var idx = 0;
@@ -2250,7 +2263,7 @@ window.iniciarObContextual = function(){
   <a href="{{ url_for('foro') }}" class="mnav-tab {% if 'foro' in request.endpoint %}mnav-active{% endif %}">
     <i class="bi bi-shop"></i><span>Foro</span></a>
   <button onclick="toggleChatPanel()" class="mnav-tab" style="position:relative">
-    <i class="bi bi-chat-dots-fill"></i><span id="mnavChatBadge" class="mnav-badge" style="display:none"></span><span>Chat</span></button>
+    <i class="bi bi-chat-dots-fill"></i><span id="mnavChatBadge" class="mnav-badge hide"></span><span>Chat</span></button>
   <a href="{{ url_for('notificaciones') }}" class="mnav-tab" style="position:relative">
     <i class="bi bi-bell-fill"></i>{% if notif_count %}<span class="mnav-badge">{{ notif_count }}</span>{% endif %}<span>Alertas</span></a>
   <button onclick="openSB()" class="mnav-tab">
@@ -2447,9 +2460,9 @@ function chatOpenRoom(roomId){
   setTimeout(function(){
     fetch('/api/chat/unread').then(function(r){return r.json()}).then(function(d){
       var badge=document.getElementById('chatBadge');
-      if(badge){if(d.count>0){badge.textContent=d.count;badge.style.display=''}else{badge.style.display='none'}}
+      if(badge){if(d.count>0){badge.textContent=d.count;badge.classList.remove('hide')}else{badge.classList.add('hide')}}
       var mb=document.getElementById('mnavChatBadge');
-      if(mb){if(d.count>0){mb.textContent=d.count;mb.style.display=''}else{mb.style.display='none'}}
+      if(mb){if(d.count>0){mb.textContent=d.count;mb.classList.remove('hide')}else{mb.classList.add('hide')}}
     }).catch(function(){});
   }, 500);
 }
@@ -2480,6 +2493,7 @@ function chatPollMessages(){
         bubble.innerHTML = html;
         div.appendChild(bubble);
         container.appendChild(div);
+        div.style.animation='msgIn .2s ease';
       });
       container.scrollTop = container.scrollHeight;
     }).catch(function(){});
@@ -2509,13 +2523,13 @@ setInterval(function(){
   fetch('/api/chat/unread').then(r=>r.json()).then(d=>{
     var badge = document.getElementById('chatBadge');
     if(badge){
-      if(d.count > 0){ badge.textContent=d.count; badge.style.display=''; }
-      else { badge.style.display='none'; }
+      if(d.count > 0){ badge.textContent=d.count; badge.classList.remove('hide'); }
+      else { badge.classList.add('hide'); }
     }
     var mobileBadge = document.getElementById('mnavChatBadge');
     if(mobileBadge){
-      if(d.count > 0){ mobileBadge.textContent=d.count; mobileBadge.style.display=''; }
-      else { mobileBadge.style.display='none'; }
+      if(d.count > 0){ mobileBadge.textContent=d.count; mobileBadge.classList.remove('hide'); }
+      else { mobileBadge.classList.add('hide'); }
     }
   }).catch(function(){});
 }, 15000);
@@ -2588,8 +2602,7 @@ document.addEventListener('keydown', function(e) {
   function ensureBadge(){
     if(!badge){
       badge = document.createElement('span');
-      badge.className = 'notif-badge';
-      badge.style.display = 'none';
+      badge.className = 'notif-badge hide';
       btn.appendChild(badge);
     }
   }
@@ -2600,9 +2613,9 @@ document.addEventListener('keydown', function(e) {
       ensureBadge();
       if(c > 0){
         badge.textContent = c < 10 ? c : '9+';
-        badge.style.display = '';
+        badge.classList.remove('hide');
       } else {
-        badge.style.display = 'none';
+        badge.classList.add('hide');
       }
       if(c > lastCount && c > 0){
         badge.classList.add('notif-pulse');

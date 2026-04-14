@@ -4,7 +4,7 @@
 <a href="{{ url_for('cotizacion_editar', id=obj.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i>Editar</a>
 <a href="{{ url_for('cotizacion_pdf', id=obj.id) }}" class="btn btn-outline-dark btn-sm" target="_blank"><i class="bi bi-file-pdf me-1"></i>PDF</a>
 <form method="POST" action="{{ url_for('cotizacion_enviar_email', id=obj.id) }}" class="d-inline"
-  onsubmit="return confirm('Enviar cotizacion por email al cliente?')">
+  onsubmit="return confirm('Enviar cotización por email al cliente?')">
   <button type="submit" class="btn btn-outline-primary btn-sm"><i class="bi bi-envelope me-1"></i>Enviar email</button>
 </form>
 <a href="{{ url_for('cotizaciones') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>

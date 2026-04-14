@@ -220,7 +220,7 @@
             <p class="mt-2 text-muted">No se encontraron compras con estos filtros</p>
             <a href="{{ url_for('portal_cliente') }}#tab-compras" class="btn btn-outline-secondary btn-sm mt-2"><i class="bi bi-x-circle me-1"></i>Limpiar filtros</a>
             {% else %}
-            <p class="mt-2 text-muted">Sin compras aun</p>
+            <p class="mt-2 text-muted">Sin compras aún</p>
             <a href="{{ url_for('portal_pre_cotizacion_nueva') }}" class="btn btn-primary btn-sm mt-2"><i class="bi bi-plus me-1"></i>Crear primera compra</a>
             {% endif %}
           </div>
@@ -289,7 +289,7 @@
 
           <form method="POST" action="{{ url_for('portal_mensaje_nuevo') }}" style="padding:0 1rem">
             <div class="input-group">
-              <textarea name="mensaje" class="form-control" placeholder="Escribe tu mensaje aqui..." required style="max-height:120px"></textarea>
+              <textarea name="mensaje" class="form-control" placeholder="Escribe tu mensaje aquí..." required style="max-height:120px"></textarea>
               <button type="submit" class="btn btn-primary"><i class="bi bi-send me-1"></i>Enviar</button>
             </div>
           </form>
