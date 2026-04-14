@@ -1,5 +1,5 @@
 <html lang="es" id="htmlRoot"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="csrf-token" content="{{ csrf_token }}">
 <meta name="theme-color" content="#0176D3">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -264,12 +264,12 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 @keyframes notifPulse{0%{transform:scale(1)}50%{transform:scale(1.3)}100%{transform:scale(1)}}
 .notif-pulse{animation:notifPulse .4s ease}
 /* ── Mobile bottom nav (WhatsApp-style) ── */
-.mnav-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:var(--text2);font-size:.68rem;gap:3px;flex:1;padding:4px 0;background:none;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;min-height:48px}
-.mnav-tab i{font-size:1.35rem;transition:color .15s}
-.mnav-tab span{letter-spacing:.2px}
+.mnav-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:var(--text2);font-size:.7rem;gap:4px;flex:1;padding:6px 0 2px;background:none;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;min-height:52px}
+.mnav-tab i{font-size:1.4rem;transition:color .15s}
+.mnav-tab span{letter-spacing:.3px;font-weight:500}
 .mnav-tab.mnav-active{color:var(--ac)}
 .mnav-tab.mnav-active i{color:var(--ac)}
-.mnav-badge{position:absolute;top:0;right:50%;transform:translateX(14px);background:var(--red);color:#fff;font-size:.58rem;padding:1px 5px;border-radius:10px;font-weight:700;min-width:16px;text-align:center}
+.mnav-badge{position:absolute;top:2px;right:50%;transform:translateX(16px);background:var(--red);color:#fff;font-size:.58rem;padding:1px 5px;border-radius:10px;font-weight:700;min-width:16px;text-align:center}
 /* ── Notifications ───────────────────────────────── */
 .notif-btn{position:relative;background:none;border:none;color:rgba(255,255,255,.6);font-size:1.05rem;padding:.3rem .45rem;border-radius:3px;cursor:pointer;transition:color .15s}
 .notif-btn:hover{color:#fff;background:rgba(255,255,255,.1)}
@@ -445,7 +445,7 @@ html[data-theme="dark"] .diag-verde{background:rgba(59,168,96,.12);color:#80D9A0
   #sb{transform:translateX(-64px);box-shadow:none}
   #sb.sb-open{transform:translateX(0);box-shadow:6px 0 40px rgba(0,0,0,.3)}
   #sb-tog{display:flex}
-  #main{margin-left:0!important;width:100%;padding-bottom:80px}
+  #main{margin-left:0!important;width:100%;padding-bottom:calc(90px + env(safe-area-inset-bottom,0))}
   .fab,#diagBtn,#aiFab{display:none!important}
   #sb.sb-expanded+#main,#sb.sb-expanded~#main{margin-left:0!important}
   .content{padding:.85rem .75rem}
@@ -2119,7 +2119,7 @@ window.iniciarObContextual = function(){
 </script>
 
 {% if request.args.get('_embed') != '1' %}
-<nav id="mobileNav" class="d-md-none" style="position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;justify-content:space-around;align-items:stretch;padding:8px 4px calc(8px + env(safe-area-inset-bottom,0));z-index:1060">
+<nav id="mobileNav" class="d-md-none" style="position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;justify-content:space-around;align-items:stretch;padding:6px 4px calc(14px + env(safe-area-inset-bottom,0));z-index:1060;box-shadow:0 -2px 12px rgba(0,0,0,.06)">
   <a href="{{ url_for('dashboard') }}" class="mnav-tab {% if request.endpoint=='dashboard' %}mnav-active{% endif %}">
     <i class="bi bi-house-fill"></i><span>Home</span></a>
   {% if 'ventas' in modulos_user %}
