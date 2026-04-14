@@ -304,14 +304,24 @@ def register(app):
     @requiere_modulo('ordenes_compra')
     def ordenes_compra():
         estado_f = request.args.get('estado','')
+        buscar = request.args.get('buscar','').strip()
         q = OrdenCompra.query
         if estado_f: q = q.filter_by(estado=estado_f)
+        if buscar:
+            like_term = f'%{buscar}%'
+            q = q.outerjoin(Proveedor, OrdenCompra.proveedor_id == Proveedor.id).filter(
+                db.or_(
+                    OrdenCompra.numero.ilike(like_term),
+                    Proveedor.nombre.ilike(like_term),
+                    Proveedor.empresa.ilike(like_term),
+                )
+            )
         page = request.args.get('page', 1, type=int)
         per_page = 25
         pagination = q.order_by(OrdenCompra.creado_en.desc()).paginate(page=page, per_page=per_page, error_out=False)
         items = pagination.items
         return render_template('ordenes_compra/index.html',
-                               items=items, estado_f=estado_f,
+                               items=items, estado_f=estado_f, buscar=buscar,
                                page=page, total_pages=pagination.pages,
                                total_items=pagination.total)
 

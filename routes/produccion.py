@@ -1097,15 +1097,42 @@ def register(app):
     @login_required
     @requiere_modulo('produccion')
     def ordenes_produccion():
-        pendientes = OrdenProduccion.query.filter(
+        buscar = request.args.get('buscar','').strip()
+        estado_f = request.args.get('estado','')
+
+        q_pendientes = OrdenProduccion.query.filter(
             OrdenProduccion.estado.in_(['pendiente_materiales','en_produccion'])
-        ).order_by(OrdenProduccion.creado_en.desc()).all()
-        completados = OrdenProduccion.query.filter_by(estado='completado')\
-            .order_by(OrdenProduccion.completado_en.desc()).limit(30).all()
+        )
+        q_completados = OrdenProduccion.query.filter_by(estado='completado')
+
+        if estado_f:
+            if estado_f == 'completado':
+                q_pendientes = q_pendientes.filter(db.literal(False))
+            else:
+                q_pendientes = q_pendientes.filter(OrdenProduccion.estado == estado_f)
+                q_completados = q_completados.filter(db.literal(False))
+
+        if buscar:
+            like_term = f'%{buscar}%'
+            q_pendientes = q_pendientes.join(Producto, OrdenProduccion.producto_id == Producto.id).filter(
+                db.or_(
+                    Producto.nombre.ilike(like_term),
+                    OrdenProduccion.numero_lote.ilike(like_term),
+                )
+            )
+            q_completados = q_completados.join(Producto, OrdenProduccion.producto_id == Producto.id).filter(
+                db.or_(
+                    Producto.nombre.ilike(like_term),
+                    OrdenProduccion.numero_lote.ilike(like_term),
+                )
+            )
+
+        pendientes = q_pendientes.order_by(OrdenProduccion.creado_en.desc()).all()
+        completados = q_completados.order_by(OrdenProduccion.completado_en.desc()).limit(30).all()
         empleados = Empleado.query.filter_by(estado='activo').order_by(Empleado.apellido, Empleado.nombre).all()
         return render_template('produccion/ordenes.html',
                                pendientes=pendientes, completados=completados,
-                               empleados=empleados)
+                               empleados=empleados, buscar=buscar, estado_f=estado_f)
     
 
     # ── ordenes_produccion_export_csv (/produccion/ordenes/export-csv)

@@ -250,9 +250,12 @@ def register(app):
     def ventas():
         from datetime import date, timedelta
         estado_f = request.args.get('estado','')
+        buscar = request.args.get('buscar','').strip()
         page = request.args.get('page', 1, type=int)
         per_page = 25
         q = Venta.query
+        if buscar:
+            q = q.filter(db.or_(Venta.titulo.ilike(f'%{buscar}%'), Venta.numero.ilike(f'%{buscar}%')))
         if estado_f:
             q = q.filter_by(estado=estado_f)
         pagination = q.order_by(Venta.creado_en.desc()).paginate(page=page, per_page=per_page, error_out=False)
@@ -290,6 +293,7 @@ def register(app):
         except Exception:
             pass
         return render_template('ventas/index.html', items=items, estado_f=estado_f,
+                               buscar=buscar,
                                proximas_vencer=proximas_vencer, today_date=hoy,
                                transportistas_list=transportistas_list,
                                docs_por_cliente=docs_por_cliente,
@@ -1227,8 +1231,16 @@ def register(app):
     def cotizaciones():
         _marcar_vencidas()
         servicios = Servicio.query.filter_by(activo=True).all()
-        items = Cotizacion.query.order_by(Cotizacion.fecha_emision.desc()).all()
-        return render_template('cotizaciones/index.html', items=items, servicios=servicios)
+        buscar = request.args.get('buscar','').strip()
+        estado_f = request.args.get('estado','')
+        q = Cotizacion.query
+        if buscar:
+            q = q.filter(db.or_(Cotizacion.titulo.ilike(f'%{buscar}%'), Cotizacion.numero.ilike(f'%{buscar}%')))
+        if estado_f:
+            q = q.filter_by(estado=estado_f)
+        items = q.order_by(Cotizacion.fecha_emision.desc()).all()
+        return render_template('cotizaciones/index.html', items=items, servicios=servicios,
+                               buscar=buscar, estado_f=estado_f)
 
 
     # ── cotizacion_nueva (/cotizaciones/nueva)

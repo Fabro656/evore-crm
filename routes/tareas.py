@@ -126,6 +126,7 @@ def register(app):
     @requiere_modulo('tareas')
     def tareas():
         estado_f=request.args.get('estado',''); prioridad_f=request.args.get('prioridad','')
+        buscar=request.args.get('buscar','').strip()
         try:
             q=Tarea.query
             if _get_rol_activo(current_user) != 'admin':
@@ -138,6 +139,7 @@ def register(app):
                         )
                     )
                 )
+            if buscar: q=q.filter(Tarea.titulo.ilike(f'%{buscar}%'))
             if estado_f: q=q.filter_by(estado=estado_f)
             if prioridad_f: q=q.filter_by(prioridad=prioridad_f)
             page = request.args.get('page', 1, type=int)
@@ -149,7 +151,7 @@ def register(app):
             db.session.rollback()
             items = []; page = 1; pagination = None
         return render_template('tareas/index.html', items=items,
-            estado_f=estado_f, prioridad_f=prioridad_f,
+            estado_f=estado_f, prioridad_f=prioridad_f, buscar=buscar,
             page=page, total_pages=pagination.pages if pagination else 1,
             total_items=pagination.total if pagination else len(items))
     

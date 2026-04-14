@@ -79,11 +79,22 @@ def register(app):
         _verificar_nomina_pendiente()
         estado_filter = request.args.get('estado', 'activo')
         departamento_filter = request.args.get('departamento', '')
+        buscar = request.args.get('buscar','').strip()
         query = Empleado.query
         if estado_filter and estado_filter != 'todos':
             query = query.filter_by(estado=estado_filter)
         if departamento_filter:
             query = query.filter_by(departamento=departamento_filter)
+        if buscar:
+            like_term = f'%{buscar}%'
+            query = query.filter(
+                db.or_(
+                    Empleado.nombre.ilike(like_term),
+                    Empleado.apellido.ilike(like_term),
+                    Empleado.cedula.ilike(like_term),
+                    Empleado.cargo.ilike(like_term),
+                )
+            )
         page = request.args.get('page', 1, type=int)
         per_page = 25
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
@@ -104,6 +115,7 @@ def register(app):
         despedidos = Empleado.query.filter_by(estado='despedido').count()
         return render_template('nomina/index.html', empleados=empleados, departamentos=departamentos,
                               estado_filter=estado_filter, departamento_filter=departamento_filter,
+                              buscar=buscar,
                               activos=activos, masa_salarial=masa_salarial, costo_empresa=costo_empresa,
                               retirados=retirados, despedidos=despedidos,
                               page=page, total_pages=pagination.pages, total_items=pagination.total)

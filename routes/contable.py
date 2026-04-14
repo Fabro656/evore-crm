@@ -127,6 +127,8 @@ def register(app):
         desde  = request.args.get('desde', '')
         hasta  = request.args.get('hasta', '')
         vista  = request.args.get('vista', 'generados')  # generados | manuales
+        buscar = request.args.get('buscar', '').strip()
+        estado_pago_f = request.args.get('estado_pago', '')
 
         q = AsientoContable.query
 
@@ -149,6 +151,18 @@ def register(app):
                 q = q.filter(AsientoContable.fecha <= datetime.strptime(hasta, '%Y-%m-%d').date())
             except Exception:
                 pass
+
+        if buscar:
+            like_term = f'%{buscar}%'
+            q = q.filter(
+                db.or_(
+                    AsientoContable.descripcion.ilike(like_term),
+                    AsientoContable.numero.ilike(like_term),
+                    AsientoContable.referencia.ilike(like_term),
+                )
+            )
+        if estado_pago_f:
+            q = q.filter(AsientoContable.estado_pago == estado_pago_f)
 
         # Dividir en generados y manuales via DB filter
         TIPOS_GENERADOS = ['compra', 'venta', 'nomina', 'gasto']
@@ -184,6 +198,7 @@ def register(app):
         return render_template('contable/asientos.html',
             asientos=asientos_filtrados, asientos_filtrados=asientos_filtrados,
             filtro=filtro, desde=desde, hasta=hasta, vista=vista,
+            buscar=buscar, estado_pago_f=estado_pago_f,
             total_ingresos_list=total_ingresos_list,
             total_egresos_list=total_egresos_list,
             ingresos_mes=ingresos_mes, gastos_mes=gastos_mes,

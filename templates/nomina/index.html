@@ -46,22 +46,31 @@
       </div>
     </div>
   </div>
-  <div class="ch" style="margin:1.5rem 0">
-    <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
-      <select id="estadoFilter" class="form-select" style="max-width:150px" onchange="window.location='?estado='+this.value">
-        <option value="activo" {% if estado_filter=='activo' %}selected{% endif %}>Activos</option>
-        <option value="inactivo" {% if estado_filter=='inactivo' %}selected{% endif %}>Inactivos</option>
-        <option value="retirado" {% if estado_filter=='retirado' %}selected{% endif %}>Retirados</option>
-        <option value="despedido" {% if estado_filter=='despedido' %}selected{% endif %}>Despedidos</option>
-        <option value="todos" {% if estado_filter=='todos' %}selected{% endif %}>Todos</option>
-      </select>
+  <div class="fc mb-3" style="margin-top:1.5rem">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-sm-4"><input type="text" name="buscar" class="form-control form-control-sm" placeholder="Buscar por nombre, cedula o cargo..." value="{{ buscar }}"></div>
+      <div class="col-sm-2">
+        <select name="estado" class="form-select form-select-sm">
+          <option value="activo" {% if estado_filter=='activo' %}selected{% endif %}>Activos</option>
+          <option value="inactivo" {% if estado_filter=='inactivo' %}selected{% endif %}>Inactivos</option>
+          <option value="retirado" {% if estado_filter=='retirado' %}selected{% endif %}>Retirados</option>
+          <option value="despedido" {% if estado_filter=='despedido' %}selected{% endif %}>Despedidos</option>
+          <option value="todos" {% if estado_filter=='todos' %}selected{% endif %}>Todos</option>
+        </select>
+      </div>
       {% if departamentos %}
-      <select id="deptoFilter" class="form-select" style="max-width:200px" onchange="window.location='?estado={{ estado_filter }}&departamento='+this.value">
-        <option value="">Todos los departamentos</option>
-        {% for d in departamentos %}<option value="{{ d }}" {% if departamento_filter==d %}selected{% endif %}>{{ d }}</option>{% endfor %}
-      </select>
+      <div class="col-sm-2">
+        <select name="departamento" class="form-select form-select-sm">
+          <option value="">Todos los departamentos</option>
+          {% for d in departamentos %}<option value="{{ d }}" {% if departamento_filter==d %}selected{% endif %}>{{ d }}</option>{% endfor %}
+        </select>
+      </div>
       {% endif %}
-    </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
+        <a href="{{ url_for('nomina_index') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
+      </div>
+    </form>
   </div>
   <div class="table-responsive mt-3" style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface)">
     <table class="table table-sm table-hover" style="margin:0">
@@ -99,11 +108,11 @@
   <div class="d-flex justify-content-between align-items-center mt-3" style="font-size:var(--font-small)">
     <span class="text-muted">Pagina {{ page }} de {{ total_pages }}</span>
     <nav><ul class="pagination pagination-sm mb-0" style="gap:4px">
-      {% if page > 1 %}<li class="page-item"><a class="page-link" href="?estado={{ estado_filter }}&departamento={{ departamento_filter }}&page={{ page-1 }}">&laquo;</a></li>{% endif %}
+      {% if page > 1 %}<li class="page-item"><a class="page-link" href="?estado={{ estado_filter }}&departamento={{ departamento_filter }}&buscar={{ buscar }}&page={{ page-1 }}">&laquo;</a></li>{% endif %}
       {% for p in range(1, total_pages+1) %}{% if p == page %}<li class="page-item active"><span class="page-link">{{ p }}</span></li>
-      {% elif p <= 3 or p > total_pages-3 or (p >= page-1 and p <= page+1) %}<li class="page-item"><a class="page-link" href="?estado={{ estado_filter }}&departamento={{ departamento_filter }}&page={{ p }}">{{ p }}</a></li>
+      {% elif p <= 3 or p > total_pages-3 or (p >= page-1 and p <= page+1) %}<li class="page-item"><a class="page-link" href="?estado={{ estado_filter }}&departamento={{ departamento_filter }}&buscar={{ buscar }}&page={{ p }}">{{ p }}</a></li>
       {% elif p == 4 or p == total_pages-3 %}<li class="page-item disabled"><span class="page-link">...</span></li>{% endif %}{% endfor %}
-      {% if page < total_pages %}<li class="page-item"><a class="page-link" href="?estado={{ estado_filter }}&departamento={{ departamento_filter }}&page={{ page+1 }}">&raquo;</a></li>{% endif %}
+      {% if page < total_pages %}<li class="page-item"><a class="page-link" href="?estado={{ estado_filter }}&departamento={{ departamento_filter }}&buscar={{ buscar }}&page={{ page+1 }}">&raquo;</a></li>{% endif %}
     </ul></nav>
   </div>
   {% endif %}

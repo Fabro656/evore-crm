@@ -5,6 +5,23 @@
 <a href="{{ url_for('gantt') }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-bar-chart-steps me-1"></i>Diagrama Gantt</a>
 {% endblock %}
 {% block content %}
+<div class="fc mb-3">
+  <form method="GET" class="row g-2 align-items-end">
+    <div class="col-sm-4"><input type="text" name="buscar" class="form-control form-control-sm" placeholder="Buscar por producto o lote..." value="{{ buscar }}"></div>
+    <div class="col-sm-3">
+      <select name="estado" class="form-select form-select-sm">
+        <option value="" {% if not estado_f %}selected{% endif %}>Todos los estados</option>
+        <option value="pendiente_materiales" {% if estado_f=='pendiente_materiales' %}selected{% endif %}>Sin materiales</option>
+        <option value="en_produccion" {% if estado_f=='en_produccion' %}selected{% endif %}>En produccion</option>
+        <option value="completado" {% if estado_f=='completado' %}selected{% endif %}>Completado</option>
+      </select>
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
+      <a href="{{ url_for('ordenes_produccion') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
+    </div>
+  </form>
+</div>
 <div>
 {% if pendientes %}
 <h6 class="fw-semibold text-uppercase text-muted mb-3" style="letter-spacing:1px;font-size:.75rem">En producción / Pendientes</h6>

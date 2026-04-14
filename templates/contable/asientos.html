@@ -49,12 +49,12 @@
 {# -- Pestanas Generados / Manuales -- #}
 <ul class="nav nav-tabs mb-3" role="tablist">
   <li class="nav-item">
-    <a class="nav-link {{ 'active' if vista != 'manuales' }}" href="{{ url_for('contable_asientos', filtro=filtro, desde=desde, hasta=hasta, vista='generados') }}">
+    <a class="nav-link {{ 'active' if vista != 'manuales' }}" href="{{ url_for('contable_asientos', filtro=filtro, desde=desde, hasta=hasta, buscar=buscar, estado_pago=estado_pago_f, vista='generados') }}">
       <i class="bi bi-gear me-1"></i>Generados <span class="badge bg-secondary ms-1">{{ asientos|selectattr('tipo','in',['compra','venta','nomina','gasto'])|list|length }}</span>
     </a>
   </li>
   <li class="nav-item">
-    <a class="nav-link {{ 'active' if vista == 'manuales' }}" href="{{ url_for('contable_asientos', filtro=filtro, desde=desde, hasta=hasta, vista='manuales') }}">
+    <a class="nav-link {{ 'active' if vista == 'manuales' }}" href="{{ url_for('contable_asientos', filtro=filtro, desde=desde, hasta=hasta, buscar=buscar, estado_pago=estado_pago_f, vista='manuales') }}">
       <i class="bi bi-pencil-square me-1"></i>Manuales <span class="badge bg-secondary ms-1">{{ asientos|rejectattr('tipo','in',['compra','venta','nomina','gasto'])|list|length }}</span>
     </a>
   </li>
@@ -64,6 +64,10 @@
 <div class="fc mb-3">
   <form method="GET" class="row g-2 align-items-end">
     <input type="hidden" name="vista" value="{{ vista }}">
+    <div class="col-sm-3">
+      <label class="form-label mb-1" style="font-size:.82rem">Buscar</label>
+      <input type="text" name="buscar" class="form-control form-control-sm" placeholder="Numero, descripcion, referencia..." value="{{ buscar }}">
+    </div>
     <div class="col-auto">
       <label class="form-label mb-1" style="font-size:.82rem">Filtro</label>
       <select name="filtro" class="form-select form-select-sm">
@@ -75,6 +79,15 @@
       </select>
     </div>
     <div class="col-auto">
+      <label class="form-label mb-1" style="font-size:.82rem">Estado pago</label>
+      <select name="estado_pago" class="form-select form-select-sm">
+        <option value="" {% if not estado_pago_f %}selected{% endif %}>Todos</option>
+        <option value="pendiente" {% if estado_pago_f=='pendiente' %}selected{% endif %}>Pendiente</option>
+        <option value="parcial" {% if estado_pago_f=='parcial' %}selected{% endif %}>Parcial</option>
+        <option value="completo" {% if estado_pago_f=='completo' %}selected{% endif %}>Completo</option>
+      </select>
+    </div>
+    <div class="col-auto">
       <label class="form-label mb-1" style="font-size:.82rem">Desde</label>
       <input type="date" name="desde" class="form-control form-control-sm" value="{{ desde }}">
     </div>
@@ -83,8 +96,8 @@
       <input type="date" name="hasta" class="form-control form-control-sm" value="{{ hasta }}">
     </div>
     <div class="col-auto">
-      <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
-      <a href="{{ url_for('contable_asientos') }}" class="btn btn-sm btn-outline-secondary ms-1">Limpiar</a>
+      <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
+      <a href="{{ url_for('contable_asientos') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
     </div>
   </form>
 </div>

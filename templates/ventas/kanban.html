@@ -9,42 +9,73 @@
 
 {% block content %}
 <style>
-/* ── Kanban Board ──────────────────────────────── */
+/* ── Kanban Vertical Card Layout ──────────────── */
+
+/* Color map for estado accents */
+:root {
+  --kb-prospecto:       #94A3B8;
+  --kb-negociacion:     #3B82F6;
+  --kb-anticipo_pagado: #F59E0B;
+  --kb-pagado:          #10B981;
+  --kb-entregado:       #0D9488;
+  --kb-completado:      #059669;
+}
+
 .kb-board {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(220px, 1fr));
-  gap: 12px;
-  align-items: start;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
   overflow-x: auto;
   padding-bottom: 16px;
+  min-height: 400px;
 }
-@media (max-width: 900px) {
-  .kb-board {
-    grid-template-columns: repeat(6, 240px);
-  }
-}
+
 .kb-col {
+  flex: 0 0 260px;
+  min-width: 260px;
+  max-width: 300px;
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   display: flex;
   flex-direction: column;
-  min-height: 200px;
 }
+
 .kb-col-header {
-  padding: 10px 12px 8px;
+  padding: 10px 14px 8px;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface2);
+  border-radius: var(--radius) var(--radius) 0 0;
 }
+
+/* Accent top border per estado */
+.kb-col--prospecto      .kb-col-header { border-top: 3px solid var(--kb-prospecto); }
+.kb-col--negociacion    .kb-col-header { border-top: 3px solid var(--kb-negociacion); }
+.kb-col--anticipo_pagado .kb-col-header { border-top: 3px solid var(--kb-anticipo_pagado); }
+.kb-col--pagado         .kb-col-header { border-top: 3px solid var(--kb-pagado); }
+.kb-col--entregado      .kb-col-header { border-top: 3px solid var(--kb-entregado); }
+.kb-col--completado     .kb-col-header { border-top: 3px solid var(--kb-completado); }
+
 .kb-col-title {
-  font-size: .78rem;
+  font-size: .76rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .5px;
 }
+.kb-col--prospecto      .kb-col-title { color: #64748B; }
+.kb-col--negociacion    .kb-col-title { color: #2563EB; }
+.kb-col--anticipo_pagado .kb-col-title { color: #D97706; }
+.kb-col--pagado         .kb-col-title { color: #059669; }
+.kb-col--entregado      .kb-col-title { color: #0F766E; }
+.kb-col--completado     .kb-col-title { color: #065F46; }
+
 .kb-col-meta {
   display: flex;
   flex-direction: column;
@@ -52,255 +83,245 @@
   gap: 1px;
 }
 .kb-count {
-  font-size: .68rem;
+  font-size: .66rem;
   color: var(--text2);
 }
-.kb-total {
+.kb-col-total {
   font-size: .7rem;
   font-weight: 600;
   color: var(--text);
 }
+
 .kb-cards {
   padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-height: 80px;
+  gap: 6px;
+  flex: 1;
+  min-height: 60px;
+  overflow-y: auto;
+  max-height: calc(100vh - 220px);
 }
-.kb-cards.drag-over {
-  background: rgba(var(--ac-rgb), .05);
-  border-radius: 6px;
-}
+
+/* ── Card ── */
 .kb-card {
+  display: flex;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 10px 11px;
-  cursor: grab;
-  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
-  position: relative;
-}
-.kb-card:active {
-  cursor: grabbing;
-}
-.kb-card.dragging {
-  opacity: .5;
-  transform: scale(.97);
-  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow .15s, border-color .15s;
 }
 .kb-card:hover {
   box-shadow: var(--shadow-md);
   border-color: var(--border2);
+  text-decoration: none;
+  color: inherit;
 }
-.kb-card-num {
-  font-size: .68rem;
-  font-weight: 600;
-  color: var(--text2);
-  margin-bottom: 2px;
+
+/* Left color bar (4px vertical accent) */
+.kb-card-bar {
+  width: 4px;
+  flex-shrink: 0;
 }
-.kb-card-title {
-  font-size: .8rem;
-  font-weight: 600;
-  color: var(--text);
-  line-height: 1.3;
-  margin-bottom: 4px;
-  word-break: break-word;
+.kb-card-bar--prospecto       { background: var(--kb-prospecto); }
+.kb-card-bar--negociacion     { background: var(--kb-negociacion); }
+.kb-card-bar--anticipo_pagado { background: var(--kb-anticipo_pagado); }
+.kb-card-bar--pagado          { background: var(--kb-pagado); }
+.kb-card-bar--entregado       { background: var(--kb-entregado); }
+.kb-card-bar--completado      { background: var(--kb-completado); }
+
+.kb-card-body {
+  padding: 8px 10px;
+  flex: 1;
+  min-width: 0;
 }
-.kb-card-cliente {
-  font-size: .74rem;
-  color: var(--text2);
-  margin-bottom: 6px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.kb-card-footer {
+
+.kb-card-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  margin-top: 4px;
+  margin-bottom: 3px;
 }
-.kb-card-total {
-  font-size: .78rem;
-  font-weight: 700;
-  color: var(--text);
-}
-.kb-days-badge {
+.kb-card-num {
   font-size: .65rem;
   font-weight: 600;
-  padding: 2px 7px;
+  color: var(--text2);
+  flex-shrink: 0;
+}
+.kb-card-days {
+  font-size: .6rem;
+  font-weight: 600;
+  padding: 1px 6px;
   border-radius: 10px;
   background: var(--surface2);
   border: 1px solid var(--border);
   color: var(--text2);
   white-space: nowrap;
+  flex-shrink: 0;
 }
-.kb-days-badge.urgent {
+.kb-card-days.urgent {
   background: #FFF0EE;
   border-color: #FFCCC7;
   color: #8A1A1A;
 }
-.kb-days-badge.warn {
+.kb-card-days.warn {
   background: #FFF8E6;
   border-color: #FADDAA;
   color: #7A4A00;
 }
 
-/* Column accent borders */
-.kb-col--prospecto      .kb-col-header { border-top: 3px solid #94A3B8; border-radius: var(--radius) var(--radius) 0 0; }
-.kb-col--negociacion    .kb-col-header { border-top: 3px solid #3B82F6; border-radius: var(--radius) var(--radius) 0 0; }
-.kb-col--anticipo_pagado .kb-col-header { border-top: 3px solid #F59E0B; border-radius: var(--radius) var(--radius) 0 0; }
-.kb-col--pagado         .kb-col-header { border-top: 3px solid #10B981; border-radius: var(--radius) var(--radius) 0 0; }
-.kb-col--entregado      .kb-col-header { border-top: 3px solid #0D9488; border-radius: var(--radius) var(--radius) 0 0; }
-.kb-col--completado     .kb-col-header { border-top: 3px solid #059669; border-radius: var(--radius) var(--radius) 0 0; }
+.kb-card-title {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.25;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-/* Column title colors */
-.kb-col--prospecto      .kb-col-title { color: #64748B; }
-.kb-col--negociacion    .kb-col-title { color: #2563EB; }
-.kb-col--anticipo_pagado .kb-col-title { color: #D97706; }
-.kb-col--pagado         .kb-col-title { color: #059669; }
-.kb-col--entregado      .kb-col-title { color: #0F766E; }
-.kb-col--completado     .kb-col-title { color: #065F46; }
+.kb-card-client {
+  font-size: .7rem;
+  color: var(--text2);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kb-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+.kb-card-amount {
+  font-size: .76rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.kb-empty {
+  text-align: center;
+  color: var(--text2);
+  font-size: .74rem;
+  padding: 24px 10px;
+  opacity: .5;
+}
+
+/* ── Summary bar ── */
+.kb-summary {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  font-size: .78rem;
+  color: var(--text2);
+}
+.kb-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.kb-summary-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Mobile: stack columns vertically ── */
+@media (max-width: 768px) {
+  .kb-board {
+    flex-direction: column;
+    overflow-x: visible;
+  }
+  .kb-col {
+    flex: 1 1 auto;
+    min-width: 100%;
+    max-width: 100%;
+  }
+  .kb-cards {
+    max-height: none;
+  }
+}
 </style>
 
-<div class="kb-board" id="kbBoard">
-  {% set labels = {
-    'prospecto': 'Prospecto',
-    'negociacion': 'Negociación',
-    'anticipo_pagado': 'Anticipo Pagado',
-    'pagado': 'Pagado',
-    'entregado': 'Entregado',
-    'completado': 'Completado'
-  } %}
+{% set labels = {
+  'prospecto': 'Prospecto',
+  'negociacion': 'Negociacion',
+  'anticipo_pagado': 'Anticipo Pagado',
+  'pagado': 'Pagado',
+  'entregado': 'Entregado',
+  'completado': 'Completado'
+} %}
 
+{# Summary bar #}
+{% set grand_total = namespace(val=0, count=0) %}
+{% for col in columnas %}
+  {% set cards = pipeline[col] %}
+  {% set _ = grand_total.__setattr__('count', grand_total.count + cards|length) %}
+  {% set _ = grand_total.__setattr__('val', grand_total.val + cards|sum(attribute='total')) %}
+{% endfor %}
+
+<div class="kb-summary">
+  <span style="font-weight:600;color:var(--text)">{{ grand_total.count }} venta{{ 's' if grand_total.count != 1 else '' }} &middot; $ {{ '{:,.0f}'.format(grand_total.val).replace(',', '.') }}</span>
+  {% for col in columnas %}
+  <span class="kb-summary-item">
+    <span class="kb-summary-dot" style="background:var(--kb-{{ col }})"></span>
+    {{ labels[col] }} ({{ pipeline[col]|length }})
+  </span>
+  {% endfor %}
+</div>
+
+{# Kanban board #}
+<div class="kb-board">
   {% for col in columnas %}
   {% set cards = pipeline[col] %}
   {% set col_total = cards | sum(attribute='total') %}
-  <div class="kb-col kb-col--{{ col }}" data-estado="{{ col }}">
+  <div class="kb-col kb-col--{{ col }}">
     <div class="kb-col-header">
       <span class="kb-col-title">{{ labels[col] }}</span>
       <div class="kb-col-meta">
-        <span class="kb-count">{{ cards | length }} venta{{ 's' if cards | length != 1 else '' }}</span>
-        <span class="kb-total">$ {{ '{:,.0f}'.format(col_total).replace(',', '.') }}</span>
+        <span class="kb-count">{{ cards|length }} venta{{ 's' if cards|length != 1 else '' }}</span>
+        <span class="kb-col-total">$ {{ '{:,.0f}'.format(col_total).replace(',', '.') }}</span>
       </div>
     </div>
-    <div class="kb-cards" id="col-{{ col }}"
-         ondragover="event.preventDefault(); this.classList.add('drag-over')"
-         ondragleave="this.classList.remove('drag-over')"
-         ondrop="handleDrop(event, '{{ col }}')">
+    <div class="kb-cards">
       {% for card in cards %}
       {% set dias = card['dias_en_etapa'] %}
-      <div class="kb-card"
-           draggable="true"
-           data-id="{{ card['id'] }}"
-           data-estado="{{ card['estado'] }}"
-           ondragstart="handleDragStart(event)"
-           ondragend="handleDragEnd(event)">
-        <div class="kb-card-num">{{ card['numero'] }}</div>
-        <div class="kb-card-title">{{ card['titulo'] }}</div>
-        <div class="kb-card-cliente">
-          <i class="bi bi-building" style="font-size:.7rem"></i>
-          {{ card['cliente_nombre'] }}
+      <a href="{{ url_for('venta_ver', id=card['id']) }}" class="kb-card">
+        <div class="kb-card-bar kb-card-bar--{{ card['estado'] }}"></div>
+        <div class="kb-card-body">
+          <div class="kb-card-top">
+            <span class="kb-card-num">{{ card['numero'] }}</span>
+            <span class="kb-card-days {% if dias > 30 %}urgent{% elif dias > 14 %}warn{% endif %}">{{ dias }}d</span>
+          </div>
+          <div class="kb-card-title" title="{{ card['titulo'] }}">{{ card['titulo'] }}</div>
+          <div class="kb-card-client">
+            <i class="bi bi-building" style="font-size:.65rem"></i>
+            {{ card['cliente_nombre'] }}
+          </div>
+          <div class="kb-card-footer">
+            <span class="kb-card-amount">$ {{ '{:,.0f}'.format(card['total']).replace(',', '.') }}</span>
+            <span class="b b-{{ card['estado'] }}" style="font-size:.58rem;padding:1px 6px">{{ labels[card['estado']] }}</span>
+          </div>
         </div>
-        <div class="kb-card-footer">
-          <span class="kb-card-total">$ {{ '{:,.0f}'.format(card['total']).replace(',', '.') }}</span>
-          <span class="kb-days-badge {% if dias > 30 %}urgent{% elif dias > 14 %}warn{% endif %}">
-            {{ dias }}d
-          </span>
-        </div>
-        <div style="margin-top:5px">
-          <span class="b b-{{ card['estado'] }}" style="font-size:.6rem;padding:1px 7px">{{ labels[card['estado']] }}</span>
-        </div>
-      </div>
+      </a>
       {% endfor %}
       {% if not cards %}
-      <div style="text-align:center;color:var(--text2);font-size:.75rem;padding:20px 8px;opacity:.5">
-        Sin ventas
-      </div>
+      <div class="kb-empty">Sin ventas</div>
       {% endif %}
     </div>
   </div>
   {% endfor %}
 </div>
-
-<div id="kb-toast" style="display:none;position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 16px;font-size:.82rem;box-shadow:var(--shadow-md);z-index:9999;color:var(--text)"></div>
-
-<script>
-let draggingId = null;
-let draggingEstadoOrig = null;
-
-function handleDragStart(e) {
-  draggingId = e.currentTarget.dataset.id;
-  draggingEstadoOrig = e.currentTarget.dataset.estado;
-  e.currentTarget.classList.add('dragging');
-  e.dataTransfer.effectAllowed = 'move';
-}
-
-function handleDragEnd(e) {
-  e.currentTarget.classList.remove('dragging');
-  document.querySelectorAll('.kb-cards').forEach(c => c.classList.remove('drag-over'));
-}
-
-function showToast(msg, ok) {
-  const t = document.getElementById('kb-toast');
-  t.textContent = msg;
-  t.style.display = 'block';
-  t.style.borderColor = ok ? '#10B981' : '#E05555';
-  t.style.color = ok ? '#065F46' : '#8A1A1A';
-  setTimeout(() => { t.style.display = 'none'; }, 3000);
-}
-
-function handleDrop(e, nuevoEstado) {
-  e.preventDefault();
-  const col = e.currentTarget;
-  col.classList.remove('drag-over');
-
-  if (!draggingId || nuevoEstado === draggingEstadoOrig) return;
-
-  const fd = new FormData();
-  fd.append('estado', nuevoEstado);
-
-  fetch(`/ventas/${draggingId}/estado`, { method: 'POST', body: fd, redirect: 'manual' })
-    .then(resp => {
-      if (resp.ok || resp.type === 'opaqueredirect' || resp.status === 302 || resp.status === 200) {
-        // Mover la tarjeta al DOM visualmente
-        const card = document.querySelector(`.kb-card[data-id="${draggingId}"]`);
-        if (card) {
-          card.dataset.estado = nuevoEstado;
-          // Actualizar badge de estado
-          const badge = card.querySelector('.b');
-          if (badge) {
-            const labels = {
-              prospecto: 'Prospecto', negociacion: 'Negociación',
-              anticipo_pagado: 'Anticipo Pagado', pagado: 'Pagado',
-              entregado: 'Entregado', completado: 'Completado'
-            };
-            badge.className = `b b-${nuevoEstado}`;
-            badge.style.fontSize = '.6rem';
-            badge.style.padding = '1px 7px';
-            badge.textContent = labels[nuevoEstado] || nuevoEstado;
-          }
-          // Mover al nuevo contenedor
-          const targetCol = document.getElementById(`col-${nuevoEstado}`);
-          if (targetCol) {
-            // Remover placeholder "Sin ventas" si existe
-            const placeholder = targetCol.querySelector('div[style*="Sin ventas"]');
-            if (placeholder) placeholder.remove();
-            targetCol.appendChild(card);
-          }
-          // Actualizar conteos (simple reload diferido)
-          setTimeout(() => location.reload(), 1200);
-        }
-        showToast('Estado actualizado correctamente', true);
-      } else {
-        showToast('No se pudo cambiar el estado (transición no permitida)', false);
-      }
-    })
-    .catch(() => showToast('Error de red al actualizar el estado', false));
-
-  draggingId = null;
-  draggingEstadoOrig = null;
-}
-</script>
 {% endblock %}
