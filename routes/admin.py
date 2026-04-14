@@ -1120,7 +1120,11 @@ def register(app):
             _safe_delete('DELETE FROM proveedores')
             # ── Nivel 1: sesiones y usuarios ──
             _safe_delete('DELETE FROM user_sesiones')
-            _safe_delete(f'DELETE FROM users WHERE id != {admin_id}')
+            try:
+                conn = db.session.connection()
+                conn.execute(db.text('DELETE FROM users WHERE id != :aid'), {'aid': admin_id})
+            except Exception:
+                pass
             _log('eliminar', 'sistema', 0, f'RESET TOTAL ejecutado por {current_user.email}')
             db.session.commit()
             logging.warning(f'RESET TOTAL ejecutado por user_id={current_user.id} ({current_user.email})')

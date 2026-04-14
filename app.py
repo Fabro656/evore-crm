@@ -202,10 +202,10 @@ def create_app():
 
     @app.errorhandler(Exception)
     def unhandled_exception(e):
-        db.session.rollback()   # ← rollback en cualquier excepción no capturada
+        db.session.rollback()
         logging.exception(f'Unhandled exception: {e}')
         if _wants_json():
-            return jsonify({'error': str(e), 'code': 500}), 500
+            return jsonify({'error': 'Error interno del servidor', 'code': 500}), 500
         try:
             return render_template('500.html'), 500
         except Exception:

@@ -1168,7 +1168,7 @@ function toggleSidebar(){
     {% for cat, msg in messages %}
     <div class="toast-msg" style="background:{% if cat=='success' %}var(--green){% elif cat=='danger' %}var(--red){% elif cat=='warning' %}var(--orange){% else %}var(--ac){% endif %};color:#fff;padding:12px 20px;border-radius:10px;font-size:.85rem;box-shadow:0 8px 24px rgba(0,0,0,.15);animation:toastIn .3s ease;max-width:360px;display:flex;align-items:center;gap:8px">
       <i class="bi {% if cat=='success' %}bi-check-circle-fill{% elif cat=='danger' %}bi-x-circle-fill{% elif cat=='warning' %}bi-exclamation-triangle-fill{% else %}bi-info-circle-fill{% endif %}"></i>
-      <span>{{ msg|safe }}</span>
+      <span>{{ msg }}</span>
     </div>
     {% endfor %}
     </div>

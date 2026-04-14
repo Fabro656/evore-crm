@@ -167,6 +167,7 @@ def register(app):
     @login_required
     def api_transportistas_capacidad():
         """Filtra transportistas por peso/volumen requerido."""
+        if _check_api_rate(request.remote_addr): return jsonify({'error':'rate limit'}), 429
         peso_kg = float(request.args.get('peso', 0) or 0)
         volumen_m3 = float(request.args.get('volumen', 0) or 0)
         q = Proveedor.query.filter_by(tipo='transportista', activo=True)
@@ -188,6 +189,7 @@ def register(app):
     @login_required
     def api_producto_precio_minimo(id):
         """Retorna precio mínimo y sugerido para un producto."""
+        if _check_api_rate(request.remote_addr): return jsonify({'error':'rate limit'}), 429
         cant = float(request.args.get('cantidad', 1) or 1)
         return jsonify(_precio_minimo_venta(id, cant))
 
