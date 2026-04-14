@@ -1637,14 +1637,26 @@ def _migrate(conn):
         ("ALTER TABLE productos ADD COLUMN IF NOT EXISTS codigo_unspsc VARCHAR(20)"),
         ("ALTER TABLE productos ADD COLUMN codigo_unspsc VARCHAR(20)"),
     ]
-    for sql in migrations:
+    # Split: IF NOT EXISTS can batch, others need individual try/except
+    batch_safe = [s for s in migrations if 'IF NOT EXISTS' in s]
+    batch_risky = [s for s in migrations if 'IF NOT EXISTS' not in s]
+    # Batch execute safe migrations (won't fail on existing columns)
+    if batch_safe:
+        try:
+            for sql in batch_safe:
+                conn.execute(db.text(sql))
+            conn.commit()
+        except Exception:
+            try: conn.rollback()
+            except Exception: pass
+    # Execute risky ones individually (may fail on SQLite)
+    for sql in batch_risky:
         try:
             conn.execute(db.text(sql))
             conn.commit()
-        except Exception as em:
+        except Exception:
             try: conn.rollback()
-            except: pass
-            print(f'Migración omitida (puede ser SQLite o ya existe): {em}')
+            except Exception: pass
 
 def init_db():
     """Create tables and run migrations. Call inside app context."""
