@@ -153,10 +153,11 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .tc{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;transition:all var(--transition-fast)}
 .tc:hover{box-shadow:var(--shadow-md)}
 .ch{background:var(--surface);border-bottom:1px solid var(--border);padding:.75rem 1.25rem;font-weight:600;color:var(--text);font-size:.88rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem}
-.table{margin:0}
+.table{margin:0;border-collapse:collapse;border:none!important;background:transparent!important}
+.table>:not(caption)>*>*{box-shadow:none!important}
 .table th{font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);border-bottom:2px solid var(--border);padding:.55rem 1rem;white-space:nowrap;background:var(--surface2)}
-.table td{padding:.55rem 1rem;vertical-align:middle;border-bottom:1px solid var(--border);color:var(--text);font-size:.85rem}
-.table tbody tr:nth-child(even){background:rgba(0,0,0,.015)}
+.table td{padding:.55rem 1rem;vertical-align:middle;border-bottom:1px solid var(--border);color:var(--text);font-size:.85rem;background:transparent}
+.table tbody tr:nth-child(even) td{background:rgba(0,0,0,.015)}
 .table tbody tr:last-child td{border-bottom:none}
 .table tbody tr:hover{background:var(--surface2)}
 
