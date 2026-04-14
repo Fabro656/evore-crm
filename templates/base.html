@@ -587,6 +587,9 @@ html[data-theme="dark"] .skeleton{background:linear-gradient(90deg,var(--surface
   .filter-bar{gap:var(--sp-1);font-size:var(--font-small)}
   .filter-bar .btn,.filter-bar .b{font-size:var(--font-caption);padding:2px 8px;min-height:32px}
   .row>[class*='col-lg']{width:100%}
+  #diagBtn{bottom:148px;right:20px;width:40px;height:40px;font-size:.85rem}
+  #aiFab{bottom:80px!important;right:20px!important;width:46px!important;height:46px!important;font-size:1.1rem!important}
+  #aiPanel{width:calc(100vw - 24px)!important;right:12px!important;bottom:135px!important;height:480px!important}
 }
 /* ── Tablet / small laptop (769px – 1024px) ── */
 @media(min-width:769px) and (max-width:1024px){
@@ -619,14 +622,9 @@ html[data-theme="dark"] .skeleton{background:linear-gradient(90deg,var(--surface
   .sc{padding:var(--sp-2)}
 }
 @media(min-width:769px){#sb-overlay{display:none!important}}
-@media(max-width:576px){.fab{bottom:20px;right:20px;width:52px;height:52px;font-size:1.35rem}}
-@media(max-width:768px){
-  #diagBtn{bottom:148px;right:20px;width:40px;height:40px;font-size:.85rem}
-  #aiFab{bottom:80px!important;right:20px!important;width:46px!important;height:46px!important;font-size:1.1rem!important}
-  #aiPanel{width:calc(100vw - 24px)!important;right:12px!important;bottom:135px!important;height:480px!important}
-}
-/* ── Mobile card layout for tables ── */
+/* ── Small mobile (< 576px) ── */
 @media(max-width:576px){
+  .fab{bottom:20px;right:20px;width:52px;height:52px;font-size:1.35rem}
   .table-cards thead{display:none}
   .table-cards tbody tr{display:block;border:1px solid var(--border);border-radius:8px;padding:.75rem;margin-bottom:.5rem;background:var(--surface)}
   .table-cards tbody td{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border:none;font-size:.85rem}
@@ -2553,9 +2551,7 @@ function chatSend(e){
     .catch(function(){});
 }
 
-function chatShowNew(){
-  window.location.href = '/chat/nuevo';
-}
+
 
 // Poll unread count
 setInterval(function(){
