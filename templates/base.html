@@ -2419,10 +2419,17 @@ setInterval(function(){
 <script>
 // ── PWA Install button in header ──
 var _deferredInstall=null;
+// Hide if already in standalone mode (installed PWA)
+if(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone){
+  var _b=document.getElementById('pwaInstallBtn'); if(_b) _b.style.display='none';
+}
 window.addEventListener('beforeinstallprompt',function(e){
   e.preventDefault(); _deferredInstall=e;
-  var btn=document.getElementById('pwaInstallBtn');
-  if(btn) btn.style.display='';
+  // Only show if NOT already installed
+  if(!window.matchMedia('(display-mode: standalone)').matches && !window.navigator.standalone){
+    var btn=document.getElementById('pwaInstallBtn');
+    if(btn) btn.style.display='';
+  }
 });
 function pwaInstall(){
   if(_deferredInstall){_deferredInstall.prompt();_deferredInstall.userChoice.then(function(){
