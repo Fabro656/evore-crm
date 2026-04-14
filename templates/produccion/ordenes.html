@@ -8,8 +8,8 @@
 <div class="fc" style="max-width:100%">
 {% if pendientes %}
 <h6 class="fw-semibold text-uppercase text-muted mb-3" style="letter-spacing:1px;font-size:.75rem">En producción / Pendientes</h6>
-<div class="table-responsive mb-4">
-<table class="table table-hover align-middle">
+<div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%" class="mb-4">
+<table class="table table-cards" style="width:100%;margin:0">
   <thead><tr>
     <th>Producto</th><th class="text-end">A producir</th><th class="text-end">Stock previo</th>
     <th>Pedido / Venta</th><th>Operario</th><th>Lote</th><th>Estado</th><th>Fecha</th><th></th>
@@ -92,8 +92,8 @@
 
 {% if completados %}
 <h6 class="fw-semibold text-uppercase text-muted mb-3 mt-4" style="letter-spacing:1px;font-size:.75rem">Completadas recientemente</h6>
-<div class="table-responsive">
-<table class="table table-sm align-middle">
+<div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%">
+<table class="table table-cards" style="width:100%;margin:0">
   <thead><tr>
     <th>Producto</th><th class="text-end">Producido</th><th>Operario</th>
     <th>Merma</th><th>Lote asignado</th><th>Completado</th>

@@ -90,18 +90,18 @@
 </div>
 
 {# -- Tabla de asientos -- #}
-<div class="tc">
-  <div class="ch d-flex justify-content-between align-items-center">
+<div>
+  <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:.82rem;color:var(--text2)">
     <span><i class="bi bi-journal-bookmark-fill me-2"></i>{{ asientos_filtrados|length }} asiento(s) contable(s)</span>
-    <div class="d-flex gap-3" style="font-size:.82rem">
+    <div class="d-flex gap-3">
       <span class="text-success fw-semibold">Ingresos: {{ moneda(total_ingresos_list) }}</span>
       <span class="text-danger fw-semibold">Egresos: {{ moneda(total_egresos_list) }}</span>
     </div>
   </div>
 
   {% if asientos_filtrados %}
-  <div class="table-responsive">
-  <table class="table table-sm mb-0">
+  <div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%">
+  <table class="table table-cards" style="width:100%;margin:0">
     <thead>
       <tr>
         <th style="width:90px">Numero</th>

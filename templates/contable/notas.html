@@ -49,7 +49,7 @@
 </div>
 
 {# ── Filtros ── #}
-<div class="tc mb-3">
+<div class="fc mb-3">
   <form method="GET" class="row g-2 align-items-end" style="padding:1rem 1.2rem">
     <div class="col-auto">
       <label class="form-label mb-1" style="font-size:.82rem">Tipo</label>
@@ -77,11 +77,10 @@
 </div>
 
 {# ── Tabla ── #}
-<div class="tc">
-  <div class="ch"><i class="bi bi-file-earmark-text me-2"></i>Listado de notas</div>
+<div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-file-earmark-text me-2"></i>Listado de notas</div>
   {% if notas %}
-  <div class="table-responsive">
-    <table class="table table-sm table-hover mb-0">
+  <div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%">
+    <table class="table table-cards" style="width:100%;margin:0">
       <thead>
         <tr>
           <th>Número</th>
@@ -160,6 +159,5 @@
     </a>
   </div>
   {% endif %}
-</div>
 
 {% endblock %}

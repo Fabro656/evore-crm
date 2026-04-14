@@ -53,13 +53,13 @@
 </div>
 {# ── Desglose de impuestos ──────────────────────────────── #}
 {% if detalle_impuestos %}
-<div class="tc mb-3">
-  <div class="ch d-flex justify-content-between align-items-center">
+<div class="mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:.82rem;color:var(--text2)">
     <span><i class="bi bi-percent me-2 text-danger"></i>Desglose de impuestos estimados — {{ anio }}/{{ '%02d'|format(mes) }}</span>
     <a href="{{ url_for('impuestos') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-gear me-1"></i>Configurar reglas</a>
   </div>
-  <div class="table-responsive">
-  <table class="table table-sm mb-0">
+  <div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%">
+  <table class="table table-cards" style="width:100%;margin:0">
     <thead><tr><th>Regla</th><th>Aplica a</th><th class="text-end">Base</th><th class="text-center">%</th><th class="text-end">Impuesto estimado</th></tr></thead>
     <tbody>
     {% for d in detalle_impuestos %}<tr>

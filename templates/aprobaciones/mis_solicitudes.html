@@ -2,10 +2,10 @@
 {% block title %}Mis Solicitudes{% endblock %}{% block page_title %}Mis solicitudes de aprobacion{% endblock %}
 {% block content %}
 {% if items %}
-<div class="tc">
-  <div class="ch">Historial de solicitudes</div>
-  <div class="table-responsive">
-    <table class="table mb-0">
+<div>
+  <div class="mb-2" style="font-size:.82rem;color:var(--text2)">Historial de solicitudes</div>
+  <div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%">
+    <table class="table table-cards" style="width:100%;margin:0">
       <thead><tr><th>Fecha</th><th>Tipo</th><th>Descripcion</th><th class="text-end">Monto</th><th>Estado</th><th>Notas del aprobador</th></tr></thead>
       <tbody>
       {% for a in items %}
@@ -21,7 +21,6 @@
       </tbody>
     </table>
   </div>
-</div>
 {% else %}
 <div class="sc" style="text-align:center;padding:2rem">
   <i class="bi bi-inbox" style="font-size:2rem;color:var(--text2);display:block;margin-bottom:.5rem"></i>

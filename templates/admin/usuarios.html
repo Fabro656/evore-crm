@@ -2,12 +2,11 @@
 {% block title %}Usuarios{% endblock %}{% block page_title %}Gestión de Usuarios{% endblock %}
 {% block topbar_actions %}{% if current_user.rol == 'admin' %}<a href="{{ url_for('admin_usuario_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo Usuario</a>{% endif %}{% endblock %}
 {% block content %}
-<div class="tc mb-3">
-  <div class="ch"><i class="bi bi-shield-person-fill me-2"></i>{{ items|length }} usuario(s)
+<div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-shield-person-fill me-2"></i>{{ items|length }} usuario(s)
     <small class="text-muted fw-normal ms-2">— Click en <i class="bi bi-eye"></i> para ver la app desde la perspectiva de ese usuario</small>
-  </div>
-  <div class="table-responsive">
-  <table class="table"><thead><tr>
+</div>
+  <div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%">
+  <table class="table table-cards" style="width:100%;margin:0"><thead><tr>
     <th>Nombre</th><th>Email</th><th>Rol</th>
     <th class="hide-mobile">Empresa vinculada</th>
     <th>Estado</th><th class="hide-mobile">Alta</th><th></th>
@@ -54,7 +53,6 @@
     </td>
   </tr>{% endfor %}</tbody></table>
   </div>
-</div>
 
 {# ── ZONA DE PELIGRO — solo admin real, no tester ───────────────────────── #}
 {% if current_user.rol == 'admin' %}

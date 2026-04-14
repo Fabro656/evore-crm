@@ -7,10 +7,10 @@
   <button class="btn btn-primary btn-sm">Consultar</button>
 </form>
 {% if filas %}
-<div class="tc">
-  <div class="ch">Balance de Prueba — {{ periodo }}</div>
-  <div class="table-responsive">
-    <table class="table mb-0">
+<div>
+  <div class="mb-2" style="font-size:.82rem;color:var(--text2)">Balance de Prueba — {{ periodo }}</div>
+  <div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%">
+    <table class="table table-cards" style="width:100%;margin:0">
       <thead><tr><th>Codigo</th><th>Cuenta</th><th class="text-end">Debitos</th><th class="text-end">Creditos</th><th class="text-end">Saldo</th></tr></thead>
       <tbody>
       {% for f in filas %}

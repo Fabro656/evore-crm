@@ -13,11 +13,11 @@
   <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
     <a href="{{ url_for('contable_ingresos') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a></div>
 </form></div></div>
-<div class="tc"><div class="ch d-flex justify-content-between align-items-center">
+<div class="d-flex justify-content-between align-items-center mb-2" style="font-size:.82rem;color:var(--text2)">
   <span><i class="bi bi-graph-up me-2 text-success"></i>{{ items|length }} venta(s)</span>
   <span class="fw-bold text-success">Total: $ {{ '{:,.0f}'.format(items|sum(attribute='total')).replace(',','.') }}</span>
 </div>
-{% if items %}<div class="table-responsive"><table class="table">
+{% if items %}<div style="border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);overflow-x:auto;width:100%"><table class="table table-cards" style="width:100%;margin:0">
   <thead><tr><th>N°</th><th>Fecha</th><th>Cliente</th><th>Título</th><th class="text-end">Subtotal</th><th class="text-end">IVA</th><th class="text-end">Total</th><th class="text-end">Anticipo</th><th class="text-end">Saldo</th><th>Estado</th></tr></thead>
   <tbody>{% for v in items %}<tr>
     <td><small class="fw-semibold">{{ v.numero or '—' }}</small></td>
@@ -41,4 +41,4 @@
     <td></td>
   </tr>
   </tbody>
-</table></div>{% else %}<div class="text-center text-muted py-5">Sin ingresos en el período.</div>{% endif %}</div>{% endblock %}
+</table></div>{% else %}<div class="text-center text-muted py-5">Sin ingresos en el período.</div>{% endif %}{% endblock %}
