@@ -54,7 +54,7 @@
 <div class="row g-3">
   {% for v in items %}
   <div class="col-12 col-md-6 col-xl-4">
-    <div class="fc h-100" style="padding:0;overflow:hidden;transition:box-shadow .15s,transform .15s" onmouseenter="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)';this.style.transform='translateY(-1px)'" onmouseleave="this.style.boxShadow='';this.style.transform=''">
+    <div class="fc h-100" class="fc-lift" style="padding:0;overflow:hidden">
       {# Header: estado color bar #}
       <div style="height:4px;background:{% if v.estado=='prospecto' %}var(--text2){% elif v.estado=='negociacion' %}var(--orange){% elif v.estado=='anticipo_pagado' %}var(--ac){% elif v.estado=='pagado' %}var(--green){% elif v.estado=='cancelado' or v.estado=='perdido' %}var(--red){% else %}var(--green){% endif %}"></div>
       <div style="padding:1rem 1.15rem">

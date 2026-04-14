@@ -36,7 +36,7 @@
 <div class="row g-3">
   {% for p in items %}
   <div class="col-12 col-md-6 col-xl-4">
-    <div class="fc h-100" style="padding:0;overflow:hidden;transition:box-shadow .15s,transform .15s" onmouseenter="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)';this.style.transform='translateY(-1px)'" onmouseleave="this.style.boxShadow='';this.style.transform=''">
+    <div class="fc h-100" class="fc-lift" style="padding:0;overflow:hidden">
       <!-- Color bar -->
       <div style="height:4px;background:{% if p.tipo == 'transportista' %}#198754{% elif p.tipo == 'ambos' %}#0d6efd{% else %}#6c757d{% endif %}"></div>
       <div style="padding:1rem 1.15rem">

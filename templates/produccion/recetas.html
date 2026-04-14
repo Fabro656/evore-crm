@@ -18,7 +18,7 @@
 {% for r in recetas %}
 {% set c = costos[r.id] %}
 <div class="col-12 col-md-6 col-xl-4">
-  <div class="fc h-100" style="padding:0;overflow:hidden;transition:box-shadow .15s,transform .15s" onmouseenter="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)';this.style.transform='translateY(-1px)'" onmouseleave="this.style.boxShadow='';this.style.transform=''">
+  <div class="fc h-100" class="fc-lift" style="padding:0;overflow:hidden">
     {# Color bar: margin-based #}
     <div style="height:4px;background:{% if r.margen_pct and r.margen_pct >= 30 %}var(--green){% elif r.margen_pct and r.margen_pct >= 15 %}var(--orange){% elif r.margen_pct %}var(--red){% else %}var(--border){% endif %}"></div>
     <div style="padding:1rem 1.15rem">

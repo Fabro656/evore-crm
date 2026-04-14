@@ -33,7 +33,7 @@
 <div class="row g-3">
   {% for oc in items %}
   <div class="col-12 col-md-6 col-xl-4">
-    <div class="fc h-100" style="padding:0;overflow:hidden;transition:box-shadow .15s,transform .15s" onmouseenter="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)';this.style.transform='translateY(-1px)'" onmouseleave="this.style.boxShadow='';this.style.transform=''">
+    <div class="fc h-100" class="fc-lift" style="padding:0;overflow:hidden">
       <!-- Color bar by estado -->
       <div style="height:4px;background:{% if oc.estado=='borrador' %}#6c757d{% elif oc.estado=='anticipo_pagado' %}#0dcaf0{% elif oc.estado=='pagado' %}#0d6efd{% elif oc.estado=='en_espera_producto' %}#ffc107{% elif oc.estado=='recibida_parcial' %}#fd7e14{% elif oc.estado=='recibida' %}#198754{% elif oc.estado=='cancelada' %}#dc3545{% else %}#6c757d{% endif %}"></div>
       <div style="padding:1rem 1.15rem">

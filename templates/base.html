@@ -39,13 +39,17 @@
   /* Card */
   --card-shadow:var(--shadow);
   /* Shape */
-  --radius:8px;--radius-sm:4px;
+  --radius:8px;--radius-sm:4px;--radius-lg:16px;--radius-pill:20px;--br:8px;
   /* Motion */
   --transition-fast:150ms ease;--transition-base:250ms ease;--transition-slow:350ms cubic-bezier(.4,0,.2,1);
   /* Spacing scale (8px base) */
   --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:24px;--sp-6:32px;--sp-7:48px;
   /* Typography */
   --font-micro:.69rem;--font-caption:.75rem;--font-small:.82rem;--font-body:.875rem;--font-title:1rem;--font-display:1.25rem;--font-hero:1.75rem;
+  /* Content max-widths */
+  --content-sm:480px;--content-md:700px;--content-lg:900px;--content-xl:1100px;
+  /* Layout */
+  --topbar-height:52px;--sb-width:64px;--sb-expanded-width:240px;
 }
 
 /* Accessibility: visually hidden but screen-reader accessible */
@@ -170,6 +174,8 @@ body{background:var(--surface);font-family:-apple-system,BlinkMacSystemFont,'Seg
 
 /* ── Form Card ───────────────────────────────────── */
 .fc{background:var(--surface);border-radius:var(--radius);padding:var(--sp-5) var(--sp-5);border:1px solid var(--border);max-width:860px;transition:background-color .2s,border-color .2s}
+.fc-lift{transition:box-shadow var(--transition-fast),transform var(--transition-fast),background-color .2s,border-color .2s}
+.fc-lift:hover{box-shadow:0 4px 16px rgba(0,0,0,.1);transform:translateY(-1px)}
 .form-label{font-weight:600;font-size:.82rem;color:var(--text);margin-bottom:.3rem}
 .form-label .req{color:var(--red);margin-left:2px;font-weight:700}
 .form-text{font-size:.76rem;color:var(--text2);margin-top:.2rem}
