@@ -286,12 +286,22 @@ def register(app):
             # Check slug unique
             if Company.query.filter_by(slug=slug).first():
                 slug = f'{slug}-{Company.query.count()}'
+            tipo_relacion = request.form.get('tipo_relacion', '')
             emp = Company(nombre=nombre, slug=slug, nit=nit, max_users=max_users,
                           plan=plan, activo=True, creado_por=current_user.id)
             db.session.add(emp)
             db.session.flush()
             # Create ConfigEmpresa for the new company
             db.session.add(ConfigEmpresa(nombre=nombre, company_id=emp.id))
+            # Create relationship with platform company
+            if tipo_relacion in ('cliente', 'proveedor', 'ambos'):
+                rel = CompanyRelationship(
+                    company_from_id=company.id,
+                    company_to_id=emp.id,
+                    tipo=tipo_relacion,
+                    activo=True
+                )
+                db.session.add(rel)
             # Seed PUC for new company
             try:
                 from company_config import COMPANY as _CC

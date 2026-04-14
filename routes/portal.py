@@ -616,3 +616,82 @@ def register(app):
             flash('Error al confirmar el anticipo.', 'danger')
         return redirect(url_for('portal_proveedor'))
 
+    # ══════════════════════════════════════════════════════════════
+    # PORTAL INTER-EMPRESA: ver mis datos en otra empresa
+    # ══════════════════════════════════════════════════════════════
+
+    @app.route('/portal/empresa/<int:company_id>')
+    @login_required
+    def portal_interempresa(company_id):
+        """Ver mis pedidos/OC en otra empresa con la que tengo relacion."""
+        from flask import g
+        my_company_id = g.company_id
+        if not my_company_id:
+            return redirect(url_for('seleccionar_empresa'))
+        rel = CompanyRelationship.query.filter(
+            db.or_(
+                db.and_(CompanyRelationship.company_from_id == company_id,
+                        CompanyRelationship.company_to_id == my_company_id),
+                db.and_(CompanyRelationship.company_from_id == my_company_id,
+                        CompanyRelationship.company_to_id == company_id)
+            ),
+            CompanyRelationship.activo == True
+        ).first()
+        if not rel:
+            flash('No tienes relacion con esa empresa.', 'danger')
+            return redirect(url_for('dashboard'))
+        other_company = db.session.get(Company, company_id)
+        if not other_company:
+            return redirect(url_for('dashboard'))
+        my_nit = ''
+        try:
+            my_co = db.session.get(Company, my_company_id)
+            my_nit = my_co.nit or ''
+        except Exception: pass
+        if rel.company_from_id == my_company_id:
+            my_type = rel.tipo
+        else:
+            my_type = 'proveedor' if rel.tipo == 'cliente' else ('cliente' if rel.tipo == 'proveedor' else 'ambos')
+        ventas_conmigo = []
+        oc_conmigo = []
+        try:
+            if my_type in ('cliente', 'ambos') and my_nit:
+                ventas_conmigo = db.session.execute(
+                    db.text("SELECT v.id, v.numero, v.titulo, v.total, v.estado, v.creado_en FROM ventas v JOIN clientes c ON v.cliente_id = c.id WHERE v.company_id = :cid AND c.nit = :nit ORDER BY v.creado_en DESC LIMIT 50"),
+                    {'cid': company_id, 'nit': my_nit}
+                ).fetchall()
+            if my_type in ('proveedor', 'ambos') and my_nit:
+                oc_conmigo = db.session.execute(
+                    db.text("SELECT oc.id, oc.numero, oc.total, oc.estado, oc.fecha_emision FROM ordenes_compra oc JOIN proveedores p ON oc.proveedor_id = p.id WHERE oc.company_id = :cid AND p.nit = :nit ORDER BY oc.fecha_emision DESC LIMIT 50"),
+                    {'cid': company_id, 'nit': my_nit}
+                ).fetchall()
+        except Exception as e:
+            logging.warning(f'portal_interempresa error: {e}')
+        return render_template('portal/interempresa.html',
+                               other_company=other_company, my_type=my_type,
+                               ventas=ventas_conmigo, ordenes=oc_conmigo)
+
+    @app.route('/portal/mis-relaciones')
+    @login_required
+    def portal_mis_relaciones():
+        """Lista de empresas con las que tengo relacion comercial."""
+        from flask import g
+        my_cid = g.company_id
+        if not my_cid:
+            return redirect(url_for('seleccionar_empresa'))
+        rels = CompanyRelationship.query.filter(
+            db.or_(CompanyRelationship.company_from_id == my_cid,
+                   CompanyRelationship.company_to_id == my_cid),
+            CompanyRelationship.activo == True
+        ).all()
+        empresas_rel = []
+        for r in rels:
+            if r.company_from_id == my_cid:
+                other = db.session.get(Company, r.company_to_id)
+                tipo_display = r.tipo
+            else:
+                other = db.session.get(Company, r.company_from_id)
+                tipo_display = 'proveedor' if r.tipo == 'cliente' else ('cliente' if r.tipo == 'proveedor' else 'ambos')
+            if other and other.activo:
+                empresas_rel.append({'company': other, 'tipo': tipo_display})
+        return render_template('portal/mis_relaciones.html', empresas=empresas_rel)

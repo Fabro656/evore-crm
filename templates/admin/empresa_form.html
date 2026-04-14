@@ -31,6 +31,17 @@
         <option value="{{ p }}" {% if obj and obj.plan==p %}selected{% endif %}>{{ l }}</option>
         {% endfor %}
       </select></div>
+    {% if not obj %}
+    <div class="col-12 col-md-6"><label class="form-label">Relacion con tu empresa</label>
+      <select name="tipo_relacion" class="form-select">
+        <option value="">Ninguna (empresa independiente)</option>
+        <option value="cliente">Es mi cliente</option>
+        <option value="proveedor">Es mi proveedor</option>
+        <option value="ambos">Cliente y proveedor</option>
+      </select>
+      <div class="form-text">Si seleccionas una relacion, la empresa podra ver sus pedidos/OC contigo desde su portal.</div>
+    </div>
+    {% endif %}
     {% if obj %}
     <div class="col-12 col-md-6"><label class="form-label">Estado</label>
       <div class="form-check form-switch mt-2">
