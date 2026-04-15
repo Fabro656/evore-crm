@@ -2,55 +2,66 @@
 {% block title %}Brainstorming — {{ p.nombre }}{% endblock %}{% block page_title %}{{ p.codigo }} — Brainstorming{% endblock %}
 {% block topbar_actions %}
 <div class="d-flex gap-2">
-  <button class="btn btn-sm btn-outline-secondary" onclick="bsFullscreen()"><i class="bi bi-arrows-fullscreen me-1"></i>Pantalla completa</button>
+  <button class="btn btn-sm btn-outline-secondary" onclick="bsFullscreen()"><i class="bi bi-arrows-fullscreen"></i></button>
   <a href="{{ url_for('proyecto_ver', id=p.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Proyecto</a>
 </div>
 {% endblock %}
 {% block content %}
-<div id="bsWrap" style="max-width:1400px;margin:0 auto">
+<div id="bsWrap" style="display:flex;flex-direction:column;height:calc(100vh - 120px);margin:-1rem -1.25rem -1rem -1.25rem">
   {# Toolbar #}
-  <div class="fc mb-2" style="padding:.5rem .75rem">
-    <form method="POST" action="{{ url_for('proyecto_brainstorm_nota', pid=p.id) }}" class="d-flex gap-2 align-items-center flex-wrap">
-      <input type="text" name="contenido" class="form-control form-control-sm" placeholder="Nueva idea..." required style="flex:2;min-width:150px">
-      <select name="color" class="form-select form-select-sm" style="width:auto;font-size:.78rem">
+  <div style="padding:.4rem .75rem;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;z-index:50">
+    <form method="POST" action="{{ url_for('proyecto_brainstorm_nota', pid=p.id) }}" class="d-flex gap-2 align-items-center" style="flex:1;min-width:200px">
+      <input type="text" name="contenido" class="form-control form-control-sm" placeholder="Nueva idea..." required style="max-width:250px">
+      <select name="color" class="form-select form-select-sm" style="width:auto;font-size:.75rem">
         <option value="#FBBF24">Amarillo</option><option value="#60A5FA">Azul</option>
         <option value="#34D399">Verde</option><option value="#F87171">Rojo</option>
         <option value="#A78BFA">Morado</option><option value="#FB923C">Naranja</option>
       </select>
-      <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Agregar</button>
-      <div style="border-left:1px solid var(--border);height:24px;margin:0 .25rem"></div>
-      <span style="font-size:.72rem;color:var(--text2)">{{ notas|length }} ideas | Ranking: <span id="bsTopIdea" class="fw-bold">—</span></span>
+      <button type="submit" class="btn btn-primary btn-sm" style="font-size:.75rem"><i class="bi bi-plus-lg me-1"></i>Agregar</button>
     </form>
+    <div style="border-left:1px solid var(--border);height:24px"></div>
+    {# Drawing tools #}
+    <div class="d-flex gap-1 align-items-center">
+      <span style="font-size:.68rem;color:var(--text2);font-weight:600">Dibujo:</span>
+      <button class="btn btn-sm bs-tool" data-tool="pen" onclick="setTool('pen')" style="font-size:.7rem;padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface2)" title="Lapiz fino"><i class="bi bi-pencil"></i></button>
+      <button class="btn btn-sm bs-tool" data-tool="marker" onclick="setTool('marker')" style="font-size:.7rem;padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface2)" title="Marcador grueso"><i class="bi bi-brush"></i></button>
+      <button class="btn btn-sm bs-tool" data-tool="highlighter" onclick="setTool('highlighter')" style="font-size:.7rem;padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface2)" title="Resaltador"><i class="bi bi-highlighter"></i></button>
+      <button class="btn btn-sm bs-tool" data-tool="eraser" onclick="setTool('eraser')" style="font-size:.7rem;padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface2)" title="Borrador"><i class="bi bi-eraser"></i></button>
+      <button class="btn btn-sm" onclick="setTool('none')" style="font-size:.7rem;padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface2)" title="Mover notas"><i class="bi bi-cursor"></i></button>
+      <input type="color" id="bsPenColor" value="#E53935" style="width:24px;height:24px;border:none;padding:0;cursor:pointer" title="Color">
+      <button class="btn btn-sm btn-outline-danger" onclick="clearDrawing()" style="font-size:.65rem;padding:1px 6px" title="Borrar todo el dibujo"><i class="bi bi-trash me-1"></i>Limpiar</button>
+    </div>
+    <div style="border-left:1px solid var(--border);height:24px"></div>
+    <span style="font-size:.7rem;color:var(--text2)">{{ notas|length }} ideas{% set top_score = notas|map(attribute='votos_up')|max if notas else 0 %}</span>
   </div>
 
   {# Board #}
-  <div id="bsBoard" style="position:relative;height:600px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);overflow:auto">
-    <svg id="bsSvg" style="position:absolute;top:0;left:0;width:3000px;height:2000px;pointer-events:none;z-index:1"></svg>
+  <div id="bsBoard" style="flex:1;position:relative;background:var(--surface2);overflow:auto;cursor:default">
+    {# Drawing canvas (behind notes) #}
+    <canvas id="bsCanvas" style="position:absolute;top:0;left:0;z-index:1;pointer-events:none" width="4000" height="3000"></canvas>
+    {# Interaction layer for drawing #}
+    <div id="bsDrawLayer" style="position:absolute;top:0;left:0;width:4000px;height:3000px;z-index:2;pointer-events:none"></div>
+    {# Notes #}
     {% for n in notas %}
-    {% set votantes_dict = (n.votantes or '{}')|string %}
-    {% set mi_voto = '' %}
-    <div class="bs-note" data-nid="{{ n.id }}" style="position:absolute;left:{{ n.pos_x }}px;top:{{ n.pos_y }}px;width:200px;background:{{ n.color or '#FBBF24' }};border-radius:10px;padding:12px;box-shadow:0 3px 10px rgba(0,0,0,.12);cursor:grab;z-index:5;user-select:none"
-         onmousedown="bsDrag(event,this)">
-      <div style="font-size:.85rem;color:#1a1a1a;font-weight:500;line-height:1.4;min-height:40px;word-wrap:break-word;pointer-events:none">{{ n.contenido }}</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;pointer-events:auto">
+    <div class="bs-note" data-nid="{{ n.id }}" style="position:absolute;left:{{ n.pos_x }}px;top:{{ n.pos_y }}px;width:200px;background:{{ n.color or '#FBBF24' }};border-radius:10px;padding:12px;box-shadow:0 3px 10px rgba(0,0,0,.12);cursor:grab;z-index:10;user-select:none">
+      <div class="bs-note-content" style="font-size:.85rem;color:#1a1a1a;font-weight:500;line-height:1.4;min-height:36px;word-wrap:break-word">{{ n.contenido }}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
         <div class="d-flex align-items-center gap-1">
           <button class="btn btn-sm p-0 bs-vote" data-nid="{{ n.id }}" data-voto="up" style="border:none;background:none;font-size:.85rem;cursor:pointer" title="Buena idea"><i class="bi bi-hand-thumbs-up{% if n.votos_up %}-fill text-success{% endif %}"></i></button>
-          <span style="font-size:.72rem;font-weight:700;color:#1a1a1a">{{ n.votos_up - n.votos_down }}</span>
+          <span class="fw-bold" style="font-size:.75rem;color:#1a1a1a">{{ n.votos_up - n.votos_down }}</span>
           <button class="btn btn-sm p-0 bs-vote" data-nid="{{ n.id }}" data-voto="down" style="border:none;background:none;font-size:.85rem;cursor:pointer" title="Mejorar"><i class="bi bi-hand-thumbs-down{% if n.votos_down %}-fill text-danger{% endif %}"></i></button>
         </div>
-        <div style="font-size:.6rem;color:rgba(0,0,0,.4)">{{ n.autor.nombre }}</div>
-        <form method="POST" action="{{ url_for('proyecto_brainstorm_nota_eliminar', nid=n.id) }}" class="m-0" style="pointer-events:auto">
-          <button class="btn btn-sm p-0" style="border:none;background:none;color:rgba(0,0,0,.3);font-size:.65rem" onclick="return confirm('Eliminar?')"><i class="bi bi-x-lg"></i></button>
+        <span style="font-size:.58rem;color:rgba(0,0,0,.35)">{{ n.autor.nombre }}</span>
+        <form method="POST" action="{{ url_for('proyecto_brainstorm_nota_eliminar', nid=n.id) }}" class="m-0">
+          <button class="btn btn-sm p-0" style="border:none;background:none;color:rgba(0,0,0,.25);font-size:.6rem" onclick="return confirm('Eliminar?')"><i class="bi bi-x-lg"></i></button>
         </form>
       </div>
-      {% if n.grupo_nombre %}<div style="position:absolute;top:-8px;right:8px;font-size:.55rem;background:rgba(0,0,0,.6);color:#fff;padding:1px 6px;border-radius:3px">{{ n.grupo_nombre }}</div>{% endif %}
     </div>
     {% endfor %}
-
     {% if not notas %}
-    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:var(--text2);pointer-events:none">
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:var(--text2);pointer-events:none;z-index:5">
       <i class="bi bi-lightbulb" style="font-size:3rem;opacity:.3"></i>
-      <p style="font-size:.9rem;margin-top:.5rem">Agrega la primera idea</p>
+      <p style="font-size:.9rem;margin-top:.5rem">Agrega ideas y dibuja libremente</p>
     </div>
     {% endif %}
   </div>
@@ -58,65 +69,154 @@
 
 <script>
 var _csrf='{{ csrf_token }}';
+var _tool='none', _drawing=false, _lastX=0, _lastY=0;
+var _canvas, _ctx, _fadeTimer=null;
 
-// Drag notes
-var _bsDragging=null,_bsOff={x:0,y:0};
-function bsDrag(e,el){
-  if(e.target.closest('.bs-vote')||e.target.closest('form')||e.target.closest('button'))return;
-  _bsDragging=el;
+// Init canvas
+_canvas=document.getElementById('bsCanvas');
+_ctx=_canvas.getContext('2d');
+
+// Load saved drawing
+try{
+  var savedDraw=localStorage.getItem('bs_draw_{{ p.id }}');
+  if(savedDraw){var img=new Image();img.onload=function(){_ctx.drawImage(img,0,0);};img.src=savedDraw;}
+}catch(e){}
+
+function saveDrawing(){try{localStorage.setItem('bs_draw_{{ p.id }}',_canvas.toDataURL());}catch(e){}}
+
+var TOOL_CONFIG={
+  pen:{width:2,opacity:1,comp:'source-over'},
+  marker:{width:6,opacity:0.9,comp:'source-over'},
+  highlighter:{width:20,opacity:0.3,comp:'source-over'},
+  eraser:{width:30,opacity:1,comp:'destination-out'}
+};
+
+function setTool(t){
+  _tool=t;
   var board=document.getElementById('bsBoard');
-  var rect=board.getBoundingClientRect();
-  _bsOff.x=e.clientX-parseInt(el.style.left);
-  _bsOff.y=e.clientY-parseInt(el.style.top);
-  el.style.cursor='grabbing';el.style.zIndex='50';
-  document.onmousemove=function(ev){
-    if(!_bsDragging)return;
-    var nx=Math.max(0,ev.clientX-_bsOff.x+board.scrollLeft);
-    var ny=Math.max(0,ev.clientY-_bsOff.y+board.scrollTop);
-    _bsDragging.style.left=nx+'px';
-    _bsDragging.style.top=ny+'px';
-  };
-  document.onmouseup=function(){
-    if(!_bsDragging)return;
-    _bsDragging.style.cursor='grab';_bsDragging.style.zIndex='5';
-    var nid=_bsDragging.dataset.nid;
-    fetch('/api/proyectos/brainstorm/nota/'+nid+'/mover',{
-      method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrf},
-      body:JSON.stringify({x:parseInt(_bsDragging.style.left),y:parseInt(_bsDragging.style.top)})
-    });
-    _bsDragging=null;document.onmousemove=null;document.onmouseup=null;
-  };
-  e.preventDefault();
+  var drawLayer=document.getElementById('bsDrawLayer');
+  document.querySelectorAll('.bs-tool').forEach(function(b){b.style.background=b.dataset.tool===t?'var(--ac)':'var(--surface2)';b.style.color=b.dataset.tool===t?'#fff':'';});
+  if(t==='none'){
+    drawLayer.style.pointerEvents='none';
+    board.style.cursor='default';
+    document.querySelectorAll('.bs-note').forEach(function(n){n.style.pointerEvents='';});
+  } else if(t==='eraser'){
+    drawLayer.style.pointerEvents='auto';
+    board.style.cursor='crosshair';
+    document.querySelectorAll('.bs-note').forEach(function(n){n.style.pointerEvents='none';});
+  } else {
+    drawLayer.style.pointerEvents='auto';
+    board.style.cursor='crosshair';
+    document.querySelectorAll('.bs-note').forEach(function(n){n.style.pointerEvents='none';});
+  }
+  // Start fade timer for drawings
+  if(_fadeTimer) clearInterval(_fadeTimer);
+  if(t!=='none'&&t!=='eraser'){
+    _fadeTimer=setInterval(fadeDrawing,30000); // fade every 30s
+  }
 }
+
+// Drawing events on draw layer
+var drawLayer=document.getElementById('bsDrawLayer');
+drawLayer.addEventListener('mousedown',function(e){
+  if(_tool==='none')return;
+  _drawing=true;
+  var board=document.getElementById('bsBoard');
+  _lastX=e.clientX-board.getBoundingClientRect().left+board.scrollLeft;
+  _lastY=e.clientY-board.getBoundingClientRect().top+board.scrollTop;
+});
+drawLayer.addEventListener('mousemove',function(e){
+  if(!_drawing||_tool==='none')return;
+  var board=document.getElementById('bsBoard');
+  var x=e.clientX-board.getBoundingClientRect().left+board.scrollLeft;
+  var y=e.clientY-board.getBoundingClientRect().top+board.scrollTop;
+  var cfg=TOOL_CONFIG[_tool]||TOOL_CONFIG.pen;
+  _ctx.globalAlpha=cfg.opacity;
+  _ctx.globalCompositeOperation=cfg.comp;
+  _ctx.strokeStyle=_tool==='eraser'?'#000':document.getElementById('bsPenColor').value;
+  _ctx.lineWidth=cfg.width;
+  _ctx.lineCap='round';_ctx.lineJoin='round';
+  _ctx.beginPath();_ctx.moveTo(_lastX,_lastY);_ctx.lineTo(x,y);_ctx.stroke();
+  _lastX=x;_lastY=y;
+});
+drawLayer.addEventListener('mouseup',function(){_drawing=false;saveDrawing();});
+drawLayer.addEventListener('mouseleave',function(){_drawing=false;saveDrawing();});
+
+// Touch support
+drawLayer.addEventListener('touchstart',function(e){
+  if(_tool==='none')return;
+  e.preventDefault();_drawing=true;
+  var t=e.touches[0],board=document.getElementById('bsBoard');
+  _lastX=t.clientX-board.getBoundingClientRect().left+board.scrollLeft;
+  _lastY=t.clientY-board.getBoundingClientRect().top+board.scrollTop;
+},{passive:false});
+drawLayer.addEventListener('touchmove',function(e){
+  if(!_drawing||_tool==='none')return;
+  e.preventDefault();
+  var t=e.touches[0],board=document.getElementById('bsBoard');
+  var x=t.clientX-board.getBoundingClientRect().left+board.scrollLeft;
+  var y=t.clientY-board.getBoundingClientRect().top+board.scrollTop;
+  var cfg=TOOL_CONFIG[_tool]||TOOL_CONFIG.pen;
+  _ctx.globalAlpha=cfg.opacity;_ctx.globalCompositeOperation=cfg.comp;
+  _ctx.strokeStyle=_tool==='eraser'?'#000':document.getElementById('bsPenColor').value;
+  _ctx.lineWidth=cfg.width;_ctx.lineCap='round';_ctx.lineJoin='round';
+  _ctx.beginPath();_ctx.moveTo(_lastX,_lastY);_ctx.lineTo(x,y);_ctx.stroke();
+  _lastX=x;_lastY=y;
+},{passive:false});
+drawLayer.addEventListener('touchend',function(){_drawing=false;saveDrawing();});
+
+function fadeDrawing(){
+  // Gradually fade the canvas
+  _ctx.globalAlpha=0.02;_ctx.globalCompositeOperation='destination-out';
+  _ctx.fillRect(0,0,_canvas.width,_canvas.height);
+  _ctx.globalAlpha=1;_ctx.globalCompositeOperation='source-over';
+  saveDrawing();
+}
+
+function clearDrawing(){
+  if(!confirm('Borrar todo el dibujo?'))return;
+  _ctx.clearRect(0,0,_canvas.width,_canvas.height);
+  try{localStorage.removeItem('bs_draw_{{ p.id }}');}catch(e){}
+}
+
+// Drag notes (only when tool=none)
+document.querySelectorAll('.bs-note').forEach(function(note){
+  note.addEventListener('mousedown',function(e){
+    if(_tool!=='none')return;
+    if(e.target.closest('.bs-vote')||e.target.closest('form')||e.target.closest('button'))return;
+    var el=this,board=document.getElementById('bsBoard');
+    var off={sx:e.clientX,sy:e.clientY,ox:parseInt(el.style.left),oy:parseInt(el.style.top)};
+    el.style.cursor='grabbing';el.style.zIndex='50';
+    document.onmousemove=function(ev){
+      el.style.left=Math.max(0,off.ox+(ev.clientX-off.sx))+'px';
+      el.style.top=Math.max(0,off.oy+(ev.clientY-off.sy))+'px';
+    };
+    document.onmouseup=function(){
+      el.style.cursor='grab';el.style.zIndex='10';
+      fetch('/api/proyectos/brainstorm/nota/'+el.dataset.nid+'/mover',{
+        method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrf},
+        body:JSON.stringify({x:parseInt(el.style.left),y:parseInt(el.style.top)})
+      });
+      document.onmousemove=null;document.onmouseup=null;
+    };
+    e.preventDefault();
+  });
+});
 
 // Vote
 document.querySelectorAll('.bs-vote').forEach(function(btn){
   btn.addEventListener('click',function(e){
     e.stopPropagation();
-    var nid=this.dataset.nid, voto=this.dataset.voto;
-    fetch('/api/proyectos/brainstorm/nota/'+nid+'/votar',{
+    fetch('/api/proyectos/brainstorm/nota/'+this.dataset.nid+'/votar',{
       method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrf},
-      body:JSON.stringify({voto:voto})
-    }).then(r=>r.json()).then(function(d){
-      if(d.ok) location.reload();
-    });
+      body:JSON.stringify({voto:this.dataset.voto})
+    }).then(r=>r.json()).then(function(d){if(d.ok)location.reload();});
   });
 });
 
-// Show top idea
-var notes=document.querySelectorAll('.bs-note');
-var topScore=-999,topText='—';
-notes.forEach(function(n){
-  var scoreEl=n.querySelector('[style*="font-weight:700"]');
-  if(scoreEl){var s=parseInt(scoreEl.textContent);if(s>topScore){topScore=s;topText=n.querySelector('div').textContent.trim().substring(0,30);}}
-});
-var topEl=document.getElementById('bsTopIdea');
-if(topEl&&topScore>-999) topEl.textContent=topText+(topScore>0?' (+'+topScore+')':'');
-
 function bsFullscreen(){
   var el=document.getElementById('bsWrap');
-  if(!document.fullscreenElement){el.requestFullscreen();el.style.background='var(--surface)';el.style.padding='1rem';el.style.maxWidth='100%';}
-  else{document.exitFullscreen();el.style.background='';el.style.padding='';el.style.maxWidth='1400px';}
+  if(!document.fullscreenElement){el.requestFullscreen();}else{document.exitFullscreen();}
 }
 </script>
 {% endblock %}
