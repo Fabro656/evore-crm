@@ -12,7 +12,8 @@
 {% endblock %}
 {% block content %}<div class="fc" style="max-width:100%"><form method="POST"><div class="row g-3">
   <div class="col-12 col-md-8"><label class="form-label">Título de la cotización <span class="req">*</span></label>
-    <input type="text" name="titulo" class="form-control" aria-label="Titulo de la cotizacion" placeholder="Ej: Diseño y producción de catálogo Q2 2026" value="{{ obj.titulo if obj else '' }}" required></div>
+    <input type="text" name="titulo" class="form-control" aria-label="Titulo de la cotizacion" placeholder="Se genera automaticamente..." value="{{ obj.titulo if obj else '' }}" required>
+    <div class="form-text" style="font-size:.7rem">Se genera automatico. Edita si necesitas personalizarlo.</div></div>
   <div class="col-12 col-md-4"><label class="form-label">Cliente</label>
     <select name="cliente_id" class="form-select" aria-label="Seleccionar cliente">
       <option value="">— Sin cliente —</option>
@@ -413,7 +414,39 @@ document.getElementById('pctAnticipo').addEventListener('input',calcTotal);
 populateAllProdSelects();
 populateAllSrvSelects();
 calcTotal();
-setupAutoTitulo('[name="titulo"]',['[name="cliente_id"]','[name="fecha_emision"]']);
+// Custom auto-titulo: empresa + producto + fecha emision - vencimiento
+(function(){
+  var tEl=document.querySelector('[name="titulo"]');
+  if(!tEl) return;
+  function fmtDate(v){
+    if(!v) return '';
+    try{var d=new Date(v+'T00:00:00');return d.toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit',year:'numeric'});}catch(e){return v;}
+  }
+  function buildTitulo(){
+    if(tEl._editadoManual) return;
+    var clienteSel=document.querySelector('[name="cliente_id"]');
+    var cliente=clienteSel&&clienteSel.selectedIndex>0?clienteSel.options[clienteSel.selectedIndex].text:'';
+    var firstProd=document.querySelector('.item-nombre');
+    var prod=firstProd&&firstProd.selectedIndex>0?firstProd.options[firstProd.selectedIndex].text:'';
+    if(prod) prod=prod.replace(/\s*\(.*\)$/,'').trim();
+    var fe=fmtDate(document.querySelector('[name="fecha_emision"]').value);
+    var fv=fmtDate(document.querySelector('[name="fecha_validez"]').value);
+    var partes=[];
+    if(cliente) partes.push(cliente);
+    if(prod) partes.push(prod);
+    if(fe&&fv) partes.push(fe+' — '+fv);
+    else if(fe) partes.push(fe);
+    if(partes.length) tEl.value=partes.join(', ');
+  }
+  tEl.addEventListener('input',function(){this._editadoManual=true;});
+  ['[name="cliente_id"]','[name="fecha_emision"]','[name="fecha_validez"]'].forEach(function(s){
+    var el=document.querySelector(s);
+    if(el){el.addEventListener('change',buildTitulo);el.addEventListener('input',buildTitulo);}
+  });
+  // Also listen for product changes
+  document.addEventListener('change',function(e){if(e.target.classList.contains('item-nombre'))buildTitulo();});
+  buildTitulo();
+})();
 
 // Pre-fill de envío desde simulador logístico
 {% if envio_prefill %}
