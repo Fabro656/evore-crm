@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}{{ curso.titulo }}{% endblock %}{% block page_title %}{{ curso.titulo }}{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('capacitacion_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Cursos</a>{% endblock %}
+{% block content %}
+<div style="max-width:800px;margin:0 auto">
+  <div class="fc mb-3">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:var(--surface2)">
+        <i class="{{ curso.icono or 'bi-mortarboard' }}" style="font-size:1.4rem;color:var(--ac)"></i>
+      </div>
+      <div>
+        <h5 class="fw-bold mb-1" style="color:var(--text1)">{{ curso.titulo }}</h5>
+        <p class="text-muted mb-0" style="font-size:.85rem">{{ curso.descripcion or '' }}</p>
+        <div class="mt-1">
+          <span class="badge {% if curso.nivel=='basico' %}bg-success{% elif curso.nivel=='intermedio' %}bg-warning text-dark{% else %}bg-danger{% endif %}" style="font-size:.65rem">{{ curso.nivel|title }}</span>
+          <span class="text-muted" style="font-size:.75rem;margin-left:.5rem">{{ lecciones|length }} lecciones</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h6 class="fw-bold mb-3"><i class="bi bi-list-ol me-2 text-primary"></i>Lecciones</h6>
+  {% for l in lecciones %}
+  {% set done = l.id in completadas_ids %}
+  <a href="{{ url_for('capacitacion_leccion', id=l.id) }}" class="text-decoration-none d-block mb-2">
+    <div class="fc d-flex align-items-center gap-3" style="padding:.85rem 1.1rem;transition:transform .12s;{% if done %}border-left:3px solid var(--green){% endif %}" onmouseenter="this.style.transform='translateX(4px)'" onmouseleave="this.style.transform=''">
+      <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:32px;height:32px;background:{% if done %}var(--green){% else %}var(--surface2){% endif %};flex-shrink:0">
+        {% if done %}
+        <i class="bi bi-check-lg" style="color:#fff;font-size:.9rem"></i>
+        {% else %}
+        <span style="font-size:.8rem;font-weight:700;color:var(--text2)">{{ loop.index }}</span>
+        {% endif %}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div class="fw-semibold {% if done %}text-decoration-line-through{% endif %}" style="color:var(--text1);font-size:.9rem">{{ l.titulo }}</div>
+        <div class="text-muted" style="font-size:.72rem"><i class="bi bi-clock me-1"></i>{{ l.duracion_min }} min</div>
+      </div>
+      <i class="bi bi-chevron-right" style="color:var(--text2);opacity:.4"></i>
+    </div>
+  </a>
+  {% endfor %}
+
+  <div class="mt-4 d-flex gap-2 align-items-center flex-wrap">
+    {% if todas_completas and curso.preguntas|length > 0 %}
+    <a href="{{ url_for('capacitacion_quiz', id=curso.id) }}" class="btn btn-primary">
+      <i class="bi bi-pencil-square me-1"></i>{{ 'Reintentar evaluacion' if evaluacion else 'Presentar evaluacion' }}
+    </a>
+    {% elif curso.preguntas|length > 0 %}
+    <button class="btn btn-secondary" disabled><i class="bi bi-lock me-1"></i>Completa todas las lecciones para evaluar</button>
+    {% endif %}
+    {% if evaluacion %}
+    <a href="{{ url_for('capacitacion_resultado', id=curso.id) }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-bar-chart me-1"></i>Ver ultimo resultado ({{ evaluacion.porcentaje|round|int }}%)
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

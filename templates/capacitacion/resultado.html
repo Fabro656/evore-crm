@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Resultado: {{ curso.titulo }}{% endblock %}{% block page_title %}Resultado{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('capacitacion_curso', id=curso.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>{{ curso.titulo }}</a>{% endblock %}
+{% block content %}
+<div style="max-width:700px;margin:0 auto">
+  <div class="fc text-center mb-4" style="padding:2rem;border-top:4px solid {% if ev.aprobado %}var(--green){% else %}#E53935{% endif %}">
+    <div style="font-size:3.5rem;font-weight:800;color:{% if ev.aprobado %}var(--green){% else %}#E53935{% endif %}">{{ ev.porcentaje|round|int }}%</div>
+    <div class="fw-bold mt-1" style="font-size:1.2rem;color:var(--text1)">
+      {% if ev.aprobado %}
+      <i class="bi bi-trophy-fill me-2" style="color:#FFD700"></i>Aprobado
+      {% else %}
+      <i class="bi bi-x-circle me-2"></i>No aprobado
+      {% endif %}
+    </div>
+    <div class="text-muted mt-1" style="font-size:.85rem">{{ ev.puntaje }} de {{ ev.total_preguntas }} respuestas correctas</div>
+    <div class="text-muted" style="font-size:.75rem">{{ ev.creado_en.strftime('%d/%m/%Y %H:%M') if ev.creado_en else '' }}</div>
+    {% if ev.aprobado %}
+    <div class="mt-2" style="font-size:.82rem;color:var(--green)"><i class="bi bi-bell me-1"></i>Tu resultado fue notificado al administrador de tu empresa.</div>
+    {% endif %}
+  </div>
+
+  <h6 class="fw-bold mb-3"><i class="bi bi-list-check me-2 text-primary"></i>Detalle de respuestas</h6>
+  {% for r in respuestas %}
+  <div class="fc mb-2" style="padding:.85rem 1.1rem;border-left:3px solid {% if r.correcto %}var(--green){% else %}#E53935{% endif %}">
+    <div class="d-flex align-items-start gap-2">
+      <i class="bi {% if r.correcto %}bi-check-circle-fill text-success{% else %}bi-x-circle-fill text-danger{% endif %}" style="margin-top:2px"></i>
+      <div style="flex:1">
+        <div class="fw-semibold" style="font-size:.88rem;color:var(--text1)">{{ r.texto }}</div>
+        {% if r.opciones %}
+        <div class="mt-1" style="font-size:.82rem">
+          <span style="color:{% if r.correcto %}var(--green){% else %}#E53935{% endif %}">Tu respuesta: {{ r.opciones[r.seleccion] if r.seleccion >= 0 and r.seleccion < r.opciones|length else 'Sin respuesta' }}</span>
+          {% if not r.correcto %}
+          <br><span style="color:var(--green)">Correcta: {{ r.opciones[r.correcta] if r.correcta < r.opciones|length else '?' }}</span>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+  <div class="d-flex gap-2 mt-4">
+    {% if not ev.aprobado %}
+    <a href="{{ url_for('capacitacion_quiz', id=curso.id) }}" class="btn btn-primary"><i class="bi bi-arrow-repeat me-1"></i>Reintentar</a>
+    {% endif %}
+    <a href="{{ url_for('capacitacion_index') }}" class="btn btn-outline-secondary"><i class="bi bi-grid me-1"></i>Ver todos los cursos</a>
+  </div>
+</div>
+{% endblock %}

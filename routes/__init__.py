@@ -21,6 +21,7 @@ from routes import aprobaciones
 from routes import chat
 from routes import foro
 from routes import site
+from routes import capacitacion
 
 def register_all(app):
     auth.register(app)
@@ -45,3 +46,4 @@ def register_all(app):
     chat.register(app)
     foro.register(app)
     site.register(app)
+    capacitacion.register(app)

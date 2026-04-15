@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}{{ leccion.titulo }}{% endblock %}{% block page_title %}{{ curso.titulo }}{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('capacitacion_curso', id=curso.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>{{ curso.titulo }}</a>{% endblock %}
+{% block content %}
+<div style="max-width:800px;margin:0 auto">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <span class="text-muted" style="font-size:.78rem">Leccion {{ idx + 1 }} de {{ total }}</span>
+      <h5 class="fw-bold mb-0" style="color:var(--text1)">{{ leccion.titulo }}</h5>
+    </div>
+    {% if completada %}
+    <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Completada</span>
+    {% endif %}
+  </div>
+
+  <div style="height:4px;background:var(--surface2);border-radius:2px;margin-bottom:1.5rem;overflow:hidden">
+    <div style="width:{{ ((idx + (1 if completada else 0)) / total * 100)|round }}%;height:100%;background:var(--ac);border-radius:2px;transition:width .3s"></div>
+  </div>
+
+  <div class="fc mb-4" style="padding:1.5rem">
+    <div class="leccion-contenido" style="font-size:.9rem;line-height:1.7;color:var(--text1)">
+      {{ leccion.contenido|safe }}
+    </div>
+  </div>
+
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      {% if prev_l %}
+      <a href="{{ url_for('capacitacion_leccion', id=prev_l.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left me-1"></i>Anterior</a>
+      {% endif %}
+    </div>
+    <div class="d-flex gap-2">
+      {% if not completada %}
+      <form method="POST" action="{{ url_for('capacitacion_completar', id=leccion.id) }}">
+        <button type="submit" class="btn btn-success"><i class="bi bi-check-lg me-1"></i>Completar leccion</button>
+      </form>
+      {% elif next_l %}
+      <a href="{{ url_for('capacitacion_leccion', id=next_l.id) }}" class="btn btn-primary">Siguiente <i class="bi bi-chevron-right ms-1"></i></a>
+      {% else %}
+      <a href="{{ url_for('capacitacion_curso', id=curso.id) }}" class="btn btn-primary"><i class="bi bi-flag me-1"></i>Volver al curso</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+<style>
+.leccion-contenido h6{font-weight:700;color:var(--ac);margin-top:1.2rem}
+.leccion-contenido .paso{background:var(--surface2);border-radius:var(--radius);padding:1rem;margin:.75rem 0;border-left:3px solid var(--ac)}
+.leccion-contenido .paso-num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--ac);color:#fff;font-size:.75rem;font-weight:700;margin-right:.5rem}
+.leccion-contenido .tip{background:#FFF8E1;border-radius:var(--radius);padding:.75rem 1rem;margin:.75rem 0;font-size:.85rem;border-left:3px solid #FFB300}
+html[data-theme="dark"] .leccion-contenido .tip{background:rgba(255,179,0,.1)}
+.leccion-contenido .alerta{background:#FFEBEE;border-radius:var(--radius);padding:.75rem 1rem;margin:.75rem 0;font-size:.85rem;border-left:3px solid #E53935}
+html[data-theme="dark"] .leccion-contenido .alerta{background:rgba(229,57,53,.1)}
+</style>
+{% endblock %}

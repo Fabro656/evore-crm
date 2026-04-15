@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}Evaluacion: {{ curso.titulo }}{% endblock %}{% block page_title %}Evaluacion{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('capacitacion_curso', id=curso.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>{{ curso.titulo }}</a>{% endblock %}
+{% block content %}
+<div style="max-width:700px;margin:0 auto">
+  <div class="fc mb-4" style="background:linear-gradient(135deg,#FF6B35,#E53935);color:#fff;border:none">
+    <div class="d-flex align-items-center gap-3">
+      <i class="bi bi-pencil-square" style="font-size:1.8rem;opacity:.8"></i>
+      <div>
+        <h5 class="fw-bold mb-1" style="color:#fff">{{ curso.titulo }}</h5>
+        <p class="mb-0" style="font-size:.85rem;opacity:.85">{{ preguntas|length }} preguntas — necesitas {{ 70 }}% para aprobar. Lee cada pregunta con cuidado.</p>
+      </div>
+    </div>
+  </div>
+
+  <form method="POST">
+    {% for p in preguntas %}
+    <div class="fc mb-3">
+      <div class="d-flex align-items-start gap-2 mb-3">
+        <span class="rounded-circle d-flex align-items-center justify-content-center" style="width:28px;height:28px;background:var(--ac);color:#fff;font-size:.75rem;font-weight:700;flex-shrink:0">{{ loop.index }}</span>
+        <div class="fw-semibold" style="font-size:.92rem;color:var(--text1)">{{ p.texto }}</div>
+      </div>
+      {% for opt in p._opciones %}
+      <label class="d-flex align-items-center gap-2 mb-2" style="padding:.6rem .85rem;border-radius:var(--radius);border:1px solid var(--border);cursor:pointer;transition:all .12s;font-size:.88rem" onmouseenter="this.style.borderColor='var(--ac)'" onmouseleave="this.style.borderColor='var(--border)'">
+        <input type="radio" name="q_{{ p.id }}" value="{{ loop.index0 }}" required style="accent-color:var(--ac)">
+        <span style="color:var(--text1)">{{ opt }}</span>
+      </label>
+      {% endfor %}
+    </div>
+    {% endfor %}
+
+    <div class="d-flex justify-content-between align-items-center mt-4">
+      <a href="{{ url_for('capacitacion_curso', id=curso.id) }}" class="btn btn-outline-secondary">Cancelar</a>
+      <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-send me-2"></i>Enviar evaluacion</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

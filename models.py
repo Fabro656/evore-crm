@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date as date_type
 import json, secrets, os, logging
 
-__all__ = ['Company', 'UserCompany', 'ChatRoom', 'ChatParticipant', 'ChatMessage', 'User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'MovimientoBancario', 'NotaContable', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'MovimientoInventario', 'Notificacion', 'Empleado', 'HoraExtra', 'Comision', 'Incapacidad', 'VacacionTomada', 'Requisicion', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'HistorialPrecio', 'HistorialCotizacion', 'CompanyRelationship', 'Suscripcion', 'ForoPublicacion', 'ForoValoracion', 'ForoApelacion', 'ForoBanner', 'load_user', '_migrate', 'init_db']
+__all__ = ['Company', 'UserCompany', 'ChatRoom', 'ChatParticipant', 'ChatMessage', 'User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'MovimientoBancario', 'NotaContable', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'MovimientoInventario', 'Notificacion', 'Empleado', 'HoraExtra', 'Comision', 'Incapacidad', 'VacacionTomada', 'Requisicion', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'HistorialPrecio', 'HistorialCotizacion', 'CompanyRelationship', 'Suscripcion', 'ForoPublicacion', 'ForoValoracion', 'ForoApelacion', 'ForoBanner', 'CapCurso', 'CapLeccion', 'CapPregunta', 'CapProgreso', 'CapEvaluacion', 'load_user', '_migrate', 'init_db']
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -1364,6 +1364,77 @@ class Suscripcion(db.Model):
     company         = db.relationship('Company', backref=db.backref('suscripciones', lazy=True))
 
 
+# ══════════════════════════════════════════════════════════════════
+# CAPACITACIÓN (Training module)
+# ══════════════════════════════════════════════════════════════════
+
+class CapCurso(db.Model):
+    """Curso de capacitación — contenido global de plataforma."""
+    __tablename__ = 'cap_cursos'
+    id              = db.Column(db.Integer, primary_key=True)
+    titulo          = db.Column(db.String(200), nullable=False)
+    descripcion     = db.Column(db.Text)
+    modulo_crm      = db.Column(db.String(50))  # ventas, compras, produccion, contable, nomina, inventario, tareas, empaques
+    icono           = db.Column(db.String(50), default='bi-mortarboard')
+    orden           = db.Column(db.Integer, default=0)
+    nivel           = db.Column(db.String(20), default='basico')  # basico, intermedio, avanzado
+    activo          = db.Column(db.Boolean, default=True)
+    roles_objetivo  = db.Column(db.Text, default='[]')  # JSON list of roles
+    creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
+    lecciones       = db.relationship('CapLeccion', backref='curso', lazy=True, order_by='CapLeccion.orden')
+    preguntas       = db.relationship('CapPregunta', backref='curso', lazy=True, order_by='CapPregunta.orden')
+
+class CapLeccion(db.Model):
+    """Lección dentro de un curso — paso a paso."""
+    __tablename__ = 'cap_lecciones'
+    id              = db.Column(db.Integer, primary_key=True)
+    curso_id        = db.Column(db.Integer, db.ForeignKey('cap_cursos.id'), nullable=False, index=True)
+    titulo          = db.Column(db.String(200), nullable=False)
+    contenido       = db.Column(db.Text, nullable=False)
+    orden           = db.Column(db.Integer, default=0)
+    duracion_min    = db.Column(db.Integer, default=5)
+    activo          = db.Column(db.Boolean, default=True)
+
+class CapPregunta(db.Model):
+    """Pregunta de evaluación de un curso."""
+    __tablename__ = 'cap_preguntas'
+    id                  = db.Column(db.Integer, primary_key=True)
+    curso_id            = db.Column(db.Integer, db.ForeignKey('cap_cursos.id'), nullable=False, index=True)
+    texto               = db.Column(db.Text, nullable=False)
+    opciones            = db.Column(db.Text, nullable=False)  # JSON: ["opcion A", "opcion B", ...]
+    respuesta_correcta  = db.Column(db.Integer, nullable=False)  # 0-based index
+    orden               = db.Column(db.Integer, default=0)
+
+class CapProgreso(db.Model):
+    """Progreso de un usuario en una lección."""
+    __tablename__ = 'cap_progresos'
+    id              = db.Column(db.Integer, primary_key=True)
+    user_id         = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    company_id      = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=False, index=True)
+    leccion_id      = db.Column(db.Integer, db.ForeignKey('cap_lecciones.id'), nullable=False)
+    completado      = db.Column(db.Boolean, default=False)
+    completado_en   = db.Column(db.DateTime, nullable=True)
+    __table_args__  = (db.UniqueConstraint('user_id', 'company_id', 'leccion_id', name='uq_cap_progreso'),)
+    user            = db.relationship('User', foreign_keys=[user_id])
+    leccion         = db.relationship('CapLeccion', foreign_keys=[leccion_id])
+
+class CapEvaluacion(db.Model):
+    """Resultado de evaluación de un curso por un usuario."""
+    __tablename__ = 'cap_evaluaciones'
+    id              = db.Column(db.Integer, primary_key=True)
+    user_id         = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    company_id      = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=False, index=True)
+    curso_id        = db.Column(db.Integer, db.ForeignKey('cap_cursos.id'), nullable=False)
+    puntaje         = db.Column(db.Integer, nullable=False)
+    total_preguntas = db.Column(db.Integer, nullable=False)
+    porcentaje      = db.Column(db.Float, nullable=False)
+    respuestas      = db.Column(db.Text)  # JSON detailed answers
+    aprobado        = db.Column(db.Boolean, default=False)
+    creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
+    user            = db.relationship('User', foreign_keys=[user_id])
+    curso           = db.relationship('CapCurso', foreign_keys=[curso_id])
+
+
 @login_manager.user_loader
 def load_user(uid): return db.session.get(User, int(uid))
 
@@ -2131,6 +2202,8 @@ def init_db():
         _seed_cuc_mx()
     # Auto-generar SKU para productos que no tengan
     _fix_missing_skus()
+    # Sembrar cursos de capacitacion
+    _seed_capacitacion()
     logging.info(f'App iniciada para: {COMPANY["name"]} ({COMPANY["country"]})')
 
 
@@ -2905,3 +2978,201 @@ def _seed_demo_data():
     except Exception as e:
         db.session.rollback()
         logging.error(f'Error al sembrar datos demo fase 2: {e}')
+
+def _seed_capacitacion():
+    """Seed training courses, lessons and quiz questions."""
+    import json, logging
+    if CapCurso.query.first():
+        return  # Already seeded
+    try:
+        CURSOS = [
+            {
+                'titulo': 'Gestion de Ventas y Cotizaciones',
+                'descripcion': 'Aprende a registrar clientes, crear cotizaciones, convertirlas en ventas y gestionar pagos.',
+                'modulo_crm': 'ventas', 'icono': 'bi-bag-fill', 'orden': 1, 'nivel': 'basico',
+                'roles_objetivo': json.dumps(['vendedor','sales_manager','admin']),
+                'lecciones': [
+                    {'titulo': 'Crear un cliente nuevo', 'orden': 1, 'duracion_min': 5,
+                     'contenido': '<h6>Objetivo</h6><p>Registrar un nuevo cliente con sus contactos y datos comerciales.</p><div class="paso"><span class="paso-num">1</span>Ve al modulo <strong>Clientes</strong> en el sidebar.</div><div class="paso"><span class="paso-num">2</span>Haz clic en <strong>+ Nuevo</strong> en la barra superior.</div><div class="paso"><span class="paso-num">3</span>Completa: empresa, NIT, tipo de documento, direccion comercial y direccion de entrega.</div><div class="paso"><span class="paso-num">4</span>En la seccion <strong>Contactos</strong>, agrega nombre, cargo, email y telefono del contacto principal.</div><div class="paso"><span class="paso-num">5</span>Haz clic en <strong>Crear Cliente</strong>.</div><div class="tip"><i class="bi bi-lightbulb me-1"></i>Si el NIT ya existe como empresa en Evore, se creara automaticamente una relacion comercial bidireccional.</div>'},
+                    {'titulo': 'Elaborar una cotizacion', 'orden': 2, 'duracion_min': 8,
+                     'contenido': '<h6>Objetivo</h6><p>Crear una cotizacion formal con productos, cantidades, precios e IVA.</p><div class="paso"><span class="paso-num">1</span>Ve a <strong>Cotizaciones</strong> desde el dock Comercial.</div><div class="paso"><span class="paso-num">2</span>Clic en <strong>+ Nueva</strong>.</div><div class="paso"><span class="paso-num">3</span>Selecciona el cliente. Si no existe, puedes crearlo desde aqui.</div><div class="paso"><span class="paso-num">4</span>Agrega productos o servicios con cantidad y precio unitario.</div><div class="paso"><span class="paso-num">5</span>El sistema calcula automaticamente subtotal, IVA y total.</div><div class="paso"><span class="paso-num">6</span>Guarda y descarga el PDF para enviar al cliente.</div><div class="tip"><i class="bi bi-lightbulb me-1"></i>Las cotizaciones tienen vigencia. Cuando el cliente aprueba, puedes convertirla en venta con un clic.</div>'},
+                    {'titulo': 'Convertir cotizacion en venta', 'orden': 3, 'duracion_min': 5,
+                     'contenido': '<h6>Objetivo</h6><p>Convertir una cotizacion aprobada en una venta activa en el pipeline.</p><div class="paso"><span class="paso-num">1</span>Abre la cotizacion aprobada.</div><div class="paso"><span class="paso-num">2</span>Haz clic en <strong>Convertir en Venta</strong>.</div><div class="paso"><span class="paso-num">3</span>Se crea automaticamente: la venta en estado <strong>prospecto</strong>, un asiento contable de ingreso y el contrato del cliente en el portal.</div><div class="paso"><span class="paso-num">4</span>La venta aparece en el modulo Ventas lista para avanzar en el pipeline.</div><div class="alerta"><i class="bi bi-exclamation-triangle me-1"></i>Solo el contable puede confirmar el anticipo desde Asientos Contables. Esto cambia la venta a estado anticipo_pagado.</div>'},
+                    {'titulo': 'Pipeline de ventas y estados', 'orden': 4, 'duracion_min': 6,
+                     'contenido': '<h6>Objetivo</h6><p>Entender el flujo de estados de una venta y como avanzarla.</p><div class="paso"><span class="paso-num">1</span>Ve a <strong>Ventas</strong> para ver todas en vista de tarjetas.</div><div class="paso"><span class="paso-num">2</span>Los estados son: <strong>prospecto → negociacion → anticipo_pagado → pagado → entregado → completado</strong>.</div><div class="paso"><span class="paso-num">3</span>Para cambiar estado, abre la venta y usa el boton de cambio de estado.</div><div class="paso"><span class="paso-num">4</span>Al pasar a <strong>anticipo_pagado</strong> se reserva stock automaticamente y se generan OC para materias faltantes.</div><div class="tip"><i class="bi bi-lightbulb me-1"></i>Usa los filtros y el buscador para encontrar ventas rapidamente. Puedes filtrar por estado, cliente o fecha.</div>'},
+                    {'titulo': 'Registrar pagos', 'orden': 5, 'duracion_min': 5,
+                     'contenido': '<h6>Objetivo</h6><p>Confirmar pagos parciales o totales desde Asientos Contables.</p><div class="paso"><span class="paso-num">1</span>Ve a <strong>Finanzas → Operaciones → Asientos contables</strong>.</div><div class="paso"><span class="paso-num">2</span>Busca el asiento de ingreso vinculado a la venta.</div><div class="paso"><span class="paso-num">3</span>Haz clic en <strong>Cobro</strong> y selecciona pago total o parcial.</div><div class="paso"><span class="paso-num">4</span>Indica el metodo de pago (transferencia, efectivo, Nequi).</div><div class="paso"><span class="paso-num">5</span>Al confirmar, el estado de la venta cambia automaticamente.</div><div class="alerta"><i class="bi bi-exclamation-triangle me-1"></i>Los pagos solo los puede confirmar un usuario con rol contable o admin.</div>'},
+                ],
+                'preguntas': [
+                    {'texto': 'Cual es el primer paso para crear una venta en el CRM?', 'opciones': json.dumps(['Ir directamente a Ventas y crear','Registrar un cliente primero','Crear un asiento contable','Enviar un correo al cliente']), 'respuesta_correcta': 1, 'orden': 1},
+                    {'texto': 'Que sucede automaticamente al convertir una cotizacion en venta?', 'opciones': json.dumps(['Se envia un correo al cliente','Se crea asiento contable, contrato y la venta en pipeline','Se descuenta inventario','Se genera la factura DIAN']), 'respuesta_correcta': 1, 'orden': 2},
+                    {'texto': 'Quien puede confirmar el pago de anticipo de una venta?', 'opciones': json.dumps(['El vendedor','El cliente desde el portal','El contable o admin desde Asientos Contables','Cualquier usuario']), 'respuesta_correcta': 2, 'orden': 3},
+                    {'texto': 'Cual es el flujo correcto de estados de una venta?', 'opciones': json.dumps(['prospecto → pagado → entregado','prospecto → negociacion → anticipo_pagado → pagado → entregado → completado','negociacion → produccion → entregado','borrador → enviada → recibida']), 'respuesta_correcta': 1, 'orden': 4},
+                    {'texto': 'Que pasa al cambiar una venta a estado anticipo_pagado?', 'opciones': json.dumps(['Se elimina la cotizacion','Se reserva stock y se generan OC para materias faltantes','Se envia notificacion al cliente','No pasa nada especial']), 'respuesta_correcta': 1, 'orden': 5},
+                ]
+            },
+            {
+                'titulo': 'Compras y Proveedores',
+                'descripcion': 'Registra proveedores, crea cotizaciones, genera ordenes de compra y recibe materiales.',
+                'modulo_crm': 'compras', 'icono': 'bi-cart-check', 'orden': 2, 'nivel': 'basico',
+                'roles_objetivo': json.dumps(['produccion','director_operativo','admin']),
+                'lecciones': [
+                    {'titulo': 'Registrar un proveedor', 'orden': 1, 'duracion_min': 5,
+                     'contenido': '<h6>Objetivo</h6><p>Crear un proveedor con datos de contacto y tipo.</p><div class="paso"><span class="paso-num">1</span>Ve a <strong>Proveedores</strong> desde el dock de Compras.</div><div class="paso"><span class="paso-num">2</span>Clic en <strong>+ Nuevo</strong>.</div><div class="paso"><span class="paso-num">3</span>Completa: nombre, empresa, NIT, email, telefono.</div><div class="paso"><span class="paso-num">4</span>Selecciona el tipo: <strong>proveedor</strong>, <strong>transportista</strong> o <strong>ambos</strong>.</div><div class="paso"><span class="paso-num">5</span>Guarda el proveedor.</div><div class="tip"><i class="bi bi-lightbulb me-1"></i>Los transportistas tambien se registran aqui. Al crear una OC podras asignar transportista y se creara un ticket automatico.</div>'},
+                    {'titulo': 'Crear cotizacion de proveedor', 'orden': 2, 'duracion_min': 6,
+                     'contenido': '<h6>Objetivo</h6><p>Solicitar y registrar cotizaciones de proveedores para materias primas.</p><div class="paso"><span class="paso-num">1</span>Ve a <strong>Cotizaciones de proveedor</strong>.</div><div class="paso"><span class="paso-num">2</span>Clic en <strong>+ Nueva</strong>.</div><div class="paso"><span class="paso-num">3</span>Selecciona proveedor, producto, precio unitario, unidades minimas y plazo de entrega.</div><div class="paso"><span class="paso-num">4</span>El estado inicia como <strong>en revision</strong>. Cambialo a <strong>vigente</strong> cuando el proveedor confirme.</div><div class="tip"><i class="bi bi-lightbulb me-1"></i>Al crear materias primas desde BOM se generan cotizaciones automaticamente en estado "en revision".</div>'},
+                    {'titulo': 'Generar orden de compra', 'orden': 3, 'duracion_min': 8,
+                     'contenido': '<h6>Objetivo</h6><p>Crear una OC seleccionando cotizaciones vigentes del proveedor.</p><div class="paso"><span class="paso-num">1</span>Ve a <strong>Ordenes de compra → Nueva</strong>.</div><div class="paso"><span class="paso-num">2</span>Selecciona el proveedor. Se cargan automaticamente sus cotizaciones.</div><div class="paso"><span class="paso-num">3</span>Marca las cotizaciones que quieres incluir y haz clic en <strong>Agregar seleccionadas</strong>.</div><div class="paso"><span class="paso-num">4</span>Ajusta cantidades y agrega items manuales si es necesario.</div><div class="paso"><span class="paso-num">5</span>Opcionalmente asigna transportista y fecha de recogida.</div><div class="paso"><span class="paso-num">6</span>Guarda. Se genera automaticamente un asiento contable de egreso.</div>'},
+                    {'titulo': 'Confirmar pago y recibir material', 'orden': 4, 'duracion_min': 6,
+                     'contenido': '<h6>Objetivo</h6><p>Pagar la OC y registrar la recepcion de materias primas.</p><div class="paso"><span class="paso-num">1</span>Ve a <strong>Finanzas → Operaciones → Asientos contables</strong>.</div><div class="paso"><span class="paso-num">2</span>Busca el asiento de egreso de la OC y confirma el pago.</div><div class="paso"><span class="paso-num">3</span>El proveedor recibe notificacion en su portal y puede confirmar la recepcion del anticipo.</div><div class="paso"><span class="paso-num">4</span>Cuando llegue el material, ve a <strong>Produccion → Recepcion MP</strong> y registra las cantidades recibidas.</div><div class="paso"><span class="paso-num">5</span>El stock de materias primas se actualiza automaticamente.</div>'},
+                ],
+                'preguntas': [
+                    {'texto': 'Donde se registran los transportistas en el CRM?', 'opciones': json.dumps(['En un modulo aparte de Logistica','En el modulo de Proveedores, con tipo "transportista"','En Configuracion','No se pueden registrar']), 'respuesta_correcta': 1, 'orden': 1},
+                    {'texto': 'Que se genera automaticamente al crear una orden de compra?', 'opciones': json.dumps(['Una factura de venta','Un asiento contable de egreso y contrato proveedor','Un ticket para el cliente','Nada automatico']), 'respuesta_correcta': 1, 'orden': 2},
+                    {'texto': 'Desde donde se confirma el pago de una OC?', 'opciones': json.dumps(['Desde la OC directamente','Desde el modulo de Proveedores','Desde Asientos Contables en Finanzas','Desde el portal del proveedor']), 'respuesta_correcta': 2, 'orden': 3},
+                    {'texto': 'Que pasa cuando un proveedor no tiene cotizaciones vigentes?', 'opciones': json.dumps(['No se puede crear OC','Se pueden agregar items manuales a la OC','El sistema crea cotizaciones automaticamente','Se bloquea el proveedor']), 'respuesta_correcta': 1, 'orden': 4},
+                    {'texto': 'Donde se registra la recepcion de materias primas?', 'opciones': json.dumps(['En el modulo de Compras','En Produccion → Recepcion MP','En Inventario','En Asientos Contables']), 'respuesta_correcta': 1, 'orden': 5},
+                ]
+            },
+            {
+                'titulo': 'Produccion y Recetas (BOM)',
+                'descripcion': 'Crea recetas de producto, gestiona ordenes de produccion y controla el proceso de manufactura.',
+                'modulo_crm': 'produccion', 'icono': 'bi-gear-fill', 'orden': 3, 'nivel': 'intermedio',
+                'roles_objetivo': json.dumps(['produccion','director_operativo','admin']),
+                'lecciones': [
+                    {'titulo': 'Crear una receta de producto (BOM)', 'orden': 1, 'duracion_min': 8,
+                     'contenido': '<h6>Objetivo</h6><p>Definir los ingredientes y cantidades necesarias para producir un producto.</p><div class="paso"><span class="paso-num">1</span>Ve a <strong>Produccion → Recetas</strong>.</div><div class="paso"><span class="paso-num">2</span>Clic en <strong>+ Nueva</strong>.</div><div class="paso"><span class="paso-num">3</span>Selecciona el producto terminado o crea uno nuevo.</div><div class="paso"><span class="paso-num">4</span>Agrega ingredientes: materia prima, cantidad por unidad y clasificacion (MP/Maquila, empaque primario o secundario).</div><div class="paso"><span class="paso-num">5</span>Si necesitas una materia prima nueva, usa el boton <strong>Nueva materia prima</strong> sin salir del formulario.</div><div class="paso"><span class="paso-num">6</span>Define el margen de ganancia (%) y guarda.</div><div class="tip"><i class="bi bi-lightbulb me-1"></i>Al crear materias primas desde aqui se genera automaticamente una cotizacion pendiente en Compras.</div>'},
+                    {'titulo': 'Crear orden de produccion', 'orden': 2, 'duracion_min': 6,
+                     'contenido': '<h6>Objetivo</h6><p>Iniciar la produccion de un lote de productos.</p><div class="paso"><span class="paso-num">1</span>Ve a <strong>Produccion → Ordenes</strong>.</div><div class="paso"><span class="paso-num">2</span>Clic en <strong>+ Nueva</strong>.</div><div class="paso"><span class="paso-num">3</span>Selecciona la receta y la cantidad a producir.</div><div class="paso"><span class="paso-num">4</span>El sistema verifica si hay stock suficiente de materias primas.</div><div class="paso"><span class="paso-num">5</span>Si falta stock, se crean alertas automaticas.</div><div class="paso"><span class="paso-num">6</span>Avanza la orden por los estados: pendiente → en_produccion → completada.</div>'},
+                    {'titulo': 'Gestionar reservas de materia prima', 'orden': 3, 'duracion_min': 5,
+                     'contenido': '<h6>Objetivo</h6><p>Entender como el sistema reserva materias primas para produccion.</p><div class="paso"><span class="paso-num">1</span>Ve a <strong>Produccion → Reservas</strong>.</div><div class="paso"><span class="paso-num">2</span>Aqui ves todas las reservas activas de materias primas.</div><div class="paso"><span class="paso-num">3</span>Las reservas se crean automaticamente al confirmar anticipo de una venta.</div><div class="paso"><span class="paso-num">4</span>El stock reservado se descuenta del stock disponible.</div><div class="paso"><span class="paso-num">5</span>Usa el sistema FIFO con trazabilidad de lotes para asegurar que se use primero el material mas antiguo.</div>'},
+                ],
+                'preguntas': [
+                    {'texto': 'Que es un BOM en el contexto del CRM?', 'opciones': json.dumps(['Un tipo de factura','La lista de materiales (receta) para producir un producto','Un reporte contable','Un tipo de orden de compra']), 'respuesta_correcta': 1, 'orden': 1},
+                    {'texto': 'Que sucede al crear una materia prima desde el formulario de receta?', 'opciones': json.dumps(['Solo se crea la materia prima','Se crea la materia prima y una cotizacion pendiente en Compras','Se descuenta del inventario','Se envia correo al proveedor']), 'respuesta_correcta': 1, 'orden': 2},
+                    {'texto': 'Como se reservan materias primas para produccion?', 'opciones': json.dumps(['Manualmente en cada orden','Automaticamente al confirmar anticipo de venta','No hay sistema de reservas','El proveedor las reserva']), 'respuesta_correcta': 1, 'orden': 3},
+                    {'texto': 'Que sistema usa el CRM para despachar materia prima?', 'opciones': json.dumps(['LIFO (ultimo en entrar, primero en salir)','Aleatorio','FIFO con trazabilidad de lotes y vencimiento','No hay control de lotes']), 'respuesta_correcta': 2, 'orden': 4},
+                ]
+            },
+            {
+                'titulo': 'Contabilidad y Finanzas',
+                'descripcion': 'Navega el PUC, gestiona asientos contables, gastos y genera reportes financieros.',
+                'modulo_crm': 'contable', 'icono': 'bi-currency-dollar', 'orden': 4, 'nivel': 'intermedio',
+                'roles_objetivo': json.dumps(['contador','director_financiero','admin']),
+                'lecciones': [
+                    {'titulo': 'Navegar el Plan Unico de Cuentas (PUC)', 'orden': 1, 'duracion_min': 5,
+                     'contenido': '<h6>Objetivo</h6><p>Entender la estructura del PUC colombiano en el CRM.</p><div class="paso"><span class="paso-num">1</span>Ve a <strong>Finanzas → Operaciones → Plan de Cuentas</strong>.</div><div class="paso"><span class="paso-num">2</span>El PUC tiene 102 cuentas del Decreto 2650/1993.</div><div class="paso"><span class="paso-num">3</span>La estructura es: clase (1 digito) → grupo (2) → cuenta (4) → subcuenta (6).</div><div class="paso"><span class="paso-num">4</span>Puedes buscar por codigo o nombre.</div><div class="paso"><span class="paso-num">5</span>Cada asiento contable referencia cuentas del PUC.</div>'},
+                    {'titulo': 'Asientos contables generados y manuales', 'orden': 2, 'duracion_min': 7,
+                     'contenido': '<h6>Objetivo</h6><p>Entender los dos tipos de asientos y como gestionarlos.</p><div class="paso"><span class="paso-num">1</span>Ve a <strong>Finanzas → Operaciones → Asientos contables</strong>.</div><div class="paso"><span class="paso-num">2</span>Pestana <strong>Generados</strong>: asientos creados automaticamente por ventas, OC, nomina y gastos.</div><div class="paso"><span class="paso-num">3</span>Pestana <strong>Manuales</strong>: asientos que creas tu directamente.</div><div class="paso"><span class="paso-num">4</span>Para crear uno manual, clic en <strong>Nuevo ingreso</strong> o <strong>Nuevo egreso</strong>.</div><div class="paso"><span class="paso-num">5</span>Completa: fecha, descripcion, cuenta debe/haber, monto.</div><div class="tip"><i class="bi bi-lightbulb me-1"></i>Los asientos generados son la forma principal de confirmar pagos. Al confirmar un pago, el estado de la OC o venta cambia automaticamente.</div>'},
+                    {'titulo': 'Gastos operativos', 'orden': 3, 'duracion_min': 5,
+                     'contenido': '<h6>Objetivo</h6><p>Registrar gastos del negocio (arriendo, servicios, etc.).</p><div class="paso"><span class="paso-num">1</span>Ve a <strong>Finanzas → Operaciones → Gastos</strong>.</div><div class="paso"><span class="paso-num">2</span>Clic en <strong>+ Nuevo</strong>.</div><div class="paso"><span class="paso-num">3</span>Selecciona categoria, proveedor (opcional), monto y fecha.</div><div class="paso"><span class="paso-num">4</span>Se genera automaticamente un asiento contable de egreso.</div>'},
+                    {'titulo': 'Generar reportes financieros', 'orden': 4, 'duracion_min': 6,
+                     'contenido': '<h6>Objetivo</h6><p>Generar Balance General, Estado de Resultados y otros reportes.</p><div class="paso"><span class="paso-num">1</span>Ve a <strong>Finanzas → Reportes</strong>.</div><div class="paso"><span class="paso-num">2</span><strong>Balance de Prueba</strong>: verifica que debitos = creditos.</div><div class="paso"><span class="paso-num">3</span><strong>Balance General</strong>: Activos = Pasivos + Patrimonio.</div><div class="paso"><span class="paso-num">4</span><strong>Estado de Resultados</strong>: Ingresos - Gastos = Utilidad.</div><div class="paso"><span class="paso-num">5</span><strong>Flujo de caja</strong>: movimientos de efectivo por periodo.</div><div class="paso"><span class="paso-num">6</span>Todos los reportes son exportables.</div>'},
+                ],
+                'preguntas': [
+                    {'texto': 'Cuantas cuentas tiene el PUC colombiano en el CRM?', 'opciones': json.dumps(['50','75','102','200']), 'respuesta_correcta': 2, 'orden': 1},
+                    {'texto': 'Cual es la diferencia entre asientos generados y manuales?', 'opciones': json.dumps(['No hay diferencia','Los generados se crean automaticamente por ventas/OC/nomina; los manuales los crea el usuario','Los manuales son provisionales','Los generados no se pueden editar']), 'respuesta_correcta': 1, 'orden': 2},
+                    {'texto': 'Que reporte verifica que debitos sean iguales a creditos?', 'opciones': json.dumps(['Estado de Resultados','Flujo de Caja','Balance de Prueba','Balance General']), 'respuesta_correcta': 2, 'orden': 3},
+                    {'texto': 'Que pasa al registrar un gasto operativo?', 'opciones': json.dumps(['Solo queda registrado','Se genera automaticamente un asiento contable de egreso','Se envia al proveedor','Se descuenta de inventario']), 'respuesta_correcta': 1, 'orden': 4},
+                ]
+            },
+            {
+                'titulo': 'Nomina Colombiana',
+                'descripcion': 'Liquida nomina mensual con parafiscales, horas extra, incapacidades y retencion en la fuente.',
+                'modulo_crm': 'nomina', 'icono': 'bi-people-fill', 'orden': 5, 'nivel': 'avanzado',
+                'roles_objetivo': json.dumps(['contador','director_financiero','admin']),
+                'lecciones': [
+                    {'titulo': 'Registrar empleados', 'orden': 1, 'duracion_min': 5,
+                     'contenido': '<h6>Objetivo</h6><p>Crear un empleado con salario, tipo de contrato y afiliaciones.</p><div class="paso"><span class="paso-num">1</span>Ve a <strong>Nomina</strong> y clic en <strong>+ Nuevo empleado</strong>.</div><div class="paso"><span class="paso-num">2</span>Completa: nombre, cedula, cargo, departamento, tipo de contrato.</div><div class="paso"><span class="paso-num">3</span>Define el salario base mensual.</div><div class="paso"><span class="paso-num">4</span>Indica si aplica auxilio de transporte (obligatorio para salarios < 2 SMLMV).</div><div class="paso"><span class="paso-num">5</span>Selecciona nivel de riesgo ARL (1 a 5).</div><div class="paso"><span class="paso-num">6</span>Completa EPS, fondo de pensiones y caja de compensacion.</div>'},
+                    {'titulo': 'Liquidar nomina mensual', 'orden': 2, 'duracion_min': 8,
+                     'contenido': '<h6>Objetivo</h6><p>Cerrar la nomina del mes con todos los calculos legales.</p><div class="paso"><span class="paso-num">1</span>Ve a <strong>Nomina</strong> y clic en <strong>Cerrar nomina</strong>.</div><div class="paso"><span class="paso-num">2</span>El sistema calcula automaticamente: salud (4% empleado), pension (4% empleado), parafiscales patronales.</div><div class="paso"><span class="paso-num">3</span>Se aplica retencion en la fuente segun Art. 383 ET con tabla de UVT.</div><div class="paso"><span class="paso-num">4</span>Se prorratea por dias trabajados si el empleado no trabajo el mes completo.</div><div class="paso"><span class="paso-num">5</span>Al cerrar se genera automaticamente un gasto operativo por el total de nomina.</div><div class="alerta"><i class="bi bi-exclamation-triangle me-1"></i>Si no cierras nomina antes del dia 5 del mes siguiente, se genera un ticket automatico al admin.</div>'},
+                    {'titulo': 'Horas extra e incapacidades', 'orden': 3, 'duracion_min': 5,
+                     'contenido': '<h6>Objetivo</h6><p>Registrar horas extra, incapacidades y vacaciones.</p><div class="paso"><span class="paso-num">1</span><strong>Horas extra</strong>: desde la ficha del empleado, registra tipo (diurna, nocturna, dominical), fecha y cantidad.</div><div class="paso"><span class="paso-num">2</span>Los recargos se calculan segun Art. 168-170 del CST.</div><div class="paso"><span class="paso-num">3</span><strong>Incapacidades</strong>: registra fecha inicio, fin y tipo (general, laboral).</div><div class="paso"><span class="paso-num">4</span><strong>Vacaciones</strong>: registra periodos tomados.</div><div class="paso"><span class="paso-num">5</span>Todos se reflejan automaticamente en la liquidacion del mes.</div>'},
+                ],
+                'preguntas': [
+                    {'texto': 'A partir de que monto de salario NO aplica auxilio de transporte?', 'opciones': json.dumps(['1 SMLMV','2 SMLMV','3 SMLMV','Siempre aplica']), 'respuesta_correcta': 1, 'orden': 1},
+                    {'texto': 'Que porcentaje de salud aporta el empleado?', 'opciones': json.dumps(['8%','4%','12.5%','2%']), 'respuesta_correcta': 1, 'orden': 2},
+                    {'texto': 'Que pasa si no se cierra la nomina antes del 5 del mes siguiente?', 'opciones': json.dumps(['Nada','Se bloquea el sistema','Se genera un ticket automatico al admin','Se pierde la informacion']), 'respuesta_correcta': 2, 'orden': 3},
+                    {'texto': 'Que articulo del ET regula la retencion en la fuente por salarios?', 'opciones': json.dumps(['Art. 168','Art. 240','Art. 383','Art. 500']), 'respuesta_correcta': 2, 'orden': 4},
+                ]
+            },
+            {
+                'titulo': 'Inventario y Lotes',
+                'descripcion': 'Gestiona productos terminados, materias primas, lotes con trazabilidad FIFO y alertas de stock.',
+                'modulo_crm': 'inventario', 'icono': 'bi-box-seam-fill', 'orden': 6, 'nivel': 'basico',
+                'roles_objetivo': json.dumps(['produccion','director_operativo','admin']),
+                'lecciones': [
+                    {'titulo': 'Registrar productos terminados', 'orden': 1, 'duracion_min': 5,
+                     'contenido': '<h6>Objetivo</h6><p>Crear un producto con precio, SKU y stock minimo.</p><div class="paso"><span class="paso-num">1</span>Ve a <strong>Inventario → Productos</strong>.</div><div class="paso"><span class="paso-num">2</span>Clic en <strong>+ Nuevo</strong>.</div><div class="paso"><span class="paso-num">3</span>Completa: nombre, precio de venta, stock minimo.</div><div class="paso"><span class="paso-num">4</span>El SKU se genera automaticamente si no lo defines.</div><div class="paso"><span class="paso-num">5</span>El stock solo se incrementa mediante produccion completada o ingresos manuales.</div>'},
+                    {'titulo': 'Gestionar materias primas', 'orden': 2, 'duracion_min': 5,
+                     'contenido': '<h6>Objetivo</h6><p>Registrar y controlar materias primas con alertas de stock minimo.</p><div class="paso"><span class="paso-num">1</span>Ve a <strong>Produccion → Materias primas</strong>.</div><div class="paso"><span class="paso-num">2</span>Crea materias primas con nombre, unidad de medida, stock minimo y proveedor.</div><div class="paso"><span class="paso-num">3</span>El stock se actualiza automaticamente al registrar compras.</div><div class="paso"><span class="paso-num">4</span>Cuando el stock baja del minimo, aparece alerta en el dashboard.</div>'},
+                    {'titulo': 'Lotes y trazabilidad', 'orden': 3, 'duracion_min': 6,
+                     'contenido': '<h6>Objetivo</h6><p>Entender el sistema de lotes con FIFO y vencimiento.</p><div class="paso"><span class="paso-num">1</span>Ve a <strong>Inventario → Lotes</strong>.</div><div class="paso"><span class="paso-num">2</span>Cada lote tiene: numero, fecha de ingreso, fecha de vencimiento y cantidad.</div><div class="paso"><span class="paso-num">3</span>El sistema usa <strong>FIFO</strong>: primero sale el lote mas antiguo.</div><div class="paso"><span class="paso-num">4</span>Los lotes proximos a vencer generan alertas automaticas.</div><div class="paso"><span class="paso-num">5</span>Toda salida queda trazada al lote de origen.</div>'},
+                ],
+                'preguntas': [
+                    {'texto': 'Como se incrementa el stock de productos terminados?', 'opciones': json.dumps(['Editando el producto manualmente','Mediante produccion completada o ingresos','Desde Asientos Contables','Desde el portal del cliente']), 'respuesta_correcta': 1, 'orden': 1},
+                    {'texto': 'Que significa FIFO en el contexto de inventario?', 'opciones': json.dumps(['First In, First Out — primero entra, primero sale','Fast Inventory, Fast Output','Final Inventory Financial Order','No tiene significado especial']), 'respuesta_correcta': 0, 'orden': 2},
+                    {'texto': 'Que pasa cuando el stock de una materia prima baja del minimo?', 'opciones': json.dumps(['Se bloquea la produccion','Aparece una alerta en el dashboard','Se hace pedido automatico','Nada']), 'respuesta_correcta': 1, 'orden': 3},
+                ]
+            },
+            {
+                'titulo': 'Tickets y Gestion de Tareas',
+                'descripcion': 'Crea y gestiona tickets de trabajo, asigna responsables y da seguimiento.',
+                'modulo_crm': 'tareas', 'icono': 'bi-check2-square', 'orden': 7, 'nivel': 'basico',
+                'roles_objetivo': json.dumps([]),
+                'lecciones': [
+                    {'titulo': 'Crear y asignar tickets', 'orden': 1, 'duracion_min': 5,
+                     'contenido': '<h6>Objetivo</h6><p>Crear un ticket con prioridad, tipo y asignarlo a un equipo.</p><div class="paso"><span class="paso-num">1</span>Ve a <strong>Tickets</strong> en el sidebar.</div><div class="paso"><span class="paso-num">2</span>Clic en <strong>+ Nueva</strong>.</div><div class="paso"><span class="paso-num">3</span>Define titulo, descripcion, prioridad (baja/media/alta) y categoria.</div><div class="paso"><span class="paso-num">4</span>Asigna a uno o varios usuarios responsables.</div><div class="paso"><span class="paso-num">5</span>Define fecha de vencimiento si aplica.</div>'},
+                    {'titulo': 'Tickets automaticos del sistema', 'orden': 2, 'duracion_min': 4,
+                     'contenido': '<h6>Objetivo</h6><p>Entender los tickets que el CRM crea automaticamente.</p><div class="paso"><span class="paso-num">1</span><strong>Nomina pendiente</strong>: si no cierras nomina a tiempo, se crea ticket al admin.</div><div class="paso"><span class="paso-num">2</span><strong>Transporte OC</strong>: al asignar transportista a una OC, se crea ticket 2 dias antes de la recogida.</div><div class="paso"><span class="paso-num">3</span><strong>Calidad</strong>: reportar problemas en produccion crea tickets automaticos.</div><div class="paso"><span class="paso-num">4</span><strong>Stock bajo</strong>: alertas de inventario generan tickets.</div><div class="tip"><i class="bi bi-lightbulb me-1"></i>Los tickets automaticos tienen tipo y categoria especificos para filtrarlos facilmente.</div>'},
+                ],
+                'preguntas': [
+                    {'texto': 'Que tipos de tickets crea el sistema automaticamente?', 'opciones': json.dumps(['Solo de ventas','Nomina pendiente, transporte OC, calidad y stock bajo','Solo de produccion','El sistema no crea tickets automaticos']), 'respuesta_correcta': 1, 'orden': 1},
+                    {'texto': 'Cuantos dias antes de la recogida se crea el ticket de transporte?', 'opciones': json.dumps(['1 dia','2 dias','5 dias','El mismo dia']), 'respuesta_correcta': 1, 'orden': 2},
+                ]
+            },
+            {
+                'titulo': 'Empaques y Logistica',
+                'descripcion': 'Configura empaques secundarios, calcula distribuciones y gestiona despachos.',
+                'modulo_crm': 'empaques', 'icono': 'bi-truck', 'orden': 8, 'nivel': 'intermedio',
+                'roles_objetivo': json.dumps(['produccion','director_operativo','admin']),
+                'lecciones': [
+                    {'titulo': 'Configurar empaques secundarios', 'orden': 1, 'duracion_min': 6,
+                     'contenido': '<h6>Objetivo</h6><p>Definir como se empaca un producto en cajas para envio.</p><div class="paso"><span class="paso-num">1</span>Ve a <strong>Empaques</strong> desde el dock de Logistica.</div><div class="paso"><span class="paso-num">2</span>Clic en <strong>+ Nuevo</strong>.</div><div class="paso"><span class="paso-num">3</span>Selecciona el producto y define: dimensiones unitarias (alto, ancho, largo en cm) y peso por unidad (kg).</div><div class="paso"><span class="paso-num">4</span>Define el peso maximo por caja.</div><div class="paso"><span class="paso-num">5</span>El sistema calcula automaticamente las unidades por caja y las dimensiones optimas.</div><div class="paso"><span class="paso-num">6</span>Al <strong>aprobar</strong> el empaque, se crea una materia prima tipo "caja" y cotizaciones para caja y cinta.</div>'},
+                    {'titulo': 'Calculadora de envio', 'orden': 2, 'duracion_min': 5,
+                     'contenido': '<h6>Objetivo</h6><p>Calcular el costo de envio con transportistas y comparar opciones.</p><div class="paso"><span class="paso-num">1</span>Ve a <strong>Logistica → Calculadora de envio</strong>.</div><div class="paso"><span class="paso-num">2</span>Ingresa: origen, destino, peso total y volumen.</div><div class="paso"><span class="paso-num">3</span>El sistema compara tarifas FTL vs paqueteria.</div><div class="paso"><span class="paso-num">4</span>Selecciona transportistas compatibles registrados en el sistema.</div><div class="paso"><span class="paso-num">5</span>Calcula costo con margen incluido.</div>'},
+                ],
+                'preguntas': [
+                    {'texto': 'Que se crea automaticamente al aprobar un empaque secundario?', 'opciones': json.dumps(['Un producto nuevo','Una materia prima tipo "caja" y cotizaciones para caja y cinta','Un asiento contable','Una orden de produccion']), 'respuesta_correcta': 1, 'orden': 1},
+                    {'texto': 'Que calcula el sistema al definir las dimensiones y peso de un empaque?', 'opciones': json.dumps(['Solo el precio','Las unidades por caja y dimensiones optimas de la caja','La ruta de envio','El tiempo de entrega']), 'respuesta_correcta': 1, 'orden': 2},
+                ]
+            },
+        ]
+
+        for cd in CURSOS:
+            curso = CapCurso(
+                titulo=cd['titulo'], descripcion=cd['descripcion'],
+                modulo_crm=cd['modulo_crm'], icono=cd['icono'],
+                orden=cd['orden'], nivel=cd['nivel'],
+                roles_objetivo=cd['roles_objetivo']
+            )
+            db.session.add(curso)
+            db.session.flush()
+            for ld in cd.get('lecciones', []):
+                db.session.add(CapLeccion(
+                    curso_id=curso.id, titulo=ld['titulo'],
+                    contenido=ld['contenido'], orden=ld['orden'],
+                    duracion_min=ld['duracion_min']
+                ))
+            for pd in cd.get('preguntas', []):
+                db.session.add(CapPregunta(
+                    curso_id=curso.id, texto=pd['texto'],
+                    opciones=pd['opciones'],
+                    respuesta_correcta=pd['respuesta_correcta'],
+                    orden=pd['orden']
+                ))
+        db.session.commit()
+        logging.info(f'Capacitacion: {len(CURSOS)} cursos sembrados con lecciones y preguntas')
+    except Exception as e:
+        db.session.rollback()
+        logging.warning(f'Seed capacitacion: {e}')
