@@ -77,16 +77,17 @@
 .mc-stat .l{font-size:.65rem;color:var(--t2);margin-top:.15rem}
 
 /* ── Ecosystem (cards) ── */
-.eg{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;max-width:1400px;margin:0 auto;padding:0 2rem}
+.eg{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
 .ei{background:var(--bg);border-radius:24px;padding:2.5rem 2rem;transition:all .4s cubic-bezier(.16,1,.3,1)}
 .ei:hover{background:var(--sf);box-shadow:0 12px 40px rgba(0,0,0,.06);transform:translateY(-3px)}
 .en{font-size:clamp(2rem,4vw,2.8rem);font-weight:700;color:var(--ac);line-height:1;margin-bottom:.5rem}
 .ei h3{font-size:.92rem;font-weight:600;margin-bottom:.35rem}.ei p{font-size:.82rem;color:var(--t2);line-height:1.55}
 
 /* ── Pricing ── */
-.pg{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--bd);border-radius:24px;overflow:hidden;max-width:1200px;margin:0 auto}
-.pc{background:#fff;padding:2.5rem 2rem;text-align:center}
-.pc.ft{background:linear-gradient(180deg,#EBF4FF,#fff)}
+.pg{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+.pc{background:var(--sf);padding:2.5rem 2rem;text-align:center;border-radius:24px;transition:all .4s cubic-bezier(.16,1,.3,1);box-shadow:0 1px 3px rgba(0,0,0,.03)}
+.pc:hover{box-shadow:0 12px 40px rgba(0,0,0,.07);transform:translateY(-3px)}
+.pc.ft{background:var(--sf);box-shadow:0 4px 20px rgba(var(--ar),.1);border:1.5px solid var(--ac)}
 .pp{font-size:clamp(1.8rem,3.5vw,2.5rem);font-weight:700;margin:.5rem 0 .2rem}.pp span{font-size:.82rem;font-weight:400;color:var(--t2)}
 .pc h3{font-size:.95rem;font-weight:600;margin:.4rem 0}
 .pc ul{text-align:left;list-style:none;margin:1.25rem 0;font-size:.85rem}
@@ -113,7 +114,7 @@
   .hero h1{font-size:2.5rem}
   .mg{grid-template-columns:repeat(2,1fr);gap:.75rem;padding:0 1.25rem 2rem}
   .mg .mc:nth-child(1),.mg .mc:nth-child(4),.mg .mc:nth-child(7){grid-column:span 1}
-  .eg{grid-template-columns:repeat(2,1fr);gap:.75rem;padding:0 1.25rem}
+  .eg{grid-template-columns:repeat(2,1fr);gap:.75rem}
   .pg{max-width:100%;margin:0 1.25rem;border-radius:16px}
   .fq{padding:0 1.25rem}
   .hero-mock{max-width:100%}
@@ -148,11 +149,11 @@
   .flow-node{padding:.25rem .5rem;font-size:.62rem}
   .flow-arrow{font-size:.5rem}
   .mc-link{font-size:.82rem}
-  .eg{grid-template-columns:1fr;gap:.75rem;padding:0 .75rem}
+  .eg{grid-template-columns:1fr;gap:.75rem}
   .ei{padding:1.75rem 1.25rem;border-radius:16px}
   .en{font-size:2rem}
   .ei h3{font-size:.88rem}.ei p{font-size:.8rem}
-  .pg{grid-template-columns:1fr;margin:0 .75rem;border-radius:16px}
+  .pg{grid-template-columns:1fr;gap:.75rem}
   .pc{padding:2rem 1.5rem}
   .pp{font-size:1.8rem}
   .pc ul{font-size:.82rem}
@@ -362,22 +363,22 @@
 
 <!-- ═══════ ECOSISTEMA ═══════ -->
 <section class="sc sc-w rv" id="ecosistema">
-  <div class="si">
+  <div style="max-width:1400px;margin:0 auto;padding:0 2rem">
     <div class="sh"><h2>No es solo un ERP. Es un ecosistema.</h2><p>Cada empresa que entra es un nodo de una red comercial.</p></div>
-  </div>
-  <div class="eg">
+    <div class="eg">
     <div class="ei"><div class="en">01</div><h3>Registras un cliente</h3><p>Con NIT o cédula. Si no existe, le crea cuenta gratis automáticamente.</p></div>
     <div class="ei"><div class="en">02</div><h3>Conexión instantánea</h3><p>Chat dedicado, tarjetas mutuas, portal con pedidos y documentos.</p></div>
     <div class="ei"><div class="en">03</div><h3>La red crece</h3><p>En Somos Evore, las empresas se descubren y la comunidad califica.</p></div>
     <div class="ei"><div class="en" style="color:var(--gn)">$0</div><h3>Para tu contraparte</h3><p>Tu cliente entra gratis. Ve pedidos y documentos sin pagar.</p></div>
     <div class="ei"><div class="en" style="color:#7C3AED">30</div><h3>Industrias</h3><p>Textil, cosméticos, alimentos, metalmecánica, químicos, logística...</p></div>
     <div class="ei"><div class="en" style="color:var(--og)">1 clic</div><h3>Para conectar</h3><p>Crea relación, chat y tarjetas de cliente y proveedor mutuamente.</p></div>
+    </div>
   </div>
 </section>
 
 <!-- ═══════ PRECIOS ═══════ -->
 <section class="sc sc-g rv" id="precios">
-  <div class="si">
+  <div style="max-width:1200px;margin:0 auto;padding:0 2rem">
     <div class="sh"><h2>Precios simples.</h2><p>Sin cargos ocultos. Sin permanencia. Ahora con 1 mes gratis.</p></div>
     <div class="pg">
       <div class="pc"><div style="font-size:1.8rem;color:var(--t2)"><i class="bi bi-box-seam"></i></div><h3>Gratuito</h3><div class="pp">$0</div><div style="color:var(--t2);font-size:.8rem">Para siempre</div><ul><li><i class="bi bi-check-lg"></i>Portal cliente/proveedor</li><li><i class="bi bi-check-lg"></i>Chat con empresas</li><li><i class="bi bi-check-lg"></i>1 usuario</li></ul><a href="#" class="bo" style="width:100%;justify-content:center;font-size:.82rem" onclick="event.preventDefault();openM()">Empezar</a></div>

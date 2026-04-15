@@ -1,6 +1,28 @@
 {% extends 'site/base.html' %}
 {% block title %}{{ module.name }} — Evore{% endblock %}
 {% block description %}{{ module.tagline }}{% endblock %}
+
+{% block extra_css %}
+.mod-cards{display:flex;flex-direction:column;gap:.65rem}
+.mod-card{background:var(--sf);border:1px solid var(--bd);border-radius:16px;overflow:hidden;transition:all .3s cubic-bezier(.16,1,.3,1)}
+.mod-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.06);transform:translateY(-2px)}
+.mod-bar{height:3px}
+.mod-body{padding:.85rem 1rem;display:flex;align-items:center;gap:.75rem}
+.mod-av{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.85rem;flex-shrink:0}
+.mod-info{flex:1;min-width:0}
+.mod-name{font-weight:600;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mod-sub{font-size:.72rem;color:var(--t2)}
+.mod-val{font-weight:700;font-size:.88rem;white-space:nowrap;text-align:right}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;max-width:1000px;margin:0 auto}
+.stat-card{background:var(--sf);border-radius:20px;padding:2rem;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.03)}
+@media(max-width:600px){
+  .mod-body{padding:.75rem .85rem;gap:.6rem}
+  .mod-name{font-size:.82rem}.mod-sub{font-size:.68rem}.mod-val{font-size:.82rem}
+  .stat-grid{grid-template-columns:repeat(2,1fr)}
+  .stat-card{padding:1.5rem}
+}
+{% endblock %}
+
 {% block content %}
 
 <div class="ph rv">
@@ -14,23 +36,20 @@
     {% for feat in module.features %}
     <div class="fr rv">
       <div class="fr-v">
-        <div class="app">
-          <div class="app-top"><span class="d"></span><span class="d"></span><span class="d"></span><span>evore.co/{{ active_module }}</span></div>
-          <div class="app-grid" style="padding:1rem">
-            {% for card in feat.cards %}
-            <div class="vc" style="opacity:1;transform:none">
-              <div class="vc-bar" style="background:{{ card.color }}"></div>
-              <div class="vc-body">
-                <div class="vc-av" style="background:{{ card.color }}"><i class="bi {{ card.icon }}"></i></div>
-                <div class="vc-info">
-                  <div class="vc-name">{{ card.title }}</div>
-                  <div class="vc-sub">{{ card.sub }}</div>
-                </div>
-                <div class="vc-val" style="color:{{ card.color }}">{{ card.value }}</div>
+        <div class="mod-cards">
+          {% for card in feat.cards %}
+          <div class="mod-card">
+            <div class="mod-bar" style="background:{{ card.color }}"></div>
+            <div class="mod-body">
+              <div class="mod-av" style="background:{{ card.color }}"><i class="bi {{ card.icon }}"></i></div>
+              <div class="mod-info">
+                <div class="mod-name">{{ card.title }}</div>
+                <div class="mod-sub">{{ card.sub }}</div>
               </div>
+              <div class="mod-val" style="color:{{ card.color }}">{{ card.value }}</div>
             </div>
-            {% endfor %}
           </div>
+          {% endfor %}
         </div>
       </div>
       <div class="fr-t">
@@ -50,10 +69,10 @@
 
 {% if module.stats %}
 <section class="sc sc-w">
-  <div class="si">
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;text-align:center">
+  <div style="max-width:1200px;margin:0 auto;padding:0 2rem">
+    <div class="stat-grid">
       {% for stat in module.stats %}
-      <div class="rv" style="background:var(--bg);border-radius:20px;padding:2rem">
+      <div class="stat-card rv">
         <div style="font-size:clamp(1.8rem,3.5vw,2.5rem);font-weight:700;color:var(--ac);line-height:1">{{ stat.value }}</div>
         <div style="font-size:.85rem;color:var(--t2);margin-top:.5rem">{{ stat.label }}</div>
       </div>
