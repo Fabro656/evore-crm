@@ -2,6 +2,7 @@
 {% block title %}{{ p.nombre }}{% endblock %}{% block page_title %}{{ p.codigo }} — {{ p.nombre }}{% endblock %}
 {% block topbar_actions %}
 <div class="d-flex gap-2">
+  <a href="{{ url_for('proyecto_calendario', id=p.id) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-calendar3 me-1"></i>Calendario</a>
   <a href="{{ url_for('proyecto_editar', id=p.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i>Editar</a>
   <a href="{{ url_for('proyectos_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Proyectos</a>
 </div>
@@ -10,87 +11,74 @@
 <div style="max-width:1400px;margin:0 auto">
   {# ── Header stats ── #}
   <div class="row g-3 mb-3">
-    <div class="col-6 col-md-3">
-      <div class="fc text-center py-2">
-        <div style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Progreso</div>
-        <div class="fw-bold mt-1" style="font-size:1.3rem;color:{{ p.color or 'var(--ac)' }}">{{ pct }}%</div>
-        <div style="height:4px;background:var(--surface2);border-radius:2px;margin-top:4px;overflow:hidden">
-          <div style="width:{{ pct }}%;height:100%;background:{{ p.color or 'var(--ac)' }};border-radius:2px"></div>
-        </div>
+    <div class="col-6 col-md-3"><div class="fc text-center py-2">
+      <div style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Progreso</div>
+      <div class="fw-bold mt-1" style="font-size:1.3rem;color:{{ p.color or 'var(--ac)' }}">{{ pct }}%</div>
+      <div style="height:4px;background:var(--surface2);border-radius:2px;margin-top:4px;overflow:hidden">
+        <div style="width:{{ pct }}%;height:100%;background:{{ p.color or 'var(--ac)' }};border-radius:2px"></div>
       </div>
-    </div>
-    <div class="col-6 col-md-3">
-      <div class="fc text-center py-2">
-        <div style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Tareas</div>
-        <div class="fw-bold mt-1" style="font-size:1.3rem;color:var(--text1)">{{ done_t }}<span style="font-size:.8rem;color:var(--text2)">/{{ total_t }}</span></div>
-      </div>
-    </div>
-    <div class="col-6 col-md-3">
-      <div class="fc text-center py-2">
-        <div style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Gastos</div>
-        <div class="fw-bold mt-1" style="font-size:1.1rem;color:var(--red)">{{ moneda(gasto_total) }}</div>
-        {% if p.presupuesto %}<div style="font-size:.68rem;color:var(--text2)">de {{ moneda(p.presupuesto) }}</div>{% endif %}
-      </div>
-    </div>
-    <div class="col-6 col-md-3">
-      <div class="fc text-center py-2">
-        <div style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Estado</div>
-        <div class="mt-1"><span class="b b-{{ p.estado }}" style="font-size:.78rem">{{ p.estado.replace('_',' ').title() }}</span></div>
-        {% if p.fecha_fin %}<div style="font-size:.68rem;color:var(--text2);margin-top:2px">{{ p.fecha_fin.strftime('%d/%m/%Y') }}</div>{% endif %}
-      </div>
-    </div>
+    </div></div>
+    <div class="col-6 col-md-3"><div class="fc text-center py-2">
+      <div style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Tareas</div>
+      <div class="fw-bold mt-1" style="font-size:1.3rem;color:var(--text1)">{{ done_t }}<span style="font-size:.8rem;color:var(--text2)">/{{ total_t }}</span></div>
+    </div></div>
+    <div class="col-6 col-md-3"><div class="fc text-center py-2">
+      <div style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Gastos</div>
+      <div class="fw-bold mt-1" style="font-size:1.1rem;color:var(--red)">{{ moneda(gasto_total) }}</div>
+      {% if p.presupuesto %}<div style="font-size:.68rem;color:var(--text2)">de {{ moneda(p.presupuesto) }}</div>{% endif %}
+    </div></div>
+    <div class="col-6 col-md-3"><div class="fc text-center py-2">
+      <div style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Estado</div>
+      <div class="mt-1"><span class="b b-{{ p.estado }}" style="font-size:.78rem">{{ p.estado.replace('_',' ').title() }}</span></div>
+      {% if p.fecha_fin %}<div style="font-size:.68rem;color:var(--text2);margin-top:2px">{{ p.fecha_fin.strftime('%d/%m/%Y') }}</div>{% endif %}
+    </div></div>
   </div>
 
-  {# ── New task + New expense row ── #}
+  {# ── Vista tabs ── #}
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item"><a class="nav-link {% if vista != 'kanban' %}{% else %}active{% endif %}" href="{{ url_for('proyecto_ver', id=p.id, vista='fases') }}"><i class="bi bi-layers me-1"></i>Fases</a></li>
+    <li class="nav-item"><a class="nav-link {% if vista == 'kanban' %}active{% endif %}" href="{{ url_for('proyecto_ver', id=p.id, vista='kanban') }}"><i class="bi bi-kanban me-1"></i>Kanban</a></li>
+  </ul>
+
+  {# ── Actions ── #}
   <div class="d-flex gap-2 mb-3 flex-wrap">
     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalTarea"><i class="bi bi-plus-lg me-1"></i>Nueva tarea</button>
-    <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalGasto"><i class="bi bi-cash me-1"></i>Registrar gasto</button>
+    <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalGasto"><i class="bi bi-cash me-1"></i>Gasto</button>
     <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalFase"><i class="bi bi-layers me-1"></i>Nueva fase</button>
   </div>
 
-  {# ── KANBAN BOARD ── #}
+  {% if vista == 'kanban' %}
+  {# ══════════════ KANBAN VIEW ══════════════ #}
   <div style="overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch">
     <div class="d-flex gap-3" style="min-width:{{ estados|length * 300 }}px">
       {% for est in estados %}
       {% set est_tareas = tareas_por_estado.get(est, []) %}
-      <div class="kb-col" data-estado="{{ est }}" style="min-width:280px;flex:1"
-           ondragover="event.preventDefault();this.classList.add('kb-over')"
-           ondragleave="this.classList.remove('kb-over')"
-           ondrop="dropTarea(event,this)">
+      <div class="kb-col" data-estado="{{ est }}" ondragover="event.preventDefault();this.classList.add('kb-over')" ondragleave="this.classList.remove('kb-over')" ondrop="dropTarea(event,this)">
         <div class="kb-header" style="border-top:3px solid {% if est=='por_hacer' %}#6B7280{% elif est=='en_progreso' %}#3B82F6{% elif est=='en_revision' %}#F59E0B{% else %}#10B981{% endif %}">
           <span class="fw-bold" style="font-size:.82rem">{{ est.replace('_',' ').title() }}</span>
           <span class="badge bg-light text-dark" style="font-size:.65rem">{{ est_tareas|length }}</span>
         </div>
         <div class="kb-body">
           {% for t in est_tareas %}
-          <div class="kb-card" draggable="true" data-tid="{{ t.id }}"
-               ondragstart="event.dataTransfer.setData('tid','{{ t.id }}')"
-               onclick="if(!event.target.closest('a'))toggleDetail({{ t.id }})">
+          <div class="kb-card" draggable="true" data-tid="{{ t.id }}" ondragstart="event.dataTransfer.setData('tid','{{ t.id }}')" onclick="if(!event.target.closest('a'))toggleDetail({{ t.id }})">
             <div class="d-flex align-items-start gap-2">
               <span class="badge {% if t.prioridad=='alta' %}bg-danger{% elif t.prioridad=='media' %}bg-warning text-dark{% else %}bg-success{% endif %}" style="font-size:.55rem;padding:2px 5px;flex-shrink:0;margin-top:2px">{{ t.prioridad[0]|upper }}</span>
               <div style="min-width:0;flex:1">
                 <div class="fw-semibold" style="font-size:.84rem;color:var(--text1)">{{ t.titulo }}</div>
                 <div class="d-flex gap-1 mt-1 flex-wrap">
                   <span class="badge" style="font-size:.58rem;background:{% if t.tipo=='compra' %}#F97316{% elif t.tipo=='legal' %}#8B5CF6{% elif t.tipo=='finanzas' %}#059669{% elif t.tipo=='produccion' %}#EC4899{% elif t.tipo=='logistica' %}#0EA5E9{% else %}#6B7280{% endif %};color:#fff">{{ t.tipo }}</span>
-                  {% if t.fase %}<span class="badge bg-light text-dark" style="font-size:.55rem">{{ t.fase.nombre }}</span>{% endif %}
+                  {% if t.fase %}<span class="badge" style="font-size:.55rem;background:{{ t.fase.color or '#6B7280' }};color:#fff">{{ t.fase.nombre }}</span>{% endif %}
                 </div>
               </div>
             </div>
-            {# Detail panel (hidden by default) #}
             <div id="det-{{ t.id }}" style="display:none;margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--border);font-size:.78rem">
-              {% if t.descripcion %}<div class="text-muted mb-1">{{ t.descripcion[:120] }}</div>{% endif %}
               {% if t.responsable %}<div><i class="bi bi-person me-1"></i>{{ t.responsable.nombre }}</div>{% endif %}
               {% if t.fecha_limite %}<div><i class="bi bi-calendar me-1"></i>{{ t.fecha_limite.strftime('%d/%m/%Y') }}</div>{% endif %}
               <div class="d-flex gap-1 mt-1 flex-wrap">
-                {% if t.venta %}<a href="{{ url_for('venta_ver', id=t.venta_id) }}" class="badge bg-info text-dark text-decoration-none" style="font-size:.6rem"><i class="bi bi-bag me-1"></i>{{ t.venta.numero or 'Venta' }}</a>{% endif %}
-                {% if t.orden_compra %}<a href="{{ url_for('orden_compra_ver', id=t.orden_compra_id) }}" class="badge bg-warning text-dark text-decoration-none" style="font-size:.6rem"><i class="bi bi-cart me-1"></i>{{ t.orden_compra.numero or 'OC' }}</a>{% endif %}
-                {% if t.documento_legal %}<span class="badge bg-secondary" style="font-size:.6rem"><i class="bi bi-file-earmark me-1"></i>{{ t.documento_legal.titulo[:20] }}</span>{% endif %}
-                {% if t.gasto %}<span class="badge bg-success" style="font-size:.6rem"><i class="bi bi-cash me-1"></i>${{ '{:,.0f}'.format(t.gasto.monto) }}</span>{% endif %}
+                {% if t.venta %}<a href="{{ url_for('venta_ver', id=t.venta_id) }}" class="badge bg-info text-dark text-decoration-none" style="font-size:.6rem"><i class="bi bi-bag me-1"></i>Venta</a>{% endif %}
+                {% if t.orden_compra %}<a href="{{ url_for('orden_compra_ver', id=t.orden_compra_id) }}" class="badge bg-warning text-dark text-decoration-none" style="font-size:.6rem"><i class="bi bi-cart me-1"></i>OC</a>{% endif %}
                 {% if t.ticket %}<a href="{{ url_for('tarea_ver', id=t.tarea_id) }}" class="badge bg-dark text-decoration-none" style="font-size:.6rem;color:#fff"><i class="bi bi-ticket me-1"></i>Ticket</a>{% endif %}
               </div>
-              {% if t.comentarios %}
-              <div class="mt-1" style="font-size:.72rem;color:var(--text2)"><i class="bi bi-chat-dots me-1"></i>{{ t.comentarios|length }} comentario(s)</div>
-              {% endif %}
             </div>
           </div>
           {% endfor %}
@@ -100,108 +88,174 @@
     </div>
   </div>
 
+  {% else %}
+  {# ══════════════ FASES VIEW ══════════════ #}
+  {% for fase in p.fases %}
+  <div class="fc mb-3" style="padding:0;overflow:hidden;border-left:4px solid {{ fase.color or '#6B7280' }}">
+    <div style="padding:.85rem 1.15rem;background:var(--surface2);display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <div class="d-flex align-items-center gap-2">
+          <h6 class="fw-bold mb-0" style="color:var(--text1)">{{ fase.nombre }}</h6>
+          <span class="b b-{{ fase.estado }}" style="font-size:.65rem">{{ fase.estado.replace('_',' ').title() }}</span>
+        </div>
+        {% if fase.descripcion %}<div class="text-muted" style="font-size:.78rem">{{ fase.descripcion }}</div>{% endif %}
+        <div class="d-flex gap-3 mt-1" style="font-size:.72rem;color:var(--text2)">
+          {% if fase.fecha_inicio %}<span><i class="bi bi-calendar me-1"></i>{{ fase.fecha_inicio.strftime('%d/%m') }}{% if fase.fecha_fin %} — {{ fase.fecha_fin.strftime('%d/%m/%Y') }}{% endif %}</span>{% endif %}
+          <span><i class="bi bi-check2-square me-1"></i>{{ fase.tareas|selectattr('estado','equalto','completada')|list|length }}/{{ fase.tareas|length }} tareas</span>
+        </div>
+      </div>
+      {# Members #}
+      <div class="d-flex align-items-center gap-1">
+        {% for m in fase.miembros[:5] %}
+        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width:28px;height:28px;background:{{ fase.color or 'var(--ac)' }};font-size:.65rem" title="{{ m.user.nombre }} ({{ m.rol }})">{{ m.user.nombre[0]|upper }}</div>
+        {% endfor %}
+        {% if fase.miembros|length > 5 %}<span style="font-size:.7rem;color:var(--text2)">+{{ fase.miembros|length - 5 }}</span>{% endif %}
+      </div>
+      {# Phase actions #}
+      <div class="d-flex gap-1">
+        <button class="btn btn-sm btn-outline-secondary" style="font-size:.7rem;padding:2px 8px" data-bs-toggle="modal" data-bs-target="#modalEditFase{{ fase.id }}"><i class="bi bi-pencil"></i></button>
+        <form method="POST" action="{{ url_for('proyecto_fase_eliminar', fid=fase.id) }}" class="m-0" onsubmit="return confirm('Eliminar fase y todas sus tareas?')">
+          <button class="btn btn-sm btn-outline-danger" style="font-size:.7rem;padding:2px 8px"><i class="bi bi-trash"></i></button>
+        </form>
+      </div>
+    </div>
+    {# Tasks in this phase #}
+    <div style="padding:.5rem .75rem">
+      {% for t in fase.tareas %}
+      <div class="d-flex align-items-center gap-2 py-1" style="border-bottom:1px solid var(--border);font-size:.85rem">
+        <span class="badge {% if t.prioridad=='alta' %}bg-danger{% elif t.prioridad=='media' %}bg-warning text-dark{% else %}bg-success{% endif %}" style="font-size:.5rem;padding:2px 5px">{{ t.prioridad[0]|upper }}</span>
+        <span class="badge" style="font-size:.55rem;background:{% if t.tipo=='compra' %}#F97316{% elif t.tipo=='legal' %}#8B5CF6{% elif t.tipo=='finanzas' %}#059669{% elif t.tipo=='produccion' %}#EC4899{% elif t.tipo=='logistica' %}#0EA5E9{% else %}#6B7280{% endif %};color:#fff">{{ t.tipo }}</span>
+        <span style="flex:1;color:var(--text1);{% if t.estado=='completada' %}text-decoration:line-through;opacity:.6{% endif %}">{{ t.titulo }}</span>
+        {% if t.responsable %}<span class="text-muted" style="font-size:.72rem"><i class="bi bi-person me-1"></i>{{ t.responsable.nombre }}</span>{% endif %}
+        {% if t.fecha_limite %}<span class="text-muted" style="font-size:.72rem"><i class="bi bi-calendar me-1"></i>{{ t.fecha_limite.strftime('%d/%m') }}</span>{% endif %}
+        <span class="b b-{{ t.estado }}" style="font-size:.6rem">{{ t.estado.replace('_',' ').title() }}</span>
+      </div>
+      {% endfor %}
+      {% if not fase.tareas %}
+      <div class="text-muted text-center py-2" style="font-size:.82rem">Sin tareas en esta fase</div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Edit phase modal #}
+  <div class="modal fade" id="modalEditFase{{ fase.id }}" tabindex="-1"><div class="modal-dialog">
+  <div class="modal-content"><form method="POST" action="{{ url_for('proyecto_fase_editar', fid=fase.id) }}">
+    <div class="modal-header py-2"><h6 class="modal-title mb-0">Editar fase: {{ fase.nombre }}</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <div class="mb-2"><label class="form-label form-label-sm">Nombre</label><input type="text" name="nombre" class="form-control form-control-sm" value="{{ fase.nombre }}" required></div>
+      <div class="mb-2"><label class="form-label form-label-sm">Descripcion</label><textarea name="descripcion" class="form-control form-control-sm" rows="2">{{ fase.descripcion or '' }}</textarea></div>
+      <div class="row g-2 mb-2">
+        <div class="col-4"><label class="form-label form-label-sm">Estado</label>
+          <select name="estado" class="form-select form-select-sm">
+            {% for e in ['pendiente','en_progreso','completada'] %}<option value="{{ e }}" {% if fase.estado==e %}selected{% endif %}>{{ e.replace('_',' ').title() }}</option>{% endfor %}
+          </select></div>
+        <div class="col-4"><label class="form-label form-label-sm">Inicio</label><input type="date" name="fecha_inicio" class="form-control form-control-sm" value="{{ fase.fecha_inicio.strftime('%Y-%m-%d') if fase.fecha_inicio else '' }}"></div>
+        <div class="col-4"><label class="form-label form-label-sm">Fin</label><input type="date" name="fecha_fin" class="form-control form-control-sm" value="{{ fase.fecha_fin.strftime('%Y-%m-%d') if fase.fecha_fin else '' }}"></div>
+      </div>
+      <div class="mb-2"><label class="form-label form-label-sm">Color</label><input type="color" name="color" class="form-control form-control-color form-control-sm" value="{{ fase.color or '#6B7280' }}"></div>
+      <div class="mb-2"><label class="form-label form-label-sm">Miembros del equipo</label>
+        <div class="border rounded p-2" style="max-height:150px;overflow-y:auto">
+          {% set miembros_ids = fase.miembros|map(attribute='user_id')|list %}
+          {% for u in usuarios %}<div class="form-check"><input class="form-check-input" type="checkbox" name="miembros[]" value="{{ u.id }}" id="fm{{ fase.id }}_{{ u.id }}" {% if u.id in miembros_ids %}checked{% endif %}><label class="form-check-label" for="fm{{ fase.id }}_{{ u.id }}" style="font-size:.82rem">{{ u.nombre }}</label></div>{% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer py-2"><button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-check-lg me-1"></i>Guardar</button></div>
+  </form></div></div></div>
+  {% endfor %}
+
+  {# Tasks without phase #}
+  {% set sin_fase = tareas_por_estado.values()|sum(start=[])|selectattr('fase_id','none')|list %}
+  {% if sin_fase %}
+  <div class="fc mb-3" style="padding:0;overflow:hidden;border-left:4px solid var(--border)">
+    <div style="padding:.65rem 1.15rem;background:var(--surface2)">
+      <h6 class="fw-bold mb-0" style="color:var(--text2)">Sin fase asignada</h6>
+    </div>
+    <div style="padding:.5rem .75rem">
+      {% for t in sin_fase %}
+      <div class="d-flex align-items-center gap-2 py-1" style="border-bottom:1px solid var(--border);font-size:.85rem">
+        <span class="badge {% if t.prioridad=='alta' %}bg-danger{% elif t.prioridad=='media' %}bg-warning text-dark{% else %}bg-success{% endif %}" style="font-size:.5rem;padding:2px 5px">{{ t.prioridad[0]|upper }}</span>
+        <span style="flex:1;color:var(--text1)">{{ t.titulo }}</span>
+        <span class="b b-{{ t.estado }}" style="font-size:.6rem">{{ t.estado.replace('_',' ').title() }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+  {% endif %}
+
   {# ── Gastos section ── #}
   {% if gastos %}
   <h6 class="fw-bold mt-4 mb-2"><i class="bi bi-cash-stack me-2 text-success"></i>Gastos del proyecto</h6>
   <div class="fc" style="padding:0">
     <table class="table table-hover mb-0" style="font-size:.82rem">
-      <thead><tr style="background:var(--surface2)">
-        <th style="font-size:.7rem;text-transform:uppercase;color:var(--text2)">Descripcion</th>
-        <th style="font-size:.7rem;text-transform:uppercase;color:var(--text2)" class="text-end">Monto</th>
-        <th style="font-size:.7rem;text-transform:uppercase;color:var(--text2)">Fecha</th>
-      </tr></thead>
+      <thead><tr style="background:var(--surface2)"><th style="font-size:.7rem;text-transform:uppercase;color:var(--text2)">Descripcion</th><th class="text-end" style="font-size:.7rem;text-transform:uppercase;color:var(--text2)">Monto</th><th style="font-size:.7rem;text-transform:uppercase;color:var(--text2)">Fecha</th></tr></thead>
       <tbody>
-        {% for pg, go in gastos %}
-        <tr>
-          <td>{{ pg.descripcion or go.descripcion }}</td>
-          <td class="text-end fw-bold" style="color:var(--red)">{{ moneda(go.monto) }}</td>
-          <td class="text-muted">{{ go.fecha.strftime('%d/%m/%Y') if go.fecha else '' }}</td>
-        </tr>
-        {% endfor %}
-        <tr style="background:var(--surface2)">
-          <td class="fw-bold">Total</td>
-          <td class="text-end fw-bold" style="color:var(--red)">{{ moneda(gasto_total) }}</td>
-          <td></td>
-        </tr>
+        {% for pg, go in gastos %}<tr><td>{{ pg.descripcion or go.descripcion }}</td><td class="text-end fw-bold" style="color:var(--red)">{{ moneda(go.monto) }}</td><td class="text-muted">{{ go.fecha.strftime('%d/%m/%Y') if go.fecha else '' }}</td></tr>{% endfor %}
+        <tr style="background:var(--surface2)"><td class="fw-bold">Total</td><td class="text-end fw-bold" style="color:var(--red)">{{ moneda(gasto_total) }}</td><td></td></tr>
       </tbody>
     </table>
   </div>
   {% endif %}
 </div>
 
-{# ── Modal: Nueva Tarea ── #}
+{# ══════════════ MODALS ══════════════ #}
+
+{# Nueva Tarea #}
 <div class="modal fade" id="modalTarea" tabindex="-1"><div class="modal-dialog">
 <div class="modal-content"><form method="POST" action="{{ url_for('proyecto_tarea_nueva', pid=p.id) }}">
-  <div class="modal-header py-2"><h6 class="modal-title mb-0"><i class="bi bi-plus-circle me-2"></i>Nueva tarea</h6>
-    <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-header py-2"><h6 class="modal-title mb-0"><i class="bi bi-plus-circle me-2"></i>Nueva tarea</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
   <div class="modal-body">
-    <div class="mb-2"><label class="form-label form-label-sm">Titulo *</label>
-      <input type="text" name="titulo" class="form-control form-control-sm" required></div>
-    <div class="mb-2"><label class="form-label form-label-sm">Descripcion</label>
-      <textarea name="descripcion" class="form-control form-control-sm" rows="2"></textarea></div>
+    <div class="mb-2"><label class="form-label form-label-sm">Titulo *</label><input type="text" name="titulo" class="form-control form-control-sm" required></div>
+    <div class="mb-2"><label class="form-label form-label-sm">Descripcion</label><textarea name="descripcion" class="form-control form-control-sm" rows="2"></textarea></div>
     <div class="row g-2">
       <div class="col-6"><label class="form-label form-label-sm">Tipo</label>
-        <select name="tipo" class="form-select form-select-sm">
-          {% for t in tipos %}<option value="{{ t }}">{{ t.title() }}</option>{% endfor %}
-        </select>
-        <div class="form-text" style="font-size:.7rem">Compra crea OC, Legal crea documento, Finanzas crea gasto</div>
-      </div>
+        <select name="tipo" class="form-select form-select-sm">{% for t in tipos %}<option value="{{ t }}">{{ t.title() }}</option>{% endfor %}</select>
+        <div class="form-text" style="font-size:.7rem">Compra crea OC, Legal crea documento, Finanzas crea gasto</div></div>
       <div class="col-6"><label class="form-label form-label-sm">Prioridad</label>
-        <select name="prioridad" class="form-select form-select-sm">
-          <option value="baja">Baja</option><option value="media" selected>Media</option><option value="alta">Alta</option>
-        </select></div>
+        <select name="prioridad" class="form-select form-select-sm"><option value="baja">Baja</option><option value="media" selected>Media</option><option value="alta">Alta</option></select></div>
       <div class="col-6"><label class="form-label form-label-sm">Fase</label>
-        <select name="fase_id" class="form-select form-select-sm">
-          <option value="">— Sin fase —</option>
-          {% for f in p.fases %}<option value="{{ f.id }}">{{ f.nombre }}</option>{% endfor %}
-        </select></div>
+        <select name="fase_id" class="form-select form-select-sm"><option value="">— Sin fase —</option>{% for f in p.fases %}<option value="{{ f.id }}">{{ f.nombre }}</option>{% endfor %}</select></div>
       <div class="col-6"><label class="form-label form-label-sm">Responsable</label>
-        <select name="responsable_id" class="form-select form-select-sm">
-          <option value="">— Sin asignar —</option>
-          {% for u in usuarios %}<option value="{{ u.id }}">{{ u.nombre }}</option>{% endfor %}
-        </select></div>
-      <div class="col-6"><label class="form-label form-label-sm">Fecha limite</label>
-        <input type="date" name="fecha_limite" class="form-control form-control-sm"></div>
-      <div class="col-6"><label class="form-label form-label-sm">Estimacion (hrs)</label>
-        <input type="number" name="estimacion_hrs" class="form-control form-control-sm" step="0.5" min="0" value="0"></div>
+        <select name="responsable_id" class="form-select form-select-sm"><option value="">— Sin asignar —</option>{% for u in usuarios %}<option value="{{ u.id }}">{{ u.nombre }}</option>{% endfor %}</select></div>
+      <div class="col-6"><label class="form-label form-label-sm">Fecha limite</label><input type="date" name="fecha_limite" class="form-control form-control-sm"></div>
+      <div class="col-6"><label class="form-label form-label-sm">Estimacion (hrs)</label><input type="number" name="estimacion_hrs" class="form-control form-control-sm" step="0.5" min="0" value="0"></div>
     </div>
   </div>
-  <div class="modal-footer py-2">
-    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-    <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-check-lg me-1"></i>Crear tarea</button>
-  </div>
+  <div class="modal-footer py-2"><button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-check-lg me-1"></i>Crear</button></div>
 </form></div></div></div>
 
-{# ── Modal: Nuevo Gasto ── #}
+{# Nuevo Gasto #}
 <div class="modal fade" id="modalGasto" tabindex="-1"><div class="modal-dialog modal-sm">
 <div class="modal-content"><form method="POST" action="{{ url_for('proyecto_gasto_nuevo', pid=p.id) }}">
-  <div class="modal-header py-2"><h6 class="modal-title mb-0"><i class="bi bi-cash me-2"></i>Registrar gasto</h6>
-    <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-header py-2"><h6 class="modal-title mb-0"><i class="bi bi-cash me-2"></i>Registrar gasto</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
   <div class="modal-body">
-    <div class="mb-2"><label class="form-label form-label-sm">Descripcion</label>
-      <input type="text" name="descripcion" class="form-control form-control-sm" placeholder="Ej: Compra materiales prueba"></div>
-    <div class="mb-2"><label class="form-label form-label-sm">Monto *</label>
-      <div class="input-group input-group-sm"><span class="input-group-text">$</span>
-        <input type="number" name="monto" class="form-control" step="1" min="1" required></div></div>
-    <div class="form-text" style="font-size:.72rem"><i class="bi bi-info-circle me-1"></i>Se registra automaticamente como gasto operativo en contabilidad.</div>
+    <div class="mb-2"><label class="form-label form-label-sm">Descripcion</label><input type="text" name="descripcion" class="form-control form-control-sm" placeholder="Ej: Compra materiales prueba"></div>
+    <div class="mb-2"><label class="form-label form-label-sm">Monto *</label><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="number" name="monto" class="form-control" step="1" min="1" required></div></div>
+    <div class="form-text" style="font-size:.72rem"><i class="bi bi-info-circle me-1"></i>Se registra en contabilidad automaticamente.</div>
   </div>
-  <div class="modal-footer py-2">
-    <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check-lg me-1"></i>Registrar</button>
-  </div>
+  <div class="modal-footer py-2"><button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check-lg me-1"></i>Registrar</button></div>
 </form></div></div></div>
 
-{# ── Modal: Nueva Fase ── #}
-<div class="modal fade" id="modalFase" tabindex="-1"><div class="modal-dialog modal-sm">
+{# Nueva Fase #}
+<div class="modal fade" id="modalFase" tabindex="-1"><div class="modal-dialog">
 <div class="modal-content"><form method="POST" action="{{ url_for('proyecto_fase_nueva', pid=p.id) }}">
-  <div class="modal-header py-2"><h6 class="modal-title mb-0"><i class="bi bi-layers me-2"></i>Nueva fase</h6>
-    <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-header py-2"><h6 class="modal-title mb-0"><i class="bi bi-layers me-2"></i>Nueva fase</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
   <div class="modal-body">
-    <div class="mb-2"><label class="form-label form-label-sm">Nombre *</label>
-      <input type="text" name="nombre" class="form-control form-control-sm" required placeholder="Ej: Investigacion"></div>
+    <div class="mb-2"><label class="form-label form-label-sm">Nombre *</label><input type="text" name="nombre" class="form-control form-control-sm" required placeholder="Ej: Investigacion"></div>
+    <div class="mb-2"><label class="form-label form-label-sm">Descripcion</label><textarea name="descripcion" class="form-control form-control-sm" rows="2"></textarea></div>
+    <div class="row g-2 mb-2">
+      <div class="col-6"><label class="form-label form-label-sm">Fecha inicio</label><input type="date" name="fecha_inicio" class="form-control form-control-sm"></div>
+      <div class="col-6"><label class="form-label form-label-sm">Fecha fin</label><input type="date" name="fecha_fin" class="form-control form-control-sm"></div>
+    </div>
+    <div class="mb-2"><label class="form-label form-label-sm">Color</label><input type="color" name="color" class="form-control form-control-color form-control-sm" value="#6B7280"></div>
+    <div class="mb-2"><label class="form-label form-label-sm">Miembros del equipo</label>
+      <div class="border rounded p-2" style="max-height:150px;overflow-y:auto">
+        {% for u in usuarios %}<div class="form-check"><input class="form-check-input" type="checkbox" name="miembros[]" value="{{ u.id }}" id="fnm_{{ u.id }}"><label class="form-check-label" for="fnm_{{ u.id }}" style="font-size:.82rem">{{ u.nombre }}</label></div>{% endfor %}
+      </div>
+    </div>
   </div>
-  <div class="modal-footer py-2">
-    <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-check-lg me-1"></i>Crear</button>
-  </div>
+  <div class="modal-footer py-2"><button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-check-lg me-1"></i>Crear fase</button></div>
 </form></div></div></div>
 
 <style>
@@ -215,20 +269,13 @@
 </style>
 <script>
 function dropTarea(ev,col){
-  ev.preventDefault(); col.classList.remove('kb-over');
+  ev.preventDefault();col.classList.remove('kb-over');
   var tid=ev.dataTransfer.getData('tid');
-  var nuevoEstado=col.dataset.estado;
   fetch('/api/proyectos/tareas/'+tid+'/estado',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','X-CSRF-Token':_csrfToken},
-    body:JSON.stringify({estado:nuevoEstado})
-  }).then(function(r){return r.json()}).then(function(d){
-    if(d.ok) location.reload();
-  });
+    method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrfToken},
+    body:JSON.stringify({estado:col.dataset.estado})
+  }).then(function(r){return r.json()}).then(function(d){if(d.ok)location.reload();});
 }
-function toggleDetail(tid){
-  var el=document.getElementById('det-'+tid);
-  if(el) el.style.display=el.style.display==='none'?'':'none';
-}
+function toggleDetail(tid){var el=document.getElementById('det-'+tid);if(el)el.style.display=el.style.display==='none'?'':'none';}
 </script>
 {% endblock %}

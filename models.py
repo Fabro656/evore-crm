@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date as date_type
 import json, secrets, os, logging
 
-__all__ = ['Company', 'UserCompany', 'ChatRoom', 'ChatParticipant', 'ChatMessage', 'User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'MovimientoBancario', 'NotaContable', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'MovimientoInventario', 'Notificacion', 'Empleado', 'HoraExtra', 'Comision', 'Incapacidad', 'VacacionTomada', 'Requisicion', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'HistorialPrecio', 'HistorialCotizacion', 'CompanyRelationship', 'Suscripcion', 'ForoPublicacion', 'ForoValoracion', 'ForoApelacion', 'ForoBanner', 'CapCurso', 'CapLeccion', 'CapPregunta', 'CapProgreso', 'CapEvaluacion', 'Proyecto', 'ProyectoFase', 'ProyectoTarea', 'ProyectoComentario', 'ProyectoGasto', 'load_user', '_migrate', 'init_db']
+__all__ = ['Company', 'UserCompany', 'ChatRoom', 'ChatParticipant', 'ChatMessage', 'User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'MovimientoBancario', 'NotaContable', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'MovimientoInventario', 'Notificacion', 'Empleado', 'HoraExtra', 'Comision', 'Incapacidad', 'VacacionTomada', 'Requisicion', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'HistorialPrecio', 'HistorialCotizacion', 'CompanyRelationship', 'Suscripcion', 'ForoPublicacion', 'ForoValoracion', 'ForoApelacion', 'ForoBanner', 'CapCurso', 'CapLeccion', 'CapPregunta', 'CapProgreso', 'CapEvaluacion', 'Proyecto', 'ProyectoFase', 'ProyectoMiembro', 'ProyectoTarea', 'ProyectoComentario', 'ProyectoGasto', 'load_user', '_migrate', 'init_db']
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -1412,6 +1412,18 @@ class ProyectoFase(db.Model):
     color           = db.Column(db.String(7), default='#6B7280')
     tareas          = db.relationship('ProyectoTarea', backref='fase', lazy=True,
                                        order_by='ProyectoTarea.orden', cascade='all, delete-orphan')
+    miembros        = db.relationship('ProyectoMiembro', backref='fase',
+                                       foreign_keys='ProyectoMiembro.fase_id', lazy=True, cascade='all, delete-orphan')
+
+class ProyectoMiembro(db.Model):
+    """Asignacion de usuario a un proyecto o fase."""
+    __tablename__ = 'proyecto_miembros'
+    id              = db.Column(db.Integer, primary_key=True)
+    proyecto_id     = db.Column(db.Integer, db.ForeignKey('proyectos.id'), nullable=False, index=True)
+    fase_id         = db.Column(db.Integer, db.ForeignKey('proyecto_fases.id'), nullable=True, index=True)
+    user_id         = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    rol             = db.Column(db.String(30), default='miembro')  # responsable, miembro, revisor
+    user            = db.relationship('User', foreign_keys=[user_id])
 
 class ProyectoTarea(db.Model):
     __tablename__ = 'proyecto_tareas'

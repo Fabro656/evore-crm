@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block title %}Calendario — {{ p.nombre }}{% endblock %}{% block page_title %}{{ p.codigo }} — Calendario{% endblock %}
+{% block topbar_actions %}
+<div class="d-flex gap-2">
+  <a href="{{ url_for('proyecto_ver', id=p.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Proyecto</a>
+</div>
+{% endblock %}
+{% block content %}
+<div style="max-width:1100px;margin:0 auto">
+  <div class="fc mb-3" style="padding:.75rem 1rem">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-sm btn-outline-secondary" onclick="calNav(-1)"><i class="bi bi-chevron-left"></i></button>
+        <h6 class="fw-bold mb-0" id="calTitle" style="min-width:180px;text-align:center"></h6>
+        <button class="btn btn-sm btn-outline-secondary" onclick="calNav(1)"><i class="bi bi-chevron-right"></i></button>
+        <button class="btn btn-sm btn-outline-primary" onclick="calToday()">Hoy</button>
+      </div>
+      <div class="ms-auto d-flex gap-2" style="font-size:.75rem">
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#6B7280"></span> Fase</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#3B82F6"></span> Tarea</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#10B981"></span> Completada</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="calGrid" style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden"></div>
+</div>
+
+<script>
+var EVENTOS = {{ eventos_json|safe }};
+var calYear, calMonth;
+
+function calInit(){
+  var d = new Date();
+  calYear = d.getFullYear();
+  calMonth = d.getMonth();
+  calRender();
+}
+function calNav(dir){ calMonth += dir; if(calMonth<0){calMonth=11;calYear--;}if(calMonth>11){calMonth=0;calYear++;} calRender(); }
+function calToday(){ var d=new Date();calYear=d.getFullYear();calMonth=d.getMonth();calRender(); }
+
+function calRender(){
+  var MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('calTitle').textContent = MESES[calMonth] + ' ' + calYear;
+
+  var first = new Date(calYear, calMonth, 1);
+  var lastDay = new Date(calYear, calMonth + 1, 0).getDate();
+  var startDay = first.getDay(); // 0=Sun
+
+  var html = '<div style="display:grid;grid-template-columns:repeat(7,1fr)">';
+  ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'].forEach(function(d){
+    html += '<div style="padding:8px;text-align:center;font-size:.72rem;font-weight:700;color:var(--text2);background:var(--surface2);border-bottom:1px solid var(--border)">'+d+'</div>';
+  });
+
+  var today = new Date();
+  var todayStr = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+
+  for(var i=0; i<startDay; i++){
+    html += '<div style="padding:6px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);min-height:80px;background:var(--surface2)"></div>';
+  }
+
+  for(var day=1; day<=lastDay; day++){
+    var dateStr = calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+    var isToday = dateStr === todayStr;
+    var dayEvents = EVENTOS.filter(function(ev){
+      return ev.inicio <= dateStr && ev.fin >= dateStr;
+    });
+
+    html += '<div style="padding:4px 6px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);min-height:80px;background:'+(isToday?'rgba(1,118,211,.05)':'var(--surface)')+';">';
+    html += '<div style="font-size:.78rem;font-weight:'+(isToday?'700':'400')+';color:'+(isToday?'var(--ac)':'var(--text1)')+';margin-bottom:2px">'+day+'</div>';
+
+    dayEvents.forEach(function(ev){
+      html += '<div style="font-size:.65rem;padding:1px 5px;border-radius:3px;background:'+ev.color+';color:#fff;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:default" title="'+ev.titulo+'">'+ev.titulo+'</div>';
+    });
+
+    html += '</div>';
+  }
+  // Fill remaining cells
+  var totalCells = startDay + lastDay;
+  var remaining = (7 - totalCells % 7) % 7;
+  for(var i=0; i<remaining; i++){
+    html += '<div style="padding:6px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);min-height:80px;background:var(--surface2)"></div>';
+  }
+
+  html += '</div>';
+  document.getElementById('calGrid').innerHTML = html;
+}
+
+calInit();
+</script>
+{% endblock %}

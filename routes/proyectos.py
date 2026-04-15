@@ -108,7 +108,7 @@ def register(app):
         if not _requiere_proyecto_access():
             flash('Acceso denegado.', 'danger'); return redirect(url_for('dashboard'))
         p = Proyecto.query.get_or_404(id)
-        vista = request.args.get('vista', 'kanban')
+        vista = request.args.get('vista', 'fases')
         # All tasks grouped by estado for kanban
         tareas_por_estado = {}
         for est in _ESTADOS_TAREA:
@@ -165,18 +165,110 @@ def register(app):
     @login_required
     def proyecto_fase_nueva(pid):
         if not _requiere_proyecto_access():
-            return jsonify({'error': 'Acceso denegado'}), 403
+            flash('Acceso denegado.', 'danger'); return redirect(url_for('dashboard'))
         p = Proyecto.query.get_or_404(pid)
         max_orden = db.session.query(func.max(ProyectoFase.orden)).filter_by(proyecto_id=pid).scalar() or 0
+        fi = request.form.get('fecha_inicio')
+        ff = request.form.get('fecha_fin')
         f = ProyectoFase(
             proyecto_id=pid,
             nombre=request.form.get('nombre', 'Nueva fase'),
+            descripcion=request.form.get('descripcion', ''),
+            color=request.form.get('color', '#6B7280'),
+            fecha_inicio=datetime.strptime(fi, '%Y-%m-%d').date() if fi else None,
+            fecha_fin=datetime.strptime(ff, '%Y-%m-%d').date() if ff else None,
             orden=max_orden + 1
         )
         db.session.add(f)
+        db.session.flush()
+        # Assign members
+        user_ids = request.form.getlist('miembros[]')
+        for uid in user_ids:
+            if uid:
+                db.session.add(ProyectoMiembro(proyecto_id=pid, fase_id=f.id, user_id=int(uid)))
         db.session.commit()
-        flash('Fase creada.', 'success')
+        flash(f'Fase "{f.nombre}" creada.', 'success')
         return redirect(url_for('proyecto_ver', id=pid))
+
+    @app.route('/proyectos/fases/<int:fid>/editar', methods=['POST'])
+    @login_required
+    def proyecto_fase_editar(fid):
+        if not _requiere_proyecto_access():
+            flash('Acceso denegado.', 'danger'); return redirect(url_for('dashboard'))
+        f = ProyectoFase.query.get_or_404(fid)
+        f.nombre = request.form.get('nombre', f.nombre)
+        f.descripcion = request.form.get('descripcion', '')
+        f.estado = request.form.get('estado', f.estado)
+        f.color = request.form.get('color', f.color)
+        fi = request.form.get('fecha_inicio')
+        ff = request.form.get('fecha_fin')
+        f.fecha_inicio = datetime.strptime(fi, '%Y-%m-%d').date() if fi else f.fecha_inicio
+        f.fecha_fin = datetime.strptime(ff, '%Y-%m-%d').date() if ff else f.fecha_fin
+        # Update members
+        ProyectoMiembro.query.filter_by(fase_id=fid).delete()
+        user_ids = request.form.getlist('miembros[]')
+        for uid in user_ids:
+            if uid:
+                db.session.add(ProyectoMiembro(proyecto_id=f.proyecto_id, fase_id=fid, user_id=int(uid)))
+        db.session.commit()
+        flash(f'Fase "{f.nombre}" actualizada.', 'success')
+        return redirect(url_for('proyecto_ver', id=f.proyecto_id))
+
+    @app.route('/proyectos/fases/<int:fid>/eliminar', methods=['POST'])
+    @login_required
+    def proyecto_fase_eliminar(fid):
+        if not _requiere_proyecto_access():
+            flash('Acceso denegado.', 'danger'); return redirect(url_for('dashboard'))
+        f = ProyectoFase.query.get_or_404(fid)
+        pid = f.proyecto_id
+        db.session.delete(f)
+        db.session.commit()
+        flash('Fase eliminada.', 'info')
+        return redirect(url_for('proyecto_ver', id=pid))
+
+    # ── Calendario del proyecto ──
+    @app.route('/proyectos/<int:id>/calendario')
+    @login_required
+    def proyecto_calendario(id):
+        if not _requiere_proyecto_access():
+            flash('Acceso denegado.', 'danger'); return redirect(url_for('dashboard'))
+        p = Proyecto.query.get_or_404(id)
+        # Build calendar events from phases + tasks
+        eventos = []
+        for f in p.fases:
+            if f.fecha_inicio:
+                eventos.append({
+                    'titulo': f'Fase: {f.nombre}',
+                    'inicio': f.fecha_inicio.isoformat(),
+                    'fin': f.fecha_fin.isoformat() if f.fecha_fin else f.fecha_inicio.isoformat(),
+                    'color': f.color or '#6B7280',
+                    'tipo': 'fase',
+                    'id': f.id
+                })
+            for t in f.tareas:
+                if t.fecha_inicio or t.fecha_limite:
+                    eventos.append({
+                        'titulo': t.titulo,
+                        'inicio': (t.fecha_inicio or t.fecha_limite).isoformat(),
+                        'fin': (t.fecha_limite or t.fecha_inicio).isoformat(),
+                        'color': '#3B82F6' if t.estado != 'completada' else '#10B981',
+                        'tipo': 'tarea',
+                        'id': t.id,
+                        'estado': t.estado
+                    })
+        # Also tasks without phase
+        for t in ProyectoTarea.query.filter_by(proyecto_id=p.id, fase_id=None).all():
+            if t.fecha_inicio or t.fecha_limite:
+                eventos.append({
+                    'titulo': t.titulo,
+                    'inicio': (t.fecha_inicio or t.fecha_limite).isoformat(),
+                    'fin': (t.fecha_limite or t.fecha_inicio).isoformat(),
+                    'color': '#F59E0B',
+                    'tipo': 'tarea',
+                    'id': t.id,
+                    'estado': t.estado
+                })
+        return render_template('proyectos/calendario.html', p=p, eventos_json=json.dumps(eventos))
 
     # ══════════════════════════════════════════════════════════════
     # TAREAS DE PROYECTO
