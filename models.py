@@ -1410,10 +1410,13 @@ class ProyectoFase(db.Model):
     fecha_inicio    = db.Column(db.Date)
     fecha_fin       = db.Column(db.Date)
     color           = db.Column(db.String(7), default='#6B7280')
+    presupuesto     = db.Column(db.Float, default=0)
     tareas          = db.relationship('ProyectoTarea', backref='fase', lazy=True,
                                        order_by='ProyectoTarea.orden', cascade='all, delete-orphan')
     miembros        = db.relationship('ProyectoMiembro', backref='fase',
                                        foreign_keys='ProyectoMiembro.fase_id', lazy=True, cascade='all, delete-orphan')
+    gastos          = db.relationship('ProyectoGasto', backref='fase_rel',
+                                       foreign_keys='ProyectoGasto.fase_id', lazy=True)
 
 class ProyectoMiembro(db.Model):
     """Asignacion de usuario a un proyecto o fase."""
@@ -1477,10 +1480,11 @@ class ProyectoComentario(db.Model):
     autor           = db.relationship('User', foreign_keys=[autor_id])
 
 class ProyectoGasto(db.Model):
-    """Gasto vinculado a un proyecto — referencia a GastoOperativo."""
+    """Gasto vinculado a un proyecto y opcionalmente a una fase."""
     __tablename__ = 'proyecto_gastos'
     id              = db.Column(db.Integer, primary_key=True)
     proyecto_id     = db.Column(db.Integer, db.ForeignKey('proyectos.id'), nullable=False, index=True)
+    fase_id         = db.Column(db.Integer, db.ForeignKey('proyecto_fases.id'), nullable=True, index=True)
     gasto_id        = db.Column(db.Integer, db.ForeignKey('gastos_operativos.id'), nullable=False)
     descripcion     = db.Column(db.String(200))
     creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
@@ -2173,6 +2177,11 @@ def _migrate(conn):
         # ── Foro Banners (marketplace ads) ──
         ("CREATE TABLE IF NOT EXISTS foro_banners (id SERIAL PRIMARY KEY, titulo VARCHAR(200) NOT NULL, descripcion TEXT, imagen_url VARCHAR(500), link_url VARCHAR(500), industria VARCHAR(100), tipo VARCHAR(20) DEFAULT 'evore', activo BOOLEAN DEFAULT TRUE, orden INTEGER DEFAULT 0, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
         ("CREATE TABLE IF NOT EXISTS foro_banners (id INTEGER PRIMARY KEY AUTOINCREMENT, titulo VARCHAR(200) NOT NULL, descripcion TEXT, imagen_url VARCHAR(500), link_url VARCHAR(500), industria VARCHAR(100), tipo VARCHAR(20) DEFAULT 'evore', activo BOOLEAN DEFAULT TRUE, orden INTEGER DEFAULT 0, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"),
+        # ── Proyectos: presupuesto fase + gasto fase_id ──
+        ("ALTER TABLE proyecto_fases ADD COLUMN IF NOT EXISTS presupuesto FLOAT DEFAULT 0"),
+        ("ALTER TABLE proyecto_fases ADD COLUMN presupuesto FLOAT DEFAULT 0"),
+        ("ALTER TABLE proyecto_gastos ADD COLUMN IF NOT EXISTS fase_id INTEGER REFERENCES proyecto_fases(id)"),
+        ("ALTER TABLE proyecto_gastos ADD COLUMN fase_id INTEGER REFERENCES proyecto_fases(id)"),
         # ── Cotizacion: iva_incluido ──
         ("ALTER TABLE cotizaciones ADD COLUMN IF NOT EXISTS iva_incluido BOOLEAN DEFAULT FALSE"),
         ("ALTER TABLE cotizaciones ADD COLUMN iva_incluido BOOLEAN DEFAULT FALSE"),

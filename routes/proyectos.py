@@ -120,6 +120,13 @@ def register(app):
             GastoOperativo, ProyectoGasto.gasto_id == GastoOperativo.id
         ).filter(ProyectoGasto.proyecto_id == p.id).all()
         gasto_total = sum(g_op.monto for _, g_op in gastos_q)
+        # Gastos por fase
+        gastos_por_fase = {}
+        for pg, go in gastos_q:
+            fid = pg.fase_id or 0
+            gastos_por_fase.setdefault(fid, {'items': [], 'total': 0})
+            gastos_por_fase[fid]['items'].append((pg, go))
+            gastos_por_fase[fid]['total'] += go.monto
         # Stats
         total_t = sum(len(v) for v in tareas_por_estado.values())
         done_t = len(tareas_por_estado.get('completada', []))
@@ -128,6 +135,7 @@ def register(app):
         return render_template('proyectos/ver.html', p=p, vista=vista,
             tareas_por_estado=tareas_por_estado, estados=_ESTADOS_TAREA,
             tipos=_TIPOS_TAREA, gastos=gastos_q, gasto_total=gasto_total,
+            gastos_por_fase=gastos_por_fase,
             total_t=total_t, done_t=done_t, pct=pct, usuarios=usuarios)
 
     @app.route('/proyectos/<int:id>/editar', methods=['GET', 'POST'])
@@ -177,6 +185,7 @@ def register(app):
             color=request.form.get('color', '#6B7280'),
             fecha_inicio=datetime.strptime(fi, '%Y-%m-%d').date() if fi else None,
             fecha_fin=datetime.strptime(ff, '%Y-%m-%d').date() if ff else None,
+            presupuesto=float(request.form.get('presupuesto') or 0),
             orden=max_orden + 1
         )
         db.session.add(f)
@@ -204,6 +213,7 @@ def register(app):
         ff = request.form.get('fecha_fin')
         f.fecha_inicio = datetime.strptime(fi, '%Y-%m-%d').date() if fi else f.fecha_inicio
         f.fecha_fin = datetime.strptime(ff, '%Y-%m-%d').date() if ff else f.fecha_fin
+        f.presupuesto = float(request.form.get('presupuesto') or 0)
         # Update members
         ProyectoMiembro.query.filter_by(fase_id=fid).delete()
         user_ids = request.form.getlist('miembros[]')
@@ -388,15 +398,21 @@ def register(app):
         p = Proyecto.query.get_or_404(pid)
         cid = getattr(g, 'company_id', None)
         monto = float(request.form.get('monto') or 0)
+        fase_id = int(request.form.get('fase_id')) if request.form.get('fase_id') else None
         desc = request.form.get('descripcion', '').strip() or f'Gasto proyecto {p.codigo}'
+        fase_label = ''
+        if fase_id:
+            fase_obj = db.session.get(ProyectoFase, fase_id)
+            if fase_obj:
+                fase_label = f' [{fase_obj.nombre}]'
         gasto = GastoOperativo(
-            company_id=cid, tipo='proyecto', tipo_custom=f'Proyecto {p.codigo}',
+            company_id=cid, tipo='proyecto', tipo_custom=f'Proyecto {p.codigo}{fase_label}',
             descripcion=desc, monto=monto, fecha=date_type.today(),
-            creado_por=current_user.id, notas=f'Vinculado a proyecto {p.codigo}'
+            creado_por=current_user.id, notas=f'Vinculado a proyecto {p.codigo}{fase_label}'
         )
         db.session.add(gasto)
         db.session.flush()
-        db.session.add(ProyectoGasto(proyecto_id=pid, gasto_id=gasto.id, descripcion=desc))
+        db.session.add(ProyectoGasto(proyecto_id=pid, fase_id=fase_id, gasto_id=gasto.id, descripcion=desc))
         _log('crear', 'gasto', gasto.id, f'Gasto de proyecto {p.codigo}: {desc} — ${monto:,.0f}')
         db.session.commit()
         flash(f'Gasto de ${monto:,.0f} registrado en proyecto y contabilidad.', 'success')
