@@ -58,21 +58,21 @@
     </div></div>
   </div>
 
-  {# ── Vista tabs ── #}
-  <ul class="nav nav-tabs mb-3" style="flex-wrap:wrap">
-    <li class="nav-item"><a class="nav-link {% if vista == 'fases' or vista not in ('kanban',) %}active{% endif %}" href="{{ url_for('proyecto_ver', id=p.id, vista='fases') }}"><i class="bi bi-layers me-1"></i>Fases</a></li>
-    <li class="nav-item"><a class="nav-link {% if vista == 'kanban' %}active{% endif %}" href="{{ url_for('proyecto_ver', id=p.id, vista='kanban') }}"><i class="bi bi-kanban me-1"></i>Kanban</a></li>
-    <li class="nav-item"><a class="nav-link" href="{{ url_for('proyecto_diagrama', pid=p.id) }}"><i class="bi bi-diagram-3 me-1"></i>Diagrama</a></li>
-    <li class="nav-item"><a class="nav-link" href="{{ url_for('proyecto_brainstorm', pid=p.id) }}"><i class="bi bi-lightbulb me-1"></i>Brainstorm</a></li>
-    <li class="nav-item"><a class="nav-link" href="{{ url_for('proyecto_plan_gastos', pid=p.id) }}"><i class="bi bi-wallet2 me-1"></i>Plan de gastos</a></li>
-    <li class="nav-item"><a class="nav-link" href="{{ url_for('proyecto_calendario', id=p.id) }}"><i class="bi bi-calendar3 me-1"></i>Calendario</a></li>
-  </ul>
-
-  {# ── Actions ── #}
-  <div class="d-flex gap-2 mb-3 flex-wrap">
-    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalTarea"><i class="bi bi-plus-lg me-1"></i>Nueva tarea</button>
-    <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalGasto"><i class="bi bi-cash me-1"></i>Gasto</button>
-    <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalFase"><i class="bi bi-layers me-1"></i>Nueva fase</button>
+  {# ── Vista tabs + Actions ── #}
+  <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+    <ul class="nav nav-tabs mb-0" style="flex-wrap:wrap;flex:1">
+      <li class="nav-item"><a class="nav-link {% if vista == 'fases' or vista not in ('kanban',) %}active{% endif %}" href="{{ url_for('proyecto_ver', id=p.id, vista='fases') }}"><i class="bi bi-layers me-1"></i>Fases</a></li>
+      <li class="nav-item"><a class="nav-link {% if vista == 'kanban' %}active{% endif %}" href="{{ url_for('proyecto_ver', id=p.id, vista='kanban') }}"><i class="bi bi-kanban me-1"></i>Kanban</a></li>
+      <li class="nav-item"><a class="nav-link" href="{{ url_for('proyecto_diagrama', pid=p.id) }}"><i class="bi bi-diagram-3 me-1"></i>Diagrama</a></li>
+      <li class="nav-item"><a class="nav-link" href="{{ url_for('proyecto_brainstorm', pid=p.id) }}"><i class="bi bi-lightbulb me-1"></i>Brainstorm</a></li>
+      <li class="nav-item"><a class="nav-link" href="{{ url_for('proyecto_plan_gastos', pid=p.id) }}"><i class="bi bi-wallet2 me-1"></i>Plan</a></li>
+      <li class="nav-item"><a class="nav-link" href="{{ url_for('proyecto_calendario', id=p.id) }}"><i class="bi bi-calendar3 me-1"></i>Calendario</a></li>
+    </ul>
+    <div class="d-flex gap-1">
+      <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalTarea" style="font-size:.75rem"><i class="bi bi-plus-lg me-1"></i>Tarea</button>
+      <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalGasto" style="font-size:.75rem"><i class="bi bi-cash me-1"></i>Gasto</button>
+      <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalFase" style="font-size:.75rem"><i class="bi bi-layers me-1"></i>Fase</button>
+    </div>
   </div>
 
   {% if vista == 'kanban' %}

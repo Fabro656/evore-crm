@@ -74,25 +74,48 @@
 var PID={{ p.id }}, _csrf='{{ csrf_token }}';
 var NODES=[], EDGES=[], LIBRARY=[], _nextId=1;
 var _selLib=null, _selCanvas=null, _connectMode=false, _connectFrom=null;
-var FASES={}; {% for f in p.fases %}FASES[{{ f.id }}]='{{ f.nombre }}';{% endfor %}
+// DB data (authoritative source for fases/objetivos)
+var DB_FASES=[
+  {% for f in p.fases %}{id:{{ f.id }},nombre:'{{ f.nombre }}',presupuesto:{{ f.presupuesto or 0 }},
+    objetivos:[{% for o in f.objetivos %}{id:{{ o.id }},titulo:'{{ o.titulo[:40]|replace("'","\\'") }}',presupuesto:{{ o.presupuesto or 0 }}},{% endfor %}]
+  },{% endfor %}
+];
+var FASES={}; DB_FASES.forEach(function(f){FASES[f.id]=f.nombre;});
 
-// Load
-try{
-  var saved=JSON.parse({{ (p.diagrama or '{}')|tojson }});
-  if(saved.nodes){NODES=saved.nodes;LIBRARY=saved.library||[];_nextId=saved.nextId||100;}
-}catch(e){}
-if(saved&&saved.edges) EDGES=saved.edges;
+// Load saved canvas positions + edges
+var saved={};
+try{saved=JSON.parse({{ (p.diagrama or '{}')|tojson }});}catch(e){}
+if(saved.nodes) NODES=saved.nodes;
+if(saved.edges) EDGES=saved.edges;
+if(saved.nextId) _nextId=saved.nextId;
+var savedCopies=(saved.copies||[]);
 
-// Auto-generate if empty
-if(!LIBRARY.length&&!NODES.length){
-  LIBRARY.push({id:_nextId++,tipo:'inicio',label:'Inicio'});
-  {% for f in p.fases %}
-  LIBRARY.push({id:_nextId++,tipo:'fase',label:'{{ f.nombre }}',ref_id:{{ f.id }},ref_tipo:'fase'});
-  {% for o in f.objetivos %}
-  LIBRARY.push({id:_nextId++,tipo:'objetivo',label:'{{ o.titulo[:40] }}',ref_id:{{ o.id }},ref_tipo:'objetivo',fase_id:{{ f.id }}});
-  {% endfor %}{% endfor %}
-  LIBRARY.push({id:_nextId++,tipo:'inicio',label:'Fin'});
-}
+// Build library from DB (always fresh) + add start/end + copies
+LIBRARY=[];
+LIBRARY.push({id:_nextId++,tipo:'inicio',label:'Inicio'});
+DB_FASES.forEach(function(f){
+  LIBRARY.push({id:_nextId++,tipo:'fase',label:f.nombre,ref_id:f.id,ref_tipo:'fase',presupuesto:f.presupuesto,
+    obj_sum:f.objetivos.reduce(function(s,o){return s+(o.presupuesto||0);},0)});
+  f.objetivos.forEach(function(o){
+    LIBRARY.push({id:_nextId++,tipo:'objetivo',label:o.titulo,ref_id:o.id,ref_tipo:'objetivo',fase_id:f.id,presupuesto:o.presupuesto});
+  });
+});
+LIBRARY.push({id:_nextId++,tipo:'inicio',label:'Fin'});
+// Restore user-created copies
+savedCopies.forEach(function(c){c.id=_nextId++;c.is_copy=true;LIBRARY.push(c);});
+
+// Sync node labels/presupuesto from DB (in case they changed in fases view)
+NODES.forEach(function(n){
+  if(n.ref_tipo==='fase'){
+    var f=DB_FASES.find(function(df){return df.id===n.ref_id;});
+    if(f){n.label=f.nombre;n.presupuesto=f.presupuesto;}
+  }
+  if(n.ref_tipo==='objetivo'){
+    DB_FASES.forEach(function(df){df.objetivos.forEach(function(o){
+      if(o.id===n.ref_id){n.label=o.titulo;n.presupuesto=o.presupuesto;}
+    });});
+  }
+});
 
 function renderLibrary(){
   var el=document.getElementById('dgLibrary');
@@ -104,7 +127,10 @@ function renderLibrary(){
     html+='<div class="lib-item'+(sel?' lib-selected':'')+(onCanvas?' lib-on-canvas':'')+'" data-lid="'+n.id+'" onclick="selectLib('+n.id+')">'
       +'<div class="lib-dot" style="background:'+dotColor+'"></div>'
       +'<div style="flex:1;min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+n.label+'</div>'
-      +'<div style="font-size:.6rem;color:var(--text2)">'+n.tipo+(n.is_copy?' (copia)':'')+(n.presupuesto?' · $'+Math.round(n.presupuesto).toLocaleString('es-CO'):'')+'</div></div>'
+      +'<div style="font-size:.6rem;color:var(--text2)">'+n.tipo+(n.is_copy?' (copia)':'')
+      +(n.presupuesto?' · <span style="color:'+(n.obj_sum!==undefined&&n.obj_sum>n.presupuesto?'#E53935':'inherit')+'">$'+Math.round(n.presupuesto).toLocaleString('es-CO')+'</span>':'')
+      +(n.obj_sum?' <span style="font-size:.55rem;color:'+(n.obj_sum>n.presupuesto?'#E53935':'#6B7280')+'">(obj: $'+Math.round(n.obj_sum).toLocaleString('es-CO')+')</span>':'')
+      +'</div></div>'
       +(onCanvas?'<span class="lib-copy">en canvas</span>':'')
       +'</div>';
   });
@@ -272,29 +298,60 @@ function showNodeMenu(e,node){
   var menu=document.createElement('div');
   menu.id='nodeMenu';
   menu.style.cssText='position:absolute;left:'+(node.x+130)+'px;top:'+(node.y)+'px;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.15);z-index:100;min-width:180px;padding:6px 0;font-size:.8rem';
+  var isReal=node.ref_tipo&&node.ref_id;
   var items=[
-    {icon:'bi-pencil',label:'Editar nombre',fn:function(){var t=prompt('Nombre:',node.label);if(t!==null){node.label=t;var lib=LIBRARY.find(l=>l.id===node.lib_id);if(lib)lib.label=t;closeNodeMenu();renderCanvas();renderLibrary();}}},
+    {icon:'bi-pencil',label:'Editar nombre',fn:function(){
+      var t=prompt('Nombre:',node.label);if(t===null)return;
+      node.label=t;
+      var lib=LIBRARY.find(l=>l.id===node.lib_id);if(lib)lib.label=t;
+      // Sync to DB if real entity
+      if(isReal){
+        fetch('/api/proyectos/'+PID+'/diagrama/sync-nombre',{
+          method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrf},
+          body:JSON.stringify({ref_tipo:node.ref_tipo,ref_id:node.ref_id,nombre:t})
+        }).then(r=>r.json()).then(function(d){showStatus(d.ok?'Nombre sincronizado':'Error');});
+      }
+      closeNodeMenu();renderCanvas();renderLibrary();
+    }},
     {icon:'bi-arrow-right',label:'Conectar desde aqui',fn:function(){_connectFrom=node.id;_connectMode=true;showStatus('Click en el nodo destino...');closeNodeMenu();renderCanvas();}},
   ];
   if(node.tipo==='objetivo'||node.tipo==='fase'){
-    items.push({icon:'bi-cash',label:'Editar presupuesto',fn:function(){
-      var v=prompt('Presupuesto:',node.presupuesto||0);
-      if(v!==null){node.presupuesto=parseFloat(v)||0;var lib=LIBRARY.find(l=>l.id===node.lib_id);if(lib)lib.presupuesto=node.presupuesto;closeNodeMenu();renderCanvas();renderLibrary();}
+    items.push({icon:'bi-cash',label:'Editar presupuesto'+(node.presupuesto?' ($'+Math.round(node.presupuesto).toLocaleString('es-CO')+')':''),fn:function(){
+      var v=prompt('Presupuesto:',node.presupuesto||0);if(v===null)return;
+      var newPpto=parseFloat(v)||0;
+      // Sync to DB
+      if(isReal){
+        fetch('/api/proyectos/diagrama/sync-presupuesto',{
+          method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrf},
+          body:JSON.stringify({ref_tipo:node.ref_tipo,ref_id:node.ref_id,presupuesto:newPpto})
+        }).then(r=>r.json()).then(function(d){
+          if(d.ok){
+            node.presupuesto=newPpto;
+            var lib=LIBRARY.find(l=>l.id===node.lib_id);if(lib)lib.presupuesto=newPpto;
+            showStatus('Presupuesto sincronizado');
+          } else if(d.error){
+            alert(d.error);
+          }
+          renderCanvas();renderLibrary();
+        });
+      } else {
+        node.presupuesto=newPpto;
+        var lib=LIBRARY.find(l=>l.id===node.lib_id);if(lib)lib.presupuesto=newPpto;
+        renderCanvas();renderLibrary();
+      }
+      closeNodeMenu();
     }});
   }
   items.push({icon:'bi-chat-dots',label:'Agregar comentario',fn:function(){
     var c=prompt('Comentario:');if(c){node.comentario=c;closeNodeMenu();renderCanvas();}
   }});
-  items.push({icon:'bi-info-circle',label:'Detalles',fn:function(){
-    var info='Tipo: '+node.tipo+'\nLabel: '+node.label;
-    if(node.ref_tipo) info+='\nEntidad: '+node.ref_tipo+' #'+node.ref_id;
-    if(node.fase_id) info+='\nFase ID: '+node.fase_id;
-    if(node.presupuesto) info+='\nPresupuesto: $'+Math.round(node.presupuesto).toLocaleString('es-CO');
-    if(node.comentario) info+='\nComentario: '+node.comentario;
-    alert(info); closeNodeMenu();
-  }});
-  items.push({icon:'bi-copy',label:'Duplicar',fn:function(){duplicateSelected();closeNodeMenu();}});
-  items.push({icon:'bi-trash text-danger',label:'Eliminar',cls:'text-danger',fn:function(){
+  if(isReal){
+    items.push({icon:'bi-link-45deg',label:'Ir a fase/objetivo',fn:function(){
+      window.location.href='/proyectos/'+PID+'?vista=fases';
+    }});
+  }
+  items.push({icon:'bi-copy',label:'Duplicar',fn:function(){_selLib={id:node.lib_id};duplicateSelected();closeNodeMenu();}});
+  items.push({icon:'bi-trash text-danger',label:'Eliminar del canvas',cls:'text-danger',fn:function(){
     EDGES=EDGES.filter(ed=>ed.from!==node.id&&ed.to!==node.id);
     NODES=NODES.filter(nd=>nd.id!==node.id);
     _selCanvas=null;closeNodeMenu();renderCanvas();renderLibrary();
@@ -314,9 +371,13 @@ function showNodeMenu(e,node){
 function closeNodeMenu(){var m=document.getElementById('nodeMenu');if(m)m.remove();}
 
 function saveDiagram(){
+  // Save copies separately (library rebuilds from DB each load)
+  var copies=LIBRARY.filter(function(n){return n.is_copy;}).map(function(n){
+    return {tipo:n.tipo,label:n.label,ref_id:n.ref_id,ref_tipo:n.ref_tipo,fase_id:n.fase_id,presupuesto:n.presupuesto};
+  });
   fetch('/api/proyectos/'+PID+'/diagrama',{
     method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrf},
-    body:JSON.stringify({diagrama:{nodes:NODES,edges:EDGES,library:LIBRARY,nextId:_nextId}})
+    body:JSON.stringify({diagrama:{nodes:NODES,edges:EDGES,copies:copies,nextId:_nextId}})
   }).then(r=>r.json()).then(function(d){showStatus(d.ok?'Guardado':'Error');});
 }
 

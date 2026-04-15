@@ -1138,3 +1138,62 @@ def register(app):
             db.session.commit()
             return jsonify({'ok': True, 'id': o.id, 'tipo': 'objetivo', 'nombre': o.titulo})
         return jsonify({'error': 'Tipo invalido'}), 400
+
+    # ══════════════════════════════════════════════════════════════
+    # DIAGRAMA: Sync budget to real entities
+    # ══════════════════════════════════════════════════════════════
+
+    @app.route('/api/proyectos/diagrama/sync-presupuesto', methods=['POST'])
+    @login_required
+    def api_diagrama_sync_presupuesto():
+        """Update real Fase/Objetivo presupuesto from diagram edit."""
+        if not _requiere_proyecto_access():
+            return jsonify({'error': 'Acceso denegado'}), 403
+        ref_tipo = request.json.get('ref_tipo')
+        ref_id = request.json.get('ref_id')
+        presupuesto = float(request.json.get('presupuesto') or 0)
+        if ref_tipo == 'fase' and ref_id:
+            f = db.session.get(ProyectoFase, int(ref_id))
+            if f:
+                f.presupuesto = presupuesto
+                db.session.commit()
+                return jsonify({'ok': True, 'entidad': 'fase', 'id': f.id, 'presupuesto': presupuesto})
+        elif ref_tipo == 'objetivo' and ref_id:
+            o = db.session.get(ProyectoObjetivo, int(ref_id))
+            if o:
+                # Validate: sum of objetivos in fase must not exceed fase presupuesto
+                fase = db.session.get(ProyectoFase, o.fase_id)
+                if fase and fase.presupuesto:
+                    otros = sum(ob.presupuesto or 0 for ob in fase.objetivos if ob.id != o.id)
+                    if otros + presupuesto > fase.presupuesto:
+                        return jsonify({
+                            'error': f'Excede presupuesto de fase "{fase.nombre}": ${otros + presupuesto:,.0f} > ${fase.presupuesto:,.0f}',
+                            'limite': fase.presupuesto - otros
+                        }), 400
+                o.presupuesto = presupuesto
+                db.session.commit()
+                return jsonify({'ok': True, 'entidad': 'objetivo', 'id': o.id, 'presupuesto': presupuesto})
+        return jsonify({'error': 'Entidad no encontrada'}), 404
+
+    @app.route('/api/proyectos/<int:pid>/diagrama/sync-nombre', methods=['POST'])
+    @login_required
+    def api_diagrama_sync_nombre(pid):
+        """Update real Fase/Objetivo name from diagram edit."""
+        ref_tipo = request.json.get('ref_tipo')
+        ref_id = request.json.get('ref_id')
+        nombre = request.json.get('nombre', '').strip()
+        if not nombre:
+            return jsonify({'error': 'Nombre vacio'}), 400
+        if ref_tipo == 'fase' and ref_id:
+            f = db.session.get(ProyectoFase, int(ref_id))
+            if f:
+                f.nombre = nombre
+                db.session.commit()
+                return jsonify({'ok': True})
+        elif ref_tipo == 'objetivo' and ref_id:
+            o = db.session.get(ProyectoObjetivo, int(ref_id))
+            if o:
+                o.titulo = nombre
+                db.session.commit()
+                return jsonify({'ok': True})
+        return jsonify({'error': 'Entidad no encontrada'}), 404
