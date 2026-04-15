@@ -67,8 +67,15 @@ def register(app):
         flash('Solicitud enviada. Nuestro equipo te contactará pronto.', 'success')
         return redirect(url_for('landing'))
 
-    # ── dashboard (/)
+    # ── root: landing for visitors, dashboard for logged-in users
     @app.route('/')
+    def root():
+        if current_user.is_authenticated:
+            return redirect(url_for('dashboard'))
+        return render_template('landing.html', active_module=None)
+
+    # ── dashboard (/dashboard)
+    @app.route('/dashboard')
     @login_required
     def dashboard():
         from datetime import date
