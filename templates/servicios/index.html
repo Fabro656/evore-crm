@@ -1,203 +1,141 @@
 {% extends "base.html" %}
-
-{% block title %}Servicios{% endblock %}
-
+{% block title %}Servicios{% endblock %}{% block page_title %}Servicios{% endblock %}
+{% block topbar_actions %}
+<a href="{{ url_for('servicios_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo</a>
+{% endblock %}
 {% block content %}
-<div class="container-fluid mt-4">
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <h1 class="mb-0">
-                <i class="fas fa-concierge-bell"></i> Servicios
-            </h1>
-            <p class="text-muted">Gestiona servicios que pueden incluirse en cotizaciones y ventas</p>
-        </div>
-        <div class="col-md-4 text-end">
-            <a href="{{ url_for('servicios_nuevo') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Nuevo Servicio
+<div class="fc mb-3">
+  <form method="GET" class="row g-2 align-items-end">
+    <div class="col-sm-4"><input type="text" name="buscar" class="form-control form-control-sm" placeholder="Buscar por nombre..." value="{{ buscar }}"></div>
+    <div class="col-sm-2">
+      <select name="activo" class="form-select form-select-sm">
+        <option value="">Todos</option>
+        <option value="1" {% if activo_f == '1' %}selected{% endif %}>Activos</option>
+        <option value="0" {% if activo_f == '0' %}selected{% endif %}>Inactivos</option>
+      </select>
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
+      <a href="{{ url_for('servicios') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
+    </div>
+  </form>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="fc text-center py-2">
+    <div style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Activos</div>
+    <div class="fw-bold mt-1" style="font-size:1.3rem;color:var(--ac)">{{ activos_count }}</div>
+  </div></div>
+  <div class="col-6 col-md-3"><div class="fc text-center py-2">
+    <div style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Precio min</div>
+    <div class="fw-bold mt-1" style="font-size:1rem;color:var(--text1)">{{ precio_min|moneda }}</div>
+  </div></div>
+  <div class="col-6 col-md-3"><div class="fc text-center py-2">
+    <div style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Precio max</div>
+    <div class="fw-bold mt-1" style="font-size:1rem;color:var(--green)">{{ precio_max|moneda }}</div>
+  </div></div>
+  <div class="col-6 col-md-3"><div class="fc text-center py-2">
+    <div style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Total</div>
+    <div class="fw-bold mt-1" style="font-size:1.3rem;color:var(--text1)">{{ items|length }}</div>
+  </div></div>
+</div>
+
+<div class="d-flex align-items-center justify-content-between mb-2">
+  <div class="count-label"><i class="bi bi-gear me-2"></i>{{ items|length }} servicio(s)</div>
+  <div class="btn-group btn-group-sm">
+    <button class="btn btn-outline-secondary active" id="viewCards" onclick="setView('cards')" title="Tarjetas"><i class="bi bi-grid-3x3-gap"></i></button>
+    <button class="btn btn-outline-secondary" id="viewTable" onclick="setView('table')" title="Tabla"><i class="bi bi-list-ul"></i></button>
+  </div>
+</div>
+
+{% if items %}
+<div id="viewCardsContainer">
+<div class="row g-3">
+  {% for s in items %}
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="fc h-100" style="padding:0;overflow:hidden;transition:transform .15s{% if not s.activo %};opacity:.55{% endif %}"
+         onmouseenter="this.style.transform='translateY(-2px)'" onmouseleave="this.style.transform=''">
+      <div style="height:4px;background:{% if s.activo %}var(--green){% else %}var(--red){% endif %}"></div>
+      <div style="padding:1rem 1.15rem">
+        <div class="d-flex align-items-start gap-3 mb-2">
+          <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:40px;height:40px;background:{% if s.activo %}rgba(16,185,129,.1){% else %}var(--surface2){% endif %};flex-shrink:0">
+            <i class="bi bi-gear" style="font-size:1.1rem;color:{% if s.activo %}var(--green){% else %}var(--text2){% endif %}"></i>
+          </div>
+          <div style="min-width:0;flex:1">
+            <a href="{{ url_for('servicios_editar', id=s.id) }}" class="text-decoration-none">
+              <div class="fw-bold" style="color:var(--text1);font-size:.95rem">{{ s.nombre }}</div>
             </a>
+            {% if s.descripcion %}
+            <div class="text-muted" style="font-size:.78rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ s.descripcion }}</div>
+            {% endif %}
+          </div>
+          <span class="badge {% if s.activo %}bg-success{% else %}bg-danger{% endif %}" style="font-size:.6rem;flex-shrink:0">{{ 'Activo' if s.activo else 'Inactivo' }}</span>
         </div>
-    </div>
-
-    <!-- Busqueda -->
-    <div class="fc mb-3">
-      <form method="GET" class="row g-2 align-items-end">
-        <div class="col-sm-4"><input type="text" name="buscar" class="form-control form-control-sm" placeholder="Buscar por nombre o descripcion..." value="{{ buscar }}"></div>
-        <div class="col-sm-2">
-          <select name="activo" class="form-select form-select-sm">
-            <option value="">— Todos —</option>
-            <option value="1" {% if activo_f == '1' %}selected{% endif %}>Activos</option>
-            <option value="0" {% if activo_f == '0' %}selected{% endif %}>Inactivos</option>
-          </select>
+        <div class="d-flex flex-wrap gap-1 mb-3">
+          {% if s.categoria %}<span class="badge bg-secondary" style="font-size:.6rem">{{ s.categoria }}</span>{% endif %}
+          <span class="badge bg-light text-dark" style="font-size:.6rem">{{ s.unidad }}</span>
+          {% if s.margen %}<span class="badge {% if s.margen >= 40 %}bg-success{% elif s.margen >= 20 %}bg-info{% else %}bg-warning text-dark{% endif %}" style="font-size:.6rem">Margen {{ s.margen }}%</span>{% endif %}
         </div>
-        <div class="col-auto">
-          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
-          <a href="{{ url_for('servicios') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
+        <div class="d-flex justify-content-between align-items-end">
+          <div>
+            <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.3px;color:var(--text2);font-weight:600">Costo</div>
+            <div style="font-size:.88rem;color:var(--text1)">{{ s.costo_interno|moneda }}</div>
+          </div>
+          <div class="text-end">
+            <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.3px;color:var(--text2);font-weight:600">Precio venta</div>
+            <div style="font-size:1.1rem;font-weight:700;color:var(--green)">{{ s.precio_venta|moneda }}</div>
+          </div>
         </div>
-      </form>
-    </div>
-
-    <!-- Estadísticas -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h5 class="card-title text-muted">Servicios Activos</h5>
-                    <h2 class="card-text text-primary">{{ activos_count }}</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h5 class="card-title text-muted">Precio Mínimo</h5>
-                    <h2 class="card-text text-info">{{ precio_min|cop }}</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h5 class="card-title text-muted">Precio Máximo</h5>
-                    <h2 class="card-text text-success">{{ precio_max|cop }}</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h5 class="card-title text-muted">Total de Servicios</h5>
-                    <h2 class="card-text text-secondary">{{ items|length }}</h2>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Cards de Servicios -->
-    <div class="d-flex align-items-center justify-content-between mb-2">
-      <div style="font-size:.82rem;color:var(--text2)"><i class="bi bi-gear me-2"></i>{{ items|length }} servicio(s)</div>
-      <div class="btn-group btn-group-sm">
-        <button class="btn btn-outline-secondary active" id="viewCards" onclick="setView('cards')" title="Tarjetas"><i class="bi bi-grid-3x3-gap"></i></button>
-        <button class="btn btn-outline-secondary" id="viewTable" onclick="setView('table')" title="Tabla"><i class="bi bi-list-ul"></i></button>
+      </div>
+      <div style="padding:.55rem 1.15rem;border-top:1px solid var(--border);display:flex;gap:6px;align-items:center">
+        <a href="{{ url_for('servicios_editar', id=s.id) }}" class="btn btn-sm btn-outline-primary" style="font-size:.75rem;padding:3px 10px"><i class="bi bi-pencil me-1"></i>Editar</a>
+        <form method="POST" action="{{ url_for('servicios_toggle', id=s.id) }}" class="m-0">
+          <button type="submit" class="btn btn-sm btn-outline-warning" style="font-size:.75rem;padding:3px 10px">
+            <i class="bi bi-toggle-{% if s.activo %}on{% else %}off{% endif %} me-1"></i>{{ 'Desactivar' if s.activo else 'Activar' }}
+          </button>
+        </form>
+        <form method="POST" action="{{ url_for('servicios_eliminar', id=s.id) }}" class="m-0 ms-auto" onsubmit="return confirm('Eliminar servicio?')">
+          <button type="submit" class="btn btn-sm btn-outline-danger" style="font-size:.75rem;padding:3px 8px"><i class="bi bi-trash"></i></button>
+        </form>
       </div>
     </div>
-    {% if items %}
-    <div id="viewCardsContainer">
-    <div class="row g-3">
-        {% for servicio in items %}
-        <div class="col-12 col-md-6 col-xl-4">
-            <div class="fc h-100" style="padding:0;overflow:hidden;transition:box-shadow .15s,transform .15s{% if not servicio.activo %};opacity:.65{% endif %}"
-                 onmouseenter="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)';this.style.transform='translateY(-1px)'"
-                 onmouseleave="this.style.boxShadow='';this.style.transform=''">
-                <!-- Color bar -->
-                <div style="height:4px;background:{% if servicio.activo %}#10b981{% else %}#ef4444{% endif %}"></div>
-
-                <div style="padding:1rem 1.15rem">
-                    <!-- Header: nombre + estado -->
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div style="flex:1;min-width:0">
-                            <a href="{{ url_for('servicios_editar', id=servicio.id) }}" class="text-decoration-none" style="color:inherit">
-                                <strong style="font-size:1.05rem">{{ servicio.nombre }}</strong>
-                            </a>
-                            {% if servicio.descripcion %}
-                            <div style="font-size:.78rem;color:var(--text2,#6b7280);margin-top:2px">{{ servicio.descripcion[:100] }}{% if servicio.descripcion|length > 100 %}...{% endif %}</div>
-                            {% endif %}
-                        </div>
-                        <div class="ms-2">
-                            {% if servicio.activo %}
-                            <span class="badge bg-success"><i class="fas fa-check"></i> Activo</span>
-                            {% else %}
-                            <span class="badge bg-danger"><i class="fas fa-times"></i> Inactivo</span>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <!-- Categoria + Unidad -->
-                    <div class="d-flex flex-wrap gap-1 mb-3">
-                        {% if servicio.categoria %}
-                        <span class="badge bg-secondary">{{ servicio.categoria }}</span>
-                        {% endif %}
-                        <span class="badge bg-light text-dark">{{ servicio.unidad }}</span>
-                        {% if servicio.precio_venta > 0 %}
-                        <span class="badge bg-{% if servicio.margen >= 40 %}success{% elif servicio.margen >= 20 %}info{% else %}warning{% endif %}">
-                            Margen {{ servicio.margen }}%
-                        </span>
-                        {% endif %}
-                    </div>
-
-                    <!-- Precios -->
-                    <div class="row g-2 mb-2">
-                        <div class="col-6">
-                            <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.3px;color:var(--text2,#6b7280);font-weight:600">Costo Interno</div>
-                            <div style="font-size:.95rem;font-weight:600;color:var(--text,#374151)">{{ servicio.costo_interno|cop }}</div>
-                        </div>
-                        <div class="col-6">
-                            <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.3px;color:var(--text2,#6b7280);font-weight:600">Precio Venta</div>
-                            <div style="font-size:1.15rem;font-weight:700;color:#059669">{{ servicio.precio_venta|cop }}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Actions -->
-                <div style="padding:.65rem 1.15rem;border-top:1px solid var(--border,#e5e7eb);display:flex;gap:6px;justify-content:flex-end">
-                    <a href="{{ url_for('servicios_editar', id=servicio.id) }}"
-                       class="btn btn-outline-primary btn-sm" title="Editar">
-                        <i class="fas fa-edit"></i> Editar
-                    </a>
-                    <form method="POST" action="{{ url_for('servicios_toggle', id=servicio.id) }}" style="display:inline">
-                        <button type="submit" class="btn btn-outline-warning btn-sm"
-                                title="{% if servicio.activo %}Desactivar{% else %}Activar{% endif %}">
-                            <i class="fas fa-toggle-{% if servicio.activo %}on{% else %}off{% endif %}"></i>
-                            {% if servicio.activo %}Desactivar{% else %}Activar{% endif %}
-                        </button>
-                    </form>
-                    <form method="POST" action="{{ url_for('servicios_eliminar', id=servicio.id) }}" style="display:inline">
-                        <button type="submit" class="btn btn-outline-danger btn-sm"
-                                title="Eliminar"
-                                onclick="return confirm('¿Eliminar este servicio? Esta acción no se puede deshacer.')">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    </div>{# /viewCardsContainer #}
-
-    <div id="viewTableContainer" style="display:none">
-    <div class="table-responsive">
-      <table class="table table-hover align-middle" style="font-size:.85rem">
-        <thead>
-          <tr>
-            <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Nombre</th>
-            <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Tipo</th>
-            <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)" class="text-end">Costo</th>
-            <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)" class="text-end">Precio Venta</th>
-            <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Activo</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for servicio in items %}
-          <tr{% if not servicio.activo %} style="opacity:.65"{% endif %}>
-            <td><a href="{{ url_for('servicios_editar', id=servicio.id) }}" class="text-decoration-none fw-semibold" style="font-size:.82rem">{{ servicio.nombre }}</a></td>
-            <td style="color:var(--text2);font-size:.82rem">{{ servicio.categoria or servicio.unidad }}</td>
-            <td class="text-end" style="font-size:.82rem">{{ servicio.costo_interno|cop }}</td>
-            <td class="text-end fw-semibold" style="color:#059669">{{ servicio.precio_venta|cop }}</td>
-            <td>{% if servicio.activo %}<span class="badge bg-success" style="font-size:.7rem">Activo</span>{% else %}<span class="badge bg-danger" style="font-size:.7rem">Inactivo</span>{% endif %}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    </div>{# /viewTableContainer #}
-
-    {% else %}
-    <div class="alert alert-info mb-0">
-        <i class="fas fa-info-circle"></i> No hay servicios configurados aún.
-        <a href="{{ url_for('servicios_nuevo') }}" class="alert-link">Crear uno ahora</a>
-    </div>
-    {% endif %}
+  </div>
+  {% endfor %}
 </div>
+</div>{# /viewCardsContainer #}
+
+<div id="viewTableContainer" style="display:none">
+<div class="table-responsive">
+  <table class="table table-hover align-middle" style="font-size:.85rem">
+    <thead><tr>
+      <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Nombre</th>
+      <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Categoria</th>
+      <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)" class="text-end">Costo</th>
+      <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)" class="text-end">Precio</th>
+      <th style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Estado</th>
+    </tr></thead>
+    <tbody>
+      {% for s in items %}
+      <tr{% if not s.activo %} style="opacity:.55"{% endif %}>
+        <td><a href="{{ url_for('servicios_editar', id=s.id) }}" class="text-decoration-none fw-semibold" style="font-size:.82rem">{{ s.nombre }}</a></td>
+        <td style="color:var(--text2);font-size:.82rem">{{ s.categoria or s.unidad }}</td>
+        <td class="text-end" style="font-size:.82rem">{{ s.costo_interno|moneda }}</td>
+        <td class="text-end fw-semibold" style="color:var(--green)">{{ s.precio_venta|moneda }}</td>
+        <td><span class="badge {% if s.activo %}bg-success{% else %}bg-danger{% endif %}" style="font-size:.7rem">{{ 'Activo' if s.activo else 'Inactivo' }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+</div>{# /viewTableContainer #}
+
+{% else %}
+<div class="text-center text-muted py-5">
+  <i class="bi bi-gear" style="font-size:3rem"></i>
+  <p class="mt-3">Sin servicios{% if buscar %} para "{{ buscar }}"{% endif %}.</p>
+  <a href="{{ url_for('servicios_nuevo') }}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Crear primer servicio</a>
+</div>
+{% endif %}
 <script>
 function setView(v){
   document.getElementById('viewCardsContainer').style.display=v==='cards'?'':'none';

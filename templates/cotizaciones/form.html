@@ -250,6 +250,18 @@ function populateAllProdSelects(){
     sel.innerHTML=buildProdOptions(current);
   });
 }
+function populateAllSrvSelects(){
+  document.querySelectorAll('.item-row').forEach(function(row){
+    var sel=row.querySelector('select.item-servicio');
+    if(!sel || sel.options.length > 1) return;
+    var current=sel.value;
+    var html='<option value="">— Seleccionar servicio —</option>';
+    SERVICIOS.forEach(function(s){
+      html+='<option value="'+s.id+'"'+(s.id==current?' selected':'')+'>'+s.nombre+' — $'+Math.round(s.precio_venta).toLocaleString('es-CO')+'</option>';
+    });
+    sel.innerHTML=html;
+  });
+}
 
 function updateItemRow(el){
   var row=el.closest('.item-row');
@@ -399,6 +411,7 @@ function addRow(){
 }
 document.getElementById('pctAnticipo').addEventListener('input',calcTotal);
 populateAllProdSelects();
+populateAllSrvSelects();
 calcTotal();
 setupAutoTitulo('[name="titulo"]',['[name="cliente_id"]','[name="fecha_emision"]']);
 

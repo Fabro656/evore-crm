@@ -56,10 +56,13 @@
 
 <div class="form-section">
   <div class="d-flex justify-content-between align-items-center mb-2">
-    <div class="form-section-title mb-0"><i class="bi bi-box-seam me-2"></i>Productos</div>
-    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addProd()"><i class="bi bi-plus-lg me-1"></i>Agregar producto</button>
+    <div class="form-section-title mb-0"><i class="bi bi-box-seam me-2"></i>Productos y Servicios</div>
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-sm btn-outline-primary" onclick="addProd()"><i class="bi bi-plus-lg me-1"></i>Producto</button>
+      <button type="button" class="btn btn-sm btn-outline-success" onclick="addServ()"><i class="bi bi-plus-lg me-1"></i>Servicio</button>
+    </div>
   </div>
-  <div class="input-hint mb-2"><i class="bi bi-info-circle me-1"></i>Agrega los productos o servicios del pedido. El precio es <strong>sin IVA</strong>; el sistema calcula el {{ iva_default|default(19)|int }}% automáticamente.</div>
+  <div class="input-hint mb-2"><i class="bi bi-info-circle me-1"></i>El precio es <strong>sin IVA</strong>; el sistema calcula el {{ iva_default|default(19)|int }}% automaticamente.</div>
   <div id="prodsContainer"></div>
   <div class="totales-box mt-3 mb-2"><div class="row g-2 justify-content-end"><div class="col-md-4">
     <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">Subtotal:</span><strong id="lblSub">$ 0</strong></div>
@@ -103,7 +106,7 @@
       <div class="form-text">¿Cuándo pagará el cliente el anticipo?</div>
     </div>
     <div class="col-md-4">
-      <label class="form-label">Días de producción</label>
+      <label class="form-label" id="lblDiasEntrega">Dias de produccion / entrega</label>
       <div class="input-group">
         <input type="number" name="dias_entrega" id="diasEnt" class="form-control"
                min="1" max="365" step="1"
@@ -143,6 +146,7 @@
 </div></form></div>{% endblock %}
 {% block scripts %}<script>
 const PRODS={{ productos_json|tojson }};const ITEMS={{ items_json|tojson }};let totG=0;
+const SRVS={{ servicios_json|default([])|tojson }};
 const IVA_PCT={{ iva_default|default(19)|float }};
 function fCOP(n){return '$ '+Math.round(n).toLocaleString('es-CO');}
 function stockInfo(p,cant){
@@ -172,6 +176,33 @@ function addProd(pid='',cant=1,precio=0){
       <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem"> </label>
         <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="document.getElementById('pr${idx}').remove();calcTot()"><i class="bi bi-trash"></i></button></div>
     </div></div>`);
+  calcRow(idx);
+}
+function addServ(sid='',cant=1,precio=0){
+  const opts=SRVS.map(s=>`<option value="${s.id}" data-p="${s.precio_venta}" data-u="${s.unidad}" ${s.id==sid?'selected':''}>${s.nombre} — $${Math.round(s.precio_venta).toLocaleString('es-CO')}</option>`).join('');
+  const idx=Date.now();
+  const selSrv=SRVS.find(s=>s.id==sid);
+  if(!precio && selSrv) precio=selSrv.precio_venta;
+  document.getElementById('prodsContainer').insertAdjacentHTML('beforeend',`<div class="prod-row mb-2" id="pr${idx}">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-5"><label class="form-label mb-1" style="font-size:.8rem"><span class="badge bg-success" style="font-size:.6rem">Servicio</span></label>
+        <select name="prod_id[]" class="form-select form-select-sm" onchange="onSC(this,${idx})">${opts}</select>
+        <input type="hidden" name="prod_tipo[]" value="servicio"></div>
+      <div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Cantidad</label>
+        <input type="number" name="prod_cant[]" class="form-control form-control-sm" min="0.01" step="0.01" value="${cant}" oninput="calcRow(${idx})"></div>
+      <div class="col-md-3"><label class="form-label mb-1" style="font-size:.8rem">Precio unit. COP sin IVA</label>
+        <input type="number" name="prod_precio[]" id="pp${idx}" class="form-control form-control-sm" min="0" step="1" value="${Math.round(precio)}" oninput="calcRow(${idx})"></div>
+      <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Subtotal</label>
+        <input type="text" id="ps${idx}" class="form-control form-control-sm" readonly style="background:var(--surface2)"></div>
+      <div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem"> </label>
+        <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="document.getElementById('pr${idx}').remove();calcTot()"><i class="bi bi-trash"></i></button></div>
+    </div></div>`);
+  calcRow(idx);
+}
+function onSC(sel,idx){
+  const o=sel.options[sel.selectedIndex];
+  var precio=parseFloat(o.dataset.p||0);
+  document.getElementById('pp'+idx).value=Math.round(precio);
   calcRow(idx);
 }
 function onPC(sel,idx){

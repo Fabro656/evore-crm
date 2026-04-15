@@ -443,6 +443,7 @@ def register(app):
                 flash('Error al crear la venta. Verifica los datos e intenta de nuevo.', 'danger')
         return render_template('ventas/form.html', obj=None, clientes_list=cl,
                                titulo='Nueva Venta', productos_json=_prods_json(), items_json=[],
+                               servicios_json=_servicios_json(),
                                iva_default=iva_pct, cots_disponibles=cots_disponibles,
                                pre_cliente_id=pre_cliente_id, pre_cotizacion_id=pre_cotizacion_id)
 
@@ -501,6 +502,7 @@ def register(app):
                     'cant':it.cantidad,'precio':it.precio_unit} for it in obj.items]
         return render_template('ventas/form.html', obj=obj, clientes_list=cl,
                                titulo='Editar Venta', productos_json=_prods_json(), items_json=items_j,
+                               servicios_json=_servicios_json(),
                                iva_default=iva_pct)
 
 
