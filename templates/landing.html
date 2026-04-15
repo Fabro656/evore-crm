@@ -7,23 +7,7 @@
 .hero h1{font-size:clamp(2.8rem,6vw,4.5rem);font-weight:700;letter-spacing:-.04em;line-height:1.04;margin-bottom:1.25rem;max-width:850px;margin-left:auto;margin-right:auto}
 .hero h1 em{font-style:normal;color:var(--ac)}
 .hero p{font-size:clamp(1.05rem,1.8vw,1.2rem);color:var(--t2);max-width:540px;margin:0 auto 2rem;line-height:1.6;font-weight:300}
-.hb{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;margin-bottom:3rem}
-/* Hero cards (CRM style) */
-.hero-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:.75rem;max-width:700px;margin:0 auto}
-.hc-card{background:var(--bg);border-radius:16px;overflow:hidden;transition:all .3s cubic-bezier(.16,1,.3,1);opacity:0;transform:translateY(16px)}
-.hc-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.06);transform:translateY(-2px)}
-.hero-cards.anim .hc-card{animation:vUp .45s cubic-bezier(.16,1,.3,1) forwards}
-.hero-cards.anim .hc-card:nth-child(2){animation-delay:.08s}
-.hero-cards.anim .hc-card:nth-child(3){animation-delay:.16s}
-.hero-cards.anim .hc-card:nth-child(4){animation-delay:.24s}
-@keyframes vUp{to{opacity:1;transform:none}}
-.hc-bar{height:3px}
-.hc-body{padding:.85rem 1rem;display:flex;align-items:center;gap:.7rem}
-.hc-av{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.85rem;flex-shrink:0}
-.hc-info{flex:1;min-width:0}
-.hc-name{font-weight:600;font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hc-sub{font-size:.68rem;color:var(--t2)}
-.hc-val{font-weight:700;font-size:.92rem;white-space:nowrap}
+.hb{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;margin-bottom:1.5rem}
 
 /* CRM mockup interactivity */
 .crm-mock .sb-icon{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--t2);cursor:pointer;transition:all .25s cubic-bezier(.16,1,.3,1)}
@@ -71,10 +55,6 @@
 .flow-node.red{background:var(--st-err-bg);color:var(--st-err-text)}
 .flow-node.blue{background:var(--st-info-bg);color:var(--st-info-text)}
 
-/* ── Mini stats ── */
-.mc-stats{display:flex;gap:1.25rem;margin-top:1.25rem;padding-top:1rem;border-top:1px solid rgba(0,0,0,.04)}
-.mc-stat .n{font-size:1.1rem;font-weight:700;color:var(--t);line-height:1}
-.mc-stat .l{font-size:.65rem;color:var(--t2);margin-top:.15rem}
 
 /* ── Ecosystem (cards) ── */
 .eg{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
@@ -110,62 +90,61 @@
 
 /* ── Tablet (601-1024px) ── */
 @media(max-width:1024px){
-  .hero{padding:4.5rem 2rem 2.5rem}
+  .hero{padding:4rem 2rem 2rem}
   .hero h1{font-size:2.5rem}
+  .crm-mock{max-width:100%!important;margin:1rem auto 0!important;border-radius:12px!important}
   .mg{grid-template-columns:repeat(2,1fr);gap:.75rem;padding:0 1.25rem 2rem}
   .mg .mc:nth-child(1),.mg .mc:nth-child(4),.mg .mc:nth-child(7){grid-column:span 1}
   .eg{grid-template-columns:repeat(2,1fr);gap:.75rem}
-  .pg{max-width:100%;margin:0 1.25rem;border-radius:16px}
-  .fq{padding:0 1.25rem}
-  .hero-cards{max-width:100%}
-  .ct{padding:5rem 2rem}
+  .pg{gap:.75rem}
+  .ct{padding:4rem 2rem}
 }
 /* ── Mobile (≤600px) ── */
 @media(max-width:600px){
-  .promo{font-size:.72rem;padding:.55rem 1rem;gap:.5rem;margin-top:44px}
-  .promo b{display:inline}
-  #cd{font-size:.7rem;padding:2px 8px}
-  .hero{padding:3rem 1.25rem 2rem}
-  .hero h1{font-size:1.85rem;letter-spacing:-.03em}
-  .hero p{font-size:.95rem;margin-bottom:1.5rem}
-  .hb{flex-direction:column;align-items:center;gap:.6rem}
-  .hb .ba,.hb .bo{width:100%;justify-content:center;min-height:50px}
-  .hero-cards{grid-template-columns:1fr;gap:.5rem;max-width:100%}
-  .hc-body{padding:.7rem .85rem;gap:.6rem}
-  .hc-name{font-size:.78rem}.hc-sub{font-size:.65rem}.hc-val{font-size:.85rem}
-  .mg{grid-template-columns:1fr;gap:.75rem;padding:0 .75rem 2rem}
+  .promo{font-size:.7rem;padding:.5rem .75rem;gap:.4rem;margin-top:44px}
+  #cd{font-size:.65rem;padding:1px 6px}
+  .hero{padding:2rem 1rem 1.5rem}
+  .hero h1{font-size:1.7rem;letter-spacing:-.03em}
+  .hero p{font-size:.9rem;margin-bottom:1.25rem}
+  .hb{flex-direction:column;align-items:stretch;gap:.5rem}
+  .hb .ba,.hb .bo{width:100%;justify-content:center;min-height:48px}
+  .crm-mock{max-width:100%!important;margin:.75rem auto 0!important;border-radius:10px!important}
+  .crm-mock .notif-trigger{display:none}
+  #modulos{padding:2.5rem 0 1.5rem!important}
+  #modulos>div:first-child{padding:0 1rem;margin-bottom:1.5rem!important}
+  #modulos>div:first-child h2{font-size:1.4rem}
+  .mg{grid-template-columns:1fr;gap:.6rem;padding:0 .75rem 1.5rem}
   .mg .mc:nth-child(1),.mg .mc:nth-child(4),.mg .mc:nth-child(7){grid-column:span 1}
-  .mc{padding:1.5rem 1.25rem;border-radius:16px}
-  .mc h3{font-size:1rem}
-  .mc p{font-size:.85rem;-webkit-line-clamp:3}
-  .mc-icon{width:38px;height:38px;border-radius:12px;font-size:1rem;margin-bottom:.85rem}
-  .flow{gap:.25rem;margin:.75rem 0}
-  .flow-node{padding:.25rem .5rem;font-size:.62rem}
-  .flow-arrow{font-size:.5rem}
-  .mc-link{font-size:.82rem}
-  .eg{grid-template-columns:1fr;gap:.75rem}
-  .ei{padding:1.75rem 1.25rem;border-radius:16px}
-  .en{font-size:2rem}
-  .ei h3{font-size:.88rem}.ei p{font-size:.8rem}
-  .pg{grid-template-columns:1fr;gap:.75rem}
-  .pc{padding:2rem 1.5rem}
-  .pp{font-size:1.8rem}
-  .pc ul{font-size:.82rem}
-  .pc .ba,.pc .bo{min-height:48px}
-  .fq{padding:0 .75rem}
-  .fi-q{font-size:.92rem}
-  .fi-a{font-size:.85rem}
-  .ct{padding:3.5rem 1.25rem}
-  .ct h2{font-size:1.5rem}
-  .ct p{font-size:.92rem}
+  .mc{padding:1.25rem 1rem;border-radius:14px}
+  .mc h3{font-size:.95rem}
+  .mc p{font-size:.82rem;-webkit-line-clamp:2}
+  .mc-icon{width:36px;height:36px;border-radius:10px;font-size:.95rem;margin-bottom:.75rem}
+  .flow{gap:.2rem;margin:.6rem 0}
+  .flow-node{padding:.2rem .45rem;font-size:.58rem}
+  .flow-arrow{font-size:.45rem}
+  .mc-link{font-size:.8rem;margin-top:.5rem}
+  .eg{grid-template-columns:1fr;gap:.6rem}
+  .ei{padding:1.5rem 1rem;border-radius:14px}
+  .en{font-size:1.8rem}
+  .ei h3{font-size:.85rem}.ei p{font-size:.78rem}
+  .pg{grid-template-columns:1fr;gap:.6rem}
+  .pc{padding:1.75rem 1.25rem;border-radius:14px}
+  .pp{font-size:1.6rem}
+  .pc ul{font-size:.8rem}
+  .pc .ba,.pc .bo{min-height:48px;font-size:.82rem}
+  .fi-q{font-size:.88rem}
+  .fi-a{font-size:.82rem}
+  .ct{padding:3rem 1rem}
+  .ct h2{font-size:1.4rem}
+  .ct p{font-size:.88rem}
 }
 /* ── Small mobile (≤380px) ── */
 @media(max-width:380px){
-  .hero h1{font-size:1.6rem}
-  .hm-content{grid-template-columns:1fr}
-  .mc{padding:1.25rem 1rem}
-  .ei{padding:1.5rem 1rem}
-  .pc{padding:1.75rem 1.25rem}
+  .hero h1{font-size:1.5rem}
+  .mc{padding:1rem .85rem}
+  .ei{padding:1.25rem .85rem}
+  .pc{padding:1.5rem 1rem}
+  .pp{font-size:1.4rem}
 }
 {% endblock %}
 
@@ -185,14 +164,6 @@
     <a href="#" class="ba" style="padding:.8rem 2rem;font-size:.98rem" onclick="event.preventDefault();openM()"><i class="bi bi-arrow-right"></i>Probar 1 mes gratis</a>
     <a href="#modulos" class="bo">Ver módulos <i class="bi bi-chevron-down"></i></a>
   </div>
-  <!-- Dashboard preview as cards -->
-  <div class="hero-cards rv">
-    <div class="hc-card"><div class="hc-bar" style="background:var(--ac)"></div><div class="hc-body"><div class="hc-av" style="background:var(--ac)"><i class="bi bi-graph-up-arrow"></i></div><div class="hc-info"><div class="hc-name">Ingresos totales</div><div class="hc-sub">Abril 2026 · 23 ventas</div></div><div class="hc-val" style="color:var(--ac)">$85.2M</div></div></div>
-    <div class="hc-card"><div class="hc-bar" style="background:var(--gn)"></div><div class="hc-body"><div class="hc-av" style="background:var(--gn)"><i class="bi bi-cash-stack"></i></div><div class="hc-info"><div class="hc-name">Saldo neto real</div><div class="hc-sub">Ingresos - gastos - impuestos</div></div><div class="hc-val" style="color:var(--gn)">$33.1M</div></div></div>
-    <div class="hc-card"><div class="hc-bar" style="background:var(--og)"></div><div class="hc-body"><div class="hc-av" style="background:var(--og)"><i class="bi bi-bag"></i></div><div class="hc-info"><div class="hc-name">Textiles del Norte</div><div class="hc-sub">Negociación · 3 productos</div></div><div class="hc-val" style="color:var(--og)">$12.5M</div></div></div>
-    <div class="hc-card"><div class="hc-bar" style="background:#7C3AED"></div><div class="hc-body"><div class="hc-av" style="background:#7C3AED"><i class="bi bi-star-fill"></i></div><div class="hc-info"><div class="hc-name">Tu valoración</div><div class="hc-sub">23 opiniones en el marketplace</div></div><div class="hc-val" style="color:#7C3AED">★ 4.8</div></div></div>
-  </div>
-
   <!-- CRM mockup (interactive) -->
   <div class="crm-mock rv" style="max-width:960px;margin:1.5rem auto 0;border-radius:16px;overflow:hidden;border:1px solid var(--bd);box-shadow:0 24px 60px rgba(0,0,0,.07)">
     <div style="height:32px;background:var(--bg);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 12px;gap:6px">
@@ -200,6 +171,23 @@
       <span style="width:8px;height:8px;border-radius:50%;background:#FFBD2E"></span>
       <span style="width:8px;height:8px;border-radius:50%;background:#28CA41"></span>
       <span style="flex:1;text-align:center;font-size:.62rem;color:var(--t2)">evore.us/dashboard</span>
+      <div class="notif-trigger" style="position:relative;cursor:pointer" onmouseenter="document.getElementById('chatPopup').style.display='block'" onmouseleave="document.getElementById('chatPopup').style.display='none'">
+        <i class="bi bi-chat-dots-fill" style="font-size:.7rem;color:var(--ac)"></i>
+        <span style="position:absolute;top:-3px;right:-5px;width:8px;height:8px;border-radius:50%;background:#C23934;border:1.5px solid var(--bg)"></span>
+        <!-- Chat popup -->
+        <div id="chatPopup" style="display:none;position:absolute;top:24px;right:-60px;width:200px;background:var(--sf);border:1px solid var(--bd);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.1);padding:.6rem;z-index:10;animation:vUp .2s ease">
+          <div style="font-weight:600;font-size:.6rem;margin-bottom:.4rem;color:var(--t)"><i class="bi bi-chat-dots-fill me-1" style="color:var(--ac)"></i>Chat</div>
+          <div style="background:var(--bg);border-radius:8px;padding:.45rem .55rem;margin-bottom:.35rem;display:flex;align-items:center;gap:.4rem">
+            <div style="width:20px;height:20px;border-radius:6px;background:var(--ac);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.5rem">Q</div>
+            <div><div style="font-weight:600;font-size:.52rem">Químicos S.A.</div><div style="font-size:.48rem;color:var(--t2)">Factura enviada ✓</div></div>
+          </div>
+          <div style="background:var(--bg);border-radius:8px;padding:.45rem .55rem;display:flex;align-items:center;gap:.4rem">
+            <div style="width:20px;height:20px;border-radius:6px;background:#8B5CF6;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.5rem"><i class="bi bi-robot"></i></div>
+            <div><div style="font-weight:600;font-size:.52rem">MyEvore</div><div style="font-size:.48rem;color:var(--t2)">Pago vence en 7 días</div></div>
+            <span style="width:6px;height:6px;border-radius:50%;background:#C23934;flex-shrink:0"></span>
+          </div>
+        </div>
+      </div>
     </div>
     <div style="display:grid;grid-template-columns:44px 1fr;min-height:260px">
       <div style="background:var(--bg);border-right:1px solid var(--bd);padding:.4rem .3rem;display:flex;flex-direction:column;align-items:center;gap:.3rem">
@@ -210,6 +198,7 @@
         <i class="bi bi-calculator sb-icon"></i>
         <i class="bi bi-people sb-icon"></i>
         <i class="bi bi-shop sb-icon"></i>
+        <div style="position:relative"><i class="bi bi-chat-dots sb-icon"></i><span style="position:absolute;top:1px;right:1px;width:6px;height:6px;border-radius:50%;background:#C23934"></span></div>
       </div>
       <div style="padding:.85rem;display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;align-content:start">
         <div class="mk" style="background:var(--bg);padding:.65rem .75rem"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.2rem"><span style="width:6px;height:6px;border-radius:50%;background:var(--ac)"></span><span style="font-weight:700;font-size:.62rem">$85.2M</span></div><div style="font-size:.55rem;color:var(--t2)">Ingresos</div></div>
