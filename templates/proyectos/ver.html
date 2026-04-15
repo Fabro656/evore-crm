@@ -174,9 +174,11 @@
         <span class="badge {% if t.prioridad=='alta' %}bg-danger{% elif t.prioridad=='media' %}bg-warning text-dark{% else %}bg-success{% endif %}" style="font-size:.5rem;padding:2px 5px">{{ t.prioridad[0]|upper }}</span>
         <span class="badge" style="font-size:.55rem;background:{% if t.tipo=='compra' %}#F97316{% elif t.tipo=='legal' %}#8B5CF6{% elif t.tipo=='finanzas' %}#059669{% elif t.tipo=='produccion' %}#EC4899{% elif t.tipo=='logistica' %}#0EA5E9{% else %}#6B7280{% endif %};color:#fff">{{ t.tipo }}</span>
         <span style="flex:1;color:var(--text1);{% if t.estado=='completada' %}text-decoration:line-through;opacity:.6{% endif %}">{{ t.titulo }}</span>
-        {% if t.responsable %}<span class="text-muted" style="font-size:.72rem"><i class="bi bi-person me-1"></i>{{ t.responsable.nombre }}</span>{% endif %}
-        {% if t.fecha_limite %}<span class="text-muted" style="font-size:.72rem"><i class="bi bi-calendar me-1"></i>{{ t.fecha_limite.strftime('%d/%m') }}</span>{% endif %}
-        <span class="b b-{{ t.estado }}" style="font-size:.6rem">{{ t.estado.replace('_',' ').title() }}</span>
+        {% if t.responsable %}<span class="text-muted d-none d-md-inline" style="font-size:.72rem"><i class="bi bi-person me-1"></i>{{ t.responsable.nombre }}</span>{% endif %}
+        {% if t.fecha_limite %}<span class="text-muted d-none d-md-inline" style="font-size:.72rem"><i class="bi bi-calendar me-1"></i>{{ t.fecha_limite.strftime('%d/%m') }}</span>{% endif %}
+        <select class="form-select form-select-sm tarea-estado-sel" data-tid="{{ t.id }}" style="width:auto;font-size:.68rem;padding:2px 24px 2px 6px;border-radius:4px;background-color:{% if t.estado=='completada' %}rgba(16,185,129,.1){% elif t.estado=='en_progreso' %}rgba(59,130,246,.1){% elif t.estado=='en_revision' %}rgba(245,158,11,.1){% else %}var(--surface2){% endif %}">
+          {% for est in estados %}<option value="{{ est }}" {% if t.estado==est %}selected{% endif %}>{{ est.replace('_',' ').title() }}</option>{% endfor %}
+        </select>
       </div>
       {% endfor %}
       {% if not fase.tareas %}
@@ -519,5 +521,15 @@ function dropTarea(ev,col){
   }).then(function(r){return r.json()}).then(function(d){if(d.ok)location.reload();});
 }
 function toggleDetail(tid){var el=document.getElementById('det-'+tid);if(el)el.style.display=el.style.display==='none'?'':'none';}
+// Status change from fases view selects
+document.querySelectorAll('.tarea-estado-sel').forEach(function(sel){
+  sel.addEventListener('change',function(){
+    var tid=this.dataset.tid;
+    fetch('/api/proyectos/tareas/'+tid+'/estado',{
+      method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrfToken},
+      body:JSON.stringify({estado:this.value})
+    }).then(function(r){return r.json()}).then(function(d){if(d.ok)location.reload();});
+  });
+});
 </script>
 {% endblock %}
