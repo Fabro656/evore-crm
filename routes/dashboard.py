@@ -50,6 +50,7 @@ def register(app):
                 db.session.add(Notificacion(
                     usuario_id=admin_user.id,
                     tipo='contacto',
+                    titulo=f'Lead: {empresa or nombre}',
                     mensaje=f'Nueva solicitud de {nombre} ({email}) — Plan: {plan_label}',
                     url='/admin/usuarios'))
                 db.session.commit()
@@ -60,7 +61,7 @@ def register(app):
                         descripcion=desc,
                         prioridad='alta',
                         estado='pendiente',
-                        creador_id=admin_user.id,
+                        creado_por=admin_user.id,
                         company_id=evore.id)
                     db.session.add(tarea)
                     db.session.commit()
