@@ -360,7 +360,7 @@
       </div>
       <div class="row g-2 mb-2">
         <div class="col-6"><label class="form-label form-label-sm">Color</label><input type="color" name="color" class="form-control form-control-color form-control-sm" value="{{ fase.color or '#6B7280' }}"></div>
-        <div class="col-6"><label class="form-label form-label-sm">Presupuesto</label><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="number" name="presupuesto" class="form-control" step="1" min="0" value="{{ fase.presupuesto|int }}"></div></div>
+        <div class="col-6"><label class="form-label form-label-sm">Presupuesto <small class="text-muted">(solo incrementar)</small></label><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="number" name="presupuesto" class="form-control" step="1" min="{{ fase.presupuesto|int }}" value="{{ fase.presupuesto|int }}"></div></div>
       </div>
       <div class="mb-2"><label class="form-label form-label-sm">Miembros del equipo</label>
         <div class="border rounded p-2" style="max-height:150px;overflow-y:auto">
