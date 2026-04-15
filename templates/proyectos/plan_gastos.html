@@ -91,7 +91,7 @@
       </div>
     </div>
     <div style="padding:.5rem .75rem">
-      {% for pg in fp.items %}
+      {% for pg in fp.lista %}
       <div class="d-flex align-items-center gap-2 py-1" style="border-bottom:1px solid var(--border);font-size:.85rem">
         <i class="bi bi-receipt" style="color:var(--text2);font-size:.7rem"></i>
         <span style="flex:1;color:var(--text1)">{{ pg.concepto }}</span>
@@ -104,7 +104,7 @@
         {% endif %}
       </div>
       {% endfor %}
-      {% if not fp.items %}
+      {% if not fp.lista %}
       <div class="text-muted text-center py-2" style="font-size:.82rem">Sin gastos planificados</div>
       {% endif %}
       {# Add planned expense #}

@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date as date_type
 import json, secrets, os, logging
 
-__all__ = ['Company', 'UserCompany', 'ChatRoom', 'ChatParticipant', 'ChatMessage', 'User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'MovimientoBancario', 'NotaContable', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'MovimientoInventario', 'Notificacion', 'Empleado', 'HoraExtra', 'Comision', 'Incapacidad', 'VacacionTomada', 'Requisicion', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'HistorialPrecio', 'HistorialCotizacion', 'CompanyRelationship', 'Suscripcion', 'ForoPublicacion', 'ForoValoracion', 'ForoApelacion', 'ForoBanner', 'CapCurso', 'CapLeccion', 'CapPregunta', 'CapProgreso', 'CapEvaluacion', 'Proyecto', 'ProyectoFase', 'ProyectoMiembro', 'ProyectoTarea', 'ProyectoComentario', 'ProyectoGasto', 'ProyectoPlanGasto', 'load_user', '_migrate', 'init_db']
+__all__ = ['Company', 'UserCompany', 'ChatRoom', 'ChatParticipant', 'ChatMessage', 'User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'MovimientoBancario', 'NotaContable', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'MovimientoInventario', 'Notificacion', 'Empleado', 'HoraExtra', 'Comision', 'Incapacidad', 'VacacionTomada', 'Requisicion', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'HistorialPrecio', 'HistorialCotizacion', 'CompanyRelationship', 'Suscripcion', 'ForoPublicacion', 'ForoValoracion', 'ForoApelacion', 'ForoBanner', 'CapCurso', 'CapLeccion', 'CapPregunta', 'CapProgreso', 'CapEvaluacion', 'Proyecto', 'ProyectoFase', 'ProyectoMiembro', 'ProyectoTarea', 'ProyectoComentario', 'ProyectoGasto', 'ProyectoPlanGasto', 'ProyectoObjetivo', 'ProyectoSolicitudPago', 'load_user', '_migrate', 'init_db']
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -1504,6 +1504,43 @@ class ProyectoPlanGasto(db.Model):
     notas           = db.Column(db.Text)
     creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
     fase            = db.relationship('ProyectoFase', foreign_keys=[fase_id])
+
+class ProyectoObjetivo(db.Model):
+    """Checklist item por fase — objetivo que debe cumplirse para desbloquear pagos."""
+    __tablename__ = 'proyecto_objetivos'
+    id              = db.Column(db.Integer, primary_key=True)
+    proyecto_id     = db.Column(db.Integer, db.ForeignKey('proyectos.id'), nullable=False, index=True)
+    fase_id         = db.Column(db.Integer, db.ForeignKey('proyecto_fases.id'), nullable=False, index=True)
+    titulo          = db.Column(db.String(300), nullable=False)
+    completado      = db.Column(db.Boolean, default=False)
+    completado_por  = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    completado_en   = db.Column(db.DateTime, nullable=True)
+    orden           = db.Column(db.Integer, default=0)
+    fase            = db.relationship('ProyectoFase', foreign_keys=[fase_id],
+                                       backref=db.backref('objetivos', lazy=True, order_by='ProyectoObjetivo.orden',
+                                                          cascade='all, delete-orphan'))
+
+class ProyectoSolicitudPago(db.Model):
+    """Solicitud de pago contra presupuesto de una fase — requiere aprobacion de finanzas."""
+    __tablename__ = 'proyecto_solicitudes_pago'
+    id              = db.Column(db.Integer, primary_key=True)
+    company_id      = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
+    proyecto_id     = db.Column(db.Integer, db.ForeignKey('proyectos.id'), nullable=False, index=True)
+    fase_id         = db.Column(db.Integer, db.ForeignKey('proyecto_fases.id'), nullable=False, index=True)
+    concepto        = db.Column(db.String(300), nullable=False)
+    monto           = db.Column(db.Float, nullable=False)
+    estado          = db.Column(db.String(20), default='pendiente')  # pendiente, aprobada, rechazada, pagada
+    solicitado_por  = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    aprobado_por    = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    notas           = db.Column(db.Text)
+    notas_aprobador = db.Column(db.Text)
+    gasto_id        = db.Column(db.Integer, db.ForeignKey('gastos_operativos.id'), nullable=True)
+    creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
+    resuelto_en     = db.Column(db.DateTime, nullable=True)
+    solicitante     = db.relationship('User', foreign_keys=[solicitado_por])
+    aprobador       = db.relationship('User', foreign_keys=[aprobado_por])
+    fase            = db.relationship('ProyectoFase', foreign_keys=[fase_id])
+    gasto_rel       = db.relationship('GastoOperativo', foreign_keys=[gasto_id])
 
 
 # ══════════════════════════════════════════════════════════════════

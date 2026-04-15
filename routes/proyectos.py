@@ -132,10 +132,15 @@ def register(app):
         done_t = len(tareas_por_estado.get('completada', []))
         pct = round(done_t / total_t * 100) if total_t else 0
         usuarios = User.query.filter_by(company_id=getattr(g, 'company_id', None), activo=True).order_by(User.nombre).all()
+        # Solicitudes de pago por fase
+        solicitudes_por_fase = {}
+        if p.estado == 'desarrollo':
+            for sp in ProyectoSolicitudPago.query.filter_by(proyecto_id=p.id).order_by(ProyectoSolicitudPago.creado_en.desc()).all():
+                solicitudes_por_fase.setdefault(sp.fase_id, []).append(sp)
         return render_template('proyectos/ver.html', p=p, vista=vista,
             tareas_por_estado=tareas_por_estado, estados=_ESTADOS_TAREA,
             tipos=_TIPOS_TAREA, gastos=gastos_q, gasto_total=gasto_total,
-            gastos_por_fase=gastos_por_fase,
+            gastos_por_fase=gastos_por_fase, solicitudes_por_fase=solicitudes_por_fase,
             total_t=total_t, done_t=done_t, pct=pct, usuarios=usuarios)
 
     @app.route('/proyectos/<int:id>/editar', methods=['GET', 'POST'])
@@ -447,7 +452,7 @@ def register(app):
             items = ProyectoPlanGasto.query.filter_by(proyecto_id=pid, fase_id=f.id).order_by(ProyectoPlanGasto.fecha_desde).all()
             subtotal = sum(pg.monto for pg in items)
             total_plan += subtotal
-            plan[f.id] = {'fase': f, 'items': items, 'subtotal': subtotal}
+            plan[f.id] = {'fase': f, 'lista': items, 'subtotal': subtotal}
         editable = p.estado in ('planificacion',)
         return render_template('proyectos/plan_gastos.html', p=p, plan=plan,
             total_plan=total_plan, editable=editable)
@@ -606,3 +611,160 @@ def register(app):
             pass
         db.session.commit()
         return redirect(url_for('proyecto_ver', id=pid))
+
+    # ══════════════════════════════════════════════════════════════
+    # OBJETIVOS (Checklist por fase)
+    # ══════════════════════════════════════════════════════════════
+
+    @app.route('/proyectos/<int:pid>/objetivos/agregar', methods=['POST'])
+    @login_required
+    def proyecto_objetivo_agregar(pid):
+        if not _requiere_proyecto_access():
+            flash('Acceso denegado.', 'danger'); return redirect(url_for('dashboard'))
+        fase_id = int(request.form['fase_id'])
+        max_ord = db.session.query(func.max(ProyectoObjetivo.orden)).filter_by(fase_id=fase_id).scalar() or 0
+        db.session.add(ProyectoObjetivo(
+            proyecto_id=pid, fase_id=fase_id,
+            titulo=request.form['titulo'], orden=max_ord + 1
+        ))
+        db.session.commit()
+        flash('Objetivo agregado.', 'success')
+        return redirect(url_for('proyecto_ver', id=pid, vista='fases'))
+
+    @app.route('/proyectos/objetivos/<int:oid>/toggle', methods=['POST'])
+    @login_required
+    def proyecto_objetivo_toggle(oid):
+        obj = ProyectoObjetivo.query.get_or_404(oid)
+        obj.completado = not obj.completado
+        if obj.completado:
+            obj.completado_por = current_user.id
+            obj.completado_en = datetime.utcnow()
+        else:
+            obj.completado_por = None
+            obj.completado_en = None
+        db.session.commit()
+        return redirect(url_for('proyecto_ver', id=obj.proyecto_id, vista='fases'))
+
+    @app.route('/proyectos/objetivos/<int:oid>/eliminar', methods=['POST'])
+    @login_required
+    def proyecto_objetivo_eliminar(oid):
+        if not _requiere_proyecto_access():
+            flash('Acceso denegado.', 'danger'); return redirect(url_for('dashboard'))
+        obj = ProyectoObjetivo.query.get_or_404(oid)
+        pid = obj.proyecto_id
+        db.session.delete(obj)
+        db.session.commit()
+        return redirect(url_for('proyecto_ver', id=pid, vista='fases'))
+
+    # ══════════════════════════════════════════════════════════════
+    # SOLICITUDES DE PAGO
+    # ══════════════════════════════════════════════════════════════
+
+    @app.route('/proyectos/<int:pid>/solicitar-pago', methods=['POST'])
+    @login_required
+    def proyecto_solicitar_pago(pid):
+        p = Proyecto.query.get_or_404(pid)
+        if p.estado != 'desarrollo':
+            flash('Las solicitudes de pago solo aplican en etapa de desarrollo.', 'warning')
+            return redirect(url_for('proyecto_ver', id=pid))
+        cid = getattr(g, 'company_id', None)
+        fase_id = int(request.form['fase_id'])
+        fase = db.session.get(ProyectoFase, fase_id)
+        monto = float(request.form.get('monto') or 0)
+        # Check objectives are all completed for this phase
+        total_obj = ProyectoObjetivo.query.filter_by(fase_id=fase_id).count()
+        done_obj = ProyectoObjetivo.query.filter_by(fase_id=fase_id, completado=True).count()
+        if total_obj > 0 and done_obj < total_obj:
+            flash(f'Debes completar todos los objetivos de la fase "{fase.nombre}" ({done_obj}/{total_obj}) antes de solicitar pago.', 'danger')
+            return redirect(url_for('proyecto_ver', id=pid, vista='fases'))
+        # Check budget
+        gastado = db.session.query(func.sum(ProyectoSolicitudPago.monto)).filter_by(
+            fase_id=fase_id, estado='pagada'
+        ).scalar() or 0
+        pendiente = db.session.query(func.sum(ProyectoSolicitudPago.monto)).filter_by(
+            fase_id=fase_id
+        ).filter(ProyectoSolicitudPago.estado.in_(['pendiente', 'aprobada'])).scalar() or 0
+        disponible = (fase.presupuesto or 0) - gastado - pendiente
+        if monto > disponible and disponible > 0:
+            flash(f'El monto (${monto:,.0f}) excede el presupuesto disponible (${disponible:,.0f}).', 'danger')
+            return redirect(url_for('proyecto_ver', id=pid, vista='fases'))
+        sp = ProyectoSolicitudPago(
+            company_id=cid, proyecto_id=pid, fase_id=fase_id,
+            concepto=request.form.get('concepto', ''),
+            monto=monto, solicitado_por=current_user.id,
+            notas=request.form.get('notas', '')
+        )
+        db.session.add(sp)
+        # Notify finance
+        try:
+            df = User.query.filter_by(company_id=cid, activo=True).filter(
+                User.rol.in_(['director_financiero', 'admin', 'contador'])
+            ).first()
+            if df and df.id != current_user.id:
+                db.session.add(Notificacion(
+                    company_id=cid, user_id=df.id, tipo='solicitud_pago',
+                    titulo=f'Solicitud de pago: {p.codigo} — {fase.nombre}',
+                    mensaje=f'{current_user.nombre} solicita pago de ${monto:,.0f} para "{sp.concepto}" en el proyecto "{p.nombre}"',
+                    link=url_for('proyecto_ver', id=pid, vista='fases'),
+                    creado_en=datetime.utcnow()
+                ))
+        except Exception:
+            pass
+        db.session.commit()
+        flash(f'Solicitud de pago por ${monto:,.0f} enviada a finanzas.', 'success')
+        return redirect(url_for('proyecto_ver', id=pid, vista='fases'))
+
+    @app.route('/proyectos/solicitud-pago/<int:spid>/resolver', methods=['POST'])
+    @login_required
+    def proyecto_solicitud_pago_resolver(spid):
+        rol = _get_rol_activo(current_user)
+        if rol not in ('admin', 'director_financiero', 'contador'):
+            flash('Solo finanzas puede resolver solicitudes de pago.', 'danger')
+            return redirect(url_for('dashboard'))
+        sp = ProyectoSolicitudPago.query.get_or_404(spid)
+        p = Proyecto.query.get_or_404(sp.proyecto_id)
+        cid = getattr(g, 'company_id', None)
+        accion = request.form.get('accion', 'aprobar')
+        if accion == 'pagar':
+            # Create GastoOperativo and link
+            fase = db.session.get(ProyectoFase, sp.fase_id)
+            fase_label = f' [{fase.nombre}]' if fase else ''
+            gasto = GastoOperativo(
+                company_id=cid, tipo='proyecto', tipo_custom=f'Proyecto {p.codigo}{fase_label}',
+                descripcion=sp.concepto, monto=sp.monto, fecha=date_type.today(),
+                creado_por=current_user.id, notas=f'Solicitud de pago aprobada — {p.codigo}'
+            )
+            db.session.add(gasto); db.session.flush()
+            sp.gasto_id = gasto.id
+            sp.estado = 'pagada'
+            sp.aprobado_por = current_user.id
+            sp.resuelto_en = datetime.utcnow()
+            sp.notas_aprobador = request.form.get('notas', '')
+            # Also link to ProyectoGasto
+            db.session.add(ProyectoGasto(
+                proyecto_id=sp.proyecto_id, fase_id=sp.fase_id,
+                gasto_id=gasto.id, descripcion=sp.concepto
+            ))
+            _log('pagar', 'proyecto', p.id, f'Pago aprobado: {sp.concepto} — ${sp.monto:,.0f}')
+            flash(f'Pago de ${sp.monto:,.0f} realizado y registrado en contabilidad.', 'success')
+        else:
+            sp.estado = 'rechazada'
+            sp.aprobado_por = current_user.id
+            sp.resuelto_en = datetime.utcnow()
+            sp.notas_aprobador = request.form.get('notas', '')
+            flash('Solicitud rechazada.', 'info')
+        # Notify requester
+        try:
+            if sp.solicitado_por != current_user.id:
+                estado_txt = 'pagada' if accion == 'pagar' else 'rechazada'
+                db.session.add(Notificacion(
+                    company_id=cid, user_id=sp.solicitado_por, tipo='solicitud_pago',
+                    titulo=f'Solicitud {estado_txt}: {sp.concepto}',
+                    mensaje=f'Tu solicitud de ${sp.monto:,.0f} fue {estado_txt} por {current_user.nombre}',
+                    link=url_for('proyecto_ver', id=sp.proyecto_id, vista='fases'),
+                    creado_en=datetime.utcnow()
+                ))
+        except Exception:
+            pass
+        db.session.commit()
+        return redirect(url_for('proyecto_ver', id=sp.proyecto_id, vista='fases'))
