@@ -242,6 +242,7 @@ def register(app):
             ).first()
             if not existente_t1:
                 t1 = Tarea(
+                    company_id=getattr(g, 'company_id', None),
                     titulo=titulo_t1,
                     descripcion=f'Se reporto un problema de calidad con "{obj.nombre_item}" de la OC {oc.numero}.\n\n'
                                 f'Problema: {descripcion}\n\n'
@@ -268,6 +269,7 @@ def register(app):
                     ).first()
                     if not existente_t2:
                         t2 = Tarea(
+                            company_id=getattr(g, 'company_id', None),
                             titulo=titulo_t2,
                             descripcion=f'La materia prima "{obj.nombre_item}" de la OC {oc.numero} tiene un problema de calidad.\n\n'
                                         f'Problema: {descripcion}\n\n'
@@ -976,6 +978,7 @@ def register(app):
         titulo_compra = f'Comprar {cant_fmt} de {mp.nombre}' if cant_fmt else f'Comprar materia: {mp.nombre}'
 
         t_compra = Tarea(
+            company_id=getattr(g, 'company_id', None),
             titulo=titulo_compra,
             descripcion=(f'Falta material en reserva de producción.\n'
                          f'Materia: {mp.nombre}\n'

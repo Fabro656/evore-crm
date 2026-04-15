@@ -115,7 +115,8 @@ def register(app):
                 titulo_alerta = f'Stock bajo: {pb.nombre} ({pb.stock}/{pb.stock_minimo})'
                 ya_existe = Tarea.query.filter(Tarea.titulo==titulo_alerta, Tarea.estado=='pendiente').first()
                 if not ya_existe:
-                    t = Tarea(titulo=titulo_alerta, descripcion=f'El producto {pb.nombre} tiene stock {pb.stock} por debajo del minimo {pb.stock_minimo}.',
+                    t = Tarea(company_id=getattr(g, 'company_id', None),
+                              titulo=titulo_alerta, descripcion=f'El producto {pb.nombre} tiene stock {pb.stock} por debajo del minimo {pb.stock_minimo}.',
                               estado='pendiente', prioridad='alta', tarea_tipo='alerta_stock', categoria='logistica',
                               creado_por=current_user.id, asignado_a=current_user.id)
                     db.session.add(t)

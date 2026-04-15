@@ -185,6 +185,7 @@ def register(app):
             admin = User.query.filter_by(rol='admin', activo=True).first()
             recipient_id = admin.id if admin else None
         t = Tarea(
+            company_id=getattr(g, 'company_id', None),
             titulo=f'[Mensaje] {cliente.empresa or cliente.nombre}: {texto[:60]}',
             descripcion=texto,
             estado='pendiente', prioridad='media',
@@ -268,6 +269,7 @@ def register(app):
         if request.method == 'POST':
             asignado = cliente.sales_manager_id or current_user.id
             t = Tarea(
+                company_id=getattr(g, 'company_id', None),
                 titulo=f"[Ticket] {request.form.get('asunto','')}",
                 descripcion=f"De: {cliente.empresa or cliente.nombre}\n\n{request.form.get('mensaje','')}",
                 estado='pendiente', prioridad=request.form.get('prioridad','media'),
@@ -559,6 +561,7 @@ def register(app):
             admins = User.query.filter(User.rol.in_(['admin','vendedor']), User.activo==True).all()
             asignado = admins[0].id if admins else current_user.id
             t = Tarea(
+                company_id=getattr(g, 'company_id', None),
                 titulo=f"[Prov] {request.form.get('asunto','')}",
                 descripcion=f"De proveedor: {prov.nombre}\n\n{request.form.get('mensaje','')}",
                 estado='pendiente', prioridad=request.form.get('prioridad','media'),

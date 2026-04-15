@@ -412,7 +412,8 @@ def register(app):
             if tra_id and fer:
                 tra = db.session.get(Proveedor, tra_id)
                 fecha_rec = datetime.strptime(fer,'%Y-%m-%d').date()
-                t = Tarea(titulo=f'Contratar transporte para OC {oc.numero}',
+                t = Tarea(company_id=getattr(g, 'company_id', None),
+                          titulo=f'Contratar transporte para OC {oc.numero}',
                           descripcion=f'Contactar a {tra.nombre or tra.empresa} para coordinar recogida el {fecha_rec.strftime("%d/%m/%Y")}. OC: {oc.numero}',
                           estado='pendiente', prioridad='alta',
                           fecha_vencimiento=fecha_rec - timedelta(days=2),

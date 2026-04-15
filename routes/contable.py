@@ -355,6 +355,7 @@ def register(app):
             if _get_rol_activo(current_user) == 'admin' and asiento.creado_por and asiento.creado_por != current_user.id:
                 try:
                     tarea_notif = Tarea(
+                        company_id=getattr(g, 'company_id', None),
                         titulo=f'El admin editó tu asiento {asiento.numero}',
                         descripcion=f'El administrador modificó el asiento contable {asiento.numero} '
                                     f'({asiento.descripcion[:80]}). Revisa los cambios si tienes dudas.',

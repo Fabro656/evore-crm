@@ -1,6 +1,6 @@
 # routes/tareas.py — reconstruido desde v27 con CRUD completo
 from flask import render_template, redirect, url_for, flash, request, \
-                  jsonify, send_file, make_response, current_app
+                  jsonify, send_file, make_response, current_app, g
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
 from extensions import db
@@ -45,6 +45,7 @@ def _crear_tarea_unica(titulo_patron, tarea_tipo, descripcion, prioridad='media'
 
         # Crear nueva tarea
         t = Tarea(
+            company_id=getattr(g, 'company_id', None),
             titulo=titulo_patron,
             descripcion=descripcion,
             prioridad=prioridad,
@@ -165,7 +166,8 @@ def register(app):
         if request.method == 'POST':
             fs=request.form.get('fecha_vencimiento')
             asignado_id=int(request.form.get('asignado_a') or current_user.id)
-            t=Tarea(titulo=request.form['titulo'], descripcion=request.form.get('descripcion',''),
+            t=Tarea(company_id=getattr(g, 'company_id', None),
+                titulo=request.form['titulo'], descripcion=request.form.get('descripcion',''),
                 estado=request.form.get('estado','pendiente'), prioridad=request.form.get('prioridad','media'),
                 fecha_vencimiento=datetime.strptime(fs,'%Y-%m-%d').date() if fs else None,
                 asignado_a=asignado_id, creado_por=current_user.id,

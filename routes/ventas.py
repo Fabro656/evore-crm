@@ -720,6 +720,7 @@ def register(app):
                     responsable = current_user.id
                     if not tarea_dup:
                         t = Tarea(
+                            company_id=getattr(g, 'company_id', None),
                             titulo=titulo_cancel,
                             descripcion=(
                                 f'La venta {venta.numero or "#"+str(venta.id)} fue marcada como '
@@ -755,6 +756,7 @@ def register(app):
                 try:
                     creador_id = venta.creado_por or current_user.id
                     t_pausa = Tarea(
+                        company_id=getattr(g, 'company_id', None),
                         titulo=f'Producción pausada — {venta.titulo or venta.numero}',
                         descripcion=(
                             f'La venta {venta.numero or "#"+str(venta.id)} cambió de '

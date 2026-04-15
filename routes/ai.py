@@ -782,6 +782,7 @@ def _execute_ai_action(action_data):
             # ── Tarea ─────────────────────────────────────────────────────
             elif atype == 'tarea':
                 t = Tarea(
+                    company_id=getattr(g, 'company_id', None),
                     titulo=adata.get('titulo', 'Tarea desde IA'),
                     descripcion=adata.get('descripcion', ''),
                     prioridad=adata.get('prioridad', 'media'),

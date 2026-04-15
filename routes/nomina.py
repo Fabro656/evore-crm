@@ -53,7 +53,7 @@ def register(app):
         # Crear ticket al admin
         admin = User.query.filter_by(rol='admin', activo=True).first()
         if admin:
-            t = Tarea(
+            t = Tarea(company_id=getattr(g, 'company_id', None),
                 titulo=titulo_ticket,
                 descripcion=f'La nomina del mes {mes_ant} no ha sido cerrada. '
                             f'Ingresa a Nomina y cierra el mes para registrar el gasto.',

@@ -2064,6 +2064,39 @@ def init_db():
                 ))
         db.session.commit()
         logging.info(f'Assigned {len(unassigned)} users to default company')
+    # ── Fix orphan records: set company_id on rows that have NULL ──
+    _tables_with_company_id = [
+        'clientes', 'proveedores', 'ventas', 'productos', 'materias_primas',
+        'empleados', 'ordenes_compra', 'cotizaciones', 'gastos_operativos',
+        'servicios', 'asientos_contables', 'ordenes_produccion', 'recetas_producto',
+        'reglas_tributarias', 'tareas', 'eventos', 'notas', 'notificaciones',
+        'actividades', 'movimientos_inventario', 'movimientos_bancarios',
+        'lotes_materia_prima', 'lotes_producto', 'comisiones', 'documentos_legales',
+        'compras_materia', 'cotizaciones_proveedor', 'requisiciones', 'aprobaciones',
+    ]
+    try:
+        from sqlalchemy import inspect as sa_inspect
+        inspector = sa_inspect(db.engine)
+        existing = set(inspector.get_table_names())
+        fixed = 0
+        for tbl in _tables_with_company_id:
+            if tbl not in existing:
+                continue
+            cols = [c['name'] for c in inspector.get_columns(tbl)]
+            if 'company_id' not in cols:
+                continue
+            r = db.session.execute(db.text(
+                f"UPDATE {tbl} SET company_id = :cid WHERE company_id IS NULL"
+            ), {'cid': default_company.id})
+            if r.rowcount:
+                fixed += r.rowcount
+        if fixed:
+            db.session.commit()
+            logging.info(f'Fixed {fixed} orphan rows (set company_id={default_company.id})')
+    except Exception as e:
+        db.session.rollback()
+        logging.warning(f'Fix orphan company_id: {e}')
+
     # ── Create admin user if not exists ──
     if not User.query.filter_by(email=_admin_email).first():
         _admin_pass = os.environ.get('ADMIN_PASSWORD')
