@@ -406,6 +406,7 @@
       <p style="font-size:.82rem;color:var(--t2)">Completa tus datos. Configuramos tu sistema en menos de 24h.</p>
     </div>
     <form method="POST" action="/contacto">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="plan" value="trial">
       <div class="mb-2"><input type="text" name="nombre" class="form-control" required placeholder="Nombre completo *" style="border-radius:10px;padding:.6rem 1rem;font-size:.88rem"></div>
       <div class="mb-2"><input type="email" name="email" class="form-control" required placeholder="Email corporativo *" style="border-radius:10px;padding:.6rem 1rem;font-size:.88rem"></div>

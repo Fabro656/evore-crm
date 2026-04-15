@@ -19,14 +19,13 @@
   --st-info-bg:#EBF4FF;--st-info-text:#0A3D7A;--st-info-bdr:#B3D4F5;
 }
 body{font-family:'Open Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:var(--t);background:var(--sf);overflow-x:hidden;-webkit-font-smoothing:antialiased}
-h1,h2,h3,h4,h5,.ba,.bo,.bw{font-family:'Poppins','Open Sans',sans-serif}
+h1,h2,h3,h4,h5,.ba,.bo{font-family:'Poppins','Open Sans',sans-serif}
 a{text-decoration:none;color:inherit}img{max-width:100%;height:auto}
 
 /* ── Buttons ── */
 .ba{display:inline-flex;align-items:center;gap:.5rem;background:var(--ac);color:#fff;border:none;padding:.7rem 1.6rem;border-radius:980px;font-weight:600;font-size:.92rem;cursor:pointer;transition:all .25s}
 .ba:hover{background:var(--ac2);color:#fff;transform:scale(1.03)}
-.bw{display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);padding:.65rem 1.5rem;border-radius:980px;font-weight:500;font-size:.92rem;cursor:pointer;transition:all .25s;backdrop-filter:blur(12px)}
-.bw:hover{background:rgba(255,255,255,.18);color:#fff}
+
 .bo{display:inline-flex;align-items:center;gap:.5rem;color:var(--ac);border:1px solid var(--ac);padding:.55rem 1.3rem;border-radius:980px;font-weight:600;font-size:.85rem;cursor:pointer;transition:all .2s}
 .bo:hover{background:rgba(var(--ar),.06)}
 
@@ -58,71 +57,13 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;background:var(--sf);border-
 
 /* ── Sections ── */
 .sc{width:100%;padding:5rem 0}
-.sc-g{background:var(--bg)}.sc-d{background:#111;color:#fff}.sc-w{background:#fff}
+.sc-g{background:var(--bg)}.sc-w{background:#fff}
 .si{max-width:980px;margin:0 auto;padding:0 2rem}
 .sw{max-width:1400px;margin:0 auto;padding:0 2rem}
 .sh{text-align:center;margin-bottom:3rem}
 .sh h2{font-size:clamp(1.8rem,4vw,3rem);font-weight:700;letter-spacing:-.025em;line-height:1.08}
 .sh p{color:var(--t2);max-width:520px;margin:.75rem auto 0;font-size:1rem;line-height:1.65;font-weight:300}
-.sc-d .sh p{color:rgba(255,255,255,.4)}
 
-/* ── Two-column feature sections (full width) ── */
-.feat{display:grid;grid-template-columns:1fr 1fr;min-height:600px;overflow:hidden}
-.feat-txt{padding:4rem 3.5rem;display:flex;flex-direction:column;justify-content:center}
-.feat-txt .lb{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--ac);margin-bottom:.75rem}
-.feat-txt h2{font-size:clamp(1.5rem,3vw,2.2rem);font-weight:700;letter-spacing:-.02em;line-height:1.12;margin-bottom:1rem}
-.feat-txt p{color:var(--t2);font-size:.95rem;line-height:1.7;font-weight:300;margin-bottom:1.5rem}
-.feat-vis{position:relative;display:flex;align-items:center;justify-content:center;padding:2rem;overflow:hidden}
-.feat-vis.dark{background:#111}
-.feat-vis.light{background:var(--bg)}
-
-/* ── CRM Mockup (uses real Evore design tokens) ── */
-.app{width:100%;max-width:560px;background:var(--sf);border-radius:20px;border:1px solid var(--bd);box-shadow:0 24px 60px rgba(0,0,0,.07),0 1px 3px rgba(0,0,0,.03);overflow:hidden}
-.dark .app{background:#1E1E1E;border-color:rgba(255,255,255,.06);box-shadow:0 20px 60px rgba(0,0,0,.4)}
-.app-top{height:38px;background:var(--bg);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 14px;gap:6px}
-.dark .app-top{background:#262626;border-color:rgba(255,255,255,.05)}
-.app-top .d{width:8px;height:8px;border-radius:50%}.app-top .d:nth-child(1){background:#FF5F57}.app-top .d:nth-child(2){background:#FFBD2E}.app-top .d:nth-child(3){background:#28CA41}
-.app-top span{flex:1;text-align:center;font-size:.65rem;color:var(--t2);font-weight:500}
-.dark .app-top span{color:rgba(255,255,255,.3)}
-/* App toolbar (like CRM search bar) */
-.app-bar{padding:.75rem 1rem;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:.5rem}
-.dark .app-bar{border-color:rgba(255,255,255,.05)}
-.app-bar input{flex:1;border:1.5px solid var(--bd);border-radius:8px;padding:.4rem .75rem;font-size:.75rem;background:var(--sf);color:var(--t);outline:none}
-.dark .app-bar input{background:#262626;border-color:rgba(255,255,255,.08);color:#fff}
-/* CRM cards grid inside mock */
-.app-grid{padding:1rem;display:grid;grid-template-columns:1fr;gap:.65rem}
-/* Each card: replicates .fc .fc-lift pattern from the real CRM */
-.vc{background:var(--sf);border:1px solid var(--bd);border-radius:14px;overflow:hidden;cursor:pointer;transition:all .3s cubic-bezier(.16,1,.3,1);opacity:0;transform:translateY(16px)}
-.dark .vc{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.06)}
-.vc:hover{transform:translateY(-2px)!important;box-shadow:0 6px 20px rgba(0,0,0,.08)}
-.dark .vc:hover{box-shadow:0 6px 20px rgba(0,0,0,.3)}
-.vc-bar{height:3px}
-.vc-body{padding:.7rem .85rem;display:flex;align-items:center;gap:.65rem}
-.vc-av{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.7rem;font-weight:700;flex-shrink:0}
-.vc-info{flex:1;min-width:0;overflow:hidden}
-.vc-name{font-weight:600;font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dark .vc-name{color:#fff}
-.vc-sub{font-size:.7rem;color:var(--t2)}.dark .vc-sub{color:rgba(255,255,255,.3)}
-.vc-val{font-weight:700;font-size:.78rem;white-space:nowrap;text-align:right}
-.vc-badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:.58rem;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
-/* Card entrance anim */
-.app.anim .vc{animation:vUp .5s cubic-bezier(.16,1,.3,1) forwards}
-.app.anim .vc:nth-child(2){animation-delay:.1s}
-.app.anim .vc:nth-child(3){animation-delay:.2s}
-.app.anim .vc:nth-child(4){animation-delay:.3s}
-@keyframes vUp{to{opacity:1;transform:none}}
-/* Shimmer */
-.app-shimmer .app-grid::after{content:'';position:absolute;top:0;left:-100%;width:50%;height:100%;background:linear-gradient(90deg,transparent,rgba(var(--ar),.03),transparent);animation:shim 3s ease infinite;pointer-events:none}
-@keyframes shim{0%{left:-100%}100%{left:200%}}
-.app-grid{position:relative}
-
-/* ── Interactive tabs inside mockup ── */
-.app-tabs{display:flex;gap:0;border-bottom:1px solid var(--bd);padding:0 1rem}
-.dark .app-tabs{border-color:rgba(255,255,255,.05)}
-.app-tabs button{padding:.5rem .75rem;font-size:.68rem;font-weight:500;border:none;background:none;cursor:pointer;color:var(--t2);border-bottom:2px solid transparent;transition:all .2s}
-.dark .app-tabs button{color:rgba(255,255,255,.4)}
-.app-tabs button.on{color:var(--ac);font-weight:600;border-bottom-color:var(--ac)}
-.dark .app-tabs button.on{color:#64B5F6;border-bottom-color:#64B5F6}
-.app-view{display:none}.app-view.on{display:grid}
 
 /* ── Feature rows (side by side: mockup + text) ── */
 .fr{display:flex;align-items:center;gap:3.5rem;margin-bottom:4rem}
@@ -137,8 +78,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;background:var(--sf);border-
 .fl{list-style:none;font-size:.88rem;margin:0}
 .fl li{padding:.4rem 0;display:flex;align-items:flex-start;gap:.6rem;color:var(--t2)}
 .fl .bi{color:var(--ac);flex-shrink:0;margin-top:3px}
-.feat-link{display:inline-flex;align-items:center;gap:.4rem;color:var(--ac);font-weight:600;font-size:.88rem;margin-top:.5rem;transition:gap .2s}
-.feat-link:hover{gap:.7rem;color:var(--ac2)}
+
 
 /* ── Page hero ── */
 .ph{text-align:center;padding:7rem 2rem 2.5rem;max-width:800px;margin:0 auto}
@@ -246,7 +186,7 @@ footer a{color:var(--t2);margin:0 .75rem}footer a:hover{color:var(--t)}
 
 <script>
 var ob=new IntersectionObserver(function(e){e.forEach(function(x){
-  if(x.isIntersecting){x.target.classList.add('v');x.target.querySelectorAll('.app,.hero-cards').forEach(function(a){a.classList.add('anim')});ob.unobserve(x.target)}
+  if(x.isIntersecting){x.target.classList.add('v');x.target.querySelectorAll('.hero-cards').forEach(function(a){a.classList.add('anim')});ob.unobserve(x.target)}
 })},{threshold:.15,rootMargin:'0px 0px -40px 0px'});
 document.querySelectorAll('.rv').forEach(function(e){ob.observe(e)});
 document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();var t=document.querySelector(this.getAttribute('href'));if(t)t.scrollIntoView({behavior:'smooth',block:'start'})})});
@@ -256,14 +196,6 @@ function toggleMob(){
   var open=m.classList.toggle('open');
   o.classList.toggle('open',open);
   i.className=open?'bi bi-x-lg':'bi bi-list';
-}
-// Tab switcher for interactive mockups
-function switchTab(group,tab){
-  document.querySelectorAll('[data-group="'+group+'"] .app-tabs button').forEach(function(b){b.classList.remove('on')});
-  document.querySelectorAll('[data-group="'+group+'"] .app-view').forEach(function(v){v.classList.remove('on')});
-  event.target.classList.add('on');
-  var view=document.getElementById(group+'-'+tab);
-  if(view){view.classList.add('on');view.querySelectorAll('.vc').forEach(function(c,i){c.style.opacity='0';c.style.transform='translateY(16px)';setTimeout(function(){c.style.transition='all .4s cubic-bezier(.16,1,.3,1)';c.style.opacity='1';c.style.transform='none'},i*80)})}
 }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

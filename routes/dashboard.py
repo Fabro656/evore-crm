@@ -21,14 +21,18 @@ def register(app):
     # ── contact/purchase form (public)
     @app.route('/contacto', methods=['POST'])
     def landing_contacto():
-        nombre = request.form.get('nombre', '').strip()
-        email = request.form.get('email', '').strip()
-        empresa = request.form.get('empresa', '').strip()
-        telefono = request.form.get('telefono', '').strip()
-        plan = request.form.get('plan', '').strip()
-        mensaje = request.form.get('mensaje', '').strip()
+        import re as _re
+        nombre = request.form.get('nombre', '').strip()[:200]
+        email = request.form.get('email', '').strip()[:200]
+        empresa = request.form.get('empresa', '').strip()[:200]
+        telefono = request.form.get('telefono', '').strip()[:50]
+        plan = request.form.get('plan', '').strip()[:20]
+        mensaje = request.form.get('mensaje', '').strip()[:1000]
         if not nombre or not email:
             flash('Nombre y email son obligatorios.', 'danger')
+            return redirect(url_for('landing'))
+        if not _re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', email):
+            flash('Ingresa un email válido.', 'danger')
             return redirect(url_for('landing'))
         # Create ticket for Evore admin
         try:
