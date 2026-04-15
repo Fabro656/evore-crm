@@ -128,7 +128,9 @@
       <div style="flex:1;min-width:200px">
         <div class="d-flex align-items-center gap-2">
           <h6 class="fw-bold mb-0" style="color:var(--text1)">{{ fase.nombre }}</h6>
-          <span class="b b-{{ fase.estado }}" style="font-size:.65rem">{{ fase.estado.replace('_',' ').title() }}</span>
+          <select class="form-select form-select-sm fase-estado-sel" data-fid="{{ fase.id }}" style="width:auto;font-size:.65rem;padding:2px 22px 2px 6px;border-radius:4px;background-color:{% if fase.estado=='completada' %}rgba(16,185,129,.12){% elif fase.estado=='en_progreso' %}rgba(59,130,246,.12){% else %}var(--surface2){% endif %}">
+            {% for e in ['pendiente','en_progreso','completada'] %}<option value="{{ e }}" {% if fase.estado==e %}selected{% endif %}>{{ e.replace('_',' ').title() }}</option>{% endfor %}
+          </select>
         </div>
         {% if fase.descripcion %}<div class="text-muted" style="font-size:.78rem">{{ fase.descripcion }}</div>{% endif %}
         {% set fg = gastos_por_fase.get(fase.id, {'total':0}) %}
@@ -521,7 +523,17 @@ function dropTarea(ev,col){
   }).then(function(r){return r.json()}).then(function(d){if(d.ok)location.reload();});
 }
 function toggleDetail(tid){var el=document.getElementById('det-'+tid);if(el)el.style.display=el.style.display==='none'?'':'none';}
-// Status change from fases view selects
+// Phase status change
+document.querySelectorAll('.fase-estado-sel').forEach(function(sel){
+  sel.addEventListener('change',function(){
+    var fid=this.dataset.fid;
+    fetch('/api/proyectos/fases/'+fid+'/estado',{
+      method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrfToken},
+      body:JSON.stringify({estado:this.value})
+    }).then(function(r){return r.json()}).then(function(d){if(d.ok)location.reload();});
+  });
+});
+// Task status change from fases view selects
 document.querySelectorAll('.tarea-estado-sel').forEach(function(sel){
   sel.addEventListener('change',function(){
     var tid=this.dataset.tid;

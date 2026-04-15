@@ -424,6 +424,18 @@ def register(app):
         db.session.commit()
         return jsonify({'ok': True, 'estado': nuevo})
 
+    @app.route('/api/proyectos/fases/<int:fid>/estado', methods=['POST'])
+    @login_required
+    def api_proyecto_fase_estado(fid):
+        """Quick status change for a phase."""
+        f = ProyectoFase.query.get_or_404(fid)
+        nuevo = request.json.get('estado')
+        if nuevo not in ('pendiente', 'en_progreso', 'completada'):
+            return jsonify({'error': 'Estado invalido'}), 400
+        f.estado = nuevo
+        db.session.commit()
+        return jsonify({'ok': True, 'estado': nuevo})
+
     @app.route('/api/proyectos/<int:pid>/estado', methods=['POST'])
     @login_required
     def api_proyecto_estado(pid):
