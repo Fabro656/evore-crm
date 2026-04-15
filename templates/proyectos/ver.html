@@ -195,35 +195,47 @@
       </div>
       {% endif %}
 
-      {# ── Objetivos (Checklist) ── #}
+      {# ── Objetivos (Checklist con presupuesto) ── #}
       <div style="margin-top:.5rem;padding-top:.5rem;border-top:1px dashed var(--border)">
         {% set objs = fase.objetivos %}
         {% set obj_total = objs|length %}
         {% set obj_done = objs|selectattr('completado')|list|length %}
+        {% set obj_ppto = objs|sum(attribute='presupuesto') %}
         <div class="d-flex align-items-center justify-content-between mb-1">
           <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)"><i class="bi bi-check2-all me-1"></i>Objetivos {% if obj_total %}({{ obj_done }}/{{ obj_total }}){% endif %}</div>
-          {% if obj_total %}
-          <div style="width:60px;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden"><div style="width:{{ (obj_done/obj_total*100)|round if obj_total else 0 }}%;height:100%;background:{% if obj_done==obj_total %}var(--green){% else %}var(--ac){% endif %};border-radius:2px"></div></div>
-          {% endif %}
+          <div class="d-flex align-items-center gap-2">
+            {% if obj_ppto %}<span style="font-size:.7rem;color:var(--text2)">Ppto obj: {{ moneda(obj_ppto) }}</span>{% endif %}
+            {% if obj_total %}
+            <div style="width:60px;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden"><div style="width:{{ (obj_done/obj_total*100)|round if obj_total else 0 }}%;height:100%;background:{% if obj_done==obj_total %}var(--green){% else %}var(--ac){% endif %};border-radius:2px"></div></div>
+            {% endif %}
+          </div>
         </div>
         {% for o in objs %}
-        <div class="d-flex align-items-center gap-2 py-1" style="font-size:.82rem">
+        {% set o_gastado = gasto_por_objetivo.get(o.id, 0) %}
+        <div class="d-flex align-items-center gap-2 py-1" style="font-size:.82rem;border-bottom:1px solid var(--border)">
           <form method="POST" action="{{ url_for('proyecto_objetivo_toggle', oid=o.id) }}" class="m-0">
             <button type="submit" class="btn btn-sm p-0" style="border:none;background:none;font-size:.9rem;line-height:1">
               {% if o.completado %}<i class="bi bi-check-circle-fill text-success"></i>{% else %}<i class="bi bi-circle text-muted"></i>{% endif %}
             </button>
           </form>
           <span style="flex:1;color:var(--text1);{% if o.completado %}text-decoration:line-through;opacity:.6{% endif %}">{{ o.titulo }}</span>
-          {% if not o.completado %}
+          {% if o.presupuesto %}
+          <span style="font-size:.7rem;color:var(--ac)" title="Presupuesto">{{ moneda(o.presupuesto) }}</span>
+          {% if o_gastado %}<span style="font-size:.65rem;color:{% if o_gastado > o.presupuesto %}var(--red){% else %}var(--green){% endif %}" title="Gastado real">/ {{ moneda(o_gastado) }}</span>{% endif %}
+          {% endif %}
+          {% if p.estado == 'planificacion' %}
           <form method="POST" action="{{ url_for('proyecto_objetivo_eliminar', oid=o.id) }}" class="m-0"><button class="btn btn-sm p-0" style="border:none;background:none;color:var(--text2);font-size:.7rem"><i class="bi bi-x"></i></button></form>
           {% endif %}
         </div>
         {% endfor %}
         {# Add objective form #}
-        <form method="POST" action="{{ url_for('proyecto_objetivo_agregar', pid=p.id) }}" class="d-flex gap-2 mt-1">
+        <form method="POST" action="{{ url_for('proyecto_objetivo_agregar', pid=p.id) }}" class="mt-1">
           <input type="hidden" name="fase_id" value="{{ fase.id }}">
-          <input type="text" name="titulo" class="form-control form-control-sm" placeholder="Nuevo objetivo..." required style="font-size:.8rem">
-          <button type="submit" class="btn btn-sm btn-outline-primary" style="font-size:.75rem;white-space:nowrap"><i class="bi bi-plus"></i></button>
+          <div class="d-flex gap-2">
+            <input type="text" name="titulo" class="form-control form-control-sm" placeholder="Nuevo objetivo..." required style="font-size:.8rem;flex:2">
+            <div class="input-group input-group-sm" style="flex:1;max-width:140px"><span class="input-group-text" style="font-size:.7rem">$</span><input type="number" name="presupuesto" class="form-control" step="1" min="0" value="0" placeholder="Ppto"></div>
+            <button type="submit" class="btn btn-sm btn-outline-primary" style="font-size:.75rem;white-space:nowrap"><i class="bi bi-plus"></i></button>
+          </div>
         </form>
       </div>
 
@@ -257,33 +269,58 @@
         {# Show existing payment requests #}
         {% set solicitudes = solicitudes_por_fase.get(fase.id, []) %}
         {% for sp in solicitudes %}
-        <div class="d-flex align-items-center gap-2 py-1" style="font-size:.8rem;border-bottom:1px solid var(--border)">
-          <i class="bi {% if sp.estado=='pagada' %}bi-check-circle-fill text-success{% elif sp.estado=='rechazada' %}bi-x-circle-fill text-danger{% elif sp.estado=='pendiente' %}bi-hourglass-split text-warning{% else %}bi-circle text-muted{% endif %}" style="font-size:.75rem"></i>
-          <span style="flex:1;color:var(--text1)">{{ sp.concepto }}</span>
-          <span class="fw-bold" style="color:{% if sp.estado=='pagada' %}var(--green){% elif sp.estado=='pendiente' %}var(--ac){% else %}var(--red){% endif %}">{{ moneda(sp.monto) }}</span>
-          <span class="b b-{{ sp.estado }}" style="font-size:.6rem">{{ sp.estado.title() }}</span>
-          {% set rol_act = rol_activo if rol_activo is defined else '' %}
-          {% if sp.estado == 'pendiente' and rol_act in ('admin','director_financiero','contador') %}
-          <form method="POST" action="{{ url_for('proyecto_solicitud_pago_resolver', spid=sp.id) }}" class="m-0">
-            <input type="hidden" name="accion" value="pagar">
-            <button type="submit" class="btn btn-sm btn-success" style="font-size:.65rem;padding:1px 6px" onclick="return confirm('Aprobar y pagar?')"><i class="bi bi-check"></i> Pagar</button>
-          </form>
-          <form method="POST" action="{{ url_for('proyecto_solicitud_pago_resolver', spid=sp.id) }}" class="m-0">
-            <input type="hidden" name="accion" value="rechazar">
-            <button type="submit" class="btn btn-sm btn-outline-danger" style="font-size:.65rem;padding:1px 6px"><i class="bi bi-x"></i></button>
-          </form>
-          {% endif %}
+        <div class="py-2" style="font-size:.8rem;border-bottom:1px solid var(--border)">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi {% if sp.estado=='pagada' %}bi-check-circle-fill text-success{% elif sp.estado=='rechazada' %}bi-x-circle-fill text-danger{% elif sp.estado=='pendiente' %}bi-hourglass-split text-warning{% else %}bi-circle text-muted{% endif %}" style="font-size:.75rem"></i>
+            <span style="flex:1;color:var(--text1);font-weight:600">{{ sp.concepto }}</span>
+            <span class="fw-bold" style="color:{% if sp.estado=='pagada' %}var(--green){% elif sp.estado=='pendiente' %}var(--ac){% else %}var(--red){% endif %}">{{ moneda(sp.monto) }}</span>
+            <span class="b b-{{ sp.estado }}" style="font-size:.6rem">{{ sp.estado.title() }}</span>
+            {% set rol_act = rol_activo if rol_activo is defined else '' %}
+            {% if sp.estado == 'pendiente' and rol_act in ('admin','director_financiero','contador') %}
+            <form method="POST" action="{{ url_for('proyecto_solicitud_pago_resolver', spid=sp.id) }}" class="m-0">
+              <input type="hidden" name="accion" value="pagar">
+              <button type="submit" class="btn btn-sm btn-success" style="font-size:.65rem;padding:1px 6px" onclick="return confirm('Aprobar y pagar?')"><i class="bi bi-check"></i> Pagar</button>
+            </form>
+            <form method="POST" action="{{ url_for('proyecto_solicitud_pago_resolver', spid=sp.id) }}" class="m-0">
+              <input type="hidden" name="accion" value="rechazar">
+              <button type="submit" class="btn btn-sm btn-outline-danger" style="font-size:.65rem;padding:1px 6px"><i class="bi bi-x"></i></button>
+            </form>
+            {% endif %}
+          </div>
+          <div class="d-flex gap-2 mt-1 flex-wrap" style="font-size:.72rem;color:var(--text2);margin-left:1.4rem">
+            {% if sp.objetivo %}<span><i class="bi bi-flag me-1"></i>{{ sp.objetivo.titulo }}</span>{% endif %}
+            {% if sp.proveedor %}<span><i class="bi bi-truck me-1"></i>{{ sp.proveedor.empresa or sp.proveedor.nombre }}</span>{% endif %}
+            {% if sp.cotizacion_prov %}<span><i class="bi bi-tag me-1"></i>{{ sp.cotizacion_prov.nombre_producto }}</span>{% endif %}
+            {% if sp.descripcion_compra %}<span><i class="bi bi-cart me-1"></i>{{ sp.descripcion_compra }}</span>{% endif %}
+            <span><i class="bi bi-person me-1"></i>{{ sp.solicitante.nombre }}</span>
+          </div>
         </div>
         {% endfor %}
         {# Payment request form #}
-        <form method="POST" action="{{ url_for('proyecto_solicitar_pago', pid=p.id) }}" class="mt-2">
-          <input type="hidden" name="fase_id" value="{{ fase.id }}">
-          <div class="row g-2 align-items-end">
-            <div class="col-md-5"><input type="text" name="concepto" class="form-control form-control-sm" placeholder="Concepto del pago" required style="font-size:.8rem"></div>
-            <div class="col-md-3"><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="number" name="monto" class="form-control" step="1" min="1" required></div></div>
-            <div class="col-md-4"><button type="submit" class="btn btn-sm btn-outline-success w-100" style="font-size:.78rem"><i class="bi bi-send me-1"></i>Solicitar pago</button></div>
-          </div>
-        </form>
+        <div class="mt-2" style="background:var(--surface2);border-radius:var(--radius);padding:.75rem">
+          <div style="font-size:.72rem;font-weight:700;color:var(--text2);margin-bottom:.5rem"><i class="bi bi-send me-1"></i>Solicitar pago</div>
+          <form method="POST" action="{{ url_for('proyecto_solicitar_pago', pid=p.id) }}">
+            <input type="hidden" name="fase_id" value="{{ fase.id }}">
+            <div class="row g-2">
+              <div class="col-md-6"><select name="objetivo_id" class="form-select form-select-sm" style="font-size:.78rem">
+                <option value="">— Objetivo (opcional) —</option>
+                {% for o in fase.objetivos %}<option value="{{ o.id }}">{{ o.titulo }}{% if o.presupuesto %} ({{ moneda(o.presupuesto) }}){% endif %}</option>{% endfor %}
+              </select></div>
+              <div class="col-md-6"><input type="text" name="concepto" class="form-control form-control-sm" placeholder="Concepto del pago *" required style="font-size:.78rem"></div>
+              <div class="col-md-4"><select name="proveedor_id" class="form-select form-select-sm" style="font-size:.78rem">
+                <option value="">— Proveedor —</option>
+                {% for pv in proveedores %}<option value="{{ pv.id }}">{{ pv.empresa or pv.nombre }}</option>{% endfor %}
+              </select></div>
+              <div class="col-md-4"><select name="cotizacion_prov_id" class="form-select form-select-sm" style="font-size:.78rem">
+                <option value="">— Cotizacion —</option>
+                {% for cp in cotizaciones_prov %}<option value="{{ cp.id }}">{{ cp.nombre_producto }} ({{ moneda(cp.precio_unitario) }})</option>{% endfor %}
+              </select></div>
+              <div class="col-md-4"><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="number" name="monto" class="form-control" step="1" min="1" required placeholder="Monto"></div></div>
+              <div class="col-md-8"><input type="text" name="descripcion_compra" class="form-control form-control-sm" placeholder="Que se va a comprar / detalle..." style="font-size:.78rem"></div>
+              <div class="col-md-4"><button type="submit" class="btn btn-sm btn-outline-success w-100" style="font-size:.78rem"><i class="bi bi-send me-1"></i>Solicitar</button></div>
+            </div>
+          </form>
+        </div>
         {% endif %}
       </div>
       {% endif %}

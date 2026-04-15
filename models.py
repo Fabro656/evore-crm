@@ -1512,6 +1512,7 @@ class ProyectoObjetivo(db.Model):
     proyecto_id     = db.Column(db.Integer, db.ForeignKey('proyectos.id'), nullable=False, index=True)
     fase_id         = db.Column(db.Integer, db.ForeignKey('proyecto_fases.id'), nullable=False, index=True)
     titulo          = db.Column(db.String(300), nullable=False)
+    presupuesto     = db.Column(db.Float, default=0)
     completado      = db.Column(db.Boolean, default=False)
     completado_por  = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     completado_en   = db.Column(db.DateTime, nullable=True)
@@ -1527,8 +1528,12 @@ class ProyectoSolicitudPago(db.Model):
     company_id      = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
     proyecto_id     = db.Column(db.Integer, db.ForeignKey('proyectos.id'), nullable=False, index=True)
     fase_id         = db.Column(db.Integer, db.ForeignKey('proyecto_fases.id'), nullable=False, index=True)
+    objetivo_id     = db.Column(db.Integer, db.ForeignKey('proyecto_objetivos.id'), nullable=True, index=True)
     concepto        = db.Column(db.String(300), nullable=False)
+    descripcion_compra = db.Column(db.Text)  # que se va a comprar
     monto           = db.Column(db.Float, nullable=False)
+    proveedor_id    = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
+    cotizacion_prov_id = db.Column(db.Integer, db.ForeignKey('cotizaciones_proveedor.id'), nullable=True)
     estado          = db.Column(db.String(20), default='pendiente')  # pendiente, aprobada, rechazada, pagada
     solicitado_por  = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     aprobado_por    = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
@@ -1540,6 +1545,9 @@ class ProyectoSolicitudPago(db.Model):
     solicitante     = db.relationship('User', foreign_keys=[solicitado_por])
     aprobador       = db.relationship('User', foreign_keys=[aprobado_por])
     fase            = db.relationship('ProyectoFase', foreign_keys=[fase_id])
+    objetivo        = db.relationship('ProyectoObjetivo', foreign_keys=[objetivo_id])
+    proveedor       = db.relationship('Proveedor', foreign_keys=[proveedor_id])
+    cotizacion_prov = db.relationship('CotizacionProveedor', foreign_keys=[cotizacion_prov_id])
     gasto_rel       = db.relationship('GastoOperativo', foreign_keys=[gasto_id])
 
 
@@ -2229,6 +2237,17 @@ def _migrate(conn):
         # ── Foro Banners (marketplace ads) ──
         ("CREATE TABLE IF NOT EXISTS foro_banners (id SERIAL PRIMARY KEY, titulo VARCHAR(200) NOT NULL, descripcion TEXT, imagen_url VARCHAR(500), link_url VARCHAR(500), industria VARCHAR(100), tipo VARCHAR(20) DEFAULT 'evore', activo BOOLEAN DEFAULT TRUE, orden INTEGER DEFAULT 0, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
         ("CREATE TABLE IF NOT EXISTS foro_banners (id INTEGER PRIMARY KEY AUTOINCREMENT, titulo VARCHAR(200) NOT NULL, descripcion TEXT, imagen_url VARCHAR(500), link_url VARCHAR(500), industria VARCHAR(100), tipo VARCHAR(20) DEFAULT 'evore', activo BOOLEAN DEFAULT TRUE, orden INTEGER DEFAULT 0, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"),
+        # ── Proyectos: objetivo presupuesto + solicitud campos extra ──
+        ("ALTER TABLE proyecto_objetivos ADD COLUMN IF NOT EXISTS presupuesto FLOAT DEFAULT 0"),
+        ("ALTER TABLE proyecto_objetivos ADD COLUMN presupuesto FLOAT DEFAULT 0"),
+        ("ALTER TABLE proyecto_solicitudes_pago ADD COLUMN IF NOT EXISTS objetivo_id INTEGER REFERENCES proyecto_objetivos(id)"),
+        ("ALTER TABLE proyecto_solicitudes_pago ADD COLUMN objetivo_id INTEGER REFERENCES proyecto_objetivos(id)"),
+        ("ALTER TABLE proyecto_solicitudes_pago ADD COLUMN IF NOT EXISTS proveedor_id INTEGER REFERENCES proveedores(id)"),
+        ("ALTER TABLE proyecto_solicitudes_pago ADD COLUMN proveedor_id INTEGER REFERENCES proveedores(id)"),
+        ("ALTER TABLE proyecto_solicitudes_pago ADD COLUMN IF NOT EXISTS cotizacion_prov_id INTEGER REFERENCES cotizaciones_proveedor(id)"),
+        ("ALTER TABLE proyecto_solicitudes_pago ADD COLUMN cotizacion_prov_id INTEGER REFERENCES cotizaciones_proveedor(id)"),
+        ("ALTER TABLE proyecto_solicitudes_pago ADD COLUMN IF NOT EXISTS descripcion_compra TEXT"),
+        ("ALTER TABLE proyecto_solicitudes_pago ADD COLUMN descripcion_compra TEXT"),
         # ── Aprobaciones: proyecto_id ──
         ("ALTER TABLE aprobaciones ADD COLUMN IF NOT EXISTS proyecto_id INTEGER REFERENCES proyectos(id)"),
         ("ALTER TABLE aprobaciones ADD COLUMN proyecto_id INTEGER REFERENCES proyectos(id)"),

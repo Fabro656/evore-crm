@@ -132,16 +132,32 @@ def register(app):
         done_t = len(tareas_por_estado.get('completada', []))
         pct = round(done_t / total_t * 100) if total_t else 0
         usuarios = User.query.filter_by(company_id=getattr(g, 'company_id', None), activo=True).order_by(User.nombre).all()
-        # Solicitudes de pago por fase
+        proveedores = Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all()
+        cotizaciones_prov = CotizacionProveedor.query.filter(
+            CotizacionProveedor.estado.in_(['vigente', 'en_revision'])
+        ).order_by(CotizacionProveedor.nombre_producto).all()
+        # Solicitudes de pago por fase y por objetivo
         solicitudes_por_fase = {}
+        solicitudes_por_objetivo = {}
         if p.estado == 'desarrollo':
             for sp in ProyectoSolicitudPago.query.filter_by(proyecto_id=p.id).order_by(ProyectoSolicitudPago.creado_en.desc()).all():
                 solicitudes_por_fase.setdefault(sp.fase_id, []).append(sp)
+                if sp.objetivo_id:
+                    solicitudes_por_objetivo.setdefault(sp.objetivo_id, []).append(sp)
+        # Gasto real por objetivo
+        gasto_por_objetivo = {}
+        for sp_list in solicitudes_por_objetivo.values():
+            for sp in sp_list:
+                if sp.estado == 'pagada':
+                    gasto_por_objetivo[sp.objetivo_id] = gasto_por_objetivo.get(sp.objetivo_id, 0) + sp.monto
         return render_template('proyectos/ver.html', p=p, vista=vista,
             tareas_por_estado=tareas_por_estado, estados=_ESTADOS_TAREA,
             tipos=_TIPOS_TAREA, gastos=gastos_q, gasto_total=gasto_total,
             gastos_por_fase=gastos_por_fase, solicitudes_por_fase=solicitudes_por_fase,
-            total_t=total_t, done_t=done_t, pct=pct, usuarios=usuarios)
+            solicitudes_por_objetivo=solicitudes_por_objetivo,
+            gasto_por_objetivo=gasto_por_objetivo,
+            total_t=total_t, done_t=done_t, pct=pct, usuarios=usuarios,
+            proveedores=proveedores, cotizaciones_prov=cotizaciones_prov)
 
     @app.route('/proyectos/<int:id>/editar', methods=['GET', 'POST'])
     @login_required
@@ -625,7 +641,9 @@ def register(app):
         max_ord = db.session.query(func.max(ProyectoObjetivo.orden)).filter_by(fase_id=fase_id).scalar() or 0
         db.session.add(ProyectoObjetivo(
             proyecto_id=pid, fase_id=fase_id,
-            titulo=request.form['titulo'], orden=max_ord + 1
+            titulo=request.form['titulo'],
+            presupuesto=float(request.form.get('presupuesto') or 0),
+            orden=max_ord + 1
         ))
         db.session.commit()
         flash('Objetivo agregado.', 'success')
@@ -692,10 +710,17 @@ def register(app):
         if monto > disponible and disponible > 0:
             flash(f'El monto (${monto:,.0f}) excede el presupuesto disponible (${disponible:,.0f}).', 'danger')
             return redirect(url_for('proyecto_ver', id=pid, vista='fases'))
+        objetivo_id = int(request.form.get('objetivo_id')) if request.form.get('objetivo_id') else None
+        proveedor_id = int(request.form.get('proveedor_id')) if request.form.get('proveedor_id') else None
+        cotizacion_prov_id = int(request.form.get('cotizacion_prov_id')) if request.form.get('cotizacion_prov_id') else None
         sp = ProyectoSolicitudPago(
             company_id=cid, proyecto_id=pid, fase_id=fase_id,
+            objetivo_id=objetivo_id,
             concepto=request.form.get('concepto', ''),
+            descripcion_compra=request.form.get('descripcion_compra', ''),
             monto=monto, solicitado_por=current_user.id,
+            proveedor_id=proveedor_id,
+            cotizacion_prov_id=cotizacion_prov_id,
             notas=request.form.get('notas', '')
         )
         db.session.add(sp)
