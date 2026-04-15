@@ -7,6 +7,36 @@ if(_csrfToken){document.querySelectorAll('form[method="POST"],form[method="post"
   }
 });}
 
+// ── Topbar search: visible on desktop, toggle on mobile ──
+(function(){
+  var form=document.getElementById('topbarSearchForm');
+  var toggle=document.getElementById('topbarSearchToggle');
+  if(!form) return;
+  // Desktop: always show
+  function checkWidth(){
+    if(window.innerWidth>=768){form.style.display='flex';if(toggle)toggle.style.display='none';}
+    else{form.style.display='none';if(toggle)toggle.style.display='';}
+  }
+  checkWidth();
+  window.addEventListener('resize',checkWidth);
+  window.toggleTopSearch=function(){
+    if(form.style.display==='none'||!form.style.display){
+      form.style.display='flex';if(toggle)toggle.style.display='none';
+      var inp=document.getElementById('topbarSearchInput');if(inp)inp.focus();
+    } else {
+      form.style.display='none';if(toggle)toggle.style.display='';
+    }
+  };
+  // Ctrl+K / Cmd+K shortcut to focus search
+  document.addEventListener('keydown',function(e){
+    if((e.ctrlKey||e.metaKey)&&e.key==='k'){
+      e.preventDefault();
+      form.style.display='flex';
+      var inp=document.getElementById('topbarSearchInput');if(inp)inp.focus();
+    }
+  });
+})();
+
 // ── Dock: hover=tooltip, click=open panel ──
 (function(){
   var tip = document.createElement('div');

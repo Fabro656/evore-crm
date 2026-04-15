@@ -149,7 +149,6 @@ posthog.init('{{ config.POSTHOG_KEY }}',{api_host:'https://us.i.posthog.com',per
     <a href="{{ url_for('portal_mis_relaciones') }}" class="nav-link {% if request.endpoint=='portal_mis_relaciones' or request.endpoint=='portal_interempresa' %}active" aria-current="page{% endif %}" data-tip="Relaciones" aria-label="Relaciones comerciales"><i class="bi bi-building"></i><span>Relaciones</span></a>
     <a href="{{ url_for('capacitacion_index') }}" class="nav-link {% if 'capacitacion' in (request.endpoint or '') %}active" aria-current="page{% endif %}" data-tip="Capacitacion" aria-label="Capacitacion"><i class="bi bi-mortarboard-fill"></i><span>Capacitacion</span></a>
     <a href="{{ url_for('wiki') }}" class="nav-link {% if request.endpoint=='wiki' %}active" aria-current="page{% endif %}" data-tip="Wiki" aria-label="Wiki" data-dock-panel="wiki_page"><i class="bi bi-book"></i><span>Wiki</span></a>
-    <a href="{{ url_for('buscador') }}" class="nav-link {% if request.endpoint=='buscador' %}active" aria-current="page{% endif %}" data-tip="Buscador" aria-label="Buscador" data-dock-panel="buscador"><i class="bi bi-search"></i><span>Buscador</span></a>
     {# ── Proyectos ── #}
     {% if rol_activo in ('admin','director_financiero','director_operativo') %}
     <a href="{{ url_for('proyectos_index') }}" class="nav-link {% if 'proyecto' in (request.endpoint or '') %}active" aria-current="page{% endif %}" data-tip="Proyectos" aria-label="Proyectos"><i class="bi bi-kanban-fill"></i><span>Proyectos</span></a>
@@ -250,9 +249,6 @@ posthog.init('{{ config.POSTHOG_KEY }}',{api_host:'https://us.i.posthog.com',per
     <a href="{{ url_for('wiki') }}" class="dock-panel-link"><i class="bi bi-tools"></i>Herramientas</a>
     <a href="{{ url_for('wiki') }}" class="dock-panel-link"><i class="bi bi-shield-lock"></i>Roles y permisos</a>
   </div>
-</div>
-<div class="dock-panel" id="dp-buscador">
-  <a class="dock-panel-head" href="{{ url_for('buscador') }}"><i class="bi bi-search"></i><span>Buscador</span><i class="bi bi-arrow-right dp-arrow"></i></a>
 </div>
 <div class="dock-panel" id="dp-comercial">
   <a class="dock-panel-head" href="{{ url_for('ventas') }}"><i class="bi bi-bag-fill"></i><span>Comercial</span><i class="bi bi-arrow-right dp-arrow"></i></a>
@@ -388,6 +384,14 @@ posthog.init('{{ config.POSTHOG_KEY }}',{api_host:'https://us.i.posthog.com',per
     <!-- Hamburger for mobile -->
     <button id="sb-tog" onclick="openSB()" aria-label="Menú"><i class="bi bi-list"></i></button>
     <h1 class="pg-title">{% block page_title %}{% endblock %}</h1>
+    <form action="{{ url_for('buscador') }}" method="GET" id="topbarSearchForm" class="topbar-search" style="flex:1;max-width:420px;margin:0 .75rem;display:none">
+      <div class="input-group input-group-sm">
+        <span class="input-group-text" style="background:var(--surface2);border-color:var(--border);color:var(--text2)"><i class="bi bi-search" style="font-size:.75rem"></i></span>
+        <input type="text" name="q" id="topbarSearchInput" class="form-control" placeholder="Buscar... (Ctrl+K)" style="background:var(--surface2);border-color:var(--border);font-size:.8rem" value="{{ request.args.get('q','') if request.endpoint=='buscador' else '' }}">
+        <button type="button" class="btn btn-sm d-md-none" style="border:1px solid var(--border);background:var(--surface2)" onclick="toggleTopSearch()"><i class="bi bi-x"></i></button>
+      </div>
+    </form>
+    <button type="button" class="btn btn-sm btn-ghost d-md-none" onclick="toggleTopSearch()" id="topbarSearchToggle" style="padding:.3rem .5rem;border-radius:8px;border:1px solid var(--border)"><i class="bi bi-search" style="font-size:.85rem"></i></button>
     <div class="topbar-right d-flex align-items-center gap-2 ms-auto">
       <button id="pwaInstallBtn" style="display:none;background:var(--ac);color:#fff;border:none;padding:3px 12px;border-radius:6px;font-size:.72rem;font-weight:600;cursor:pointer;white-space:nowrap" class="d-none d-md-inline-flex align-items-center gap-1"><i class="bi bi-download"></i>Instalar App</button>
       {% block topbar_actions %}{% endblock %}
