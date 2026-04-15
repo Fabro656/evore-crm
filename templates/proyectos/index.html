@@ -5,6 +5,36 @@
 {% endblock %}
 {% block content %}
 <div style="max-width:1200px;margin:0 auto">
+
+  {# ── Dashboard ── #}
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-md-2"><div class="fc text-center py-2">
+      <div style="font-size:.65rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Activos</div>
+      <div class="fw-bold mt-1" style="font-size:1.4rem;color:var(--ac)">{{ dash.activos }}</div>
+    </div></div>
+    <div class="col-6 col-md-2"><div class="fc text-center py-2">
+      <div style="font-size:.65rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">En desarrollo</div>
+      <div class="fw-bold mt-1" style="font-size:1.4rem;color:var(--green)">{{ dash.desarrollo }}</div>
+    </div></div>
+    <div class="col-6 col-md-2"><div class="fc text-center py-2">
+      <div style="font-size:.65rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Planificacion</div>
+      <div class="fw-bold mt-1" style="font-size:1.4rem;color:#3B82F6">{{ dash.planificacion }}</div>
+    </div></div>
+    <div class="col-6 col-md-2"><div class="fc text-center py-2">
+      <div style="font-size:.65rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Pendientes aprobacion</div>
+      <div class="fw-bold mt-1" style="font-size:1.4rem;color:#F59E0B">{{ dash.pendiente_aprobacion }}</div>
+    </div></div>
+    <div class="col-6 col-md-2"><div class="fc text-center py-2">
+      <div style="font-size:.65rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Ppto total</div>
+      <div class="fw-bold mt-1" style="font-size:1rem;color:var(--text1)">{{ moneda(dash.presupuesto_total) }}</div>
+    </div></div>
+    <div class="col-6 col-md-2"><div class="fc text-center py-2">
+      <div style="font-size:.65rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Ppto en desarrollo</div>
+      <div class="fw-bold mt-1" style="font-size:1rem;color:var(--green)">{{ moneda(dash.presupuesto_desarrollo) }}</div>
+    </div></div>
+  </div>
+
+  {# ── Filters ── #}
   <div class="fc mb-3">
     <form method="GET" class="row g-2 align-items-end">
       <div class="col-sm-4"><input type="text" name="buscar" class="form-control form-control-sm" placeholder="Buscar por nombre o codigo..." value="{{ buscar }}"></div>
@@ -24,16 +54,16 @@
     {% for p in proyectos %}
     {% set s = stats.get(p.id, {}) %}
     <div class="col-12 col-md-6 col-xl-4">
-      <a href="{{ url_for('proyecto_ver', id=p.id) }}" class="text-decoration-none">
-      <div class="fc h-100" style="padding:0;overflow:hidden;transition:transform .15s;cursor:pointer" onmouseenter="this.style.transform='translateY(-2px)'" onmouseleave="this.style.transform=''">
+      <div class="fc h-100" style="padding:0;overflow:hidden;transition:transform .15s" onmouseenter="this.style.transform='translateY(-2px)'" onmouseleave="this.style.transform=''">
         <div style="height:5px;background:{{ p.color or 'var(--ac)' }}"></div>
         <div style="padding:1rem 1.15rem">
           <div class="d-flex align-items-start gap-2 mb-2">
             <span class="badge" style="background:{{ p.color or 'var(--ac)' }};color:#fff;font-size:.65rem;flex-shrink:0">{{ p.codigo }}</span>
             <div style="min-width:0;flex:1">
-              <div class="fw-bold text-truncate" style="color:var(--text1);font-size:.95rem">{{ p.nombre }}</div>
+              <a href="{{ url_for('proyecto_ver', id=p.id) }}" class="text-decoration-none">
+                <div class="fw-bold text-truncate" style="color:var(--text1);font-size:.95rem">{{ p.nombre }}</div>
+              </a>
               <div class="d-flex gap-2 mt-1 flex-wrap">
-                <span class="b b-{{ p.estado }}" style="font-size:.65rem">{{ p.estado.replace('_',' ').title() }}</span>
                 <span class="badge {% if p.prioridad=='alta' %}bg-danger{% elif p.prioridad=='media' %}bg-warning text-dark{% else %}bg-success{% endif %}" style="font-size:.6rem">{{ p.prioridad.title() }}</span>
               </div>
             </div>
@@ -48,16 +78,23 @@
             <span style="font-size:.72rem;color:var(--text2)">{{ s.get('pct',0) }}%</span>
           </div>
           <div class="d-flex justify-content-between" style="font-size:.75rem;color:var(--text2)">
-            <span><i class="bi bi-check2-square me-1"></i>{{ s.get('completadas',0) }}/{{ s.get('tareas',0) }} tareas</span>
-            {% if s.get('gasto_total') %}<span><i class="bi bi-cash me-1"></i>${{ '{:,.0f}'.format(s.gasto_total).replace(',','.') }}</span>{% endif %}
+            <span><i class="bi bi-check2-square me-1"></i>{{ s.get('completadas',0) }}/{{ s.get('tareas',0) }}</span>
+            {% if s.get('gasto_total') %}<span><i class="bi bi-cash me-1"></i>{{ moneda(s.gasto_total) }}</span>{% endif %}
+            {% if p.presupuesto %}<span><i class="bi bi-wallet2 me-1"></i>{{ moneda(p.presupuesto) }}</span>{% endif %}
           </div>
           <div class="d-flex justify-content-between mt-2" style="font-size:.72rem;color:var(--text2)">
             {% if p.responsable %}<span><i class="bi bi-person me-1"></i>{{ p.responsable.nombre }}</span>{% endif %}
             {% if p.fecha_fin %}<span><i class="bi bi-calendar me-1"></i>{{ p.fecha_fin.strftime('%d/%m/%Y') }}</span>{% endif %}
           </div>
         </div>
+        {# ── Status bar ── #}
+        <div style="padding:.5rem 1.15rem;border-top:1px solid var(--border);display:flex;align-items:center;gap:.5rem">
+          <select class="form-select form-select-sm proy-estado-sel" data-pid="{{ p.id }}" style="flex:1;font-size:.72rem;padding:3px 28px 3px 8px;border-radius:4px;background-color:{% if p.estado=='desarrollo' %}rgba(16,185,129,.1){% elif p.estado=='planificacion' %}rgba(59,130,246,.1){% elif p.estado=='pendiente_aprobacion' %}rgba(245,158,11,.1){% elif p.estado=='pausado' %}rgba(107,114,128,.15){% elif p.estado=='completado' %}rgba(16,185,129,.15){% elif p.estado=='cancelado' %}rgba(239,68,68,.1){% else %}var(--surface2){% endif %}">
+            {% for e in estados %}<option value="{{ e }}" {% if p.estado==e %}selected{% endif %}>{{ e.replace('_',' ').title() }}</option>{% endfor %}
+          </select>
+          <a href="{{ url_for('proyecto_ver', id=p.id) }}" class="btn btn-sm btn-outline-primary" style="font-size:.72rem;padding:3px 10px"><i class="bi bi-eye me-1"></i>Ver</a>
+        </div>
       </div>
-      </a>
     </div>
     {% endfor %}
   </div>
@@ -69,4 +106,18 @@
   </div>
   {% endif %}
 </div>
+<script>
+document.querySelectorAll('.proy-estado-sel').forEach(function(sel){
+  sel.addEventListener('change',function(){
+    var pid=this.dataset.pid;
+    fetch('/api/proyectos/'+pid+'/estado',{
+      method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrfToken},
+      body:JSON.stringify({estado:this.value})
+    }).then(function(r){return r.json()}).then(function(d){
+      if(d.ok) location.reload();
+      else if(d.error) alert(d.error);
+    });
+  });
+});
+</script>
 {% endblock %}

@@ -60,8 +60,22 @@ def register(app):
                 'pct': round(done_t / total_t * 100) if total_t else 0,
                 'gasto_total': total_gasto
             }
+        # Dashboard totals (all projects, not just filtered)
+        all_proys = Proyecto.query.filter_by(company_id=cid).all()
+        dash = {
+            'total': len(all_proys),
+            'planificacion': len([p for p in all_proys if p.estado == 'planificacion']),
+            'pendiente_aprobacion': len([p for p in all_proys if p.estado == 'pendiente_aprobacion']),
+            'desarrollo': len([p for p in all_proys if p.estado == 'desarrollo']),
+            'pausado': len([p for p in all_proys if p.estado == 'pausado']),
+            'completado': len([p for p in all_proys if p.estado == 'completado']),
+            'cancelado': len([p for p in all_proys if p.estado == 'cancelado']),
+            'presupuesto_total': sum(p.presupuesto or 0 for p in all_proys),
+            'presupuesto_desarrollo': sum(p.presupuesto or 0 for p in all_proys if p.estado == 'desarrollo'),
+            'activos': len([p for p in all_proys if p.estado in ('planificacion', 'pendiente_aprobacion', 'desarrollo')]),
+        }
         return render_template('proyectos/index.html',
-            proyectos=proyectos, stats=stats, estado_f=estado_f, buscar=buscar,
+            proyectos=proyectos, stats=stats, dash=dash, estado_f=estado_f, buscar=buscar,
             estados=_ESTADOS_PROYECTO)
 
     @app.route('/proyectos/nuevo', methods=['GET', 'POST'])
@@ -407,6 +421,26 @@ def register(app):
         elif nuevo == 'por_hacer':
             t.progreso = 0
             t.completado_en = None
+        db.session.commit()
+        return jsonify({'ok': True, 'estado': nuevo})
+
+    @app.route('/api/proyectos/<int:pid>/estado', methods=['POST'])
+    @login_required
+    def api_proyecto_estado(pid):
+        """Quick status change from index cards."""
+        if not _requiere_proyecto_access():
+            return jsonify({'error': 'Acceso denegado'}), 403
+        p = Proyecto.query.get_or_404(pid)
+        nuevo = request.json.get('estado')
+        # Only allow certain direct transitions (not approval flow)
+        permitidos = ['planificacion', 'desarrollo', 'pausado', 'completado', 'cancelado']
+        if nuevo not in permitidos:
+            return jsonify({'error': 'Estado invalido'}), 400
+        # Block direct jump to desarrollo if not approved
+        if nuevo == 'desarrollo' and p.estado not in ('pendiente_aprobacion', 'desarrollo', 'pausado'):
+            return jsonify({'error': 'Debe pasar por aprobacion para entrar a desarrollo'}), 400
+        p.estado = nuevo
+        _log('editar', 'proyecto', p.id, f'Estado cambiado a: {nuevo}')
         db.session.commit()
         return jsonify({'ok': True, 'estado': nuevo})
 
