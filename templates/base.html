@@ -100,7 +100,7 @@ posthog.init('{{ config.POSTHOG_KEY }}',{api_host:'https://us.i.posthog.com',per
     {% set m=modulos_user %}
     {# ── DOCK: cada icono es un modulo. Click = navega, Hold = panel con subfunciones ── #}
     <a href="#" class="nav-link dock-group {% if request.endpoint=='dashboard' %}active" aria-current="page{% endif %}" data-tip="Home" aria-label="Home" data-dock-panel="home"><i class="bi bi-house-fill"></i><span>Home</span></a>
-    {% if 'tareas' in m %}<a href="#" class="nav-link dock-group {% if 'tarea' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Tickets" aria-label="Tickets" data-dock-panel="tickets" style="position:relative"><i class="bi bi-check2-square"></i>{% if tareas_pend %}<span style="position:absolute;top:2px;right:2px;background:var(--red);color:#fff;font-size:.55rem;padding:1px 4px;border-radius:8px;line-height:1.2">{{ tareas_pend }}</span>{% endif %}<span>Tickets</span></a>{% endif %}
+    {% if 'tareas' in m %}<a href="#" class="nav-link dock-group {% if 'tarea' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Tickets" aria-label="Tickets" data-dock-panel="tickets" style="position:relative"><i class="bi bi-check2-square"></i>{% if tareas_pend %}<span style="position:absolute;top:2px;right:2px;background:var(--red);color:#fff;font-size:.55rem;padding:1px 4px;border-radius:8px;line-height:1.2">{{ tareas_pend }}</span>{% endif %}<span>Tareas</span></a>{% endif %}
     {% if 'calendario' in m %}<a href="#" class="nav-link dock-group {% if request.endpoint=='calendario' or 'evento' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Calendario" aria-label="Calendario" data-dock-panel="calendario"><i class="bi bi-calendar3"></i><span>Calendario</span></a>{% endif %}
     {% if 'notas' in m %}<a href="#" class="nav-link dock-group {% if 'nota' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Notas" aria-label="Notas" data-dock-panel="notas"><i class="bi bi-sticky-fill"></i><span>Notas</span></a>{% endif %}
     <div class="dock-div"></div>
@@ -190,7 +190,7 @@ posthog.init('{{ config.POSTHOG_KEY }}',{api_host:'https://us.i.posthog.com',per
   <a class="dock-panel-head" href="{{ url_for('dashboard') }}"><i class="bi bi-house-fill"></i><span>Home</span><i class="bi bi-arrow-right dp-arrow"></i></a>
 </div>
 <div class="dock-panel" id="dp-tickets">
-  <a class="dock-panel-head" href="{{ url_for('tareas') }}"><i class="bi bi-check2-square"></i><span>Tickets</span><i class="bi bi-arrow-right dp-arrow"></i></a>
+  <a class="dock-panel-head" href="{{ url_for('tareas') }}"><i class="bi bi-check2-square"></i><span>Tareas</span><i class="bi bi-arrow-right dp-arrow"></i></a>
   <div class="dock-panel-body">
     <a href="{{ url_for('tareas') }}" class="dock-panel-link"><i class="bi bi-list-check"></i>Todos los tickets</a>
     <a href="{{ url_for('tarea_nueva') }}" class="dock-panel-link"><i class="bi bi-plus-circle"></i>Nuevo ticket</a>
@@ -608,7 +608,7 @@ posthog.init('{{ config.POSTHOG_KEY }}',{api_host:'https://us.i.posthog.com',per
               <div style="padding:1.75rem">
                 <div class="d-flex align-items-center gap-2 mb-3">
                   <div style="width:36px;height:36px;background:#EAE6FF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-check2-all" style="color:#5243AA;font-size:1.1rem"></i></div>
-                  <h5 class="mb-0 fw-bold" style="font-size:1rem">Tickets y Calendario</h5>
+                  <h5 class="mb-0 fw-bold" style="font-size:1rem">Tareas y Calendario</h5>
                 </div>
                 <p style="color:#42526E;font-size:.9rem">Organiza el trabajo del equipo con <strong>tickets asignados, prioridades y fechas límite</strong>. El calendario muestra todo de un vistazo.</p>
                 <ul style="color:#42526E;font-size:.85rem;padding-left:1.2rem">
@@ -778,7 +778,7 @@ window.iniciarObContextual = function(){
       // Siempre visible — no requiere modulo especifico
       {icon:'bi-house-fill', color:'#3B82F6', title:'Home', desc:'Dashboard con KPIs, tickets, ventas, aprobaciones, calendario y notas.'},
       {% if current_user.is_authenticated and (rol_activo == 'admin' or 'tareas' in modulos_user) %}
-      {icon:'bi-check2-square', color:'#8B5CF6', title:'Tickets', desc:'Seguimiento con prioridades y categorias. Auto-generados por calidad o nomina.'},
+      {icon:'bi-check2-square', color:'#8B5CF6', title:'Tareas', desc:'Seguimiento con prioridades y categorias. Auto-generados por calidad o nomina.'},
       {% endif %}
       {% if current_user.is_authenticated and (rol_activo == 'admin' or 'calendario' in modulos_user) %}
       {icon:'bi-calendar3', color:'#F59E0B', title:'Calendario', desc:'Eventos y recordatorios. Click en dia para crear.'},

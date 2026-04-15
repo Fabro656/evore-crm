@@ -425,14 +425,16 @@ def register(app):
         if nuevo == 'completada':
             t.completado_en = datetime.utcnow()
             t.progreso = 100
-            # Also complete the linked ticket
-            if t.tarea_id:
-                ticket = db.session.get(Tarea, t.tarea_id)
-                if ticket:
-                    ticket.estado = 'completada'
         elif nuevo == 'por_hacer':
             t.progreso = 0
             t.completado_en = None
+        # Sync to linked ticket (bidirectional)
+        if t.tarea_id:
+            ticket = db.session.get(Tarea, t.tarea_id)
+            if ticket:
+                ticket_estado = {'por_hacer': 'pendiente', 'en_progreso': 'en_progreso',
+                                 'en_revision': 'en_revision', 'completada': 'completada'}.get(nuevo, 'pendiente')
+                ticket.estado = ticket_estado
         db.session.commit()
         return jsonify({'ok': True, 'estado': nuevo})
 

@@ -245,7 +245,37 @@ def register(app):
         return render_template('tareas/form.html', obj=obj, usuarios=us, titulo='Editar Ticket', asignados_ids=asignados_ids)
     
 
-    # ── tarea_completar (/tareas/<int:id>/completar)
+    # ── tarea_cambiar_estado (AJAX) ──
+    _ESTADOS_TAREA_MAP = {'pendiente': 'por_hacer', 'en_progreso': 'en_progreso',
+                           'en_revision': 'en_revision', 'completada': 'completada',
+                           'por_hacer': 'pendiente'}  # reverse map for project sync
+
+    @app.route('/api/tareas/<int:id>/estado', methods=['POST'])
+    @login_required
+    def api_tarea_estado(id):
+        obj = Tarea.query.get_or_404(id)
+        nuevo = request.json.get('estado')
+        if nuevo not in ('pendiente', 'en_progreso', 'en_revision', 'completada'):
+            return jsonify({'error': 'Estado invalido'}), 400
+        obj.estado = nuevo
+        # Sync to ProyectoTarea if linked
+        proy_tarea = ProyectoTarea.query.filter_by(tarea_id=obj.id).first()
+        if proy_tarea:
+            # Map ticket states to project states
+            proy_estado = {'pendiente': 'por_hacer', 'en_progreso': 'en_progreso',
+                           'en_revision': 'en_revision', 'completada': 'completada'}.get(nuevo, nuevo)
+            proy_tarea.estado = proy_estado
+            if nuevo == 'completada':
+                from datetime import datetime
+                proy_tarea.completado_en = datetime.utcnow()
+                proy_tarea.progreso = 100
+            elif nuevo == 'pendiente':
+                proy_tarea.completado_en = None
+                proy_tarea.progreso = 0
+        db.session.commit()
+        return jsonify({'ok': True, 'estado': nuevo})
+
+    # ── tarea_completar (/tareas/<int:id>/completar) — legacy
     @app.route('/tareas/<int:id>/completar', methods=['POST'])
     @login_required
     @requiere_modulo('tareas')

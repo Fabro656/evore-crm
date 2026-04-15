@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Tickets{% endblock %}{% block page_title %}Tickets{% endblock %}
+{% block title %}Tareas{% endblock %}{% block page_title %}Tareas{% endblock %}
 {% block topbar_actions %}<a href="{{ url_for('tarea_nueva') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nueva</a>{% endblock %}
 {% block content %}
 <div class="fc mb-3">
@@ -7,7 +7,7 @@
     <div class="col-sm-4"><input type="text" name="buscar" class="form-control form-control-sm" placeholder="Buscar por titulo..." value="{{ buscar }}"></div>
     <div class="col-sm-2"><select name="estado" class="form-select form-select-sm">
       <option value="">Todos los estados</option>
-      {% for est,lbl in [('pendiente','Pendiente'),('en_progreso','En progreso'),('completada','Completada')] %}
+      {% for est,lbl in [('pendiente','Por hacer'),('en_progreso','En progreso'),('en_revision','En revision'),('completada','Completada')] %}
       <option value="{{ est }}" {% if estado_f==est %}selected{% endif %}>{{ lbl }}</option>
       {% endfor %}
     </select></div>
@@ -24,7 +24,7 @@
   </form>
 </div>
 <div class="d-flex align-items-center justify-content-between mb-2">
-  <div class="count-label"><i class="bi bi-check2-square me-2"></i>{{ total_items }} ticket(s)</div>
+  <div class="count-label"><i class="bi bi-check2-square me-2"></i>{{ total_items }} tarea(s)</div>
   <div class="btn-group btn-group-sm">
     <button class="btn btn-outline-secondary active" id="viewCards" onclick="setView('cards')" title="Tarjetas"><i class="bi bi-grid-3x3-gap"></i></button>
     <button class="btn btn-outline-secondary" id="viewTable" onclick="setView('table')" title="Tabla"><i class="bi bi-list-ul"></i></button>
@@ -51,7 +51,6 @@
         </div>
         <div class="d-flex flex-wrap gap-2 align-items-center mb-2" style="font-size:.8rem">
           <span class="b b-{{ t.prioridad }}">{{ t.prioridad.title() }}</span>
-          <span class="b b-{{ t.estado }}">{{ t.estado.replace('_',' ').title() }}</span>
         </div>
         <div class="d-flex justify-content-between align-items-center" style="font-size:.8rem;color:var(--text2)">
           <div>
@@ -65,14 +64,13 @@
           </div>
         </div>
       </div>
-      <div style="border-top:1px solid var(--border);padding:.65rem 1.15rem;display:flex;align-items:center;gap:.5rem">
-        <a href="{{ url_for('tarea_ver', id=t.id) }}" class="btn btn-sm btn-outline-primary" style="font-size:.78rem"><i class="bi bi-chat-dots me-1"></i>Ver</a>
-        <a href="{{ url_for('tarea_editar', id=t.id) }}" class="btn btn-sm btn-outline-secondary" style="font-size:.78rem"><i class="bi bi-pencil me-1"></i>Editar</a>
-        {% if t.estado!='completada' %}
-        <form method="POST" action="{{ url_for('tarea_completar', id=t.id) }}" class="ms-auto m-0 p-0">
-          <button class="btn btn-sm btn-outline-success" type="submit" style="font-size:.78rem"><i class="bi bi-check2 me-1"></i>Completar</button>
-        </form>
-        {% endif %}
+      <div style="border-top:1px solid var(--border);padding:.55rem 1.15rem;display:flex;align-items:center;gap:.5rem">
+        <select class="form-select form-select-sm tarea-estado-sel" data-tid="{{ t.id }}" style="flex:1;font-size:.7rem;padding:3px 24px 3px 6px;border-radius:4px;background-color:{% if t.estado=='completada' %}rgba(16,185,129,.12){% elif t.estado=='en_progreso' %}rgba(59,130,246,.12){% elif t.estado=='en_revision' %}rgba(245,158,11,.12){% else %}var(--surface2){% endif %}">
+          {% for est,lbl in [('pendiente','Por hacer'),('en_progreso','En progreso'),('en_revision','En revision'),('completada','Completada')] %}
+          <option value="{{ est }}" {% if t.estado==est %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
+        </select>
+        <a href="{{ url_for('tarea_ver', id=t.id) }}" class="btn btn-sm btn-outline-primary" style="font-size:.72rem;padding:3px 8px"><i class="bi bi-eye"></i></a>
+        <a href="{{ url_for('tarea_editar', id=t.id) }}" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;padding:3px 8px"><i class="bi bi-pencil"></i></a>
       </div>
     </div>
   </div>
@@ -98,7 +96,10 @@
         <td><a href="{{ url_for('tarea_ver', id=t.id) }}" class="text-decoration-none fw-semibold" style="font-size:.82rem">{{ t.titulo }}</a></td>
         <td style="color:var(--text2)">{{ t.asignado_user.nombre if t.asignado_user else '—' }}</td>
         <td><span class="b b-{{ t.prioridad }}" style="font-size:.7rem">{{ t.prioridad.title() }}</span></td>
-        <td><span class="b b-{{ t.estado }}" style="font-size:.7rem">{{ t.estado.replace('_',' ').title() }}</span></td>
+        <td><select class="form-select form-select-sm tarea-estado-sel" data-tid="{{ t.id }}" style="width:auto;font-size:.68rem;padding:2px 22px 2px 4px;border-radius:4px">
+          {% for est,lbl in [('pendiente','Por hacer'),('en_progreso','En progreso'),('en_revision','En revision'),('completada','Completada')] %}
+          <option value="{{ est }}" {% if t.estado==est %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
+        </select></td>
         <td style="color:var(--text2);font-size:.82rem">{% if t.fecha_vencimiento %}<span class="{{ 'text-danger fw-bold' if t.estado!='completada' and t.fecha_vencimiento < now.date() else '' }}">{{ t.fecha_vencimiento.strftime('%d/%m/%Y') }}</span>{% else %}—{% endif %}</td>
       </tr>
       {% endfor %}
@@ -120,7 +121,7 @@
 </div>
 {% endif %}
 {% else %}<div class="text-center text-muted py-5"><i class="bi bi-check2-all" style="font-size:3rem"></i>
-  <p class="mt-3">Sin tickets{% if buscar %} que coincidan con "{{ buscar }}"{% endif %}.</p><a href="{{ url_for('tarea_nueva') }}" class="btn btn-primary">Crear primera</a></div>
+  <p class="mt-3">Sin tareas{% if buscar %} que coincidan con "{{ buscar }}"{% endif %}.</p><a href="{{ url_for('tarea_nueva') }}" class="btn btn-primary">Crear primera</a></div>
 {% endif %}
 <script>
 function setView(v){
@@ -131,5 +132,14 @@ function setView(v){
   localStorage.setItem('evore_tareas_view',v);
 }
 (function(){var v=localStorage.getItem('evore_tareas_view');if(v==='table')setView('table');})();
+// Status change with sync to project tasks
+document.querySelectorAll('.tarea-estado-sel').forEach(function(sel){
+  sel.addEventListener('change',function(){
+    fetch('/api/tareas/'+this.dataset.tid+'/estado',{
+      method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrfToken},
+      body:JSON.stringify({estado:this.value})
+    }).then(function(r){return r.json()}).then(function(d){if(d.ok)location.reload();});
+  });
+});
 </script>
 {% endblock %}
