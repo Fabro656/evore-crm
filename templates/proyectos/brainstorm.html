@@ -109,11 +109,6 @@ function setTool(t){
     board.style.cursor='crosshair';
     document.querySelectorAll('.bs-note').forEach(function(n){n.style.pointerEvents='none';});
   }
-  // Start fade timer for drawings
-  if(_fadeTimer) clearInterval(_fadeTimer);
-  if(t!=='none'&&t!=='eraser'){
-    _fadeTimer=setInterval(fadeDrawing,30000); // fade every 30s
-  }
 }
 
 // Drawing events on draw layer
@@ -165,16 +160,7 @@ drawLayer.addEventListener('touchmove',function(e){
 },{passive:false});
 drawLayer.addEventListener('touchend',function(){_drawing=false;saveDrawing();});
 
-function fadeDrawing(){
-  // Gradually fade the canvas
-  _ctx.globalAlpha=0.02;_ctx.globalCompositeOperation='destination-out';
-  _ctx.fillRect(0,0,_canvas.width,_canvas.height);
-  _ctx.globalAlpha=1;_ctx.globalCompositeOperation='source-over';
-  saveDrawing();
-}
-
 function clearDrawing(){
-  if(!confirm('Borrar todo el dibujo?'))return;
   _ctx.clearRect(0,0,_canvas.width,_canvas.height);
   try{localStorage.removeItem('bs_draw_{{ p.id }}');}catch(e){}
 }

@@ -1101,7 +1101,9 @@ def register(app):
             return jsonify({'ok': True, 'id': f.id, 'tipo': 'fase', 'nombre': f.nombre})
         elif tipo == 'objetivo' and fase_id:
             max_ord = db.session.query(func.max(ProyectoObjetivo.orden)).filter_by(fase_id=fase_id).scalar() or 0
-            o = ProyectoObjetivo(proyecto_id=pid, fase_id=int(fase_id), titulo=nombre, orden=max_ord + 1)
+            presupuesto = float(request.json.get('presupuesto') or 0)
+            o = ProyectoObjetivo(proyecto_id=pid, fase_id=int(fase_id), titulo=nombre,
+                                  presupuesto=presupuesto, orden=max_ord + 1)
             db.session.add(o); db.session.flush()
             db.session.commit()
             return jsonify({'ok': True, 'id': o.id, 'tipo': 'objetivo', 'nombre': o.titulo})
