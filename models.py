@@ -1394,6 +1394,8 @@ class CapLeccion(db.Model):
     orden           = db.Column(db.Integer, default=0)
     duracion_min    = db.Column(db.Integer, default=5)
     activo          = db.Column(db.Boolean, default=True)
+    pasos           = db.Column(db.Text, default='[]')  # JSON: [{"codigo":"crear_cliente","label":"Crear un cliente","entidad":"cliente"}]
+    ruta_practica   = db.Column(db.String(100))  # endpoint name for redirect, e.g. "cliente_nuevo"
 
 class CapPregunta(db.Model):
     """Pregunta de evaluación de un curso."""
@@ -2048,6 +2050,11 @@ def _migrate(conn):
         # ── Foro Banners (marketplace ads) ──
         ("CREATE TABLE IF NOT EXISTS foro_banners (id SERIAL PRIMARY KEY, titulo VARCHAR(200) NOT NULL, descripcion TEXT, imagen_url VARCHAR(500), link_url VARCHAR(500), industria VARCHAR(100), tipo VARCHAR(20) DEFAULT 'evore', activo BOOLEAN DEFAULT TRUE, orden INTEGER DEFAULT 0, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
         ("CREATE TABLE IF NOT EXISTS foro_banners (id INTEGER PRIMARY KEY AUTOINCREMENT, titulo VARCHAR(200) NOT NULL, descripcion TEXT, imagen_url VARCHAR(500), link_url VARCHAR(500), industria VARCHAR(100), tipo VARCHAR(20) DEFAULT 'evore', activo BOOLEAN DEFAULT TRUE, orden INTEGER DEFAULT 0, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"),
+        # ── Capacitacion: practice fields ──
+        ("ALTER TABLE cap_lecciones ADD COLUMN IF NOT EXISTS pasos TEXT DEFAULT '[]'"),
+        ("ALTER TABLE cap_lecciones ADD COLUMN pasos TEXT DEFAULT '[]'"),
+        ("ALTER TABLE cap_lecciones ADD COLUMN IF NOT EXISTS ruta_practica VARCHAR(100)"),
+        ("ALTER TABLE cap_lecciones ADD COLUMN ruta_practica VARCHAR(100)"),
     ]
     # Execute ALL migrations individually with rollback on each failure
     # This prevents one failed migration from aborting the entire transaction
@@ -2982,8 +2989,14 @@ def _seed_demo_data():
 def _seed_capacitacion():
     """Seed training courses, lessons and quiz questions."""
     import json, logging
-    if CapCurso.query.first():
-        return  # Already seeded
+    already_seeded = CapCurso.query.first() is not None
+    if already_seeded:
+        # Still run practice step updates
+        try:
+            _update_cap_practice_steps()
+        except Exception as e:
+            logging.warning(f'Cap practice steps update: {e}')
+        return
     try:
         CURSOS = [
             {
@@ -3176,3 +3189,80 @@ def _seed_capacitacion():
     except Exception as e:
         db.session.rollback()
         logging.warning(f'Seed capacitacion: {e}')
+
+    # Update lessons with practice steps (runs every time, idempotent)
+    try:
+        _update_cap_practice_steps()
+    except Exception as e:
+        logging.warning(f'Cap practice steps update: {e}')
+
+
+def _update_cap_practice_steps():
+    """Add practice step definitions and route targets to lessons."""
+    import json
+    STEPS = {
+        'Crear un cliente nuevo': {
+            'ruta_practica': 'cliente_nuevo',
+            'pasos': [{'codigo': 'crear_cliente', 'label': 'Crear un cliente con empresa y NIT', 'entidad': 'cliente'}]
+        },
+        'Elaborar una cotizacion': {
+            'ruta_practica': 'cotizacion_nueva',
+            'pasos': [{'codigo': 'crear_cotizacion', 'label': 'Crear una cotizacion con items', 'entidad': 'cotizacion'}]
+        },
+        'Convertir cotizacion en venta': {
+            'ruta_practica': 'ventas_index',
+            'pasos': [{'codigo': 'crear_venta', 'label': 'Crear o convertir una venta', 'entidad': 'venta'}]
+        },
+        'Registrar un proveedor': {
+            'ruta_practica': 'proveedor_nuevo',
+            'pasos': [{'codigo': 'crear_proveedor', 'label': 'Registrar un proveedor', 'entidad': 'proveedor'}]
+        },
+        'Crear cotizacion de proveedor': {
+            'ruta_practica': 'cotizacion_proveedor_nueva',
+            'pasos': [{'codigo': 'crear_cot_prov', 'label': 'Crear cotizacion de proveedor', 'entidad': 'cotizacion_proveedor'}]
+        },
+        'Generar orden de compra': {
+            'ruta_practica': 'orden_compra_nueva',
+            'pasos': [{'codigo': 'crear_oc', 'label': 'Crear una orden de compra', 'entidad': 'orden_compra'}]
+        },
+        'Crear una receta de producto (BOM)': {
+            'ruta_practica': 'receta_nueva',
+            'pasos': [
+                {'codigo': 'crear_receta', 'label': 'Crear una receta con ingredientes', 'entidad': 'receta'},
+            ]
+        },
+        'Registrar productos terminados': {
+            'ruta_practica': 'producto_nuevo',
+            'pasos': [{'codigo': 'crear_producto', 'label': 'Crear un producto terminado', 'entidad': 'producto'}]
+        },
+        'Registrar empleados': {
+            'ruta_practica': 'empleado_nuevo',
+            'pasos': [{'codigo': 'crear_empleado', 'label': 'Registrar un empleado', 'entidad': 'empleado'}]
+        },
+        'Crear y asignar tickets': {
+            'ruta_practica': 'tarea_nueva',
+            'pasos': [{'codigo': 'crear_tarea', 'label': 'Crear un ticket', 'entidad': 'tarea'}]
+        },
+        'Configurar empaques secundarios': {
+            'ruta_practica': 'empaques_nuevo',
+            'pasos': [{'codigo': 'crear_empaque', 'label': 'Crear un empaque secundario', 'entidad': 'empaque'}]
+        },
+    }
+    updated = 0
+    for titulo, data in STEPS.items():
+        leccion = CapLeccion.query.filter_by(titulo=titulo).first()
+        if not leccion:
+            continue
+        changed = False
+        if data.get('ruta_practica') and leccion.ruta_practica != data['ruta_practica']:
+            leccion.ruta_practica = data['ruta_practica']
+            changed = True
+        if data.get('pasos'):
+            new_pasos = json.dumps(data['pasos'])
+            if leccion.pasos != new_pasos:
+                leccion.pasos = new_pasos
+                changed = True
+        if changed:
+            updated += 1
+    if updated:
+        db.session.commit()

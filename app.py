@@ -231,7 +231,14 @@ def create_app():
         except Exception:
             pass
         g.company_id = None
+        g.cap_sandbox = False
         if current_user and current_user.is_authenticated:
+            # Training sandbox mode overrides active company
+            sandbox_cid = session.get('cap_sandbox_company_id')
+            if sandbox_cid:
+                g.company_id = sandbox_cid
+                g.cap_sandbox = True
+                return
             g.company_id = session.get('active_company_id')
             if not g.company_id:
                 try:

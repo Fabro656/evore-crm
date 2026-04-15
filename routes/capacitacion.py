@@ -1,21 +1,48 @@
 # routes/capacitacion.py — Modulo de Capacitacion y Evaluacion
-from flask import render_template, redirect, url_for, flash, request, g
+from flask import render_template, redirect, url_for, flash, request, g, session
 from flask_login import login_required, current_user
 from extensions import db
 from models import *
 from utils import *
-from datetime import datetime
+from datetime import datetime, date as date_type, timedelta
 import json, logging
 
 APROBACION_MIN = 70  # porcentaje minimo para aprobar
 
+# Map curso.modulo_crm → module permission name(s)
+_MODULO_CRM_TO_PERM = {
+    'ventas': ['ventas', 'cotizaciones', 'clientes'],
+    'compras': ['ordenes_compra', 'cotizaciones_proveedor', 'proveedores'],
+    'produccion': ['produccion'],
+    'inventario': ['inventario'],
+    'contable': ['finanzas', 'gastos'],
+    'nomina': ['nomina'],
+    'tareas': ['tareas'],
+    'empaques': ['empaques', 'logistica'],
+}
+
 def register(app):
+
+    def _cursos_disponibles(user):
+        """Return active courses filtered by user's available modules."""
+        all_cursos = CapCurso.query.filter_by(activo=True).order_by(CapCurso.orden, CapCurso.id).all()
+        user_modulos = set(_modulos_user(user))
+        rol = _get_rol_activo(user)
+        # Admin sees everything
+        if rol in ('admin', 'director_financiero', 'tester'):
+            return all_cursos
+        result = []
+        for c in all_cursos:
+            perms = _MODULO_CRM_TO_PERM.get(c.modulo_crm, [])
+            if not perms or any(p in user_modulos for p in perms):
+                result.append(c)
+        return result
 
     # ── capacitacion_index (/capacitacion) ──
     @app.route('/capacitacion')
     @login_required
     def capacitacion_index():
-        cursos = CapCurso.query.filter_by(activo=True).order_by(CapCurso.orden, CapCurso.id).all()
+        cursos = _cursos_disponibles(current_user)
         cid = getattr(g, 'company_id', None)
         # Progreso por curso
         progreso = {}
@@ -238,3 +265,150 @@ def register(app):
                 }
         return render_template('capacitacion/admin.html',
             cursos=cursos, usuarios=usuarios, matrix=matrix)
+
+    # ══════════════════════════════════════════════════════════════════
+    # SANDBOX: CRM demo para practica
+    # ══════════════════════════════════════════════════════════════════
+
+    def _get_or_create_sandbox(user):
+        """Get or create a sandbox company for this user's training."""
+        slug = f'cap-sandbox-{user.id}'
+        sandbox = Company.query.filter_by(slug=slug).first()
+        if sandbox:
+            return sandbox
+        sandbox = Company(
+            nombre=f'Empresa Demo ({user.nombre})',
+            slug=slug, nit='900000000-0',
+            plan='pro', max_users=1, activo=True,
+            es_principal=False, creado_por=user.id
+        )
+        db.session.add(sandbox)
+        db.session.flush()
+        _seed_sandbox(sandbox.id, user.id)
+        db.session.commit()
+        return sandbox
+
+    def _seed_sandbox(company_id, user_id):
+        """Seed demo data into the sandbox company for training exercises."""
+        cid = company_id
+        # Clients
+        for name, nit, estado in [
+            ('Distribuidora Nacional S.A.S', '900111222-1', 'cliente_activo'),
+            ('Comercializadora Andina Ltda', '800333444-5', 'prospecto'),
+            ('Farmacia Central S.A.', '900555666-7', 'negociacion'),
+        ]:
+            c = Cliente(company_id=cid, nombre=name, empresa=name, nit=nit,
+                        estado_relacion=estado, estado='activo')
+            db.session.add(c)
+        # Suppliers
+        for name, tipo in [
+            ('Quimicos del Valle S.A.', 'proveedor'),
+            ('Empaques Colombia Ltda', 'proveedor'),
+            ('TransCarga S.A.S', 'transportista'),
+        ]:
+            db.session.add(Proveedor(company_id=cid, nombre=name, empresa=name,
+                                      tipo=tipo, activo=True))
+        # Products
+        for name, precio, stock in [
+            ('Crema facial hidratante 50ml', 35000, 200),
+            ('Shampoo natural 300ml', 28000, 150),
+            ('Jabon artesanal 100g', 12000, 500),
+        ]:
+            db.session.add(Producto(company_id=cid, nombre=name, precio=precio,
+                                     stock=stock, stock_minimo=50, activo=True))
+        # Raw materials
+        for name, unidad, stock in [
+            ('Aceite de coco', 'litros', 50),
+            ('Glicerina vegetal', 'kg', 30),
+            ('Fragancia lavanda', 'ml', 5000),
+            ('Envase plastico 50ml', 'unidades', 1000),
+            ('Etiqueta impresa', 'unidades', 2000),
+        ]:
+            db.session.add(MateriaPrima(company_id=cid, nombre=name, unidad=unidad,
+                                         stock_disponible=stock, stock_minimo=10,
+                                         costo_unitario=0, activo=True))
+        # Employee
+        db.session.add(Empleado(company_id=cid, nombre='Maria', apellido='Garcia Demo',
+                                 cedula='1234567890', cargo='Operaria',
+                                 tipo_contrato='indefinido', salario_base=1423500,
+                                 auxilio_transporte=True, nivel_riesgo_arl=1,
+                                 estado='activo', fecha_ingreso=date_type(2025, 1, 15),
+                                 creado_por=user_id))
+        db.session.flush()
+
+    def _check_sandbox_steps(leccion, company_id, user_id):
+        """Check which practice steps the user has completed in the sandbox."""
+        pasos_raw = leccion.pasos or '[]'
+        try:
+            pasos = json.loads(pasos_raw)
+        except Exception:
+            pasos = []
+        if not pasos:
+            return [], 0, 0
+        results = []
+        for p in pasos:
+            codigo = p.get('codigo', '')
+            entidad = p.get('entidad', '')
+            done = False
+            if entidad and company_id:
+                count = Actividad.query.filter_by(
+                    company_id=company_id, tipo='crear', entidad=entidad
+                ).filter(Actividad.usuario_id == user_id).count()
+                done = count > 0
+            results.append({**p, 'completado': done})
+        completados = sum(1 for r in results if r['completado'])
+        return results, completados, len(pasos)
+
+    # ── iniciar practica ──
+    @app.route('/capacitacion/leccion/<int:id>/practicar', methods=['POST'])
+    @login_required
+    def capacitacion_iniciar_practica(id):
+        leccion = CapLeccion.query.get_or_404(id)
+        try:
+            sandbox = _get_or_create_sandbox(current_user)
+            session['cap_sandbox_company_id'] = sandbox.id
+            session['cap_sandbox_leccion_id'] = leccion.id
+            session['cap_real_company_id'] = session.get('active_company_id')
+            flash(f'Modo capacitacion activado. Practica: {leccion.titulo}', 'info')
+            ruta = leccion.ruta_practica
+            if ruta:
+                try:
+                    return redirect(url_for(ruta))
+                except Exception:
+                    pass
+            return redirect(url_for('dashboard'))
+        except Exception as e:
+            logging.error(f'Error creando sandbox: {e}')
+            db.session.rollback()
+            flash('Error al crear el entorno de practica.', 'danger')
+            return redirect(url_for('capacitacion_leccion', id=id))
+
+    # ── salir de practica ──
+    @app.route('/capacitacion/salir-practica')
+    @login_required
+    def capacitacion_salir_practica():
+        leccion_id = session.pop('cap_sandbox_leccion_id', None)
+        session.pop('cap_sandbox_company_id', None)
+        real_cid = session.pop('cap_real_company_id', None)
+        if real_cid:
+            session['active_company_id'] = real_cid
+        flash('Has salido del modo capacitacion.', 'info')
+        if leccion_id:
+            return redirect(url_for('capacitacion_leccion', id=leccion_id))
+        return redirect(url_for('capacitacion_index'))
+
+    # ── verificar pasos (AJAX) ──
+    @app.route('/api/capacitacion/pasos/<int:leccion_id>')
+    @login_required
+    def api_capacitacion_pasos(leccion_id):
+        leccion = CapLeccion.query.get_or_404(leccion_id)
+        sandbox_cid = session.get('cap_sandbox_company_id')
+        if not sandbox_cid:
+            return jsonify({'error': 'No estas en modo practica'}), 400
+        results, completados, total = _check_sandbox_steps(leccion, sandbox_cid, current_user.id)
+        return jsonify({
+            'pasos': results,
+            'completados': completados,
+            'total': total,
+            'todos_completados': completados >= total and total > 0
+        })
