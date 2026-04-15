@@ -239,7 +239,7 @@ footer a{color:var(--t2);margin:0 .75rem}footer a:hover{color:var(--t)}
 
 <script>
 var ob=new IntersectionObserver(function(e){e.forEach(function(x){
-  if(x.isIntersecting){x.target.classList.add('v');x.target.querySelectorAll('.app').forEach(function(a){a.classList.add('anim')});ob.unobserve(x.target)}
+  if(x.isIntersecting){x.target.classList.add('v');x.target.querySelectorAll('.app,.hero-cards').forEach(function(a){a.classList.add('anim')});ob.unobserve(x.target)}
 })},{threshold:.15,rootMargin:'0px 0px -40px 0px'});
 document.querySelectorAll('.rv').forEach(function(e){ob.observe(e)});
 document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();var t=document.querySelector(this.getAttribute('href'));if(t)t.scrollIntoView({behavior:'smooth',block:'start'})})});

@@ -8,29 +8,22 @@
 .hero h1 em{font-style:normal;color:var(--ac)}
 .hero p{font-size:clamp(1.05rem,1.8vw,1.2rem);color:var(--t2);max-width:540px;margin:0 auto 2rem;line-height:1.6;font-weight:300}
 .hb{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;margin-bottom:3rem}
-/* Hero mockup */
-.hero-mock{max-width:960px;margin:0 auto;border-radius:20px;overflow:hidden;border:1px solid var(--bd);box-shadow:0 30px 80px rgba(0,0,0,.08),0 1px 3px rgba(0,0,0,.04);background:var(--sf)}
-.hero-mock .hm-bar{height:36px;background:var(--bg);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 14px;gap:6px}
-.hero-mock .hm-bar i{width:8px;height:8px;border-radius:50%}
-.hero-mock .hm-bar i:nth-child(1){background:#FF5F57}.hero-mock .hm-bar i:nth-child(2){background:#FFBD2E}.hero-mock .hm-bar i:nth-child(3){background:#28CA41}
-.hero-mock .hm-bar span{flex:1;text-align:center;font-size:.65rem;color:var(--t2)}
-.hero-mock .hm-body{display:grid;grid-template-columns:48px 1fr;min-height:280px}
-.hm-sb{background:var(--bg);border-right:1px solid var(--bd);padding:.5rem .35rem;display:flex;flex-direction:column;align-items:center;gap:.35rem}
-.hm-sb i{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--t2);transition:all .2s}
-.hm-sb i.on{background:var(--st-info-bg);color:var(--ac)}
-.hm-content{padding:1rem;display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;align-content:start}
-.hm-card{background:var(--bg);border-radius:12px;padding:.75rem .85rem;opacity:0;transform:translateY(12px)}
-.hero-mock.anim .hm-card{animation:vUp .45s cubic-bezier(.16,1,.3,1) forwards}
-.hero-mock.anim .hm-card:nth-child(2){animation-delay:.06s}
-.hero-mock.anim .hm-card:nth-child(3){animation-delay:.12s}
-.hero-mock.anim .hm-card:nth-child(4){animation-delay:.18s}
-.hero-mock.anim .hm-card:nth-child(5){animation-delay:.24s}
-.hero-mock.anim .hm-card:nth-child(6){animation-delay:.3s}
+/* Hero cards (CRM style) */
+.hero-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:.75rem;max-width:700px;margin:0 auto}
+.hc-card{background:var(--bg);border-radius:16px;overflow:hidden;transition:all .3s cubic-bezier(.16,1,.3,1);opacity:0;transform:translateY(16px)}
+.hc-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.06);transform:translateY(-2px)}
+.hero-cards.anim .hc-card{animation:vUp .45s cubic-bezier(.16,1,.3,1) forwards}
+.hero-cards.anim .hc-card:nth-child(2){animation-delay:.08s}
+.hero-cards.anim .hc-card:nth-child(3){animation-delay:.16s}
+.hero-cards.anim .hc-card:nth-child(4){animation-delay:.24s}
 @keyframes vUp{to{opacity:1;transform:none}}
-.hm-card .hm-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem}
-.hm-card .hm-dot{width:6px;height:6px;border-radius:50%}
-.hm-card .hm-n{font-weight:600;font-size:.65rem;color:var(--t)}
-.hm-card .hm-s{font-size:.58rem;color:var(--t2)}
+.hc-bar{height:3px}
+.hc-body{padding:.85rem 1rem;display:flex;align-items:center;gap:.7rem}
+.hc-av{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.85rem;flex-shrink:0}
+.hc-info{flex:1;min-width:0}
+.hc-name{font-weight:600;font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hc-sub{font-size:.68rem;color:var(--t2)}
+.hc-val{font-weight:700;font-size:.92rem;white-space:nowrap}
 
 /* Promo strip */
 .promo{background:linear-gradient(90deg,var(--ac),#7C3AED);color:#fff;padding:.6rem 2rem;font-size:.82rem;display:flex;align-items:center;justify-content:center;gap:.75rem;flex-wrap:wrap;margin-top:48px}
@@ -117,9 +110,7 @@
   .eg{grid-template-columns:repeat(2,1fr);gap:.75rem}
   .pg{max-width:100%;margin:0 1.25rem;border-radius:16px}
   .fq{padding:0 1.25rem}
-  .hero-mock{max-width:100%}
-  .hm-body{grid-template-columns:42px 1fr}
-  .hm-content{grid-template-columns:repeat(3,1fr);gap:.5rem;padding:.75rem}
+  .hero-cards{max-width:100%}
   .ct{padding:5rem 2rem}
 }
 /* ── Mobile (≤600px) ── */
@@ -132,13 +123,9 @@
   .hero p{font-size:.95rem;margin-bottom:1.5rem}
   .hb{flex-direction:column;align-items:center;gap:.6rem}
   .hb .ba,.hb .bo{width:100%;justify-content:center;min-height:50px}
-  .hero-mock{border-radius:14px}
-  .hm-body{grid-template-columns:1fr}
-  .hm-sb{display:none}
-  .hm-content{grid-template-columns:repeat(2,1fr);gap:.5rem;padding:.75rem}
-  .hm-card{padding:.5rem .6rem}
-  .hm-card .hm-n{font-size:.6rem}
-  .hm-card .hm-s{font-size:.52rem}
+  .hero-cards{grid-template-columns:1fr;gap:.5rem;max-width:100%}
+  .hc-body{padding:.7rem .85rem;gap:.6rem}
+  .hc-name{font-size:.78rem}.hc-sub{font-size:.65rem}.hc-val{font-size:.85rem}
   .mg{grid-template-columns:1fr;gap:.75rem;padding:0 .75rem 2rem}
   .mg .mc:nth-child(1),.mg .mc:nth-child(4),.mg .mc:nth-child(7){grid-column:span 1}
   .mc{padding:1.5rem 1.25rem;border-radius:16px}
@@ -191,28 +178,12 @@
     <a href="#" class="ba" style="padding:.8rem 2rem;font-size:.98rem" onclick="event.preventDefault();openM()"><i class="bi bi-arrow-right"></i>Probar 1 mes gratis</a>
     <a href="#modulos" class="bo">Ver módulos <i class="bi bi-chevron-down"></i></a>
   </div>
-  <!-- Dashboard mockup -->
-  <div class="hero-mock rv">
-    <div class="hm-bar"><i></i><i></i><i></i><span>evore.co/dashboard</span></div>
-    <div class="hm-body">
-      <div class="hm-sb">
-        <i class="bi bi-house-fill on"></i>
-        <i class="bi bi-bag"></i>
-        <i class="bi bi-gear"></i>
-        <i class="bi bi-box-seam"></i>
-        <i class="bi bi-calculator"></i>
-        <i class="bi bi-people"></i>
-        <i class="bi bi-shop"></i>
-      </div>
-      <div class="hm-content">
-        <div class="hm-card"><div class="hm-top"><div class="hm-dot" style="background:var(--ac)"></div><span class="hm-n">$85.2M</span></div><div class="hm-s">Ingresos totales</div></div>
-        <div class="hm-card"><div class="hm-top"><div class="hm-dot" style="background:var(--gn)"></div><span class="hm-n">$33.1M</span></div><div class="hm-s">Saldo neto</div></div>
-        <div class="hm-card"><div class="hm-top"><div class="hm-dot" style="background:var(--og)"></div><span class="hm-n">23</span></div><div class="hm-s">Ventas activas</div></div>
-        <div class="hm-card"><div class="hm-top"><div class="hm-dot" style="background:var(--ac)"></div><span class="hm-n">$12.5M</span></div><div class="hm-s">Textiles del Norte</div></div>
-        <div class="hm-card"><div class="hm-top"><div class="hm-dot" style="background:var(--gn)"></div><span class="hm-n">$8.2M</span></div><div class="hm-s">MakerCo · Anticipo</div></div>
-        <div class="hm-card"><div class="hm-top"><div class="hm-dot" style="background:#7C3AED"></div><span class="hm-n">★ 4.8</span></div><div class="hm-s">Tu valoración</div></div>
-      </div>
-    </div>
+  <!-- Dashboard preview as cards -->
+  <div class="hero-cards rv">
+    <div class="hc-card"><div class="hc-bar" style="background:var(--ac)"></div><div class="hc-body"><div class="hc-av" style="background:var(--ac)"><i class="bi bi-graph-up-arrow"></i></div><div class="hc-info"><div class="hc-name">Ingresos totales</div><div class="hc-sub">Abril 2026 · 23 ventas</div></div><div class="hc-val" style="color:var(--ac)">$85.2M</div></div></div>
+    <div class="hc-card"><div class="hc-bar" style="background:var(--gn)"></div><div class="hc-body"><div class="hc-av" style="background:var(--gn)"><i class="bi bi-cash-stack"></i></div><div class="hc-info"><div class="hc-name">Saldo neto real</div><div class="hc-sub">Ingresos - gastos - impuestos</div></div><div class="hc-val" style="color:var(--gn)">$33.1M</div></div></div>
+    <div class="hc-card"><div class="hc-bar" style="background:var(--og)"></div><div class="hc-body"><div class="hc-av" style="background:var(--og)"><i class="bi bi-bag"></i></div><div class="hc-info"><div class="hc-name">Textiles del Norte</div><div class="hc-sub">Negociación · 3 productos</div></div><div class="hc-val" style="color:var(--og)">$12.5M</div></div></div>
+    <div class="hc-card"><div class="hc-bar" style="background:#7C3AED"></div><div class="hc-body"><div class="hc-av" style="background:#7C3AED"><i class="bi bi-star-fill"></i></div><div class="hc-info"><div class="hc-name">Tu valoración</div><div class="hc-sub">23 opiniones en el marketplace</div></div><div class="hc-val" style="color:#7C3AED">★ 4.8</div></div></div>
   </div>
 </section>
 
