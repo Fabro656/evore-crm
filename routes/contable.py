@@ -175,12 +175,17 @@ def register(app):
 
         # Totals from filtered query (before pagination)
         from sqlalchemy import func as sa_func
-        totals_q = q.with_entities(
-            sa_func.sum(db.case((AsientoContable.clasificacion == 'ingreso', AsientoContable.haber), else_=0)),
-            sa_func.sum(db.case((AsientoContable.clasificacion == 'egreso', AsientoContable.debe), else_=0))
-        ).first()
-        total_ingresos_list = float(totals_q[0] or 0)
-        total_egresos_list  = float(totals_q[1] or 0)
+        try:
+            totals_q = q.with_entities(
+                sa_func.sum(db.case((AsientoContable.clasificacion == 'ingreso', AsientoContable.haber), else_=0)),
+                sa_func.sum(db.case((AsientoContable.clasificacion == 'egreso', AsientoContable.debe), else_=0))
+            ).first()
+            total_ingresos_list = float(totals_q[0] or 0)
+            total_egresos_list  = float(totals_q[1] or 0)
+        except Exception:
+            db.session.rollback()
+            total_ingresos_list = 0
+            total_egresos_list  = 0
 
         page = request.args.get('page', 1, type=int)
         pagination = q.paginate(page=page, per_page=25, error_out=False)
@@ -188,12 +193,17 @@ def register(app):
 
         # Stats del mes actual
         mes_ini = date_type.today().replace(day=1)
-        mes_totals = AsientoContable.query.filter(AsientoContable.fecha >= mes_ini).with_entities(
-            sa_func.sum(db.case((AsientoContable.clasificacion == 'ingreso', AsientoContable.haber), else_=0)),
-            sa_func.sum(db.case((AsientoContable.clasificacion == 'egreso', AsientoContable.debe), else_=0))
-        ).first()
-        ingresos_mes = float(mes_totals[0] or 0)
-        gastos_mes   = float(mes_totals[1] or 0)
+        try:
+            mes_totals = AsientoContable.query.filter(AsientoContable.fecha >= mes_ini).with_entities(
+                sa_func.sum(db.case((AsientoContable.clasificacion == 'ingreso', AsientoContable.haber), else_=0)),
+                sa_func.sum(db.case((AsientoContable.clasificacion == 'egreso', AsientoContable.debe), else_=0))
+            ).first()
+            ingresos_mes = float(mes_totals[0] or 0)
+            gastos_mes   = float(mes_totals[1] or 0)
+        except Exception:
+            db.session.rollback()
+            ingresos_mes = 0
+            gastos_mes   = 0
 
         return render_template('contable/asientos.html',
             asientos=asientos_filtrados, asientos_filtrados=asientos_filtrados,

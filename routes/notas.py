@@ -1,6 +1,6 @@
 # routes/notas.py — v36 notas mejoradas con vinculos a entidades
 from flask import render_template, redirect, url_for, flash, request, \
-                  jsonify, send_file, make_response, current_app
+                  jsonify, send_file, make_response, current_app, g
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
 from extensions import db
@@ -76,6 +76,7 @@ def register(app):
             if hasattr(Nota, 'tipo_nota'): kwargs['tipo_nota'] = request.form.get('tipo_nota','nota')
             if hasattr(Nota, 'estado_nota'): kwargs['estado_nota'] = request.form.get('estado_nota','abierta')
             if hasattr(Nota, 'prioridad'): kwargs['prioridad'] = request.form.get('prioridad','normal')
+            kwargs['company_id'] = getattr(g, 'company_id', None)
             n = Nota(**kwargs)
             db.session.add(n)
             db.session.commit()
