@@ -57,7 +57,7 @@
       <label class="form-label fw-semibold mb-0">Ítems / Servicios</label>
       <div class="form-check form-switch">
         <input type="checkbox" class="form-check-input" name="iva_incluido" id="ivaIncluidoCheck" value="1"
-               onchange="calcTotal()" {% if not obj %}checked{% elif obj and obj.iva_incluido %}checked{% endif %}>
+               onchange="calcTotal()" {% if obj and obj.iva_incluido %}checked{% endif %}>
         <label class="form-check-label fw-semibold" for="ivaIncluidoCheck">IVA incluido en precio</label>
       </div>
     </div>
@@ -200,22 +200,33 @@ function onProductSelect(el){
   if(!opt||!opt.value){
     if(idInput) idInput.value='';
     if(infoEl){infoEl.style.display='none';infoEl.innerHTML='';}
+    // Unlock fields for manual entry
+    var pe=row.querySelector('.item-precio'); if(pe){pe.readOnly=false;pe.style.background='';}
+    var ie=row.querySelector('.item-iva-pct'); if(ie){ie.readOnly=false;ie.style.background='';}
     return;
   }
   var pid=opt.getAttribute('data-id')||'';
-  var precio=parseFloat(opt.getAttribute('data-precio'))||0;
+  var precioConIva=parseFloat(opt.getAttribute('data-precio'))||0;
   var sku=opt.getAttribute('data-sku')||'';
   var costo=parseFloat(opt.getAttribute('data-costo'))||0;
   var nsoNum=opt.getAttribute('data-nso')||'';
   if(idInput) idInput.value=pid;
-  row.querySelector('.item-precio').value=Math.round(precio);
+  // BOM price includes IVA — extract base price
+  var ivaPctEl=row.querySelector('.item-iva-pct');
+  var ivaPct=parseFloat(ivaPctEl.value)||19;
+  var precioBase=Math.round(precioConIva/(1+ivaPct/100));
+  var precioEl=row.querySelector('.item-precio');
+  precioEl.value=precioBase;
+  // Lock price and IVA fields for BOM products
+  precioEl.readOnly=true; precioEl.style.background='var(--surface2)';
+  ivaPctEl.readOnly=true; ivaPctEl.style.background='var(--surface2)';
   // Mostrar info del producto: NSO, docs legales, costo
   if(infoEl){
     var parts=[];
     if(nsoNum) parts.push('<strong>NSO:</strong> '+nsoNum);
     if(sku) parts.push('SKU: '+sku);
     if(costo) parts.push('Costo prod: '+fmt(costo));
-    parts.push('<strong>Precio venta: '+fmt(precio)+'</strong>');
+    parts.push('<strong>Base: '+fmt(precioBase)+' + IVA = '+fmt(precioConIva)+'</strong>');
     // Buscar docs legales del producto
     var docsP = DOCS_LEGALES.filter(function(d){ return d.producto_id == pid; });
     if(docsP.length){
@@ -248,6 +259,9 @@ function updateItemRow(el){
   if(tipo==='servicio'){
     if(prodSelect) prodSelect.style.display='none';
     if(srvSelect) srvSelect.style.display='block';
+    // Unlock price/iva for services
+    var pe=row.querySelector('.item-precio'); if(pe){pe.readOnly=false;pe.style.background='';}
+    var ie=row.querySelector('.item-iva-pct'); if(ie){ie.readOnly=false;ie.style.background='';}
   }else{
     if(prodSelect) prodSelect.style.display='block';
     if(srvSelect) srvSelect.style.display='none';

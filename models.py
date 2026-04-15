@@ -870,7 +870,7 @@ class Cotizacion(db.Model):
     notas               = db.Column(db.Text)
     dias_tipo           = db.Column(db.String(20), default='calendario')  # v30: 'calendario' | 'habiles'
     tiempo_desde        = db.Column(db.String(20), default='anticipo')    # v30: 'anticipo' | 'firma'
-    iva_incluido        = db.Column(db.Boolean, default=True)  # precios incluyen IVA (BOM ya incluye IVA)
+    iva_incluido        = db.Column(db.Boolean, default=False)  # precios se muestran sin IVA (base)
     creado_en           = db.Column(db.DateTime, default=datetime.utcnow)
     creado_por          = db.Column(db.Integer, db.ForeignKey('users.id'))
     es_demo             = db.Column(db.Boolean, default=False)
@@ -2162,8 +2162,8 @@ def _migrate(conn):
         ("CREATE TABLE IF NOT EXISTS foro_banners (id SERIAL PRIMARY KEY, titulo VARCHAR(200) NOT NULL, descripcion TEXT, imagen_url VARCHAR(500), link_url VARCHAR(500), industria VARCHAR(100), tipo VARCHAR(20) DEFAULT 'evore', activo BOOLEAN DEFAULT TRUE, orden INTEGER DEFAULT 0, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
         ("CREATE TABLE IF NOT EXISTS foro_banners (id INTEGER PRIMARY KEY AUTOINCREMENT, titulo VARCHAR(200) NOT NULL, descripcion TEXT, imagen_url VARCHAR(500), link_url VARCHAR(500), industria VARCHAR(100), tipo VARCHAR(20) DEFAULT 'evore', activo BOOLEAN DEFAULT TRUE, orden INTEGER DEFAULT 0, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"),
         # ── Cotizacion: iva_incluido ──
-        ("ALTER TABLE cotizaciones ADD COLUMN IF NOT EXISTS iva_incluido BOOLEAN DEFAULT TRUE"),
-        ("ALTER TABLE cotizaciones ADD COLUMN iva_incluido BOOLEAN DEFAULT TRUE"),
+        ("ALTER TABLE cotizaciones ADD COLUMN IF NOT EXISTS iva_incluido BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE cotizaciones ADD COLUMN iva_incluido BOOLEAN DEFAULT FALSE"),
         # ── Capacitacion: practice fields ──
         ("ALTER TABLE cap_lecciones ADD COLUMN IF NOT EXISTS pasos TEXT DEFAULT '[]'"),
         ("ALTER TABLE cap_lecciones ADD COLUMN pasos TEXT DEFAULT '[]'"),
