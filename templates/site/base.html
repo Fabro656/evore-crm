@@ -10,148 +10,162 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--ac:#0176D3;--ac2:#0047A1;--ar:1,118,211;--t:#1A2536;--t2:#5A6A85;--bg:#F7FAFD;--sf:#FFF;--bd:#D5DFF0;--gn:#2E844A;--og:#DD7A01}
+:root{--ac:#0176D3;--ac2:#0047A1;--ar:1,118,211;--t:#1A2536;--t2:#5A6A85;--bg:#F7FAFD;--sf:#FFF;--bd:#D5DFF0;--gn:#2E844A;--og:#DD7A01;
+  --st-ok-bg:#EDFBF0;--st-ok-text:#1A6B3C;--st-ok-bdr:#BEEFD3;
+  --st-warn-bg:#FFF8E6;--st-warn-text:#7A4A00;--st-warn-bdr:#FADDAA;
+  --st-err-bg:#FFF0EE;--st-err-text:#8A1A1A;--st-err-bdr:#FFCCC7;
+  --st-info-bg:#EBF4FF;--st-info-text:#0A3D7A;--st-info-bdr:#B3D4F5;
+}
 body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI','Helvetica Neue',Arial,sans-serif;color:var(--t);background:var(--sf);overflow-x:hidden;-webkit-font-smoothing:antialiased}
 a{text-decoration:none;color:inherit}img{max-width:100%;height:auto}
 
 /* ── Buttons ── */
-.ba{display:inline-flex;align-items:center;gap:.5rem;background:var(--ac);color:#fff;border:none;padding:.75rem 1.75rem;border-radius:980px;font-weight:600;font-size:.95rem;cursor:pointer;transition:all .25s}
-.ba:hover{background:var(--ac2);color:#fff;transform:scale(1.04)}
-.bw{display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);padding:.7rem 1.6rem;border-radius:980px;font-weight:500;font-size:.95rem;cursor:pointer;transition:all .25s;backdrop-filter:blur(12px)}
+.ba{display:inline-flex;align-items:center;gap:.5rem;background:var(--ac);color:#fff;border:none;padding:.7rem 1.6rem;border-radius:980px;font-weight:600;font-size:.92rem;cursor:pointer;transition:all .25s}
+.ba:hover{background:var(--ac2);color:#fff;transform:scale(1.03)}
+.bw{display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);padding:.65rem 1.5rem;border-radius:980px;font-weight:500;font-size:.92rem;cursor:pointer;transition:all .25s;backdrop-filter:blur(12px)}
 .bw:hover{background:rgba(255,255,255,.18);color:#fff}
-.bo{display:inline-flex;align-items:center;gap:.5rem;color:var(--ac);border:1px solid var(--ac);padding:.55rem 1.3rem;border-radius:980px;font-weight:600;font-size:.88rem;cursor:pointer;transition:all .2s}
+.bo{display:inline-flex;align-items:center;gap:.5rem;color:var(--ac);border:1px solid var(--ac);padding:.55rem 1.3rem;border-radius:980px;font-weight:600;font-size:.85rem;cursor:pointer;transition:all .2s}
 .bo:hover{background:rgba(var(--ar),.06)}
 
-/* ── Nav: fixed top + module sub-bar ── */
+/* ── Nav: centered Apple style ── */
 nav{position:fixed;top:0;left:0;right:0;z-index:200;background:rgba(255,255,255,.72);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid rgba(0,0,0,.06)}
-.nv{padding:.5rem 2.5rem;display:flex;align-items:center;justify-content:space-between}
-.nl{height:22px}
-.nr{display:flex;gap:1.25rem;align-items:center;font-size:.82rem;font-weight:400;color:var(--t2)}
-.nr a:hover{color:var(--t)}
-.ms{border-top:1px solid rgba(0,0,0,.04);overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-.ms::-webkit-scrollbar{display:none}
-.ms-i{display:flex;gap:0;padding:0 2.5rem;min-width:min-content}
-.ms a{padding:.6rem 1.1rem;font-size:.8rem;font-weight:400;color:var(--t2);white-space:nowrap;position:relative;transition:color .2s}
-.ms a:hover{color:var(--t)}
-.ms a.on{color:var(--t);font-weight:600}
-.ms a.on::after{content:'';position:absolute;bottom:0;left:1rem;right:1rem;height:2px;background:var(--t);border-radius:2px}
+.n-top{display:flex;align-items:center;justify-content:center;padding:.45rem 1.5rem;gap:2rem;position:relative}
+.n-logo{height:20px;position:absolute;left:1.5rem}
+.n-links{display:flex;gap:1.5rem;font-size:.8rem;font-weight:400;color:var(--t2);align-items:center}
+.n-links a:hover{color:var(--t)}
+.n-cta{position:absolute;right:1.5rem;display:flex;gap:.75rem;align-items:center}
+/* Module sub-nav */
+.n-sub{border-top:1px solid rgba(0,0,0,.04);overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;display:flex;justify-content:center}
+.n-sub::-webkit-scrollbar{display:none}
+.n-sub-i{display:flex;gap:0;min-width:min-content}
+.n-sub a{padding:.55rem 1rem;font-size:.78rem;font-weight:400;color:var(--t2);white-space:nowrap;position:relative;transition:color .2s}
+.n-sub a:hover{color:var(--t)}
+.n-sub a.on{color:var(--t);font-weight:600}
+.n-sub a.on::after{content:'';position:absolute;bottom:0;left:.75rem;right:.75rem;height:1.5px;background:var(--t);border-radius:2px}
 
 /* ── Sections ── */
-.sc{width:100%;padding:6rem 2.5rem}
+.sc{width:100%;padding:5rem 0}
 .sc-g{background:var(--bg)}.sc-d{background:#111;color:#fff}.sc-w{background:#fff}
-.si{max-width:980px;margin:0 auto}
-.sw{max-width:1280px;margin:0 auto}
-.sh{text-align:center;margin-bottom:3.5rem}
-.sh h2{font-size:clamp(1.8rem,4vw,3rem);font-weight:700;letter-spacing:-.02em;line-height:1.08}
-.sh p{color:var(--t2);max-width:540px;margin:.75rem auto 0;font-size:1rem;line-height:1.65;font-weight:300}
-.sc-d .sh p{color:rgba(255,255,255,.45)}
+.si{max-width:980px;margin:0 auto;padding:0 2rem}
+.sw{max-width:1400px;margin:0 auto;padding:0 2rem}
+.sh{text-align:center;margin-bottom:3rem}
+.sh h2{font-size:clamp(1.8rem,4vw,3rem);font-weight:700;letter-spacing:-.025em;line-height:1.08}
+.sh p{color:var(--t2);max-width:520px;margin:.75rem auto 0;font-size:1rem;line-height:1.65;font-weight:300}
+.sc-d .sh p{color:rgba(255,255,255,.4)}
+
+/* ── Two-column feature sections (full width) ── */
+.feat{display:grid;grid-template-columns:1fr 1fr;min-height:600px;overflow:hidden}
+.feat-txt{padding:4rem 3.5rem;display:flex;flex-direction:column;justify-content:center}
+.feat-txt .lb{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--ac);margin-bottom:.75rem}
+.feat-txt h2{font-size:clamp(1.5rem,3vw,2.2rem);font-weight:700;letter-spacing:-.02em;line-height:1.12;margin-bottom:1rem}
+.feat-txt p{color:var(--t2);font-size:.95rem;line-height:1.7;font-weight:300;margin-bottom:1.5rem}
+.feat-vis{position:relative;display:flex;align-items:center;justify-content:center;padding:2rem;overflow:hidden}
+.feat-vis.dark{background:#111}
+.feat-vis.light{background:var(--bg)}
+
+/* ── CRM Mockup (uses real Evore design tokens) ── */
+.app{width:100%;max-width:500px;background:var(--sf);border-radius:14px;border:1px solid var(--bd);box-shadow:0 20px 60px rgba(0,0,0,.07);overflow:hidden}
+.dark .app{background:#1E1E1E;border-color:rgba(255,255,255,.06);box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.app-top{height:38px;background:var(--bg);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 14px;gap:6px}
+.dark .app-top{background:#262626;border-color:rgba(255,255,255,.05)}
+.app-top .d{width:8px;height:8px;border-radius:50%}.app-top .d:nth-child(1){background:#FF5F57}.app-top .d:nth-child(2){background:#FFBD2E}.app-top .d:nth-child(3){background:#28CA41}
+.app-top span{flex:1;text-align:center;font-size:.65rem;color:var(--t2);font-weight:500}
+.dark .app-top span{color:rgba(255,255,255,.3)}
+/* App toolbar (like CRM search bar) */
+.app-bar{padding:.75rem 1rem;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:.5rem}
+.dark .app-bar{border-color:rgba(255,255,255,.05)}
+.app-bar input{flex:1;border:1.5px solid var(--bd);border-radius:8px;padding:.4rem .75rem;font-size:.75rem;background:var(--sf);color:var(--t);outline:none}
+.dark .app-bar input{background:#262626;border-color:rgba(255,255,255,.08);color:#fff}
+/* CRM cards grid inside mock */
+.app-grid{padding:1rem;display:grid;grid-template-columns:1fr;gap:.65rem}
+/* Each card: replicates .fc .fc-lift pattern from the real CRM */
+.vc{background:var(--sf);border:1px solid var(--bd);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .3s cubic-bezier(.16,1,.3,1);opacity:0;transform:translateY(16px)}
+.dark .vc{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.06)}
+.vc:hover{transform:translateY(-2px)!important;box-shadow:0 6px 20px rgba(0,0,0,.08)}
+.dark .vc:hover{box-shadow:0 6px 20px rgba(0,0,0,.3)}
+.vc-bar{height:3px}
+.vc-body{padding:.7rem .85rem;display:flex;align-items:center;gap:.65rem}
+.vc-av{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.7rem;font-weight:700;flex-shrink:0}
+.vc-info{flex:1;min-width:0;overflow:hidden}
+.vc-name{font-weight:600;font-size:.76rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dark .vc-name{color:#fff}
+.vc-sub{font-size:.65rem;color:var(--t2)}.dark .vc-sub{color:rgba(255,255,255,.3)}
+.vc-val{font-weight:700;font-size:.78rem;white-space:nowrap;text-align:right}
+.vc-badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:.58rem;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+/* Card entrance anim */
+.app.anim .vc{animation:vUp .5s cubic-bezier(.16,1,.3,1) forwards}
+.app.anim .vc:nth-child(2){animation-delay:.1s}
+.app.anim .vc:nth-child(3){animation-delay:.2s}
+.app.anim .vc:nth-child(4){animation-delay:.3s}
+@keyframes vUp{to{opacity:1;transform:none}}
+/* Shimmer */
+.app-shimmer .app-grid::after{content:'';position:absolute;top:0;left:-100%;width:50%;height:100%;background:linear-gradient(90deg,transparent,rgba(var(--ar),.03),transparent);animation:shim 3s ease infinite;pointer-events:none}
+@keyframes shim{0%{left:-100%}100%{left:200%}}
+.app-grid{position:relative}
+
+/* ── Interactive tabs inside mockup ── */
+.app-tabs{display:flex;gap:0;border-bottom:1px solid var(--bd);padding:0 1rem}
+.dark .app-tabs{border-color:rgba(255,255,255,.05)}
+.app-tabs button{padding:.5rem .75rem;font-size:.68rem;font-weight:500;border:none;background:none;cursor:pointer;color:var(--t2);border-bottom:2px solid transparent;transition:all .2s}
+.dark .app-tabs button{color:rgba(255,255,255,.4)}
+.app-tabs button.on{color:var(--ac);font-weight:600;border-bottom-color:var(--ac)}
+.dark .app-tabs button.on{color:#64B5F6;border-bottom-color:#64B5F6}
+.app-view{display:none}.app-view.on{display:grid}
+
+/* ── Feature checklist ── */
+.fl{list-style:none;font-size:.88rem;margin:0}
+.fl li{padding:.4rem 0;display:flex;align-items:flex-start;gap:.6rem;color:var(--t2)}
+.fl .bi{color:var(--ac);flex-shrink:0;margin-top:3px}
+.feat-link{display:inline-flex;align-items:center;gap:.4rem;color:var(--ac);font-weight:600;font-size:.88rem;margin-top:.5rem;transition:gap .2s}
+.feat-link:hover{gap:.7rem;color:var(--ac2)}
 
 /* ── Page hero ── */
-.ph{text-align:center;padding:7rem 2rem 3rem;max-width:800px;margin:0 auto}
-.ph-l{font-size:.8rem;font-weight:600;color:var(--ac);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:.75rem}
+.ph{text-align:center;padding:7rem 2rem 2.5rem;max-width:800px;margin:0 auto}
+.ph-l{font-size:.78rem;font-weight:600;color:var(--ac);text-transform:uppercase;letter-spacing:2px;margin-bottom:.75rem}
 .ph h1{font-size:clamp(2.2rem,5vw,3.5rem);font-weight:700;letter-spacing:-.03em;line-height:1.08;margin-bottom:1.25rem}
-.ph p{font-size:clamp(1rem,1.8vw,1.15rem);color:var(--t2);line-height:1.65;font-weight:300;max-width:580px;margin:0 auto}
+.ph p{font-size:clamp(1rem,1.8vw,1.12rem);color:var(--t2);line-height:1.65;font-weight:300;max-width:560px;margin:0 auto}
 
-/* ── CRM-style mockup (matches actual app design) ── */
-.mock{background:var(--sf);border:1px solid var(--bd);border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.08),0 1px 3px rgba(0,0,0,.04)}
-.sc-d .mock{background:#1A1A1A;border-color:rgba(255,255,255,.06);box-shadow:0 20px 60px rgba(0,0,0,.4)}
-.mock-t{height:36px;background:var(--bg);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 14px;gap:8px}
-.sc-d .mock-t{background:#222;border-color:rgba(255,255,255,.05)}
-.mock-t .dot{width:8px;height:8px;border-radius:50%}
-.mock-t .dot:nth-child(1){background:#FF5F57}.mock-t .dot:nth-child(2){background:#FFBD2E}.mock-t .dot:nth-child(3){background:#28CA41}
-.mock-t span{flex:1;text-align:center;font-size:.68rem;color:var(--t2);font-weight:500}
-.mock-b{padding:1.25rem}
-
-/* ── CRM card inside mock (replicates .fc pattern) ── */
-.crm-card{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:0;overflow:hidden;margin-bottom:.65rem;transition:all .3s cubic-bezier(.16,1,.3,1);cursor:default}
-.sc-d .crm-card{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.06)}
-.crm-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.08)}
-.sc-d .crm-card:hover{box-shadow:0 6px 20px rgba(0,0,0,.3)}
-.crm-bar{height:3px}
-.crm-body{padding:.75rem .9rem;display:flex;align-items:center;gap:.7rem}
-.crm-av{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.75rem;font-weight:700;flex-shrink:0}
-.crm-info{flex:1;min-width:0}
-.crm-name{font-weight:600;font-size:.78rem;color:var(--t)}.sc-d .crm-name{color:#fff}
-.crm-sub{font-size:.68rem;color:var(--t2)}.sc-d .crm-sub{color:rgba(255,255,255,.35)}
-.crm-val{font-weight:700;font-size:.82rem;white-space:nowrap;text-align:right}
-.crm-badge{display:inline-block;padding:1px 7px;border-radius:4px;font-size:.6rem;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
-
-/* Card entrance animations */
-.crm-card{opacity:0;transform:translateY(16px)}
-.mock.anim .crm-card{animation:cardUp .5s cubic-bezier(.16,1,.3,1) forwards}
-.mock.anim .crm-card:nth-child(2){animation-delay:.12s}
-.mock.anim .crm-card:nth-child(3){animation-delay:.24s}
-.mock.anim .crm-card:nth-child(4){animation-delay:.36s}
-@keyframes cardUp{to{opacity:1;transform:none}}
-
-/* Shimmer effect on mock loading */
-.mock-shimmer{position:relative;overflow:hidden}
-.mock-shimmer::after{content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.04),transparent);animation:shimPass 2.5s ease infinite}
-@keyframes shimPass{0%{left:-100%}100%{left:200%}}
-
-/* ── Feature rows ── */
-.fr{display:flex;align-items:center;gap:4rem;margin-bottom:5rem}
-.fr:nth-child(even){flex-direction:row-reverse}
-.fr-v{flex:1.2;min-width:0}
-.fr-t{flex:1;min-width:0}
-.fr-t .lb{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--ac);margin-bottom:.5rem}
-.sc-d .fr-t .lb{color:#64B5F6}
-.fr-t h3{font-size:clamp(1.3rem,2.5vw,1.8rem);font-weight:700;letter-spacing:-.02em;margin-bottom:.75rem}
-.sc-d .fr-t h3{color:#fff}
-.fr-t p{color:var(--t2);font-size:.95rem;line-height:1.7;font-weight:300;margin-bottom:1.25rem}
-.sc-d .fr-t p{color:rgba(255,255,255,.45)}
-.fl{list-style:none;font-size:.88rem}
-.fl li{padding:.4rem 0;display:flex;align-items:flex-start;gap:.6rem;color:var(--t2)}
-.sc-d .fl li{color:rgba(255,255,255,.55)}
-.fl .bi{color:var(--ac);flex-shrink:0;margin-top:3px}
-
-/* ── CTA ── */
+/* ── CTA + Footer ── */
 .cta-b{text-align:center;padding:5rem 2rem;background:var(--bg);border-top:1px solid var(--bd)}
-.cta-b h2{font-size:clamp(1.6rem,3vw,2.2rem);font-weight:700;margin-bottom:.75rem}
-.cta-b p{color:var(--t2);max-width:450px;margin:0 auto 1.5rem;font-size:1rem;font-weight:300}
-
-/* ── Footer ── */
-footer{text-align:center;padding:2.5rem 2rem;font-size:.78rem;color:var(--t2);border-top:1px solid var(--bd)}
-footer a{color:var(--t2)}footer a:hover{color:var(--t)}
+.cta-b h2{font-size:clamp(1.5rem,3vw,2rem);font-weight:700;margin-bottom:.75rem}
+.cta-b p{color:var(--t2);max-width:420px;margin:0 auto 1.5rem;font-size:.95rem;font-weight:300}
+footer{text-align:center;padding:2rem;font-size:.78rem;color:var(--t2);border-top:1px solid var(--bd)}
+footer a{color:var(--t2);margin:0 .75rem}footer a:hover{color:var(--t)}
 
 /* ── Reveal ── */
 .rv{opacity:0;transform:translateY(40px);transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1)}
 .rv.v{opacity:1;transform:none}
 
 /* ── Mobile ── */
-@media(max-width:768px){
-  .nv{padding:.5rem 1rem}.ms-i{padding:0 1rem}
-  .nr .hm{display:none}
-  .ph{padding:5.5rem 1.25rem 2rem}
-  .sc{padding:4rem 1.25rem}
-  .fr,.fr:nth-child(even){flex-direction:column;gap:2rem;margin-bottom:3.5rem}
+@media(max-width:900px){
+  .n-links{display:none}.n-logo{position:static}.n-cta{position:static}.n-top{justify-content:space-between}
+  .feat{grid-template-columns:1fr;min-height:auto}
+  .feat-txt{padding:2.5rem 1.5rem}
+  .feat-vis{padding:1.5rem;min-height:350px}
+  .sc{padding:3.5rem 0}
+  .ph{padding:5rem 1.5rem 2rem}
 }
 {% block extra_css %}{% endblock %}
 </style>
 </head>
 <body>
 
+<!-- Nav: centered links, logo left, CTA right -->
 <nav>
-  <div class="nv">
-    <a href="/inicio"><img src="/static/img/evore-logo-blue.svg" alt="Evore" class="nl"></a>
-    <div class="nr">
-      <a href="/inicio#precios" class="hm">Precios</a>
-      <a href="/login" style="color:var(--t)">Iniciar sesión</a>
-      <a href="/login" class="ba" style="padding:.45rem 1.2rem;font-size:.82rem">Empezar gratis</a>
+  <div class="n-top">
+    <a href="/inicio" class="n-logo"><img src="/static/img/evore-logo-blue.svg" alt="Evore" style="height:20px"></a>
+    <div class="n-links">
+      <a href="/modulo/ventas">Ventas</a>
+      <a href="/modulo/produccion">Producción</a>
+      <a href="/modulo/inventario">Inventario</a>
+      <a href="/modulo/contabilidad">Contabilidad</a>
+      <a href="/modulo/nomina">Nómina</a>
+      <a href="/modulo/compras">Compras</a>
+      <a href="/modulo/marketplace">Marketplace</a>
+      <a href="/inicio#precios">Precios</a>
     </div>
-  </div>
-  <div class="ms">
-    <div class="ms-i">
-      <a href="/inicio" {% if not active_module %}class="on"{% endif %}>Inicio</a>
-      <a href="/modulo/ventas" {% if active_module=='ventas' %}class="on"{% endif %}>Ventas</a>
-      <a href="/modulo/produccion" {% if active_module=='produccion' %}class="on"{% endif %}>Producción</a>
-      <a href="/modulo/inventario" {% if active_module=='inventario' %}class="on"{% endif %}>Inventario</a>
-      <a href="/modulo/contabilidad" {% if active_module=='contabilidad' %}class="on"{% endif %}>Contabilidad</a>
-      <a href="/modulo/nomina" {% if active_module=='nomina' %}class="on"{% endif %}>Nómina</a>
-      <a href="/modulo/compras" {% if active_module=='compras' %}class="on"{% endif %}>Compras</a>
-      <a href="/modulo/marketplace" {% if active_module=='marketplace' %}class="on"{% endif %}>Marketplace</a>
-      <a href="/modulo/chat" {% if active_module=='chat' %}class="on"{% endif %}>Chat</a>
-      <a href="/modulo/legal" {% if active_module=='legal' %}class="on"{% endif %}>Legal</a>
+    <div class="n-cta">
+      <a href="/login" style="font-size:.82rem;color:var(--t)">Iniciar sesión</a>
+      <a href="/login" class="ba" style="padding:.4rem 1.1rem;font-size:.8rem">Empezar</a>
     </div>
   </div>
 </nav>
@@ -160,30 +174,31 @@ footer a{color:var(--t2)}footer a:hover{color:var(--t)}
 
 <section class="cta-b">
   <h2>Empieza gratis hoy.</h2>
-  <p>Sin tarjeta de crédito. Sin compromisos. Tu empresa merece un sistema que crezca contigo.</p>
+  <p>Sin tarjeta. Sin compromisos. Tu empresa crece contigo.</p>
   <a href="/login" class="ba"><i class="bi bi-arrow-right"></i>Crear cuenta gratis</a>
 </section>
 
 <footer>
-  <div style="display:flex;gap:2rem;justify-content:center;flex-wrap:wrap;margin-bottom:1rem">
+  <div style="margin-bottom:.75rem">
     <a href="/inicio">Inicio</a><a href="/inicio#precios">Precios</a><a href="/login">Iniciar sesión</a>
   </div>
-  Evore &copy; 2026
+  Evore &copy; 2026 — Hecho en Colombia
 </footer>
 
 <script>
-// Reveal on scroll
 var ob=new IntersectionObserver(function(e){e.forEach(function(x){
-  if(x.isIntersecting){
-    x.target.classList.add('v');
-    // Trigger card animations in mocks
-    x.target.querySelectorAll('.mock').forEach(function(m){m.classList.add('anim')});
-    ob.unobserve(x.target);
-  }
-})},{threshold:.1,rootMargin:'0px 0px -50px 0px'});
+  if(x.isIntersecting){x.target.classList.add('v');x.target.querySelectorAll('.app').forEach(function(a){a.classList.add('anim')});ob.unobserve(x.target)}
+})},{threshold:.15,rootMargin:'0px 0px -40px 0px'});
 document.querySelectorAll('.rv').forEach(function(e){ob.observe(e)});
-// Smooth scroll
 document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();var t=document.querySelector(this.getAttribute('href'));if(t)t.scrollIntoView({behavior:'smooth',block:'start'})})});
+// Tab switcher for interactive mockups
+function switchTab(group,tab){
+  document.querySelectorAll('[data-group="'+group+'"] .app-tabs button').forEach(function(b){b.classList.remove('on')});
+  document.querySelectorAll('[data-group="'+group+'"] .app-view').forEach(function(v){v.classList.remove('on')});
+  event.target.classList.add('on');
+  var view=document.getElementById(group+'-'+tab);
+  if(view){view.classList.add('on');view.querySelectorAll('.vc').forEach(function(c,i){c.style.opacity='0';c.style.transform='translateY(16px)';setTimeout(function(){c.style.transition='all .4s cubic-bezier(.16,1,.3,1)';c.style.opacity='1';c.style.transform='none'},i*80)})}
+}
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 {% block extra_js %}{% endblock %}
