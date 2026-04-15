@@ -196,6 +196,13 @@ def register(app):
         if not _requiere_proyecto_access():
             flash('Acceso denegado.', 'danger'); return redirect(url_for('dashboard'))
         p = Proyecto.query.get_or_404(pid)
+        nuevo_ppto = float(request.form.get('presupuesto') or 0)
+        # Validate budget doesn't exceed project total
+        asignado_fases = sum(f.presupuesto or 0 for f in p.fases)
+        disponible = (p.presupuesto or 0) - asignado_fases
+        if nuevo_ppto > disponible and p.presupuesto > 0:
+            flash(f'Presupuesto de fase (${nuevo_ppto:,.0f}) excede lo disponible (${disponible:,.0f} de ${p.presupuesto:,.0f}).', 'danger')
+            return redirect(url_for('proyecto_ver', id=pid, vista='fases'))
         max_orden = db.session.query(func.max(ProyectoFase.orden)).filter_by(proyecto_id=pid).scalar() or 0
         fi = request.form.get('fecha_inicio')
         ff = request.form.get('fecha_fin')
@@ -206,7 +213,7 @@ def register(app):
             color=request.form.get('color', '#6B7280'),
             fecha_inicio=datetime.strptime(fi, '%Y-%m-%d').date() if fi else None,
             fecha_fin=datetime.strptime(ff, '%Y-%m-%d').date() if ff else None,
-            presupuesto=float(request.form.get('presupuesto') or 0),
+            presupuesto=nuevo_ppto,
             orden=max_orden + 1
         )
         db.session.add(f)
@@ -226,6 +233,14 @@ def register(app):
         if not _requiere_proyecto_access():
             flash('Acceso denegado.', 'danger'); return redirect(url_for('dashboard'))
         f = ProyectoFase.query.get_or_404(fid)
+        p = Proyecto.query.get_or_404(f.proyecto_id)
+        nuevo_ppto = float(request.form.get('presupuesto') or 0)
+        # Validate budget: exclude current phase from sum
+        asignado_otras = sum(fa.presupuesto or 0 for fa in p.fases if fa.id != fid)
+        disponible = (p.presupuesto or 0) - asignado_otras
+        if nuevo_ppto > disponible and p.presupuesto > 0:
+            flash(f'Presupuesto (${nuevo_ppto:,.0f}) excede lo disponible (${disponible:,.0f}).', 'danger')
+            return redirect(url_for('proyecto_ver', id=p.id, vista='fases'))
         f.nombre = request.form.get('nombre', f.nombre)
         f.descripcion = request.form.get('descripcion', '')
         f.estado = request.form.get('estado', f.estado)
@@ -234,7 +249,7 @@ def register(app):
         ff = request.form.get('fecha_fin')
         f.fecha_inicio = datetime.strptime(fi, '%Y-%m-%d').date() if fi else f.fecha_inicio
         f.fecha_fin = datetime.strptime(ff, '%Y-%m-%d').date() if ff else f.fecha_fin
-        f.presupuesto = float(request.form.get('presupuesto') or 0)
+        f.presupuesto = nuevo_ppto
         # Update members
         ProyectoMiembro.query.filter_by(fase_id=fid).delete()
         user_ids = request.form.getlist('miembros[]')
@@ -797,3 +812,45 @@ def register(app):
             pass
         db.session.commit()
         return redirect(url_for('proyecto_ver', id=sp.proyecto_id, vista='fases'))
+
+    # ══════════════════════════════════════════════════════════════
+    # CAMBIO DE ASIGNACION DE PRESUPUESTO
+    # ══════════════════════════════════════════════════════════════
+
+    @app.route('/proyectos/<int:pid>/reasignar-presupuesto', methods=['POST'])
+    @login_required
+    def proyecto_reasignar_presupuesto(pid):
+        if not _requiere_proyecto_access():
+            flash('Acceso denegado.', 'danger'); return redirect(url_for('dashboard'))
+        p = Proyecto.query.get_or_404(pid)
+        nuevo_total = float(request.form.get('nuevo_presupuesto') or 0)
+        motivo = request.form.get('motivo', '').strip()
+        if nuevo_total <= 0:
+            flash('El presupuesto debe ser mayor a cero.', 'danger')
+            return redirect(url_for('proyecto_ver', id=pid, vista='fases'))
+        if not motivo:
+            flash('Debes indicar el motivo del cambio.', 'danger')
+            return redirect(url_for('proyecto_ver', id=pid, vista='fases'))
+        anterior = p.presupuesto
+        p.presupuesto = nuevo_total
+        _log('editar', 'proyecto', p.id,
+             f'Reasignacion presupuesto: ${anterior:,.0f} → ${nuevo_total:,.0f}. Motivo: {motivo}')
+        # Notify finance
+        cid = getattr(g, 'company_id', None)
+        try:
+            df = User.query.filter_by(company_id=cid, activo=True).filter(
+                User.rol.in_(['director_financiero', 'admin'])
+            ).first()
+            if df and df.id != current_user.id:
+                db.session.add(Notificacion(
+                    company_id=cid, user_id=df.id, tipo='proyecto',
+                    titulo=f'Cambio presupuesto: {p.codigo}',
+                    mensaje=f'{current_user.nombre} reasigno presupuesto de {p.nombre}: ${anterior:,.0f} → ${nuevo_total:,.0f}. Motivo: {motivo}',
+                    link=url_for('proyecto_ver', id=p.id),
+                    creado_en=datetime.utcnow()
+                ))
+        except Exception:
+            pass
+        db.session.commit()
+        flash(f'Presupuesto actualizado: ${anterior:,.0f} → ${nuevo_total:,.0f}', 'success')
+        return redirect(url_for('proyecto_ver', id=pid, vista='fases'))
