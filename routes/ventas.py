@@ -1355,6 +1355,7 @@ def register(app):
                 fecha_entrega_est=fecha_ent_est,
                 condiciones_pago=request.form.get('condiciones_pago',''),
                 notas=request.form.get('notas',''),
+                iva_incluido=iva_incluido,
                 estado='borrador', creado_por=current_user.id)
             db.session.add(cot); db.session.flush()
             for it in items_data:
@@ -1585,6 +1586,7 @@ def register(app):
             obj.fecha_entrega_est = fecha_ent_est
             obj.condiciones_pago = request.form.get('condiciones_pago','')
             obj.notas = request.form.get('notas','')
+            obj.iva_incluido = iva_incluido
             db.session.commit()
             flash('Cotización actualizada.','success')
             return redirect(url_for('cotizacion_ver', id=obj.id))

@@ -57,7 +57,7 @@
       <label class="form-label fw-semibold mb-0">Ítems / Servicios</label>
       <div class="form-check form-switch">
         <input type="checkbox" class="form-check-input" name="iva_incluido" id="ivaIncluidoCheck" value="1"
-               onchange="calcTotal()" {% if obj and obj.notas and 'IVA incluido' in (obj.notas or '') %}checked{% endif %}>
+               onchange="calcTotal()" {% if not obj %}checked{% elif obj and obj.iva_incluido %}checked{% endif %}>
         <label class="form-check-label fw-semibold" for="ivaIncluidoCheck">IVA incluido en precio</label>
       </div>
     </div>
