@@ -528,10 +528,16 @@ function toggleChatPanel(){
   _chatOpen = !_chatOpen;
   p.style.display = _chatOpen ? 'flex' : 'none';
   if(_chatOpen){
-    // Restore saved position
+    // Restore saved position and size
     var pos = JSON.parse(localStorage.getItem('evore_chat_pos') || 'null');
     if(pos){p.style.top=pos.top;p.style.left=pos.left;p.style.right='auto';p.style.bottom='auto'}
+    var size = JSON.parse(localStorage.getItem('evore_chat_size') || 'null');
+    if(size){p.style.width=size.w;p.style.height=size.h}
     chatLoadRooms();
+    // Save size on resize
+    new ResizeObserver(function(){
+      localStorage.setItem('evore_chat_size',JSON.stringify({w:p.style.width||p.offsetWidth+'px',h:p.style.height||p.offsetHeight+'px'}));
+    }).observe(p);
   }
 }
 
@@ -605,24 +611,20 @@ function chatLoadRooms(){
 }
 
 function chatRenderTabs(){
-  var tabs = document.getElementById('chatRoomTabs');
-  if(!_chatRooms.length){ tabs.innerHTML = ''; return; }
+  var list = document.getElementById('chatRoomList');
+  if(!list) return;
+  if(!_chatRooms.length){ list.innerHTML = '<div style="padding:1rem;text-align:center;color:var(--text2);font-size:.75rem">Sin conversaciones</div>'; return; }
   var html = '';
-  var s = getComputedStyle(document.documentElement);
-  var ac = s.getPropertyValue('--ac').trim();
-  var t2 = s.getPropertyValue('--text2').trim();
-  var hb = s.getPropertyValue('--sb-hover').trim();
   _chatRooms.forEach(function(r){
     var active = r.id === _chatRoomId;
     var unread = _chatUnreadPerRoom[String(r.id)] || 0;
-    html += '<div style="display:flex;align-items:center;border-bottom:2px solid '+(active?ac:'transparent')+';flex-shrink:0;transition:all .12s;background:'+(active?hb:'transparent')+';position:relative">'
-      +'<button onclick="chatOpenRoom('+r.id+')" style="padding:7px 10px 7px 12px;font-size:.72rem;font-weight:'+(active?'700':'400')+';color:'+(active?ac:t2)+';background:transparent;border:none;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:4px">'+r.name
-      +(unread && !active?'<span style="width:7px;height:7px;border-radius:50%;background:var(--red);flex-shrink:0"></span>':'')
-      +'</button>'
-      +'<button onclick="event.stopPropagation();chatCloseTab('+r.id+')" style="padding:2px 6px 2px 0;font-size:.6rem;color:'+t2+';background:none;border:none;cursor:pointer;line-height:1" title="Cerrar">&times;</button>'
+    html += '<div onclick="chatOpenRoom('+r.id+')" style="padding:.6rem .7rem;cursor:pointer;border-left:3px solid '+(active?'var(--ac)':'transparent')+';background:'+(active?'var(--sb-hover)':'transparent')+';transition:all .12s;display:flex;align-items:center;gap:.5rem;border-bottom:1px solid var(--border)">'
+      +'<div style="width:28px;height:28px;border-radius:8px;background:'+(active?'var(--ac)':'var(--surface2)')+';display:flex;align-items:center;justify-content:center;color:'+(active?'#fff':'var(--text2)')+';font-size:.65rem;font-weight:700;flex-shrink:0">'+r.name.charAt(0).toUpperCase()+'</div>'
+      +'<div style="flex:1;min-width:0;overflow:hidden"><div style="font-size:.72rem;font-weight:'+(active?'600':'400')+';color:'+(active?'var(--text)':'var(--text2)')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+r.name+'</div></div>'
+      +(unread && !active?'<span style="min-width:16px;height:16px;border-radius:8px;background:var(--red);color:#fff;font-size:.55rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+unread+'</span>':'')
       +'</div>';
   });
-  tabs.innerHTML = html;
+  list.innerHTML = html;
 }
 
 function chatCloseTab(roomId){
@@ -793,7 +795,20 @@ function pollChatUnread(){
     _lastChatCount=d.count;
   }).catch(function(){});
 }
+function playChatSound(){
+  try{
+    var ctx=new (window.AudioContext||window.webkitAudioContext)();
+    var osc=ctx.createOscillator();var gain=ctx.createGain();
+    osc.connect(gain);gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(880,ctx.currentTime);
+    osc.frequency.setValueAtTime(1100,ctx.currentTime+.08);
+    gain.gain.setValueAtTime(.15,ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.3);
+    osc.start(ctx.currentTime);osc.stop(ctx.currentTime+.3);
+  }catch(e){}
+}
 function showChatNotif(msg){
+  playChatSound();
   var existing=document.getElementById('chatNotifToast');
   if(existing) existing.remove();
   var div=document.createElement('div');
