@@ -727,12 +727,20 @@ def register(app):
         if plan not in ('starter', 'pro'):
             flash('Plan no valido.', 'danger')
             return redirect(url_for('planes'))
-        if plan == 'starter':
-            usuarios_extra = 0
 
-        # Calculate amount
+        # ── Starter is FREE — activate directly without payment ──
+        if plan == 'starter':
+            company.plan = 'starter'
+            company.max_users = max(company.max_users, 3)
+            db.session.commit()
+            _send_myevore_message(my_company_id,
+                f'Tu plan Starter ha sido activado. CRM completo gratis con hasta 3 usuarios. Bienvenido a Evore!')
+            flash('Plan Starter activado. CRM completo gratis con hasta 3 usuarios.', 'success')
+            return redirect(url_for('planes'))
+
+        # ── Pro: base 39900 for 4 users, extra = (usuarios - 4) * 9900 ──
         base = 39900
-        extra = usuarios_extra * 5900 if plan == 'pro' else 0
+        extra = usuarios_extra * 9900
         mensual = base + extra
         if periodo == 'anual':
             monto_cobrado = round(mensual * 12 * 0.9)  # 10% discount
@@ -778,12 +786,12 @@ def register(app):
 
         # Send chat message from MyEvore
         _send_myevore_message(my_company_id,
-            f'Has solicitado el plan {plan.capitalize()} ({periodo}). '
-            f'Monto: ${monto_cobrado:,.0f} COP. '
+            f'Has solicitado el plan Profesional ({periodo}). '
+            f'Monto: ${monto_cobrado:,.0f} COP ({4 + usuarios_extra} usuarios). '
             f'Realiza la transferencia y envia el comprobante por este chat. '
             f'Tu plan se activara cuando finanzas confirme el pago.')
 
-        flash(f'Solicitud de plan {plan.capitalize()} creada. Realiza la transferencia y envia el comprobante por el chat con Evore.', 'success')
+        flash(f'Solicitud de plan Profesional creada. Realiza la transferencia y envia el comprobante por el chat con Evore.', 'success')
         return redirect(url_for('planes'))
 
     def _get_or_create_myevore_user():

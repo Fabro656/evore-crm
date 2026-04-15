@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editar' if obj else 'Nuevo' }} Banner{% endblock %}
+{% block page_title %}{{ 'Editar' if obj else 'Nuevo' }} Banner{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('admin_banners') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb" style="margin-bottom:.75rem">
+  <ol class="breadcrumb" style="font-size:.78rem;margin:0">
+    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}" style="color:var(--ac);text-decoration:none">Home</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('admin_banners') }}" style="color:var(--ac);text-decoration:none">Banners</a></li>
+    <li class="breadcrumb-item active">{{ 'Editar' if obj else 'Nuevo' }}</li>
+  </ol>
+</nav>
+{% endblock %}
+{% block content %}
+<div class="fc" style="max-width:var(--content-md);width:100%">
+<form method="POST" enctype="multipart/form-data" novalidate>
+  <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+  <div class="row g-3">
+    <div class="col-12"><label class="form-label">Titulo <span class="req">*</span></label>
+      <input type="text" name="titulo" class="form-control" value="{{ obj.titulo if obj else '' }}" required placeholder="Ej: Conoce Evore CRM"></div>
+    <div class="col-12"><label class="form-label">Descripcion</label>
+      <textarea name="descripcion" class="form-control" rows="2" placeholder="Breve descripcion del banner">{{ obj.descripcion if obj else '' }}</textarea></div>
+    <div class="col-12 col-md-6"><label class="form-label">Link URL</label>
+      <input type="text" name="link_url" class="form-control" value="{{ obj.link_url if obj else '' }}" placeholder="/inicio o https://..."></div>
+    <div class="col-12 col-md-6"><label class="form-label">Industria (vacio = todas)</label>
+      <input type="text" name="industria" class="form-control" value="{{ obj.industria if obj else '' }}" placeholder="Ej: Textil y confeccion"></div>
+    <div class="col-12 col-md-4"><label class="form-label">Tipo</label>
+      <select name="tipo" class="form-select">
+        <option value="evore" {% if obj and obj.tipo=='evore' %}selected{% endif %}>Evore</option>
+        <option value="tercero" {% if obj and obj.tipo=='tercero' %}selected{% endif %}>Tercero</option>
+      </select></div>
+    <div class="col-12 col-md-4"><label class="form-label">Orden</label>
+      <input type="number" name="orden" class="form-control" value="{{ obj.orden if obj else 0 }}" min="0"></div>
+    <div class="col-12 col-md-4"><label class="form-label">Estado</label>
+      <div class="form-check form-switch mt-2">
+        <input class="form-check-input" type="checkbox" name="activo" {% if not obj or obj.activo %}checked{% endif %}>
+        <label class="form-check-label">Activo</label>
+      </div></div>
+    <div class="col-12"><label class="form-label">Imagen</label>
+      <input type="file" name="imagen" class="form-control" accept="image/png,image/jpeg,image/webp">
+      <div class="form-text">PNG, JPG o WebP. Tamano recomendado: 480x120px.</div>
+      {% if obj and obj.imagen_url %}
+      <div class="mt-2"><img src="/{{ obj.imagen_url }}" style="max-height:80px;border-radius:8px"></div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="d-flex gap-2 mt-4">
+    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear Banner' }}</button>
+    <a href="{{ url_for('admin_banners') }}" class="btn btn-outline-secondary">Cancelar</a>
+  </div>
+</form>
+</div>
+{% endblock %}

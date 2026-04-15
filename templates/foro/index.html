@@ -49,6 +49,38 @@
     </form>
   </div>
 
+  <!-- Banners -->
+  {% if banners is defined and banners %}
+  <div class="mb-3" style="overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:thin;padding-bottom:4px">
+    <div class="d-inline-flex gap-3" style="min-width:100%">
+      {% for banner in banners %}
+      <a href="{{ banner.link_url or '#' }}" class="text-decoration-none" style="display:inline-block;min-width:320px;max-width:480px;flex-shrink:0">
+        <div class="fc" style="padding:0;overflow:hidden;position:relative;border:1px solid var(--border);border-radius:16px;transition:transform .15s" onmouseenter="this.style.transform='translateY(-2px)'" onmouseleave="this.style.transform=''">
+          <div style="position:absolute;top:8px;right:8px;z-index:2">
+            <span class="badge" style="background:rgba(0,0,0,.5);color:#fff;font-size:.65rem;backdrop-filter:blur(4px)">Publicidad</span>
+          </div>
+          {% if banner.imagen_url %}
+          <div style="height:120px;overflow:hidden;background:var(--surface2)">
+            <img src="/{{ banner.imagen_url }}" alt="{{ banner.titulo }}" style="width:100%;height:100%;object-fit:cover">
+          </div>
+          {% else %}
+          <div style="height:80px;overflow:hidden;background:linear-gradient(135deg,var(--surface2),rgba(1,118,211,.08));display:flex;align-items:center;justify-content:center">
+            <i class="bi bi-megaphone" style="font-size:1.8rem;color:var(--ac);opacity:.5"></i>
+          </div>
+          {% endif %}
+          <div style="padding:.85rem 1rem;white-space:normal">
+            <div class="fw-semibold" style="font-size:.9rem;color:var(--text1)">{{ banner.titulo }}</div>
+            {% if banner.descripcion %}
+            <div class="text-muted" style="font-size:.78rem;margin-top:.2rem;line-height:1.4">{{ banner.descripcion[:120] }}</div>
+            {% endif %}
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Results -->
   {% if items %}
   <div class="row g-3">

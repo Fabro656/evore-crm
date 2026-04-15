@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date as date_type
 import json, secrets, os, logging
 
-__all__ = ['Company', 'UserCompany', 'ChatRoom', 'ChatParticipant', 'ChatMessage', 'User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'MovimientoBancario', 'NotaContable', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'MovimientoInventario', 'Notificacion', 'Empleado', 'HoraExtra', 'Comision', 'Incapacidad', 'VacacionTomada', 'Requisicion', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'HistorialPrecio', 'HistorialCotizacion', 'CompanyRelationship', 'Suscripcion', 'ForoPublicacion', 'ForoValoracion', 'ForoApelacion', 'load_user', '_migrate', 'init_db']
+__all__ = ['Company', 'UserCompany', 'ChatRoom', 'ChatParticipant', 'ChatMessage', 'User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'MovimientoBancario', 'NotaContable', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'MovimientoInventario', 'Notificacion', 'Empleado', 'HoraExtra', 'Comision', 'Incapacidad', 'VacacionTomada', 'Requisicion', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'HistorialPrecio', 'HistorialCotizacion', 'CompanyRelationship', 'Suscripcion', 'ForoPublicacion', 'ForoValoracion', 'ForoApelacion', 'ForoBanner', 'load_user', '_migrate', 'init_db']
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -1327,6 +1327,22 @@ class ForoApelacion(db.Model):
     admin_resolver  = db.relationship('User', foreign_keys=[resuelto_por])
 
 
+class ForoBanner(db.Model):
+    """Banner publicitario en el marketplace."""
+    __tablename__ = 'foro_banners'
+    id              = db.Column(db.Integer, primary_key=True)
+    titulo          = db.Column(db.String(200), nullable=False)
+    descripcion     = db.Column(db.Text)
+    imagen_url      = db.Column(db.String(500))
+    link_url        = db.Column(db.String(500))
+    industria       = db.Column(db.String(100))  # NULL = all industries
+    tipo            = db.Column(db.String(20), default='evore')  # evore, tercero
+    activo          = db.Column(db.Boolean, default=True)
+    orden           = db.Column(db.Integer, default=0)
+    creado_por      = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 class Suscripcion(db.Model):
     """Suscripcion mensual/anual a un plan de Evore."""
     __tablename__ = 'suscripciones'
@@ -1958,6 +1974,9 @@ def _migrate(conn):
         ("CREATE TABLE IF NOT EXISTS foro_apelaciones (id INTEGER PRIMARY KEY AUTOINCREMENT, valoracion_id INTEGER NOT NULL REFERENCES foro_valoraciones(id), solicitado_por INTEGER NOT NULL REFERENCES users(id), motivo TEXT NOT NULL, estado VARCHAR(30) DEFAULT 'pendiente', notas_admin TEXT, resuelto_por INTEGER REFERENCES users(id), resuelto_en TIMESTAMP, creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"),
         ("ALTER TABLE foro_publicaciones ADD COLUMN IF NOT EXISTS modalidad VARCHAR(10) DEFAULT 'vendo'"),
         ("ALTER TABLE foro_publicaciones ADD COLUMN modalidad VARCHAR(10) DEFAULT 'vendo'"),
+        # ── Foro Banners (marketplace ads) ──
+        ("CREATE TABLE IF NOT EXISTS foro_banners (id SERIAL PRIMARY KEY, titulo VARCHAR(200) NOT NULL, descripcion TEXT, imagen_url VARCHAR(500), link_url VARCHAR(500), industria VARCHAR(100), tipo VARCHAR(20) DEFAULT 'evore', activo BOOLEAN DEFAULT TRUE, orden INTEGER DEFAULT 0, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
+        ("CREATE TABLE IF NOT EXISTS foro_banners (id INTEGER PRIMARY KEY AUTOINCREMENT, titulo VARCHAR(200) NOT NULL, descripcion TEXT, imagen_url VARCHAR(500), link_url VARCHAR(500), industria VARCHAR(100), tipo VARCHAR(20) DEFAULT 'evore', activo BOOLEAN DEFAULT TRUE, orden INTEGER DEFAULT 0, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"),
     ]
     # Execute ALL migrations individually with rollback on each failure
     # This prevents one failed migration from aborting the entire transaction

@@ -88,11 +88,19 @@ def register(app):
             ).group_by(CompanyRelationship.company_to_id).all():
                 ventas_count[cid] = cnt
 
+        # ── Marketplace banners ──
+        banner_q = ForoBanner.query.filter_by(activo=True)
+        if industria_f:
+            banner_q = banner_q.filter(db.or_(ForoBanner.industria == industria_f, ForoBanner.industria == None))
+        else:
+            banner_q = banner_q  # show all active banners
+        banners = banner_q.order_by(ForoBanner.orden, ForoBanner.creado_en.desc()).all()
+
         return render_template('foro/index.html',
             items=pagination.items, pagination=pagination,
             buscar=buscar, industria_f=industria_f, tipo_f=tipo_f, modalidad_f=modalidad_f, orden=orden,
             ratings=ratings, ventas_count=ventas_count,
-            industrias=INDUSTRIAS)
+            industrias=INDUSTRIAS, banners=banners)
 
     # ── Nueva publicacion (/foro/nueva)
     @app.route('/foro/nueva', methods=['GET', 'POST'])

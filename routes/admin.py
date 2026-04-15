@@ -406,11 +406,11 @@ def register(app):
             if current_count >= emp.max_users and emp.plan != 'pro':
                 flash(f'Limite alcanzado: {emp.nombre} tiene {current_count}/{emp.max_users} usuarios.', 'danger')
                 return redirect(url_for('admin_empresas'))
-            # Auto-upgrade starter→pro when adding 4th user
+            # Auto-upgrade starter→pro when adding 4th user (starter max = 3)
             if emp.plan == 'starter' and current_count >= 3:
                 emp.plan = 'pro'
                 emp.max_users = max(emp.max_users, current_count + 1)
-                flash(f'{emp.nombre} paso automaticamente a plan Profesional (+$5.900/mes por usuario extra).', 'info')
+                flash(f'{emp.nombre} paso automaticamente a plan Profesional. Base $39.900/mes (4 usuarios) + $9.900/mes por cada usuario extra.', 'info')
             email = request.form.get('email', '').strip()
             nombre = request.form.get('nombre', '').strip()
             rol = request.form.get('rol', 'usuario')
@@ -1189,4 +1189,125 @@ def register(app):
             flash(f'Error durante el reset: {e}', 'danger')
 
         return redirect(url_for('dashboard'))
+
+    # ══════════════════════════════════════════════════════════════
+    # MARKETPLACE BANNERS (Evore admin only)
+    # ══════════════════════════════════════════════════════════════
+
+    @app.route('/admin/banners')
+    @login_required
+    def admin_banners():
+        from flask import g
+        company = db.session.get(Company, g.company_id) if g.company_id else None
+        if not company or not company.es_principal or current_user.rol != 'admin':
+            flash('Sin permisos.', 'danger')
+            return redirect(url_for('dashboard'))
+        banners = ForoBanner.query.order_by(ForoBanner.orden, ForoBanner.creado_en.desc()).all()
+        return render_template('admin/banners.html', banners=banners)
+
+    @app.route('/admin/banners/nuevo', methods=['GET', 'POST'])
+    @login_required
+    def admin_banner_nuevo():
+        from flask import g
+        from werkzeug.utils import secure_filename
+        company = db.session.get(Company, g.company_id) if g.company_id else None
+        if not company or not company.es_principal or current_user.rol != 'admin':
+            flash('Sin permisos.', 'danger')
+            return redirect(url_for('dashboard'))
+        if request.method == 'POST':
+            titulo = request.form.get('titulo', '').strip()
+            if not titulo:
+                flash('El titulo es obligatorio.', 'danger')
+                return render_template('admin/banner_form.html', obj=None)
+            banner = ForoBanner(
+                titulo=titulo,
+                descripcion=request.form.get('descripcion', '').strip(),
+                link_url=request.form.get('link_url', '').strip(),
+                industria=request.form.get('industria', '').strip() or None,
+                tipo=request.form.get('tipo', 'evore'),
+                activo='activo' in request.form,
+                orden=int(request.form.get('orden', 0) or 0),
+                creado_por=current_user.id)
+            # Handle image upload
+            img = request.files.get('imagen')
+            if img and img.filename:
+                fname = secure_filename(img.filename)
+                upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'banners')
+                os.makedirs(upload_dir, exist_ok=True)
+                path = os.path.join(upload_dir, fname)
+                img.save(path)
+                banner.imagen_url = f'static/uploads/banners/{fname}'
+            db.session.add(banner)
+            db.session.commit()
+            flash('Banner creado.', 'success')
+            return redirect(url_for('admin_banners'))
+        return render_template('admin/banner_form.html', obj=None)
+
+    @app.route('/admin/banners/<int:id>/editar', methods=['GET', 'POST'])
+    @login_required
+    def admin_banner_editar(id):
+        from flask import g
+        from werkzeug.utils import secure_filename
+        company = db.session.get(Company, g.company_id) if g.company_id else None
+        if not company or not company.es_principal or current_user.rol != 'admin':
+            flash('Sin permisos.', 'danger')
+            return redirect(url_for('dashboard'))
+        banner = ForoBanner.query.get_or_404(id)
+        if request.method == 'POST':
+            banner.titulo = request.form.get('titulo', '').strip()
+            banner.descripcion = request.form.get('descripcion', '').strip()
+            banner.link_url = request.form.get('link_url', '').strip()
+            banner.industria = request.form.get('industria', '').strip() or None
+            banner.tipo = request.form.get('tipo', 'evore')
+            banner.activo = 'activo' in request.form
+            banner.orden = int(request.form.get('orden', 0) or 0)
+            img = request.files.get('imagen')
+            if img and img.filename:
+                fname = secure_filename(img.filename)
+                upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'banners')
+                os.makedirs(upload_dir, exist_ok=True)
+                path = os.path.join(upload_dir, fname)
+                img.save(path)
+                banner.imagen_url = f'static/uploads/banners/{fname}'
+            db.session.commit()
+            flash('Banner actualizado.', 'success')
+            return redirect(url_for('admin_banners'))
+        return render_template('admin/banner_form.html', obj=banner)
+
+    @app.route('/admin/banners/<int:id>/eliminar', methods=['POST'])
+    @login_required
+    def admin_banner_eliminar(id):
+        from flask import g
+        company = db.session.get(Company, g.company_id) if g.company_id else None
+        if not company or not company.es_principal or current_user.rol != 'admin':
+            flash('Sin permisos.', 'danger')
+            return redirect(url_for('dashboard'))
+        banner = ForoBanner.query.get_or_404(id)
+        db.session.delete(banner)
+        db.session.commit()
+        flash('Banner eliminado.', 'success')
+        return redirect(url_for('admin_banners'))
+
+    @app.route('/admin/banners/seed', methods=['POST'])
+    @login_required
+    def admin_banners_seed():
+        """Seed initial Evore banners."""
+        from flask import g
+        company = db.session.get(Company, g.company_id) if g.company_id else None
+        if not company or not company.es_principal or current_user.rol != 'admin':
+            flash('Sin permisos.', 'danger')
+            return redirect(url_for('dashboard'))
+        if ForoBanner.query.count() == 0:
+            seeds = [
+                ForoBanner(titulo='Conoce Evore CRM', descripcion='Gestiona tu empresa completa: ventas, produccion, inventario, contabilidad y mas.', link_url='/inicio', tipo='evore', activo=True, orden=1, creado_por=current_user.id),
+                ForoBanner(titulo='Somos Evore', descripcion='Publica tus productos en el marketplace y conecta con nuevos clientes.', link_url='/foro', tipo='evore', activo=True, orden=2, creado_por=current_user.id),
+                ForoBanner(titulo='Starter gratis', descripcion='Activa tu CRM hoy — gratis para siempre con hasta 3 usuarios.', link_url='/planes', tipo='evore', activo=True, orden=3, creado_por=current_user.id),
+            ]
+            for b in seeds:
+                db.session.add(b)
+            db.session.commit()
+            flash('3 banners iniciales creados.', 'success')
+        else:
+            flash('Ya existen banners. No se crearon nuevos.', 'info')
+        return redirect(url_for('admin_banners'))
 

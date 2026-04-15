@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}Banners Marketplace{% endblock %}
+{% block page_title %}Banners del Marketplace{% endblock %}
+{% block topbar_actions %}
+<div class="d-flex gap-2">
+  <form method="POST" action="{{ url_for('admin_banners_seed') }}" style="display:inline">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+    <button type="submit" class="btn btn-outline-secondary btn-sm"><i class="bi bi-magic me-1"></i>Seed iniciales</button>
+  </form>
+  <a href="{{ url_for('admin_banner_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo banner</a>
+</div>
+{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb" style="margin-bottom:.75rem">
+  <ol class="breadcrumb" style="font-size:.78rem;margin:0">
+    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}" style="color:var(--ac);text-decoration:none">Home</a></li>
+    <li class="breadcrumb-item active">Banners</li>
+  </ol>
+</nav>
+{% endblock %}
+{% block content %}
+<div style="max-width:960px;margin:0 auto">
+  {% if banners %}
+  <div class="row g-3">
+    {% for b in banners %}
+    <div class="col-md-6 col-lg-4">
+      <div class="fc h-100" style="padding:0;overflow:hidden">
+        {% if b.imagen_url %}
+        <div style="height:120px;overflow:hidden;background:var(--surface2)">
+          <img src="/{{ b.imagen_url }}" alt="{{ b.titulo }}" style="width:100%;height:100%;object-fit:cover">
+        </div>
+        {% else %}
+        <div style="height:80px;background:var(--surface2);display:flex;align-items:center;justify-content:center">
+          <i class="bi bi-megaphone" style="font-size:1.8rem;color:var(--border)"></i>
+        </div>
+        {% endif %}
+        <div style="padding:1rem">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <h6 class="fw-bold mb-0" style="font-size:.9rem">{{ b.titulo }}</h6>
+            {% if b.activo %}
+            <span class="badge bg-success" style="font-size:.65rem">Activo</span>
+            {% else %}
+            <span class="badge bg-secondary" style="font-size:.65rem">Inactivo</span>
+            {% endif %}
+          </div>
+          {% if b.descripcion %}
+          <div class="text-muted mb-2" style="font-size:.8rem">{{ b.descripcion[:100] }}</div>
+          {% endif %}
+          <div class="text-muted mb-2" style="font-size:.72rem">
+            Tipo: <strong>{{ b.tipo }}</strong>
+            {% if b.industria %} | Industria: {{ b.industria }}{% endif %}
+            | Orden: {{ b.orden }}
+          </div>
+          <div class="d-flex gap-2">
+            <a href="{{ url_for('admin_banner_editar', id=b.id) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil me-1"></i>Editar</a>
+            <form method="POST" action="{{ url_for('admin_banner_eliminar', id=b.id) }}" onsubmit="return confirm('Eliminar este banner?')">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+              <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash me-1"></i>Eliminar</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="fc text-center py-5">
+    <i class="bi bi-megaphone" style="font-size:3rem;color:var(--border)"></i>
+    <p class="text-muted mt-2">No hay banners. Crea uno o usa "Seed iniciales" para crear los banners de Evore.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

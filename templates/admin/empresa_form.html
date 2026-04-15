@@ -34,14 +34,14 @@
     <div class="col-12 col-md-6"><label class="form-label">Plan</label>
       <select name="plan" class="form-select" onchange="updatePlanInfo(this)">
         <option value="free" {% if obj and obj.plan=='free' %}selected{% endif %}>Gratuito — Solo portal (cliente/proveedor)</option>
-        <option value="starter" {% if obj and obj.plan=='starter' %}selected{% endif %}>Starter — CRM completo (max 3 usuarios)</option>
-        <option value="pro" {% if obj and obj.plan=='pro' %}selected{% endif %}>Profesional — CRM completo (3 + extras a $5.900/mes c/u)</option>
+        <option value="starter" {% if obj and obj.plan=='starter' %}selected{% endif %}>Starter — CRM completo gratuito (max 3 usuarios)</option>
+        <option value="pro" {% if obj and obj.plan=='pro' %}selected{% endif %}>Profesional — CRM completo (4 incluidos + $9.900/mes por extra)</option>
       </select>
       <div class="form-text" id="planInfo" style="font-size:.75rem"></div>
       </div>
     <script>
     function updatePlanInfo(sel){
-      var info={'free':'Solo ve datos de su relacion con tu empresa. No tiene CRM propio.','starter':'CRM completo, maximo 3 usuarios. $39.900/mes.','pro':'CRM completo, 3 incluidos + $5.900/mes por cada usuario extra. $39.900 base/mes.'};
+      var info={'free':'Solo ve datos de su relacion con tu empresa. No tiene CRM propio.','starter':'CRM completo gratuito, maximo 3 usuarios.','pro':'CRM completo, 4 incluidos + $9.900/mes por cada usuario extra. $39.900 base/mes.'};
       document.getElementById('planInfo').textContent=info[sel.value]||'';
       var mu=document.querySelector('[name=max_users]');
       if(sel.value==='free'&&mu)mu.value='1';

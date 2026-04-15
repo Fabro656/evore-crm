@@ -11,7 +11,7 @@
     <div>
       <strong>Plan {{ 'Starter' if sub_activa.plan == 'starter' else 'Profesional' }} activo</strong>
       — Proximo pago: {{ sub_activa.fecha_proximo_pago.strftime('%d/%m/%Y') if sub_activa.fecha_proximo_pago else '—' }}
-      {% if sub_activa.usuarios_extra > 0 %} ({{ 3 + sub_activa.usuarios_extra }} usuarios){% endif %}
+      {% if sub_activa.usuarios_extra > 0 %} ({{ 4 + sub_activa.usuarios_extra }} usuarios){% endif %}
     </div>
   </div>
   {% elif company and company.plan != 'free' %}
@@ -70,8 +70,8 @@
         <div class="text-center mb-3">
           <div style="font-size:2rem"><i class="bi bi-building text-primary"></i></div>
           <h5 class="fw-bold mb-1">Starter</h5>
-          <div id="starterPrice" style="font-size:2rem;font-weight:700;color:var(--ac)">$39.900</div>
-          <div id="starterPeriod" class="text-muted" style="font-size:.8rem">COP / mes</div>
+          <div id="starterPrice" style="font-size:2rem;font-weight:700;color:var(--ac)">$0</div>
+          <div id="starterPeriod" class="text-muted" style="font-size:.8rem">GRATIS — CRM completo gratis para equipos pequenos</div>
         </div>
         <hr>
         <ul class="list-unstyled" style="font-size:.88rem">
@@ -86,7 +86,7 @@
           <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Hasta <strong>3 usuarios</strong></li>
         </ul>
         {% if not company or company.plan == 'free' %}
-        <button type="button" class="btn btn-primary w-100 mt-2" onclick="openPayment('starter')"><i class="bi bi-arrow-up-circle me-1"></i>Activar Starter</button>
+        <button type="button" class="btn btn-primary w-100 mt-2" onclick="openPayment('starter')"><i class="bi bi-arrow-up-circle me-1"></i>Activar gratis</button>
         {% endif %}
       </div>
     </div>
@@ -100,14 +100,14 @@
         <div class="text-center mb-3">
           <div style="font-size:2rem"><i class="bi bi-building-gear text-primary"></i></div>
           <h5 class="fw-bold mb-1">Profesional</h5>
-          <div id="proPrice" style="font-size:1.3rem;font-weight:700;color:var(--ac)">$39.900 <span style="font-size:.85rem;font-weight:400">+ $5.900/usr extra</span></div>
-          <div id="proPeriod" class="text-muted" style="font-size:.8rem">COP / mes — 3 usuarios incluidos</div>
+          <div id="proPrice" style="font-size:1.3rem;font-weight:700;color:var(--ac)">$39.900 <span style="font-size:.85rem;font-weight:400">+ $9.900/usr extra</span></div>
+          <div id="proPeriod" class="text-muted" style="font-size:.8rem">COP / mes — 4 usuarios incluidos</div>
         </div>
         <hr>
         <ul class="list-unstyled" style="font-size:.88rem">
           <li class="mb-2"><i class="bi bi-check text-success me-2"></i><strong>Todo lo del plan Starter</strong></li>
-          <li class="mb-2"><i class="bi bi-check text-success me-2"></i><strong>3 usuarios</strong> incluidos</li>
-          <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Usuarios adicionales a <strong>$5.900/mes</strong> c/u</li>
+          <li class="mb-2"><i class="bi bi-check text-success me-2"></i><strong>4 usuarios</strong> incluidos</li>
+          <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Usuarios adicionales a <strong>$9.900/mes</strong> c/u</li>
           <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Soporte prioritario</li>
           <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Reportes avanzados</li>
         </ul>
@@ -116,7 +116,7 @@
           <label class="form-label fw-semibold mb-1">Cuantos usuarios extra necesitas?</label>
           <input type="number" id="proExtras" min="0" max="100" value="0" class="form-control form-control-sm mb-2" oninput="calcPro()">
           <div class="d-flex justify-content-between">
-            <span>Total usuarios:</span><strong id="proTotalUsers">3</strong>
+            <span>Total usuarios:</span><strong id="proTotalUsers">4</strong>
           </div>
           <div class="d-flex justify-content-between mt-1">
             <span>Valor <span id="proCalcPeriod">mensual</span>:</span><strong id="proTotal" class="text-primary">$39.900</strong>
@@ -151,9 +151,9 @@
         <tr><td>Nomina colombiana</td><td class="text-center text-muted"><i class="bi bi-x-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td></tr>
         <tr><td>Documentos legales</td><td class="text-center text-muted"><i class="bi bi-x-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td></tr>
         <tr><td>Asistente IA</td><td class="text-center text-muted"><i class="bi bi-x-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td></tr>
-        <tr class="fw-semibold"><td>Usuarios incluidos</td><td class="text-center">1</td><td class="text-center" style="background:rgba(1,118,211,.05)">3</td><td class="text-center">3 + extras</td></tr>
-        <tr><td>Usuario adicional</td><td class="text-center text-muted">—</td><td class="text-center text-muted" style="background:rgba(1,118,211,.05)">—</td><td class="text-center">$5.900/mes</td></tr>
-        <tr class="fw-semibold"><td>Precio mensual</td><td class="text-center">$0</td><td class="text-center" style="background:rgba(1,118,211,.05)">$39.900</td><td class="text-center">Desde $39.900</td></tr>
+        <tr class="fw-semibold"><td>Usuarios incluidos</td><td class="text-center">1</td><td class="text-center" style="background:rgba(1,118,211,.05)">3</td><td class="text-center">4 + extras</td></tr>
+        <tr><td>Usuario adicional</td><td class="text-center text-muted">—</td><td class="text-center text-muted" style="background:rgba(1,118,211,.05)">—</td><td class="text-center">$9.900/mes</td></tr>
+        <tr class="fw-semibold"><td>Precio mensual</td><td class="text-center">$0</td><td class="text-center" style="background:rgba(1,118,211,.05)">$0 (Gratis)</td><td class="text-center">Desde $39.900</td></tr>
       </tbody>
     </table>
     </div>
@@ -213,7 +213,7 @@
             <div class="text-muted" id="modalPlanDesc" style="font-size:.85rem">CRM completo — 3 usuarios</div>
           </div>
           <div id="modalExtrasSection" style="display:none" class="mb-3">
-            <label class="form-label">Usuarios extra (ademas de los 3 incluidos):</label>
+            <label class="form-label">Usuarios extra (ademas de los 4 incluidos):</label>
             <input type="number" id="modalExtrasInput" min="0" max="100" value="0" class="form-control" onchange="updateModalTotal()">
           </div>
           <div class="mb-3">
@@ -252,19 +252,12 @@
 </div>
 
 <script>
-var BASE=39900, EXTRA=5900;
+var BASE=39900, EXTRA=9900, INCLUDED=4;
 function fmt(n){return '$'+n.toLocaleString('es-CO')}
 
 function togglePeriodo(){
   calcPro();
-  var anual=document.getElementById('periodoAnual').checked;
-  if(anual){
-    document.getElementById('starterPrice').textContent=fmt(Math.round(39900*12*0.9));
-    document.getElementById('starterPeriod').textContent='COP / año (10% dcto)';
-  } else {
-    document.getElementById('starterPrice').textContent='$39.900';
-    document.getElementById('starterPeriod').textContent='COP / mes';
-  }
+  // Starter is always free — no period change needed
 }
 
 function calcPro(){
@@ -272,37 +265,50 @@ function calcPro(){
   var anual=document.getElementById('periodoAnual').checked;
   var mensual=BASE+(extras*EXTRA);
   var total=anual?Math.round(mensual*12*0.9):mensual;
-  document.getElementById('proTotalUsers').textContent=3+extras;
+  document.getElementById('proTotalUsers').textContent=INCLUDED+extras;
   document.getElementById('proTotal').textContent=fmt(total);
   document.getElementById('proCalcPeriod').textContent=anual?'anual':'mensual';
 }
 
 function openPayment(plan){
+  if(plan==='starter'){
+    // Starter is free — submit form directly to activate
+    document.getElementById('modalPlan').value='starter';
+    document.getElementById('modalPeriodo').value='mensual';
+    document.getElementById('modalExtras').value=0;
+    document.getElementById('modalPlanName').textContent='Plan Starter';
+    document.getElementById('modalPlanDesc').textContent='CRM completo gratis — 3 usuarios';
+    document.getElementById('modalExtrasSection').style.display='none';
+    document.getElementById('modalExtrasInput').value=0;
+    document.getElementById('modalTotal').textContent='$0 (Gratis)';
+    document.getElementById('modalTotalDesc').textContent='Activacion inmediata — sin pago';
+    new bootstrap.Modal(document.getElementById('paymentModal')).show();
+    return;
+  }
   document.getElementById('modalPlan').value=plan;
   var anual=document.getElementById('periodoAnual').checked;
   document.getElementById('modalPeriodo').value=anual?'anual':'mensual';
   if(anual){document.getElementById('mAnual').checked=true}else{document.getElementById('mMensual').checked=true}
 
-  if(plan==='pro'){
-    document.getElementById('modalPlanName').textContent='Plan Profesional';
-    document.getElementById('modalPlanDesc').textContent='CRM completo — 3 usuarios incluidos + extras';
-    document.getElementById('modalExtrasSection').style.display='block';
-    var e=parseInt(document.getElementById('proExtras').value)||0;
-    document.getElementById('modalExtrasInput').value=e;
-  } else {
-    document.getElementById('modalPlanName').textContent='Plan Starter';
-    document.getElementById('modalPlanDesc').textContent='CRM completo — 3 usuarios';
-    document.getElementById('modalExtrasSection').style.display='none';
-    document.getElementById('modalExtrasInput').value=0;
-  }
+  document.getElementById('modalPlanName').textContent='Plan Profesional';
+  document.getElementById('modalPlanDesc').textContent='CRM completo — 4 usuarios incluidos + extras';
+  document.getElementById('modalExtrasSection').style.display='block';
+  var e=parseInt(document.getElementById('proExtras').value)||0;
+  document.getElementById('modalExtrasInput').value=e;
   updateModalTotal();
   new bootstrap.Modal(document.getElementById('paymentModal')).show();
 }
 
 function updateModalTotal(){
   var plan=document.getElementById('modalPlan').value;
+  if(plan==='starter'){
+    document.getElementById('modalTotal').textContent='$0 (Gratis)';
+    document.getElementById('modalTotalDesc').textContent='Activacion inmediata — sin pago';
+    document.getElementById('modalExtras').value=0;
+    return;
+  }
   var anual=document.getElementById('mAnual').checked;
-  var extras=plan==='pro'?parseInt(document.getElementById('modalExtrasInput').value)||0:0;
+  var extras=parseInt(document.getElementById('modalExtrasInput').value)||0;
   var mensual=BASE+(extras*EXTRA);
   var total=anual?Math.round(mensual*12*0.9):mensual;
   document.getElementById('modalTotal').textContent=fmt(total);
