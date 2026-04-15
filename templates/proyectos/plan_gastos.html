@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% block title %}Plan de Gastos — {{ p.nombre }}{% endblock %}{% block page_title %}{{ p.codigo }} — Plan de Gastos{% endblock %}
+{% block topbar_actions %}
+<div class="d-flex gap-2">
+  <a href="{{ url_for('proyecto_ver', id=p.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Proyecto</a>
+</div>
+{% endblock %}
+{% block content %}
+<div style="max-width:1000px;margin:0 auto">
+  {# Status banner #}
+  {% if p.estado == 'planificacion' %}
+  <div class="fc mb-3" style="background:rgba(1,118,211,.05);border-color:var(--ac)">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-pencil-square" style="font-size:1.2rem;color:var(--ac)"></i>
+      <div style="flex:1">
+        <div class="fw-bold" style="color:var(--ac)">Etapa: Planificacion</div>
+        <div class="text-muted" style="font-size:.82rem">Define el presupuesto por fase y el plan de gastos. Cuando estes listo, envia a aprobacion.</div>
+      </div>
+      <form method="POST" action="{{ url_for('proyecto_enviar_aprobacion', pid=p.id) }}">
+        <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Enviar plan de gastos a aprobacion del Director Financiero?')"><i class="bi bi-send me-1"></i>Enviar a aprobacion</button>
+      </form>
+    </div>
+  </div>
+  {% elif p.estado == 'pendiente_aprobacion' %}
+  <div class="fc mb-3" style="background:rgba(249,158,11,.08);border-color:#F59E0B">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-hourglass-split" style="font-size:1.2rem;color:#F59E0B"></i>
+      <div style="flex:1">
+        <div class="fw-bold" style="color:#F59E0B">Pendiente de aprobacion</div>
+        <div class="text-muted" style="font-size:.82rem">El Director Financiero debe aprobar este plan de gastos para pasar a desarrollo.</div>
+      </div>
+      {% set rol = rol_activo if rol_activo is defined else '' %}
+      {% if rol in ('admin','director_financiero') %}
+      <div class="d-flex gap-2">
+        <form method="POST" action="{{ url_for('proyecto_aprobar', pid=p.id) }}">
+          <input type="hidden" name="accion" value="aprobar">
+          <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Aprobar plan de gastos?')"><i class="bi bi-check-lg me-1"></i>Aprobar</button>
+        </form>
+        <form method="POST" action="{{ url_for('proyecto_aprobar', pid=p.id) }}">
+          <input type="hidden" name="accion" value="rechazar">
+          <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-x-lg me-1"></i>Rechazar</button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% elif p.estado == 'desarrollo' %}
+  <div class="fc mb-3" style="background:rgba(16,185,129,.05);border-color:var(--green)">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-check-circle-fill" style="font-size:1.2rem;color:var(--green)"></i>
+      <div>
+        <div class="fw-bold" style="color:var(--green)">Plan aprobado — En desarrollo</div>
+        <div class="text-muted" style="font-size:.82rem">El plan de gastos fue aprobado. Los gastos reales se registran desde el proyecto.</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# Summary #}
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-md-4"><div class="fc text-center py-2">
+      <div style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Presupuesto total</div>
+      <div class="fw-bold mt-1" style="font-size:1.2rem;color:var(--ac)">{{ moneda(p.presupuesto) }}</div>
+    </div></div>
+    <div class="col-6 col-md-4"><div class="fc text-center py-2">
+      <div style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Plan de gastos</div>
+      <div class="fw-bold mt-1" style="font-size:1.2rem;color:var(--text1)">{{ moneda(total_plan) }}</div>
+    </div></div>
+    <div class="col-12 col-md-4"><div class="fc text-center py-2">
+      <div style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Fases</div>
+      <div class="fw-bold mt-1" style="font-size:1.2rem;color:var(--text1)">{{ p.fases|length }}</div>
+    </div></div>
+  </div>
+
+  {# Phases with plan #}
+  {% for fase in p.fases %}
+  {% set fp = plan.get(fase.id, {'items':[],'subtotal':0}) %}
+  <div class="fc mb-3" style="padding:0;overflow:hidden;border-left:4px solid {{ fase.color or '#6B7280' }}">
+    <div style="padding:.85rem 1.15rem;background:var(--surface2);display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+      <div style="flex:1;min-width:180px">
+        <h6 class="fw-bold mb-0" style="color:var(--text1)">{{ fase.nombre }}</h6>
+        {% if fase.fecha_inicio %}<div class="text-muted" style="font-size:.72rem"><i class="bi bi-calendar me-1"></i>{{ fase.fecha_inicio.strftime('%d/%m') }}{% if fase.fecha_fin %} — {{ fase.fecha_fin.strftime('%d/%m/%Y') }}{% endif %}</div>{% endif %}
+      </div>
+      <div class="text-end">
+        <div style="font-size:.68rem;color:var(--text2);text-transform:uppercase">Presupuesto fase</div>
+        <div class="fw-bold" style="font-size:1rem;color:{% if fase.presupuesto %}var(--ac){% else %}var(--red){% endif %}">{{ moneda(fase.presupuesto) if fase.presupuesto else 'Sin definir' }}</div>
+      </div>
+      <div class="text-end">
+        <div style="font-size:.68rem;color:var(--text2);text-transform:uppercase">Planificado</div>
+        <div class="fw-bold" style="font-size:1rem;color:var(--text1)">{{ moneda(fp.subtotal) }}</div>
+      </div>
+    </div>
+    <div style="padding:.5rem .75rem">
+      {% for pg in fp.items %}
+      <div class="d-flex align-items-center gap-2 py-1" style="border-bottom:1px solid var(--border);font-size:.85rem">
+        <i class="bi bi-receipt" style="color:var(--text2);font-size:.7rem"></i>
+        <span style="flex:1;color:var(--text1)">{{ pg.concepto }}</span>
+        <span class="fw-bold" style="color:var(--ac)">{{ moneda(pg.monto) }}</span>
+        {% if pg.fecha_desde %}<span class="text-muted" style="font-size:.72rem">{{ pg.fecha_desde.strftime('%d/%m') }}{% if pg.fecha_hasta %} — {{ pg.fecha_hasta.strftime('%d/%m') }}{% endif %}</span>{% endif %}
+        {% if editable %}
+        <form method="POST" action="{{ url_for('proyecto_plan_gasto_eliminar', pgid=pg.id) }}" class="m-0">
+          <button class="btn btn-sm btn-outline-danger" style="font-size:.65rem;padding:1px 5px"><i class="bi bi-x"></i></button>
+        </form>
+        {% endif %}
+      </div>
+      {% endfor %}
+      {% if not fp.items %}
+      <div class="text-muted text-center py-2" style="font-size:.82rem">Sin gastos planificados</div>
+      {% endif %}
+      {# Add planned expense #}
+      {% if editable %}
+      <form method="POST" action="{{ url_for('proyecto_plan_gasto_agregar', pid=p.id) }}" class="mt-2">
+        <input type="hidden" name="fase_id" value="{{ fase.id }}">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-4"><input type="text" name="concepto" class="form-control form-control-sm" placeholder="Concepto del gasto" required></div>
+          <div class="col-md-2"><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="number" name="monto" class="form-control" step="1" min="1" required></div></div>
+          <div class="col-md-2"><input type="date" name="fecha_desde" class="form-control form-control-sm" placeholder="Desde"></div>
+          <div class="col-md-2"><input type="date" name="fecha_hasta" class="form-control form-control-sm" placeholder="Hasta"></div>
+          <div class="col-md-2"><button type="submit" class="btn btn-sm btn-outline-primary w-100"><i class="bi bi-plus-lg me-1"></i>Agregar</button></div>
+        </div>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

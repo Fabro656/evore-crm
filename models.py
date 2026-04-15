@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date as date_type
 import json, secrets, os, logging
 
-__all__ = ['Company', 'UserCompany', 'ChatRoom', 'ChatParticipant', 'ChatMessage', 'User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'MovimientoBancario', 'NotaContable', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'MovimientoInventario', 'Notificacion', 'Empleado', 'HoraExtra', 'Comision', 'Incapacidad', 'VacacionTomada', 'Requisicion', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'HistorialPrecio', 'HistorialCotizacion', 'CompanyRelationship', 'Suscripcion', 'ForoPublicacion', 'ForoValoracion', 'ForoApelacion', 'ForoBanner', 'CapCurso', 'CapLeccion', 'CapPregunta', 'CapProgreso', 'CapEvaluacion', 'Proyecto', 'ProyectoFase', 'ProyectoMiembro', 'ProyectoTarea', 'ProyectoComentario', 'ProyectoGasto', 'load_user', '_migrate', 'init_db']
+__all__ = ['Company', 'UserCompany', 'ChatRoom', 'ChatParticipant', 'ChatMessage', 'User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'MovimientoBancario', 'NotaContable', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'MovimientoInventario', 'Notificacion', 'Empleado', 'HoraExtra', 'Comision', 'Incapacidad', 'VacacionTomada', 'Requisicion', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'HistorialPrecio', 'HistorialCotizacion', 'CompanyRelationship', 'Suscripcion', 'ForoPublicacion', 'ForoValoracion', 'ForoApelacion', 'ForoBanner', 'CapCurso', 'CapLeccion', 'CapPregunta', 'CapProgreso', 'CapEvaluacion', 'Proyecto', 'ProyectoFase', 'ProyectoMiembro', 'ProyectoTarea', 'ProyectoComentario', 'ProyectoGasto', 'ProyectoPlanGasto', 'load_user', '_migrate', 'init_db']
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -342,6 +342,7 @@ class Aprobacion(db.Model):
     venta_id        = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=True)
     cotizacion_id   = db.Column(db.Integer, db.ForeignKey('cotizaciones.id'), nullable=True)
     asiento_id      = db.Column(db.Integer, db.ForeignKey('asientos_contables.id'), nullable=True)
+    proyecto_id     = db.Column(db.Integer, db.ForeignKey('proyectos.id'), nullable=True)
     solicitante    = db.relationship('User', foreign_keys=[solicitado_por])
     aprobador      = db.relationship('User', foreign_keys=[aprobado_por])
     orden_compra   = db.relationship('OrdenCompra', foreign_keys=[orden_compra_id])
@@ -1376,8 +1377,8 @@ class Proyecto(db.Model):
     codigo          = db.Column(db.String(20))  # PRY-001
     nombre          = db.Column(db.String(200), nullable=False)
     descripcion     = db.Column(db.Text)
-    estado          = db.Column(db.String(20), default='planificacion', index=True)
-    # planificacion, en_progreso, pausado, completado, cancelado
+    estado          = db.Column(db.String(30), default='planificacion', index=True)
+    # planificacion, pendiente_aprobacion, desarrollo, pausado, completado, cancelado
     prioridad       = db.Column(db.String(10), default='media')
     color           = db.Column(db.String(7), default='#0176D3')  # hex for kanban
     fecha_inicio    = db.Column(db.Date)
@@ -1489,6 +1490,20 @@ class ProyectoGasto(db.Model):
     descripcion     = db.Column(db.String(200))
     creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
     gasto           = db.relationship('GastoOperativo', foreign_keys=[gasto_id])
+
+class ProyectoPlanGasto(db.Model):
+    """Gasto planificado por fase — se aprueba antes de pasar a desarrollo."""
+    __tablename__ = 'proyecto_plan_gastos'
+    id              = db.Column(db.Integer, primary_key=True)
+    proyecto_id     = db.Column(db.Integer, db.ForeignKey('proyectos.id'), nullable=False, index=True)
+    fase_id         = db.Column(db.Integer, db.ForeignKey('proyecto_fases.id'), nullable=False, index=True)
+    concepto        = db.Column(db.String(200), nullable=False)
+    monto           = db.Column(db.Float, nullable=False, default=0)
+    fecha_desde     = db.Column(db.Date)
+    fecha_hasta     = db.Column(db.Date)
+    notas           = db.Column(db.Text)
+    creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
+    fase            = db.relationship('ProyectoFase', foreign_keys=[fase_id])
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -2177,6 +2192,9 @@ def _migrate(conn):
         # ── Foro Banners (marketplace ads) ──
         ("CREATE TABLE IF NOT EXISTS foro_banners (id SERIAL PRIMARY KEY, titulo VARCHAR(200) NOT NULL, descripcion TEXT, imagen_url VARCHAR(500), link_url VARCHAR(500), industria VARCHAR(100), tipo VARCHAR(20) DEFAULT 'evore', activo BOOLEAN DEFAULT TRUE, orden INTEGER DEFAULT 0, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
         ("CREATE TABLE IF NOT EXISTS foro_banners (id INTEGER PRIMARY KEY AUTOINCREMENT, titulo VARCHAR(200) NOT NULL, descripcion TEXT, imagen_url VARCHAR(500), link_url VARCHAR(500), industria VARCHAR(100), tipo VARCHAR(20) DEFAULT 'evore', activo BOOLEAN DEFAULT TRUE, orden INTEGER DEFAULT 0, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"),
+        # ── Aprobaciones: proyecto_id ──
+        ("ALTER TABLE aprobaciones ADD COLUMN IF NOT EXISTS proyecto_id INTEGER REFERENCES proyectos(id)"),
+        ("ALTER TABLE aprobaciones ADD COLUMN proyecto_id INTEGER REFERENCES proyectos(id)"),
         # ── Proyectos: presupuesto fase + gasto fase_id ──
         ("ALTER TABLE proyecto_fases ADD COLUMN IF NOT EXISTS presupuesto FLOAT DEFAULT 0"),
         ("ALTER TABLE proyecto_fases ADD COLUMN presupuesto FLOAT DEFAULT 0"),

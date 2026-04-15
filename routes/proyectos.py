@@ -8,7 +8,7 @@ from datetime import datetime, date as date_type
 from sqlalchemy import func
 import json, logging
 
-_ESTADOS_PROYECTO = ['planificacion', 'en_progreso', 'pausado', 'completado', 'cancelado']
+_ESTADOS_PROYECTO = ['planificacion', 'pendiente_aprobacion', 'desarrollo', 'pausado', 'completado', 'cancelado']
 _ESTADOS_TAREA = ['por_hacer', 'en_progreso', 'en_revision', 'completada']
 _TIPOS_TAREA = ['tarea', 'compra', 'legal', 'finanzas', 'produccion', 'logistica']
 
@@ -429,3 +429,180 @@ def register(app):
         db.session.commit()
         flash(f'Proyecto "{nombre}" eliminado.', 'info')
         return redirect(url_for('proyectos_index'))
+
+    # ══════════════════════════════════════════════════════════════
+    # PLAN DE GASTOS POR FASE
+    # ══════════════════════════════════════════════════════════════
+
+    @app.route('/proyectos/<int:pid>/plan-gastos')
+    @login_required
+    def proyecto_plan_gastos(pid):
+        """Vista del plan de gastos del proyecto — editable en planificacion."""
+        if not _requiere_proyecto_access():
+            flash('Acceso denegado.', 'danger'); return redirect(url_for('dashboard'))
+        p = Proyecto.query.get_or_404(pid)
+        plan = {}
+        total_plan = 0
+        for f in p.fases:
+            items = ProyectoPlanGasto.query.filter_by(proyecto_id=pid, fase_id=f.id).order_by(ProyectoPlanGasto.fecha_desde).all()
+            subtotal = sum(pg.monto for pg in items)
+            total_plan += subtotal
+            plan[f.id] = {'fase': f, 'items': items, 'subtotal': subtotal}
+        editable = p.estado in ('planificacion',)
+        return render_template('proyectos/plan_gastos.html', p=p, plan=plan,
+            total_plan=total_plan, editable=editable)
+
+    @app.route('/proyectos/<int:pid>/plan-gastos/agregar', methods=['POST'])
+    @login_required
+    def proyecto_plan_gasto_agregar(pid):
+        if not _requiere_proyecto_access():
+            flash('Acceso denegado.', 'danger'); return redirect(url_for('dashboard'))
+        p = Proyecto.query.get_or_404(pid)
+        if p.estado != 'planificacion':
+            flash('Solo se puede editar el plan en etapa de planificacion.', 'warning')
+            return redirect(url_for('proyecto_plan_gastos', pid=pid))
+        fd = request.form.get('fecha_desde')
+        fh = request.form.get('fecha_hasta')
+        db.session.add(ProyectoPlanGasto(
+            proyecto_id=pid,
+            fase_id=int(request.form['fase_id']),
+            concepto=request.form['concepto'],
+            monto=float(request.form.get('monto') or 0),
+            fecha_desde=datetime.strptime(fd, '%Y-%m-%d').date() if fd else None,
+            fecha_hasta=datetime.strptime(fh, '%Y-%m-%d').date() if fh else None,
+            notas=request.form.get('notas', '')
+        ))
+        db.session.commit()
+        flash('Gasto planificado agregado.', 'success')
+        return redirect(url_for('proyecto_plan_gastos', pid=pid))
+
+    @app.route('/proyectos/plan-gastos/<int:pgid>/eliminar', methods=['POST'])
+    @login_required
+    def proyecto_plan_gasto_eliminar(pgid):
+        if not _requiere_proyecto_access():
+            flash('Acceso denegado.', 'danger'); return redirect(url_for('dashboard'))
+        pg = ProyectoPlanGasto.query.get_or_404(pgid)
+        pid = pg.proyecto_id
+        p = Proyecto.query.get_or_404(pid)
+        if p.estado != 'planificacion':
+            flash('No se puede modificar el plan fuera de planificacion.', 'warning')
+            return redirect(url_for('proyecto_plan_gastos', pid=pid))
+        db.session.delete(pg)
+        db.session.commit()
+        flash('Gasto planificado eliminado.', 'info')
+        return redirect(url_for('proyecto_plan_gastos', pid=pid))
+
+    # ══════════════════════════════════════════════════════════════
+    # ENVIAR A APROBACION / APROBAR
+    # ══════════════════════════════════════════════════════════════
+
+    @app.route('/proyectos/<int:pid>/enviar-aprobacion', methods=['POST'])
+    @login_required
+    def proyecto_enviar_aprobacion(pid):
+        if not _requiere_proyecto_access():
+            flash('Acceso denegado.', 'danger'); return redirect(url_for('dashboard'))
+        p = Proyecto.query.get_or_404(pid)
+        if p.estado != 'planificacion':
+            flash('Solo se puede enviar a aprobacion desde planificacion.', 'warning')
+            return redirect(url_for('proyecto_ver', id=pid))
+        cid = getattr(g, 'company_id', None)
+        # Validate: all phases must have budget
+        fases_sin_ppto = [f for f in p.fases if not f.presupuesto]
+        if fases_sin_ppto:
+            nombres = ', '.join(f.nombre for f in fases_sin_ppto)
+            flash(f'Fases sin presupuesto asignado: {nombres}. Define presupuesto por fase antes de enviar.', 'danger')
+            return redirect(url_for('proyecto_plan_gastos', pid=pid))
+        # Validate: plan de gastos exists
+        total_plan = db.session.query(func.sum(ProyectoPlanGasto.monto)).filter_by(proyecto_id=pid).scalar() or 0
+        if total_plan <= 0:
+            flash('Debes agregar al menos un gasto planificado antes de enviar a aprobacion.', 'danger')
+            return redirect(url_for('proyecto_plan_gastos', pid=pid))
+        # Update presupuesto total from sum of phases
+        p.presupuesto = sum(f.presupuesto for f in p.fases)
+        p.estado = 'pendiente_aprobacion'
+        # Create approval request
+        aprobacion = Aprobacion(
+            company_id=cid,
+            tipo_accion='proyecto_desarrollo',
+            descripcion=f'Aprobacion de plan de gastos: {p.codigo} — {p.nombre} (${p.presupuesto:,.0f})',
+            monto=p.presupuesto,
+            estado='pendiente',
+            solicitado_por=current_user.id,
+            proyecto_id=p.id,
+            datos_json=json.dumps({
+                'proyecto_id': p.id, 'codigo': p.codigo, 'nombre': p.nombre,
+                'presupuesto': p.presupuesto, 'fases': len(p.fases),
+                'total_plan_gastos': total_plan
+            })
+        )
+        db.session.add(aprobacion)
+        # Notify director financiero
+        try:
+            df = User.query.filter_by(company_id=cid, activo=True).filter(
+                User.rol.in_(['director_financiero', 'admin'])
+            ).first()
+            if df and df.id != current_user.id:
+                db.session.add(Notificacion(
+                    company_id=cid, user_id=df.id, tipo='aprobacion',
+                    titulo=f'Aprobacion requerida: {p.codigo}',
+                    mensaje=f'{current_user.nombre} solicita aprobar el plan de gastos del proyecto "{p.nombre}" por ${p.presupuesto:,.0f}',
+                    link=url_for('proyecto_plan_gastos', pid=p.id),
+                    creado_en=datetime.utcnow()
+                ))
+        except Exception:
+            pass
+        _log('crear', 'proyecto', p.id, f'Plan de gastos enviado a aprobacion: {p.codigo} (${p.presupuesto:,.0f})')
+        db.session.commit()
+        flash('Plan de gastos enviado a aprobacion del Director Financiero.', 'success')
+        return redirect(url_for('proyecto_ver', id=pid))
+
+    @app.route('/proyectos/<int:pid>/aprobar', methods=['POST'])
+    @login_required
+    def proyecto_aprobar(pid):
+        rol = _get_rol_activo(current_user)
+        if rol not in ('admin', 'director_financiero'):
+            flash('Solo el Director Financiero puede aprobar proyectos.', 'danger')
+            return redirect(url_for('proyecto_ver', id=pid))
+        p = Proyecto.query.get_or_404(pid)
+        if p.estado != 'pendiente_aprobacion':
+            flash('Este proyecto no esta pendiente de aprobacion.', 'warning')
+            return redirect(url_for('proyecto_ver', id=pid))
+        accion = request.form.get('accion', 'aprobar')
+        cid = getattr(g, 'company_id', None)
+        # Find the pending approval
+        aprobacion = Aprobacion.query.filter_by(
+            proyecto_id=p.id, estado='pendiente'
+        ).order_by(Aprobacion.creado_en.desc()).first()
+        if accion == 'aprobar':
+            p.estado = 'desarrollo'
+            if aprobacion:
+                aprobacion.estado = 'aprobado'
+                aprobacion.aprobado_por = current_user.id
+                aprobacion.resuelto_en = datetime.utcnow()
+                aprobacion.notas_aprobador = request.form.get('notas', '')
+            _log('aprobar', 'proyecto', p.id, f'Plan de gastos aprobado: {p.codigo}')
+            flash(f'Proyecto {p.codigo} aprobado. Pasa a desarrollo.', 'success')
+        else:
+            p.estado = 'planificacion'
+            if aprobacion:
+                aprobacion.estado = 'rechazado'
+                aprobacion.aprobado_por = current_user.id
+                aprobacion.resuelto_en = datetime.utcnow()
+                aprobacion.notas_aprobador = request.form.get('notas', '')
+            _log('rechazar', 'proyecto', p.id, f'Plan de gastos rechazado: {p.codigo}')
+            flash(f'Proyecto {p.codigo} rechazado. Vuelve a planificacion.', 'warning')
+        # Notify creator
+        try:
+            if p.creado_por and p.creado_por != current_user.id:
+                estado_txt = 'aprobado' if accion == 'aprobar' else 'rechazado'
+                db.session.add(Notificacion(
+                    company_id=cid, user_id=p.creado_por, tipo='aprobacion',
+                    titulo=f'Proyecto {p.codigo} {estado_txt}',
+                    mensaje=f'El plan de gastos de "{p.nombre}" fue {estado_txt} por {current_user.nombre}',
+                    link=url_for('proyecto_ver', id=p.id),
+                    creado_en=datetime.utcnow()
+                ))
+        except Exception:
+            pass
+        db.session.commit()
+        return redirect(url_for('proyecto_ver', id=pid))
