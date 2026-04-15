@@ -52,15 +52,21 @@ def register(app):
                     tipo='contacto',
                     mensaje=f'Nueva solicitud de {nombre} ({email}) — Plan: {plan_label}',
                     url='/admin/usuarios'))
-                tarea = Tarea(
-                    titulo=f'Lead: {empresa or nombre} — {plan_label}',
-                    descripcion=desc,
-                    prioridad='alta',
-                    estado='pendiente',
-                    creador_id=admin_user.id,
-                    company_id=evore.id)
-                db.session.add(tarea)
                 db.session.commit()
+                # Tarea as separate operation (may fail on local SQLite if company_id missing)
+                try:
+                    tarea = Tarea(
+                        titulo=f'Lead: {empresa or nombre} — {plan_label}',
+                        descripcion=desc,
+                        prioridad='alta',
+                        estado='pendiente',
+                        creador_id=admin_user.id,
+                        company_id=evore.id)
+                    db.session.add(tarea)
+                    db.session.commit()
+                except Exception:
+                    try: db.session.rollback()
+                    except: pass
                 # Send email notification
                 _send_email(admin_user.email,
                     f'Nuevo lead desde evore.co: {empresa or nombre}', desc)
