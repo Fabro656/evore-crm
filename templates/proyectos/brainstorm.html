@@ -43,7 +43,7 @@
     <div id="bsDrawLayer" style="position:absolute;top:0;left:0;width:4000px;height:3000px;z-index:2;pointer-events:none"></div>
     {# Notes #}
     {% for n in notas %}
-    <div class="bs-note" data-nid="{{ n.id }}" style="position:absolute;left:{{ n.pos_x }}px;top:{{ n.pos_y }}px;width:200px;background:{{ n.color or '#FBBF24' }};border-radius:10px;padding:12px;box-shadow:0 3px 10px rgba(0,0,0,.12);cursor:grab;z-index:10;user-select:none">
+    <div class="bs-note" data-nid="{{ n.id }}" style="position:absolute;left:{{ n.pos_x }}px;top:{{ n.pos_y }}px;width:210px;background:{{ n.color or '#FBBF24' }};border-radius:10px;padding:12px;box-shadow:0 3px 10px rgba(0,0,0,.12);cursor:grab;z-index:10;user-select:none">
       <div class="bs-note-content" style="font-size:.85rem;color:#1a1a1a;font-weight:500;line-height:1.4;min-height:36px;word-wrap:break-word">{{ n.contenido }}</div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
         <div class="d-flex align-items-center gap-1">
@@ -51,10 +51,28 @@
           <span class="fw-bold" style="font-size:.75rem;color:#1a1a1a">{{ n.votos_up - n.votos_down }}</span>
           <button class="btn btn-sm p-0 bs-vote" data-nid="{{ n.id }}" data-voto="down" style="border:none;background:none;font-size:.85rem;cursor:pointer" title="Mejorar"><i class="bi bi-hand-thumbs-down{% if n.votos_down %}-fill text-danger{% endif %}"></i></button>
         </div>
-        <span style="font-size:.58rem;color:rgba(0,0,0,.35)">{{ n.autor.nombre }}</span>
+        <button class="btn btn-sm p-0 bs-to-diagram" data-nid="{{ n.id }}" style="border:none;background:none;font-size:.75rem;cursor:pointer;color:rgba(0,0,0,.5)" title="Enviar a diagrama"><i class="bi bi-diagram-3"></i></button>
         <form method="POST" action="{{ url_for('proyecto_brainstorm_nota_eliminar', nid=n.id) }}" class="m-0">
           <button class="btn btn-sm p-0" style="border:none;background:none;color:rgba(0,0,0,.25);font-size:.6rem" onclick="return confirm('Eliminar?')"><i class="bi bi-x-lg"></i></button>
         </form>
+      </div>
+      {# Send to diagram dropdown (hidden, shown on click) #}
+      <div class="bs-diag-panel" data-nid="{{ n.id }}" style="display:none;margin-top:6px;padding-top:6px;border-top:1px solid rgba(0,0,0,.1);font-size:.75rem">
+        <div style="font-weight:700;color:#1a1a1a;margin-bottom:4px"><i class="bi bi-diagram-3 me-1"></i>Enviar al diagrama como:</div>
+        <div class="d-flex flex-wrap gap-1 mb-1">
+          <button class="btn btn-sm" style="font-size:.65rem;padding:1px 6px;background:#3B82F6;color:#fff;border:none;border-radius:4px" onclick="sendToDiagram({{ n.id }},'fase')">Fase</button>
+          <button class="btn btn-sm" style="font-size:.65rem;padding:1px 6px;background:#10B981;color:#fff;border:none;border-radius:4px" onclick="sendToDiagram({{ n.id }},'objetivo')">Objetivo</button>
+          <button class="btn btn-sm" style="font-size:.65rem;padding:1px 6px;background:#F59E0B;color:#333;border:none;border-radius:4px" onclick="sendToDiagram({{ n.id }},'decision')">Decision</button>
+          <button class="btn btn-sm" style="font-size:.65rem;padding:1px 6px;background:#9CA3AF;color:#fff;border:none;border-radius:4px" onclick="sendToDiagram({{ n.id }},'nota')">Nota</button>
+        </div>
+        <div class="bs-diag-fase-sel" data-nid="{{ n.id }}" style="display:none">
+          <select class="form-select" style="font-size:.7rem;padding:2px 20px 2px 4px;margin-bottom:2px" data-nid="{{ n.id }}">
+            <option value="">Selecciona fase...</option>
+            {% for f in p.fases %}<option value="{{ f.id }}">{{ f.nombre }}</option>{% endfor %}
+          </select>
+          <button class="btn btn-sm btn-success" style="font-size:.65rem;padding:1px 8px;width:100%" onclick="confirmSendObj({{ n.id }})"><i class="bi bi-check me-1"></i>Confirmar</button>
+        </div>
+        <div class="bs-diag-result" data-nid="{{ n.id }}" style="display:none"></div>
       </div>
     </div>
     {% endfor %}
@@ -199,6 +217,62 @@ document.querySelectorAll('.bs-vote').forEach(function(btn){
     }).then(r=>r.json()).then(function(d){if(d.ok)location.reload();});
   });
 });
+
+// Toggle diagram panel on note
+document.querySelectorAll('.bs-to-diagram').forEach(function(btn){
+  btn.addEventListener('click',function(e){
+    e.stopPropagation();
+    var nid=this.dataset.nid;
+    document.querySelectorAll('.bs-diag-panel').forEach(function(p){
+      p.style.display=p.dataset.nid===nid&&p.style.display==='none'?'':'none';
+    });
+  });
+});
+
+var _pendingSendNid=null, _pendingSendTipo=null;
+function sendToDiagram(nid,tipo){
+  if(tipo==='objetivo'){
+    // Show fase selector
+    _pendingSendNid=nid;_pendingSendTipo=tipo;
+    document.querySelector('.bs-diag-fase-sel[data-nid="'+nid+'"]').style.display='';
+    return;
+  }
+  doSendToDiagram(nid,tipo,null);
+}
+function confirmSendObj(nid){
+  var sel=document.querySelector('.bs-diag-fase-sel[data-nid="'+nid+'"] select');
+  var faseId=sel.value;
+  if(!faseId){alert('Selecciona una fase.');return;}
+  doSendToDiagram(nid,'objetivo',parseInt(faseId));
+}
+function doSendToDiagram(nid,tipo,faseId){
+  var ppto=0;
+  if(tipo==='fase'||tipo==='objetivo'){
+    var v=prompt('Presupuesto (0 si no aplica):','0');
+    if(v===null)return;
+    ppto=parseFloat(v)||0;
+  }
+  fetch('/api/proyectos/{{ p.id }}/brainstorm/nota-a-diagrama',{
+    method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrf},
+    body:JSON.stringify({nota_id:nid,tipo:tipo,fase_id:faseId,presupuesto:ppto})
+  }).then(r=>r.json()).then(function(d){
+    var res=document.querySelector('.bs-diag-result[data-nid="'+nid+'"]');
+    if(d.ok){
+      res.style.display='';
+      res.innerHTML='<span style="color:#10B981"><i class="bi bi-check-circle me-1"></i>Enviado como <strong>'+d.tipo+'</strong> al diagrama</span>';
+      // Mark the note visually
+      var note=document.querySelector('.bs-note[data-nid="'+nid+'"]');
+      if(note){
+        var badge=document.createElement('div');
+        badge.style.cssText='position:absolute;top:-6px;right:-6px;background:#3B82F6;color:#fff;font-size:.55rem;padding:1px 5px;border-radius:8px;font-weight:700';
+        badge.textContent=d.tipo.toUpperCase();
+        note.appendChild(badge);
+      }
+    } else {
+      res.style.display='';res.innerHTML='<span style="color:#E53935"><i class="bi bi-x-circle me-1"></i>'+(d.error||'Error')+'</span>';
+    }
+  });
+}
 
 function bsFullscreen(){
   var el=document.getElementById('bsWrap');

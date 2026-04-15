@@ -1262,3 +1262,47 @@ def register(app):
         db.session.delete(o)
         db.session.commit()
         return jsonify({'ok': True})
+
+    @app.route('/api/proyectos/<int:pid>/brainstorm/nota-a-diagrama', methods=['POST'])
+    @login_required
+    def api_brainstorm_nota_a_diagrama(pid):
+        """Convert a brainstorm note into a diagram library node."""
+        p = Proyecto.query.get_or_404(pid)
+        nota_id = request.json.get('nota_id')
+        tipo_nodo = request.json.get('tipo')  # fase, objetivo, decision, nota
+        fase_id = request.json.get('fase_id')
+        presupuesto = float(request.json.get('presupuesto') or 0)
+        n = db.session.get(ProyectoNota, int(nota_id))
+        if not n:
+            return jsonify({'error': 'Nota no encontrada'}), 404
+        # Load current diagram
+        diagrama = json.loads(p.diagrama or '{}')
+        copies = diagrama.get('copies', [])
+        next_id = diagrama.get('nextId', 100)
+        # Create library entry as a copy (user places it manually)
+        entry = {'tipo': tipo_nodo, 'label': n.contenido[:60], 'is_copy': True,
+                 'presupuesto': presupuesto, 'from_brainstorm': nota_id}
+        if tipo_nodo == 'objetivo' and fase_id:
+            entry['fase_id'] = int(fase_id)
+        # If fase or objetivo, create real entity
+        ref_id = None
+        if tipo_nodo == 'fase':
+            max_ord = db.session.query(func.max(ProyectoFase.orden)).filter_by(proyecto_id=pid).scalar() or 0
+            f = ProyectoFase(proyecto_id=pid, nombre=n.contenido[:60], orden=max_ord + 1,
+                             presupuesto=presupuesto)
+            db.session.add(f); db.session.flush()
+            entry['ref_id'] = f.id; entry['ref_tipo'] = 'fase'; entry['is_copy'] = False
+            ref_id = f.id
+        elif tipo_nodo == 'objetivo' and fase_id:
+            max_ord = db.session.query(func.max(ProyectoObjetivo.orden)).filter_by(fase_id=int(fase_id)).scalar() or 0
+            o = ProyectoObjetivo(proyecto_id=pid, fase_id=int(fase_id), titulo=n.contenido[:60],
+                                  presupuesto=presupuesto, orden=max_ord + 1)
+            db.session.add(o); db.session.flush()
+            entry['ref_id'] = o.id; entry['ref_tipo'] = 'objetivo'; entry['is_copy'] = False
+            ref_id = o.id
+        copies.append(entry)
+        diagrama['copies'] = copies
+        diagrama['nextId'] = next_id + 1
+        p.diagrama = json.dumps(diagrama)
+        db.session.commit()
+        return jsonify({'ok': True, 'tipo': tipo_nodo, 'label': entry['label'], 'ref_id': ref_id})
