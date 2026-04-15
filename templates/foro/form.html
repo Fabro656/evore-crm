@@ -12,17 +12,32 @@
   <form method="POST" enctype="multipart/form-data" novalidate>
     <div class="row g-3">
       <div class="col-12">
-        <label class="form-label">Tipo de publicacion</label>
+        <label class="form-label">¿Qué quieres hacer?</label>
+        <div class="d-flex gap-3 mb-3">
+          <label class="d-flex align-items-center gap-2 p-3 rounded border" style="cursor:pointer;flex:1">
+            <input type="radio" name="modalidad" value="vendo" {% if not obj or (obj.modalidad or 'vendo') == 'vendo' %}checked{% endif %}>
+            <i class="bi bi-megaphone text-primary" style="font-size:1.2rem"></i>
+            <div><div class="fw-semibold">Ofrezco</div><small class="text-muted">Publico un producto o servicio que vendo</small></div>
+          </label>
+          <label class="d-flex align-items-center gap-2 p-3 rounded border" style="cursor:pointer;flex:1">
+            <input type="radio" name="modalidad" value="compro" {% if obj and obj.modalidad == 'compro' %}checked{% endif %}>
+            <i class="bi bi-search text-success" style="font-size:1.2rem"></i>
+            <div><div class="fw-semibold">Necesito</div><small class="text-muted">Busco un producto o servicio que necesito comprar</small></div>
+          </label>
+        </div>
+      </div>
+      <div class="col-12">
+        <label class="form-label">Tipo</label>
         <div class="d-flex gap-3">
           <label class="d-flex align-items-center gap-2 p-3 rounded border" style="cursor:pointer;flex:1">
             <input type="radio" name="tipo" value="producto" {% if not obj or obj.tipo == 'producto' %}checked{% endif %}>
             <i class="bi bi-box-seam text-primary" style="font-size:1.2rem"></i>
-            <div><div class="fw-semibold">Producto</div><small class="text-muted">Producto fisico o materia prima</small></div>
+            <div><div class="fw-semibold">Producto</div><small class="text-muted">Producto físico o materia prima</small></div>
           </label>
           <label class="d-flex align-items-center gap-2 p-3 rounded border" style="cursor:pointer;flex:1">
             <input type="radio" name="tipo" value="servicio" {% if obj and obj.tipo == 'servicio' %}checked{% endif %}>
             <i class="bi bi-gear text-success" style="font-size:1.2rem"></i>
-            <div><div class="fw-semibold">Servicio</div><small class="text-muted">Maquila, tercerizacion, logistica, etc.</small></div>
+            <div><div class="fw-semibold">Servicio</div><small class="text-muted">Maquila, tercerización, logística, etc.</small></div>
           </label>
         </div>
       </div>

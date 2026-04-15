@@ -1280,6 +1280,7 @@ class ForoPublicacion(db.Model):
     company_id      = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=False, index=True)
     user_id         = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     tipo            = db.Column(db.String(20), default='producto')  # producto, servicio
+    modalidad       = db.Column(db.String(10), default='vendo')     # vendo, compro
     titulo          = db.Column(db.String(200), nullable=False)
     descripcion     = db.Column(db.Text, nullable=False)
     industria       = db.Column(db.String(100))
@@ -1955,6 +1956,8 @@ def _migrate(conn):
         ("CREATE TABLE IF NOT EXISTS foro_publicaciones (id INTEGER PRIMARY KEY AUTOINCREMENT, company_id INTEGER NOT NULL REFERENCES companies(id), user_id INTEGER NOT NULL REFERENCES users(id), tipo VARCHAR(20) DEFAULT 'producto', titulo VARCHAR(200) NOT NULL, descripcion TEXT NOT NULL, industria VARCHAR(100), imagen_url VARCHAR(500), precio_referencia FLOAT, unidad VARCHAR(50), activo BOOLEAN DEFAULT TRUE, creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP, actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"),
         ("CREATE TABLE IF NOT EXISTS foro_valoraciones (id INTEGER PRIMARY KEY AUTOINCREMENT, proveedor_company_id INTEGER NOT NULL REFERENCES companies(id), cliente_company_id INTEGER NOT NULL REFERENCES companies(id), cliente_user_id INTEGER NOT NULL REFERENCES users(id), publicacion_id INTEGER REFERENCES foro_publicaciones(id), estrellas INTEGER NOT NULL, comentario TEXT, estado VARCHAR(20) DEFAULT 'activa', creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"),
         ("CREATE TABLE IF NOT EXISTS foro_apelaciones (id INTEGER PRIMARY KEY AUTOINCREMENT, valoracion_id INTEGER NOT NULL REFERENCES foro_valoraciones(id), solicitado_por INTEGER NOT NULL REFERENCES users(id), motivo TEXT NOT NULL, estado VARCHAR(30) DEFAULT 'pendiente', notas_admin TEXT, resuelto_por INTEGER REFERENCES users(id), resuelto_en TIMESTAMP, creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"),
+        ("ALTER TABLE foro_publicaciones ADD COLUMN IF NOT EXISTS modalidad VARCHAR(10) DEFAULT 'vendo'"),
+        ("ALTER TABLE foro_publicaciones ADD COLUMN modalidad VARCHAR(10) DEFAULT 'vendo'"),
     ]
     # Execute ALL migrations individually with rollback on each failure
     # This prevents one failed migration from aborting the entire transaction

@@ -11,6 +11,7 @@
   <div class="col-lg-8">
     <div class="fc">
       <div class="d-flex align-items-center gap-2 mb-3">
+        <span class="badge {{ 'bg-info text-dark' if (pub.modalidad or 'vendo') == 'vendo' else 'bg-warning text-dark' }}">{{ 'Ofrezco' if (pub.modalidad or 'vendo') == 'vendo' else 'Necesito' }}</span>
         <span class="badge {{ 'bg-primary' if pub.tipo == 'producto' else 'bg-success' }}">{{ pub.tipo.title() }}</span>
         {% if pub.industria %}<span class="badge bg-secondary">{{ pub.industria }}</span>{% endif %}
         <small class="text-muted ms-auto">{{ pub.creado_en.strftime('%d/%m/%Y') }}</small>
@@ -123,11 +124,16 @@
         {% if ya_relacionado %}
         <a href="{{ url_for('foro_contactar', id=pub.id) }}" class="btn btn-primary btn-sm w-100 mb-2"><i class="bi bi-chat-dots me-1"></i>Chatear</a>
         {% else %}
-        <form method="POST" action="{{ url_for('foro_hacerme_cliente', id=pub.id) }}">
+        <form method="POST" action="{{ url_for('foro_conectar', id=pub.id) }}">
           <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-          <button type="submit" class="btn btn-success btn-sm w-100 mb-2" onclick="return confirm('Esto creará una relación comercial con {{ company.nombre }}. Tu empresa será registrada como su cliente y ellos como tu proveedor.')"><i class="bi bi-link-45deg me-1"></i>Hacerme cliente</button>
+          {% if (pub.modalidad or 'vendo') == 'vendo' %}
+          <button type="submit" class="btn btn-success btn-sm w-100 mb-2" onclick="return confirm('Esto creará una relación comercial con {{ company.nombre }}. Ellos serán tu proveedor y tú su cliente.')"><i class="bi bi-bag-check me-1"></i>Quiero comprar</button>
+          <div class="form-text text-center" style="font-size:.72rem">{{ company.nombre }} será tu proveedor. Se crean tarjetas mutuas y chat.</div>
+          {% else %}
+          <button type="submit" class="btn btn-primary btn-sm w-100 mb-2" onclick="return confirm('Esto creará una relación comercial con {{ company.nombre }}. Tú serás su proveedor y ellos tu cliente.')"><i class="bi bi-truck me-1"></i>Puedo proveer</button>
+          <div class="form-text text-center" style="font-size:.72rem">Tú serás proveedor de {{ company.nombre }}. Se crean tarjetas mutuas y chat.</div>
+          {% endif %}
         </form>
-        <div class="form-text text-center" style="font-size:.72rem">Se crearán tarjetas de cliente y proveedor mutuamente y un canal de chat.</div>
         {% endif %}
       {% endif %}
     </div>

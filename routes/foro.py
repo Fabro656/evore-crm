@@ -32,6 +32,7 @@ def register(app):
         buscar = request.args.get('buscar', '').strip()
         industria_f = request.args.get('industria', '')
         tipo_f = request.args.get('tipo', '')
+        modalidad_f = request.args.get('modalidad', '')
         orden = request.args.get('orden', 'reciente')  # reciente, valoracion
 
         q = ForoPublicacion.query.options(db.joinedload(ForoPublicacion.company)).filter_by(activo=True)
@@ -43,6 +44,8 @@ def register(app):
             q = q.filter_by(industria=industria_f)
         if tipo_f:
             q = q.filter_by(tipo=tipo_f)
+        if modalidad_f:
+            q = q.filter_by(modalidad=modalidad_f)
 
         if orden == 'valoracion':
             # Subquery: avg rating per company
@@ -87,7 +90,7 @@ def register(app):
 
         return render_template('foro/index.html',
             items=pagination.items, pagination=pagination,
-            buscar=buscar, industria_f=industria_f, tipo_f=tipo_f, orden=orden,
+            buscar=buscar, industria_f=industria_f, tipo_f=tipo_f, modalidad_f=modalidad_f, orden=orden,
             ratings=ratings, ventas_count=ventas_count,
             industrias=INDUSTRIAS)
 
@@ -133,6 +136,7 @@ def register(app):
             pub = ForoPublicacion(
                 company_id=my_company_id, user_id=current_user.id,
                 tipo=request.form.get('tipo', 'producto'),
+                modalidad=request.form.get('modalidad', 'vendo'),
                 titulo=titulo, descripcion=descripcion,
                 industria=industria or company.industria,
                 precio_referencia=float(request.form.get('precio_referencia') or 0) or None,
@@ -160,6 +164,7 @@ def register(app):
             pub.titulo = request.form.get('titulo', pub.titulo).strip()
             pub.descripcion = request.form.get('descripcion', pub.descripcion).strip()
             pub.tipo = request.form.get('tipo', pub.tipo)
+            pub.modalidad = request.form.get('modalidad', pub.modalidad)
             pub.industria = request.form.get('industria', pub.industria)
             pub.precio_referencia = float(request.form.get('precio_referencia') or 0) or None
             pub.unidad = request.form.get('unidad', '').strip() or None
@@ -228,14 +233,14 @@ def register(app):
             ya_relacionado=ya_relacionado, ya_valorado=ya_valorado,
             ventas_conf=ventas_conf)
 
-    # ── Hacerme cliente (crea relacion mutua) (/foro/<id>/hacerme-cliente)
-    @app.route('/foro/<int:id>/hacerme-cliente', methods=['POST'])
+    # ── Conectar (crea relacion mutua bimodal) (/foro/<id>/conectar-foro)
+    @app.route('/foro/<int:id>/conectar-foro', methods=['POST'])
     @login_required
-    def foro_hacerme_cliente(id):
+    def foro_conectar(id):
         pub = ForoPublicacion.query.get_or_404(id)
         my_company_id = getattr(g, 'company_id', None)
         if not my_company_id or my_company_id == pub.company_id:
-            flash('No puedes ser cliente de tu propia empresa.', 'warning')
+            flash('No puedes conectar con tu propia empresa.', 'warning')
             return redirect(url_for('foro_ver', id=id))
 
         # Check existing relationship
@@ -247,51 +252,58 @@ def register(app):
                         CompanyRelationship.company_to_id == my_company_id)
             )).first()
         if existing:
-            flash(f'Ya tienes una relacion con {pub.company.nombre}.', 'info')
+            flash(f'Ya tienes una relación con {pub.company.nombre}.', 'info')
             return redirect(url_for('foro_ver', id=id))
 
         my_company = db.session.get(Company, my_company_id)
+        modalidad = getattr(pub, 'modalidad', 'vendo') or 'vendo'
 
-        # I become client → they become my supplier
-        rel_me = CompanyRelationship(
+        # Bimodal logic:
+        # "vendo" → publisher sells, I buy → they're my supplier, I'm their client
+        # "compro" → publisher buys, I sell → I'm their supplier, they're my client
+        if modalidad == 'vendo':
+            rel_tipo = 'proveedor'
+            chat_label = f'Proveedor: {pub.company.nombre}'
+            # I register them as supplier, they register me as client
+            if not (pub.company.nit and Proveedor.query.filter_by(company_id=my_company_id, nit=pub.company.nit).first()):
+                db.session.add(Proveedor(nombre=pub.company.nombre, empresa=pub.company.nombre,
+                                         nit=pub.company.nit or '', activo=True, company_id=my_company_id))
+            if not (my_company.nit and Cliente.query.filter_by(company_id=pub.company_id, nit=my_company.nit).first()):
+                db.session.add(Cliente(nombre=my_company.nombre, empresa=my_company.nombre,
+                                       nit=my_company.nit or '', estado_relacion='cliente_activo',
+                                       estado='activo', company_id=pub.company_id))
+        else:  # compro
+            rel_tipo = 'cliente'
+            chat_label = f'Cliente: {pub.company.nombre}'
+            # I register them as client, they register me as supplier
+            if not (pub.company.nit and Cliente.query.filter_by(company_id=my_company_id, nit=pub.company.nit).first()):
+                db.session.add(Cliente(nombre=pub.company.nombre, empresa=pub.company.nombre,
+                                       nit=pub.company.nit or '', estado_relacion='cliente_activo',
+                                       estado='activo', company_id=my_company_id))
+            if not (my_company.nit and Proveedor.query.filter_by(company_id=pub.company_id, nit=my_company.nit).first()):
+                db.session.add(Proveedor(nombre=my_company.nombre, empresa=my_company.nombre,
+                                         nit=my_company.nit or '', activo=True, company_id=pub.company_id))
+
+        rel = CompanyRelationship(
             company_from_id=my_company_id, company_to_id=pub.company_id,
-            tipo='proveedor', activo=True)
-        db.session.add(rel_me)
+            tipo=rel_tipo, activo=True)
+        db.session.add(rel)
         db.session.flush()
 
         # Create chat room
         chat_room = ChatRoom(
-            company_id=my_company_id, tipo='proveedor',
-            nombre=f'Proveedor: {pub.company.nombre}',
-            company_relationship_id=rel_me.id,
+            company_id=my_company_id, tipo=rel_tipo,
+            nombre=chat_label,
+            company_relationship_id=rel.id,
             creado_por=current_user.id)
         db.session.add(chat_room)
         db.session.flush()
         db.session.add(ChatParticipant(
             room_id=chat_room.id, user_id=current_user.id,
             rol='admin', agregado_por=current_user.id))
-        # Add the publisher to chat
         db.session.add(ChatParticipant(
             room_id=chat_room.id, user_id=pub.user_id,
             rol='admin', agregado_por=current_user.id))
-
-        # Create mutual client/supplier cards
-        # I create them as supplier in my system
-        existing_prov = Proveedor.query.filter_by(
-            company_id=my_company_id, nit=pub.company.nit).first() if pub.company.nit else None
-        if not existing_prov:
-            p = Proveedor(nombre=pub.company.nombre, empresa=pub.company.nombre,
-                          nit=pub.company.nit or '', activo=True, company_id=my_company_id)
-            db.session.add(p)
-
-        # They get me as client in their system
-        existing_cli = Cliente.query.filter_by(
-            company_id=pub.company_id, nit=my_company.nit).first() if my_company.nit else None
-        if not existing_cli:
-            c = Cliente(nombre=my_company.nombre, empresa=my_company.nombre,
-                        nit=my_company.nit or '', estado_relacion='cliente_activo',
-                        estado='activo', company_id=pub.company_id)
-            db.session.add(c)
 
         db.session.commit()
         flash(f'Conexion creada con {pub.company.nombre}. Ya pueden comunicarse por chat.', 'success')

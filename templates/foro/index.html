@@ -31,6 +31,13 @@
         </select>
       </div>
       <div class="col-md-2">
+        <select name="modalidad" class="form-select">
+          <option value="">Ofrecen y necesitan</option>
+          <option value="vendo" {% if modalidad_f == 'vendo' %}selected{% endif %}>Ofrecen</option>
+          <option value="compro" {% if modalidad_f == 'compro' %}selected{% endif %}>Necesitan</option>
+        </select>
+      </div>
+      <div class="col-md-2">
         <select name="orden" class="form-select">
           <option value="reciente" {% if orden == 'reciente' %}selected{% endif %}>Mas reciente</option>
           <option value="valoracion" {% if orden == 'valoracion' %}selected{% endif %}>Mejor valoración</option>
@@ -77,8 +84,9 @@
           {% endif %}
         </div>
         <div class="mb-2">
-          <span class="badge {{ 'bg-primary' if pub.tipo == 'producto' else 'bg-success' }}" style="font-size:.7rem">{{ pub.tipo.title() }}</span>
-          {% if pub.industria %}<span class="badge bg-secondary" style="font-size:.68rem">{{ pub.industria }}</span>{% endif %}
+          <span class="badge {{ 'bg-info text-dark' if (pub.modalidad or 'vendo') == 'vendo' else 'bg-warning text-dark' }}" style="font-size:.65rem">{{ 'Ofrezco' if (pub.modalidad or 'vendo') == 'vendo' else 'Necesito' }}</span>
+          <span class="badge {{ 'bg-primary' if pub.tipo == 'producto' else 'bg-success' }}" style="font-size:.65rem">{{ pub.tipo.title() }}</span>
+          {% if pub.industria %}<span class="badge bg-secondary" style="font-size:.65rem">{{ pub.industria }}</span>{% endif %}
         </div>
         <h6 class="fw-bold mb-1" style="color:var(--text1);font-size:.92rem">{{ pub.titulo }}</h6>
         <p class="text-muted mb-2" style="font-size:.82rem;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">{{ pub.descripcion }}</p>
