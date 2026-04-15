@@ -108,6 +108,15 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;background:rgba(255,255,255,
 .dark .app-tabs button.on{color:#64B5F6;border-bottom-color:#64B5F6}
 .app-view{display:none}.app-view.on{display:grid}
 
+/* ── Feature rows (side by side: mockup + text) ── */
+.fr{display:flex;align-items:center;gap:3.5rem;margin-bottom:4rem}
+.fr:nth-child(even){flex-direction:row-reverse}
+.fr-v{flex:1.1;min-width:0}
+.fr-t{flex:1;min-width:0}
+.fr-t .lb{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--ac);margin-bottom:.5rem}
+.fr-t h3{font-size:clamp(1.3rem,2.5vw,1.7rem);font-weight:700;letter-spacing:-.02em;margin-bottom:.75rem}
+.fr-t p{color:var(--t2);font-size:.92rem;line-height:1.7;font-weight:300;margin-bottom:1.25rem}
+
 /* ── Feature checklist ── */
 .fl{list-style:none;font-size:.88rem;margin:0}
 .fl li{padding:.4rem 0;display:flex;align-items:flex-start;gap:.6rem;color:var(--t2)}
@@ -134,7 +143,8 @@ footer a{color:var(--t2);margin:0 .75rem}footer a:hover{color:var(--t)}
 
 /* ── Mobile ── */
 @media(max-width:900px){
-  .n-links{display:none}.n-logo{position:static}.n-cta{position:static}.n-top{justify-content:space-between}
+  .n-links{display:none}.n-cta{margin-left:auto}.n-top{justify-content:space-between}
+  .fr,.fr:nth-child(even){flex-direction:column;gap:2rem;margin-bottom:3rem}
   .feat{grid-template-columns:1fr;min-height:auto}
   .feat-txt{padding:2.5rem 1.5rem}
   .feat-vis{padding:1.5rem;min-height:350px}
