@@ -149,7 +149,15 @@ function renderCanvas(){
   container.innerHTML='';
   NODES.forEach(function(n){
     var el=document.createElement('div');
+    var isPendingDel=n._pendingDelete||false;
     el.className='dg-node on-canvas'+(_selCanvas&&_selCanvas.id===n.id?' selected-canvas':'')+(_connectMode?' connect-target':'');
+    if(isPendingDel) el.style.background='#E53935';el.style.opacity=isPendingDel?'.6':'';
+    // Connected nodes also red if parent fase is pending delete
+    var connectedToDelFase=false;
+    Object.keys(_pendingDelete).forEach(function(nid){
+      EDGES.forEach(function(e){if(e.from===parseInt(nid)&&e.to===n.id) connectedToDelFase=true;if(e.to===parseInt(nid)&&e.from===n.id) connectedToDelFase=true;});
+    });
+    if(connectedToDelFase&&!isPendingDel){el.style.outline='2px solid #E53935';el.style.outlineOffset='2px';}
     el.dataset.tipo=n.tipo; el.dataset.nid=n.id;
     el.style.left=n.x+'px'; el.style.top=n.y+'px';
     var pptoLabel=n.presupuesto?'<div class="dg-sub">$'+Math.round(n.presupuesto).toLocaleString('es-CO')+'</div>':'';
@@ -259,14 +267,21 @@ function duplicateSelected(){
 
 function deleteFromCanvas(){
   if(_selCanvas){
+    // Prevent deleting original fases
+    if(_selCanvas.ref_tipo==='fase'&&_selCanvas.ref_id&&!_selCanvas.is_copy){
+      startFaseElimination(_selCanvas);return;
+    }
+    // If real objetivo, also delete from DB
+    if(_selCanvas.ref_tipo==='objetivo'&&_selCanvas.ref_id){
+      if(!confirm('Eliminar objetivo "'+_selCanvas.label+'" del proyecto?'))return;
+      fetch('/api/proyectos/diagrama/eliminar-objetivo',{
+        method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrf},
+        body:JSON.stringify({objetivo_id:_selCanvas.ref_id})
+      });
+    }
     EDGES=EDGES.filter(e=>e.from!==_selCanvas.id&&e.to!==_selCanvas.id);
     NODES=NODES.filter(n=>n.id!==_selCanvas.id);
     _selCanvas=null;
-    renderCanvas();renderLibrary();
-  } else if(_selLib){
-    var onCanvas=NODES.find(n=>n.lib_id===_selLib.id);
-    if(onCanvas){EDGES=EDGES.filter(e=>e.from!==onCanvas.id&&e.to!==onCanvas.id);NODES=NODES.filter(n=>n.id!==onCanvas.id);}
-    _selLib=null;
     renderCanvas();renderLibrary();
   }
 }
@@ -351,11 +366,30 @@ function showNodeMenu(e,node){
     }});
   }
   items.push({icon:'bi-copy',label:'Duplicar',fn:function(){_selLib={id:node.lib_id};duplicateSelected();closeNodeMenu();}});
-  items.push({icon:'bi-trash text-danger',label:'Eliminar del canvas',cls:'text-danger',fn:function(){
-    EDGES=EDGES.filter(ed=>ed.from!==node.id&&ed.to!==node.id);
-    NODES=NODES.filter(nd=>nd.id!==node.id);
-    _selCanvas=null;closeNodeMenu();renderCanvas();renderLibrary();
-  }});
+
+  var isOriginalFase = node.ref_tipo==='fase' && node.ref_id && !node.is_copy;
+  if(isOriginalFase){
+    // Original fases can't be deleted from canvas, but can start elimination workflow
+    items.push({icon:'bi-trash text-danger',label:'Eliminar fase del proyecto',cls:'text-danger',fn:function(){
+      closeNodeMenu();
+      startFaseElimination(node);
+    }});
+  } else {
+    // Everything else can be deleted from canvas
+    items.push({icon:'bi-trash text-danger',label:'Eliminar del canvas',cls:'text-danger',fn:function(){
+      // If it's a real objetivo, also delete from DB
+      if(node.ref_tipo==='objetivo'&&node.ref_id){
+        if(!confirm('Eliminar objetivo "'+node.label+'" del proyecto?'))return;
+        fetch('/api/proyectos/diagrama/eliminar-objetivo',{
+          method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrf},
+          body:JSON.stringify({objetivo_id:node.ref_id})
+        });
+      }
+      EDGES=EDGES.filter(ed=>ed.from!==node.id&&ed.to!==node.id);
+      NODES=NODES.filter(nd=>nd.id!==node.id);
+      _selCanvas=null;closeNodeMenu();renderCanvas();renderLibrary();
+    }});
+  }
   items.forEach(function(it){
     var btn=document.createElement('div');
     btn.style.cssText='padding:6px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .1s';
@@ -369,6 +403,121 @@ function showNodeMenu(e,node){
   document.getElementById('dgNodes').appendChild(menu);
 }
 function closeNodeMenu(){var m=document.getElementById('nodeMenu');if(m)m.remove();}
+
+// ── Fase elimination workflow ──
+var _pendingDelete={}; // {faseNodeId: {fase_id, objetivos:[], tareas:[]}}
+
+function startFaseElimination(node){
+  fetch('/api/proyectos/diagrama/marcar-eliminar-fase',{
+    method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrf},
+    body:JSON.stringify({fase_id:node.ref_id})
+  }).then(r=>r.json()).then(function(d){
+    if(!d.ok){alert(d.error);return;}
+    if(!d.objetivos.length&&!d.tareas.length){
+      // No children — delete immediately
+      if(confirm('Eliminar fase "'+d.nombre+'"? No tiene objetivos ni tareas.')){
+        deleteFaseNow(node,d.fase_id);
+      }
+      return;
+    }
+    // Mark for pending deletion
+    node._pendingDelete=true;
+    _pendingDelete[node.id]={fase_id:d.fase_id,nombre:d.nombre,objetivos:d.objetivos,tareas:d.tareas};
+    renderCanvas();
+    showReassignPanel(node.id);
+  });
+}
+
+function showReassignPanel(nodeId){
+  var info=_pendingDelete[nodeId]; if(!info)return;
+  var otherFases=DB_FASES.filter(function(f){return f.id!==info.fase_id;});
+  var panel=document.getElementById('nodeMenu');if(panel)panel.remove();
+  var el=document.createElement('div');el.id='nodeMenu';
+  var node=NODES.find(function(n){return n.id===nodeId;});
+  el.style.cssText='position:absolute;left:'+(node?node.x+140:200)+'px;top:'+(node?node.y:100)+'px;background:var(--surface);border:2px solid #E53935;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.2);z-index:100;width:300px;padding:12px;font-size:.82rem';
+  var html='<div style="font-weight:700;color:#E53935;margin-bottom:8px"><i class="bi bi-exclamation-triangle me-1"></i>Eliminar fase: '+info.nombre+'</div>';
+  html+='<div style="color:var(--text2);font-size:.75rem;margin-bottom:8px">Reasigna o elimina cada elemento. La fase se eliminara cuando quede vacia.</div>';
+  info.objetivos.forEach(function(o){
+    var opts=otherFases.map(function(f){return '<option value="'+f.id+'">'+f.nombre+'</option>';}).join('');
+    html+='<div class="d-flex gap-1 align-items-center mb-1" id="reassign-o-'+o.id+'">'
+      +'<span style="flex:1;font-size:.78rem" title="'+o.titulo+'">'+o.titulo.substring(0,25)+(o.titulo.length>25?'...':'')+'</span>'
+      +'<select class="form-select form-select-sm" style="width:auto;font-size:.7rem;padding:1px 20px 1px 4px" onchange="reassignObj('+o.id+',this.value,'+nodeId+')"><option value="">Mover a...</option>'+opts+'</select>'
+      +'<button class="btn btn-sm btn-outline-danger" style="font-size:.6rem;padding:0 4px" onclick="deleteObj('+o.id+','+nodeId+')"><i class="bi bi-x"></i></button>'
+      +'</div>';
+  });
+  if(info.tareas.length){
+    html+='<div style="font-size:.7rem;color:var(--text2);margin-top:4px"><i class="bi bi-exclamation-circle me-1"></i>'+info.tareas.length+' tarea(s) se moveran a "Sin fase"</div>';
+  }
+  html+='<div class="d-flex gap-1 mt-2"><button class="btn btn-sm btn-outline-secondary" style="font-size:.72rem" onclick="cancelFaseDelete('+nodeId+')">Cancelar</button></div>';
+  el.innerHTML=html;
+  document.getElementById('dgNodes').appendChild(el);
+}
+
+function reassignObj(objId,newFaseId,nodeId){
+  if(!newFaseId)return;
+  fetch('/api/proyectos/diagrama/reasignar-objetivo',{
+    method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrf},
+    body:JSON.stringify({objetivo_id:objId,nueva_fase_id:newFaseId})
+  }).then(r=>r.json()).then(function(d){
+    if(d.ok){
+      var el=document.getElementById('reassign-o-'+objId);if(el)el.innerHTML='<span style="color:var(--green);font-size:.75rem"><i class="bi bi-check me-1"></i>Movido</span>';
+      // Also move canvas node
+      var cn=NODES.find(function(n){return n.ref_tipo==='objetivo'&&n.ref_id===objId;});
+      if(cn)cn.fase_id=parseInt(newFaseId);
+      // Remove from pending
+      var info=_pendingDelete[nodeId];
+      if(info)info.objetivos=info.objetivos.filter(function(o){return o.id!==objId;});
+      checkAutoDelete(nodeId);
+    }
+  });
+}
+
+function deleteObj(objId,nodeId){
+  fetch('/api/proyectos/diagrama/eliminar-objetivo',{
+    method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrf},
+    body:JSON.stringify({objetivo_id:objId})
+  }).then(r=>r.json()).then(function(d){
+    if(d.ok){
+      var el=document.getElementById('reassign-o-'+objId);if(el)el.innerHTML='<span style="color:var(--red);font-size:.75rem"><i class="bi bi-x me-1"></i>Eliminado</span>';
+      // Remove canvas node
+      var cn=NODES.find(function(n){return n.ref_tipo==='objetivo'&&n.ref_id===objId;});
+      if(cn){EDGES=EDGES.filter(function(e){return e.from!==cn.id&&e.to!==cn.id;});NODES=NODES.filter(function(n){return n.id!==cn.id;});}
+      var info=_pendingDelete[nodeId];
+      if(info)info.objetivos=info.objetivos.filter(function(o){return o.id!==objId;});
+      checkAutoDelete(nodeId);
+    }
+  });
+}
+
+function checkAutoDelete(nodeId){
+  var info=_pendingDelete[nodeId];
+  if(!info||info.objetivos.length>0)return;
+  // All objetivos handled — delete fase
+  setTimeout(function(){deleteFaseNow(NODES.find(function(n){return n.id===nodeId;}),info.fase_id);},500);
+}
+
+function deleteFaseNow(node,faseId){
+  fetch('/api/proyectos/diagrama/eliminar-fase',{
+    method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrf},
+    body:JSON.stringify({fase_id:faseId})
+  }).then(r=>r.json()).then(function(d){
+    if(d.ok){
+      if(node){EDGES=EDGES.filter(function(e){return e.from!==node.id&&e.to!==node.id;});NODES=NODES.filter(function(n){return n.id!==node.id;});}
+      delete _pendingDelete[node?node.id:0];
+      delete FASES[faseId];
+      showStatus('Fase "'+d.nombre+'" eliminada');
+      closeNodeMenu();renderCanvas();renderLibrary();
+      saveDiagram();
+    } else {alert(d.error);}
+  });
+}
+
+function cancelFaseDelete(nodeId){
+  var node=NODES.find(function(n){return n.id===nodeId;});
+  if(node)delete node._pendingDelete;
+  delete _pendingDelete[nodeId];
+  closeNodeMenu();renderCanvas();
+}
 
 function saveDiagram(){
   // Save copies separately (library rebuilds from DB each load)

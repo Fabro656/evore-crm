@@ -1197,3 +1197,68 @@ def register(app):
                 db.session.commit()
                 return jsonify({'ok': True})
         return jsonify({'error': 'Entidad no encontrada'}), 404
+
+    @app.route('/api/proyectos/diagrama/marcar-eliminar-fase', methods=['POST'])
+    @login_required
+    def api_diagrama_marcar_eliminar_fase():
+        """Mark a fase for deletion. Returns connected objetivos for reassignment."""
+        if not _requiere_proyecto_access():
+            return jsonify({'error': 'Acceso denegado'}), 403
+        fase_id = request.json.get('fase_id')
+        f = db.session.get(ProyectoFase, int(fase_id))
+        if not f:
+            return jsonify({'error': 'Fase no encontrada'}), 404
+        objs = [{'id': o.id, 'titulo': o.titulo, 'presupuesto': o.presupuesto or 0} for o in f.objetivos]
+        tareas = [{'id': t.id, 'titulo': t.titulo} for t in f.tareas]
+        return jsonify({'ok': True, 'fase_id': f.id, 'nombre': f.nombre,
+                        'objetivos': objs, 'tareas': tareas})
+
+    @app.route('/api/proyectos/diagrama/reasignar-objetivo', methods=['POST'])
+    @login_required
+    def api_diagrama_reasignar_objetivo():
+        """Move an objetivo to a different fase."""
+        if not _requiere_proyecto_access():
+            return jsonify({'error': 'Acceso denegado'}), 403
+        obj_id = request.json.get('objetivo_id')
+        nueva_fase_id = request.json.get('nueva_fase_id')
+        o = db.session.get(ProyectoObjetivo, int(obj_id))
+        if not o:
+            return jsonify({'error': 'Objetivo no encontrado'}), 404
+        o.fase_id = int(nueva_fase_id)
+        db.session.commit()
+        return jsonify({'ok': True})
+
+    @app.route('/api/proyectos/diagrama/eliminar-fase', methods=['POST'])
+    @login_required
+    def api_diagrama_eliminar_fase():
+        """Delete a fase only if it has no objetivos or tareas left."""
+        if not _requiere_proyecto_access():
+            return jsonify({'error': 'Acceso denegado'}), 403
+        fase_id = request.json.get('fase_id')
+        f = db.session.get(ProyectoFase, int(fase_id))
+        if not f:
+            return jsonify({'error': 'Fase no encontrada'}), 404
+        if f.objetivos:
+            return jsonify({'error': f'La fase aun tiene {len(f.objetivos)} objetivo(s). Reasignalos primero.'}), 400
+        if f.tareas:
+            return jsonify({'error': f'La fase aun tiene {len(f.tareas)} tarea(s). Reasignalas primero.'}), 400
+        pid = f.proyecto_id
+        nombre = f.nombre
+        db.session.delete(f)
+        _log('eliminar', 'fase', fase_id, f'Fase eliminada desde diagrama: {nombre}')
+        db.session.commit()
+        return jsonify({'ok': True, 'nombre': nombre})
+
+    @app.route('/api/proyectos/diagrama/eliminar-objetivo', methods=['POST'])
+    @login_required
+    def api_diagrama_eliminar_objetivo():
+        """Delete an objetivo."""
+        if not _requiere_proyecto_access():
+            return jsonify({'error': 'Acceso denegado'}), 403
+        obj_id = request.json.get('objetivo_id')
+        o = db.session.get(ProyectoObjetivo, int(obj_id))
+        if not o:
+            return jsonify({'error': 'Objetivo no encontrado'}), 404
+        db.session.delete(o)
+        db.session.commit()
+        return jsonify({'ok': True})
