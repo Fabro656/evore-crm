@@ -150,6 +150,10 @@ posthog.init('{{ config.POSTHOG_KEY }}',{api_host:'https://us.i.posthog.com',per
     <a href="{{ url_for('capacitacion_index') }}" class="nav-link {% if 'capacitacion' in (request.endpoint or '') %}active" aria-current="page{% endif %}" data-tip="Capacitacion" aria-label="Capacitacion"><i class="bi bi-mortarboard-fill"></i><span>Capacitacion</span></a>
     <a href="{{ url_for('wiki') }}" class="nav-link {% if request.endpoint=='wiki' %}active" aria-current="page{% endif %}" data-tip="Wiki" aria-label="Wiki" data-dock-panel="wiki_page"><i class="bi bi-book"></i><span>Wiki</span></a>
     <a href="{{ url_for('buscador') }}" class="nav-link {% if request.endpoint=='buscador' %}active" aria-current="page{% endif %}" data-tip="Buscador" aria-label="Buscador" data-dock-panel="buscador"><i class="bi bi-search"></i><span>Buscador</span></a>
+    {# ── Proyectos ── #}
+    {% if rol_activo in ('admin','director_financiero','director_operativo') %}
+    <a href="{{ url_for('proyectos_index') }}" class="nav-link {% if 'proyecto' in (request.endpoint or '') %}active" aria-current="page{% endif %}" data-tip="Proyectos" aria-label="Proyectos"><i class="bi bi-kanban-fill"></i><span>Proyectos</span></a>
+    {% endif %}
     {# ── Admin ── #}
     {% if rol_activo in ('admin','director_financiero') %}
     <a href="#" class="nav-link dock-group" data-tip="Admin" aria-label="Admin" data-dock-panel="admin"><i class="bi bi-shield-lock-fill"></i><span>Admin</span></a>

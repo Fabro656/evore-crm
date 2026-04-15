@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date as date_type
 import json, secrets, os, logging
 
-__all__ = ['Company', 'UserCompany', 'ChatRoom', 'ChatParticipant', 'ChatMessage', 'User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'MovimientoBancario', 'NotaContable', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'MovimientoInventario', 'Notificacion', 'Empleado', 'HoraExtra', 'Comision', 'Incapacidad', 'VacacionTomada', 'Requisicion', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'HistorialPrecio', 'HistorialCotizacion', 'CompanyRelationship', 'Suscripcion', 'ForoPublicacion', 'ForoValoracion', 'ForoApelacion', 'ForoBanner', 'CapCurso', 'CapLeccion', 'CapPregunta', 'CapProgreso', 'CapEvaluacion', 'load_user', '_migrate', 'init_db']
+__all__ = ['Company', 'UserCompany', 'ChatRoom', 'ChatParticipant', 'ChatMessage', 'User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'MovimientoBancario', 'NotaContable', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'MovimientoInventario', 'Notificacion', 'Empleado', 'HoraExtra', 'Comision', 'Incapacidad', 'VacacionTomada', 'Requisicion', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'HistorialPrecio', 'HistorialCotizacion', 'CompanyRelationship', 'Suscripcion', 'ForoPublicacion', 'ForoValoracion', 'ForoApelacion', 'ForoBanner', 'CapCurso', 'CapLeccion', 'CapPregunta', 'CapProgreso', 'CapEvaluacion', 'Proyecto', 'ProyectoFase', 'ProyectoTarea', 'ProyectoComentario', 'ProyectoGasto', 'load_user', '_migrate', 'init_db']
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -1362,6 +1362,116 @@ class Suscripcion(db.Model):
     creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
     creado_por      = db.Column(db.Integer, nullable=True)
     company         = db.relationship('Company', backref=db.backref('suscripciones', lazy=True))
+
+
+# ══════════════════════════════════════════════════════════════════
+# PROYECTOS (Project Management — Jira/Notion style)
+# ══════════════════════════════════════════════════════════════════
+
+class Proyecto(db.Model):
+    __tablename__ = 'proyectos'
+    id              = db.Column(db.Integer, primary_key=True)
+    company_id      = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
+    codigo          = db.Column(db.String(20))  # PRY-001
+    nombre          = db.Column(db.String(200), nullable=False)
+    descripcion     = db.Column(db.Text)
+    estado          = db.Column(db.String(20), default='planificacion', index=True)
+    # planificacion, en_progreso, pausado, completado, cancelado
+    prioridad       = db.Column(db.String(10), default='media')
+    color           = db.Column(db.String(7), default='#0176D3')  # hex for kanban
+    fecha_inicio    = db.Column(db.Date)
+    fecha_fin       = db.Column(db.Date)
+    presupuesto     = db.Column(db.Float, default=0)
+    responsable_id  = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    # Vinculacion con entidades del CRM
+    cliente_id      = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=True)
+    etiquetas       = db.Column(db.Text, default='[]')  # JSON: ["lanzamiento","urgente"]
+    creado_por      = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
+    # Relationships
+    responsable     = db.relationship('User', foreign_keys=[responsable_id])
+    creador         = db.relationship('User', foreign_keys=[creado_por])
+    cliente         = db.relationship('Cliente', foreign_keys=[cliente_id])
+    fases           = db.relationship('ProyectoFase', backref='proyecto', lazy=True,
+                                       order_by='ProyectoFase.orden', cascade='all, delete-orphan')
+    gastos          = db.relationship('ProyectoGasto', backref='proyecto', lazy=True,
+                                       cascade='all, delete-orphan')
+
+class ProyectoFase(db.Model):
+    __tablename__ = 'proyecto_fases'
+    id              = db.Column(db.Integer, primary_key=True)
+    proyecto_id     = db.Column(db.Integer, db.ForeignKey('proyectos.id'), nullable=False, index=True)
+    nombre          = db.Column(db.String(200), nullable=False)
+    descripcion     = db.Column(db.Text)
+    orden           = db.Column(db.Integer, default=0)
+    estado          = db.Column(db.String(20), default='pendiente')
+    # pendiente, en_progreso, completada
+    fecha_inicio    = db.Column(db.Date)
+    fecha_fin       = db.Column(db.Date)
+    color           = db.Column(db.String(7), default='#6B7280')
+    tareas          = db.relationship('ProyectoTarea', backref='fase', lazy=True,
+                                       order_by='ProyectoTarea.orden', cascade='all, delete-orphan')
+
+class ProyectoTarea(db.Model):
+    __tablename__ = 'proyecto_tareas'
+    id              = db.Column(db.Integer, primary_key=True)
+    company_id      = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
+    proyecto_id     = db.Column(db.Integer, db.ForeignKey('proyectos.id'), nullable=False, index=True)
+    fase_id         = db.Column(db.Integer, db.ForeignKey('proyecto_fases.id'), nullable=True, index=True)
+    titulo          = db.Column(db.String(300), nullable=False)
+    descripcion     = db.Column(db.Text)
+    estado          = db.Column(db.String(20), default='por_hacer', index=True)
+    # por_hacer, en_progreso, en_revision, completada
+    prioridad       = db.Column(db.String(10), default='media')
+    tipo            = db.Column(db.String(30), default='tarea')
+    # tarea, compra, legal, finanzas, produccion, logistica
+    orden           = db.Column(db.Integer, default=0)
+    responsable_id  = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    fecha_inicio    = db.Column(db.Date)
+    fecha_limite    = db.Column(db.Date)
+    estimacion_hrs  = db.Column(db.Float, default=0)
+    progreso        = db.Column(db.Integer, default=0)  # 0-100
+    # ── Vinculos a entidades del CRM ──
+    venta_id        = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=True)
+    orden_compra_id = db.Column(db.Integer, db.ForeignKey('ordenes_compra.id'), nullable=True)
+    orden_produccion_id = db.Column(db.Integer, db.ForeignKey('ordenes_produccion.id'), nullable=True)
+    gasto_id        = db.Column(db.Integer, db.ForeignKey('gastos_operativos.id'), nullable=True)
+    documento_legal_id = db.Column(db.Integer, db.ForeignKey('documentos_legales.id'), nullable=True)
+    tarea_id        = db.Column(db.Integer, db.ForeignKey('tareas.id'), nullable=True)  # ticket generado
+    etiquetas       = db.Column(db.Text, default='[]')
+    creado_por      = db.Column(db.Integer, db.ForeignKey('users.id'))
+    creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
+    completado_en   = db.Column(db.DateTime, nullable=True)
+    # Relationships
+    responsable     = db.relationship('User', foreign_keys=[responsable_id])
+    creador         = db.relationship('User', foreign_keys=[creado_por])
+    venta           = db.relationship('Venta', foreign_keys=[venta_id])
+    orden_compra    = db.relationship('OrdenCompra', foreign_keys=[orden_compra_id])
+    orden_produccion = db.relationship('OrdenProduccion', foreign_keys=[orden_produccion_id])
+    gasto           = db.relationship('GastoOperativo', foreign_keys=[gasto_id])
+    documento_legal = db.relationship('DocumentoLegal', foreign_keys=[documento_legal_id])
+    ticket          = db.relationship('Tarea', foreign_keys=[tarea_id])
+    comentarios     = db.relationship('ProyectoComentario', backref='tarea_proy', lazy=True,
+                                       order_by='ProyectoComentario.creado_en', cascade='all, delete-orphan')
+
+class ProyectoComentario(db.Model):
+    __tablename__ = 'proyecto_comentarios'
+    id              = db.Column(db.Integer, primary_key=True)
+    tarea_id        = db.Column(db.Integer, db.ForeignKey('proyecto_tareas.id'), nullable=False, index=True)
+    autor_id        = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    mensaje         = db.Column(db.Text, nullable=False)
+    creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
+    autor           = db.relationship('User', foreign_keys=[autor_id])
+
+class ProyectoGasto(db.Model):
+    """Gasto vinculado a un proyecto — referencia a GastoOperativo."""
+    __tablename__ = 'proyecto_gastos'
+    id              = db.Column(db.Integer, primary_key=True)
+    proyecto_id     = db.Column(db.Integer, db.ForeignKey('proyectos.id'), nullable=False, index=True)
+    gasto_id        = db.Column(db.Integer, db.ForeignKey('gastos_operativos.id'), nullable=False)
+    descripcion     = db.Column(db.String(200))
+    creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
+    gasto           = db.relationship('GastoOperativo', foreign_keys=[gasto_id])
 
 
 # ══════════════════════════════════════════════════════════════════
