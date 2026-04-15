@@ -207,7 +207,10 @@
         <div class="d-flex align-items-center justify-content-between mb-1">
           <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)"><i class="bi bi-check2-all me-1"></i>Objetivos {% if obj_total %}({{ obj_done }}/{{ obj_total }}){% endif %}</div>
           <div class="d-flex align-items-center gap-2">
-            {% if obj_ppto %}<span style="font-size:.7rem;color:var(--text2)">Ppto obj: {{ moneda(obj_ppto) }}</span>{% endif %}
+            {% if obj_ppto %}
+            {% set ppto_excedido = obj_ppto > (fase.presupuesto or 0) and fase.presupuesto %}
+            <span style="font-size:.7rem;color:{% if ppto_excedido %}var(--red);font-weight:700{% else %}var(--text2){% endif %}">Obj: {{ moneda(obj_ppto) }}{% if ppto_excedido %} > Fase: {{ moneda(fase.presupuesto) }}{% endif %}</span>
+            {% endif %}
             {% if obj_total %}
             <div style="width:60px;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden"><div style="width:{{ (obj_done/obj_total*100)|round if obj_total else 0 }}%;height:100%;background:{% if obj_done==obj_total %}var(--green){% else %}var(--ac){% endif %};border-radius:2px"></div></div>
             {% endif %}
@@ -360,7 +363,9 @@
       </div>
       <div class="row g-2 mb-2">
         <div class="col-6"><label class="form-label form-label-sm">Color</label><input type="color" name="color" class="form-control form-control-color form-control-sm" value="{{ fase.color or '#6B7280' }}"></div>
-        <div class="col-6"><label class="form-label form-label-sm">Presupuesto <small class="text-muted">(solo incrementar)</small></label><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="number" name="presupuesto" class="form-control" step="1" min="{{ fase.presupuesto|int }}" value="{{ fase.presupuesto|int }}"></div></div>
+        {% set obj_ppto_fase = fase.objetivos|sum(attribute='presupuesto') %}
+        <div class="col-6"><label class="form-label form-label-sm">Presupuesto</label><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="number" name="presupuesto" class="form-control" step="1" min="0" value="{{ fase.presupuesto|int }}"></div>
+        {% if obj_ppto_fase %}<div class="form-text" style="font-size:.65rem">Objetivos suman: {{ moneda(obj_ppto_fase) }}</div>{% endif %}</div>
       </div>
       <div class="mb-2"><label class="form-label form-label-sm">Miembros del equipo</label>
         <div class="border rounded p-2" style="max-height:150px;overflow-y:auto">

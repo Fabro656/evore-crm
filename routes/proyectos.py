@@ -235,9 +235,6 @@ def register(app):
         f = ProyectoFase.query.get_or_404(fid)
         p = Proyecto.query.get_or_404(f.proyecto_id)
         nuevo_ppto = float(request.form.get('presupuesto') or 0)
-        # Only allow increase, never decrease
-        if nuevo_ppto < (f.presupuesto or 0):
-            nuevo_ppto = f.presupuesto or 0
         # Validate budget: exclude current phase from sum
         asignado_otras = sum(fa.presupuesto or 0 for fa in p.fases if fa.id != fid)
         disponible = (p.presupuesto or 0) - asignado_otras
