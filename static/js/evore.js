@@ -853,24 +853,57 @@ function showChatNotif(msg){
 pollChatUnread();
 setInterval(pollChatUnread, 10000);
 
-// ── Block from line 2643 ──
-// ── PWA Install button in header ──
+// ── PWA Install / Open button ──
 var _deferredInstall=null;
-// Hide if already in standalone mode (installed PWA)
-if(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone){
-  var _b=document.getElementById('pwaInstallBtn'); if(_b) _b.style.display='none';
-}
+var _pwaIsStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+var _pwaWasInstalled = localStorage.getItem('evore_pwa_installed')==='1';
+(function(){
+  var btn = document.getElementById('pwaInstallBtn');
+  if(!btn) return;
+  if(_pwaIsStandalone){
+    // Running inside installed app — no button needed
+    localStorage.setItem('evore_pwa_installed','1');
+    btn.style.display='none';
+  } else if(_pwaWasInstalled){
+    // Installed but user is in browser — show "Abrir App"
+    btn.innerHTML='<i class="bi bi-box-arrow-up-right"></i>Abrir App';
+    btn.style.display='';
+    btn.style.background='var(--green)';
+    btn.onclick=function(){ window.location.href=location.origin+'/dashboard'; };
+  }
+})();
 window.addEventListener('beforeinstallprompt',function(e){
   e.preventDefault(); _deferredInstall=e;
-  // Only show if NOT already installed
-  if(!window.matchMedia('(display-mode: standalone)').matches && !window.navigator.standalone){
+  if(!_pwaIsStandalone && !_pwaWasInstalled){
     var btn=document.getElementById('pwaInstallBtn');
-    if(btn) btn.style.display='';
+    if(btn){
+      btn.innerHTML='<i class="bi bi-download"></i>Instalar App';
+      btn.onclick=pwaInstall;
+      btn.style.display='';
+      btn.style.background='var(--ac)';
+    }
+  }
+});
+window.addEventListener('appinstalled',function(){
+  localStorage.setItem('evore_pwa_installed','1');
+  _pwaWasInstalled=true; _deferredInstall=null;
+  var btn=document.getElementById('pwaInstallBtn');
+  if(btn){
+    btn.innerHTML='<i class="bi bi-check-circle"></i>Instalada';
+    btn.style.background='var(--green)';
+    setTimeout(function(){
+      btn.innerHTML='<i class="bi bi-box-arrow-up-right"></i>Abrir App';
+      btn.onclick=function(){ window.location.href=location.origin+'/dashboard'; };
+    },2000);
   }
 });
 function pwaInstall(){
-  if(_deferredInstall){_deferredInstall.prompt();_deferredInstall.userChoice.then(function(){
-    document.getElementById('pwaInstallBtn').style.display='none';_deferredInstall=null;
+  if(_deferredInstall){_deferredInstall.prompt();_deferredInstall.userChoice.then(function(r){
+    if(r.outcome==='accepted'){
+      localStorage.setItem('evore_pwa_installed','1');
+      _pwaWasInstalled=true;
+    }
+    _deferredInstall=null;
   });}
 }
 
