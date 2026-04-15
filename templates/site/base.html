@@ -30,7 +30,8 @@ a{text-decoration:none;color:inherit}img{max-width:100%;height:auto}
 /* ── Nav: single row, logo+modules left, CTA right ── */
 nav{position:fixed;top:0;left:0;right:0;z-index:200;background:rgba(255,255,255,.72);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid rgba(0,0,0,.06)}
 .n-top{display:flex;align-items:center;padding:.5rem 2rem;gap:0;max-width:1440px;margin:0 auto}
-.n-logo{height:18px;margin-right:1.5rem;flex-shrink:0}
+.n-logo{margin-right:1.5rem;flex-shrink:0;display:flex;align-items:center}
+.n-logo img{height:16px;display:block}
 .n-links{display:flex;gap:1.1rem;font-size:.78rem;font-weight:400;color:var(--t2);align-items:center;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .n-links::-webkit-scrollbar{display:none}
 .n-links a{white-space:nowrap}
@@ -148,7 +149,7 @@ footer a{color:var(--t2);margin:0 .75rem}footer a:hover{color:var(--t)}
 <!-- Nav: centered links, logo left, CTA right -->
 <nav>
   <div class="n-top">
-    <a href="/inicio" class="n-logo"><img src="/static/img/evore-logo-blue.svg" alt="Evore" style="height:20px"></a>
+    <a href="/inicio" class="n-logo"><img src="/static/img/evore-logo-blue.svg" alt="Evore"></a>
     <div class="n-links">
       <a href="/modulo/ventas" {% if active_module=='ventas' %}class="on"{% endif %}>Ventas</a>
       <a href="/modulo/produccion" {% if active_module=='produccion' %}class="on"{% endif %}>Producción</a>
