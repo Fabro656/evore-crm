@@ -169,10 +169,10 @@ function onProvChange(){
       }
       var html='';
       data.forEach(function(c){
-        var badge = c.estado==='en_revision' ? ' <span class="badge bg-warning text-dark" style="font-size:.6rem">En revisión</span>' : '';
+        var badge = c.estado==='en_revision' ? ' <span class="badge bg-warning text-dark" style="font-size:.6rem">En revision</span>' : '';
         var sinProv = c.sin_proveedor ? ' <span class="badge bg-light text-secondary" style="font-size:.6rem">Sin proveedor</span>' : '';
         html+='<div class="form-check mb-1">'
-          +'<input class="form-check-input cot-check" type="checkbox" value="'+c.id+'" id="cot_'+c.id+'" data-idx="'+c.id+'">'
+          +'<input class="form-check-input cot-check" type="checkbox" value="'+c.id+'" id="cot_'+c.id+'" data-idx="'+c.id+'" onchange="onCotCheckChange(this)">'
           +'<label class="form-check-label small" for="cot_'+c.id+'">'
           +'<strong>'+c.nombre_producto+'</strong>'
           +' <span class="text-muted">'+(c.numero||'')+'</span>'
@@ -190,11 +190,10 @@ function onProvChange(){
     });
 }
 
-function agregarCotizacionesSeleccionadas(){
-  var checks = document.querySelectorAll('.cot-check:checked');
-  if(checks.length===0){alert('Selecciona al menos una cotizacion.');return;}
-  checks.forEach(function(chk){
-    var cotId = parseInt(chk.value);
+function onCotCheckChange(chk){
+  var cotId = parseInt(chk.value);
+  if(chk.checked){
+    // Add item automatically
     var c = cotizacionesData.find(function(x){return x.id===cotId;});
     if(!c) return;
     addItem({
@@ -205,8 +204,7 @@ function agregarCotizacionesSeleccionadas(){
       precio: c.precio_unitario || 0,
       cot_id: c.id
     });
-    chk.checked=false;
-    // Calcular fecha entrega si tiene plazo
+    // Auto-set delivery date from plazo
     if(c.plazo_entrega_dias > 0){
       var feVal=document.getElementById('fechaEmision').value;
       if(feVal){
@@ -219,7 +217,30 @@ function agregarCotizacionesSeleccionadas(){
         }
       }
     }
-  });
+  } else {
+    // Remove item by cot_id
+    document.querySelectorAll('.oc-row').forEach(function(row){
+      var h = row.querySelector('input[name="item_cot_id[]"]');
+      if(h && parseInt(h.value) === cotId) row.remove();
+    });
+    recalc();
+  }
+}
+
+function agregarCotizacionesSeleccionadas(){
+  var checks = document.querySelectorAll('.cot-check:not(:checked)');
+  var unchecked = document.querySelectorAll('.cot-check:checked');
+  if(unchecked.length===0){alert('Selecciona al menos una cotizacion.');return;}
+  // Already handled by onCotCheckChange — just flash confirmation
+  flash_msg('Items agregados desde cotizaciones seleccionadas.');
+}
+function flash_msg(msg){
+  var d=document.createElement('div');
+  d.className='alert alert-success alert-dismissible py-1 mt-2';
+  d.style='font-size:.82rem;position:fixed;top:70px;right:20px;z-index:9999;min-width:280px';
+  d.innerHTML='<i class="bi bi-check-circle me-1"></i>'+msg+'<button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>';
+  document.body.appendChild(d);
+  setTimeout(function(){d.remove();},3000);
 }
 
 // Transportista alert
@@ -229,7 +250,6 @@ document.getElementById('selectTrans').addEventListener('change',function(){
 
 // Init
 ITEMS_EDIT.forEach(function(it){addItem(it);});
-if(ITEMS_EDIT.length===0 && !document.getElementById('selectProv').value) addItem();
 // Si ya hay proveedor seleccionado (edicion), cargar cotizaciones
 if(document.getElementById('selectProv').value) onProvChange();
 // Inline validation
