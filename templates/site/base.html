@@ -27,21 +27,17 @@ a{text-decoration:none;color:inherit}img{max-width:100%;height:auto}
 .bo{display:inline-flex;align-items:center;gap:.5rem;color:var(--ac);border:1px solid var(--ac);padding:.55rem 1.3rem;border-radius:980px;font-weight:600;font-size:.85rem;cursor:pointer;transition:all .2s}
 .bo:hover{background:rgba(var(--ar),.06)}
 
-/* ── Nav: centered Apple style ── */
+/* ── Nav: single row, logo+modules left, CTA right ── */
 nav{position:fixed;top:0;left:0;right:0;z-index:200;background:rgba(255,255,255,.72);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid rgba(0,0,0,.06)}
-.n-top{display:flex;align-items:center;justify-content:center;padding:.45rem 1.5rem;gap:2rem;position:relative}
-.n-logo{height:20px;position:absolute;left:1.5rem}
-.n-links{display:flex;gap:1.5rem;font-size:.8rem;font-weight:400;color:var(--t2);align-items:center}
+.n-top{display:flex;align-items:center;padding:.5rem 2rem;gap:0;max-width:1440px;margin:0 auto}
+.n-logo{height:18px;margin-right:1.5rem;flex-shrink:0}
+.n-links{display:flex;gap:1.1rem;font-size:.78rem;font-weight:400;color:var(--t2);align-items:center;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.n-links::-webkit-scrollbar{display:none}
+.n-links a{white-space:nowrap}
 .n-links a:hover{color:var(--t)}
-.n-cta{position:absolute;right:1.5rem;display:flex;gap:.75rem;align-items:center}
-/* Module sub-nav */
-.n-sub{border-top:1px solid rgba(0,0,0,.04);overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;display:flex;justify-content:center}
-.n-sub::-webkit-scrollbar{display:none}
-.n-sub-i{display:flex;gap:0;min-width:min-content}
-.n-sub a{padding:.55rem 1rem;font-size:.78rem;font-weight:400;color:var(--t2);white-space:nowrap;position:relative;transition:color .2s}
-.n-sub a:hover{color:var(--t)}
-.n-sub a.on{color:var(--t);font-weight:600}
-.n-sub a.on::after{content:'';position:absolute;bottom:0;left:.75rem;right:.75rem;height:1.5px;background:var(--t);border-radius:2px}
+.n-cta{display:flex;gap:.75rem;align-items:center;flex-shrink:0;margin-left:1.5rem}
+/* Active link in nav */
+.n-links a.on{color:var(--t);font-weight:600}
 
 /* ── Sections ── */
 .sc{width:100%;padding:5rem 0}
@@ -154,18 +150,18 @@ footer a{color:var(--t2);margin:0 .75rem}footer a:hover{color:var(--t)}
   <div class="n-top">
     <a href="/inicio" class="n-logo"><img src="/static/img/evore-logo-blue.svg" alt="Evore" style="height:20px"></a>
     <div class="n-links">
-      <a href="/modulo/ventas">Ventas</a>
-      <a href="/modulo/produccion">Producción</a>
-      <a href="/modulo/inventario">Inventario</a>
-      <a href="/modulo/contabilidad">Contabilidad</a>
-      <a href="/modulo/nomina">Nómina</a>
-      <a href="/modulo/compras">Compras</a>
-      <a href="/modulo/marketplace">Marketplace</a>
+      <a href="/modulo/ventas" {% if active_module=='ventas' %}class="on"{% endif %}>Ventas</a>
+      <a href="/modulo/produccion" {% if active_module=='produccion' %}class="on"{% endif %}>Producción</a>
+      <a href="/modulo/inventario" {% if active_module=='inventario' %}class="on"{% endif %}>Inventario</a>
+      <a href="/modulo/contabilidad" {% if active_module=='contabilidad' %}class="on"{% endif %}>Contabilidad</a>
+      <a href="/modulo/nomina" {% if active_module=='nomina' %}class="on"{% endif %}>Nómina</a>
+      <a href="/modulo/compras" {% if active_module=='compras' %}class="on"{% endif %}>Compras</a>
+      <a href="/modulo/marketplace" {% if active_module=='marketplace' %}class="on"{% endif %}>Marketplace</a>
       <a href="/inicio#precios">Precios</a>
     </div>
     <div class="n-cta">
-      <a href="/login" style="font-size:.82rem;color:var(--t)">Iniciar sesión</a>
-      <a href="/login" class="ba" style="padding:.4rem 1.1rem;font-size:.8rem">Empezar</a>
+      <a href="/login" style="font-size:.8rem;color:var(--t)">Iniciar sesión</a>
+      <a href="/login" class="ba" style="padding:.4rem 1rem;font-size:.78rem">Empezar</a>
     </div>
   </div>
 </nav>
