@@ -671,12 +671,16 @@ def register(app):
         fase_id = int(request.form['fase_id'])
         fase = db.session.get(ProyectoFase, fase_id)
         monto = float(request.form.get('monto') or 0)
-        # Check objectives are all completed for this phase
-        total_obj = ProyectoObjetivo.query.filter_by(fase_id=fase_id).count()
-        done_obj = ProyectoObjetivo.query.filter_by(fase_id=fase_id, completado=True).count()
-        if total_obj > 0 and done_obj < total_obj:
-            flash(f'Debes completar todos los objetivos de la fase "{fase.nombre}" ({done_obj}/{total_obj}) antes de solicitar pago.', 'danger')
-            return redirect(url_for('proyecto_ver', id=pid, vista='fases'))
+        # Verify phase is unlocked (previous phase objectives completed)
+        fases = sorted(p.fases, key=lambda f: f.orden)
+        fase_idx = next((i for i, f in enumerate(fases) if f.id == fase_id), 0)
+        if fase_idx > 0:
+            prev = fases[fase_idx - 1]
+            prev_total = len(prev.objetivos)
+            prev_done = len([o for o in prev.objetivos if o.completado])
+            if prev_total > 0 and prev_done < prev_total:
+                flash(f'Debes completar todos los objetivos de "{prev.nombre}" ({prev_done}/{prev_total}) para desbloquear pagos de "{fase.nombre}".', 'danger')
+                return redirect(url_for('proyecto_ver', id=pid, vista='fases'))
         # Check budget
         gastado = db.session.query(func.sum(ProyectoSolicitudPago.monto)).filter_by(
             fase_id=fase_id, estado='pagada'

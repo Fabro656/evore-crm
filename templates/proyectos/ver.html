@@ -229,8 +229,32 @@
 
       {# ── Solicitudes de pago (solo en desarrollo) ── #}
       {% if p.estado == 'desarrollo' %}
+      {% set fase_idx = loop.index0 %}
+      {% set fase_desbloqueada = false %}
+      {% if fase_idx == 0 %}
+        {% set fase_desbloqueada = true %}
+      {% else %}
+        {% set prev_fase = p.fases[fase_idx - 1] %}
+        {% set prev_objs = prev_fase.objetivos %}
+        {% if prev_objs|length == 0 or prev_objs|selectattr('completado')|list|length == prev_objs|length %}
+          {% set fase_desbloqueada = true %}
+        {% endif %}
+      {% endif %}
+
       <div style="margin-top:.5rem;padding-top:.5rem;border-top:1px dashed var(--border)">
-        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin-bottom:4px"><i class="bi bi-credit-card me-1"></i>Solicitudes de pago</div>
+        <div class="d-flex align-items-center justify-content-between mb-1">
+          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)"><i class="bi bi-credit-card me-1"></i>Presupuesto de fase {% if fase_desbloqueada %}<span class="badge bg-success" style="font-size:.55rem">Desbloqueado</span>{% else %}<span class="badge bg-secondary" style="font-size:.55rem">Bloqueado</span>{% endif %}</div>
+          {% if fase.presupuesto %}<span style="font-size:.75rem;color:var(--text2)">{{ moneda(fase.presupuesto) }}</span>{% endif %}
+        </div>
+
+        {% if not fase_desbloqueada %}
+        <div class="text-muted" style="font-size:.8rem;padding:.5rem;background:var(--surface2);border-radius:var(--radius)">
+          <i class="bi bi-lock me-1"></i>Completa todos los objetivos de <strong>{{ p.fases[fase_idx - 1].nombre }}</strong>
+          ({{ p.fases[fase_idx - 1].objetivos|selectattr('completado')|list|length }}/{{ p.fases[fase_idx - 1].objetivos|length }})
+          para desbloquear el presupuesto de esta fase.
+        </div>
+        {% else %}
+        {# Show existing payment requests #}
         {% set solicitudes = solicitudes_por_fase.get(fase.id, []) %}
         {% for sp in solicitudes %}
         <div class="d-flex align-items-center gap-2 py-1" style="font-size:.8rem;border-bottom:1px solid var(--border)">
@@ -240,7 +264,7 @@
           <span class="b b-{{ sp.estado }}" style="font-size:.6rem">{{ sp.estado.title() }}</span>
           {% set rol_act = rol_activo if rol_activo is defined else '' %}
           {% if sp.estado == 'pendiente' and rol_act in ('admin','director_financiero','contador') %}
-          <form method="POST" action="{{ url_for('proyecto_solicitud_pago_resolver', spid=sp.id) }}" class="m-0 d-flex gap-1">
+          <form method="POST" action="{{ url_for('proyecto_solicitud_pago_resolver', spid=sp.id) }}" class="m-0">
             <input type="hidden" name="accion" value="pagar">
             <button type="submit" class="btn btn-sm btn-success" style="font-size:.65rem;padding:1px 6px" onclick="return confirm('Aprobar y pagar?')"><i class="bi bi-check"></i> Pagar</button>
           </form>
@@ -251,9 +275,7 @@
           {% endif %}
         </div>
         {% endfor %}
-        {# Request payment form #}
-        {% set obj_all_done = (fase.objetivos|selectattr('completado')|list|length == fase.objetivos|length) and fase.objetivos|length > 0 %}
-        {% if obj_all_done or not fase.objetivos %}
+        {# Payment request form #}
         <form method="POST" action="{{ url_for('proyecto_solicitar_pago', pid=p.id) }}" class="mt-2">
           <input type="hidden" name="fase_id" value="{{ fase.id }}">
           <div class="row g-2 align-items-end">
@@ -262,8 +284,6 @@
             <div class="col-md-4"><button type="submit" class="btn btn-sm btn-outline-success w-100" style="font-size:.78rem"><i class="bi bi-send me-1"></i>Solicitar pago</button></div>
           </div>
         </form>
-        {% else %}
-        <div class="text-muted" style="font-size:.78rem;margin-top:4px"><i class="bi bi-lock me-1"></i>Completa todos los objetivos ({{ fase.objetivos|selectattr('completado')|list|length }}/{{ fase.objetivos|length }}) para solicitar pagos.</div>
         {% endif %}
       </div>
       {% endif %}
