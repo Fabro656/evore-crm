@@ -291,29 +291,49 @@ posthog.init('{{ config.POSTHOG_KEY }}',{api_host:'https://us.i.posthog.com',per
 </div>
 <div class="dock-panel" id="dp-finanzas">
   <a class="dock-panel-head" href="{{ url_for('contable_index') }}"><i class="bi bi-currency-dollar"></i><span>Finanzas</span><i class="bi bi-arrow-right dp-arrow"></i></a>
-  <div class="dock-panel-body">
-    <div style="padding:4px 12px 2px;font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text2);opacity:.6">Operaciones</div>
-    <a href="{{ url_for('contable_index') }}" class="dock-panel-link"><i class="bi bi-calculator"></i>Contabilidad</a>
+  <div class="dock-panel-body" id="fin-main">
+    <button type="button" class="dock-panel-link fin-cat" data-fin="operaciones" style="width:100%;border:none;background:none;cursor:pointer;text-align:left">
+      <i class="bi bi-calculator"></i>Operaciones<i class="bi bi-chevron-right" style="margin-left:auto;font-size:.65rem;opacity:.4"></i></button>
+    <button type="button" class="dock-panel-link fin-cat" data-fin="reportes" style="width:100%;border:none;background:none;cursor:pointer;text-align:left">
+      <i class="bi bi-bar-chart-fill"></i>Reportes<i class="bi bi-chevron-right" style="margin-left:auto;font-size:.65rem;opacity:.4"></i></button>
+    <button type="button" class="dock-panel-link fin-cat" data-fin="fiscal" style="width:100%;border:none;background:none;cursor:pointer;text-align:left">
+      <i class="bi bi-percent"></i>Fiscal<i class="bi bi-chevron-right" style="margin-left:auto;font-size:.65rem;opacity:.4"></i></button>
+    <button type="button" class="dock-panel-link fin-cat" data-fin="notas" style="width:100%;border:none;background:none;cursor:pointer;text-align:left">
+      <i class="bi bi-file-earmark-minus"></i>Notas<i class="bi bi-chevron-right" style="margin-left:auto;font-size:.65rem;opacity:.4"></i></button>
+  </div>
+  <div class="dock-panel-body fin-sub" id="fin-operaciones" style="display:none">
+    <button type="button" class="dock-panel-link fin-back" style="width:100%;border:none;background:none;cursor:pointer;text-align:left;color:var(--ac);font-weight:600">
+      <i class="bi bi-chevron-left" style="opacity:.7"></i>Operaciones</button>
+    <a href="{{ url_for('contable_index') }}" class="dock-panel-link"><i class="bi bi-calculator"></i>Dashboard contable</a>
     <a href="{{ url_for('contable_asientos') }}" class="dock-panel-link"><i class="bi bi-journal-bookmark-fill"></i>Asientos contables</a>
     <a href="{{ url_for('contable_puc') }}" class="dock-panel-link"><i class="bi bi-list-ol"></i>Plan de Cuentas</a>
-    {% if 'gastos' in m %}<a href="{{ url_for('gastos') }}" class="dock-panel-link"><i class="bi bi-receipt"></i>Gastos</a>{% endif %}
-    <div style="padding:4px 12px 2px;font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text2);opacity:.6">Reportes</div>
+    {% if 'gastos' in m %}<a href="{{ url_for('gastos') }}" class="dock-panel-link"><i class="bi bi-receipt"></i>Gastos operativos</a>{% endif %}
+  </div>
+  <div class="dock-panel-body fin-sub" id="fin-reportes" style="display:none">
+    <button type="button" class="dock-panel-link fin-back" style="width:100%;border:none;background:none;cursor:pointer;text-align:left;color:var(--ac);font-weight:600">
+      <i class="bi bi-chevron-left" style="opacity:.7"></i>Reportes</button>
     <a href="{{ url_for('contable_balance_prueba') }}" class="dock-panel-link"><i class="bi bi-table"></i>Balance de Prueba</a>
     <a href="{{ url_for('contable_balance_general') }}" class="dock-panel-link"><i class="bi bi-bank2"></i>Balance General</a>
     <a href="{{ url_for('contable_estado_resultados') }}" class="dock-panel-link"><i class="bi bi-graph-up-arrow"></i>Estado de Resultados</a>
     <a href="{{ url_for('contable_flujo_caja') }}" class="dock-panel-link"><i class="bi bi-cash-stack"></i>Flujo de caja</a>
-    <a href="{{ url_for('contable_flujo_caja_proyectado') }}" class="dock-panel-link"><i class="bi bi-graph-up-arrow"></i>Flujo de caja proyectado</a>
+    <a href="{{ url_for('contable_flujo_caja_proyectado') }}" class="dock-panel-link"><i class="bi bi-graph-up-arrow"></i>Flujo proyectado</a>
     <a href="{{ url_for('contable_libro_auxiliar_tercero') }}" class="dock-panel-link"><i class="bi bi-person-lines-fill"></i>Libro auxiliar</a>
-    <a href="{{ url_for('contable_conciliacion') }}" class="dock-panel-link"><i class="bi bi-bank"></i>Reconciliacion bancaria</a>
-    {% if 'reportes' in m %}<a href="{{ url_for('reportes') }}" class="dock-panel-link"><i class="bi bi-bar-chart-fill"></i>Reportes</a>{% endif %}
-    <div style="padding:4px 12px 2px;font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text2);opacity:.6">Fiscal</div>
-    <a href="{{ url_for('contable_iva') }}" class="dock-panel-link"><i class="bi bi-percent"></i>IVA (generado vs descontable)</a>
+    <a href="{{ url_for('contable_conciliacion') }}" class="dock-panel-link"><i class="bi bi-bank"></i>Conciliacion bancaria</a>
+    {% if 'reportes' in m %}<a href="{{ url_for('reportes') }}" class="dock-panel-link"><i class="bi bi-bar-chart-fill"></i>Reportes generales</a>{% endif %}
+  </div>
+  <div class="dock-panel-body fin-sub" id="fin-fiscal" style="display:none">
+    <button type="button" class="dock-panel-link fin-back" style="width:100%;border:none;background:none;cursor:pointer;text-align:left;color:var(--ac);font-weight:600">
+      <i class="bi bi-chevron-left" style="opacity:.7"></i>Fiscal</button>
+    <a href="{{ url_for('contable_iva') }}" class="dock-panel-link"><i class="bi bi-percent"></i>IVA generado vs descontable</a>
     <a href="{{ url_for('contable_retenciones') }}" class="dock-panel-link"><i class="bi bi-receipt-cutoff"></i>Retenciones en la fuente</a>
     <a href="{{ url_for('contable_certificado_retencion') }}" class="dock-panel-link"><i class="bi bi-file-earmark-pdf"></i>Certificados retención</a>
     <a href="{{ url_for('contable_cierre_periodo') }}" class="dock-panel-link"><i class="bi bi-lock"></i>Cierre de periodo</a>
     <a href="{{ url_for('impuestos') }}" class="dock-panel-link"><i class="bi bi-sliders"></i>Reglas tributarias</a>
-    <div style="padding:4px 12px 2px;font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text2);opacity:.6">Notas</div>
-    <a href="{{ url_for('contable_notas') }}" class="dock-panel-link"><i class="bi bi-file-earmark-minus"></i>Notas credito/debito</a>
+  </div>
+  <div class="dock-panel-body fin-sub" id="fin-notas" style="display:none">
+    <button type="button" class="dock-panel-link fin-back" style="width:100%;border:none;background:none;cursor:pointer;text-align:left;color:var(--ac);font-weight:600">
+      <i class="bi bi-chevron-left" style="opacity:.7"></i>Notas</button>
+    <a href="{{ url_for('contable_notas') }}" class="dock-panel-link"><i class="bi bi-file-earmark-minus"></i>Notas crédito / débito</a>
   </div>
 </div>
 {% if rol_activo in ('admin','director_financiero') %}

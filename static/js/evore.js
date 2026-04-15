@@ -212,8 +212,29 @@ if(_csrfToken){document.querySelectorAll('form[method="POST"],form[method="post"
   window.closeDockPanel = function(){
     document.querySelectorAll('.dock-panel').forEach(function(p){ p.style.display = 'none'; });
     document.getElementById('dock-overlay').style.display = 'none';
+    // Reset finanzas sub-panels to main view
+    var finMain = document.getElementById('fin-main');
+    if(finMain) finMain.style.display = '';
+    document.querySelectorAll('.fin-sub').forEach(function(s){ s.style.display = 'none'; });
     hideTip();
   };
+
+  // ── Finanzas: category → sub-panel navigation ──
+  document.querySelectorAll('.fin-cat').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var target = btn.dataset.fin;
+      var sub = document.getElementById('fin-' + target);
+      if(!sub) return;
+      document.getElementById('fin-main').style.display = 'none';
+      sub.style.display = '';
+    });
+  });
+  document.querySelectorAll('.fin-back').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      btn.closest('.fin-sub').style.display = 'none';
+      document.getElementById('fin-main').style.display = '';
+    });
+  });
 })();
 
 // ── Toggle sidebar lite/expanded ──
