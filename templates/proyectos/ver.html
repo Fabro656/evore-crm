@@ -151,11 +151,11 @@
       <div class="text-muted text-center py-2" style="font-size:.82rem">Sin tareas en esta fase</div>
       {% endif %}
       {# Gastos of this phase #}
-      {% set fg = gastos_por_fase.get(fase.id, {'items':[],'total':0}) %}
-      {% if fg.items %}
+      {% set fg = gastos_por_fase.get(fase.id, {'lista':[],'total':0}) %}
+      {% if fg.lista %}
       <div style="margin-top:.5rem;padding-top:.5rem;border-top:1px dashed var(--border)">
         <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin-bottom:4px"><i class="bi bi-cash-stack me-1"></i>Gastos de esta fase</div>
-        {% for pg, go in fg.items %}
+        {% for pg, go in fg.lista %}
         <div class="d-flex align-items-center gap-2 py-1" style="font-size:.8rem;border-bottom:1px solid var(--border)">
           <i class="bi bi-receipt" style="color:var(--text2);font-size:.7rem"></i>
           <span style="flex:1;color:var(--text1)">{{ pg.descripcion or go.descripcion }}</span>

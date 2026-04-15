@@ -124,8 +124,8 @@ def register(app):
         gastos_por_fase = {}
         for pg, go in gastos_q:
             fid = pg.fase_id or 0
-            gastos_por_fase.setdefault(fid, {'items': [], 'total': 0})
-            gastos_por_fase[fid]['items'].append((pg, go))
+            gastos_por_fase.setdefault(fid, {'lista': [], 'total': 0})
+            gastos_por_fase[fid]['lista'].append((pg, go))
             gastos_por_fase[fid]['total'] += go.monto
         # Stats
         total_t = sum(len(v) for v in tareas_por_estado.values())
