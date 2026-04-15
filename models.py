@@ -2073,6 +2073,7 @@ def init_db():
         'actividades', 'movimientos_inventario', 'movimientos_bancarios',
         'lotes_materia_prima', 'lotes_producto', 'comisiones', 'documentos_legales',
         'compras_materia', 'cotizaciones_proveedor', 'requisiciones', 'aprobaciones',
+        'empaques_secundarios', 'pre_cotizaciones',
     ]
     try:
         from sqlalchemy import inspect as sa_inspect

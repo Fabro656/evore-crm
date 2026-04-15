@@ -140,6 +140,7 @@ def register(app):
                 largo_caja = float(request.form.get('largo_caja', 0))
                 alto_caja = float(request.form.get('alto_caja', 0))
                 empaque = EmpaqueSecundario(
+                    company_id=getattr(g, 'company_id', None),
                     producto_id=int(producto_id),
                     alto=alto,
                     ancho=ancho,
