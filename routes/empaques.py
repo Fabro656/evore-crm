@@ -421,6 +421,7 @@ def register(app):
             ).first()
             if not tiene_cot_caja:
                 db.session.add(CotizacionProveedor(
+                    company_id=getattr(g, 'company_id', None),
                     nombre_producto=f'{mp.nombre} — {prod_nombre}',
                     tipo_cotizacion='maquila',
                     tipo_producto_servicio='empaque secundario',
@@ -441,6 +442,7 @@ def register(app):
             ).first()
             if not tiene_cot_cinta:
                 db.session.add(CotizacionProveedor(
+                    company_id=getattr(g, 'company_id', None),
                     nombre_producto='Cinta de embalaje — Rollo 100m',
                     tipo_cotizacion='maquila',
                     tipo_producto_servicio='empaque secundario',

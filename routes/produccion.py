@@ -495,8 +495,22 @@ def register(app):
             )
             db.session.add(m); db.session.flush()
             _save_materia_m2m(m, request.form)
+            # Auto-crear cotización pendiente en módulo Compras
+            db.session.add(CotizacionProveedor(
+                company_id=getattr(g, 'company_id', None),
+                nombre_producto=m.nombre,
+                tipo_cotizacion='maquila',
+                tipo_producto_servicio='materia prima',
+                unidad=m.unidad,
+                estado='en_revision',
+                materia_prima_id=m.id,
+                precio_unitario=m.costo_unitario or 0,
+                proveedor_id=m.proveedor_id,
+                notas='Cotización auto-generada al crear materia prima.',
+                creado_por=current_user.id
+            ))
             db.session.commit()
-            flash('Materia prima creada. Registra entradas de stock mediante Compras.','success')
+            flash('Materia prima creada con cotización pendiente.','success')
             return redirect(url_for('materias'))
         return render_template('produccion/materia_form.html', obj=None, titulo='Nueva Materia Prima',
                                productos=productos, prod_ids_sel=[],
@@ -635,6 +649,7 @@ def register(app):
         db.session.add(mp); db.session.flush()
         # Auto-crear cotización pendiente en módulo Compras
         db.session.add(CotizacionProveedor(
+            company_id=getattr(g, 'company_id', None),
             nombre_producto=nombre,
             tipo_cotizacion='maquila',
             tipo_producto_servicio='materia prima',
@@ -772,6 +787,7 @@ def register(app):
                     # Nombre: ingrediente — producto
                     nombre_cot = f'{mp.nombre} — {prod_obj.nombre}' if prod_obj else mp.nombre
                     db.session.add(CotizacionProveedor(
+                        company_id=getattr(g, 'company_id', None),
                         nombre_producto=nombre_cot,
                         tipo_cotizacion='maquila',
                         tipo_producto_servicio='materia prima',

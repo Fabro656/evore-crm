@@ -182,6 +182,7 @@ def register(app):
             else:
                 precio_unitario_real = precio_raw
             cp = CotizacionProveedor(
+                company_id=getattr(g, 'company_id', None),
                 proveedor_id=int(request.form.get('proveedor_id')) if request.form.get('proveedor_id') else None,
                 tipo_cotizacion=request.form.get('tipo_cotizacion','general'),
                 tipo_producto_servicio=request.form.get('tipo_producto_servicio',''),
