@@ -269,6 +269,16 @@ def register(app):
                 ~ChatMessage.leido_por.contains(str(current_user.id))
             )
             total = unread.count()
+            # Per-room unread counts
+            per_room = {}
+            for rid in room_ids:
+                c = ChatMessage.query.filter(
+                    ChatMessage.room_id == rid,
+                    ChatMessage.user_id != current_user.id,
+                    ~ChatMessage.leido_por.contains(str(current_user.id))
+                ).count()
+                if c > 0:
+                    per_room[str(rid)] = c
             # Include last unread message info for notification popup
             last = unread.order_by(ChatMessage.creado_en.desc()).first()
             last_info = None
@@ -282,6 +292,6 @@ def register(app):
                     'text': (last.contenido or '')[:80],
                     'room_id': last.room_id
                 }
-            return jsonify({'count': total, 'last': last_info})
+            return jsonify({'count': total, 'last': last_info, 'per_room': per_room})
         except Exception:
             return jsonify({'count': 0})

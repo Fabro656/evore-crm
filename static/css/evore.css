@@ -323,8 +323,11 @@ html[data-theme="dark"] #sb.sb-expanded .sb-brand img.logo-dark{display:block!im
 .notif-btn{position:relative;background:none;border:none;color:var(--sb-text);font-size:1.05rem;padding:.3rem .45rem;border-radius:8px;cursor:pointer;transition:color .15s,background .15s}
 .notif-btn:hover{color:var(--sb-active);background:var(--sb-hover)}
 .notif-badge{position:absolute;top:0;right:0;background:var(--red);color:#fff;font-size:.6rem;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px;line-height:1}
-.notif-badge,.mnav-badge{transition:transform var(--transition-fast),opacity var(--transition-fast)}
-.notif-badge.hide,.mnav-badge.hide{transform:scale(0);opacity:0}
+.notif-badge,.mnav-badge,.sb-badge{transition:transform var(--transition-fast),opacity var(--transition-fast)}
+.notif-badge.hide,.mnav-badge.hide,.sb-badge.hide{transform:scale(0);opacity:0}
+/* Sidebar inline badges (chat count, NEW label) */
+.sb-badge{background:var(--red);color:#fff;font-size:.5rem;font-weight:700;min-width:14px;height:14px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;padding:0 3px;line-height:1;margin-left:4px;vertical-align:middle}
+.sb-new{background:var(--red);color:#fff;font-size:.48rem;font-weight:700;padding:1px 5px;border-radius:6px;margin-left:4px;vertical-align:middle;letter-spacing:.3px}
 .notif-dd{position:fixed;bottom:70px;left:0;width:300px;max-height:400px;overflow-y:auto;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow-lg);z-index:1070}
 .notif-dd-head{padding:.7rem 1rem;font-size:.78rem;font-weight:700;color:var(--text);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
 .notif-item{padding:.6rem 1rem;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}

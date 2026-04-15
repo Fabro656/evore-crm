@@ -521,6 +521,7 @@ var _chatRoomId = null;
 var _chatLastMsgId = 0;
 var _chatPollTimer = null;
 var _chatRooms = [];
+var _chatUnreadPerRoom = {};
 
 function toggleChatPanel(){
   var p = document.getElementById('chatPanel');
@@ -607,14 +608,18 @@ function chatRenderTabs(){
   var tabs = document.getElementById('chatRoomTabs');
   if(!_chatRooms.length){ tabs.innerHTML = ''; return; }
   var html = '';
+  var s = getComputedStyle(document.documentElement);
+  var ac = s.getPropertyValue('--ac').trim();
+  var t2 = s.getPropertyValue('--text2').trim();
+  var hb = s.getPropertyValue('--sb-hover').trim();
   _chatRooms.forEach(function(r){
     var active = r.id === _chatRoomId;
-    var acColor = getComputedStyle(document.documentElement).getPropertyValue('--ac').trim();
-    var txtMuted = getComputedStyle(document.documentElement).getPropertyValue('--text2').trim();
-    var hoverBg = getComputedStyle(document.documentElement).getPropertyValue('--sb-hover').trim();
-    html += '<div style="display:flex;align-items:center;border-bottom:2px solid '+(active?acColor:'transparent')+';flex-shrink:0;transition:all .12s;background:'+(active?hoverBg:'transparent')+'">'
-      +'<button onclick="chatOpenRoom('+r.id+')" style="padding:7px 10px 7px 12px;font-size:.72rem;font-weight:'+(active?'700':'400')+';color:'+(active?acColor:txtMuted)+';background:transparent;border:none;cursor:pointer;white-space:nowrap">'+r.name+'</button>'
-      +'<button onclick="event.stopPropagation();chatCloseTab('+r.id+')" style="padding:2px 6px 2px 0;font-size:.6rem;color:'+txtMuted+';background:none;border:none;cursor:pointer;line-height:1" title="Cerrar">&times;</button>'
+    var unread = _chatUnreadPerRoom[String(r.id)] || 0;
+    html += '<div style="display:flex;align-items:center;border-bottom:2px solid '+(active?ac:'transparent')+';flex-shrink:0;transition:all .12s;background:'+(active?hb:'transparent')+';position:relative">'
+      +'<button onclick="chatOpenRoom('+r.id+')" style="padding:7px 10px 7px 12px;font-size:.72rem;font-weight:'+(active?'700':'400')+';color:'+(active?ac:t2)+';background:transparent;border:none;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:4px">'+r.name
+      +(unread && !active?'<span style="width:7px;height:7px;border-radius:50%;background:var(--red);flex-shrink:0"></span>':'')
+      +'</button>'
+      +'<button onclick="event.stopPropagation();chatCloseTab('+r.id+')" style="padding:2px 6px 2px 0;font-size:.6rem;color:'+t2+';background:none;border:none;cursor:pointer;line-height:1" title="Cerrar">&times;</button>'
       +'</div>';
   });
   tabs.innerHTML = html;
@@ -778,6 +783,8 @@ function pollChatUnread(){
     if(badge){if(d.count>0){badge.textContent=d.count;badge.classList.remove('hide')}else{badge.classList.add('hide')}}
     var mb=document.getElementById('mnavChatBadge');
     if(mb){if(d.count>0){mb.textContent=d.count;mb.classList.remove('hide')}else{mb.classList.add('hide')}}
+    // Store per-room unread and refresh tabs
+    if(d.per_room){_chatUnreadPerRoom=d.per_room;if(_chatOpen)chatRenderTabs()}
     // Show notification toast if new message arrived and chat panel is closed
     if(d.count>_lastChatCount && d.last && d.last.id!==_lastChatMsgId && !_chatOpen){
       _lastChatMsgId=d.last.id;
