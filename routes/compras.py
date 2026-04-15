@@ -289,8 +289,11 @@ def register(app):
     def api_cotizaciones_por_proveedor(prov_id):
         """Retorna cotizaciones vigentes de un proveedor para seleccion multiple en OC."""
         cots = CotizacionProveedor.query.filter(
-            CotizacionProveedor.proveedor_id == prov_id,
-            CotizacionProveedor.estado == 'vigente'
+            db.or_(
+                CotizacionProveedor.proveedor_id == prov_id,
+                CotizacionProveedor.proveedor_id.is_(None)
+            ),
+            CotizacionProveedor.estado.in_(['vigente', 'en_revision'])
         ).order_by(CotizacionProveedor.nombre_producto).all()
         return jsonify([{
             'id': c.id,
@@ -298,10 +301,12 @@ def register(app):
             'nombre_producto': c.nombre_producto,
             'descripcion': c.descripcion or '',
             'precio_unitario': c.precio_unitario,
-            'unidades_minimas': c.unidades_minimas,
+            'unidades_minimas': c.unidades_minimas or 1,
             'unidad': c.unidad,
             'plazo_entrega_dias': c.plazo_entrega_dias or 0,
             'condicion_pago_tipo': c.condicion_pago_tipo or 'contado',
+            'estado': c.estado,
+            'sin_proveedor': c.proveedor_id is None,
         } for c in cots])
 
 
@@ -350,7 +355,7 @@ def register(app):
     def orden_compra_nueva():
         provs       = Proveedor.query.filter(Proveedor.activo==True, Proveedor.tipo.in_(['proveedor','ambos'])).order_by(Proveedor.empresa).all()
         transportistas = Proveedor.query.filter(Proveedor.activo==True, Proveedor.tipo.in_(['transportista','ambos'])).order_by(Proveedor.nombre).all()
-        cotizaciones_disponibles = CotizacionProveedor.query.filter_by(estado='vigente').order_by(CotizacionProveedor.nombre_producto).all()
+        cotizaciones_disponibles = CotizacionProveedor.query.filter(CotizacionProveedor.estado.in_(['vigente','en_revision'])).order_by(CotizacionProveedor.nombre_producto).all()
         if request.method == 'POST':
             # Validar proveedor existe y esta activo
             prov_id_raw = request.form.get('proveedor_id', '').strip()
@@ -497,7 +502,7 @@ def register(app):
         obj = OrdenCompra.query.get_or_404(id)
         provs       = Proveedor.query.filter(Proveedor.activo==True, Proveedor.tipo.in_(['proveedor','ambos'])).order_by(Proveedor.empresa).all()
         transportistas = Proveedor.query.filter(Proveedor.activo==True, Proveedor.tipo.in_(['transportista','ambos'])).order_by(Proveedor.nombre).all()
-        cotizaciones_disponibles = CotizacionProveedor.query.filter_by(estado='vigente').order_by(CotizacionProveedor.nombre_producto).all()
+        cotizaciones_disponibles = CotizacionProveedor.query.filter(CotizacionProveedor.estado.in_(['vigente','en_revision'])).order_by(CotizacionProveedor.nombre_producto).all()
         if request.method == 'POST':
             fe  = request.form.get('fecha_emision')
             fes = request.form.get('fecha_esperada')

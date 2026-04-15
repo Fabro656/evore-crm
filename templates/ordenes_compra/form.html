@@ -169,11 +169,14 @@ function onProvChange(){
       }
       var html='';
       data.forEach(function(c){
+        var badge = c.estado==='en_revision' ? ' <span class="badge bg-warning text-dark" style="font-size:.6rem">En revisión</span>' : '';
+        var sinProv = c.sin_proveedor ? ' <span class="badge bg-light text-secondary" style="font-size:.6rem">Sin proveedor</span>' : '';
         html+='<div class="form-check mb-1">'
           +'<input class="form-check-input cot-check" type="checkbox" value="'+c.id+'" id="cot_'+c.id+'" data-idx="'+c.id+'">'
           +'<label class="form-check-label small" for="cot_'+c.id+'">'
           +'<strong>'+c.nombre_producto+'</strong>'
           +' <span class="text-muted">'+(c.numero||'')+'</span>'
+          +badge+sinProv
           +' &mdash; $'+Math.round(c.precio_unitario).toLocaleString('es-CO')+'/'+c.unidad
           +' (min: '+c.unidades_minimas+')'
           +'</label></div>';
