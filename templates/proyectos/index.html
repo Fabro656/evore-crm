@@ -4,48 +4,37 @@
 <a href="{{ url_for('proyecto_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo proyecto</a>
 {% endblock %}
 {% block content %}
+<style>
+@media(max-width:768px){.pry-dash{grid-template-columns:repeat(3,1fr)!important}.pry-dash .fc{padding:.5rem .25rem!important}}
+@media(max-width:480px){.pry-dash{grid-template-columns:repeat(2,1fr)!important}}
+</style>
 <div style="max-width:1200px;margin:0 auto">
 
-  {# ── Dashboard ── #}
-  <div class="row g-3 mb-3">
-    <div class="col-6 col-md-2"><div class="fc text-center py-2">
-      <div style="font-size:.65rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Activos</div>
-      <div class="fw-bold mt-1" style="font-size:1.4rem;color:var(--ac)">{{ dash.activos }}</div>
-    </div></div>
-    <div class="col-6 col-md-2"><div class="fc text-center py-2">
-      <div style="font-size:.65rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">En desarrollo</div>
-      <div class="fw-bold mt-1" style="font-size:1.4rem;color:var(--green)">{{ dash.desarrollo }}</div>
-    </div></div>
-    <div class="col-6 col-md-2"><div class="fc text-center py-2">
-      <div style="font-size:.65rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Planificacion</div>
-      <div class="fw-bold mt-1" style="font-size:1.4rem;color:#3B82F6">{{ dash.planificacion }}</div>
-    </div></div>
-    <div class="col-6 col-md-2"><div class="fc text-center py-2">
-      <div style="font-size:.65rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Pendientes aprobacion</div>
-      <div class="fw-bold mt-1" style="font-size:1.4rem;color:#F59E0B">{{ dash.pendiente_aprobacion }}</div>
-    </div></div>
-    <div class="col-6 col-md-2"><div class="fc text-center py-2">
-      <div style="font-size:.65rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Ppto total</div>
-      <div class="fw-bold mt-1" style="font-size:1rem;color:var(--text1)">{{ moneda(dash.presupuesto_total) }}</div>
-    </div></div>
-    <div class="col-6 col-md-2"><div class="fc text-center py-2">
-      <div style="font-size:.65rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Ppto en desarrollo</div>
-      <div class="fw-bold mt-1" style="font-size:1rem;color:var(--green)">{{ moneda(dash.presupuesto_desarrollo) }}</div>
-    </div></div>
+  {# ── Dashboard + Filters ── #}
+  <div class="pry-dash" style="display:grid;grid-template-columns:repeat(6,1fr);gap:.75rem;margin-bottom:.75rem">
+    {% for label, value, color in [
+      ('Activos', dash.activos, 'var(--ac)'),
+      ('En desarrollo', dash.desarrollo, 'var(--green)'),
+      ('Planificacion', dash.planificacion, '#3B82F6'),
+      ('Pend. aprobacion', dash.pendiente_aprobacion, '#F59E0B'),
+      ('Ppto total', moneda(dash.presupuesto_total), 'var(--text1)'),
+      ('Ppto desarrollo', moneda(dash.presupuesto_desarrollo), 'var(--green)')
+    ] %}
+    <div class="fc" style="text-align:center;padding:.75rem .5rem">
+      <div style="font-size:.62rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ label }}</div>
+      <div class="fw-bold mt-1" style="font-size:{% if loop.index > 4 %}1rem{% else %}1.3rem{% endif %};color:{{ color }}">{{ value }}</div>
+    </div>
+    {% endfor %}
   </div>
-
-  {# ── Filters ── #}
-  <div class="fc mb-3">
-    <form method="GET" class="row g-2 align-items-end">
-      <div class="col-sm-4"><input type="text" name="buscar" class="form-control form-control-sm" placeholder="Buscar por nombre o codigo..." value="{{ buscar }}"></div>
-      <div class="col-sm-3"><select name="estado" class="form-select form-select-sm">
+  <div class="fc" style="padding:.5rem .75rem;margin-bottom:.75rem">
+    <form method="GET" class="d-flex gap-2 align-items-center">
+      <input type="text" name="buscar" class="form-control form-control-sm" placeholder="Buscar por nombre o codigo..." value="{{ buscar }}" style="flex:2">
+      <select name="estado" class="form-select form-select-sm" style="flex:1;max-width:200px">
         <option value="">Todos los estados</option>
         {% for e in estados %}<option value="{{ e }}" {% if estado_f==e %}selected{% endif %}>{{ e.replace('_',' ').title() }}</option>{% endfor %}
-      </select></div>
-      <div class="col-auto">
-        <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
-        <a href="{{ url_for('proyectos_index') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
-      </div>
+      </select>
+      <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
+      <a href="{{ url_for('proyectos_index') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
     </form>
   </div>
 

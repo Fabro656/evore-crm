@@ -19,6 +19,9 @@
 </div>
 {% endblock %}
 {% block content %}
+<style>
+@media(max-width:768px){.pry-stats{grid-template-columns:repeat(2,1fr)!important}}
+</style>
 <div style="max-width:1400px;margin:0 auto">
   {# ── State indicator (compact) ── #}
   <div class="d-flex align-items-center gap-2 mb-3" style="font-size:.82rem">
@@ -31,31 +34,31 @@
     {% endif %}
   </div>
   {# ── Header stats ── #}
-  <div class="row g-3 mb-3">
-    <div class="col-6 col-md-3"><div class="fc text-center py-2">
-      <div style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Progreso</div>
+  {% set asignado_fases = p.fases|sum(attribute='presupuesto') %}
+  {% set disponible_ppto = (p.presupuesto or 0) - asignado_fases %}
+  <div class="pry-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:.75rem">
+    <div class="fc" style="text-align:center;padding:.75rem .5rem">
+      <div style="font-size:.62rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Progreso</div>
       <div class="fw-bold mt-1" style="font-size:1.3rem;color:{{ p.color or 'var(--ac)' }}">{{ pct }}%</div>
-      <div style="height:4px;background:var(--surface2);border-radius:2px;margin-top:4px;overflow:hidden">
+      <div style="height:4px;background:var(--surface2);border-radius:2px;margin-top:6px;overflow:hidden">
         <div style="width:{{ pct }}%;height:100%;background:{{ p.color or 'var(--ac)' }};border-radius:2px"></div>
       </div>
-    </div></div>
-    <div class="col-6 col-md-3"><div class="fc text-center py-2">
-      <div style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Tareas</div>
+    </div>
+    <div class="fc" style="text-align:center;padding:.75rem .5rem">
+      <div style="font-size:.62rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Tareas</div>
       <div class="fw-bold mt-1" style="font-size:1.3rem;color:var(--text1)">{{ done_t }}<span style="font-size:.8rem;color:var(--text2)">/{{ total_t }}</span></div>
-    </div></div>
-    {% set asignado_fases = p.fases|sum(attribute='presupuesto') %}
-    {% set disponible_ppto = (p.presupuesto or 0) - asignado_fases %}
-    <div class="col-6 col-md-3"><div class="fc text-center py-2">
-      <div style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Presupuesto</div>
+    </div>
+    <div class="fc" style="text-align:center;padding:.75rem .5rem">
+      <div style="font-size:.62rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Presupuesto</div>
       <div class="fw-bold mt-1" style="font-size:1.1rem;color:var(--ac)">{{ moneda(p.presupuesto) }}</div>
-      <div style="font-size:.65rem;color:var(--text2)">Asignado: {{ moneda(asignado_fases) }} | Disp: <span class="{% if disponible_ppto < 0 %}text-danger{% else %}text-success{% endif %}">{{ moneda(disponible_ppto) }}</span></div>
-      <button class="btn btn-sm btn-outline-secondary mt-1" style="font-size:.65rem;padding:1px 8px" data-bs-toggle="modal" data-bs-target="#modalReasignar"><i class="bi bi-arrow-left-right me-1"></i>Reasignar</button>
-    </div></div>
-    <div class="col-6 col-md-3"><div class="fc text-center py-2">
-      <div style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Estado</div>
+      <div style="font-size:.6rem;color:var(--text2);margin-top:2px">Asignado: {{ moneda(asignado_fases) }} | <span class="{% if disponible_ppto < 0 %}text-danger{% else %}text-success{% endif %}">Disp: {{ moneda(disponible_ppto) }}</span></div>
+      <button class="btn btn-sm btn-outline-secondary mt-1" style="font-size:.6rem;padding:1px 6px" data-bs-toggle="modal" data-bs-target="#modalReasignar"><i class="bi bi-arrow-left-right me-1"></i>Reasignar</button>
+    </div>
+    <div class="fc" style="text-align:center;padding:.75rem .5rem">
+      <div style="font-size:.62rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Estado</div>
       <div class="mt-1"><span class="b b-{{ p.estado }}" style="font-size:.78rem">{{ p.estado.replace('_',' ').title() }}</span></div>
-      {% if p.fecha_fin %}<div style="font-size:.68rem;color:var(--text2);margin-top:2px">{{ p.fecha_fin.strftime('%d/%m/%Y') }}</div>{% endif %}
-    </div></div>
+      {% if p.fecha_fin %}<div style="font-size:.62rem;color:var(--text2);margin-top:4px"><i class="bi bi-calendar me-1"></i>{{ p.fecha_fin.strftime('%d/%m/%Y') }}</div>{% endif %}
+    </div>
   </div>
 
   {# ── Vista tabs + Actions ── #}
