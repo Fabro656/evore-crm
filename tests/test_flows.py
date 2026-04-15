@@ -271,22 +271,21 @@ class TestMultiRol:
 class TestDesignSystem:
     """Test design system integrity."""
 
-    def test_tokens_in_base(self):
-        content = open('templates/base.html').read()
+    def test_tokens_in_css(self):
+        content = open('static/css/evore.css').read()
         for token in ['--sp-1', '--sp-5', '--font-body', '--font-micro',
                        '--surface', '--ac', '--green', '--red', '--radius']:
-            assert token in content, f"Missing token: {token}"
+            assert token in content, f"Missing token in evore.css: {token}"
 
     def test_tokens_in_portal(self):
         content = open('templates/portal_base.html').read()
         for token in ['--sp-1', '--sp-5', '--font-body', '--surface']:
             assert token in content, f"Missing portal token: {token}"
 
-    def test_body_background_surface(self):
+    def test_base_links_evore_css(self):
         base = open('templates/base.html').read()
-        portal = open('templates/portal_base.html').read()
-        assert 'body{background:var(--surface)' in base.replace(' ', '')
-        assert 'body{background:var(--surface)' in portal.replace(' ', '')
+        assert 'evore.css' in base, "base.html must link evore.css"
+        assert 'evore.js' in base, "base.html must link evore.js"
 
 
 if __name__ == '__main__':

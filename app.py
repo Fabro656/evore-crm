@@ -62,6 +62,9 @@ def create_app():
     app.config['PERMANENT_SESSION_LIFETIME'] = 86400  # 24 horas
     app.config['REMEMBER_COOKIE_DURATION']  = 86400 * 7  # 7 dias
 
+    # ── Analytics (PostHog — set POSTHOG_KEY in Railway) ──────────────
+    app.config['POSTHOG_KEY'] = os.environ.get('POSTHOG_KEY', '')
+
     # ── Mail (opcional) ───────────────────────────────────────────────
     app.config['MAIL_SERVER']         = os.environ.get('MAIL_SERVER', '')
     app.config['MAIL_PORT']           = int(os.environ.get('MAIL_PORT', 587))
@@ -276,11 +279,11 @@ def create_app():
         # unsafe-inline needed: Jinja inline styles + onclick handlers throughout templates
         response.headers['Content-Security-Policy'] = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
+            "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net us.i.posthog.com; "
             "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
             "img-src 'self' data: blob:; "
             "font-src 'self' cdn.jsdelivr.net; "
-            "connect-src 'self'; "
+            "connect-src 'self' us.i.posthog.com; "
             "frame-src 'self'; "
             "frame-ancestors 'self'"
         )

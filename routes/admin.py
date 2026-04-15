@@ -1104,89 +1104,84 @@ def register(app):
             flash('Contrasena incorrecta. El reset no fue ejecutado.', 'danger')
             return redirect(url_for('admin_usuarios'))
 
-        def _safe_delete(sql):
-            sp = db.session.begin_nested()
-            try:
-                db.session.execute(db.text(sql))
-                sp.commit()
-            except Exception as _e:
-                sp.rollback()
-                logging.warning(f'Reset: falló "{sql}": {_e}')
+        # Get list of tables that actually exist in this DB
+        from sqlalchemy import inspect as sa_inspect
+        inspector = sa_inspect(db.engine)
+        existing_tables = set(inspector.get_table_names())
 
         admin_id = current_user.id
+        admin_email = current_user.email
+
+        # All tables to delete, in FK dependency order (children first)
+        tables_ordered = [
+            # Nivel 8: foro y chat (nuevos)
+            'foro_apelaciones', 'foro_valoraciones', 'foro_publicaciones',
+            'foro_banners', 'chat_messages', 'chat_participants', 'chat_rooms',
+            'suscripciones',
+            # Nivel 7: líneas contables y asociaciones
+            'lineas_asiento', 'tarea_asignados', 'tarea_comentarios', 'pagos_venta',
+            # Nivel 6: ítems de documentos
+            'reservas_produccion', 'cotizacion_items', 'pre_cotizacion_items',
+            'ordenes_compra_items', 'venta_productos', 'materia_prima_productos',
+            'receta_items', 'marcas_producto', 'historial_precios',
+            'historial_cotizaciones',
+            # Nivel 5: dependientes de empleados
+            'horas_extra', 'vacaciones_tomadas', 'incapacidades',
+            # Nivel 4: dependientes de asientos/contable
+            'movimientos_bancarios', 'notas_contables', 'movimientos_inventario',
+            'comisiones', 'ordenes_produccion', 'lotes_materia_prima',
+            'lotes_producto', 'compras_materia', 'cotizaciones_proveedor',
+            'cotizaciones_granel', 'empaques_secundarios', 'aprobaciones',
+            'requisiciones', 'asientos_contables', 'tareas', 'eventos',
+            'notas', 'notificaciones', 'actividades',
+            # Nivel 3: documentos principales
+            'ventas', 'cotizaciones', 'pre_cotizaciones', 'ordenes_compra',
+            'gastos_operativos', 'documentos_legales', 'empleados',
+            'recetas_producto', 'servicios',
+            # Nivel 2: catálogos
+            'reglas_tributarias', 'materias_primas', 'productos',
+            'contactos_cliente', 'clientes', 'proveedores',
+            # Nivel 1: relaciones y sesiones
+            'company_relationships', 'user_companies', 'user_sesiones',
+        ]
+
         try:
-            # ── Nivel 7: líneas contables y asociaciones ──
-            _safe_delete('DELETE FROM lineas_asiento')
-            _safe_delete('DELETE FROM tarea_asignados')
-            _safe_delete('DELETE FROM tarea_comentarios')
-            _safe_delete('DELETE FROM pagos_venta')
-            # ── Nivel 6: ítems de documentos ──
-            _safe_delete('DELETE FROM reservas_produccion')
-            _safe_delete('DELETE FROM cotizacion_items')
-            _safe_delete('DELETE FROM pre_cotizacion_items')
-            _safe_delete('DELETE FROM ordenes_compra_items')
-            _safe_delete('DELETE FROM venta_productos')
-            _safe_delete('DELETE FROM materia_prima_productos')
-            _safe_delete('DELETE FROM receta_items')
-            _safe_delete('DELETE FROM marcas_producto')
-            _safe_delete('DELETE FROM historial_precios')
-            _safe_delete('DELETE FROM historial_cotizaciones')
-            # ── Nivel 5: entidades dependientes de empleados ──
-            _safe_delete('DELETE FROM horas_extra')
-            _safe_delete('DELETE FROM vacaciones_tomadas')
-            _safe_delete('DELETE FROM incapacidades')
-            # ── Nivel 4: entidades dependientes de asientos/contable ──
-            _safe_delete('DELETE FROM movimientos_bancarios')
-            _safe_delete('DELETE FROM notas_contables')
-            _safe_delete('DELETE FROM movimientos_inventario')
-            _safe_delete('DELETE FROM comisiones')
-            _safe_delete('DELETE FROM ordenes_produccion')
-            _safe_delete('DELETE FROM lotes_materia_prima')
-            _safe_delete('DELETE FROM lotes_producto')
-            _safe_delete('DELETE FROM compras_materia')
-            _safe_delete('DELETE FROM cotizaciones_proveedor')
-            _safe_delete('DELETE FROM cotizaciones_granel')
-            _safe_delete('DELETE FROM empaques_secundarios')
-            _safe_delete('DELETE FROM aprobaciones')
-            _safe_delete('DELETE FROM requisiciones')
-            _safe_delete('DELETE FROM asientos_contables')
-            _safe_delete('DELETE FROM tareas')
-            _safe_delete('DELETE FROM eventos')
-            _safe_delete('DELETE FROM notas')
-            _safe_delete('DELETE FROM notificaciones')
-            _safe_delete('DELETE FROM actividades')
-            # ── Nivel 3: documentos principales ──
-            _safe_delete('DELETE FROM ventas')
-            _safe_delete('DELETE FROM cotizaciones')
-            _safe_delete('DELETE FROM pre_cotizaciones')
-            _safe_delete('DELETE FROM ordenes_compra')
-            _safe_delete('DELETE FROM gastos_operativos')
-            _safe_delete('DELETE FROM documentos_legales')
-            _safe_delete('DELETE FROM empleados')
-            _safe_delete('DELETE FROM recetas_producto')
-            _safe_delete('DELETE FROM servicios')
-            # ── Nivel 2: catálogos ──
-            _safe_delete('DELETE FROM reglas_tributarias')
-            _safe_delete('DELETE FROM materias_primas')
-            _safe_delete('DELETE FROM productos')
-            _safe_delete('DELETE FROM contactos_cliente')
-            _safe_delete('DELETE FROM clientes')
-            _safe_delete('DELETE FROM proveedores')
-            # ── Nivel 1: sesiones y usuarios ──
-            _safe_delete('DELETE FROM user_sesiones')
-            try:
-                conn = db.session.connection()
-                conn.execute(db.text('DELETE FROM users WHERE id != :aid'), {'aid': admin_id})
-            except Exception:
-                pass
-            _log('eliminar', 'sistema', 0, f'RESET TOTAL ejecutado por {current_user.email}')
+            # Delete each table individually — skip tables that don't exist
+            for table in tables_ordered:
+                if table not in existing_tables:
+                    logging.info(f'Reset: tabla "{table}" no existe, omitida')
+                    continue
+                try:
+                    db.session.execute(db.text(f'DELETE FROM {table}'))
+                except Exception as _e:
+                    db.session.rollback()
+                    logging.warning(f'Reset: falló DELETE FROM {table}: {_e}')
+
+            # Delete users except admin
+            if 'users' in existing_tables:
+                try:
+                    db.session.execute(
+                        db.text('DELETE FROM users WHERE id != :aid'),
+                        {'aid': admin_id}
+                    )
+                except Exception:
+                    db.session.rollback()
+
             db.session.commit()
-            logging.warning(f'RESET TOTAL ejecutado por user_id={current_user.id} ({current_user.email})')
+
+            # Log in a fresh transaction (after all deletes are committed)
+            try:
+                _log('eliminar', 'sistema', 0, f'RESET TOTAL ejecutado por {admin_email}')
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+
+            logging.warning(f'RESET TOTAL ejecutado por user_id={admin_id} ({admin_email})')
             flash('Reset completo. Todos los datos y usuarios eliminados (tu cuenta admin fue conservada).', 'success')
         except Exception as e:
             db.session.rollback()
             logging.error(f'admin_reset_total ERROR: {e}')
-            flash(f'Error durante el reset: {e}', 'danger')
+            flash('Error durante el reset. Revisa los logs del servidor.', 'danger')
 
         return redirect(url_for('dashboard'))
 

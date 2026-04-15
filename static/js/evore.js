@@ -951,3 +951,22 @@ document.addEventListener('submit',function(e){
     setTimeout(function(){btn.disabled=false;btn.innerHTML=btn.dataset.originalText||'Enviar';},8000);
   });
 });
+
+// ── PostHog: identify user + custom events ──
+(function(){
+  if(typeof posthog==='undefined') return;
+  // Identify logged-in user (data attributes set in base.html)
+  var b=document.body;
+  var uid=b.dataset.userId, uemail=b.dataset.userEmail, urol=b.dataset.userRol;
+  if(uid) posthog.identify(uid,{email:uemail||'',rol:urol||''});
+  // Track key form submissions
+  document.addEventListener('submit',function(e){
+    var f=e.target, a=f.getAttribute('action')||'';
+    if(a.indexOf('/venta/nueva')!==-1||a.indexOf('/ventas/nueva')!==-1) posthog.capture('venta_created');
+    if(a.indexOf('/clientes/nuevo')!==-1) posthog.capture('cliente_created');
+    if(a.indexOf('/foro/nueva')!==-1) posthog.capture('foro_published');
+    if(a.indexOf('/planes/suscribir')!==-1) posthog.capture('suscripcion_pro');
+    if(a.indexOf('/contacto')!==-1&&a.indexOf('/contactos')===-1) posthog.capture('landing_contact');
+    if(a.indexOf('/login')!==-1) posthog.capture('login_attempt');
+  });
+})();

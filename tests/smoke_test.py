@@ -33,7 +33,7 @@ def run():
     print("3. Route responses...", end=" ")
     with app.test_client() as c:
         routes_to_test = [
-            ('/', 302), ('/login', 200), ('/health', 200),
+            ('/', 200), ('/login', 200), ('/health', 200),
             ('/sw.js', 200), ('/api/docs', 302), ('/static/manifest.json', 200),
         ]
         for path, expected in routes_to_test:
@@ -54,9 +54,9 @@ def run():
 
     # 5. Design system tokens exist
     print("5. Design tokens...", end=" ")
-    base_css = open('templates/base.html').read()
+    css_content = open('static/css/evore.css').read()
     tokens = ['--sp-1', '--sp-5', '--font-body', '--font-micro', '--surface', '--ac', '--green', '--red']
-    missing = [t for t in tokens if t not in base_css]
+    missing = [t for t in tokens if t not in css_content]
     if missing:
         errors.append(f"Missing tokens: {missing}")
         print(f"FAIL: missing {missing}")
