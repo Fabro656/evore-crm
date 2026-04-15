@@ -294,9 +294,9 @@ function guardarNuevaMp(){
   btn.disabled=true; btn.textContent='Creando...';
   fetch('{{ url_for("materia_nueva_rapida") }}', {
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    headers:{'Content-Type':'application/json','X-CSRF-Token':'{{ csrf_token }}'},
     body: JSON.stringify({nombre:nombre, unidad:unidad})
-  }).then(r=>r.json()).then(data=>{
+  }).then(r=>{if(!r.ok)throw new Error('Error '+r.status);return r.json()}).then(data=>{
     btn.disabled=false; btn.innerHTML='<i class="bi bi-check-lg me-1"></i>Crear';
     if (data.error){ errEl.textContent=data.error; errEl.style.display=''; return; }
     // Añadir a MATERIAS si no existe

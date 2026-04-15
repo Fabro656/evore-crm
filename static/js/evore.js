@@ -1,4 +1,6 @@
-// ── Block from line 951 ──
+// ── CSRF token for AJAX requests ──
+var _csrfToken=(document.querySelector('meta[name="csrf-token"]')||{}).content||'';
+
 // ── Dock: hover=tooltip, click=open panel ──
 (function(){
   var tip = document.createElement('div');
@@ -286,7 +288,7 @@ function toggleNotif(e){
 }
 function marcarLeida(e,el,id){
   e.stopPropagation();
-  fetch('/notificaciones/'+id+'/leida',{method:'POST',headers:{'Content-Type':'application/json'}})
+  fetch('/notificaciones/'+id+'/leida',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrfToken}})
     .then(()=>{
       el.parentElement.removeChild(el);
       var badge=document.getElementById('notif-badge');
@@ -435,7 +437,7 @@ function goStep(n){
 function obNav(dir){goStep(Math.min(Math.max(_obStep+dir,0),_obTotal-1));}
 function cerrarOnboarding(){
   if(document.getElementById('chkNoMostrar').checked){
-    fetch('/onboarding/dismiss',{method:'POST',headers:{'Content-Type':'application/json'}});
+    fetch('/onboarding/dismiss',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrfToken}});
   }
   bootstrap.Modal.getInstance(document.getElementById('modalOnboarding')).hide();
 }
@@ -682,7 +684,7 @@ function chatSendFile(input){
   // Send
   var fd = new FormData();
   fd.append('contenido', '📎 '+file.name+' ('+Math.round(file.size/1024)+'KB)');
-  fd.append('_csrf_token', document.querySelector('meta[name=csrf-token]').content);
+  fd.append('_csrf_token', _csrfToken);
   fetch('/chat/'+_chatRoomId+'/enviar',{method:'POST',body:fd,headers:{'X-Requested-With':'XMLHttpRequest'}})
     .then(function(){div.querySelector('div').style.opacity='1';})
     .catch(function(){div.querySelector('div').style.background='#C23934';});
@@ -694,7 +696,7 @@ function chatCreateSubmit(){
   var cbs=document.querySelectorAll('.chatNewUserCb:checked');
   var fd=new FormData();
   fd.append('nombre',name);
-  fd.append('_csrf_token',document.querySelector('meta[name=csrf-token]').content);
+  fd.append('_csrf_token',_csrfToken);
   cbs.forEach(function(cb){fd.append('users',cb.value);});
   fetch('/chat/nuevo',{method:'POST',body:fd,redirect:'follow'}).then(function(r){
     if(r.redirected){
@@ -769,7 +771,7 @@ function chatSend(e){
   // Send to server first, then poll will bring it back — no optimistic double
   var fd = new FormData();
   fd.append('contenido', text);
-  fd.append('_csrf_token', document.querySelector('meta[name=csrf-token]').content);
+  fd.append('_csrf_token', _csrfToken);
   fetch('/chat/'+_chatRoomId+'/enviar', {method:'POST', body:fd, headers:{'X-Requested-With':'XMLHttpRequest'}})
     .then(function(){ chatPollMessages(); })
     .catch(function(){});
