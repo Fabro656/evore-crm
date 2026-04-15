@@ -82,7 +82,7 @@ def register(app):
                 flash(f'Servicio "{nombre}" creado exitosamente.', 'success')
                 return redirect(url_for('servicios'))
             except (ValueError, TypeError) as e:
-                flash(f'Error al procesar valores: {str(e)}', 'danger')
+                flash('Error al procesar los valores del formulario.', 'danger')
                 return render_template('servicios/form.html', obj=None)
 
         return render_template('servicios/form.html', obj=None)
@@ -124,7 +124,7 @@ def register(app):
                 flash(f'Servicio "{nombre}" actualizado exitosamente.', 'success')
                 return redirect(url_for('servicios'))
             except (ValueError, TypeError) as e:
-                flash(f'Error al procesar valores: {str(e)}', 'danger')
+                flash('Error al procesar los valores del formulario.', 'danger')
                 return render_template('servicios/form.html', obj=obj)
 
         return render_template('servicios/form.html', obj=obj)
@@ -145,7 +145,7 @@ def register(app):
             flash(f'Servicio "{obj.nombre}" {estado}.', 'success')
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al cambiar estado: {str(e)}', 'danger')
+            flash('Error al cambiar el estado.', 'danger')
 
         return redirect(url_for('servicios'))
 
@@ -169,7 +169,7 @@ def register(app):
             flash(f'Servicio "{nombre}" eliminado.', 'info')
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al eliminar servicio: {str(e)}', 'danger')
+            flash('Error al eliminar el servicio.', 'danger')
 
         return redirect(url_for('servicios'))
 

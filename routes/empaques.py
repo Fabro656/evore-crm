@@ -159,7 +159,7 @@ def register(app):
                 flash(f'Empaque para "{producto.nombre}" creado como borrador.', 'success')
                 return redirect(url_for('empaques'))
             except (ValueError, TypeError) as e:
-                flash(f'Error al procesar valores: {str(e)}', 'danger')
+                flash('Error al procesar los valores del formulario.', 'danger')
                 return render_template('empaques/form.html', productos=productos, obj=None)
 
         return render_template('empaques/form.html', productos=productos, obj=None)
@@ -192,7 +192,7 @@ def register(app):
                 flash(f'Empaque actualizado.', 'success')
                 return redirect(url_for('empaques'))
             except (ValueError, TypeError) as e:
-                flash(f'Error al procesar valores: {str(e)}', 'danger')
+                flash('Error al procesar los valores del formulario.', 'danger')
 
         return render_template('empaques/form.html', productos=productos, obj=empaque)
 
@@ -469,7 +469,7 @@ def register(app):
             flash(f'Empaque aprobado. MP "{nombre_mp}" creada.{receta_msg}', 'success')
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al aprobar empaque: {str(e)}', 'danger')
+            flash('Error al aprobar el empaque.', 'danger')
 
         return redirect(url_for('empaques'))
 
@@ -534,6 +534,6 @@ def register(app):
             flash(f'Empaque de "{nombre_producto}" eliminado de receta. Cotización marcada como no actual. Stock y materias primas conservados.', 'info')
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al eliminar empaque: {str(e)}', 'danger')
+            flash('Error al eliminar el empaque.', 'danger')
 
         return redirect(url_for('empaques'))

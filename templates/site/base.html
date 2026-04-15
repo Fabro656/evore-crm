@@ -114,8 +114,6 @@ footer a{color:var(--t2);margin:0 .75rem}footer a:hover{color:var(--t)}
   .fr,.fr:nth-child(even){flex-direction:column;gap:1.5rem;margin-bottom:2.5rem}
   .fr-t h3{font-size:1.2rem}
   .feat{grid-template-columns:1fr;min-height:auto}
-  .feat-txt{padding:2rem 1.25rem}
-  .feat-vis{padding:1.25rem;min-height:280px}
   .sc{padding:3rem 0}
   .si,.sw{padding:0 1rem}
   .ph{padding:4.5rem 1.25rem 1.5rem}
@@ -186,7 +184,7 @@ footer a{color:var(--t2);margin:0 .75rem}footer a:hover{color:var(--t)}
 
 <script>
 var ob=new IntersectionObserver(function(e){e.forEach(function(x){
-  if(x.isIntersecting){x.target.classList.add('v');x.target.querySelectorAll('.hero-cards').forEach(function(a){a.classList.add('anim')});ob.unobserve(x.target)}
+  if(x.isIntersecting){x.target.classList.add('v');ob.unobserve(x.target)}
 })},{threshold:.15,rootMargin:'0px 0px -40px 0px'});
 document.querySelectorAll('.rv').forEach(function(e){ob.observe(e)});
 document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();var t=document.querySelector(this.getAttribute('href'));if(t)t.scrollIntoView({behavior:'smooth',block:'start'})})});
