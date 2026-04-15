@@ -3,24 +3,47 @@
 
 {% block extra_css %}
 /* Hero */
-.hero{padding:5rem 3rem 4rem;text-align:center;background:var(--sf)}
+.hero{padding:5rem 3rem 3rem;text-align:center;background:var(--sf)}
 .hero h1{font-size:clamp(2.8rem,6vw,4.5rem);font-weight:700;letter-spacing:-.04em;line-height:1.04;margin-bottom:1.25rem;max-width:850px;margin-left:auto;margin-right:auto}
 .hero h1 em{font-style:normal;color:var(--ac)}
-.hero p{font-size:clamp(1.05rem,1.8vw,1.2rem);color:var(--t2);max-width:540px;margin:0 auto 2.25rem;line-height:1.6;font-weight:300}
-.hb{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap}
+.hero p{font-size:clamp(1.05rem,1.8vw,1.2rem);color:var(--t2);max-width:540px;margin:0 auto 2rem;line-height:1.6;font-weight:300}
+.hb{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;margin-bottom:3rem}
+/* Hero mockup */
+.hero-mock{max-width:900px;margin:0 auto;border-radius:14px;overflow:hidden;border:1px solid var(--bd);box-shadow:0 24px 80px rgba(0,0,0,.08);background:var(--sf)}
+.hero-mock .hm-bar{height:36px;background:var(--bg);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 14px;gap:6px}
+.hero-mock .hm-bar i{width:8px;height:8px;border-radius:50%}
+.hero-mock .hm-bar i:nth-child(1){background:#FF5F57}.hero-mock .hm-bar i:nth-child(2){background:#FFBD2E}.hero-mock .hm-bar i:nth-child(3){background:#28CA41}
+.hero-mock .hm-bar span{flex:1;text-align:center;font-size:.65rem;color:var(--t2)}
+.hero-mock .hm-body{display:grid;grid-template-columns:48px 1fr;min-height:280px}
+.hm-sb{background:var(--bg);border-right:1px solid var(--bd);padding:.5rem .35rem;display:flex;flex-direction:column;align-items:center;gap:.35rem}
+.hm-sb i{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--t2);transition:all .2s}
+.hm-sb i.on{background:var(--st-info-bg);color:var(--ac)}
+.hm-content{padding:1rem;display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;align-content:start}
+.hm-card{background:var(--bg);border-radius:8px;padding:.6rem .7rem;opacity:0;transform:translateY(12px)}
+.hero-mock.anim .hm-card{animation:vUp .45s cubic-bezier(.16,1,.3,1) forwards}
+.hero-mock.anim .hm-card:nth-child(2){animation-delay:.06s}
+.hero-mock.anim .hm-card:nth-child(3){animation-delay:.12s}
+.hero-mock.anim .hm-card:nth-child(4){animation-delay:.18s}
+.hero-mock.anim .hm-card:nth-child(5){animation-delay:.24s}
+.hero-mock.anim .hm-card:nth-child(6){animation-delay:.3s}
+@keyframes vUp{to{opacity:1;transform:none}}
+.hm-card .hm-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem}
+.hm-card .hm-dot{width:6px;height:6px;border-radius:50%}
+.hm-card .hm-n{font-weight:600;font-size:.65rem;color:var(--t)}
+.hm-card .hm-s{font-size:.58rem;color:var(--t2)}
 
 /* Promo strip */
 .promo{background:linear-gradient(90deg,var(--ac),#7C3AED);color:#fff;padding:.6rem 2rem;font-size:.82rem;display:flex;align-items:center;justify-content:center;gap:.75rem;flex-wrap:wrap;margin-top:48px}
 .promo b{font-weight:700}
 #cd{background:rgba(0,0,0,.2);padding:2px 10px;border-radius:6px;font-weight:700;font-size:.78rem;font-variant-numeric:tabular-nums;letter-spacing:.5px}
 
-/* ── Module grid: 3 per row, cards (Apple style) ── */
+/* ── Module grid: 3 per row, clean cards ── */
 .mg{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;padding:0 2rem 3rem;max-width:1400px;margin:0 auto}
-.mc{background:var(--bg);border-radius:20px;padding:2.25rem 2rem 2rem;position:relative;overflow:hidden;transition:all .4s cubic-bezier(.16,1,.3,1);border:none}
-.mc:hover{background:var(--sf);box-shadow:0 8px 30px rgba(0,0,0,.06);transform:translateY(-4px)}
-.mc-icon{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.25rem;color:#fff;margin-bottom:1.25rem}
-.mc h3{font-size:1.15rem;font-weight:600;margin-bottom:.5rem;letter-spacing:-.01em}
-.mc p{color:var(--t2);font-size:.88rem;line-height:1.65;margin-bottom:1rem;font-weight:300}
+.mc{background:var(--sf);border-radius:20px;padding:2rem 1.75rem 1.75rem;position:relative;overflow:hidden;transition:all .4s cubic-bezier(.16,1,.3,1);border:none}
+.mc:hover{box-shadow:0 8px 30px rgba(0,0,0,.06);transform:translateY(-4px)}
+.mc-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#fff;margin-bottom:1rem}
+.mc h3{font-size:1.05rem;font-weight:600;margin-bottom:.4rem;letter-spacing:-.01em}
+.mc p{color:var(--t2);font-size:.85rem;line-height:1.6;margin-bottom:.75rem;font-weight:300;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .mc-link{color:var(--ac);font-size:.85rem;font-weight:600;display:inline-flex;align-items:center;gap:.3rem;transition:gap .2s}
 .mc-link:hover{gap:.6rem;color:var(--ac2)}
 
@@ -58,7 +81,7 @@
 .ei h3{font-size:.92rem;font-weight:600;margin-bottom:.35rem}.ei p{font-size:.82rem;color:var(--t2);line-height:1.55}
 
 /* ── Pricing ── */
-.pg{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--bd);border-radius:20px;overflow:hidden;max-width:1000px;margin:0 auto}
+.pg{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--bd);border-radius:20px;overflow:hidden;max-width:1200px;margin:0 auto}
 .pc{background:#fff;padding:2.5rem 2rem;text-align:center}
 .pc.ft{background:linear-gradient(180deg,#EBF4FF,#fff)}
 .pp{font-size:clamp(1.8rem,3.5vw,2.5rem);font-weight:700;margin:.5rem 0 .2rem}.pp span{font-size:.82rem;font-weight:400;color:var(--t2)}
@@ -108,10 +131,33 @@
     <a href="#" class="ba" style="padding:.8rem 2rem;font-size:.98rem" onclick="event.preventDefault();openM()"><i class="bi bi-arrow-right"></i>Probar 1 mes gratis</a>
     <a href="#modulos" class="bo">Ver módulos <i class="bi bi-chevron-down"></i></a>
   </div>
+  <!-- Dashboard mockup -->
+  <div class="hero-mock rv">
+    <div class="hm-bar"><i></i><i></i><i></i><span>evore.co/dashboard</span></div>
+    <div class="hm-body">
+      <div class="hm-sb">
+        <i class="bi bi-house-fill on"></i>
+        <i class="bi bi-bag"></i>
+        <i class="bi bi-gear"></i>
+        <i class="bi bi-box-seam"></i>
+        <i class="bi bi-calculator"></i>
+        <i class="bi bi-people"></i>
+        <i class="bi bi-shop"></i>
+      </div>
+      <div class="hm-content">
+        <div class="hm-card"><div class="hm-top"><div class="hm-dot" style="background:var(--ac)"></div><span class="hm-n">$85.2M</span></div><div class="hm-s">Ingresos totales</div></div>
+        <div class="hm-card"><div class="hm-top"><div class="hm-dot" style="background:var(--gn)"></div><span class="hm-n">$33.1M</span></div><div class="hm-s">Saldo neto</div></div>
+        <div class="hm-card"><div class="hm-top"><div class="hm-dot" style="background:var(--og)"></div><span class="hm-n">23</span></div><div class="hm-s">Ventas activas</div></div>
+        <div class="hm-card"><div class="hm-top"><div class="hm-dot" style="background:var(--ac)"></div><span class="hm-n">$12.5M</span></div><div class="hm-s">Textiles del Norte</div></div>
+        <div class="hm-card"><div class="hm-top"><div class="hm-dot" style="background:var(--gn)"></div><span class="hm-n">$8.2M</span></div><div class="hm-s">MakerCo · Anticipo</div></div>
+        <div class="hm-card"><div class="hm-top"><div class="hm-dot" style="background:#7C3AED"></div><span class="hm-n">★ 4.8</span></div><div class="hm-s">Tu valoración</div></div>
+      </div>
+    </div>
+  </div>
 </section>
 
 <!-- ═══════ MODULES ═══════ -->
-<section id="modulos" style="padding:4rem 0 2rem">
+<section id="modulos" style="padding:4rem 0 2rem;background:var(--bg)">
   <div style="text-align:center;margin-bottom:2.5rem"><h2 style="font-size:clamp(1.8rem,4vw,2.8rem);font-weight:700;letter-spacing:-.03em">Todo lo que necesitas.</h2><p style="color:var(--t2);font-size:1.05rem;font-weight:300;margin-top:.5rem">9 módulos diseñados para manufactura real.</p></div>
   <div class="mg">
 
@@ -127,10 +173,6 @@
         <span class="flow-node blue">Producción</span><i class="bi bi-chevron-right flow-arrow"></i>
         <span class="flow-node green">Entregado</span>
       </div>
-      <div class="mc-stats">
-        <div class="mc-stat"><div class="n">7</div><div class="l">Estados</div></div>
-        <div class="mc-stat"><div class="n">PDF</div><div class="l">Cotizaciones</div></div>
-        <div class="mc-stat"><div class="n">%</div><div class="l">Comisiones</div></div>
       </div>
       <a href="/modulo/ventas" class="mc-link" style="margin-top:1rem">Conocer más <i class="bi bi-arrow-right"></i></a>
     </div>
@@ -146,10 +188,6 @@
         <span class="flow-node active">Consumo FIFO</span><i class="bi bi-chevron-right flow-arrow"></i>
         <span class="flow-node green">Lote creado</span>
       </div>
-      <div class="mc-stats">
-        <div class="mc-stat"><div class="n">BOM</div><div class="l">Recetas</div></div>
-        <div class="mc-stat"><div class="n">FIFO</div><div class="l">Consumo</div></div>
-        <div class="mc-stat"><div class="n">Gantt</div><div class="l">Planta</div></div>
       </div>
       <a href="/modulo/produccion" class="mc-link" style="margin-top:1rem">Conocer más <i class="bi bi-arrow-right"></i></a>
     </div>
@@ -165,10 +203,6 @@
         <span class="flow-node orange">Reservado</span><i class="bi bi-chevron-right flow-arrow"></i>
         <span class="flow-node red">Alerta bajo</span>
       </div>
-      <div class="mc-stats">
-        <div class="mc-stat"><div class="n">∞</div><div class="l">Productos</div></div>
-        <div class="mc-stat"><div class="n">Lotes</div><div class="l">Con vencimiento</div></div>
-        <div class="mc-stat"><div class="n">Auto</div><div class="l">Reservas</div></div>
       </div>
       <a href="/modulo/inventario" class="mc-link" style="margin-top:1rem">Conocer más <i class="bi bi-arrow-right"></i></a>
     </div>
@@ -185,10 +219,6 @@
         <span class="flow-node orange">Fiscal</span><i class="bi bi-chevron-right flow-arrow"></i>
         <span class="flow-node green">Cierre</span>
       </div>
-      <div class="mc-stats">
-        <div class="mc-stat"><div class="n">18</div><div class="l">Funciones</div></div>
-        <div class="mc-stat"><div class="n">102</div><div class="l">Cuentas PUC</div></div>
-        <div class="mc-stat"><div class="n">6</div><div class="l">Reportes</div></div>
       </div>
       <a href="/modulo/contabilidad" class="mc-link" style="margin-top:1rem">Conocer más <i class="bi bi-arrow-right"></i></a>
     </div>
@@ -204,10 +234,6 @@
         <span class="flow-node active">Liquidación</span><i class="bi bi-chevron-right flow-arrow"></i>
         <span class="flow-node green">Nómina cerrada</span>
       </div>
-      <div class="mc-stats">
-        <div class="mc-stat"><div class="n">Art.383</div><div class="l">Retención</div></div>
-        <div class="mc-stat"><div class="n">PILA</div><div class="l">Aportes</div></div>
-        <div class="mc-stat"><div class="n">Auto</div><div class="l">Liquidación</div></div>
       </div>
       <a href="/modulo/nomina" class="mc-link" style="margin-top:1rem">Conocer más <i class="bi bi-arrow-right"></i></a>
     </div>
@@ -223,10 +249,6 @@
         <span class="flow-node active">OC creada</span><i class="bi bi-chevron-right flow-arrow"></i>
         <span class="flow-node green">Recibida</span>
       </div>
-      <div class="mc-stats">
-        <div class="mc-stat"><div class="n">Score</div><div class="l">Proveedores</div></div>
-        <div class="mc-stat"><div class="n">PDF</div><div class="l">Órdenes</div></div>
-        <div class="mc-stat"><div class="n">∞</div><div class="l">Proveedores</div></div>
       </div>
       <a href="/modulo/compras" class="mc-link" style="margin-top:1rem">Conocer más <i class="bi bi-arrow-right"></i></a>
     </div>
@@ -242,10 +264,6 @@
         <span class="flow-node active">Conectar</span><i class="bi bi-chevron-right flow-arrow"></i>
         <span class="flow-node green">★★★★★</span>
       </div>
-      <div class="mc-stats">
-        <div class="mc-stat"><div class="n">30</div><div class="l">Industrias</div></div>
-        <div class="mc-stat"><div class="n">1 clic</div><div class="l">Conexión</div></div>
-        <div class="mc-stat"><div class="n">★</div><div class="l">Valoraciones</div></div>
       </div>
       <a href="/modulo/marketplace" class="mc-link" style="margin-top:1rem">Conocer más <i class="bi bi-arrow-right"></i></a>
     </div>
@@ -261,9 +279,6 @@
         <span class="flow-node active">MyEvore</span><i class="bi bi-chevron-right flow-arrow"></i>
         <span class="flow-node green">Notificado</span>
       </div>
-      <div class="mc-stats">
-        <div class="mc-stat"><div class="n">Auto</div><div class="l">Recordatorios</div></div>
-        <div class="mc-stat"><div class="n">10MB</div><div class="l">Archivos</div></div>
       </div>
       <a href="/modulo/chat" class="mc-link" style="margin-top:1rem">Conocer más <i class="bi bi-arrow-right"></i></a>
     </div>
@@ -279,10 +294,6 @@
         <span class="flow-node blue">Firma + selfie</span><i class="bi bi-chevron-right flow-arrow"></i>
         <span class="flow-node green">Firmado</span>
       </div>
-      <div class="mc-stats">
-        <div class="mc-stat"><div class="n">9</div><div class="l">Plantillas</div></div>
-        <div class="mc-stat"><div class="n">Selfie</div><div class="l">Verificación</div></div>
-        <div class="mc-stat"><div class="n">527</div><div class="l">Ley cumplida</div></div>
       </div>
       <a href="/modulo/legal" class="mc-link" style="margin-top:1rem">Conocer más <i class="bi bi-arrow-right"></i></a>
     </div>
