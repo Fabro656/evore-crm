@@ -2,45 +2,34 @@
 {% block title %}{{ p.nombre }}{% endblock %}{% block page_title %}{{ p.codigo }} — {{ p.nombre }}{% endblock %}
 {% block topbar_actions %}
 <div class="d-flex gap-2">
-  <a href="{{ url_for('proyecto_diagrama', pid=p.id) }}" class="btn btn-outline-info btn-sm"><i class="bi bi-diagram-3 me-1"></i>Diagrama</a>
-  <a href="{{ url_for('proyecto_brainstorm', pid=p.id) }}" class="btn btn-outline-warning btn-sm"><i class="bi bi-lightbulb me-1"></i>Brainstorm</a>
+  {% if p.estado == 'planificacion' %}
+  <form method="POST" action="{{ url_for('proyecto_enviar_aprobacion', pid=p.id) }}" class="m-0">
+    <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Enviar a aprobacion del Director Financiero?')"><i class="bi bi-send me-1"></i>Enviar a aprobacion</button>
+  </form>
+  {% elif p.estado == 'pendiente_aprobacion' %}
+  {% set rol = rol_activo if rol_activo is defined else '' %}
+  {% if rol in ('admin','director_financiero') %}
+  <form method="POST" action="{{ url_for('proyecto_aprobar', pid=p.id) }}" class="m-0"><input type="hidden" name="accion" value="aprobar"><button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check-lg me-1"></i>Aprobar</button></form>
+  <form method="POST" action="{{ url_for('proyecto_aprobar', pid=p.id) }}" class="m-0"><input type="hidden" name="accion" value="rechazar"><button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-x-lg me-1"></i>Rechazar</button></form>
+  {% endif %}
+  {% endif %}
   <a href="{{ url_for('proyecto_equipo', pid=p.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-people me-1"></i>Equipo</a>
-  <a href="{{ url_for('proyecto_plan_gastos', pid=p.id) }}" class="btn btn-outline-success btn-sm"><i class="bi bi-wallet2 me-1"></i>Plan</a>
-  <a href="{{ url_for('proyecto_calendario', id=p.id) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-calendar3 me-1"></i>Calendario</a>
   <a href="{{ url_for('proyecto_editar', id=p.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i>Editar</a>
   <a href="{{ url_for('proyectos_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Proyectos</a>
 </div>
 {% endblock %}
 {% block content %}
 <div style="max-width:1400px;margin:0 auto">
-  {# ── State banner ── #}
-  {% if p.estado == 'planificacion' %}
-  <div class="fc mb-3" style="background:rgba(1,118,211,.05);border-color:var(--ac);padding:.75rem 1rem">
-    <div class="d-flex align-items-center gap-2 flex-wrap">
-      <i class="bi bi-pencil-square" style="color:var(--ac)"></i>
-      <span style="font-size:.85rem;color:var(--ac);font-weight:600">Planificacion</span>
-      <span class="text-muted" style="font-size:.82rem">— Define fases, presupuesto y plan de gastos. Luego envia a aprobacion.</span>
-      <a href="{{ url_for('proyecto_plan_gastos', pid=p.id) }}" class="btn btn-sm btn-primary ms-auto"><i class="bi bi-wallet2 me-1"></i>Ir al plan de gastos</a>
-    </div>
+  {# ── State indicator (compact) ── #}
+  <div class="d-flex align-items-center gap-2 mb-3" style="font-size:.82rem">
+    <span class="b b-{{ p.estado }}" style="font-size:.75rem">{{ p.estado.replace('_',' ').title() }}</span>
+    {% if p.estado == 'planificacion' %}<span class="text-muted">Define fases, presupuesto y plan de gastos.</span>
+    {% elif p.estado == 'pendiente_aprobacion' %}<span style="color:#F59E0B"><i class="bi bi-hourglass-split me-1"></i>Esperando aprobacion del Director Financiero.</span>
+    {% elif p.estado == 'desarrollo' %}<span style="color:var(--green)"><i class="bi bi-rocket-takeoff me-1"></i>Plan aprobado — en ejecucion.</span>
+    {% elif p.estado == 'completado' %}<span style="color:var(--green)"><i class="bi bi-check-circle me-1"></i>Proyecto completado.</span>
+    {% elif p.estado == 'cancelado' %}<span style="color:var(--red)"><i class="bi bi-x-circle me-1"></i>Proyecto cancelado.</span>
+    {% endif %}
   </div>
-  {% elif p.estado == 'pendiente_aprobacion' %}
-  <div class="fc mb-3" style="background:rgba(249,158,11,.08);border-color:#F59E0B;padding:.75rem 1rem">
-    <div class="d-flex align-items-center gap-2 flex-wrap">
-      <i class="bi bi-hourglass-split" style="color:#F59E0B"></i>
-      <span style="font-size:.85rem;color:#F59E0B;font-weight:600">Pendiente de aprobacion</span>
-      <span class="text-muted" style="font-size:.82rem">— Esperando al Director Financiero.</span>
-      <a href="{{ url_for('proyecto_plan_gastos', pid=p.id) }}" class="btn btn-sm btn-outline-warning ms-auto"><i class="bi bi-eye me-1"></i>Ver plan</a>
-    </div>
-  </div>
-  {% elif p.estado == 'desarrollo' %}
-  <div class="fc mb-3" style="background:rgba(16,185,129,.05);border-color:var(--green);padding:.75rem 1rem">
-    <div class="d-flex align-items-center gap-2">
-      <i class="bi bi-rocket-takeoff" style="color:var(--green)"></i>
-      <span style="font-size:.85rem;color:var(--green);font-weight:600">En desarrollo</span>
-      <span class="text-muted" style="font-size:.82rem">— Plan aprobado. Ejecuta las fases y registra gastos reales.</span>
-    </div>
-  </div>
-  {% endif %}
   {# ── Header stats ── #}
   <div class="row g-3 mb-3">
     <div class="col-6 col-md-3"><div class="fc text-center py-2">
@@ -70,9 +59,13 @@
   </div>
 
   {# ── Vista tabs ── #}
-  <ul class="nav nav-tabs mb-3">
-    <li class="nav-item"><a class="nav-link {% if vista != 'kanban' %}{% else %}active{% endif %}" href="{{ url_for('proyecto_ver', id=p.id, vista='fases') }}"><i class="bi bi-layers me-1"></i>Fases</a></li>
+  <ul class="nav nav-tabs mb-3" style="flex-wrap:wrap">
+    <li class="nav-item"><a class="nav-link {% if vista == 'fases' or vista not in ('kanban',) %}active{% endif %}" href="{{ url_for('proyecto_ver', id=p.id, vista='fases') }}"><i class="bi bi-layers me-1"></i>Fases</a></li>
     <li class="nav-item"><a class="nav-link {% if vista == 'kanban' %}active{% endif %}" href="{{ url_for('proyecto_ver', id=p.id, vista='kanban') }}"><i class="bi bi-kanban me-1"></i>Kanban</a></li>
+    <li class="nav-item"><a class="nav-link" href="{{ url_for('proyecto_diagrama', pid=p.id) }}"><i class="bi bi-diagram-3 me-1"></i>Diagrama</a></li>
+    <li class="nav-item"><a class="nav-link" href="{{ url_for('proyecto_brainstorm', pid=p.id) }}"><i class="bi bi-lightbulb me-1"></i>Brainstorm</a></li>
+    <li class="nav-item"><a class="nav-link" href="{{ url_for('proyecto_plan_gastos', pid=p.id) }}"><i class="bi bi-wallet2 me-1"></i>Plan de gastos</a></li>
+    <li class="nav-item"><a class="nav-link" href="{{ url_for('proyecto_calendario', id=p.id) }}"><i class="bi bi-calendar3 me-1"></i>Calendario</a></li>
   </ul>
 
   {# ── Actions ── #}
