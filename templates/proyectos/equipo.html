@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}Equipo — {{ p.nombre }}{% endblock %}{% block page_title %}{{ p.codigo }} — Equipo{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('proyecto_ver', id=p.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Proyecto</a>{% endblock %}
+{% block content %}
+<div style="max-width:800px;margin:0 auto">
+  <div class="fc mb-3" style="background:linear-gradient(135deg,var(--ac),#0a5a9e);color:#fff;border:none">
+    <div class="d-flex align-items-center gap-3">
+      <i class="bi bi-people-fill" style="font-size:2rem;opacity:.8"></i>
+      <div>
+        <h5 class="fw-bold mb-0" style="color:#fff">Equipo del proyecto</h5>
+        <p class="mb-0" style="font-size:.85rem;opacity:.85">Asigna miembros y selecciona un lider que fungira como administrador del proyecto.</p>
+      </div>
+    </div>
+  </div>
+
+  {# Current team #}
+  {% if equipo %}
+  <h6 class="fw-bold mb-2"><i class="bi bi-people me-2 text-primary"></i>Miembros actuales ({{ equipo|length }})</h6>
+  <div class="row g-2 mb-4">
+    {% for m in equipo %}
+    <div class="col-12 col-md-6">
+      <div class="fc d-flex align-items-center gap-3" style="padding:.75rem 1rem">
+        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width:40px;height:40px;background:{% if m.rol=='lider' %}#FFD700{% else %}var(--ac){% endif %};font-size:.95rem">{{ m.user.nombre[0]|upper }}</div>
+        <div style="flex:1">
+          <div class="fw-semibold" style="font-size:.9rem">{{ m.user.nombre }}</div>
+          <div class="text-muted" style="font-size:.72rem">{{ m.user.email }} — {{ m.user.rol }}</div>
+        </div>
+        {% if m.rol == 'lider' %}
+        <span class="badge" style="background:#FFD700;color:#333;font-size:.65rem"><i class="bi bi-star-fill me-1"></i>Lider</span>
+        {% else %}
+        <span class="badge bg-secondary" style="font-size:.65rem">{{ m.rol.title() }}</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# Edit team form #}
+  <div class="fc">
+    <h6 class="fw-bold mb-3"><i class="bi bi-pencil-square me-2"></i>Configurar equipo</h6>
+    <form method="POST">
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Lider del proyecto (administrador)</label>
+        <select name="lider_id" class="form-select" required>
+          <option value="">— Seleccionar lider —</option>
+          {% for u in usuarios %}<option value="{{ u.id }}" {% if lider and lider.user_id == u.id %}selected{% endif %}>{{ u.nombre }} ({{ u.rol }})</option>{% endfor %}
+        </select>
+        <div class="form-text">El lider tiene permisos de administrador dentro del proyecto.</div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Miembros del equipo</label>
+        <div class="border rounded p-3" style="max-height:300px;overflow-y:auto;background:var(--surface2)">
+          {% for u in usuarios %}
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" name="miembros[]" value="{{ u.id }}" id="eq_{{ u.id }}" {% if u.id in equipo_ids %}checked{% endif %}>
+            <label class="form-check-label d-flex align-items-center gap-2" for="eq_{{ u.id }}">
+              <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width:28px;height:28px;background:var(--ac);font-size:.7rem">{{ u.nombre[0]|upper }}</div>
+              <div>
+                <span style="font-size:.88rem">{{ u.nombre }}</span>
+                <span class="text-muted" style="font-size:.72rem"> — {{ u.rol }} — {{ u.email }}</span>
+              </div>
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="form-text">Los miembros podran ver todo el proyecto: fases, tareas, diagrama y brainstorming.</div>
+      </div>
+      <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Guardar equipo</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

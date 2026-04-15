@@ -2,7 +2,10 @@
 {% block title %}{{ p.nombre }}{% endblock %}{% block page_title %}{{ p.codigo }} — {{ p.nombre }}{% endblock %}
 {% block topbar_actions %}
 <div class="d-flex gap-2">
-  <a href="{{ url_for('proyecto_plan_gastos', pid=p.id) }}" class="btn btn-outline-success btn-sm"><i class="bi bi-wallet2 me-1"></i>Plan de gastos</a>
+  <a href="{{ url_for('proyecto_diagrama', pid=p.id) }}" class="btn btn-outline-info btn-sm"><i class="bi bi-diagram-3 me-1"></i>Diagrama</a>
+  <a href="{{ url_for('proyecto_brainstorm', pid=p.id) }}" class="btn btn-outline-warning btn-sm"><i class="bi bi-lightbulb me-1"></i>Brainstorm</a>
+  <a href="{{ url_for('proyecto_equipo', pid=p.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-people me-1"></i>Equipo</a>
+  <a href="{{ url_for('proyecto_plan_gastos', pid=p.id) }}" class="btn btn-outline-success btn-sm"><i class="bi bi-wallet2 me-1"></i>Plan</a>
   <a href="{{ url_for('proyecto_calendario', id=p.id) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-calendar3 me-1"></i>Calendario</a>
   <a href="{{ url_for('proyecto_editar', id=p.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i>Editar</a>
   <a href="{{ url_for('proyectos_index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Proyectos</a>

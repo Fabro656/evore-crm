@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date as date_type
 import json, secrets, os, logging
 
-__all__ = ['Company', 'UserCompany', 'ChatRoom', 'ChatParticipant', 'ChatMessage', 'User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'MovimientoBancario', 'NotaContable', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'MovimientoInventario', 'Notificacion', 'Empleado', 'HoraExtra', 'Comision', 'Incapacidad', 'VacacionTomada', 'Requisicion', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'HistorialPrecio', 'HistorialCotizacion', 'CompanyRelationship', 'Suscripcion', 'ForoPublicacion', 'ForoValoracion', 'ForoApelacion', 'ForoBanner', 'CapCurso', 'CapLeccion', 'CapPregunta', 'CapProgreso', 'CapEvaluacion', 'Proyecto', 'ProyectoFase', 'ProyectoMiembro', 'ProyectoTarea', 'ProyectoComentario', 'ProyectoGasto', 'ProyectoPlanGasto', 'ProyectoObjetivo', 'ProyectoSolicitudPago', 'load_user', '_migrate', 'init_db']
+__all__ = ['Company', 'UserCompany', 'ChatRoom', 'ChatParticipant', 'ChatMessage', 'User', 'ContactoCliente', 'Cliente', 'OrdenCompra', 'OrdenCompraItem', 'Proveedor', 'VentaProducto', 'Venta', 'PagoVenta', 'Aprobacion', 'TareaAsignado', 'TareaComentario', 'Tarea', 'Producto', 'MarcaProducto', 'CompraMateria', 'CotizacionProveedor', 'CotizacionGranel', 'DocumentoLegal', 'CuentaPUC', 'AsientoContable', 'MovimientoBancario', 'NotaContable', 'LineaAsiento', 'ReglaTributaria', 'GastoOperativo', 'Nota', 'Actividad', 'ConfigEmpresa', 'Evento', 'CotizacionItem', 'Cotizacion', 'LoteProducto', 'MateriaPrima', 'MateriaPrimaProducto', 'LoteMateriaPrima', 'RecetaProducto', 'RecetaItem', 'ReservaProduccion', 'OrdenProduccion', 'MovimientoInventario', 'Notificacion', 'Empleado', 'HoraExtra', 'Comision', 'Incapacidad', 'VacacionTomada', 'Requisicion', 'UserSesion', 'PreCotizacionItem', 'PreCotizacion', 'Servicio', 'EmpaqueSecundario', 'HistorialPrecio', 'HistorialCotizacion', 'CompanyRelationship', 'Suscripcion', 'ForoPublicacion', 'ForoValoracion', 'ForoApelacion', 'ForoBanner', 'CapCurso', 'CapLeccion', 'CapPregunta', 'CapProgreso', 'CapEvaluacion', 'Proyecto', 'ProyectoFase', 'ProyectoMiembro', 'ProyectoTarea', 'ProyectoComentario', 'ProyectoGasto', 'ProyectoPlanGasto', 'ProyectoObjetivo', 'ProyectoSolicitudPago', 'ProyectoNota', 'load_user', '_migrate', 'init_db']
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -1388,6 +1388,7 @@ class Proyecto(db.Model):
     # Vinculacion con entidades del CRM
     cliente_id      = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=True)
     etiquetas       = db.Column(db.Text, default='[]')  # JSON: ["lanzamiento","urgente"]
+    diagrama        = db.Column(db.Text)  # Mermaid.js flowchart syntax
     creado_por      = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
     # Relationships
@@ -1398,6 +1399,11 @@ class Proyecto(db.Model):
                                        order_by='ProyectoFase.orden', cascade='all, delete-orphan')
     gastos          = db.relationship('ProyectoGasto', backref='proyecto', lazy=True,
                                        cascade='all, delete-orphan')
+    miembros_proy   = db.relationship('ProyectoMiembro', backref='proyecto_rel',
+                                       primaryjoin='and_(ProyectoMiembro.proyecto_id==Proyecto.id, ProyectoMiembro.fase_id==None)',
+                                       foreign_keys='ProyectoMiembro.proyecto_id', lazy=True, viewonly=True)
+    notas_brainstorm = db.relationship('ProyectoNota', backref='proyecto', lazy=True,
+                                        order_by='ProyectoNota.orden', cascade='all, delete-orphan')
 
 class ProyectoFase(db.Model):
     __tablename__ = 'proyecto_fases'
@@ -1426,8 +1432,12 @@ class ProyectoMiembro(db.Model):
     proyecto_id     = db.Column(db.Integer, db.ForeignKey('proyectos.id'), nullable=False, index=True)
     fase_id         = db.Column(db.Integer, db.ForeignKey('proyecto_fases.id'), nullable=True, index=True)
     user_id         = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    rol             = db.Column(db.String(30), default='miembro')  # responsable, miembro, revisor
+    rol             = db.Column(db.String(30), default='miembro')  # lider, responsable, miembro, revisor
     user            = db.relationship('User', foreign_keys=[user_id])
+
+    @property
+    def es_lider(self):
+        return self.rol == 'lider'
 
 class ProyectoTarea(db.Model):
     __tablename__ = 'proyecto_tareas'
@@ -1490,6 +1500,20 @@ class ProyectoGasto(db.Model):
     descripcion     = db.Column(db.String(200))
     creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
     gasto           = db.relationship('GastoOperativo', foreign_keys=[gasto_id])
+
+class ProyectoNota(db.Model):
+    """Nota de brainstorming / sticky note del proyecto."""
+    __tablename__ = 'proyecto_notas'
+    id              = db.Column(db.Integer, primary_key=True)
+    proyecto_id     = db.Column(db.Integer, db.ForeignKey('proyectos.id'), nullable=False, index=True)
+    contenido       = db.Column(db.Text, nullable=False)
+    color           = db.Column(db.String(7), default='#FBBF24')  # yellow sticky
+    pos_x           = db.Column(db.Integer, default=0)  # position on board
+    pos_y           = db.Column(db.Integer, default=0)
+    orden           = db.Column(db.Integer, default=0)
+    autor_id        = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
+    autor           = db.relationship('User', foreign_keys=[autor_id])
 
 class ProyectoPlanGasto(db.Model):
     """Gasto planificado por fase — se aprueba antes de pasar a desarrollo."""
@@ -2237,6 +2261,9 @@ def _migrate(conn):
         # ── Foro Banners (marketplace ads) ──
         ("CREATE TABLE IF NOT EXISTS foro_banners (id SERIAL PRIMARY KEY, titulo VARCHAR(200) NOT NULL, descripcion TEXT, imagen_url VARCHAR(500), link_url VARCHAR(500), industria VARCHAR(100), tipo VARCHAR(20) DEFAULT 'evore', activo BOOLEAN DEFAULT TRUE, orden INTEGER DEFAULT 0, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
         ("CREATE TABLE IF NOT EXISTS foro_banners (id INTEGER PRIMARY KEY AUTOINCREMENT, titulo VARCHAR(200) NOT NULL, descripcion TEXT, imagen_url VARCHAR(500), link_url VARCHAR(500), industria VARCHAR(100), tipo VARCHAR(20) DEFAULT 'evore', activo BOOLEAN DEFAULT TRUE, orden INTEGER DEFAULT 0, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"),
+        # ── Proyectos: diagrama field ──
+        ("ALTER TABLE proyectos ADD COLUMN IF NOT EXISTS diagrama TEXT"),
+        ("ALTER TABLE proyectos ADD COLUMN diagrama TEXT"),
         # ── Proyectos: objetivo presupuesto + solicitud campos extra ──
         ("ALTER TABLE proyecto_objetivos ADD COLUMN IF NOT EXISTS presupuesto FLOAT DEFAULT 0"),
         ("ALTER TABLE proyecto_objetivos ADD COLUMN presupuesto FLOAT DEFAULT 0"),

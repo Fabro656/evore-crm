@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block title %}Brainstorming — {{ p.nombre }}{% endblock %}{% block page_title %}{{ p.codigo }} — Brainstorming{% endblock %}
+{% block topbar_actions %}
+<div class="d-flex gap-2">
+  <button class="btn btn-sm btn-outline-secondary" onclick="toggleBsFullscreen()"><i class="bi bi-arrows-fullscreen me-1"></i>Pantalla completa</button>
+  <a href="{{ url_for('proyecto_ver', id=p.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Proyecto</a>
+</div>
+{% endblock %}
+{% block content %}
+<div id="bsContainer" style="max-width:1400px;margin:0 auto">
+  {# Add note form #}
+  <div class="fc mb-3">
+    <form method="POST" action="{{ url_for('proyecto_brainstorm_nota', pid=p.id) }}" class="d-flex gap-2 align-items-end flex-wrap">
+      <div style="flex:2;min-width:200px">
+        <input type="text" name="contenido" class="form-control form-control-sm" placeholder="Nueva idea, nota o tarea..." required>
+      </div>
+      <div>
+        <select name="color" class="form-select form-select-sm" style="width:auto">
+          <option value="#FBBF24" style="background:#FBBF24">Amarillo</option>
+          <option value="#60A5FA" style="background:#60A5FA;color:#fff">Azul</option>
+          <option value="#34D399" style="background:#34D399">Verde</option>
+          <option value="#F87171" style="background:#F87171;color:#fff">Rojo</option>
+          <option value="#A78BFA" style="background:#A78BFA;color:#fff">Morado</option>
+          <option value="#FB923C" style="background:#FB923C">Naranja</option>
+          <option value="#E5E7EB" style="background:#E5E7EB">Gris</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Agregar</button>
+    </form>
+  </div>
+
+  {# Board #}
+  <div id="bsBoard" style="min-height:500px;background:var(--surface2);border-radius:var(--radius);padding:1.5rem;position:relative;overflow:auto;display:flex;flex-wrap:wrap;gap:1rem;align-content:flex-start">
+    {% if notas %}
+    {% for n in notas %}
+    <div class="bs-note" style="background:{{ n.color or '#FBBF24' }};width:220px;min-height:140px;border-radius:12px;padding:1rem;position:relative;box-shadow:0 2px 8px rgba(0,0,0,.1);transition:transform .15s,box-shadow .15s" onmouseenter="this.style.transform='translateY(-3px) rotate(-1deg)';this.style.boxShadow='0 6px 20px rgba(0,0,0,.15)'" onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(0,0,0,.1)'">
+      <div style="font-size:.88rem;color:#1a1a1a;font-weight:500;line-height:1.4;word-wrap:break-word">{{ n.contenido }}</div>
+      <div style="position:absolute;bottom:8px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:.65rem;color:rgba(0,0,0,.4)">{{ n.autor.nombre }} · {{ n.creado_en.strftime('%d/%m') if n.creado_en else '' }}</span>
+        <form method="POST" action="{{ url_for('proyecto_brainstorm_nota_eliminar', nid=n.id) }}" class="m-0">
+          <button type="submit" class="btn btn-sm p-0" style="border:none;background:none;color:rgba(0,0,0,.3);font-size:.7rem" onclick="return confirm('Eliminar nota?')"><i class="bi bi-x-lg"></i></button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="text-center w-100 py-5" style="color:var(--text2)">
+      <i class="bi bi-lightbulb" style="font-size:3rem;opacity:.3"></i>
+      <p class="mt-2" style="font-size:.9rem">Agrega la primera idea para comenzar el brainstorming</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+function toggleBsFullscreen(){
+  var el=document.getElementById('bsContainer');
+  if(!document.fullscreenElement){
+    el.requestFullscreen().catch(function(){});
+    el.style.background='var(--surface)';el.style.padding='1rem';el.style.maxWidth='100%';
+  } else {
+    document.exitFullscreen();
+    el.style.background='';el.style.padding='';el.style.maxWidth='1400px';
+  }
+}
+</script>
+{% endblock %}

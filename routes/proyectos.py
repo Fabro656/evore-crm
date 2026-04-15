@@ -13,9 +13,21 @@ _ESTADOS_TAREA = ['por_hacer', 'en_progreso', 'en_revision', 'completada']
 _TIPOS_TAREA = ['tarea', 'compra', 'legal', 'finanzas', 'produccion', 'logistica']
 
 def _requiere_proyecto_access():
-    """Check user has project management access."""
+    """Check user has project management access (admin/director level)."""
     rol = _get_rol_activo(current_user)
     return rol in ('admin', 'director_financiero', 'director_operativo')
+
+def _es_miembro_proyecto(proyecto_id, user_id):
+    """Check if user is a member of this project (any role)."""
+    return ProyectoMiembro.query.filter_by(
+        proyecto_id=proyecto_id, user_id=user_id, fase_id=None
+    ).first() is not None
+
+def _puede_ver_proyecto(proyecto_id):
+    """Directors can see all, team members can see their projects."""
+    if _requiere_proyecto_access():
+        return True
+    return _es_miembro_proyecto(proyecto_id, current_user.id)
 
 def register(app):
 
@@ -900,3 +912,109 @@ def register(app):
         db.session.commit()
         flash(f'Presupuesto actualizado: ${anterior:,.0f} → ${nuevo_total:,.0f}', 'success')
         return redirect(url_for('proyecto_ver', id=pid, vista='fases'))
+
+    # ══════════════════════════════════════════════════════════════
+    # EQUIPO DEL PROYECTO
+    # ══════════════════════════════════════════════════════════════
+
+    @app.route('/proyectos/<int:pid>/equipo', methods=['GET', 'POST'])
+    @login_required
+    def proyecto_equipo(pid):
+        if not _requiere_proyecto_access():
+            flash('Acceso denegado.', 'danger'); return redirect(url_for('dashboard'))
+        p = Proyecto.query.get_or_404(pid)
+        cid = getattr(g, 'company_id', None)
+        if request.method == 'POST':
+            # Clear project-level members (fase_id=None) and re-add
+            ProyectoMiembro.query.filter_by(proyecto_id=pid, fase_id=None).delete()
+            lider_id = request.form.get('lider_id')
+            user_ids = request.form.getlist('miembros[]')
+            for uid in user_ids:
+                if uid:
+                    rol = 'lider' if uid == lider_id else 'miembro'
+                    db.session.add(ProyectoMiembro(
+                        proyecto_id=pid, fase_id=None, user_id=int(uid), rol=rol
+                    ))
+            db.session.commit()
+            flash('Equipo actualizado.', 'success')
+            return redirect(url_for('proyecto_equipo', pid=pid))
+        usuarios = User.query.filter_by(company_id=cid, activo=True).order_by(User.nombre).all()
+        equipo = ProyectoMiembro.query.filter_by(proyecto_id=pid, fase_id=None).all()
+        equipo_ids = {m.user_id: m for m in equipo}
+        lider = next((m for m in equipo if m.rol == 'lider'), None)
+        return render_template('proyectos/equipo.html', p=p, usuarios=usuarios,
+            equipo=equipo, equipo_ids=equipo_ids, lider=lider)
+
+    # ══════════════════════════════════════════════════════════════
+    # DIAGRAMA DE FLUJO (Mermaid.js)
+    # ══════════════════════════════════════════════════════════════
+
+    @app.route('/proyectos/<int:pid>/diagrama', methods=['GET', 'POST'])
+    @login_required
+    def proyecto_diagrama(pid):
+        if not _puede_ver_proyecto(pid):
+            flash('Acceso denegado.', 'danger'); return redirect(url_for('dashboard'))
+        p = Proyecto.query.get_or_404(pid)
+        if request.method == 'POST':
+            p.diagrama = request.form.get('diagrama', '')
+            db.session.commit()
+            flash('Diagrama guardado.', 'success')
+            return redirect(url_for('proyecto_diagrama', pid=pid))
+        # Auto-generate default diagram from phases/objectives if empty
+        if not p.diagrama:
+            lines = ['flowchart TD']
+            lines.append('    START([Inicio del proyecto])')
+            prev = 'START'
+            for f in p.fases:
+                fid = f'F{f.id}'
+                lines.append(f'    {fid}["{f.nombre}"]')
+                lines.append(f'    {prev} --> {fid}')
+                for o in f.objetivos:
+                    oid = f'O{o.id}'
+                    lines.append(f'    {oid}("{o.titulo}")')
+                    lines.append(f'    {fid} --> {oid}')
+                prev = fid
+            lines.append(f'    FIN([Proyecto completado])')
+            lines.append(f'    {prev} --> FIN')
+            p.diagrama = '\n'.join(lines)
+        return render_template('proyectos/diagrama.html', p=p)
+
+    # ══════════════════════════════════════════════════════════════
+    # BRAINSTORMING BOARD
+    # ══════════════════════════════════════════════════════════════
+
+    @app.route('/proyectos/<int:pid>/brainstorm')
+    @login_required
+    def proyecto_brainstorm(pid):
+        if not _puede_ver_proyecto(pid):
+            flash('Acceso denegado.', 'danger'); return redirect(url_for('dashboard'))
+        p = Proyecto.query.get_or_404(pid)
+        notas = ProyectoNota.query.filter_by(proyecto_id=pid).order_by(ProyectoNota.orden).all()
+        return render_template('proyectos/brainstorm.html', p=p, notas=notas)
+
+    @app.route('/proyectos/<int:pid>/brainstorm/nota', methods=['POST'])
+    @login_required
+    def proyecto_brainstorm_nota(pid):
+        if not _puede_ver_proyecto(pid):
+            return jsonify({'error': 'Acceso denegado'}), 403
+        contenido = request.form.get('contenido', '').strip()
+        if not contenido:
+            flash('La nota no puede estar vacia.', 'warning')
+            return redirect(url_for('proyecto_brainstorm', pid=pid))
+        max_orden = db.session.query(func.max(ProyectoNota.orden)).filter_by(proyecto_id=pid).scalar() or 0
+        db.session.add(ProyectoNota(
+            proyecto_id=pid, contenido=contenido,
+            color=request.form.get('color', '#FBBF24'),
+            autor_id=current_user.id, orden=max_orden + 1
+        ))
+        db.session.commit()
+        return redirect(url_for('proyecto_brainstorm', pid=pid))
+
+    @app.route('/proyectos/brainstorm/nota/<int:nid>/eliminar', methods=['POST'])
+    @login_required
+    def proyecto_brainstorm_nota_eliminar(nid):
+        n = ProyectoNota.query.get_or_404(nid)
+        pid = n.proyecto_id
+        db.session.delete(n)
+        db.session.commit()
+        return redirect(url_for('proyecto_brainstorm', pid=pid))

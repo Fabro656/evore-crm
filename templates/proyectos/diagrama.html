@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block title %}Diagrama — {{ p.nombre }}{% endblock %}{% block page_title %}{{ p.codigo }} — Diagrama de flujo{% endblock %}
+{% block topbar_actions %}
+<div class="d-flex gap-2">
+  <button class="btn btn-sm btn-outline-secondary" onclick="toggleFullscreen()"><i class="bi bi-arrows-fullscreen me-1"></i>Pantalla completa</button>
+  <a href="{{ url_for('proyecto_ver', id=p.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Proyecto</a>
+</div>
+{% endblock %}
+{% block content %}
+<div id="diagramaContainer" style="max-width:1400px;margin:0 auto">
+  <div class="row g-3">
+    {# Editor #}
+    <div class="col-12 col-lg-5">
+      <div class="fc" style="height:100%">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h6 class="fw-bold mb-0"><i class="bi bi-code-square me-2"></i>Editor</h6>
+          <div class="d-flex gap-1">
+            <button class="btn btn-sm btn-outline-secondary" style="font-size:.7rem" onclick="insertNode('fase')"><i class="bi bi-square me-1"></i>Fase</button>
+            <button class="btn btn-sm btn-outline-success" style="font-size:.7rem" onclick="insertNode('objetivo')"><i class="bi bi-flag me-1"></i>Objetivo</button>
+            <button class="btn btn-sm btn-outline-primary" style="font-size:.7rem" onclick="insertNode('decision')"><i class="bi bi-diamond me-1"></i>Decision</button>
+            <button class="btn btn-sm btn-outline-warning" style="font-size:.7rem" onclick="insertNode('conexion')"><i class="bi bi-arrow-right me-1"></i>Conexion</button>
+          </div>
+        </div>
+        <form method="POST" id="diagramaForm">
+          <textarea name="diagrama" id="diagramaCode" class="form-control" rows="20" style="font-family:monospace;font-size:.82rem;background:var(--surface2);resize:vertical" oninput="renderDiagrama()">{{ p.diagrama or '' }}</textarea>
+          <div class="d-flex gap-2 mt-2">
+            <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-save me-1"></i>Guardar</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="renderDiagrama()"><i class="bi bi-eye me-1"></i>Previsualizar</button>
+          </div>
+        </form>
+        <div class="mt-2" style="font-size:.72rem;color:var(--text2)">
+          <strong>Sintaxis Mermaid:</strong> <code>flowchart TD</code> (top-down) o <code>LR</code> (left-right)<br>
+          <code>A[Fase]</code> = rectangulo, <code>B("Objetivo")</code> = redondeado, <code>C{"{Decision}"}</code> = diamante<br>
+          <code>A --> B</code> = conexion, <code>A -->|texto| B</code> = conexion con label
+        </div>
+        {# Quick reference: phases and objectives #}
+        <div class="mt-2" style="font-size:.72rem;color:var(--text2)">
+          <strong>Fases:</strong>
+          {% for f in p.fases %}<code>F{{ f.id }}["{{ f.nombre }}"]</code> {% endfor %}<br>
+          <strong>Objetivos:</strong>
+          {% for f in p.fases %}{% for o in f.objetivos %}<code>O{{ o.id }}("{{ o.titulo[:30] }}")</code> {% endfor %}{% endfor %}
+        </div>
+      </div>
+    </div>
+    {# Preview #}
+    <div class="col-12 col-lg-7">
+      <div class="fc" style="min-height:500px;overflow:auto" id="diagramaPreview">
+        <div class="text-muted text-center py-5"><i class="bi bi-diagram-3" style="font-size:2rem"></i><p class="mt-2">El diagrama se renderiza aqui</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+mermaid.initialize({startOnLoad:false,theme:'default',securityLevel:'loose'});
+
+function renderDiagrama(){
+  var code=document.getElementById('diagramaCode').value.trim();
+  var preview=document.getElementById('diagramaPreview');
+  if(!code){preview.innerHTML='<div class="text-muted text-center py-5">Escribe un diagrama...</div>';return;}
+  preview.innerHTML='<div class="mermaid">'+code+'</div>';
+  try{mermaid.run({nodes:preview.querySelectorAll('.mermaid')});}catch(e){
+    preview.innerHTML='<div class="text-danger p-3" style="font-size:.82rem"><i class="bi bi-exclamation-triangle me-1"></i>Error de sintaxis: '+e.message+'</div>';
+  }
+}
+
+var _nodeCount=100;
+function insertNode(tipo){
+  var ta=document.getElementById('diagramaCode');
+  var id='N'+(++_nodeCount);
+  var line='';
+  if(tipo==='fase') line='\n    '+id+'["Nueva fase"]';
+  else if(tipo==='objetivo') line='\n    '+id+'("Nuevo objetivo")';
+  else if(tipo==='decision') line='\n    '+id+'{"Decision?"}';
+  else if(tipo==='conexion') line='\n    A --> B';
+  ta.value+=line;
+  ta.focus();
+  renderDiagrama();
+}
+
+function toggleFullscreen(){
+  var el=document.getElementById('diagramaContainer');
+  if(!document.fullscreenElement){el.requestFullscreen().catch(function(){});el.style.background='var(--surface)';el.style.padding='1rem';}
+  else{document.exitFullscreen();el.style.background='';el.style.padding='';}
+}
+
+renderDiagrama();
+</script>
+{% endblock %}
