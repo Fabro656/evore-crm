@@ -2320,9 +2320,10 @@ if('serviceWorker' in navigator){
 {# ── CHAT FLOATING PANEL (iMessage style) ── #}
 {% if current_user.is_authenticated %}
 <div id="chatPanel" style="display:none;position:fixed;top:12px;left:68px;width:340px;max-height:calc(100vh - 24px);background:var(--surface);border-radius:16px;border:1px solid var(--border);box-shadow:var(--shadow-lg);z-index:1060;flex-direction:column;overflow:hidden;color:var(--text);animation:dockIn .18s ease">
-  {# Header #}
-  <div style="padding:12px 14px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0">
+  {# Header (draggable) #}
+  <div id="chatDragHandle" style="padding:12px 14px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0;cursor:grab;user-select:none">
     <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-grip-vertical" style="color:var(--text2);font-size:.75rem;opacity:.4"></i>
       <i class="bi bi-chat-dots-fill" style="color:var(--sb-active)"></i>
       <span style="font-weight:700;font-size:.88rem">Chat</span>
     </div>
@@ -2361,8 +2362,59 @@ function toggleChatPanel(){
   var p = document.getElementById('chatPanel');
   _chatOpen = !_chatOpen;
   p.style.display = _chatOpen ? 'flex' : 'none';
-  if(_chatOpen) chatLoadRooms();
+  if(_chatOpen){
+    // Restore saved position
+    var pos = JSON.parse(localStorage.getItem('evore_chat_pos') || 'null');
+    if(pos){p.style.top=pos.top;p.style.left=pos.left;p.style.right='auto';p.style.bottom='auto'}
+    chatLoadRooms();
+  }
 }
+
+// ── Draggable chat panel ──
+(function(){
+  var handle=document.getElementById('chatDragHandle');
+  if(!handle) return;
+  var panel=document.getElementById('chatPanel');
+  var dragging=false,startX,startY,startLeft,startTop;
+
+  handle.addEventListener('mousedown',startDrag);
+  handle.addEventListener('touchstart',startDrag,{passive:false});
+
+  function startDrag(e){
+    dragging=true;
+    handle.style.cursor='grabbing';
+    var ev=e.touches?e.touches[0]:e;
+    startX=ev.clientX;startY=ev.clientY;
+    var rect=panel.getBoundingClientRect();
+    startLeft=rect.left;startTop=rect.top;
+    e.preventDefault();
+    document.addEventListener('mousemove',onDrag);
+    document.addEventListener('mouseup',stopDrag);
+    document.addEventListener('touchmove',onDrag,{passive:false});
+    document.addEventListener('touchend',stopDrag);
+  }
+  function onDrag(e){
+    if(!dragging) return;
+    var ev=e.touches?e.touches[0]:e;
+    var dx=ev.clientX-startX,dy=ev.clientY-startY;
+    var newLeft=Math.max(0,Math.min(window.innerWidth-100,startLeft+dx));
+    var newTop=Math.max(0,Math.min(window.innerHeight-100,startTop+dy));
+    panel.style.left=newLeft+'px';
+    panel.style.top=newTop+'px';
+    panel.style.right='auto';panel.style.bottom='auto';
+    e.preventDefault();
+  }
+  function stopDrag(){
+    dragging=false;
+    handle.style.cursor='grab';
+    document.removeEventListener('mousemove',onDrag);
+    document.removeEventListener('mouseup',stopDrag);
+    document.removeEventListener('touchmove',onDrag);
+    document.removeEventListener('touchend',stopDrag);
+    // Save position
+    localStorage.setItem('evore_chat_pos',JSON.stringify({top:panel.style.top,left:panel.style.left}));
+  }
+})();
 
 function chatLoadRooms(){
   fetch('/chat').then(r => r.text()).then(html => {
