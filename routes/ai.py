@@ -1,6 +1,6 @@
 # routes/ai.py — AI Chat assistant endpoint with enhanced context and query/update actions
 from flask import render_template, redirect, url_for, flash, request, \
-                  jsonify, send_file, make_response, current_app
+                  jsonify, send_file, make_response, current_app, g
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
 from extensions import db
@@ -685,6 +685,7 @@ def _execute_ai_action(action_data):
             # ── Cliente ───────────────────────────────────────────────────
             if atype == 'cliente':
                 c = Cliente(
+                    company_id=getattr(g, 'company_id', None),
                     nombre=adata.get('nombre', 'Cliente desde IA'),
                     email=adata.get('email', ''),
                     telefono=adata.get('telefono', ''),
@@ -713,6 +714,7 @@ def _execute_ai_action(action_data):
                 numero = f'VNT-{n:04d}'
 
                 v = Venta(
+                    company_id=getattr(g, 'company_id', None),
                     numero=numero,
                     cliente_id=cliente_id,
                     descripcion=adata.get('descripcion', 'Venta creada desde IA'),
@@ -742,6 +744,7 @@ def _execute_ai_action(action_data):
                 numero = f'OC-{n:04d}'
 
                 oc = OrdenCompra(
+                    company_id=getattr(g, 'company_id', None),
                     numero=numero,
                     proveedor_id=proveedor_id,
                     descripcion=adata.get('descripcion', 'OC creada desde IA'),

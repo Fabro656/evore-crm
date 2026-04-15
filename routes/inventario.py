@@ -1,6 +1,6 @@
 # routes/inventario.py — reconstruido desde v27 con CRUD completo
 from flask import render_template, redirect, url_for, flash, request, \
-                  jsonify, send_file, make_response, current_app
+                  jsonify, send_file, make_response, current_app, g
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
 from extensions import db
@@ -36,6 +36,7 @@ def register(app):
         if request.method == 'POST':
             fd_cad = request.form.get('fecha_caducidad')
             db.session.add(Producto(
+                company_id=getattr(g, 'company_id', None),
                 nombre=request.form['nombre'], descripcion=request.form.get('descripcion',''),
                 sku=request.form.get('sku') or None, nso=request.form.get('nso') or None,
                 precio=float(request.form.get('precio',0) or 0),

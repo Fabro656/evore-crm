@@ -381,6 +381,7 @@ def register(app):
         numero = f'COT-{hoy.year}-{seq:03d}'
 
         cot = Cotizacion(
+            company_id=getattr(g, 'company_id', None),
             numero=numero,
             titulo=f'Pre-cotización {pc.numero}',
             cliente_id=pc.cliente_id,

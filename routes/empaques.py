@@ -1,5 +1,5 @@
 # routes/empaques.py — Módulo Empaques Secundarios v30
-from flask import render_template, redirect, url_for, flash, request, jsonify, current_app, session as flask_session
+from flask import render_template, redirect, url_for, flash, request, jsonify, current_app, session as flask_session, g
 from flask_login import login_required, current_user
 from extensions import db
 from models import *
@@ -324,6 +324,7 @@ def register(app):
             nombre_mp = f'Caja {empaque.producto.nombre} x{empaque.unidades_por_caja}'
 
             mp = MateriaPrima(
+                company_id=getattr(g, 'company_id', None),
                 nombre=nombre_mp,
                 categoria='empaques',
                 unidad='unidades',
@@ -354,6 +355,7 @@ def register(app):
             ).first()
             if not cinta_mp:
                 cinta_mp = MateriaPrima(
+                    company_id=getattr(g, 'company_id', None),
                     nombre='Cinta de embalaje (rollo 100m)',
                     categoria='empaques',
                     unidad='metros',

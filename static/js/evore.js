@@ -1,5 +1,11 @@
 // ── CSRF token for AJAX requests ──
 var _csrfToken=(document.querySelector('meta[name="csrf-token"]')||{}).content||'';
+// Auto-inject CSRF hidden field into every POST form that doesn't have one
+if(_csrfToken){document.querySelectorAll('form[method="POST"],form[method="post"]').forEach(function(f){
+  if(!f.querySelector('input[name="_csrf_token"]')){
+    var h=document.createElement('input');h.type='hidden';h.name='_csrf_token';h.value=_csrfToken;f.appendChild(h);
+  }
+});}
 
 // ── Dock: hover=tooltip, click=open panel ──
 (function(){

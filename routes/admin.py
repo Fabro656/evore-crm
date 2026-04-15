@@ -1,6 +1,6 @@
 # routes/admin.py — reconstruido desde v27 con CRUD completo
 from flask import render_template, redirect, url_for, flash, request, \
-                  jsonify, send_file, make_response, current_app
+                  jsonify, send_file, make_response, current_app, g
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
 from extensions import db
@@ -26,6 +26,7 @@ def register(app):
     def impuesto_nuevo():
         if request.method == 'POST':
             db.session.add(ReglaTributaria(
+                company_id=getattr(g, 'company_id', None),
                 nombre=request.form['nombre'],
                 descripcion=request.form.get('descripcion',''),
                 porcentaje=float(request.form.get('porcentaje',0) or 0),
@@ -131,6 +132,7 @@ def register(app):
             rec = request.form.get('recurrencia','unico')
             es_pl = request.form.get('es_plantilla') == '1' and rec == 'mensual'
             g = GastoOperativo(
+                company_id=getattr(g, 'company_id', None),
                 fecha=datetime.strptime(fd,'%Y-%m-%d').date() if fd else datetime.utcnow().date(),
                 tipo=request.form['tipo'],
                 tipo_custom=request.form.get('tipo_custom','') or None,
@@ -222,6 +224,7 @@ def register(app):
         from datetime import date as date_t
         plantilla = GastoOperativo.query.get_or_404(id)
         nuevo = GastoOperativo(
+            company_id=getattr(g, 'company_id', None),
             fecha=date_t.today(),
             tipo=plantilla.tipo,
             tipo_custom=plantilla.tipo_custom,

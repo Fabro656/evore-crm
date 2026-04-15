@@ -36,6 +36,7 @@ def register(app):
     def proveedor_nuevo():
         if request.method == 'POST':
             p = Proveedor(
+                company_id=getattr(g, 'company_id', None),
                 nombre=request.form.get('nombre','') or request.form.get('empresa',''),
                 empresa=request.form.get('empresa',''),
                 nit=request.form.get('nit',''),

@@ -1,5 +1,5 @@
 # routes/produccion.py — reconstruido desde v27 con CRUD completo
-from flask import render_template, redirect, url_for, flash, request, jsonify
+from flask import render_template, redirect, url_for, flash, request, jsonify, g
 from flask_login import login_required, current_user
 from extensions import db
 from models import *
@@ -480,6 +480,7 @@ def register(app):
         productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
         if request.method == 'POST':
             m = MateriaPrima(
+                company_id=getattr(g, 'company_id', None),
                 nombre=request.form['nombre'],
                 descripcion=request.form.get('descripcion','') or None,
                 unidad=request.form.get('unidad','unidades'),
@@ -623,6 +624,7 @@ def register(app):
             return jsonify({'id': exist.id, 'nombre': exist.nombre,
                             'unidad': exist.unidad, 'existente': True})
         mp = MateriaPrima(
+            company_id=getattr(g, 'company_id', None),
             nombre=nombre, unidad=unidad,
             stock_disponible=0, stock_reservado=0,
             stock_minimo=0, costo_unitario=0,
@@ -682,7 +684,8 @@ def register(app):
                 if prod_exist:
                     prod_id = prod_exist.id
                 else:
-                    nuevo_prod = Producto(nombre=nuevo_nombre, activo=True,
+                    nuevo_prod = Producto(company_id=getattr(g, 'company_id', None),
+                                          nombre=nuevo_nombre, activo=True,
                                           precio=0, stock=0)
                     db.session.add(nuevo_prod); db.session.flush()
                     prod_id = nuevo_prod.id
@@ -696,6 +699,7 @@ def register(app):
                                            materias=materias, materias_json=materias_json, titulo='Nueva Receta')
             # ── Crear la receta (aplica tanto para producto nuevo como existente) ──
             r = RecetaProducto(
+                company_id=getattr(g, 'company_id', None),
                 producto_id=prod_id,
                 unidades_produce=int(request.form.get('unidades_produce',1)),
                 descripcion=request.form.get('descripcion','') or None

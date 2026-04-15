@@ -1,6 +1,6 @@
 # routes/nomina.py — reconstruido desde v27 con CRUD completo
 from flask import render_template, redirect, url_for, flash, request, \
-                  jsonify, send_file, make_response, current_app
+                  jsonify, send_file, make_response, current_app, g
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
 from extensions import db
@@ -177,6 +177,7 @@ def register(app):
             return redirect(url_for('nomina_index'))
         # Crear placeholder inmediato para prevenir doble ejecucion concurrente
         placeholder = GastoOperativo(
+            company_id=getattr(g, 'company_id', None),
             fecha=fecha_gasto, tipo='Nomina', descripcion=desc_check,
             monto=0, creado_por=current_user.id
         )
@@ -241,6 +242,7 @@ def register(app):
                         total_liquidacion += liq['total']
                         # Crear gasto separado para liquidacion
                         g_liq = GastoOperativo(
+                            company_id=getattr(g, 'company_id', None),
                             fecha=emp.fecha_retiro,
                             tipo='Nomina',
                             descripcion=f'Liquidacion {emp.nombre} {emp.apellido} ({emp.motivo_retiro})',
@@ -309,6 +311,7 @@ def register(app):
                         fecha_ingreso = None
 
                 e = Empleado(
+                    company_id=getattr(g, 'company_id', None),
                     nombre=request.form.get('nombre','').strip(),
                     apellido=request.form.get('apellido','').strip(),
                     cedula=request.form.get('cedula','').strip(),
@@ -336,13 +339,15 @@ def register(app):
                     flash('El nombre y apellido son obligatorios.','danger')
                     return render_template('nomina/form.html', empleado=None)
                 db.session.add(e)
+                db.session.flush()
+                eid, enombre, eapellido = e.id, e.nombre, e.apellido
                 db.session.commit()
-                flash(f'Empleado {e.nombre} {e.apellido} creado exitosamente.','success')
-                return redirect(url_for('empleado_ver', id=e.id))
+                flash(f'Empleado {enombre} {eapellido} creado exitosamente.','success')
+                return redirect(url_for('empleado_ver', id=eid))
             except Exception as ex:
                 db.session.rollback()
                 logging.error(f'empleado_nuevo error: {str(ex)}')
-                flash(f'Error al crear empleado: {str(ex)}','danger')
+                flash('Error al crear empleado. Verifica los datos e intenta de nuevo.','danger')
         return render_template('nomina/form.html', empleado=None)
     
 
@@ -473,6 +478,7 @@ def register(app):
         if liq and liq['total'] > 0:
             motivo_label = {'renuncia':'Renuncia','despido_justa':'Despido justificado','despido_sin_justa':'Despido sin justa causa'}.get(motivo, motivo)
             g = GastoOperativo(
+                company_id=getattr(g, 'company_id', None),
                 fecha=empleado.fecha_retiro or date_type.today(),
                 tipo='Nomina',
                 descripcion=f'Liquidacion {empleado.nombre} {empleado.apellido} ({motivo_label})',

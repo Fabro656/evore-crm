@@ -1,5 +1,5 @@
 # routes/contable.py — BLOQUE 5: Contabilidad Completa (v31)
-from flask import render_template, redirect, url_for, flash, request, jsonify
+from flask import render_template, redirect, url_for, flash, request, jsonify, g
 from flask_login import login_required, current_user
 from extensions import db
 from models import *
@@ -280,6 +280,7 @@ def register(app):
             cuenta_debe_val = request.form.get('cuenta_debe', '') or None
             cuenta_haber_val = request.form.get('cuenta_haber', '') or None
             asiento = AsientoContable(
+                company_id=getattr(g, 'company_id', None),
                 numero=numero, fecha=fecha_obj, descripcion=descripcion,
                 tipo=tipo, referencia=referencia, notas=notas,
                 debe=debe, haber=haber,
@@ -1655,6 +1656,7 @@ def register(app):
             numero_ac = f'AC-{fecha_obj.year}-{n_ac:04d}'
 
             asiento = AsientoContable(
+                company_id=getattr(g, 'company_id', None),
                 numero=numero_ac,
                 fecha=fecha_obj,
                 descripcion=f'{prefijo} {numero}: {motivo[:100]}',

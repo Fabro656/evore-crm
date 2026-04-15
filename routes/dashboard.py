@@ -1,6 +1,6 @@
 # routes/dashboard.py — reconstruido desde v27 con CRUD completo
 from flask import render_template, redirect, url_for, flash, request, \
-                  jsonify, send_file, make_response, current_app
+                  jsonify, send_file, make_response, current_app, g
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
 from extensions import db
@@ -728,6 +728,7 @@ def register(app):
         if request.method == 'POST':
             fd = request.form.get('fecha')
             a = AsientoContable(
+                company_id=getattr(g, 'company_id', None),
                 fecha=datetime.strptime(fd,'%Y-%m-%d').date() if fd else datetime.utcnow().date(),
                 descripcion=request.form['descripcion'],
                 tipo=request.form.get('tipo','manual'),

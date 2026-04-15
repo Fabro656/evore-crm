@@ -1,5 +1,5 @@
 # routes/servicios.py — Módulo Servicios v30
-from flask import render_template, redirect, url_for, flash, request, jsonify, current_app
+from flask import render_template, redirect, url_for, flash, request, jsonify, current_app, g
 from flask_login import login_required, current_user
 from extensions import db
 from models import *
@@ -68,6 +68,7 @@ def register(app):
                 unidad = request.form.get('unidad', 'servicio')
 
                 servicio = Servicio(
+                    company_id=getattr(g, 'company_id', None),
                     nombre=nombre,
                     descripcion=descripcion,
                     categoria=categoria,

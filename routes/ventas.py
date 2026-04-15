@@ -1,6 +1,6 @@
 # routes/ventas.py — reconstruido desde v27 con CRUD completo
 from flask import render_template, redirect, url_for, flash, request, \
-                  jsonify, send_file, make_response, current_app
+                  jsonify, send_file, make_response, current_app, g
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
 from extensions import db
@@ -222,6 +222,7 @@ def register(app):
 
                 estado_orden = 'pendiente_materiales' if hay_faltante else 'en_produccion'
                 db.session.add(OrdenProduccion(
+                    company_id=getattr(g, 'company_id', None),
                     venta_id=venta.id, producto_id=prod.id,
                     cantidad_total=cant_requerida, cantidad_stock=cant_en_stock,
                     cantidad_producir=cant_producir, estado=estado_orden,
@@ -371,7 +372,8 @@ def register(app):
             if not cliente_id:
                 flash('Debes seleccionar un cliente.', 'danger')
                 return redirect(url_for('venta_nueva'))
-            v = Venta(titulo=request.form['titulo'],
+            v = Venta(company_id=getattr(g, 'company_id', None),
+                titulo=request.form['titulo'],
                 cliente_id=cliente_id,
                 subtotal=subtotal,
                 iva=iva_monto,
@@ -410,6 +412,7 @@ def register(app):
                 # Auto-crear asiento contable de ingreso en borrador
                 try:
                     asiento_venta = AsientoContable(
+                        company_id=getattr(g, 'company_id', None),
                         numero='AC-TEMP',
                         fecha=hoy,
                         descripcion=f'Ingreso pendiente — Venta {v.numero}',
@@ -660,6 +663,7 @@ def register(app):
                         subtotal_oc = round(faltante * precio_unit, 2)
                         iva_oc = round(subtotal_oc * 0.19, 2)
                         oc = OrdenCompra(
+                            company_id=getattr(g, 'company_id', None),
                             numero=f'OC-{hoy_oc.year}-{seq_oc:03d}',
                             proveedor_id=proveedor_id,
                             cotizacion_id=cot_prov.id,
@@ -797,6 +801,7 @@ def register(app):
                     numero_ac = f'AC-{datetime.utcnow().year}-{n_ac:04d}'
 
                     asiento = AsientoContable(
+                        company_id=getattr(g, 'company_id', None),
                         numero=numero_ac,
                         fecha=datetime.utcnow().date(),
                         descripcion=f'Ingreso por venta {venta.numero or venta.id}',
@@ -1333,6 +1338,7 @@ def register(app):
             fecha_ent_est = _calc_fecha_entrega(fecha_emision, dias_ent, dias_tipo)
 
             cot = Cotizacion(
+                company_id=getattr(g, 'company_id', None),
                 numero=numero,
                 titulo=request.form['titulo'],
                 cliente_id=request.form.get('cliente_id') or None,
@@ -1712,6 +1718,7 @@ def register(app):
 
         # Crear venta desde cotización
         v = Venta(
+            company_id=getattr(g, 'company_id', None),
             titulo=cot.titulo,
             numero=numero_venta,
             cliente_id=cot.cliente_id,

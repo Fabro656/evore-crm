@@ -1,5 +1,5 @@
 # routes/compras.py — reconstruido desde v27 con CRUD completo
-from flask import render_template, redirect, url_for, flash, request, jsonify
+from flask import render_template, redirect, url_for, flash, request, jsonify, g
 from flask_login import login_required, current_user
 from extensions import db
 from models import *
@@ -379,6 +379,7 @@ def register(app):
                 if cot_obj and cot_obj.plazo_entrega_dias:
                     fecha_esp = fecha_emision + timedelta(days=cot_obj.plazo_entrega_dias)
             oc = OrdenCompra(
+                company_id=getattr(g, 'company_id', None),
                 proveedor_id=int(request.form.get('proveedor_id')) if request.form.get('proveedor_id') else None,
                 cotizacion_id=cot_id,
                 transportista_id=tra_id,
@@ -420,6 +421,7 @@ def register(app):
             # Auto-crear asiento contable de egreso en borrador
             try:
                 asiento = AsientoContable(
+                    company_id=getattr(g, 'company_id', None),
                     numero='AC-TEMP',
                     fecha=oc.fecha_emision or datetime.utcnow().date(),
                     descripcion=f'Egreso pendiente — OC {oc.numero}',
@@ -710,6 +712,7 @@ def register(app):
         else:
             seq = 1
         oc = OrdenCompra(
+            company_id=getattr(g, 'company_id', None),
             estado='borrador',
             fecha_emision=hoy,
             subtotal=0,

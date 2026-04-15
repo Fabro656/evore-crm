@@ -120,7 +120,8 @@ def register(app):
                 minimo_pedido = float(minimo_pedido) if minimo_pedido else None
             except (ValueError, TypeError):
                 minimo_pedido = None
-            c = Cliente(nombre=request.form.get('empresa','') or request.form.get('nombre',''),
+            c = Cliente(company_id=getattr(g, 'company_id', None),
+                nombre=request.form.get('empresa','') or request.form.get('nombre',''),
                 empresa=request.form.get('empresa',''),
                 tipo_documento=request.form.get('tipo_documento','NIT'),
                 nit=request.form.get('nit',''),
