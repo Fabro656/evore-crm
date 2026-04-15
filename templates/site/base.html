@@ -41,17 +41,18 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;background:var(--sf);border-
 .n-cta a{white-space:nowrap}
 /* Active link */
 .n-links a.on{color:var(--t);font-weight:600}
-/* Mobile menu: dock panel style (like CRM flyouts) */
-.n-ham{display:none;background:none;border:none;font-size:1.2rem;color:var(--t);cursor:pointer;padding:.3rem;line-height:1}
-.n-mob{display:none;position:fixed;top:48px;left:12px;width:220px;max-height:calc(100vh - 70px);background:var(--sf);border:1px solid var(--bd);border-radius:16px;box-shadow:0 16px 48px rgba(0,0,0,.12);z-index:199;padding:.5rem;overflow-y:auto;flex-direction:column;gap:2px}
-.n-mob.open{display:flex;animation:dockSlide .2s ease}
-@keyframes dockSlide{from{opacity:0;transform:translateY(-8px) scale(.97)}to{opacity:1;transform:none}}
-.n-mob a{padding:.6rem .85rem;font-size:.88rem;font-weight:500;color:var(--t2);border-radius:10px;transition:all .15s;display:flex;align-items:center;gap:.5rem}
-.n-mob a:hover{background:var(--bg);color:var(--t)}
-.n-mob a i{font-size:.9rem;width:18px;text-align:center;opacity:.6}
+/* Mobile menu: CRM dock panel style */
+.n-ham{display:none;background:none;border:none;font-size:1.15rem;color:var(--t);cursor:pointer;padding:.3rem .4rem;line-height:1;border-radius:8px;transition:background .15s}
+.n-ham:hover{background:var(--bg)}
+.n-mob{display:none;position:fixed;top:54px;left:12px;width:230px;max-height:calc(100vh - 70px);background:var(--sf);border:1px solid var(--bd);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.1),0 0 0 1px rgba(0,0,0,.02);z-index:199;padding:.4rem;overflow-y:auto;flex-direction:column;gap:1px}
+.n-mob.open{display:flex;animation:dockSlide .18s ease}
+@keyframes dockSlide{from{opacity:0;transform:translateX(-6px) scale(.97)}to{opacity:1;transform:none}}
+.n-mob a{padding:.55rem .8rem;font-size:.85rem;font-weight:400;color:var(--t2);border-radius:8px;transition:all .12s;display:flex;align-items:center;gap:.6rem}
+.n-mob a:hover{background:var(--bg);color:var(--ac)}
+.n-mob a i{font-size:.85rem;width:16px;text-align:center;color:var(--t2);opacity:.5;transition:all .12s}
 .n-mob a:hover i{opacity:1;color:var(--ac)}
-.n-mob .sep{height:1px;background:var(--bd);margin:.3rem .5rem}
-/* Overlay to close menu */
+.n-mob .sep{height:1px;background:var(--bd);margin:.25rem .6rem}
+/* Overlay */
 .n-overlay{display:none;position:fixed;inset:0;z-index:198}
 .n-overlay.open{display:block}
 
@@ -169,6 +170,7 @@ footer a{color:var(--t2);margin:0 .75rem}footer a:hover{color:var(--t)}
 /* ── Mobile (≤600px) ── */
 @media(max-width:600px){
   .n-links{display:none}.n-ham{display:flex}.n-cta{margin-left:auto;gap:.5rem}.n-top{padding:.5rem 1rem}
+  .n-ham{order:-1}
   .fr,.fr:nth-child(even){flex-direction:column;gap:1.5rem;margin-bottom:2.5rem}
   .fr-t h3{font-size:1.2rem}
   .feat{grid-template-columns:1fr;min-height:auto}
@@ -194,6 +196,7 @@ footer a{color:var(--t2);margin:0 .75rem}footer a:hover{color:var(--t)}
 <!-- Nav: centered links, logo left, CTA right -->
 <nav>
   <div class="n-top">
+    <button class="n-ham" onclick="toggleMob()" aria-label="Menú"><i class="bi bi-list" id="hamIcon"></i></button>
     <div class="n-links">
       <a href="/modulo/ventas" {% if active_module=='ventas' %}class="on"{% endif %}>Ventas</a>
       <a href="/modulo/produccion" {% if active_module=='produccion' %}class="on"{% endif %}>Producción</a>
@@ -207,12 +210,11 @@ footer a{color:var(--t2);margin:0 .75rem}footer a:hover{color:var(--t)}
     <div class="n-cta">
       <a href="/login" style="font-size:.8rem;color:var(--t)">Iniciar sesión</a>
       <a href="/login" class="ba" style="padding:.4rem 1rem;font-size:.78rem">Empezar</a>
-      <button class="n-ham" onclick="toggleMob()" aria-label="Menú"><i class="bi bi-list" id="hamIcon"></i></button>
     </div>
   </div>
 </nav>
 
-<!-- Mobile dock menu (CRM flyout style) -->
+<!-- Mobile dock menu (CRM flyout, opens from top-left) -->
 <div id="mobOverlay" class="n-overlay" onclick="toggleMob()"></div>
 <div id="mobMenu" class="n-mob">
   <a href="/inicio"><i class="bi bi-house"></i>Inicio</a>
@@ -225,7 +227,6 @@ footer a{color:var(--t2);margin:0 .75rem}footer a:hover{color:var(--t)}
   <a href="/modulo/marketplace"><i class="bi bi-shop"></i>Marketplace</a>
   <div class="sep"></div>
   <a href="/inicio#precios"><i class="bi bi-tag"></i>Precios</a>
-  <a href="/login" style="color:var(--ac)"><i class="bi bi-box-arrow-in-right"></i>Iniciar sesión</a>
 </div>
 
 {% block content %}{% endblock %}
