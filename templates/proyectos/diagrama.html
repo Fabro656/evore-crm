@@ -2,89 +2,211 @@
 {% block title %}Diagrama — {{ p.nombre }}{% endblock %}{% block page_title %}{{ p.codigo }} — Diagrama de flujo{% endblock %}
 {% block topbar_actions %}
 <div class="d-flex gap-2">
-  <button class="btn btn-sm btn-outline-secondary" onclick="toggleFullscreen()"><i class="bi bi-arrows-fullscreen me-1"></i>Pantalla completa</button>
+  <button class="btn btn-sm btn-outline-secondary" onclick="dgFullscreen()"><i class="bi bi-arrows-fullscreen me-1"></i>Pantalla completa</button>
   <a href="{{ url_for('proyecto_ver', id=p.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Proyecto</a>
 </div>
 {% endblock %}
 {% block content %}
-<div id="diagramaContainer" style="max-width:1400px;margin:0 auto">
-  <div class="row g-3">
-    {# Editor #}
-    <div class="col-12 col-lg-5">
-      <div class="fc" style="height:100%">
-        <div class="d-flex align-items-center justify-content-between mb-2">
-          <h6 class="fw-bold mb-0"><i class="bi bi-code-square me-2"></i>Editor</h6>
-          <div class="d-flex gap-1">
-            <button class="btn btn-sm btn-outline-secondary" style="font-size:.7rem" onclick="insertNode('fase')"><i class="bi bi-square me-1"></i>Fase</button>
-            <button class="btn btn-sm btn-outline-success" style="font-size:.7rem" onclick="insertNode('objetivo')"><i class="bi bi-flag me-1"></i>Objetivo</button>
-            <button class="btn btn-sm btn-outline-primary" style="font-size:.7rem" onclick="insertNode('decision')"><i class="bi bi-diamond me-1"></i>Decision</button>
-            <button class="btn btn-sm btn-outline-warning" style="font-size:.7rem" onclick="insertNode('conexion')"><i class="bi bi-arrow-right me-1"></i>Conexion</button>
-          </div>
-        </div>
-        <form method="POST" id="diagramaForm">
-          <textarea name="diagrama" id="diagramaCode" class="form-control" rows="20" style="font-family:monospace;font-size:.82rem;background:var(--surface2);resize:vertical" oninput="renderDiagrama()">{{ p.diagrama or '' }}</textarea>
-          <div class="d-flex gap-2 mt-2">
-            <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-save me-1"></i>Guardar</button>
-            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="renderDiagrama()"><i class="bi bi-eye me-1"></i>Previsualizar</button>
-          </div>
-        </form>
-        <div class="mt-2" style="font-size:.72rem;color:var(--text2)">
-          <strong>Sintaxis Mermaid:</strong> <code>flowchart TD</code> (top-down) o <code>LR</code> (left-right)<br>
-          <code>A[Fase]</code> = rectangulo, <code>B("Objetivo")</code> = redondeado, <code>C{"{Decision}"}</code> = diamante<br>
-          <code>A --> B</code> = conexion, <code>A -->|texto| B</code> = conexion con label
-        </div>
-        {# Quick reference: phases and objectives #}
-        <div class="mt-2" style="font-size:.72rem;color:var(--text2)">
-          <strong>Fases:</strong>
-          {% for f in p.fases %}<code>F{{ f.id }}["{{ f.nombre }}"]</code> {% endfor %}<br>
-          <strong>Objetivos:</strong>
-          {% for f in p.fases %}{% for o in f.objetivos %}<code>O{{ o.id }}("{{ o.titulo[:30] }}")</code> {% endfor %}{% endfor %}
-        </div>
-      </div>
+<div id="dgWrap" style="max-width:1400px;margin:0 auto">
+  {# Toolbar #}
+  <div class="fc mb-2" style="padding:.5rem .75rem">
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <span class="fw-bold" style="font-size:.82rem"><i class="bi bi-diagram-3 me-1"></i>Herramientas:</span>
+      <button class="btn btn-sm btn-primary" style="font-size:.72rem" onclick="addNode('fase')"><i class="bi bi-square me-1"></i>Fase</button>
+      <button class="btn btn-sm btn-success" style="font-size:.72rem" onclick="addNode('objetivo')"><i class="bi bi-flag me-1"></i>Objetivo</button>
+      <button class="btn btn-sm btn-warning" style="font-size:.72rem" onclick="addNode('decision')"><i class="bi bi-diamond me-1"></i>Decision</button>
+      <button class="btn btn-sm btn-secondary" style="font-size:.72rem" onclick="addNode('nota')"><i class="bi bi-chat-square-text me-1"></i>Nota</button>
+      <div style="border-left:1px solid var(--border);height:24px;margin:0 .25rem"></div>
+      <button class="btn btn-sm btn-outline-info" style="font-size:.72rem" onclick="toggleConnect()"><i class="bi bi-arrow-right me-1"></i><span id="connLabel">Conectar</span></button>
+      <button class="btn btn-sm btn-outline-danger" style="font-size:.72rem" onclick="deleteSelected()"><i class="bi bi-trash me-1"></i>Eliminar</button>
+      <button class="btn btn-sm btn-outline-secondary ms-auto" style="font-size:.72rem" onclick="saveDiagram()"><i class="bi bi-save me-1"></i>Guardar</button>
+      <span id="dgStatus" style="font-size:.7rem;color:var(--text2)"></span>
     </div>
-    {# Preview #}
-    <div class="col-12 col-lg-7">
-      <div class="fc" style="min-height:500px;overflow:auto" id="diagramaPreview">
-        <div class="text-muted text-center py-5"><i class="bi bi-diagram-3" style="font-size:2rem"></i><p class="mt-2">El diagrama se renderiza aqui</p></div>
-      </div>
-    </div>
+  </div>
+
+  {# Canvas #}
+  <div id="dgCanvas" style="position:relative;height:600px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);overflow:auto;cursor:crosshair">
+    <svg id="dgSvg" style="position:absolute;top:0;left:0;width:3000px;height:2000px;pointer-events:none">
+      <defs><marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="var(--text2)"/></marker></defs>
+    </svg>
+    <div id="dgNodes" style="position:absolute;top:0;left:0;width:3000px;height:2000px"></div>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+.dg-node{position:absolute;min-width:120px;padding:8px 14px;border-radius:8px;cursor:grab;font-size:.82rem;font-weight:600;text-align:center;user-select:none;box-shadow:0 2px 6px rgba(0,0,0,.1);transition:box-shadow .12s;z-index:10}
+.dg-node:hover{box-shadow:0 4px 16px rgba(0,0,0,.15)}
+.dg-node.selected{outline:2px solid var(--ac);outline-offset:2px}
+.dg-node.connecting{outline:2px dashed #F59E0B;outline-offset:2px}
+.dg-node[data-tipo="fase"]{background:#3B82F6;color:#fff;border-radius:8px}
+.dg-node[data-tipo="objetivo"]{background:#10B981;color:#fff;border-radius:20px}
+.dg-node[data-tipo="decision"]{background:#F59E0B;color:#333;transform:rotate(0deg);border-radius:4px}
+.dg-node[data-tipo="nota"]{background:#E5E7EB;color:#333;border-radius:4px;font-weight:400;font-style:italic}
+.dg-node[data-tipo="inicio"]{background:#6B7280;color:#fff;border-radius:20px}
+.dg-node .dg-sub{font-size:.65rem;font-weight:400;opacity:.8;margin-top:2px}
+.dg-node .dg-conn-dot{position:absolute;width:10px;height:10px;border-radius:50%;background:var(--ac);border:2px solid #fff;bottom:-5px;left:50%;transform:translateX(-50%);cursor:pointer;z-index:20;display:none}
+.dg-node:hover .dg-conn-dot{display:block}
+</style>
 <script>
-mermaid.initialize({startOnLoad:false,theme:'default',securityLevel:'loose'});
+var NODES=[], EDGES=[], _nextId=1, _selected=null, _connectMode=false, _connectFrom=null;
+var _csrf='{{ csrf_token }}';
+var PID={{ p.id }};
+var FASES={{ p.fases|map(attribute='id')|list|tojson }};
+var FASE_NAMES={};
+{% for f in p.fases %}FASE_NAMES[{{ f.id }}]='{{ f.nombre }}';{% endfor %}
 
-function renderDiagrama(){
-  var code=document.getElementById('diagramaCode').value.trim();
-  var preview=document.getElementById('diagramaPreview');
-  if(!code){preview.innerHTML='<div class="text-muted text-center py-5">Escribe un diagrama...</div>';return;}
-  preview.innerHTML='<div class="mermaid">'+code+'</div>';
-  try{mermaid.run({nodes:preview.querySelectorAll('.mermaid')});}catch(e){
-    preview.innerHTML='<div class="text-danger p-3" style="font-size:.82rem"><i class="bi bi-exclamation-triangle me-1"></i>Error de sintaxis: '+e.message+'</div>';
+// Load saved diagram
+try{
+  var saved=JSON.parse({{ (p.diagrama or '{}')|tojson }});
+  if(saved.nodes) NODES=saved.nodes;
+  if(saved.edges) EDGES=saved.edges;
+  if(saved.nextId) _nextId=saved.nextId;
+}catch(e){}
+
+// If empty, auto-generate from phases
+if(!NODES.length){
+  var y=40;
+  NODES.push({id:_nextId++,tipo:'inicio',label:'Inicio',x:300,y:y});
+  {% for f in p.fases %}
+  y+=100;
+  NODES.push({id:_nextId++,tipo:'fase',label:'{{ f.nombre }}',ref_id:{{ f.id }},ref_tipo:'fase',x:300,y:y});
+  {% for o in f.objetivos %}
+  NODES.push({id:_nextId++,tipo:'objetivo',label:'{{ o.titulo[:40] }}',ref_id:{{ o.id }},ref_tipo:'objetivo',fase_id:{{ f.id }},x:520,y:y+{{ loop.index0 * 60 }}});
+  {% endfor %}
+  {% endfor %}
+  y+=100;
+  NODES.push({id:_nextId++,tipo:'inicio',label:'Fin',x:300,y:y});
+  // Auto edges
+  for(var i=1;i<NODES.length;i++){
+    if(NODES[i].tipo==='fase'||NODES[i].tipo==='inicio'){
+      var prev=NODES.slice(0,i).reverse().find(n=>n.tipo==='fase'||n.tipo==='inicio');
+      if(prev) EDGES.push({from:prev.id,to:NODES[i].id});
+    }
+    if(NODES[i].ref_tipo==='objetivo'){
+      var fase=NODES.find(n=>n.ref_tipo==='fase'&&n.ref_id===NODES[i].fase_id);
+      if(fase) EDGES.push({from:fase.id,to:NODES[i].id});
+    }
   }
 }
 
-var _nodeCount=100;
-function insertNode(tipo){
-  var ta=document.getElementById('diagramaCode');
-  var id='N'+(++_nodeCount);
-  var line='';
-  if(tipo==='fase') line='\n    '+id+'["Nueva fase"]';
-  else if(tipo==='objetivo') line='\n    '+id+'("Nuevo objetivo")';
-  else if(tipo==='decision') line='\n    '+id+'{"Decision?"}';
-  else if(tipo==='conexion') line='\n    A --> B';
-  ta.value+=line;
-  ta.focus();
-  renderDiagrama();
+function render(){
+  var container=document.getElementById('dgNodes');
+  container.innerHTML='';
+  NODES.forEach(function(n){
+    var el=document.createElement('div');
+    el.className='dg-node'+(n.id===(_selected||{}).id?' selected':'');
+    el.dataset.tipo=n.tipo;
+    el.dataset.nid=n.id;
+    el.style.left=n.x+'px';el.style.top=n.y+'px';
+    el.innerHTML=n.label+(n.ref_tipo?'<div class="dg-sub">'+n.ref_tipo+'</div>':'')
+      +'<div class="dg-conn-dot" onmousedown="startConn(event,'+n.id+')"></div>';
+    el.onmousedown=function(e){if(e.target.classList.contains('dg-conn-dot'))return;startDrag(e,n);};
+    el.onclick=function(e){
+      if(_connectMode&&_connectFrom&&_connectFrom!==n.id){
+        EDGES.push({from:_connectFrom,to:n.id});
+        _connectFrom=null;_connectMode=false;
+        document.getElementById('connLabel').textContent='Conectar';
+        render();return;
+      }
+      _selected=n;render();
+    };
+    el.ondblclick=function(){
+      var newLabel=prompt('Editar texto:',n.label);
+      if(newLabel!==null){n.label=newLabel;render();}
+    };
+    container.appendChild(el);
+  });
+  renderEdges();
 }
 
-function toggleFullscreen(){
-  var el=document.getElementById('diagramaContainer');
-  if(!document.fullscreenElement){el.requestFullscreen().catch(function(){});el.style.background='var(--surface)';el.style.padding='1rem';}
-  else{document.exitFullscreen();el.style.background='';el.style.padding='';}
+function renderEdges(){
+  var svg=document.getElementById('dgSvg');
+  svg.querySelectorAll('.dg-edge').forEach(e=>e.remove());
+  EDGES.forEach(function(e){
+    var from=NODES.find(n=>n.id===e.from);
+    var to=NODES.find(n=>n.id===e.to);
+    if(!from||!to)return;
+    var line=document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',from.x+60);line.setAttribute('y1',from.y+25);
+    line.setAttribute('x2',to.x+60);line.setAttribute('y2',to.y+5);
+    line.setAttribute('stroke','var(--text2)');line.setAttribute('stroke-width','2');
+    line.setAttribute('marker-end','url(#arrowhead)');
+    line.setAttribute('class','dg-edge');
+    line.style.pointerEvents='stroke';
+    svg.appendChild(line);
+  });
 }
 
-renderDiagrama();
+var _dragNode=null,_dragOff={x:0,y:0};
+function startDrag(e,node){
+  if(_connectMode)return;
+  _dragNode=node;
+  _dragOff={x:e.clientX-node.x,y:e.clientY-node.y};
+  var canvas=document.getElementById('dgCanvas');
+  var scrollL=canvas.scrollLeft,scrollT=canvas.scrollTop;
+  _dragOff.x-=canvas.getBoundingClientRect().left-scrollL;
+  _dragOff.y-=canvas.getBoundingClientRect().top-scrollT;
+  document.onmousemove=function(ev){
+    if(!_dragNode)return;
+    var rect=canvas.getBoundingClientRect();
+    _dragNode.x=ev.clientX-rect.left+canvas.scrollLeft-(_dragOff.x-canvas.scrollLeft+rect.left-ev.clientX+_dragNode.x);
+    _dragNode.x=Math.max(0,ev.clientX-rect.left+canvas.scrollLeft-60);
+    _dragNode.y=Math.max(0,ev.clientY-rect.top+canvas.scrollTop-15);
+    render();
+  };
+  document.onmouseup=function(){_dragNode=null;document.onmousemove=null;document.onmouseup=null;};
+  e.preventDefault();
+}
+
+function startConn(e,nodeId){e.stopPropagation();_connectMode=true;_connectFrom=nodeId;document.getElementById('connLabel').textContent='Click destino...';}
+function toggleConnect(){_connectMode=!_connectMode;_connectFrom=null;document.getElementById('connLabel').textContent=_connectMode?'Click origen...':'Conectar';}
+
+function addNode(tipo){
+  var label=prompt(tipo==='fase'?'Nombre de la fase:':tipo==='objetivo'?'Nombre del objetivo:':tipo==='decision'?'Pregunta de decision:':'Texto de la nota:');
+  if(!label)return;
+  var fase_id=null;
+  if(tipo==='objetivo'&&FASES.length){
+    var opts=FASES.map(fid=>fid+': '+FASE_NAMES[fid]).join('\n');
+    var sel=prompt('ID de fase para este objetivo:\n'+opts);
+    if(sel) fase_id=parseInt(sel);
+  }
+  var n={id:_nextId++,tipo:tipo,label:label,x:150+Math.random()*400,y:50+Math.random()*300};
+  // Create real entity if fase/objetivo
+  if(tipo==='fase'||tipo==='objetivo'){
+    fetch('/api/proyectos/'+PID+'/diagrama/crear-entidad',{
+      method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrf},
+      body:JSON.stringify({tipo:tipo,nombre:label,fase_id:fase_id})
+    }).then(r=>r.json()).then(function(d){
+      if(d.ok){n.ref_id=d.id;n.ref_tipo=tipo;if(fase_id)n.fase_id=fase_id;NODES.push(n);render();}
+    });
+  } else {
+    NODES.push(n);render();
+  }
+}
+
+function deleteSelected(){
+  if(!_selected){alert('Selecciona un nodo primero.');return;}
+  EDGES=EDGES.filter(e=>e.from!==_selected.id&&e.to!==_selected.id);
+  NODES=NODES.filter(n=>n.id!==_selected.id);
+  _selected=null;render();
+}
+
+function saveDiagram(){
+  fetch('/api/proyectos/'+PID+'/diagrama',{
+    method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrf},
+    body:JSON.stringify({diagrama:{nodes:NODES,edges:EDGES,nextId:_nextId}})
+  }).then(r=>r.json()).then(function(d){
+    document.getElementById('dgStatus').textContent=d.ok?'Guardado':'Error';
+    setTimeout(function(){document.getElementById('dgStatus').textContent='';},2000);
+  });
+}
+
+function dgFullscreen(){
+  var el=document.getElementById('dgWrap');
+  if(!document.fullscreenElement){el.requestFullscreen();el.style.background='var(--surface)';el.style.padding='1rem';el.style.maxWidth='100%';}
+  else{document.exitFullscreen();el.style.background='';el.style.padding='';el.style.maxWidth='1400px';}
+}
+
+render();
 </script>
 {% endblock %}

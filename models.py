@@ -1388,7 +1388,7 @@ class Proyecto(db.Model):
     # Vinculacion con entidades del CRM
     cliente_id      = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=True)
     etiquetas       = db.Column(db.Text, default='[]')  # JSON: ["lanzamiento","urgente"]
-    diagrama        = db.Column(db.Text)  # Mermaid.js flowchart syntax
+    diagrama        = db.Column(db.Text)  # JSON: {nodes:[], edges:[]}
     creado_por      = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
     # Relationships
@@ -1507,9 +1507,14 @@ class ProyectoNota(db.Model):
     id              = db.Column(db.Integer, primary_key=True)
     proyecto_id     = db.Column(db.Integer, db.ForeignKey('proyectos.id'), nullable=False, index=True)
     contenido       = db.Column(db.Text, nullable=False)
-    color           = db.Column(db.String(7), default='#FBBF24')  # yellow sticky
-    pos_x           = db.Column(db.Integer, default=0)  # position on board
-    pos_y           = db.Column(db.Integer, default=0)
+    color           = db.Column(db.String(7), default='#FBBF24')
+    pos_x           = db.Column(db.Integer, default=20)
+    pos_y           = db.Column(db.Integer, default=20)
+    grupo_id        = db.Column(db.Integer, nullable=True)  # group number for clustering
+    grupo_nombre    = db.Column(db.String(100))
+    votos_up        = db.Column(db.Integer, default=0)
+    votos_down      = db.Column(db.Integer, default=0)
+    votantes        = db.Column(db.Text, default='{}')  # JSON {user_id: 'up'|'down'}
     orden           = db.Column(db.Integer, default=0)
     autor_id        = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
@@ -2261,9 +2266,19 @@ def _migrate(conn):
         # ── Foro Banners (marketplace ads) ──
         ("CREATE TABLE IF NOT EXISTS foro_banners (id SERIAL PRIMARY KEY, titulo VARCHAR(200) NOT NULL, descripcion TEXT, imagen_url VARCHAR(500), link_url VARCHAR(500), industria VARCHAR(100), tipo VARCHAR(20) DEFAULT 'evore', activo BOOLEAN DEFAULT TRUE, orden INTEGER DEFAULT 0, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
         ("CREATE TABLE IF NOT EXISTS foro_banners (id INTEGER PRIMARY KEY AUTOINCREMENT, titulo VARCHAR(200) NOT NULL, descripcion TEXT, imagen_url VARCHAR(500), link_url VARCHAR(500), industria VARCHAR(100), tipo VARCHAR(20) DEFAULT 'evore', activo BOOLEAN DEFAULT TRUE, orden INTEGER DEFAULT 0, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"),
-        # ── Proyectos: diagrama field ──
+        # ── Proyectos: diagrama + brainstorm fields ──
         ("ALTER TABLE proyectos ADD COLUMN IF NOT EXISTS diagrama TEXT"),
         ("ALTER TABLE proyectos ADD COLUMN diagrama TEXT"),
+        ("ALTER TABLE proyecto_notas ADD COLUMN IF NOT EXISTS grupo_id INTEGER"),
+        ("ALTER TABLE proyecto_notas ADD COLUMN grupo_id INTEGER"),
+        ("ALTER TABLE proyecto_notas ADD COLUMN IF NOT EXISTS grupo_nombre VARCHAR(100)"),
+        ("ALTER TABLE proyecto_notas ADD COLUMN grupo_nombre VARCHAR(100)"),
+        ("ALTER TABLE proyecto_notas ADD COLUMN IF NOT EXISTS votos_up INTEGER DEFAULT 0"),
+        ("ALTER TABLE proyecto_notas ADD COLUMN votos_up INTEGER DEFAULT 0"),
+        ("ALTER TABLE proyecto_notas ADD COLUMN IF NOT EXISTS votos_down INTEGER DEFAULT 0"),
+        ("ALTER TABLE proyecto_notas ADD COLUMN votos_down INTEGER DEFAULT 0"),
+        ("ALTER TABLE proyecto_notas ADD COLUMN IF NOT EXISTS votantes TEXT DEFAULT '{}'"),
+        ("ALTER TABLE proyecto_notas ADD COLUMN votantes TEXT DEFAULT '{}'"),
         # ── Proyectos: objetivo presupuesto + solicitud campos extra ──
         ("ALTER TABLE proyecto_objetivos ADD COLUMN IF NOT EXISTS presupuesto FLOAT DEFAULT 0"),
         ("ALTER TABLE proyecto_objetivos ADD COLUMN presupuesto FLOAT DEFAULT 0"),

@@ -1018,3 +1018,91 @@ def register(app):
         db.session.delete(n)
         db.session.commit()
         return redirect(url_for('proyecto_brainstorm', pid=pid))
+
+    # ── Brainstorm: move note (AJAX) ──
+    @app.route('/api/proyectos/brainstorm/nota/<int:nid>/mover', methods=['POST'])
+    @login_required
+    def api_brainstorm_mover(nid):
+        n = ProyectoNota.query.get_or_404(nid)
+        n.pos_x = int(request.json.get('x', n.pos_x))
+        n.pos_y = int(request.json.get('y', n.pos_y))
+        db.session.commit()
+        return jsonify({'ok': True})
+
+    # ── Brainstorm: vote (AJAX) ──
+    @app.route('/api/proyectos/brainstorm/nota/<int:nid>/votar', methods=['POST'])
+    @login_required
+    def api_brainstorm_votar(nid):
+        n = ProyectoNota.query.get_or_404(nid)
+        voto = request.json.get('voto')  # 'up' or 'down'
+        votantes = json.loads(n.votantes or '{}')
+        uid = str(current_user.id)
+        prev = votantes.get(uid)
+        # Toggle: if same vote, remove it
+        if prev == voto:
+            del votantes[uid]
+        else:
+            votantes[uid] = voto
+        n.votantes = json.dumps(votantes)
+        n.votos_up = sum(1 for v in votantes.values() if v == 'up')
+        n.votos_down = sum(1 for v in votantes.values() if v == 'down')
+        db.session.commit()
+        return jsonify({'ok': True, 'up': n.votos_up, 'down': n.votos_down,
+                        'mi_voto': votantes.get(uid)})
+
+    # ── Brainstorm: set group (AJAX) ──
+    @app.route('/api/proyectos/brainstorm/nota/<int:nid>/grupo', methods=['POST'])
+    @login_required
+    def api_brainstorm_grupo(nid):
+        n = ProyectoNota.query.get_or_404(nid)
+        n.grupo_id = request.json.get('grupo_id')
+        n.grupo_nombre = request.json.get('grupo_nombre', '')
+        db.session.commit()
+        return jsonify({'ok': True})
+
+    # ── Brainstorm: save connections (stored in proyecto.etiquetas as JSON) ──
+    @app.route('/api/proyectos/<int:pid>/brainstorm/conexiones', methods=['POST'])
+    @login_required
+    def api_brainstorm_conexiones(pid):
+        p = Proyecto.query.get_or_404(pid)
+        # Store connections in etiquetas field (reuse)
+        data = json.loads(p.etiquetas or '[]')
+        if isinstance(data, list):
+            data = {'tags': data, 'bs_connections': []}
+        data['bs_connections'] = request.json.get('conexiones', [])
+        p.etiquetas = json.dumps(data)
+        db.session.commit()
+        return jsonify({'ok': True})
+
+    # ── Diagrama: save (AJAX) ──
+    @app.route('/api/proyectos/<int:pid>/diagrama', methods=['POST'])
+    @login_required
+    def api_proyecto_diagrama_save(pid):
+        p = Proyecto.query.get_or_404(pid)
+        p.diagrama = json.dumps(request.json.get('diagrama', {}))
+        db.session.commit()
+        return jsonify({'ok': True})
+
+    # ── Diagrama: add node as real Fase/Objetivo ──
+    @app.route('/api/proyectos/<int:pid>/diagrama/crear-entidad', methods=['POST'])
+    @login_required
+    def api_diagrama_crear_entidad(pid):
+        if not _requiere_proyecto_access():
+            return jsonify({'error': 'Acceso denegado'}), 403
+        p = Proyecto.query.get_or_404(pid)
+        tipo = request.json.get('tipo')  # 'fase' or 'objetivo'
+        nombre = request.json.get('nombre', 'Sin nombre')
+        fase_id = request.json.get('fase_id')
+        if tipo == 'fase':
+            max_ord = db.session.query(func.max(ProyectoFase.orden)).filter_by(proyecto_id=pid).scalar() or 0
+            f = ProyectoFase(proyecto_id=pid, nombre=nombre, orden=max_ord + 1)
+            db.session.add(f); db.session.flush()
+            db.session.commit()
+            return jsonify({'ok': True, 'id': f.id, 'tipo': 'fase', 'nombre': f.nombre})
+        elif tipo == 'objetivo' and fase_id:
+            max_ord = db.session.query(func.max(ProyectoObjetivo.orden)).filter_by(fase_id=fase_id).scalar() or 0
+            o = ProyectoObjetivo(proyecto_id=pid, fase_id=int(fase_id), titulo=nombre, orden=max_ord + 1)
+            db.session.add(o); db.session.flush()
+            db.session.commit()
+            return jsonify({'ok': True, 'id': o.id, 'tipo': 'objetivo', 'nombre': o.titulo})
+        return jsonify({'error': 'Tipo invalido'}), 400

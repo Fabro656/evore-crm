@@ -2,66 +2,121 @@
 {% block title %}Brainstorming — {{ p.nombre }}{% endblock %}{% block page_title %}{{ p.codigo }} — Brainstorming{% endblock %}
 {% block topbar_actions %}
 <div class="d-flex gap-2">
-  <button class="btn btn-sm btn-outline-secondary" onclick="toggleBsFullscreen()"><i class="bi bi-arrows-fullscreen me-1"></i>Pantalla completa</button>
+  <button class="btn btn-sm btn-outline-secondary" onclick="bsFullscreen()"><i class="bi bi-arrows-fullscreen me-1"></i>Pantalla completa</button>
   <a href="{{ url_for('proyecto_ver', id=p.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Proyecto</a>
 </div>
 {% endblock %}
 {% block content %}
-<div id="bsContainer" style="max-width:1400px;margin:0 auto">
-  {# Add note form #}
-  <div class="fc mb-3">
-    <form method="POST" action="{{ url_for('proyecto_brainstorm_nota', pid=p.id) }}" class="d-flex gap-2 align-items-end flex-wrap">
-      <div style="flex:2;min-width:200px">
-        <input type="text" name="contenido" class="form-control form-control-sm" placeholder="Nueva idea, nota o tarea..." required>
-      </div>
-      <div>
-        <select name="color" class="form-select form-select-sm" style="width:auto">
-          <option value="#FBBF24" style="background:#FBBF24">Amarillo</option>
-          <option value="#60A5FA" style="background:#60A5FA;color:#fff">Azul</option>
-          <option value="#34D399" style="background:#34D399">Verde</option>
-          <option value="#F87171" style="background:#F87171;color:#fff">Rojo</option>
-          <option value="#A78BFA" style="background:#A78BFA;color:#fff">Morado</option>
-          <option value="#FB923C" style="background:#FB923C">Naranja</option>
-          <option value="#E5E7EB" style="background:#E5E7EB">Gris</option>
-        </select>
-      </div>
+<div id="bsWrap" style="max-width:1400px;margin:0 auto">
+  {# Toolbar #}
+  <div class="fc mb-2" style="padding:.5rem .75rem">
+    <form method="POST" action="{{ url_for('proyecto_brainstorm_nota', pid=p.id) }}" class="d-flex gap-2 align-items-center flex-wrap">
+      <input type="text" name="contenido" class="form-control form-control-sm" placeholder="Nueva idea..." required style="flex:2;min-width:150px">
+      <select name="color" class="form-select form-select-sm" style="width:auto;font-size:.78rem">
+        <option value="#FBBF24">Amarillo</option><option value="#60A5FA">Azul</option>
+        <option value="#34D399">Verde</option><option value="#F87171">Rojo</option>
+        <option value="#A78BFA">Morado</option><option value="#FB923C">Naranja</option>
+      </select>
       <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Agregar</button>
+      <div style="border-left:1px solid var(--border);height:24px;margin:0 .25rem"></div>
+      <span style="font-size:.72rem;color:var(--text2)">{{ notas|length }} ideas | Ranking: <span id="bsTopIdea" class="fw-bold">—</span></span>
     </form>
   </div>
 
   {# Board #}
-  <div id="bsBoard" style="min-height:500px;background:var(--surface2);border-radius:var(--radius);padding:1.5rem;position:relative;overflow:auto;display:flex;flex-wrap:wrap;gap:1rem;align-content:flex-start">
-    {% if notas %}
+  <div id="bsBoard" style="position:relative;height:600px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);overflow:auto">
+    <svg id="bsSvg" style="position:absolute;top:0;left:0;width:3000px;height:2000px;pointer-events:none;z-index:1"></svg>
     {% for n in notas %}
-    <div class="bs-note" style="background:{{ n.color or '#FBBF24' }};width:220px;min-height:140px;border-radius:12px;padding:1rem;position:relative;box-shadow:0 2px 8px rgba(0,0,0,.1);transition:transform .15s,box-shadow .15s" onmouseenter="this.style.transform='translateY(-3px) rotate(-1deg)';this.style.boxShadow='0 6px 20px rgba(0,0,0,.15)'" onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(0,0,0,.1)'">
-      <div style="font-size:.88rem;color:#1a1a1a;font-weight:500;line-height:1.4;word-wrap:break-word">{{ n.contenido }}</div>
-      <div style="position:absolute;bottom:8px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:.65rem;color:rgba(0,0,0,.4)">{{ n.autor.nombre }} · {{ n.creado_en.strftime('%d/%m') if n.creado_en else '' }}</span>
-        <form method="POST" action="{{ url_for('proyecto_brainstorm_nota_eliminar', nid=n.id) }}" class="m-0">
-          <button type="submit" class="btn btn-sm p-0" style="border:none;background:none;color:rgba(0,0,0,.3);font-size:.7rem" onclick="return confirm('Eliminar nota?')"><i class="bi bi-x-lg"></i></button>
+    {% set votantes_dict = (n.votantes or '{}')|string %}
+    {% set mi_voto = '' %}
+    <div class="bs-note" data-nid="{{ n.id }}" style="position:absolute;left:{{ n.pos_x }}px;top:{{ n.pos_y }}px;width:200px;background:{{ n.color or '#FBBF24' }};border-radius:10px;padding:12px;box-shadow:0 3px 10px rgba(0,0,0,.12);cursor:grab;z-index:5;user-select:none"
+         onmousedown="bsDrag(event,this)">
+      <div style="font-size:.85rem;color:#1a1a1a;font-weight:500;line-height:1.4;min-height:40px;word-wrap:break-word;pointer-events:none">{{ n.contenido }}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;pointer-events:auto">
+        <div class="d-flex align-items-center gap-1">
+          <button class="btn btn-sm p-0 bs-vote" data-nid="{{ n.id }}" data-voto="up" style="border:none;background:none;font-size:.85rem;cursor:pointer" title="Buena idea"><i class="bi bi-hand-thumbs-up{% if n.votos_up %}-fill text-success{% endif %}"></i></button>
+          <span style="font-size:.72rem;font-weight:700;color:#1a1a1a">{{ n.votos_up - n.votos_down }}</span>
+          <button class="btn btn-sm p-0 bs-vote" data-nid="{{ n.id }}" data-voto="down" style="border:none;background:none;font-size:.85rem;cursor:pointer" title="Mejorar"><i class="bi bi-hand-thumbs-down{% if n.votos_down %}-fill text-danger{% endif %}"></i></button>
+        </div>
+        <div style="font-size:.6rem;color:rgba(0,0,0,.4)">{{ n.autor.nombre }}</div>
+        <form method="POST" action="{{ url_for('proyecto_brainstorm_nota_eliminar', nid=n.id) }}" class="m-0" style="pointer-events:auto">
+          <button class="btn btn-sm p-0" style="border:none;background:none;color:rgba(0,0,0,.3);font-size:.65rem" onclick="return confirm('Eliminar?')"><i class="bi bi-x-lg"></i></button>
         </form>
       </div>
+      {% if n.grupo_nombre %}<div style="position:absolute;top:-8px;right:8px;font-size:.55rem;background:rgba(0,0,0,.6);color:#fff;padding:1px 6px;border-radius:3px">{{ n.grupo_nombre }}</div>{% endif %}
     </div>
     {% endfor %}
-    {% else %}
-    <div class="text-center w-100 py-5" style="color:var(--text2)">
+
+    {% if not notas %}
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:var(--text2);pointer-events:none">
       <i class="bi bi-lightbulb" style="font-size:3rem;opacity:.3"></i>
-      <p class="mt-2" style="font-size:.9rem">Agrega la primera idea para comenzar el brainstorming</p>
+      <p style="font-size:.9rem;margin-top:.5rem">Agrega la primera idea</p>
     </div>
     {% endif %}
   </div>
 </div>
 
 <script>
-function toggleBsFullscreen(){
-  var el=document.getElementById('bsContainer');
-  if(!document.fullscreenElement){
-    el.requestFullscreen().catch(function(){});
-    el.style.background='var(--surface)';el.style.padding='1rem';el.style.maxWidth='100%';
-  } else {
-    document.exitFullscreen();
-    el.style.background='';el.style.padding='';el.style.maxWidth='1400px';
-  }
+var _csrf='{{ csrf_token }}';
+
+// Drag notes
+var _bsDragging=null,_bsOff={x:0,y:0};
+function bsDrag(e,el){
+  if(e.target.closest('.bs-vote')||e.target.closest('form')||e.target.closest('button'))return;
+  _bsDragging=el;
+  var board=document.getElementById('bsBoard');
+  var rect=board.getBoundingClientRect();
+  _bsOff.x=e.clientX-parseInt(el.style.left);
+  _bsOff.y=e.clientY-parseInt(el.style.top);
+  el.style.cursor='grabbing';el.style.zIndex='50';
+  document.onmousemove=function(ev){
+    if(!_bsDragging)return;
+    var nx=Math.max(0,ev.clientX-_bsOff.x+board.scrollLeft);
+    var ny=Math.max(0,ev.clientY-_bsOff.y+board.scrollTop);
+    _bsDragging.style.left=nx+'px';
+    _bsDragging.style.top=ny+'px';
+  };
+  document.onmouseup=function(){
+    if(!_bsDragging)return;
+    _bsDragging.style.cursor='grab';_bsDragging.style.zIndex='5';
+    var nid=_bsDragging.dataset.nid;
+    fetch('/api/proyectos/brainstorm/nota/'+nid+'/mover',{
+      method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrf},
+      body:JSON.stringify({x:parseInt(_bsDragging.style.left),y:parseInt(_bsDragging.style.top)})
+    });
+    _bsDragging=null;document.onmousemove=null;document.onmouseup=null;
+  };
+  e.preventDefault();
+}
+
+// Vote
+document.querySelectorAll('.bs-vote').forEach(function(btn){
+  btn.addEventListener('click',function(e){
+    e.stopPropagation();
+    var nid=this.dataset.nid, voto=this.dataset.voto;
+    fetch('/api/proyectos/brainstorm/nota/'+nid+'/votar',{
+      method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrf},
+      body:JSON.stringify({voto:voto})
+    }).then(r=>r.json()).then(function(d){
+      if(d.ok) location.reload();
+    });
+  });
+});
+
+// Show top idea
+var notes=document.querySelectorAll('.bs-note');
+var topScore=-999,topText='—';
+notes.forEach(function(n){
+  var scoreEl=n.querySelector('[style*="font-weight:700"]');
+  if(scoreEl){var s=parseInt(scoreEl.textContent);if(s>topScore){topScore=s;topText=n.querySelector('div').textContent.trim().substring(0,30);}}
+});
+var topEl=document.getElementById('bsTopIdea');
+if(topEl&&topScore>-999) topEl.textContent=topText+(topScore>0?' (+'+topScore+')':'');
+
+function bsFullscreen(){
+  var el=document.getElementById('bsWrap');
+  if(!document.fullscreenElement){el.requestFullscreen();el.style.background='var(--surface)';el.style.padding='1rem';el.style.maxWidth='100%';}
+  else{document.exitFullscreen();el.style.background='';el.style.padding='';el.style.maxWidth='1400px';}
 }
 </script>
 {% endblock %}
