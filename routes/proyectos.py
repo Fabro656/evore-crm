@@ -491,18 +491,48 @@ def register(app):
             flash('Acceso denegado.', 'danger'); return redirect(url_for('dashboard'))
         p = Proyecto.query.get_or_404(pid)
         cid = getattr(g, 'company_id', None)
-        monto = float(request.form.get('monto') or 0)
+        monto_raw = float(request.form.get('monto') or 0)
         fase_id = int(request.form.get('fase_id')) if request.form.get('fase_id') else None
         desc = request.form.get('descripcion', '').strip() or f'Gasto proyecto {p.codigo}'
+        tipo_gasto = request.form.get('tipo_gasto', 'general')
+        # Calculate final amount based on type
+        monto = monto_raw
+        notas_extra = ''
+        if tipo_gasto == 'compra':
+            con_iva = bool(request.form.get('con_iva'))
+            if not con_iva and monto > 0:
+                monto = round(monto * 1.19)
+                notas_extra = f'Monto base: ${monto_raw:,.0f} + IVA 19% = ${monto:,.0f}'
+            else:
+                notas_extra = 'Monto con IVA incluido'
+        elif tipo_gasto == 'nomina':
+            con_prest = bool(request.form.get('con_prestaciones'))
+            tipo_nom = request.form.get('tipo_pago_nomina', 'neto')
+            if con_prest:
+                if tipo_nom == 'neto':
+                    neto = monto_raw
+                    prest = round(neto * 0.52)
+                    monto = neto + prest
+                    notas_extra = f'Neto: ${neto:,.0f} + Prestaciones 52%: ${prest:,.0f} = ${monto:,.0f}'
+                else:
+                    notas_extra = f'Costo total empresa: ${monto:,.0f} (incluye prestaciones)'
+            else:
+                notas_extra = f'Pago {"neto" if tipo_nom=="neto" else "total"}: ${monto:,.0f} (sin prestaciones)'
         fase_label = ''
         if fase_id:
             fase_obj = db.session.get(ProyectoFase, fase_id)
             if fase_obj:
                 fase_label = f' [{fase_obj.nombre}]'
+        tipo_custom = f'Proyecto {p.codigo}{fase_label}'
+        if tipo_gasto == 'nomina':
+            tipo_custom += ' — Nomina'
+        elif tipo_gasto == 'compra':
+            tipo_custom += ' — Compra'
         gasto = GastoOperativo(
-            company_id=cid, tipo='proyecto', tipo_custom=f'Proyecto {p.codigo}{fase_label}',
+            company_id=cid, tipo='proyecto', tipo_custom=tipo_custom,
             descripcion=desc, monto=monto, fecha=date_type.today(),
-            creado_por=current_user.id, notas=f'Vinculado a proyecto {p.codigo}{fase_label}'
+            creado_por=current_user.id,
+            notas=f'{notas_extra}. Vinculado a proyecto {p.codigo}{fase_label}'
         )
         db.session.add(gasto)
         db.session.flush()

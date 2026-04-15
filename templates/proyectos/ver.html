@@ -334,14 +334,59 @@
   </div>
 
   {# Gasto per phase modal #}
-  <div class="modal fade" id="modalGastoFase{{ fase.id }}" tabindex="-1"><div class="modal-dialog modal-sm">
-  <div class="modal-content"><form method="POST" action="{{ url_for('proyecto_gasto_nuevo', pid=p.id) }}">
+  <div class="modal fade" id="modalGastoFase{{ fase.id }}" tabindex="-1"><div class="modal-dialog">
+  <div class="modal-content"><form method="POST" action="{{ url_for('proyecto_gasto_nuevo', pid=p.id) }}" onsubmit="return calcGastoFinal(this)">
     <input type="hidden" name="fase_id" value="{{ fase.id }}">
+    <input type="hidden" name="monto_final" class="gf-monto-final">
     <div class="modal-header py-2"><h6 class="modal-title mb-0"><i class="bi bi-cash me-2"></i>Gasto — {{ fase.nombre }}</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
     <div class="modal-body">
-      <div class="mb-2"><label class="form-label form-label-sm">Descripcion</label><input type="text" name="descripcion" class="form-control form-control-sm" placeholder="Ej: Compra materiales"></div>
-      <div class="mb-2"><label class="form-label form-label-sm">Monto *</label><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="number" name="monto" class="form-control" step="1" min="1" required></div></div>
-      {% if fase.presupuesto %}<div class="form-text" style="font-size:.72rem">Presupuesto: {{ moneda(fase.presupuesto) }} — Gastado: {{ moneda(fg.total) }}</div>{% endif %}
+      <div class="mb-2"><label class="form-label form-label-sm">Tipo de gasto *</label>
+        <select name="tipo_gasto" class="form-select form-select-sm gf-tipo" onchange="toggleGastoFields(this)">
+          <option value="general">General</option>
+          <option value="compra">Compra (producto/servicio)</option>
+          <option value="nomina">Nomina (pago a persona)</option>
+        </select>
+      </div>
+      <div class="mb-2"><label class="form-label form-label-sm">Descripcion</label>
+        <input type="text" name="descripcion" class="form-control form-control-sm" placeholder="Detalle del gasto..." required></div>
+      <div class="mb-2"><label class="form-label form-label-sm">Monto ingresado *</label>
+        <div class="input-group input-group-sm"><span class="input-group-text">$</span>
+          <input type="number" name="monto" class="form-control gf-monto" step="1" min="1" required oninput="previewGasto(this)"></div>
+      </div>
+      {# Compra fields #}
+      <div class="gf-compra" style="display:none">
+        <div class="form-check mb-2">
+          <input type="checkbox" class="form-check-input gf-con-iva" name="con_iva" value="1" onchange="previewGasto(this)">
+          <label class="form-check-label" style="font-size:.82rem">El monto ya incluye IVA (19%)</label>
+        </div>
+        <div class="gf-iva-warning" style="display:none;font-size:.78rem;color:#F59E0B;padding:4px 8px;background:rgba(245,158,11,.08);border-radius:4px;margin-bottom:.5rem">
+          <i class="bi bi-exclamation-triangle me-1"></i>Se sumara IVA 19% al monto: <strong class="gf-iva-total"></strong>
+        </div>
+      </div>
+      {# Nomina fields #}
+      <div class="gf-nomina" style="display:none">
+        <div class="form-check mb-1">
+          <input type="checkbox" class="form-check-input gf-prestaciones" name="con_prestaciones" value="1" onchange="previewGasto(this)">
+          <label class="form-check-label" style="font-size:.82rem">Incluir prestaciones de ley (~52%)</label>
+        </div>
+        <div class="mb-2">
+          <select name="tipo_pago_nomina" class="form-select form-select-sm gf-tipo-nomina" onchange="previewGasto(this)">
+            <option value="neto">Monto es el pago neto (lo que recibe la persona)</option>
+            <option value="completo">Monto es el costo total para la empresa</option>
+          </select>
+        </div>
+        <div class="gf-nomina-info" style="display:none;font-size:.78rem;padding:4px 8px;background:rgba(1,118,211,.06);border-radius:4px;margin-bottom:.5rem">
+          <div>Salario neto: <strong class="gf-nom-neto"></strong></div>
+          <div>Prestaciones (~52%): <strong class="gf-nom-prest"></strong></div>
+          <div>Costo total empresa: <strong class="gf-nom-total"></strong></div>
+        </div>
+      </div>
+      {# Preview #}
+      <div class="gf-preview fc" style="padding:.5rem .75rem;margin-top:.5rem;display:none">
+        <div style="font-size:.75rem;font-weight:700;color:var(--text2)">MONTO A REGISTRAR</div>
+        <div class="fw-bold" style="font-size:1.1rem;color:var(--ac)"><span class="gf-final-display">$ 0</span></div>
+      </div>
+      {% if fase.presupuesto %}<div class="form-text mt-2" style="font-size:.72rem">Presupuesto fase: {{ moneda(fase.presupuesto) }} — Gastado: {{ moneda(fg.total) }}</div>{% endif %}
     </div>
     <div class="modal-footer py-2"><button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check-lg me-1"></i>Registrar</button></div>
   </form></div></div></div>
@@ -510,6 +555,63 @@
 </form></div></div></div>
 
 <script>
+// ── Gasto tipo fields ──
+function toggleGastoFields(sel){
+  var form=sel.closest('form');
+  var tipo=sel.value;
+  form.querySelector('.gf-compra').style.display=tipo==='compra'?'':'none';
+  form.querySelector('.gf-nomina').style.display=tipo==='nomina'?'':'none';
+  previewGasto(sel);
+}
+function previewGasto(el){
+  var form=el.closest('form');
+  var tipo=form.querySelector('.gf-tipo').value;
+  var monto=parseFloat(form.querySelector('.gf-monto').value)||0;
+  var final_monto=monto;
+  if(tipo==='compra'){
+    var conIva=form.querySelector('.gf-con-iva').checked;
+    var warn=form.querySelector('.gf-iva-warning');
+    if(!conIva&&monto>0){
+      final_monto=Math.round(monto*1.19);
+      warn.style.display='';
+      form.querySelector('.gf-iva-total').textContent='$ '+final_monto.toLocaleString('es-CO');
+    } else {
+      warn.style.display='none';
+    }
+  }
+  if(tipo==='nomina'){
+    var conPrest=form.querySelector('.gf-prestaciones').checked;
+    var tipoNom=form.querySelector('.gf-tipo-nomina').value;
+    var info=form.querySelector('.gf-nomina-info');
+    if(monto>0){
+      info.style.display='';
+      var neto,prest,total;
+      if(tipoNom==='neto'){
+        neto=monto;
+        if(conPrest){prest=Math.round(neto*0.52);total=neto+prest;}
+        else{prest=0;total=neto;}
+      } else {
+        total=monto;
+        if(conPrest){neto=Math.round(total/1.52);prest=total-neto;}
+        else{neto=total;prest=0;}
+      }
+      final_monto=total;
+      form.querySelector('.gf-nom-neto').textContent='$ '+Math.round(neto).toLocaleString('es-CO');
+      form.querySelector('.gf-nom-prest').textContent='$ '+Math.round(prest).toLocaleString('es-CO');
+      form.querySelector('.gf-nom-total').textContent='$ '+Math.round(total).toLocaleString('es-CO');
+    } else {info.style.display='none';}
+  }
+  var preview=form.querySelector('.gf-preview');
+  if(monto>0){preview.style.display='';form.querySelector('.gf-final-display').textContent='$ '+Math.round(final_monto).toLocaleString('es-CO');}
+  else{preview.style.display='none';}
+  form.querySelector('.gf-monto-final').value=Math.round(final_monto);
+}
+function calcGastoFinal(form){
+  var final_val=form.querySelector('.gf-monto-final').value;
+  if(final_val){form.querySelector('.gf-monto').value=final_val;}
+  return true;
+}
+
 function dropTarea(ev,col){
   ev.preventDefault();col.classList.remove('kb-over');
   var tid=ev.dataTransfer.getData('tid');
