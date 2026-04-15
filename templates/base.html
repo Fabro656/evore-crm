@@ -156,6 +156,7 @@ html[data-theme="dark"] #sb.sb-expanded .sb-brand img.logo-dark{display:block!im
 @keyframes toastIn{from{transform:translateX(100px);opacity:0}to{transform:translateX(0);opacity:1}}
 @keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes cardIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes chatNotifIn{from{opacity:0;transform:translateY(12px) scale(.95)}to{opacity:1;transform:none}}
 .row.g-3>[class*="col-"]{animation:cardIn .3s ease backwards}
 .row.g-3>[class*="col-"]:nth-child(2){animation-delay:.04s}
 .row.g-3>[class*="col-"]:nth-child(3){animation-delay:.08s}
@@ -2553,21 +2554,37 @@ function chatSend(e){
 
 
 
-// Poll unread count
-setInterval(function(){
-  fetch('/api/chat/unread').then(r=>r.json()).then(d=>{
-    var badge = document.getElementById('chatBadge');
-    if(badge){
-      if(d.count > 0){ badge.textContent=d.count; badge.classList.remove('hide'); }
-      else { badge.classList.add('hide'); }
+// Poll unread count + show notification toast on new messages
+var _lastChatCount=0,_lastChatMsgId=0;
+function pollChatUnread(){
+  fetch('/api/chat/unread').then(function(r){return r.json()}).then(function(d){
+    var badge=document.getElementById('chatBadge');
+    if(badge){if(d.count>0){badge.textContent=d.count;badge.classList.remove('hide')}else{badge.classList.add('hide')}}
+    var mb=document.getElementById('mnavChatBadge');
+    if(mb){if(d.count>0){mb.textContent=d.count;mb.classList.remove('hide')}else{mb.classList.add('hide')}}
+    // Show notification toast if new message arrived and chat panel is closed
+    if(d.count>_lastChatCount && d.last && d.last.id!==_lastChatMsgId && !_chatOpen){
+      _lastChatMsgId=d.last.id;
+      showChatNotif(d.last);
     }
-    var mobileBadge = document.getElementById('mnavChatBadge');
-    if(mobileBadge){
-      if(d.count > 0){ mobileBadge.textContent=d.count; mobileBadge.classList.remove('hide'); }
-      else { mobileBadge.classList.add('hide'); }
-    }
+    _lastChatCount=d.count;
   }).catch(function(){});
-}, 15000);
+}
+function showChatNotif(msg){
+  var existing=document.getElementById('chatNotifToast');
+  if(existing) existing.remove();
+  var div=document.createElement('div');
+  div.id='chatNotifToast';
+  div.style.cssText='position:fixed;bottom:24px;right:24px;z-index:1090;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:.85rem 1rem;box-shadow:0 12px 40px rgba(0,0,0,.12);display:flex;align-items:center;gap:.75rem;max-width:340px;cursor:pointer;animation:chatNotifIn .3s ease';
+  div.innerHTML='<div style="width:36px;height:36px;border-radius:10px;background:var(--ac);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.85rem;flex-shrink:0"><i class="bi bi-chat-dots-fill"></i></div>'
+    +'<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:.82rem;color:var(--text)">'+msg.user+'</div><div style="font-size:.75rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+msg.text+'</div></div>'
+    +'<button onclick="event.stopPropagation();this.parentElement.remove()" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:.9rem;padding:2px;line-height:1">&times;</button>';
+  div.onclick=function(){toggleChatPanel();if(msg.room_id)chatOpenRoom(msg.room_id);this.remove()};
+  document.body.appendChild(div);
+  setTimeout(function(){var t=document.getElementById('chatNotifToast');if(t){t.style.transition='opacity .4s';t.style.opacity='0';setTimeout(function(){if(t.parentNode)t.remove()},400)}},8000);
+}
+pollChatUnread();
+setInterval(pollChatUnread, 10000);
 </script>
 {% endif %}
 

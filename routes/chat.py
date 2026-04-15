@@ -263,11 +263,25 @@ def register(app):
             room_ids = [r[0] for r in my_rooms]
             if not room_ids:
                 return jsonify({'count': 0})
-            total = ChatMessage.query.filter(
+            unread = ChatMessage.query.filter(
                 ChatMessage.room_id.in_(room_ids),
                 ChatMessage.user_id != current_user.id,
                 ~ChatMessage.leido_por.contains(str(current_user.id))
-            ).count()
-            return jsonify({'count': total})
+            )
+            total = unread.count()
+            # Include last unread message info for notification popup
+            last = unread.order_by(ChatMessage.creado_en.desc()).first()
+            last_info = None
+            if last:
+                sender = db.session.get(User, last.user_id)
+                room = db.session.get(ChatRoom, last.room_id)
+                last_info = {
+                    'id': last.id,
+                    'user': sender.nombre if sender else 'Alguien',
+                    'room': room.nombre if room else 'Chat',
+                    'text': (last.contenido or '')[:80],
+                    'room_id': last.room_id
+                }
+            return jsonify({'count': total, 'last': last_info})
         except Exception:
             return jsonify({'count': 0})
