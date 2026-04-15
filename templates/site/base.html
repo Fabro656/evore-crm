@@ -38,8 +38,16 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;background:rgba(255,255,255,
 .n-links a{white-space:nowrap}
 .n-links a:hover{color:var(--t)}
 .n-cta{display:flex;gap:.75rem;align-items:center;flex-shrink:0;margin-left:1.5rem}
-/* Active link in nav */
+/* Active link */
 .n-links a.on{color:var(--t);font-weight:600}
+/* Mobile menu */
+.n-ham{display:none;background:none;border:none;font-size:1.3rem;color:var(--t);cursor:pointer;padding:.25rem;line-height:1}
+.n-mob{display:none;position:fixed;inset:0;top:48px;background:var(--sf);z-index:199;padding:1.5rem;flex-direction:column;gap:.25rem;overflow-y:auto;animation:mobIn .25s ease}
+.n-mob.open{display:flex}
+@keyframes mobIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+.n-mob a{padding:.85rem 1rem;font-size:1rem;font-weight:500;color:var(--t);border-radius:12px;transition:background .15s;display:block}
+.n-mob a:hover{background:var(--bg)}
+.n-mob .sep{height:1px;background:var(--bd);margin:.5rem 0}
 
 /* ── Sections ── */
 .sc{width:100%;padding:5rem 0}
@@ -143,14 +151,35 @@ footer a{color:var(--t2);margin:0 .75rem}footer a:hover{color:var(--t)}
 .rv.v{opacity:1;transform:none}
 
 /* ── Mobile ── */
-@media(max-width:900px){
-  .n-links{display:none}.n-cta{margin-left:auto}.n-top{justify-content:space-between}
-  .fr,.fr:nth-child(even){flex-direction:column;gap:2rem;margin-bottom:3rem}
+/* ── Tablet (601-1024px) ── */
+@media(max-width:1024px){
+  .n-links{gap:.75rem;font-size:.72rem}
+  .n-cta .ba{padding:.35rem .9rem;font-size:.72rem}
+  .fr{gap:2.5rem}.fr-v{flex:1}.fr-t{flex:1}
+  .sc{padding:4rem 0}
+  .ph{padding:5.5rem 1.5rem 2rem}
+  .sh h2{font-size:clamp(1.5rem,3.5vw,2.2rem)}
+}
+/* ── Mobile (≤600px) ── */
+@media(max-width:600px){
+  .n-links{display:none}.n-ham{display:block}.n-cta{margin-left:auto;gap:.5rem}.n-top{justify-content:space-between;padding:.5rem 1rem}
+  .n-cta .hm-login{display:none}
+  .fr,.fr:nth-child(even){flex-direction:column;gap:1.5rem;margin-bottom:2.5rem}
+  .fr-t h3{font-size:1.2rem}
   .feat{grid-template-columns:1fr;min-height:auto}
-  .feat-txt{padding:2.5rem 1.5rem}
-  .feat-vis{padding:1.5rem;min-height:350px}
-  .sc{padding:3.5rem 0}
-  .ph{padding:5rem 1.5rem 2rem}
+  .feat-txt{padding:2rem 1.25rem}
+  .feat-vis{padding:1.25rem;min-height:280px}
+  .sc{padding:3rem 0}
+  .si,.sw{padding:0 1rem}
+  .ph{padding:4.5rem 1.25rem 1.5rem}
+  .ph h1{font-size:1.8rem}
+  .sh h2{font-size:1.5rem}
+  .ba{padding:.65rem 1.3rem;font-size:.88rem;min-height:48px}
+  .bo{padding:.55rem 1.2rem;font-size:.85rem;min-height:48px}
+  .fl li{font-size:.85rem;padding:.5rem 0}
+  .cta-b{padding:3rem 1.25rem}
+  .cta-b h2{font-size:1.4rem}
+  footer{padding:2rem 1rem}
 }
 {% block extra_css %}{% endblock %}
 </style>
@@ -171,11 +200,27 @@ footer a{color:var(--t2);margin:0 .75rem}footer a:hover{color:var(--t)}
       <a href="/inicio#precios">Precios</a>
     </div>
     <div class="n-cta">
-      <a href="/login" style="font-size:.8rem;color:var(--t)">Iniciar sesión</a>
+      <a href="/login" style="font-size:.8rem;color:var(--t)" class="hm-login">Iniciar sesión</a>
       <a href="/login" class="ba" style="padding:.4rem 1rem;font-size:.78rem">Empezar</a>
+      <button class="n-ham" onclick="document.getElementById('mobMenu').classList.toggle('open');this.querySelector('i').classList.toggle('bi-list');this.querySelector('i').classList.toggle('bi-x-lg')" aria-label="Menú"><i class="bi bi-list"></i></button>
     </div>
   </div>
 </nav>
+
+<!-- Mobile menu -->
+<div id="mobMenu" class="n-mob">
+  <a href="/inicio">Inicio</a>
+  <a href="/modulo/ventas">Ventas</a>
+  <a href="/modulo/produccion">Producción</a>
+  <a href="/modulo/inventario">Inventario</a>
+  <a href="/modulo/contabilidad">Contabilidad</a>
+  <a href="/modulo/nomina">Nómina</a>
+  <a href="/modulo/compras">Compras</a>
+  <a href="/modulo/marketplace">Marketplace</a>
+  <div class="sep"></div>
+  <a href="/inicio#precios">Precios</a>
+  <a href="/login" style="color:var(--ac);font-weight:600">Iniciar sesión</a>
+</div>
 
 {% block content %}{% endblock %}
 
