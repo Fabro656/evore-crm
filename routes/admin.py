@@ -1151,22 +1151,61 @@ def register(app):
             'contactos_cliente', 'clientes', 'proveedores',
         ]
 
+        # Child tables that need subquery delete (no company_id, FK to parent)
+        child_deletes = {
+            'lineas_asiento': 'DELETE FROM lineas_asiento WHERE asiento_id IN (SELECT id FROM asientos_contables WHERE company_id = :cid)',
+            'tarea_asignados': 'DELETE FROM tarea_asignados WHERE tarea_id IN (SELECT id FROM tareas WHERE company_id = :cid)',
+            'tarea_comentarios': 'DELETE FROM tarea_comentarios WHERE tarea_id IN (SELECT id FROM tareas WHERE company_id = :cid)',
+            'pagos_venta': 'DELETE FROM pagos_venta WHERE venta_id IN (SELECT id FROM ventas WHERE company_id = :cid)',
+            'cotizacion_items': 'DELETE FROM cotizacion_items WHERE cotizacion_id IN (SELECT id FROM cotizaciones WHERE company_id = :cid)',
+            'pre_cotizacion_items': 'DELETE FROM pre_cotizacion_items WHERE pre_cotizacion_id IN (SELECT id FROM pre_cotizaciones WHERE company_id = :cid)',
+            'ordenes_compra_items': 'DELETE FROM ordenes_compra_items WHERE orden_compra_id IN (SELECT id FROM ordenes_compra WHERE company_id = :cid)',
+            'venta_productos': 'DELETE FROM venta_productos WHERE venta_id IN (SELECT id FROM ventas WHERE company_id = :cid)',
+            'materia_prima_productos': 'DELETE FROM materia_prima_productos WHERE materia_prima_id IN (SELECT id FROM materias_primas WHERE company_id = :cid)',
+            'receta_items': 'DELETE FROM receta_items WHERE receta_id IN (SELECT id FROM recetas_producto WHERE company_id = :cid)',
+            'marcas_producto': 'DELETE FROM marcas_producto WHERE producto_id IN (SELECT id FROM productos WHERE company_id = :cid)',
+            'historial_precios': 'DELETE FROM historial_precios WHERE producto_id IN (SELECT id FROM productos WHERE company_id = :cid)',
+            'historial_cotizaciones': 'DELETE FROM historial_cotizaciones WHERE cotizacion_id IN (SELECT id FROM cotizaciones WHERE company_id = :cid)',
+            'horas_extra': 'DELETE FROM horas_extra WHERE empleado_id IN (SELECT id FROM empleados WHERE company_id = :cid)',
+            'vacaciones_tomadas': 'DELETE FROM vacaciones_tomadas WHERE empleado_id IN (SELECT id FROM empleados WHERE company_id = :cid)',
+            'incapacidades': 'DELETE FROM incapacidades WHERE empleado_id IN (SELECT id FROM empleados WHERE company_id = :cid)',
+            'contactos_cliente': 'DELETE FROM contactos_cliente WHERE cliente_id IN (SELECT id FROM clientes WHERE company_id = :cid)',
+            'reservas_produccion': 'DELETE FROM reservas_produccion WHERE orden_id IN (SELECT id FROM ordenes_produccion WHERE company_id = :cid)',
+            'proyecto_solicitudes_pago': 'DELETE FROM proyecto_solicitudes_pago WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
+            'proyecto_plan_gastos': 'DELETE FROM proyecto_plan_gastos WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
+            'proyecto_objetivos': 'DELETE FROM proyecto_objetivos WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
+            'proyecto_notas': 'DELETE FROM proyecto_notas WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
+            'proyecto_comentarios': 'DELETE FROM proyecto_comentarios WHERE tarea_id IN (SELECT id FROM proyecto_tareas WHERE company_id = :cid)',
+            'proyecto_gastos': 'DELETE FROM proyecto_gastos WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
+            'proyecto_tareas': 'DELETE FROM proyecto_tareas WHERE company_id = :cid',
+            'proyecto_miembros': 'DELETE FROM proyecto_miembros WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
+            'proyecto_fases': 'DELETE FROM proyecto_fases WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
+        }
+
         try:
             deleted_count = 0
-            for table in tables_with_company:
+            # First: delete child tables via subquery
+            for table, sql in child_deletes.items():
                 if table not in existing_tables:
                     continue
-                # Check if table has company_id column
-                cols = [c['name'] for c in inspector.get_columns(table)]
                 try:
-                    if 'company_id' in cols:
-                        r = db.session.execute(db.text(
-                            f'DELETE FROM {table} WHERE company_id = :cid'
-                        ), {'cid': my_company_id})
-                    else:
-                        # For child tables without company_id, delete via parent FK
-                        # (these are handled by cascade or have no company_id)
-                        continue
+                    r = db.session.execute(db.text(sql), {'cid': my_company_id})
+                    deleted_count += r.rowcount
+                except Exception as _e:
+                    db.session.rollback()
+                    logging.warning(f'Reset empresa child: falló {table}: {_e}')
+
+            # Then: delete parent tables with company_id
+            for table in tables_with_company:
+                if table not in existing_tables or table in child_deletes:
+                    continue
+                cols = [c['name'] for c in inspector.get_columns(table)]
+                if 'company_id' not in cols:
+                    continue
+                try:
+                    r = db.session.execute(db.text(
+                        f'DELETE FROM {table} WHERE company_id = :cid'
+                    ), {'cid': my_company_id})
                     deleted_count += r.rowcount
                 except Exception as _e:
                     db.session.rollback()
