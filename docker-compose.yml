@@ -10,11 +10,25 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evore"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  db-test:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: evore_test
+      POSTGRES_USER: evore
+      POSTGRES_PASSWORD: evore_dev
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evore"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
 
 volumes:
   pgdata:
-
-# Usage:
-#   docker compose up -d
-#   export DATABASE_URL=postgresql://evore:evore_dev@localhost:5432/evore
-#   python app.py
