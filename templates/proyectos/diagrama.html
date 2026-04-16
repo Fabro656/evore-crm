@@ -2,7 +2,6 @@
 {% block title %}Diagrama — {{ p.nombre }}{% endblock %}{% block page_title %}{{ p.codigo }} — Diagrama de flujo{% endblock %}
 {% block topbar_actions %}
 <div class="d-flex gap-2">
-  <button class="btn btn-sm btn-outline-secondary" onclick="saveDiagram()"><i class="bi bi-save me-1"></i>Guardar</button>
   <button class="btn btn-sm btn-outline-secondary" onclick="dgFullscreen()"><i class="bi bi-arrows-fullscreen"></i></button>
   <a href="{{ url_for('proyecto_ver', id=p.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Proyecto</a>
 </div>
@@ -145,6 +144,7 @@ function selectLib(id){
 }
 
 function renderCanvas(){
+  autoSave();
   var container=document.getElementById('dgNodes');
   container.innerHTML='';
   NODES.forEach(function(n){
@@ -519,15 +519,19 @@ function cancelFaseDelete(nodeId){
   closeNodeMenu();renderCanvas();
 }
 
+var _saveTimer=null;
+function autoSave(){
+  clearTimeout(_saveTimer);
+  _saveTimer=setTimeout(saveDiagram,800);
+}
 function saveDiagram(){
-  // Save copies separately (library rebuilds from DB each load)
   var copies=LIBRARY.filter(function(n){return n.is_copy;}).map(function(n){
     return {tipo:n.tipo,label:n.label,ref_id:n.ref_id,ref_tipo:n.ref_tipo,fase_id:n.fase_id,presupuesto:n.presupuesto};
   });
   fetch('/api/proyectos/'+PID+'/diagrama',{
     method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrf},
     body:JSON.stringify({diagrama:{nodes:NODES,edges:EDGES,copies:copies,nextId:_nextId}})
-  }).then(r=>r.json()).then(function(d){showStatus(d.ok?'Guardado':'Error');});
+  }).then(r=>r.json()).then(function(d){showStatus(d.ok?'':'Error al guardar');});
 }
 
 function showStatus(msg){

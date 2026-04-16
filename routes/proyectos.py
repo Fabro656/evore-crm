@@ -633,10 +633,10 @@ def register(app):
             return redirect(url_for('proyecto_ver', id=pid))
         cid = getattr(g, 'company_id', None)
         # Validate: all phases must have budget
-        fases_sin_ppto = [f for f in p.fases if not f.presupuesto]
+        fases_sin_ppto = [f for f in p.fases if f.presupuesto is None]
         if fases_sin_ppto:
             nombres = ', '.join(f.nombre for f in fases_sin_ppto)
-            flash(f'Fases sin presupuesto asignado: {nombres}. Define presupuesto por fase antes de enviar.', 'danger')
+            flash(f'Fases sin presupuesto definido: {nombres}. Asigna presupuesto (puede ser 0) antes de enviar.', 'danger')
             return redirect(url_for('proyecto_plan_gastos', pid=pid))
         # Validate: plan de gastos exists
         total_plan = db.session.query(func.sum(ProyectoPlanGasto.monto)).filter_by(proyecto_id=pid).scalar() or 0

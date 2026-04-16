@@ -57,22 +57,23 @@
         </form>
       </div>
       {# Send to diagram dropdown (hidden, shown on click) #}
-      <div class="bs-diag-panel" data-nid="{{ n.id }}" style="display:none;margin-top:6px;padding-top:6px;border-top:1px solid rgba(0,0,0,.1);font-size:.75rem">
-        <div style="font-weight:700;color:#1a1a1a;margin-bottom:4px"><i class="bi bi-diagram-3 me-1"></i>Enviar al diagrama como:</div>
-        <div class="d-flex flex-wrap gap-1 mb-1">
-          <button class="btn btn-sm" style="font-size:.65rem;padding:1px 6px;background:#3B82F6;color:#fff;border:none;border-radius:4px" onclick="sendToDiagram({{ n.id }},'fase')">Fase</button>
-          <button class="btn btn-sm" style="font-size:.65rem;padding:1px 6px;background:#10B981;color:#fff;border:none;border-radius:4px" onclick="sendToDiagram({{ n.id }},'objetivo')">Objetivo</button>
-          <button class="btn btn-sm" style="font-size:.65rem;padding:1px 6px;background:#F59E0B;color:#333;border:none;border-radius:4px" onclick="sendToDiagram({{ n.id }},'decision')">Decision</button>
-          <button class="btn btn-sm" style="font-size:.65rem;padding:1px 6px;background:#9CA3AF;color:#fff;border:none;border-radius:4px" onclick="sendToDiagram({{ n.id }},'nota')">Nota</button>
-        </div>
-        <div class="bs-diag-fase-sel" data-nid="{{ n.id }}" style="display:none">
-          <select class="form-select" style="font-size:.7rem;padding:2px 20px 2px 4px;margin-bottom:2px" data-nid="{{ n.id }}">
+      <div class="bs-diag-panel" data-nid="{{ n.id }}" style="display:none;margin-top:6px;padding-top:6px;border-top:1px solid rgba(0,0,0,.1);font-size:.75rem" onclick="event.stopPropagation()">
+        <div style="font-weight:700;color:#1a1a1a;margin-bottom:4px"><i class="bi bi-diagram-3 me-1"></i>Tipo de nodo:</div>
+        <select class="form-select bs-tipo-sel" data-nid="{{ n.id }}" style="font-size:.7rem;padding:2px 20px 2px 4px;margin-bottom:4px" onchange="onTipoChange(this)">
+          <option value="">— Seleccionar —</option>
+          <option value="fase">Fase</option>
+          <option value="objetivo">Objetivo</option>
+          <option value="decision">Decision</option>
+          <option value="nota">Nota</option>
+        </select>
+        <div class="bs-fase-sel-wrap" data-nid="{{ n.id }}" style="display:none;margin-bottom:4px">
+          <select class="form-select bs-fase-sel" data-nid="{{ n.id }}" style="font-size:.7rem;padding:2px 20px 2px 4px">
             <option value="">Selecciona fase...</option>
             {% for f in p.fases %}<option value="{{ f.id }}">{{ f.nombre }}</option>{% endfor %}
           </select>
-          <button class="btn btn-sm btn-success" style="font-size:.65rem;padding:1px 8px;width:100%" onclick="confirmSendObj({{ n.id }})"><i class="bi bi-check me-1"></i>Confirmar</button>
         </div>
-        <div class="bs-diag-result" data-nid="{{ n.id }}" style="display:none"></div>
+        <button class="btn btn-sm btn-primary" style="font-size:.65rem;padding:2px 10px;width:100%" onclick="sendToDiagram({{ n.id }})"><i class="bi bi-send me-1"></i>Enviar al diagrama</button>
+        <div class="bs-diag-result" data-nid="{{ n.id }}" style="display:none;margin-top:4px"></div>
       </div>
     </div>
     {% endfor %}
@@ -221,7 +222,7 @@ document.querySelectorAll('.bs-vote').forEach(function(btn){
 // Toggle diagram panel on note
 document.querySelectorAll('.bs-to-diagram').forEach(function(btn){
   btn.addEventListener('click',function(e){
-    e.stopPropagation();
+    e.stopPropagation();e.preventDefault();
     var nid=this.dataset.nid;
     document.querySelectorAll('.bs-diag-panel').forEach(function(p){
       p.style.display=p.dataset.nid===nid&&p.style.display==='none'?'':'none';
@@ -229,23 +230,23 @@ document.querySelectorAll('.bs-to-diagram').forEach(function(btn){
   });
 });
 
-var _pendingSendNid=null, _pendingSendTipo=null;
-function sendToDiagram(nid,tipo){
+function onTipoChange(sel){
+  var nid=sel.dataset.nid;
+  var wrap=document.querySelector('.bs-fase-sel-wrap[data-nid="'+nid+'"]');
+  wrap.style.display=sel.value==='objetivo'?'':'none';
+}
+
+function sendToDiagram(nid){
+  var tipoSel=document.querySelector('.bs-tipo-sel[data-nid="'+nid+'"]');
+  var tipo=tipoSel.value;
+  if(!tipo){alert('Selecciona un tipo de nodo.');return;}
+  var faseId=null;
   if(tipo==='objetivo'){
-    // Show fase selector
-    _pendingSendNid=nid;_pendingSendTipo=tipo;
-    document.querySelector('.bs-diag-fase-sel[data-nid="'+nid+'"]').style.display='';
-    return;
+    var faseSel=document.querySelector('.bs-fase-sel[data-nid="'+nid+'"]');
+    faseId=faseSel.value;
+    if(!faseId){alert('Selecciona una fase para el objetivo.');return;}
+    faseId=parseInt(faseId);
   }
-  doSendToDiagram(nid,tipo,null);
-}
-function confirmSendObj(nid){
-  var sel=document.querySelector('.bs-diag-fase-sel[data-nid="'+nid+'"] select');
-  var faseId=sel.value;
-  if(!faseId){alert('Selecciona una fase.');return;}
-  doSendToDiagram(nid,'objetivo',parseInt(faseId));
-}
-function doSendToDiagram(nid,tipo,faseId){
   var ppto=0;
   if(tipo==='fase'||tipo==='objetivo'){
     var v=prompt('Presupuesto (0 si no aplica):','0');
@@ -259,17 +260,18 @@ function doSendToDiagram(nid,tipo,faseId){
     var res=document.querySelector('.bs-diag-result[data-nid="'+nid+'"]');
     if(d.ok){
       res.style.display='';
-      res.innerHTML='<span style="color:#10B981"><i class="bi bi-check-circle me-1"></i>Enviado como <strong>'+d.tipo+'</strong> al diagrama</span>';
-      // Mark the note visually
+      res.innerHTML='<span style="color:#10B981"><i class="bi bi-check-circle me-1"></i>Enviado como <strong>'+d.tipo+'</strong></span>';
       var note=document.querySelector('.bs-note[data-nid="'+nid+'"]');
       if(note){
-        var badge=document.createElement('div');
-        badge.style.cssText='position:absolute;top:-6px;right:-6px;background:#3B82F6;color:#fff;font-size:.55rem;padding:1px 5px;border-radius:8px;font-weight:700';
+        var old=note.querySelector('.bs-tipo-badge');if(old)old.remove();
+        var badge=document.createElement('div');badge.className='bs-tipo-badge';
+        var colors={fase:'#3B82F6',objetivo:'#10B981',decision:'#F59E0B',nota:'#9CA3AF'};
+        badge.style.cssText='position:absolute;top:-6px;right:-6px;background:'+(colors[d.tipo]||'#6B7280')+';color:#fff;font-size:.55rem;padding:1px 5px;border-radius:8px;font-weight:700';
         badge.textContent=d.tipo.toUpperCase();
         note.appendChild(badge);
       }
     } else {
-      res.style.display='';res.innerHTML='<span style="color:#E53935"><i class="bi bi-x-circle me-1"></i>'+(d.error||'Error')+'</span>';
+      res.style.display='';res.innerHTML='<span style="color:#E53935">'+(d.error||'Error')+'</span>';
     }
   });
 }
