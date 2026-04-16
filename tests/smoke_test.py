@@ -20,7 +20,7 @@ def run():
     # 2. All Python files compile
     print("2. Python compilation...", end=" ")
     import py_compile
-    py_files = ['app.py', 'models.py', 'utils.py', 'services/inventario.py', 'services/nomina.py']
+    py_files = ['app.py', 'models/__init__.py', 'models/_all.py', 'utils.py', 'services/inventario.py', 'services/nomina.py']
     py_files += [f'routes/{f}' for f in os.listdir('routes') if f.endswith('.py')]
     for f in py_files:
         try:
