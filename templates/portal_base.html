@@ -140,10 +140,12 @@ posthog.init('{{ config.POSTHOG_KEY }}',{api_host:'https://eu.i.posthog.com',per
     <a href="{{ url_for('portal_pre_cotizacion_nueva') }}" class="nav-link {% if request.endpoint=='portal_pre_cotizacion_nueva' %}active{% endif %}"><i class="bi bi-file-earmark-plus"></i>Nueva solicitud</a>
     <a href="{{ url_for('portal_cliente_docs') }}" class="nav-link {% if request.endpoint=='portal_cliente_docs' %}active{% endif %}"><i class="bi bi-file-earmark-ruled"></i>Documentos legales</a>
     <a href="{{ url_for('portal_ticket_nuevo') }}" class="nav-link {% if request.endpoint=='portal_ticket_nuevo' %}active{% endif %}"><i class="bi bi-chat-left-text"></i>Enviar mensaje</a>
+    <a href="{{ url_for('portal_scanner', modo='entrega') }}" class="nav-link {% if request.endpoint=='portal_scanner' %}active{% endif %}"><i class="bi bi-upc-scan"></i>Scanner entregas</a>
     {% elif current_user.rol == 'proveedor' %}
     <a href="{{ url_for('portal_proveedor') }}" class="nav-link {% if request.endpoint=='portal_proveedor' %}active{% endif %}"><i class="bi bi-house-fill"></i>Inicio</a>
     <a href="{{ url_for('portal_prov_docs') }}" class="nav-link {% if request.endpoint=='portal_prov_docs' %}active{% endif %}"><i class="bi bi-file-earmark-ruled"></i>Documentos legales</a>
     <a href="{{ url_for('portal_prov_ticket') }}" class="nav-link {% if request.endpoint=='portal_prov_ticket' %}active{% endif %}"><i class="bi bi-chat-left-text"></i>Enviar mensaje</a>
+    <a href="{{ url_for('portal_scanner', modo='recepcion') }}" class="nav-link {% if request.endpoint=='portal_scanner' %}active{% endif %}"><i class="bi bi-upc-scan"></i>Scanner recepcion</a>
     {% endif %}
   </nav>
   <div class="portal-sb-foot">
@@ -164,10 +166,12 @@ posthog.init('{{ config.POSTHOG_KEY }}',{api_host:'https://eu.i.posthog.com',per
   <a href="{{ url_for('portal_pre_cotizacion_nueva') }}" class="btn btn-sm {{ 'btn-primary' if request.endpoint=='portal_pre_cotizacion_nueva' else 'btn-outline-secondary' }}" style="white-space:nowrap;flex-shrink:0"><i class="bi bi-plus me-1"></i>Solicitud</a>
   <a href="{{ url_for('portal_cliente_docs') }}" class="btn btn-sm {{ 'btn-primary' if request.endpoint=='portal_cliente_docs' else 'btn-outline-secondary' }}" style="white-space:nowrap;flex-shrink:0"><i class="bi bi-file-earmark me-1"></i>Docs</a>
   <a href="{{ url_for('portal_ticket_nuevo') }}" class="btn btn-sm {{ 'btn-primary' if request.endpoint=='portal_ticket_nuevo' else 'btn-outline-secondary' }}" style="white-space:nowrap;flex-shrink:0"><i class="bi bi-chat me-1"></i>Mensaje</a>
+  <a href="{{ url_for('portal_scanner', modo='entrega') }}" class="btn btn-sm {{ 'btn-primary' if request.endpoint=='portal_scanner' else 'btn-outline-secondary' }}" style="white-space:nowrap;flex-shrink:0"><i class="bi bi-upc-scan me-1"></i>Scanner</a>
   {% elif current_user.rol == 'proveedor' %}
   <a href="{{ url_for('portal_proveedor') }}" class="btn btn-sm {{ 'btn-primary' if request.endpoint=='portal_proveedor' else 'btn-outline-secondary' }}" style="white-space:nowrap;flex-shrink:0"><i class="bi bi-house me-1"></i>Inicio</a>
   <a href="{{ url_for('portal_prov_docs') }}" class="btn btn-sm {{ 'btn-primary' if request.endpoint=='portal_prov_docs' else 'btn-outline-secondary' }}" style="white-space:nowrap;flex-shrink:0"><i class="bi bi-file-earmark me-1"></i>Docs</a>
   <a href="{{ url_for('portal_prov_ticket') }}" class="btn btn-sm {{ 'btn-primary' if request.endpoint=='portal_prov_ticket' else 'btn-outline-secondary' }}" style="white-space:nowrap;flex-shrink:0"><i class="bi bi-chat me-1"></i>Mensaje</a>
+  <a href="{{ url_for('portal_scanner', modo='recepcion') }}" class="btn btn-sm {{ 'btn-primary' if request.endpoint=='portal_scanner' else 'btn-outline-secondary' }}" style="white-space:nowrap;flex-shrink:0"><i class="bi bi-upc-scan me-1"></i>Scanner</a>
   {% endif %}
 </div>
 

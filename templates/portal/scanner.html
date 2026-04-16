@@ -1,0 +1,120 @@
+{% extends 'portal_base.html' %}
+{% block title %}Scanner — {{ 'Entregas' if modo == 'entrega' else 'Recepcion' }}{% endblock %}
+{% block page_title %}Scanner de {{ 'Entregas' if modo == 'entrega' else 'Recepcion' }}{% endblock %}
+{% block content %}
+<div style="max-width:500px;margin:0 auto">
+  <div class="sc mb-3" style="padding:0;overflow:hidden;border-radius:12px">
+    <div id="scannerView" style="width:100%;height:260px;background:#000;position:relative">
+      <div id="scannerStatus" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:.9rem;text-align:center">
+        <i class="bi bi-upc-scan" style="font-size:2rem;display:block;margin-bottom:.5rem"></i>
+        {{ 'Escanea el producto que recibiste' if modo == 'entrega' else 'Escanea el producto que envias' }}
+      </div>
+    </div>
+    <div style="padding:.5rem .75rem;display:flex;gap:.5rem;align-items:center;background:var(--surface2)">
+      <button class="btn btn-sm btn-primary" onclick="startScanner()" style="font-size:.78rem"><i class="bi bi-camera me-1"></i>Escanear</button>
+      <button class="btn btn-sm btn-outline-secondary" onclick="stopScanner()" style="font-size:.78rem"><i class="bi bi-stop me-1"></i>Parar</button>
+      <input type="text" id="manualCode" class="form-control form-control-sm" placeholder="O escribe el codigo..." style="flex:1;font-size:.8rem" onkeydown="if(event.key==='Enter')manualSearch()">
+      <button class="btn btn-sm btn-outline-primary" onclick="manualSearch()" style="font-size:.78rem"><i class="bi bi-search"></i></button>
+    </div>
+  </div>
+
+  <div id="productInfo" style="display:none">
+    <div class="sc mb-3" style="border-radius:12px">
+      <div class="fw-bold" style="font-size:1rem;color:var(--text1)" id="prodNombre"></div>
+      <div class="text-muted mb-2" style="font-size:.78rem" id="prodCodigo"></div>
+      <div class="row g-2 mb-3">
+        <div class="col-6">
+          <select id="stockOp" class="form-select form-select-sm" disabled>
+            <option value="{{ modo }}">{{ 'Confirmar entrega recibida' if modo == 'entrega' else 'Registrar envio' }}</option>
+          </select>
+        </div>
+        <div class="col-3">
+          <input type="number" id="stockCant" class="form-control form-control-sm" min="1" value="1" placeholder="Cant.">
+        </div>
+        <div class="col-3">
+          <button class="btn btn-success btn-sm w-100" onclick="doRegistrar()"><i class="bi bi-check-lg me-1"></i>OK</button>
+        </div>
+      </div>
+      <input type="text" id="stockNotas" class="form-control form-control-sm" placeholder="Notas opcionales..." style="font-size:.78rem">
+    </div>
+    <div id="scanResult" style="display:none"></div>
+  </div>
+
+  <div id="scanError" class="sc text-center text-danger" style="display:none;padding:1rem;border-radius:12px">
+    <i class="bi bi-exclamation-triangle" style="font-size:1.5rem"></i>
+    <div id="scanErrorMsg" class="mt-1" style="font-size:.85rem"></div>
+  </div>
+
+  <div id="scanHistory" class="sc" style="border-radius:12px">
+    <div class="fw-bold mb-2" style="font-size:.85rem"><i class="bi bi-clock-history me-1"></i>Registros de hoy</div>
+    <div id="historyList" class="text-muted" style="font-size:.82rem">Sin registros aun.</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+var _scanner=null, _currentCode=null, _modo='{{ modo }}';
+var _csrfToken=(document.querySelector('meta[name="csrf-token"]')||{}).content||'';
+var _history=[];
+
+function startScanner(){
+  document.getElementById('scanError').style.display='none';
+  document.getElementById('productInfo').style.display='none';
+  if(_scanner){try{_scanner.stop();}catch(e){}}
+  _scanner=new Html5Qrcode('scannerView');
+  _scanner.start(
+    {facingMode:'environment'},
+    {fps:10,qrbox:{width:250,height:100}},
+    function(code){stopScanner();onCode(code);},
+    function(){}
+  ).catch(function(){
+    document.getElementById('scannerStatus').innerHTML='<i class="bi bi-camera-video-off" style="font-size:2rem;display:block;margin-bottom:.5rem"></i>Usa el campo manual';
+  });
+}
+function stopScanner(){if(_scanner){try{_scanner.stop();}catch(e){}}}
+function manualSearch(){var c=document.getElementById('manualCode').value.trim();if(c)onCode(c);}
+
+function onCode(code){
+  _currentCode=code;
+  document.getElementById('scanError').style.display='none';
+  // Just show the code — portal users don't see full product details
+  document.getElementById('productInfo').style.display='';
+  document.getElementById('prodNombre').textContent='Codigo: '+code;
+  document.getElementById('prodCodigo').textContent='Confirma la cantidad';
+}
+
+function doRegistrar(){
+  if(!_currentCode){alert('Escanea un producto primero.');return;}
+  var cant=parseInt(document.getElementById('stockCant').value)||0;
+  var notas=document.getElementById('stockNotas').value;
+  if(cant<=0){alert('Cantidad debe ser mayor a 0.');return;}
+  fetch('/api/portal/scanner/registrar',{
+    method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrfToken},
+    body:JSON.stringify({codigo:_currentCode,cantidad:cant,modo:_modo,notas:notas})
+  }).then(r=>r.json()).then(function(d){
+    var el=document.getElementById('scanResult');el.style.display='';
+    if(d.ok){
+      el.className='sc';el.style.background='rgba(16,185,129,.08)';el.style.borderRadius='12px';el.style.padding='.75rem';
+      el.innerHTML='<div style="color:var(--green)"><i class="bi bi-check-circle-fill me-1"></i><strong>'+d.mensaje+'</strong></div>';
+      _history.unshift({code:_currentCode,cant:cant,time:new Date().toLocaleTimeString()});
+      updateHistory();
+      document.getElementById('stockCant').value='1';
+      document.getElementById('stockNotas').value='';
+    } else {
+      el.className='sc';el.style.background='rgba(229,57,53,.08)';el.style.borderRadius='12px';el.style.padding='.75rem';
+      el.innerHTML='<div style="color:var(--red)"><i class="bi bi-x-circle me-1"></i>'+d.error+'</div>';
+    }
+  });
+}
+
+function updateHistory(){
+  var html='';
+  _history.forEach(function(h){
+    html+='<div class="d-flex justify-content-between py-1" style="border-bottom:1px solid var(--border)"><span>'+h.code+' × '+h.cant+'</span><span class="text-muted">'+h.time+'</span></div>';
+  });
+  document.getElementById('historyList').innerHTML=html||'Sin registros aun.';
+}
+
+if(/Mobi|Android/i.test(navigator.userAgent)) startScanner();
+</script>
+{% endblock %}

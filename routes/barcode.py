@@ -228,3 +228,76 @@ def register(app):
 
         return render_template('inventario/producto_comercial_form.html',
                                proveedores=proveedores, obj=None)
+
+    # ══════════════════════════════════════════════════════════════
+    # PORTAL SCANNER (cliente: entregas, proveedor: recepciones)
+    # ══════════════════════════════════════════════════════════════
+
+    @app.route('/portal/scanner')
+    @login_required
+    def portal_scanner():
+        """Scanner for portal users — clients confirm deliveries, suppliers confirm receipts."""
+        modo = request.args.get('modo', 'entrega')
+        return render_template('portal/scanner.html', modo=modo)
+
+    @app.route('/api/portal/scanner/registrar', methods=['POST'])
+    @login_required
+    def api_portal_scanner_registrar():
+        """Register a delivery/receipt scan from portal."""
+        data = request.json
+        codigo = data.get('codigo', '').strip()
+        cantidad = int(data.get('cantidad', 0))
+        modo = data.get('modo', 'entrega')
+        notas = data.get('notas', '')
+
+        if not codigo or cantidad <= 0:
+            return jsonify({'error': 'Codigo y cantidad requeridos'}), 400
+
+        # Find product across companies (portal users may scan products from the company they trade with)
+        p = Producto.query.filter_by(codigo_barras=codigo, activo=True).first()
+        if not p:
+            return jsonify({'error': f'Producto no encontrado: {codigo}'}), 404
+
+        rol = current_user.rol
+        if modo == 'entrega' and rol == 'cliente':
+            # Client confirms they received the delivery
+            descripcion = f'Entrega confirmada por cliente {current_user.nombre}: {cantidad} uds'
+        elif modo == 'recepcion' and rol == 'proveedor':
+            # Supplier confirms they sent/delivered product
+            descripcion = f'Envio registrado por proveedor {current_user.nombre}: {cantidad} uds'
+        else:
+            descripcion = f'Scan portal ({modo}) por {current_user.nombre}: {cantidad} uds'
+
+        # Log the scan (don't modify stock — that's the company admin's job)
+        try:
+            db.session.add(Actividad(
+                company_id=p.company_id,
+                tipo='scanner',
+                entidad='producto',
+                entidad_id=p.id,
+                descripcion=f'{descripcion}. {notas}'.strip(),
+                usuario_id=current_user.id
+            ))
+            # Notify company admin
+            admin = User.query.filter_by(company_id=p.company_id, rol='admin', activo=True).first()
+            if admin:
+                db.session.add(Notificacion(
+                    company_id=p.company_id,
+                    user_id=admin.id,
+                    tipo='scanner',
+                    titulo=f'Scan {modo}: {p.nombre}',
+                    mensaje=f'{current_user.nombre} registro {modo} de {cantidad} uds de "{p.nombre}" via scanner',
+                    creado_en=__import__("datetime").datetime.utcnow()
+                ))
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            logging.warning(f'portal_scanner_registrar: {e}')
+
+        return jsonify({
+            'ok': True,
+            'producto': p.nombre,
+            'cantidad': cantidad,
+            'modo': modo,
+            'mensaje': descripcion
+        })

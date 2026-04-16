@@ -86,6 +86,8 @@ _MODULOS_ROL = {
     'contador':   ['gastos','reportes','produccion','notas','nomina','finanzas','tareas'],
     'usuario':    ['tareas','notas','calendario'],
     'sales_manager': ['clientes','ventas','cotizaciones','tareas','calendario','notas','ordenes_compra','nomina'],
+    'comercial':  ['clientes','ventas','cotizaciones','inventario','proveedores','ordenes_compra',
+                   'cotizaciones_proveedor','tareas','calendario','notas','gastos','finanzas','servicios'],
     'cliente':       ['portal_cliente'],
     'proveedor':     ['portal_proveedor'],
 }
@@ -99,6 +101,7 @@ _ROL_LABELS = {
     'sales_manager': 'Sales Manager',
     'produccion': 'Produccion',
     'contador': 'Contador',
+    'comercial': 'Comercial (Compra-Venta)',
     'tester': 'Tester',
     'usuario': 'Usuario',
     'cliente': 'Portal Cliente',
