@@ -1229,33 +1229,60 @@ def register(app):
             'DELETE FROM foro_apelaciones WHERE solicitado_por IN (SELECT id FROM users WHERE company_id = :cid AND id != :aid)',
             'DELETE FROM foro_valoraciones WHERE cliente_user_id IN (SELECT id FROM users WHERE company_id = :cid AND id != :aid)',
             'DELETE FROM foro_publicaciones WHERE user_id IN (SELECT id FROM users WHERE company_id = :cid AND id != :aid)',
-            # ── Nullify remaining FK refs to users being deleted ──
-            'UPDATE clientes SET sales_manager_id = NULL WHERE sales_manager_id IN (SELECT id FROM users WHERE company_id = :cid AND id != :aid)',
-            'UPDATE ordenes_compra SET confirmado_por = NULL WHERE confirmado_por IN (SELECT id FROM users WHERE company_id = :cid AND id != :aid)',
-            'UPDATE pre_cotizaciones SET cliente_user_id = NULL WHERE cliente_user_id IN (SELECT id FROM users WHERE company_id = :cid AND id != :aid)',
-            'UPDATE pre_cotizaciones SET sales_manager_id = NULL WHERE sales_manager_id IN (SELECT id FROM users WHERE company_id = :cid AND id != :aid)',
             # ── Users (except admin) ──
             'DELETE FROM user_companies WHERE company_id = :cid AND user_id != :aid',
             'DELETE FROM user_sesiones WHERE user_id IN (SELECT id FROM users WHERE company_id = :cid AND id != :aid)',
-            'DELETE FROM users WHERE company_id = :cid AND id != :aid',
         ]
 
         my_company = db.session.get(Company, my_company_id)
         company_name = my_company.nombre if my_company else f'ID {my_company_id}'
 
+        # Build dynamic SET NULL for ALL remaining FK refs to users being deleted
+        _user_fk_nullify = []
+        for tbl in existing_tables:
+            if tbl == 'users':
+                continue
+            try:
+                for fk in inspector.get_foreign_keys(tbl):
+                    if fk['referred_table'] == 'users' and len(fk['constrained_columns']) == 1:
+                        col = fk['constrained_columns'][0]
+                        # Check if column is nullable
+                        col_info = next((c for c in inspector.get_columns(tbl) if c['name'] == col), None)
+                        if col_info and col_info.get('nullable', True):
+                            _user_fk_nullify.append(
+                                f"UPDATE {tbl} SET {col} = NULL WHERE {col} IN (SELECT id FROM users WHERE company_id = :cid AND id != :aid)"
+                            )
+            except Exception:
+                pass
+
         try:
             deleted_count = 0
+            # Step 1: delete company data + chat/foro refs
             for sql in delete_sql:
                 # Extract table name for existence check
-                table = sql.split('FROM ')[1].split(' ')[0]
-                if table not in existing_tables:
+                tbl_part = sql.split('FROM ')[1].split(' ')[0]
+                if tbl_part not in existing_tables:
                     continue
                 r = db.session.execute(db.text(sql), {'cid': my_company_id, 'aid': admin_id})
                 deleted_count += r.rowcount
 
+            # Step 2: nullify ALL remaining FK refs to users being deleted
+            for sql in _user_fk_nullify:
+                tbl_part = sql.split('UPDATE ')[1].split(' ')[0]
+                if tbl_part not in existing_tables:
+                    continue
+                db.session.execute(db.text(sql), {'cid': my_company_id, 'aid': admin_id})
+
+            # Step 3: delete users
+            if 'users' in existing_tables:
+                r = db.session.execute(db.text(
+                    'DELETE FROM users WHERE company_id = :cid AND id != :aid'
+                ), {'cid': my_company_id, 'aid': admin_id})
+                deleted_count += r.rowcount
+
             db.session.commit()
             logging.warning(f'RESET EMPRESA OK: {company_name} por {admin_email} — {deleted_count} registros eliminados')
-            flash(f'Reset completo para "{company_name}". {deleted_count} registros eliminados. Las demas empresas no fueron afectadas.', 'success')
+            flash(f'Reset completo para "{company_name}". {deleted_count} registros eliminados.', 'success')
         except Exception as e:
             db.session.rollback()
             logging.error(f'admin_reset_total ERROR en {company_name}: {e}')
