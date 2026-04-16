@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% block title %}Scanner{% endblock %}{% block page_title %}Scanner de Codigo de Barras{% endblock %}
+{% block content %}
+<div style="max-width:500px;margin:0 auto">
+  {# Camera scanner #}
+  <div class="fc mb-3" style="padding:0;overflow:hidden">
+    <div id="scannerView" style="width:100%;height:280px;background:#000;position:relative">
+      <div id="scannerStatus" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:.9rem;text-align:center">
+        <i class="bi bi-camera" style="font-size:2rem;display:block;margin-bottom:.5rem"></i>
+        Iniciando camara...
+      </div>
+    </div>
+    <div style="padding:.5rem .75rem;display:flex;gap:.5rem;align-items:center">
+      <button class="btn btn-sm btn-primary" onclick="startScanner()" style="font-size:.78rem"><i class="bi bi-camera me-1"></i>Escanear</button>
+      <button class="btn btn-sm btn-outline-secondary" onclick="stopScanner()" style="font-size:.78rem"><i class="bi bi-stop me-1"></i>Parar</button>
+      <div style="flex:1"></div>
+      <input type="text" id="manualCode" class="form-control form-control-sm" placeholder="O escribe el codigo..." style="max-width:180px;font-size:.8rem" onkeydown="if(event.key==='Enter')manualSearch()">
+      <button class="btn btn-sm btn-outline-primary" onclick="manualSearch()" style="font-size:.78rem"><i class="bi bi-search"></i></button>
+    </div>
+  </div>
+
+  {# Product info (shown after scan) #}
+  <div id="productInfo" style="display:none">
+    <div class="fc mb-3">
+      <div class="d-flex align-items-center gap-3 mb-2">
+        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;flex-shrink:0" id="prodIcon"></div>
+        <div style="flex:1;min-width:0">
+          <div class="fw-bold" style="font-size:1rem;color:var(--text1)" id="prodNombre"></div>
+          <div class="text-muted" style="font-size:.78rem" id="prodSku"></div>
+        </div>
+        <div id="prodVerified" style="display:none"><span class="badge bg-success" style="font-size:.65rem"><i class="bi bi-check me-1"></i>Verificado</span></div>
+      </div>
+      <div class="row g-2 mb-2">
+        <div class="col-4 text-center">
+          <div style="font-size:.62rem;color:var(--text2);text-transform:uppercase">Precio</div>
+          <div class="fw-bold" style="color:var(--ac)" id="prodPrecio"></div>
+        </div>
+        <div class="col-4 text-center">
+          <div style="font-size:.62rem;color:var(--text2);text-transform:uppercase">Costo</div>
+          <div class="fw-bold" id="prodCosto"></div>
+        </div>
+        <div class="col-4 text-center">
+          <div style="font-size:.62rem;color:var(--text2);text-transform:uppercase">Stock</div>
+          <div class="fw-bold" id="prodStock"></div>
+        </div>
+      </div>
+      <div class="d-flex gap-1 mb-2" id="prodBadges"></div>
+      <div style="font-size:.75rem;color:var(--text2)" id="prodBarcode"></div>
+    </div>
+
+    {# Stock operations #}
+    <div class="fc mb-3">
+      <div class="fw-bold mb-2" style="font-size:.88rem"><i class="bi bi-box-arrow-in-down me-2"></i>Movimiento de stock</div>
+      <div class="row g-2">
+        <div class="col-5">
+          <select id="stockOp" class="form-select form-select-sm">
+            <option value="ingreso">Ingreso (+)</option>
+            <option value="salida">Salida (-)</option>
+          </select>
+        </div>
+        <div class="col-4">
+          <input type="number" id="stockCant" class="form-control form-control-sm" min="1" value="1" placeholder="Cant.">
+        </div>
+        <div class="col-3">
+          <button class="btn btn-success btn-sm w-100" onclick="doStockOp()"><i class="bi bi-check-lg"></i></button>
+        </div>
+      </div>
+      <input type="text" id="stockNotas" class="form-control form-control-sm mt-2" placeholder="Notas (opcional)..." style="font-size:.78rem">
+      <div id="stockResult" class="mt-2" style="display:none"></div>
+    </div>
+  </div>
+
+  {# Error #}
+  <div id="scanError" class="fc text-center text-danger" style="display:none;padding:1rem">
+    <i class="bi bi-exclamation-triangle" style="font-size:1.5rem"></i>
+    <div id="scanErrorMsg" class="mt-1" style="font-size:.85rem"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+var _scanner=null, _currentProduct=null;
+
+function startScanner(){
+  document.getElementById('scanError').style.display='none';
+  document.getElementById('productInfo').style.display='none';
+  document.getElementById('scannerStatus').textContent='Buscando codigo...';
+  if(_scanner){try{_scanner.stop();}catch(e){}}
+  _scanner=new Html5Qrcode('scannerView');
+  _scanner.start(
+    {facingMode:'environment'},
+    {fps:10,qrbox:{width:250,height:100},aspectRatio:1.5},
+    function(code){onCodeScanned(code);},
+    function(){}
+  ).catch(function(err){
+    document.getElementById('scannerStatus').innerHTML='<i class="bi bi-camera-video-off" style="font-size:2rem;display:block;margin-bottom:.5rem"></i>No se pudo acceder a la camara.<br><small>Usa el campo manual abajo.</small>';
+  });
+}
+
+function stopScanner(){
+  if(_scanner){try{_scanner.stop();}catch(e){}}
+  document.getElementById('scannerStatus').innerHTML='<i class="bi bi-camera" style="font-size:2rem;display:block;margin-bottom:.5rem"></i>Camara detenida';
+}
+
+function onCodeScanned(code){
+  stopScanner();
+  searchProduct(code);
+}
+
+function manualSearch(){
+  var code=document.getElementById('manualCode').value.trim();
+  if(code) searchProduct(code);
+}
+
+function searchProduct(code){
+  document.getElementById('scanError').style.display='none';
+  document.getElementById('productInfo').style.display='none';
+  fetch('/api/scanner/buscar',{
+    method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrfToken},
+    body:JSON.stringify({codigo:code})
+  }).then(r=>r.json()).then(function(d){
+    if(d.error){
+      document.getElementById('scanError').style.display='';
+      document.getElementById('scanErrorMsg').textContent=d.error;
+      return;
+    }
+    _currentProduct=d;
+    showProduct(d);
+  }).catch(function(e){
+    document.getElementById('scanError').style.display='';
+    document.getElementById('scanErrorMsg').textContent='Error de conexion';
+  });
+}
+
+function showProduct(p){
+  document.getElementById('productInfo').style.display='';
+  var isComercial=p.tipo_producto==='comercial';
+  document.getElementById('prodIcon').style.background=isComercial?'#F59E0B':'var(--ac)';
+  document.getElementById('prodIcon').innerHTML='<i class="bi '+(isComercial?'bi-shop':'bi-box-seam')+'" style="font-size:1.3rem;color:#fff"></i>';
+  document.getElementById('prodNombre').textContent=p.nombre;
+  document.getElementById('prodSku').textContent=(p.sku?'SKU: '+p.sku:'')+(p.categoria?' · '+p.categoria:'');
+  document.getElementById('prodPrecio').textContent='$ '+Math.round(p.precio).toLocaleString('es-CO');
+  document.getElementById('prodCosto').textContent='$ '+Math.round(p.costo).toLocaleString('es-CO');
+  var stockEl=document.getElementById('prodStock');
+  stockEl.textContent=p.stock;
+  stockEl.style.color=p.stock<=p.stock_minimo?'var(--red)':'var(--green)';
+  document.getElementById('prodBarcode').textContent='Codigo: '+p.codigo_barras;
+  document.getElementById('prodVerified').style.display=p.verificado?'':'none';
+  var badges='';
+  badges+='<span class="badge '+(isComercial?'bg-warning text-dark':'bg-primary')+'" style="font-size:.6rem">'+(isComercial?'Comercial':'Produccion')+'</span>';
+  if(p.stock<=p.stock_minimo) badges+='<span class="badge bg-danger" style="font-size:.6rem">Stock bajo</span>';
+  document.getElementById('prodBadges').innerHTML=badges;
+}
+
+function doStockOp(){
+  if(!_currentProduct){alert('Escanea un producto primero.');return;}
+  var op=document.getElementById('stockOp').value;
+  var cant=parseInt(document.getElementById('stockCant').value)||0;
+  var notas=document.getElementById('stockNotas').value;
+  if(cant<=0){alert('Cantidad debe ser mayor a 0.');return;}
+  fetch('/api/scanner/stock',{
+    method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':_csrfToken},
+    body:JSON.stringify({producto_id:_currentProduct.id,cantidad:cant,operacion:op,notas:notas})
+  }).then(r=>r.json()).then(function(d){
+    var el=document.getElementById('stockResult');el.style.display='';
+    if(d.ok){
+      el.className='alert alert-success py-1';
+      el.innerHTML='<i class="bi bi-check-circle me-1"></i>'+(op==='ingreso'?'+':'-')+cant+' unidades. Stock: <strong>'+d.stock_nuevo+'</strong>';
+      _currentProduct.stock=d.stock_nuevo;
+      document.getElementById('prodStock').textContent=d.stock_nuevo;
+    } else {
+      el.className='alert alert-danger py-1';el.innerHTML='<i class="bi bi-x-circle me-1"></i>'+d.error;
+    }
+  });
+}
+
+// Auto-start scanner on mobile
+if(/Mobi|Android/i.test(navigator.userAgent)) startScanner();
+</script>
+{% endblock %}

@@ -68,6 +68,7 @@
     <a href="#" onclick="event.preventDefault();toggleChatPanel()" class="nav-link" data-tip="Chat" aria-label="Chat"><i class="bi bi-chat-dots-fill"></i><span>Chat</span><span id="chatBadge" class="sb-badge hide"></span></a>
     <a href="{{ url_for('foro') }}" class="nav-link {% if 'foro' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Somos Evore" aria-label="Somos Evore"><i class="bi bi-shop"></i><span>Foro</span><span class="sb-new">NEW</span></a>
     <a href="{{ url_for('portal_mis_relaciones') }}" class="nav-link {% if request.endpoint=='portal_mis_relaciones' or request.endpoint=='portal_interempresa' %}active" aria-current="page{% endif %}" data-tip="Relaciones" aria-label="Relaciones comerciales"><i class="bi bi-building"></i><span>Relaciones</span></a>
+    <a href="{{ url_for('scanner') }}" class="nav-link {% if request.endpoint=='scanner' %}active" aria-current="page{% endif %}" data-tip="Scanner" aria-label="Scanner"><i class="bi bi-upc-scan"></i><span>Scanner</span></a>
     <a href="{{ url_for('capacitacion_index') }}" class="nav-link {% if 'capacitacion' in (request.endpoint or '') %}active" aria-current="page{% endif %}" data-tip="Capacitacion" aria-label="Capacitacion"><i class="bi bi-mortarboard-fill"></i><span>Capacitacion</span></a>
     <a href="{{ url_for('wiki') }}" class="nav-link {% if request.endpoint=='wiki' %}active" aria-current="page{% endif %}" data-tip="Wiki" aria-label="Wiki" data-dock-panel="wiki_page"><i class="bi bi-book"></i><span>Wiki</span></a>
     {# ── Proyectos ── #}

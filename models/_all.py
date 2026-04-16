@@ -408,9 +408,16 @@ class Producto(db.Model):
     creado_en       = db.Column(db.DateTime, default=datetime.utcnow)
     costo_receta    = db.Column(db.Float, default=0)  # Auto-calculated from recipe + MP costs
     es_demo         = db.Column(db.Boolean, default=False)
+    tipo_producto   = db.Column(db.String(20), default='produccion')  # produccion | comercial
+    codigo_barras   = db.Column(db.String(50))  # EAN-13, Code128, etc.
+    barcode_verificado = db.Column(db.Boolean, default=False)
+    costo_compra    = db.Column(db.Float, default=0)  # Precio compra proveedor (comercial)
+    margen_comercial = db.Column(db.Float, default=30)  # % margen para comercializacion
+    proveedor_id    = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
     # DIAN — facturación electrónica (schema prep)
-    codigo_unspsc       = db.Column(db.String(20))                          # UNSPSC product code for DIAN
+    codigo_unspsc       = db.Column(db.String(20))
     venta_items     = db.relationship('VentaProducto', backref='producto', lazy=True)
+    proveedor_rel   = db.relationship('Proveedor', foreign_keys=[proveedor_id])
 
 class HistorialPrecio(db.Model):
     """Registra cada cambio de precio de un producto con fecha y origen."""
@@ -2266,6 +2273,19 @@ def _migrate(conn):
         # ── Foro Banners (marketplace ads) ──
         ("CREATE TABLE IF NOT EXISTS foro_banners (id SERIAL PRIMARY KEY, titulo VARCHAR(200) NOT NULL, descripcion TEXT, imagen_url VARCHAR(500), link_url VARCHAR(500), industria VARCHAR(100), tipo VARCHAR(20) DEFAULT 'evore', activo BOOLEAN DEFAULT TRUE, orden INTEGER DEFAULT 0, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT NOW())"),
         ("CREATE TABLE IF NOT EXISTS foro_banners (id INTEGER PRIMARY KEY AUTOINCREMENT, titulo VARCHAR(200) NOT NULL, descripcion TEXT, imagen_url VARCHAR(500), link_url VARCHAR(500), industria VARCHAR(100), tipo VARCHAR(20) DEFAULT 'evore', activo BOOLEAN DEFAULT TRUE, orden INTEGER DEFAULT 0, creado_por INTEGER REFERENCES users(id), creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"),
+        # ── Productos: modo comercial + codigos de barras ──
+        ("ALTER TABLE productos ADD COLUMN IF NOT EXISTS tipo_producto VARCHAR(20) DEFAULT 'produccion'"),
+        ("ALTER TABLE productos ADD COLUMN tipo_producto VARCHAR(20) DEFAULT 'produccion'"),
+        ("ALTER TABLE productos ADD COLUMN IF NOT EXISTS codigo_barras VARCHAR(50)"),
+        ("ALTER TABLE productos ADD COLUMN codigo_barras VARCHAR(50)"),
+        ("ALTER TABLE productos ADD COLUMN IF NOT EXISTS barcode_verificado BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE productos ADD COLUMN barcode_verificado BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE productos ADD COLUMN IF NOT EXISTS costo_compra FLOAT DEFAULT 0"),
+        ("ALTER TABLE productos ADD COLUMN costo_compra FLOAT DEFAULT 0"),
+        ("ALTER TABLE productos ADD COLUMN IF NOT EXISTS margen_comercial FLOAT DEFAULT 30"),
+        ("ALTER TABLE productos ADD COLUMN margen_comercial FLOAT DEFAULT 30"),
+        ("ALTER TABLE productos ADD COLUMN IF NOT EXISTS proveedor_id INTEGER REFERENCES proveedores(id)"),
+        ("ALTER TABLE productos ADD COLUMN proveedor_id INTEGER REFERENCES proveedores(id)"),
         # ── Proyectos: diagrama + brainstorm fields ──
         ("ALTER TABLE proyectos ADD COLUMN IF NOT EXISTS diagrama TEXT"),
         ("ALTER TABLE proyectos ADD COLUMN diagrama TEXT"),

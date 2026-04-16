@@ -23,6 +23,7 @@ from routes import foro
 from routes import site
 from routes import capacitacion
 from routes import proyectos
+from routes import barcode
 
 def register_all(app):
     auth.register(app)
@@ -49,3 +50,4 @@ def register_all(app):
     site.register(app)
     capacitacion.register(app)
     proyectos.register(app)
+    barcode.register(app)
