@@ -1,7 +1,7 @@
 # routes/servicios.py — Módulo Servicios v30
 from flask import render_template, redirect, url_for, flash, request, jsonify, current_app, g
 from flask_login import login_required, current_user
-from extensions import db
+from extensions import db, tenant_query
 from models import *
 from utils import *
 from datetime import datetime
@@ -16,7 +16,7 @@ def register(app):
         """Lista todos los servicios con estadísticas."""
         buscar = request.args.get('buscar', '').strip()
         activo_f = request.args.get('activo', '')
-        q = Servicio.query
+        q = tenant_query(Servicio)
         if buscar:
             q = q.filter(db.or_(Servicio.nombre.ilike(f'%{buscar}%'),
                                  Servicio.descripcion.ilike(f'%{buscar}%')))
@@ -27,7 +27,7 @@ def register(app):
         items = q.order_by(Servicio.nombre).all()
 
         # Estadísticas (sobre todos, no filtrados)
-        all_items = Servicio.query.all()
+        all_items = tenant_query(Servicio).all()
         activos_count = len([s for s in all_items if s.activo])
         precios = [s.precio_venta for s in all_items if s.activo and s.precio_venta]
         precio_min = min(precios) if precios else 0
@@ -56,7 +56,7 @@ def register(app):
                 return render_template('servicios/form.html', obj=None)
 
             # Verificar duplicado
-            if Servicio.query.filter_by(nombre=nombre).first():
+            if tenant_query(Servicio).filter_by(nombre=nombre).first():
                 flash(f'Ya existe un servicio llamado "{nombre}".', 'warning')
                 return render_template('servicios/form.html', obj=None)
 
@@ -95,7 +95,7 @@ def register(app):
     @requiere_modulo('ventas')
     def servicios_editar(id):
         """Editar un servicio existente."""
-        obj = Servicio.query.get_or_404(id)
+        obj = tenant_query(Servicio).get_or_404(id)
 
         if request.method == 'POST':
             nombre = request.form.get('nombre', '').strip()
@@ -105,7 +105,7 @@ def register(app):
                 return render_template('servicios/form.html', obj=obj)
 
             # Verificar duplicado (excluyendo el mismo objeto)
-            duplicado = Servicio.query.filter(
+            duplicado = tenant_query(Servicio).filter(
                 Servicio.nombre == nombre,
                 Servicio.id != id
             ).first()
@@ -137,7 +137,7 @@ def register(app):
     @requiere_modulo('ventas')
     def servicios_toggle(id):
         """Activar/desactivar un servicio."""
-        obj = Servicio.query.get_or_404(id)
+        obj = tenant_query(Servicio).get_or_404(id)
 
         try:
             obj.activo = not obj.activo
@@ -161,7 +161,7 @@ def register(app):
             flash('Solo administradores pueden eliminar servicios.', 'danger')
             return redirect(url_for('servicios'))
 
-        obj = Servicio.query.get_or_404(id)
+        obj = tenant_query(Servicio).get_or_404(id)
         nombre = obj.nombre
 
         try:
@@ -181,7 +181,7 @@ def register(app):
     @requiere_modulo('ventas')
     def servicios_json():
         """Retorna JSON de todos los servicios activos (para usar en forms de ventas/cotizaciones)."""
-        servicios = Servicio.query.filter_by(activo=True).order_by(Servicio.nombre).all()
+        servicios = tenant_query(Servicio).filter_by(activo=True).order_by(Servicio.nombre).all()
         return jsonify([
             {
                 'id': s.id,

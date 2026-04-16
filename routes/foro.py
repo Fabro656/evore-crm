@@ -2,7 +2,7 @@
 from flask import render_template, redirect, url_for, flash, request, g, current_app
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
-from extensions import db
+from extensions import db, tenant_query
 from models import *
 import os
 from utils import *
@@ -271,10 +271,10 @@ def register(app):
             rel_tipo = 'proveedor'
             chat_label = f'Proveedor: {pub.company.nombre}'
             # I register them as supplier, they register me as client
-            if not (pub.company.nit and Proveedor.query.filter_by(company_id=my_company_id, nit=pub.company.nit).first()):
+            if not (pub.company.nit and tenant_query(Proveedor).filter_by(company_id=my_company_id, nit=pub.company.nit).first()):
                 db.session.add(Proveedor(nombre=pub.company.nombre, empresa=pub.company.nombre,
                                          nit=pub.company.nit or '', activo=True, company_id=my_company_id))
-            if not (my_company.nit and Cliente.query.filter_by(company_id=pub.company_id, nit=my_company.nit).first()):
+            if not (my_company.nit and tenant_query(Cliente).filter_by(company_id=pub.company_id, nit=my_company.nit).first()):
                 db.session.add(Cliente(nombre=my_company.nombre, empresa=my_company.nombre,
                                        nit=my_company.nit or '', estado_relacion='cliente_activo',
                                        estado='activo', company_id=pub.company_id))
@@ -282,11 +282,11 @@ def register(app):
             rel_tipo = 'cliente'
             chat_label = f'Cliente: {pub.company.nombre}'
             # I register them as client, they register me as supplier
-            if not (pub.company.nit and Cliente.query.filter_by(company_id=my_company_id, nit=pub.company.nit).first()):
+            if not (pub.company.nit and tenant_query(Cliente).filter_by(company_id=my_company_id, nit=pub.company.nit).first()):
                 db.session.add(Cliente(nombre=pub.company.nombre, empresa=pub.company.nombre,
                                        nit=pub.company.nit or '', estado_relacion='cliente_activo',
                                        estado='activo', company_id=my_company_id))
-            if not (my_company.nit and Proveedor.query.filter_by(company_id=pub.company_id, nit=my_company.nit).first()):
+            if not (my_company.nit and tenant_query(Proveedor).filter_by(company_id=pub.company_id, nit=my_company.nit).first()):
                 db.session.add(Proveedor(nombre=my_company.nombre, empresa=my_company.nombre,
                                          nit=my_company.nit or '', activo=True, company_id=pub.company_id))
 

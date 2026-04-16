@@ -34,7 +34,7 @@ def _crear_tarea_unica(titulo_patron, tarea_tipo, descripcion, prioridad='media'
     """
     try:
         # Buscar si existe una tarea pendiente con patrón similar
-        existente = Tarea.query.filter(
+        existente = tenant_query(Tarea).filter(
             Tarea.titulo.like(f'%{titulo_patron}%'),
             Tarea.tarea_tipo == tarea_tipo,
             Tarea.estado == 'pendiente'
@@ -80,7 +80,7 @@ def _crear_evento_automatico(titulo, descripcion, tipo='evento', fecha=None, cre
         hoy = fecha or date_type.today()
 
         # Verificar si existe evento con ese título para hoy
-        existente = Evento.query.filter(
+        existente = tenant_query(Evento).filter(
             Evento.titulo == titulo,
             Evento.fecha == hoy
         ).first()
@@ -259,7 +259,7 @@ def register(app):
             return jsonify({'error': 'Estado invalido'}), 400
         obj.estado = nuevo
         # Sync to ProyectoTarea if linked
-        proy_tarea = ProyectoTarea.query.filter_by(tarea_id=obj.id).first()
+        proy_tarea = Proyectotenant_query(Tarea).filter_by(tarea_id=obj.id).first()
         if proy_tarea:
             # Map ticket states to project states
             proy_estado = {'pendiente': 'por_hacer', 'en_progreso': 'en_progreso',
@@ -337,7 +337,7 @@ def register(app):
             return redirect(url_for('tareas'))
         try:
             # Clear self-referencing FK: other tareas that point to this one as "pareja"
-            Tarea.query.filter_by(tarea_pareja_id=obj.id).update({'tarea_pareja_id': None})
+            tenant_query(Tarea).filter_by(tarea_pareja_id=obj.id).update({'tarea_pareja_id': None})
             db.session.flush()
             # cascade='all, delete-orphan' on asignados/comentarios handles those automatically
             db.session.delete(obj)

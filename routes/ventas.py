@@ -23,7 +23,7 @@ def register(app):
                 'precio': float(p.precio or 0),
                 'stock':  float(p.stock or 0)
             }
-            for p in Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
+            for p in tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all()
         ]
 
     def _servicios_json():
@@ -36,11 +36,11 @@ def register(app):
                 'precio_venta': float(s.precio_venta or 0),
                 'unidad': s.unidad or 'unidades'
             }
-            for s in Servicio.query.filter_by(activo=True).order_by(Servicio.nombre).all()
+            for s in tenant_query(Servicio).filter_by(activo=True).order_by(Servicio.nombre).all()
         ]
 
     def _save_items(venta_obj):
-        VentaProducto.query.filter_by(venta_id=venta_obj.id).delete()
+        Ventatenant_query(Producto).filter_by(venta_id=venta_obj.id).delete()
         pids    = request.form.getlist('prod_id[]')
         cants   = request.form.getlist('prod_cant[]')
         precios = request.form.getlist('prod_precio[]')
@@ -68,13 +68,13 @@ def register(app):
         from models import LoteMateriaPrima
         from datetime import date
         hoy = date.today()
-        lotes_con_fecha = LoteMateriaPrima.query.filter(
+        lotes_con_fecha = Lotetenant_query(MateriaPrima).filter(
             LoteMateriaPrima.materia_prima_id == materia_prima_id,
             LoteMateriaPrima.cantidad_disponible > 0,
             LoteMateriaPrima.fecha_vencimiento.isnot(None),
             LoteMateriaPrima.fecha_vencimiento > hoy
         ).order_by(LoteMateriaPrima.fecha_vencimiento.asc()).all()
-        lotes_sin_fecha = LoteMateriaPrima.query.filter(
+        lotes_sin_fecha = Lotetenant_query(MateriaPrima).filter(
             LoteMateriaPrima.materia_prima_id == materia_prima_id,
             LoteMateriaPrima.cantidad_disponible > 0,
             LoteMateriaPrima.fecha_vencimiento.is_(None)
@@ -103,7 +103,7 @@ def register(app):
                 cant_producir  = max(0, cant_requerida - cant_en_stock)
                 if cant_producir <= 0:
                     continue
-                existente = OrdenProduccion.query.filter(
+                existente = tenant_query(OrdenProduccion).filter(
                     OrdenProduccion.venta_id == venta.id,
                     OrdenProduccion.producto_id == prod.id,
                     OrdenProduccion.estado != 'completado'
@@ -111,7 +111,7 @@ def register(app):
                 if existente:
                     continue
 
-                receta = RecetaProducto.query.filter_by(producto_id=prod.id, activo=True).first()
+                receta = Recetatenant_query(Producto).filter_by(producto_id=prod.id, activo=True).first()
                 hay_faltante = False
 
                 if receta and receta.items:
@@ -235,7 +235,7 @@ def register(app):
     def _marcar_vencidas():
         """Marca cotizaciones vencidas automáticamente al listar."""
         hoy = date_type.today()
-        vencidas = Cotizacion.query.filter(
+        vencidas = tenant_query(Cotizacion).filter(
             Cotizacion.fecha_validez < hoy,
             Cotizacion.estado.in_(['borrador', 'enviada'])
         ).all()
@@ -268,7 +268,7 @@ def register(app):
         hoy = date.today()
         try:
             from models import LoteMateriaPrima
-            proximas_vencer = LoteMateriaPrima.query.filter(
+            proximas_vencer = Lotetenant_query(MateriaPrima).filter(
                 LoteMateriaPrima.fecha_vencimiento.isnot(None),
                 LoteMateriaPrima.fecha_vencimiento <= hoy + timedelta(days=90),
                 LoteMateriaPrima.fecha_vencimiento >= hoy,
@@ -277,14 +277,14 @@ def register(app):
         except Exception:
             proximas_vencer = []
 
-        transportistas_list = Proveedor.query.filter(
+        transportistas_list = tenant_query(Proveedor).filter(
             Proveedor.activo == True,
             Proveedor.tipo.in_(['transportista', 'ambos'])
         ).order_by(Proveedor.empresa).all()
         # Contratos existentes por cliente para mostrar "Ver contrato" vs "Generar"
         docs_por_cliente = {}
         try:
-            contratos = DocumentoLegal.query.filter(
+            contratos = tenant_query(DocumentoLegal).filter(
                 DocumentoLegal.tipo.in_(['contrato']),
                 DocumentoLegal.activo == True,
                 DocumentoLegal.cliente_id.isnot(None)
@@ -307,7 +307,7 @@ def register(app):
     @login_required
     @requiere_modulo('ventas')
     def ventas_export_csv():
-        ventas = Venta.query.order_by(Venta.creado_en.desc()).all()
+        ventas = tenant_query(Venta).order_by(Venta.creado_en.desc()).all()
         rows = []
         for v in ventas:
             cliente = v.cliente
@@ -334,7 +334,7 @@ def register(app):
     # helper: get configured IVA rate (%)
     def _iva_rate():
         try:
-            regla = ReglaTributaria.query.filter_by(aplica_a='ventas', activo=True).first()
+            regla = tenant_query(ReglaTributaria).filter_by(aplica_a='ventas', activo=True).first()
             return float(regla.porcentaje) if regla else 19.0
         except Exception:
             return 19.0
@@ -344,10 +344,10 @@ def register(app):
     @login_required
     @requiere_modulo('ventas')
     def venta_nueva():
-        cl = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
+        cl = tenant_query(Cliente).order_by(Cliente.empresa, Cliente.nombre).all()
         iva_pct = _iva_rate()
         # Cotizaciones disponibles para vincular (solo enviadas o aprobadas — no borradores)
-        cots_disponibles = Cotizacion.query.filter(
+        cots_disponibles = tenant_query(Cotizacion).filter(
             Cotizacion.estado.in_(['enviada','aprobada'])
         ).order_by(Cotizacion.fecha_emision.desc()).all()
         # Pre-selección de cliente via query param (desde cotizacion)
@@ -364,7 +364,7 @@ def register(app):
             total = round(subtotal + iva_monto, 2)
             cot_id = request.form.get('cotizacion_id') or None
             if cot_id:
-                venta_dup = Venta.query.filter_by(cotizacion_id=int(cot_id)).first()
+                venta_dup = tenant_query(Venta).filter_by(cotizacion_id=int(cot_id)).first()
                 if venta_dup:
                     flash(f'Ya existe una venta ({venta_dup.numero}) para esa cotización.', 'warning')
                     return redirect(url_for('ventas'))
@@ -398,7 +398,7 @@ def register(app):
                     logging.warning(f'No se pudo marcar cotizacion {cot_id} como aprobada: {ce}')
             # Generar numero único VNT-YYYY-NNN
             hoy = datetime.utcnow().date()
-            ultimo_vnt = Venta.query.filter(
+            ultimo_vnt = tenant_query(Venta).filter(
                 Venta.numero.like(f'VNT-{hoy.year}-%')
             ).order_by(Venta.id.desc()).first()
             if ultimo_vnt and ultimo_vnt.numero:
@@ -454,9 +454,9 @@ def register(app):
     @requiere_modulo('ventas')
     def venta_ver(id):
         obj = Venta.query.get_or_404(id)
-        ordenes = OrdenProduccion.query.filter_by(venta_id=obj.id).all()
+        ordenes = tenant_query(OrdenProduccion).filter_by(venta_id=obj.id).all()
         reservas = ReservaProduccion.query.filter_by(venta_id=obj.id).all()
-        pagos = PagoVenta.query.filter_by(venta_id=obj.id).order_by(PagoVenta.fecha.desc()).all()
+        pagos = Pagotenant_query(Venta).filter_by(venta_id=obj.id).order_by(PagoVenta.fecha.desc()).all()
         return render_template('ventas/ver.html', obj=obj, ordenes=ordenes,
                                reservas=reservas, pagos=pagos)
 
@@ -466,7 +466,7 @@ def register(app):
     @requiere_modulo('ventas')
     def venta_editar(id):
         obj = Venta.query.get_or_404(id)
-        cl  = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
+        cl  = tenant_query(Cliente).order_by(Cliente.empresa, Cliente.nombre).all()
         iva_pct = _iva_rate()
         if request.method == 'POST':
             fa = request.form.get('fecha_anticipo')
@@ -522,7 +522,7 @@ def register(app):
             # Devolver stock de materias primas antes de borrar
             InventarioService.devolver_materias_venta(obj.id)
             ReservaProduccion.query.filter_by(venta_id=obj.id).delete()
-            OrdenProduccion.query.filter_by(venta_id=obj.id).delete()
+            tenant_query(OrdenProduccion).filter_by(venta_id=obj.id).delete()
             db.session.flush()
         except Exception as e:
             logging.warning(f'venta_eliminar: cleanup error: {e}')
@@ -584,7 +584,7 @@ def register(app):
             # ── Bloque 2b2: Auto-crear contrato legal para el cliente ──
             try:
                 if venta.cliente_id:
-                    existing_doc = DocumentoLegal.query.filter_by(
+                    existing_doc = tenant_query(DocumentoLegal).filter_by(
                         cliente_id=venta.cliente_id, tipo='contrato', activo=True,
                         requiere_firma_portal=True
                     ).filter(DocumentoLegal.firma_portal_data == None).first()
@@ -628,7 +628,7 @@ def register(app):
                 ocs_creadas = 0
                 for item in venta.items:
                     if not item.producto_id: continue
-                    receta = RecetaProducto.query.filter_by(producto_id=item.producto_id, activo=True).first()
+                    receta = Recetatenant_query(Producto).filter_by(producto_id=item.producto_id, activo=True).first()
                     if not receta or receta.unidades_produce <= 0: continue
                     cant_producir = max(0, (item.cantidad or 0) - (Producto.query.get(item.producto_id).stock or 0))
                     if cant_producir <= 0: continue
@@ -641,7 +641,7 @@ def register(app):
                         if disponible >= necesaria: continue
                         faltante = necesaria - disponible
                         # Buscar cotización vigente de proveedor para esta MP
-                        cot_prov = CotizacionProveedor.query.filter(
+                        cot_prov = Cotizaciontenant_query(Proveedor).filter(
                             CotizacionProveedor.materia_prima_id == mp.id,
                             CotizacionProveedor.estado == 'vigente',
                             CotizacionProveedor.vigencia >= _d.today()
@@ -657,7 +657,7 @@ def register(app):
                         # Crear OC automática
                         proveedor_id = cot_prov.proveedor_id
                         hoy_oc = _d.today()
-                        ult_oc = OrdenCompra.query.filter(
+                        ult_oc = tenant_query(OrdenCompra).filter(
                             OrdenCompra.numero.like(f'OC-{hoy_oc.year}-%')
                         ).order_by(OrdenCompra.id.desc()).first()
                         seq_oc = (int(ult_oc.numero.split('-')[-1]) + 1) if ult_oc and ult_oc.numero else 1
@@ -703,7 +703,7 @@ def register(app):
             except Exception as ex:
                 logging.warning(f'venta_cambiar_estado: devolver_materias_venta error: {ex}')
             # Cancelar órdenes de producción activas
-            ordenes_activas = OrdenProduccion.query.filter(
+            ordenes_activas = tenant_query(OrdenProduccion).filter(
                 OrdenProduccion.venta_id == venta.id,
                 OrdenProduccion.estado.in_(['pendiente_materiales', 'en_produccion'])
             ).all()
@@ -715,7 +715,7 @@ def register(app):
                     o.producto.nombre for o in ordenes_activas if o.producto
                 )
                 titulo_cancel = f'Producción detenida — {venta.titulo or venta.numero}'
-                tarea_dup = Tarea.query.filter_by(
+                tarea_dup = tenant_query(Tarea).filter_by(
                     titulo=titulo_cancel, estado='pendiente'
                 ).first()
                 try:
@@ -747,7 +747,7 @@ def register(app):
         ESTADOS_ACTIVOS = {'anticipo_pagado', 'pagado', 'completado'}
         ESTADOS_PAUSAN  = {'prospecto', 'negociacion'}
         if estado_anterior == 'anticipo_pagado' and nuevo in ESTADOS_PAUSAN:
-            ordenes_a_pausar = OrdenProduccion.query.filter(
+            ordenes_a_pausar = tenant_query(OrdenProduccion).filter(
                 OrdenProduccion.venta_id == venta.id,
                 OrdenProduccion.estado.in_(['pendiente_materiales','en_produccion'])
             ).all()
@@ -782,7 +782,7 @@ def register(app):
 
         # ── BLOQUE 4c: Reanudar producción si venta vuelve a anticipo_pagado ──
         if nuevo == 'anticipo_pagado' and estado_anterior in ESTADOS_PAUSAN:
-            ordenes_pausadas = OrdenProduccion.query.filter(
+            ordenes_pausadas = tenant_query(OrdenProduccion).filter(
                 OrdenProduccion.venta_id == venta.id,
                 OrdenProduccion.estado == 'pausada'
             ).all()
@@ -797,10 +797,10 @@ def register(app):
         if nuevo == 'pagado' and estado_anterior != 'pagado':
             try:
                 # Verificar si ya existe un asiento para esta venta
-                asiento_existente = AsientoContable.query.filter_by(venta_id=venta.id).first()
+                asiento_existente = tenant_query(AsientoContable).filter_by(venta_id=venta.id).first()
                 if not asiento_existente:
                     # Generar número automático
-                    ultimo_asiento = AsientoContable.query.order_by(AsientoContable.id.desc()).first()
+                    ultimo_asiento = tenant_query(AsientoContable).order_by(AsientoContable.id.desc()).first()
                     n_ac = (ultimo_asiento.id + 1) if ultimo_asiento else 1
                     numero_ac = f'AC-{datetime.utcnow().year}-{n_ac:04d}'
 
@@ -827,7 +827,7 @@ def register(app):
         # ── BLOQUE 6: Auto-crear comision cuando venta se marca como "completado" ──
         if nuevo == 'completado' and estado_anterior != 'completado':
             try:
-                comision_existente = Comision.query.filter_by(venta_id=venta.id).first()
+                comision_existente = tenant_query(Comision).filter_by(venta_id=venta.id).first()
                 if not comision_existente and venta.creado_por:
                     monto_com = round(float(venta.total or 0) * 0.05, 2)
                     db.session.add(Comision(
@@ -906,7 +906,7 @@ def register(app):
                       'marca': it.marca.nombre_marca if hasattr(it, 'marca') and it.marca else None}
             # Buscar empaque asignado al producto
             if it.producto_id:
-                empaque = EmpaqueSecundario.query.filter_by(
+                empaque = tenant_query(EmpaqueSecundario).filter_by(
                     producto_id=it.producto_id, aprobado=True
                 ).first()
                 if empaque and empaque.unidades_por_caja > 0:
@@ -1104,7 +1104,7 @@ def register(app):
                 result.append({'producto': prod.nombre, 'ok': True,
                                 'mensaje': f'En stock ({int(cant_stock)} uds)'})
                 continue
-            receta = RecetaProducto.query.filter_by(producto_id=prod.id, activo=True).first()
+            receta = Recetatenant_query(Producto).filter_by(producto_id=prod.id, activo=True).first()
             if not receta or not receta.items:
                 result.append({'producto': prod.nombre, 'ok': False,
                                 'mensaje': f'Necesita producir {cant_producir:.0f} uds — sin receta'})
@@ -1153,7 +1153,7 @@ def register(app):
     @requiere_modulo('ventas')
     def ventas_kanban():
         from datetime import datetime as _dt
-        ventas_todas = Venta.query.order_by(Venta.creado_en.asc()).all()
+        ventas_todas = tenant_query(Venta).order_by(Venta.creado_en.asc()).all()
         hoy = _dt.utcnow()
         COLUMNAS = ['prospecto', 'negociacion', 'anticipo_pagado', 'pagado', 'entregado', 'completado']
         pipeline = {col: [] for col in COLUMNAS}
@@ -1187,7 +1187,7 @@ def register(app):
         estado_f   = request.args.get('estado', '')
         periodo_f  = request.args.get('periodo', '')
 
-        q = Comision.query
+        q = tenant_query(Comision)
         if buscar:
             q = q.outerjoin(User, Comision.vendedor_id == User.id).outerjoin(Venta, Comision.venta_id == Venta.id).filter(
                 db.or_(User.nombre.ilike(f'%{buscar}%'),
@@ -1245,10 +1245,10 @@ def register(app):
     @requiere_modulo('ventas')
     def cotizaciones():
         _marcar_vencidas()
-        servicios = Servicio.query.filter_by(activo=True).all()
+        servicios = tenant_query(Servicio).filter_by(activo=True).all()
         buscar = request.args.get('buscar','').strip()
         estado_f = request.args.get('estado','')
-        q = Cotizacion.query
+        q = tenant_query(Cotizacion)
         if buscar:
             q = q.filter(db.or_(Cotizacion.titulo.ilike(f'%{buscar}%'), Cotizacion.numero.ilike(f'%{buscar}%')))
         if estado_f:
@@ -1264,13 +1264,13 @@ def register(app):
     @requiere_modulo('ventas')
     def cotizacion_nueva():
         from datetime import date as date_t
-        clientes_list = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
-        regla_iva = ReglaTributaria.query.filter_by(aplica_a='ventas', activo=True).first()
+        clientes_list = tenant_query(Cliente).order_by(Cliente.empresa, Cliente.nombre).all()
+        regla_iva = tenant_query(ReglaTributaria).filter_by(aplica_a='ventas', activo=True).first()
         iva_default = regla_iva.porcentaje if regla_iva else 19.0
         if request.method == 'POST':
             hoy = date_t.today()
             # Generar número secuencial
-            ultimo = Cotizacion.query.filter(
+            ultimo = tenant_query(Cotizacion).filter(
                 Cotizacion.numero.like(f'COT-{hoy.year}-%')
             ).order_by(Cotizacion.id.desc()).first()
             if ultimo and ultimo.numero:
@@ -1380,7 +1380,7 @@ def register(app):
                             usuario_id=current_user.id
                         ))
                         prod.precio = precio_con_iva
-                        receta = RecetaProducto.query.filter_by(producto_id=prod.id, activo=True).first()
+                        receta = Recetatenant_query(Producto).filter_by(producto_id=prod.id, activo=True).first()
                         if receta:
                             receta.precio_venta_sugerido = precio_con_iva
             _log('crear','cotizacion',cot.id,f'Cotización {numero}: {cot.titulo}'); db.session.commit()
@@ -1389,8 +1389,8 @@ def register(app):
 
         # Construir lista de productos con precio correcto desde receta
         prods_cot = []
-        for p in Producto.query.filter_by(activo=True).order_by(Producto.nombre).all():
-            receta = RecetaProducto.query.filter_by(producto_id=p.id, activo=True).first()
+        for p in tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all():
+            receta = Recetatenant_query(Producto).filter_by(producto_id=p.id, activo=True).first()
             precio_venta = receta.precio_venta_sugerido if receta and receta.precio_venta_sugerido else p.precio or 0
             costo = receta.costo_calculado if receta and receta.costo_calculado else p.costo_receta or p.costo or 0
             prods_cot.append({
@@ -1404,7 +1404,7 @@ def register(app):
                          'numero':d.numero or '', 'entidad':d.entidad or '',
                          'producto_id':d.producto_id or 0,
                          'producto_nombre': d.producto.nombre if d.producto_id and d.producto else ''}
-                        for d in DocumentoLegal.query.filter_by(activo=True).all()
+                        for d in tenant_query(DocumentoLegal).filter_by(activo=True).all()
                         if d.producto_id]
         nsos = [dl for dl in docs_legales if dl['tipo'] == 'nso']
         # Pre-fill de envío si viene del simulador de logística
@@ -1450,7 +1450,7 @@ def register(app):
     def cotizacion_ver(id):
         obj = Cotizacion.query.get_or_404(id)
         empresa = ConfigEmpresa.query.first() or ConfigEmpresa(nombre='Evore')
-        historial = HistorialCotizacion.query.filter_by(cotizacion_id=id).order_by(HistorialCotizacion.creado_en.desc()).all()
+        historial = Historialtenant_query(Cotizacion).filter_by(cotizacion_id=id).order_by(HistorialCotizacion.creado_en.desc()).all()
         return render_template('cotizaciones/ver.html', obj=obj, empresa=empresa, historial=historial)
 
 
@@ -1461,8 +1461,8 @@ def register(app):
     def cotizacion_editar(id):
         from datetime import date as date_t
         obj = Cotizacion.query.get_or_404(id)
-        clientes_list = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
-        regla_iva = ReglaTributaria.query.filter_by(aplica_a='ventas', activo=True).first()
+        clientes_list = tenant_query(Cliente).order_by(Cliente.empresa, Cliente.nombre).all()
+        regla_iva = tenant_query(ReglaTributaria).filter_by(aplica_a='ventas', activo=True).first()
         iva_default = regla_iva.porcentaje if regla_iva else 19.0
         if request.method == 'POST':
             fd_em = request.form.get('fecha_emision')
@@ -1550,7 +1550,7 @@ def register(app):
                             usuario_id=current_user.id
                         ))
                         prod.precio = precio_con_iva
-                        receta = RecetaProducto.query.filter_by(producto_id=prod.id, activo=True).first()
+                        receta = Recetatenant_query(Producto).filter_by(producto_id=prod.id, activo=True).first()
                         if receta:
                             receta.precio_venta_sugerido = precio_con_iva
             if cambios:
@@ -1580,8 +1580,8 @@ def register(app):
             return redirect(url_for('cotizacion_ver', id=obj.id))
 
         prods_cot = []
-        for p in Producto.query.filter_by(activo=True).order_by(Producto.nombre).all():
-            receta = RecetaProducto.query.filter_by(producto_id=p.id, activo=True).first()
+        for p in tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all():
+            receta = Recetatenant_query(Producto).filter_by(producto_id=p.id, activo=True).first()
             precio_venta = receta.precio_venta_sugerido if receta and receta.precio_venta_sugerido else p.precio or 0
             costo = receta.costo_calculado if receta and receta.costo_calculado else p.costo_receta or p.costo or 0
             prods_cot.append({
@@ -1594,7 +1594,7 @@ def register(app):
                          'numero':d.numero or '', 'entidad':d.entidad or '',
                          'producto_id':d.producto_id or 0,
                          'producto_nombre': d.producto.nombre if d.producto_id and d.producto else ''}
-                        for d in DocumentoLegal.query.filter_by(activo=True).all()
+                        for d in tenant_query(DocumentoLegal).filter_by(activo=True).all()
                         if d.producto_id]
         nsos = [dl for dl in docs_legales if dl['tipo'] == 'nso']
         return render_template('cotizaciones/form.html', obj=obj, titulo='Editar Cotización',
@@ -1692,14 +1692,14 @@ def register(app):
         cot = Cotizacion.query.get_or_404(id)
 
         # Validar que no esté ya vinculada a una venta
-        venta_existente = Venta.query.filter_by(cotizacion_id=cot.id).first()
+        venta_existente = tenant_query(Venta).filter_by(cotizacion_id=cot.id).first()
         if venta_existente:
             flash(f'Esta cotización ya está vinculada a la venta {venta_existente.numero}.', 'warning')
             return redirect(url_for('cotizacion_ver', id=id))
 
         # Generar número VNT-YYYY-NNN
         hoy = datetime.utcnow().date()
-        ultimo_vnt = Venta.query.filter(
+        ultimo_vnt = tenant_query(Venta).filter(
             Venta.numero.like(f'VNT-{hoy.year}-%')
         ).order_by(Venta.id.desc()).first()
         if ultimo_vnt and ultimo_vnt.numero:

@@ -3,7 +3,7 @@ from flask import render_template, redirect, url_for, flash, request, \
                   jsonify, send_file, make_response, current_app, g
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
-from extensions import db
+from extensions import db, tenant_query
 from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
@@ -110,10 +110,10 @@ def register(app):
         saldo_neto = ingresos - total_egresos_global - impuestos_estimados
         # Auto-alertas de stock bajo (crear ticket y notificación si no existe)
         try:
-            prods_bajo = Producto.query.filter(Producto.activo==True, Producto.stock<=Producto.stock_minimo).all()
+            prods_bajo = tenant_query(Producto).filter(Producto.activo==True, Producto.stock<=Producto.stock_minimo).all()
             for pb in prods_bajo[:5]:  # max 5 alertas
                 titulo_alerta = f'Stock bajo: {pb.nombre} ({pb.stock}/{pb.stock_minimo})'
-                ya_existe = Tarea.query.filter(Tarea.titulo==titulo_alerta, Tarea.estado=='pendiente').first()
+                ya_existe = tenant_query(Tarea).filter(Tarea.titulo==titulo_alerta, Tarea.estado=='pendiente').first()
                 if not ya_existe:
                     t = Tarea(company_id=getattr(g, 'company_id', None),
                               titulo=titulo_alerta, descripcion=f'El producto {pb.nombre} tiene stock {pb.stock} por debajo del minimo {pb.stock_minimo}.',
@@ -126,7 +126,7 @@ def register(app):
 
         # Productos bajo mínimo para el banner detallado del dashboard
         try:
-            alertas_stock = Producto.query.filter(
+            alertas_stock = tenant_query(Producto).filter(
                 Producto.activo == True,
                 Producto.stock_minimo > 0,
                 Producto.stock < Producto.stock_minimo
@@ -149,7 +149,7 @@ def register(app):
 
         # ── Top 10 Productos por rentabilidad (margen %) ──
         try:
-            _recetas_raw = RecetaProducto.query.join(Producto, RecetaProducto.producto_id == Producto.id).filter(
+            _recetas_raw = Recetatenant_query(Producto).join(Producto, RecetaProducto.producto_id == Producto.id).filter(
                 RecetaProducto.precio_venta_sugerido > 0,
                 RecetaProducto.costo_calculado > 0
             ).with_entities(
@@ -188,10 +188,10 @@ def register(app):
                 _cached = None
         if not _cached:
             try:
-                _total_clientes = Cliente.query.filter_by(estado='activo', company_id=_cid).count()
-                _ventas_completadas = Venta.query.filter_by(estado='completado', company_id=_cid).count()
-                _tareas_pendientes = Tarea.query.filter(Tarea.estado != 'completada', Tarea.company_id == _cid).count()
-                _productos_bajo = Producto.query.filter(Producto.activo==True, Producto.stock<=Producto.stock_minimo, Producto.company_id==_cid).count()
+                _total_clientes = tenant_query(Cliente).filter_by(estado='activo', company_id=_cid).count()
+                _ventas_completadas = tenant_query(Venta).filter_by(estado='completado', company_id=_cid).count()
+                _tareas_pendientes = tenant_query(Tarea).filter(Tarea.estado != 'completada', Tarea.company_id == _cid).count()
+                _productos_bajo = tenant_query(Producto).filter(Producto.activo==True, Producto.stock<=Producto.stock_minimo, Producto.company_id==_cid).count()
                 cache_set(_cache_key, _json.dumps({'c':_total_clientes,'v':_ventas_completadas,'t':_tareas_pendientes,'p':_productos_bajo}), 60)
             except Exception:
                 _total_clientes = _ventas_completadas = _tareas_pendientes = _productos_bajo = 0
@@ -199,12 +199,12 @@ def register(app):
         # ── Recent items (limit queries) ──
         _rol = _get_rol_activo(current_user)
         try:
-            _tareas_rec = Tarea.query.filter(Tarea.estado!='completada', Tarea.company_id==_cid).order_by(Tarea.creado_en.desc()).limit(5).all()
-            _ventas_rec = Venta.query.filter_by(company_id=_cid).order_by(Venta.creado_en.desc()).limit(6).all()
-            _notas_rec = Nota.query.filter_by(company_id=_cid).order_by(Nota.actualizado_en.desc()).limit(4).all()
-            _eventos_hoy = Evento.query.filter(Evento.fecha==hoy).order_by(Evento.hora_inicio).all()
-            _eventos_prox = Evento.query.filter(Evento.fecha>hoy, Evento.fecha<=hoy+timedelta(days=7)).order_by(Evento.fecha).limit(5).all()
-            _aprob = Aprobacion.query.filter_by(estado='pendiente').order_by(Aprobacion.creado_en.desc()).limit(5).all() if _rol in ('admin','director_financiero','director_operativo') else []
+            _tareas_rec = tenant_query(Tarea).filter(Tarea.estado!='completada', Tarea.company_id==_cid).order_by(Tarea.creado_en.desc()).limit(5).all()
+            _ventas_rec = tenant_query(Venta).filter_by(company_id=_cid).order_by(Venta.creado_en.desc()).limit(6).all()
+            _notas_rec = tenant_query(Nota).filter_by(company_id=_cid).order_by(Nota.actualizado_en.desc()).limit(4).all()
+            _eventos_hoy = tenant_query(Evento).filter(Evento.fecha==hoy).order_by(Evento.hora_inicio).all()
+            _eventos_prox = tenant_query(Evento).filter(Evento.fecha>hoy, Evento.fecha<=hoy+timedelta(days=7)).order_by(Evento.fecha).limit(5).all()
+            _aprob = tenant_query(Aprobacion).filter_by(estado='pendiente').order_by(Aprobacion.creado_en.desc()).limit(5).all() if _rol in ('admin','director_financiero','director_operativo') else []
         except Exception:
             _tareas_rec = _ventas_rec = _notas_rec = _eventos_hoy = _eventos_prox = _aprob = []
 
@@ -251,7 +251,7 @@ def register(app):
 
             # Cotizaciones sin respuesta (> 7 dias)
             try:
-                cots = Cotizacion.query.filter(
+                cots = tenant_query(Cotizacion).filter(
                     Cotizacion.estado == 'enviada',
                     Cotizacion.fecha_emision <= hace_7d
                 ).order_by(Cotizacion.fecha_emision).limit(10).all()
@@ -267,7 +267,7 @@ def register(app):
 
             # Ventas estancadas en negociacion (> 14 dias)
             try:
-                vest = Venta.query.filter(
+                vest = tenant_query(Venta).filter(
                     Venta.estado == 'negociacion',
                     Venta.creado_en <= datetime.combine(hace_14d, datetime.min.time())
                 ).order_by(Venta.creado_en).limit(10).all()
@@ -282,7 +282,7 @@ def register(app):
 
             # Entregas pendientes (> 30 dias)
             try:
-                epend = Venta.query.filter(
+                epend = tenant_query(Venta).filter(
                     Venta.estado.in_(['pagado']),
                     Venta.creado_en <= datetime.combine(hace_30d, datetime.min.time())
                 ).order_by(Venta.creado_en).limit(10).all()
@@ -331,7 +331,7 @@ def register(app):
             inicio = datetime(y, m, 1)
             if m == 12: fin = datetime(y+1, 1, 1)
             else:       fin = datetime(y, m+1, 1)
-            tareas_hechas = Tarea.query.filter(
+            tareas_hechas = tenant_query(Tarea).filter(
                 db.or_(Tarea.asignado_a==uid, Tarea.creado_por==uid),
                 Tarea.estado=='completada',
                 Tarea.creado_en>=inicio, Tarea.creado_en<fin
@@ -370,7 +370,7 @@ def register(app):
         ingresos_totales = db.session.query(db.func.sum(Venta.total)).filter(Venta.estado.in_(['completado','anticipo_pagado']), Venta.company_id==_cid2).scalar() or 0
         gastos_totales   = db.session.query(db.func.sum(GastoOperativo.monto)).filter(GastoOperativo.company_id==_cid2).scalar() or 0
         balance          = ingresos_totales - gastos_totales
-        total_clientes   = Cliente.query.filter_by(estado='activo', company_id=_cid2).count()
+        total_clientes   = tenant_query(Cliente).filter_by(estado='activo', company_id=_cid2).count()
         # Ventas por mes (últimos 6 meses)
         hoy = date.today()
         meses_labels, ventas_por_mes = [], []
@@ -400,7 +400,7 @@ def register(app):
             def __init__(self, r): self.id=r[0]; self.nombre=r[1]; self.empresa=r[2]; self.total_ventas=r[3]
         top_clientes = [_C(r) for r in top_q]
         # Stock bajo
-        bajo_stock = Producto.query.filter(Producto.activo==True, Producto.stock<=Producto.stock_minimo).all()
+        bajo_stock = tenant_query(Producto).filter(Producto.activo==True, Producto.stock<=Producto.stock_minimo).all()
         return render_template('reportes.html',
             total_clientes=total_clientes, ingresos_totales=ingresos_totales,
             gastos_totales=gastos_totales, balance=balance,
@@ -414,7 +414,7 @@ def register(app):
     @login_required
     def exportar_ventas():
         from flask import send_file
-        ventas = Venta.query.order_by(Venta.creado_en.desc()).all()
+        ventas = tenant_query(Venta).order_by(Venta.creado_en.desc()).all()
         headers = ['Título','Cliente','Subtotal COP','IVA COP','Total COP','% Anticipo','Anticipo COP','Saldo COP','Estado','Fecha anticipo','Días entrega','Creada']
         rows = []
         for v in ventas:
@@ -438,7 +438,7 @@ def register(app):
     @login_required
     def exportar_gastos():
         from flask import send_file
-        items = GastoOperativo.query.order_by(GastoOperativo.fecha.desc()).all()
+        items = tenant_query(GastoOperativo).order_by(GastoOperativo.fecha.desc()).all()
         headers = ['Fecha','Tipo','Descripción','Monto COP','Notas']
         rows = [[g.fecha.strftime('%d/%m/%Y'), g.tipo, g.descripcion or '', round(g.monto), g.notas or ''] for g in items]
         buf = _make_xlsx('Gastos Operativos', headers, rows)
@@ -451,7 +451,7 @@ def register(app):
     @login_required
     def exportar_inventario():
         from flask import send_file
-        items = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
+        items = tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all()
         headers = ['Nombre','SKU','NSO (INVIMA)','Precio COP','Costo COP','Stock','Stock Mínimo','Categoría']
         rows = [[p.nombre, p.sku or '', p.nso or '', round(p.precio), round(p.costo),
                  p.stock, p.stock_minimo, p.categoria or ''] for p in items]
@@ -465,7 +465,7 @@ def register(app):
     @login_required
     def exportar_clientes():
         from flask import send_file
-        items = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
+        items = tenant_query(Cliente).order_by(Cliente.empresa, Cliente.nombre).all()
         headers = ['Empresa','NIT','Relación','Dirección comercial','Dirección entrega','Estado','Creado']
         rows = [[c.empresa or '', c.nit or '', c.estado_relacion or '', c.dir_comercial or '',
                  c.dir_entrega or '', c.estado, c.creado_en.strftime('%d/%m/%Y')] for c in items]
@@ -485,7 +485,7 @@ def register(app):
         eventos = {}
         # 1. Tareas con fecha de vencimiento
         try:
-            for t in Tarea.query.filter(Tarea.fecha_vencimiento != None).all():
+            for t in tenant_query(Tarea).filter(Tarea.fecha_vencimiento != None).all():
                 k = t.fecha_vencimiento.strftime('%Y-%m-%d')
                 ref_url = url_for('tarea_ver', id=t.id)
                 desc_parts = []
@@ -512,7 +512,7 @@ def register(app):
             logging.warning(f'Calendario: tareas error: {_e}'); db.session.rollback()
         # 2. Ventas con fecha entrega estimada
         try:
-            for v in Venta.query.filter(Venta.fecha_entrega_est != None).all():
+            for v in tenant_query(Venta).filter(Venta.fecha_entrega_est != None).all():
                 k = v.fecha_entrega_est.strftime('%Y-%m-%d')
                 cliente_nom = ''
                 try:
@@ -526,7 +526,7 @@ def register(app):
             logging.warning(f'Calendario: ventas error: {_e}'); db.session.rollback()
         # 3. Eventos manuales
         try:
-            for e in Evento.query.all():
+            for e in tenant_query(Evento).all():
                 k = e.fecha.strftime('%Y-%m-%d')
                 desc = (e.descripcion[:80] if e.descripcion else '') or (e.tipo or 'Evento')
                 eventos.setdefault(k, []).append({'t':'evento','n':e.titulo,'s':e.tipo,'d':desc,'url':'','tid':e.id})
@@ -534,7 +534,7 @@ def register(app):
             logging.warning(f'Calendario: eventos error: {_e}'); db.session.rollback()
         # 4. Notas con fecha de revisión (columna nueva en v11)
         try:
-            for n in Nota.query.filter(Nota.fecha_revision != None).all():
+            for n in tenant_query(Nota).filter(Nota.fecha_revision != None).all():
                 k = n.fecha_revision.strftime('%Y-%m-%d')
                 desc = (n.contenido[:80] if n.contenido else '') or 'Revisión programada'
                 eventos.setdefault(k, []).append({'t':'nota','n':n.titulo or '(nota sin título)','s':'revision',
@@ -543,7 +543,7 @@ def register(app):
             logging.warning(f'Calendario: notas error: {_e}'); db.session.rollback()
         # 5. Productos con fecha de caducidad (columna nueva en v11)
         try:
-            for p in Producto.query.filter(Producto.fecha_caducidad != None, Producto.activo == True).all():
+            for p in tenant_query(Producto).filter(Producto.fecha_caducidad != None, Producto.activo == True).all():
                 k = p.fecha_caducidad.strftime('%Y-%m-%d')
                 desc_p = []
                 if p.sku: desc_p.append('SKU: ' + p.sku)
@@ -586,7 +586,7 @@ def register(app):
                 return redirect(url_for('calendario'))
             fecha_ev = datetime.strptime(fd, '%Y-%m-%d').date() if fd else datetime.utcnow().date()
             # Proteccion contra duplicados (mismo titulo+fecha en ultimos 5 seg)
-            dup = Evento.query.filter_by(
+            dup = tenant_query(Evento).filter_by(
                 titulo=titulo, fecha=fecha_ev, usuario_id=current_user.id
             ).first()
             if dup:
@@ -651,10 +651,10 @@ def register(app):
     @app.route('/notificaciones')
     @login_required
     def notificaciones():
-        items = Notificacion.query.filter_by(usuario_id=current_user.id)\
+        items = tenant_query(Notificacion).filter_by(usuario_id=current_user.id)\
                     .order_by(Notificacion.creado_en.desc()).limit(100).all()
         # marcar todas como leídas al abrir
-        Notificacion.query.filter_by(usuario_id=current_user.id, leida=False).update({'leida': True})
+        tenant_query(Notificacion).filter_by(usuario_id=current_user.id, leida=False).update({'leida': True})
         db.session.commit()
         return render_template('notificaciones.html', items=items)
     
@@ -663,7 +663,7 @@ def register(app):
     @app.route('/notificaciones/recientes')
     @login_required
     def notificaciones_recientes():
-        items = Notificacion.query.filter_by(usuario_id=current_user.id, leida=False)\
+        items = tenant_query(Notificacion).filter_by(usuario_id=current_user.id, leida=False)\
                     .order_by(Notificacion.creado_en.desc()).limit(10).all()
         return jsonify([{
             'id': n.id, 'tipo': n.tipo, 'titulo': n.titulo,
@@ -676,7 +676,7 @@ def register(app):
     @app.route('/notificaciones/marcar_todas', methods=['POST'])
     @login_required
     def notificaciones_marcar_todas():
-        Notificacion.query.filter_by(usuario_id=current_user.id, leida=False).update({'leida': True})
+        tenant_query(Notificacion).filter_by(usuario_id=current_user.id, leida=False).update({'leida': True})
         db.session.commit()
         flash('Todas las notificaciones marcadas como leídas.', 'success')
         return redirect(url_for('notificaciones'))
@@ -701,7 +701,7 @@ def register(app):
     def contable_ingresos():
         desde_s = request.args.get('desde','')
         hasta_s = request.args.get('hasta','')
-        q = Venta.query.filter(Venta.estado.in_(['anticipo_pagado','completado','prospecto','negociacion','perdido']))
+        q = tenant_query(Venta).filter(Venta.estado.in_(['anticipo_pagado','completado','prospecto','negociacion','perdido']))
         if desde_s:
             try: q = q.filter(db.func.date(Venta.creado_en) >= datetime.strptime(desde_s,'%Y-%m-%d').date())
             except Exception: pass
@@ -718,8 +718,8 @@ def register(app):
     def contable_egresos():
         desde_s = request.args.get('desde','')
         hasta_s = request.args.get('hasta','')
-        gastos = GastoOperativo.query
-        compras = CompraMateria.query
+        gastos = tenant_query(GastoOperativo)
+        compras = tenant_query(CompraMateria)
         if desde_s:
             try:
                 d = datetime.strptime(desde_s,'%Y-%m-%d').date()
@@ -759,7 +759,7 @@ def register(app):
             )
             db.session.add(a); db.session.flush()
             hoy = datetime.utcnow().date()
-            ultimo = AsientoContable.query.filter(
+            ultimo = tenant_query(AsientoContable).filter(
                 AsientoContable.numero.like(f'AC-{hoy.year}-%')
             ).order_by(AsientoContable.id.desc()).first()
             if ultimo and ultimo.numero:
@@ -770,7 +770,7 @@ def register(app):
             db.session.commit()
             flash(f'Asiento {a.numero} registrado.','success')
             return redirect(url_for('contable_libro_diario'))
-        asientos = AsientoContable.query.order_by(AsientoContable.fecha.desc(), AsientoContable.id.desc()).limit(100).all()
+        asientos = tenant_query(AsientoContable).order_by(AsientoContable.fecha.desc(), AsientoContable.id.desc()).limit(100).all()
         from datetime import date as _d
         return render_template('contable/libro_diario.html', asientos=asientos, today=_d.today().strftime('%Y-%m-%d'))
     
@@ -787,7 +787,7 @@ def register(app):
         writer = csv.writer(si)
         if tipo == 'ventas':
             writer.writerow(['Numero','Titulo','Cliente','Fecha','Estado','Subtotal','IVA','Total','Anticipo','Saldo'])
-            q = Venta.query
+            q = tenant_query(Venta)
             if desde_s:
                 try: q = q.filter(db.func.date(Venta.creado_en) >= datetime.strptime(desde_s,'%Y-%m-%d').date())
                 except Exception: pass
@@ -801,7 +801,7 @@ def register(app):
                     v.subtotal, v.iva, v.total, v.monto_anticipo, v.saldo])
         elif tipo == 'gastos':
             writer.writerow(['Fecha','Tipo','Descripcion','Monto','Recurrencia'])
-            q = GastoOperativo.query
+            q = tenant_query(GastoOperativo)
             if desde_s:
                 try: q = q.filter(GastoOperativo.fecha >= datetime.strptime(desde_s,'%Y-%m-%d').date())
                 except Exception: pass
@@ -812,7 +812,7 @@ def register(app):
                 writer.writerow([g.fecha.strftime('%Y-%m-%d'), g.tipo, g.descripcion or '', g.monto, g.recurrencia])
         elif tipo == 'compras':
             writer.writerow(['Fecha','Item','Proveedor','Cantidad','Unidad','Costo Total','Factura'])
-            q = CompraMateria.query
+            q = tenant_query(CompraMateria)
             if desde_s:
                 try: q = q.filter(CompraMateria.fecha >= datetime.strptime(desde_s,'%Y-%m-%d').date())
                 except Exception: pass
@@ -824,7 +824,7 @@ def register(app):
                     c.cantidad, c.unidad, c.costo_total, c.nro_factura or ''])
         elif tipo == 'asientos':
             writer.writerow(['Numero','Fecha','Descripcion','Tipo','Referencia','Debe','Haber','Cuenta Debe','Cuenta Haber'])
-            for a in AsientoContable.query.order_by(AsientoContable.fecha).all():
+            for a in tenant_query(AsientoContable).order_by(AsientoContable.fecha).all():
                 writer.writerow([a.numero or '', a.fecha.strftime('%Y-%m-%d'), a.descripcion,
                     a.tipo, a.referencia or '', a.debe, a.haber, a.cuenta_debe or '', a.cuenta_haber or ''])
         output = si.getvalue()
@@ -842,33 +842,33 @@ def register(app):
         if q:
             like = f'%{q}%'
             try:
-                resultados['clientes'] = Cliente.query.filter(
+                resultados['clientes'] = tenant_query(Cliente).filter(
                     db.or_(Cliente.nombre.ilike(like), Cliente.empresa.ilike(like), Cliente.nit.ilike(like))
                 ).limit(20).all()
             except Exception: resultados['clientes'] = []
             try:
-                resultados['proveedores'] = Proveedor.query.filter(
+                resultados['proveedores'] = tenant_query(Proveedor).filter(
                     db.or_(Proveedor.nombre.ilike(like), Proveedor.empresa.ilike(like), Proveedor.nit.ilike(like))
                 ).limit(20).all()
             except Exception: resultados['proveedores'] = []
             try:
-                resultados['productos'] = Producto.query.filter(
+                resultados['productos'] = tenant_query(Producto).filter(
                     db.or_(Producto.nombre.ilike(like), Producto.sku.ilike(like), Producto.nso.ilike(like))
                 ).filter_by(activo=True).limit(20).all()
             except Exception: resultados['productos'] = []
             try:
-                resultados['ventas'] = Venta.query.filter(
+                resultados['ventas'] = tenant_query(Venta).filter(
                     db.or_(Venta.titulo.ilike(like), Venta.numero.ilike(like))
                 ).limit(20).all()
             except Exception: resultados['ventas'] = []
             try:
-                resultados['ordenes_prod'] = OrdenProduccion.query.join(Producto).filter(
+                resultados['ordenes_prod'] = tenant_query(OrdenProduccion).join(Producto).filter(
                     db.or_(Producto.nombre.ilike(like),
                            db.cast(OrdenProduccion.id, db.String).ilike(like))
                 ).limit(20).all()
             except Exception: resultados['ordenes_prod'] = []
             try:
-                resultados['ordenes_compra'] = OrdenCompra.query.filter(
+                resultados['ordenes_compra'] = tenant_query(OrdenCompra).filter(
                     OrdenCompra.numero.ilike(like)
                 ).limit(20).all()
             except Exception: resultados['ordenes_compra'] = []

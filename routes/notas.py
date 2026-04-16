@@ -3,7 +3,7 @@ from flask import render_template, redirect, url_for, flash, request, \
                   jsonify, send_file, make_response, current_app, g
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
-from extensions import db
+from extensions import db, tenant_query
 from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
@@ -22,7 +22,7 @@ def register(app):
         oc_f = request.args.get('orden_compra_id','')
         venta_f = request.args.get('venta_id','')
         try:
-            q = Nota.query
+            q = tenant_query(Nota)
             if cliente_f: q = q.filter_by(cliente_id=int(cliente_f))
             # Filtros v36 — proteger contra columnas faltantes en DB legacy
             try:
@@ -35,11 +35,11 @@ def register(app):
             items = q.order_by(Nota.actualizado_en.desc()).all()
         except Exception as e:
             logging.warning(f'notas: query error (posible columna faltante): {e}')
-            items = Nota.query.order_by(Nota.creado_en.desc()).all()
+            items = tenant_query(Nota).order_by(Nota.creado_en.desc()).all()
         return render_template('notas/index.html',
             items=items,
-            clientes_list=Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all(),
-            productos_list=Producto.query.filter_by(activo=True).order_by(Producto.nombre).all(),
+            clientes_list=tenant_query(Cliente).order_by(Cliente.empresa, Cliente.nombre).all(),
+            productos_list=tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all(),
             cliente_f=cliente_f, tipo_f=tipo_f, estado_f=estado_f)
 
 
@@ -48,15 +48,15 @@ def register(app):
     @login_required
     @requiere_modulo('notas')
     def nota_nueva():
-        cl = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
-        pl = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
-        provs = Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all()
+        cl = tenant_query(Cliente).order_by(Cliente.empresa, Cliente.nombre).all()
+        pl = tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all()
+        provs = tenant_query(Proveedor).filter_by(activo=True).order_by(Proveedor.empresa).all()
         try:
-            ocs = OrdenCompra.query.filter(OrdenCompra.estado != 'cancelada').order_by(OrdenCompra.creado_en.desc()).limit(20).all()
+            ocs = tenant_query(OrdenCompra).filter(OrdenCompra.estado != 'cancelada').order_by(OrdenCompra.creado_en.desc()).limit(20).all()
         except Exception:
             ocs = []
         try:
-            ventas = Venta.query.filter(Venta.estado != 'cancelado').order_by(Venta.creado_en.desc()).limit(20).all()
+            ventas = tenant_query(Venta).filter(Venta.estado != 'cancelado').order_by(Venta.creado_en.desc()).limit(20).all()
         except Exception:
             ventas = []
         if request.method == 'POST':
@@ -96,15 +96,15 @@ def register(app):
     @requiere_modulo('notas')
     def nota_editar(id):
         obj = Nota.query.get_or_404(id)
-        cl  = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
-        pl  = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
-        provs = Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all()
+        cl  = tenant_query(Cliente).order_by(Cliente.empresa, Cliente.nombre).all()
+        pl  = tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all()
+        provs = tenant_query(Proveedor).filter_by(activo=True).order_by(Proveedor.empresa).all()
         try:
-            ocs = OrdenCompra.query.filter(OrdenCompra.estado != 'cancelada').order_by(OrdenCompra.creado_en.desc()).limit(20).all()
+            ocs = tenant_query(OrdenCompra).filter(OrdenCompra.estado != 'cancelada').order_by(OrdenCompra.creado_en.desc()).limit(20).all()
         except Exception:
             ocs = []
         try:
-            ventas = Venta.query.filter(Venta.estado != 'cancelado').order_by(Venta.creado_en.desc()).limit(20).all()
+            ventas = tenant_query(Venta).filter(Venta.estado != 'cancelado').order_by(Venta.creado_en.desc()).limit(20).all()
         except Exception:
             ventas = []
         if request.method == 'POST':

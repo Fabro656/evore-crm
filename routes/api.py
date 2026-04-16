@@ -3,7 +3,7 @@ from flask import (render_template, redirect, url_for, flash, request,
                    jsonify, send_file, make_response, current_app)
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
-from extensions import db
+from extensions import db, tenant_query
 from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
@@ -40,7 +40,7 @@ def register(app):
         like = f'%{q}%'
         results = []
         try:
-            for c in Cliente.query.filter(
+            for c in tenant_query(Cliente).filter(
                 db.or_(Cliente.nombre.ilike(like), Cliente.empresa.ilike(like), Cliente.nit.ilike(like))
             ).limit(6).all():
                 results.append({'type':'Cliente','icon':'people-fill','color':'#0052CC',
@@ -49,7 +49,7 @@ def register(app):
         except Exception as _e:
             logging.warning(f'search clientes: {_e}')
         try:
-            for p in Proveedor.query.filter(
+            for p in tenant_query(Proveedor).filter(
                 db.or_(Proveedor.nombre.ilike(like), Proveedor.empresa.ilike(like), Proveedor.nit.ilike(like))
             ).limit(4).all():
                 results.append({'type':'Proveedor','icon':'truck','color':'#00875A',
@@ -58,7 +58,7 @@ def register(app):
         except Exception as _e:
             logging.warning(f'search proveedores: {_e}')
         try:
-            for pr in Producto.query.filter(
+            for pr in tenant_query(Producto).filter(
                 db.or_(Producto.nombre.ilike(like), Producto.sku.ilike(like))
             ).filter_by(activo=True).limit(4).all():
                 results.append({'type':'Producto','icon':'box-seam-fill','color':'#FF8B00',
@@ -67,7 +67,7 @@ def register(app):
         except Exception as _e:
             logging.warning(f'search productos: {_e}')
         try:
-            for v in Venta.query.filter(
+            for v in tenant_query(Venta).filter(
                 db.or_(Venta.titulo.ilike(like), Venta.numero.ilike(like))
             ).limit(4).all():
                 results.append({'type':'Venta','icon':'graph-up-arrow','color':'#36B37E',
@@ -76,14 +76,14 @@ def register(app):
         except Exception as _e:
             logging.warning(f'search ventas: {_e}')
         try:
-            for oc in OrdenCompra.query.filter(OrdenCompra.numero.ilike(like)).limit(3).all():
+            for oc in tenant_query(OrdenCompra).filter(OrdenCompra.numero.ilike(like)).limit(3).all():
                 results.append({'type':'OC','icon':'cart-check','color':'#6554C0',
                     'label': oc.numero or f'OC #{oc.id}', 'sub': oc.estado or '',
                     'url': '/ordenes_compra/'+str(oc.id)})
         except Exception as _e:
             logging.warning(f'search ordenes_compra: {_e}')
         try:
-            for e in Empleado.query.filter(
+            for e in tenant_query(Empleado).filter(
                 db.or_(Empleado.nombre.ilike(like), Empleado.apellido.ilike(like))
             ).limit(3).all():
                 results.append({'type':'Empleado','icon':'person-badge','color':'#EC4899',
@@ -92,7 +92,7 @@ def register(app):
         except Exception as _e:
             logging.warning(f'search empleados: {_e}')
         try:
-            for cot in Cotizacion.query.filter(
+            for cot in tenant_query(Cotizacion).filter(
                 db.or_(Cotizacion.numero.ilike(like), Cotizacion.titulo.ilike(like))
             ).limit(3).all():
                 results.append({'type':'Cotizacion','icon':'file-earmark-text','color':'#F59E0B',
@@ -159,8 +159,8 @@ def register(app):
             'company': COMPANY['name'],
             'country': COMPANY['country'],
             'users': User.query.count(),
-            'clientes': Cliente.query.count(),
-            'productos': Producto.query.count(),
+            'clientes': tenant_query(Cliente).count(),
+            'productos': tenant_query(Producto).count(),
         })
 
     @app.route('/api/transportistas/capacidad')
@@ -170,7 +170,7 @@ def register(app):
         if _check_api_rate(request.remote_addr): return jsonify({'error':'rate limit'}), 429
         peso_kg = float(request.args.get('peso', 0) or 0)
         volumen_m3 = float(request.args.get('volumen', 0) or 0)
-        q = Proveedor.query.filter_by(tipo='transportista', activo=True)
+        q = tenant_query(Proveedor).filter_by(tipo='transportista', activo=True)
         if peso_kg > 0:
             q = q.filter(Proveedor.capacidad_vehiculo_kg >= peso_kg)
         if volumen_m3 > 0:
@@ -212,8 +212,8 @@ def register(app):
         except Exception as e:
             atencion.append({'msg': 'Error consultando usuarios', 'detalle': str(e)})
         try:
-            total_prod = Producto.query.filter_by(activo=True).count()
-            stock_bajo = Producto.query.filter(
+            total_prod = tenant_query(Producto).filter_by(activo=True).count()
+            stock_bajo = tenant_query(Producto).filter(
                 Producto.activo==True, Producto.stock_cantidad < 10
             ).count()
             if stock_bajo > 0:
@@ -225,7 +225,7 @@ def register(app):
         try:
             hoy = datetime.utcnow().date()
             prox = hoy + timedelta(days=30)
-            venc = LoteProducto.query.filter(
+            venc = tenant_query(LoteProducto).filter(
                 LoteProducto.fecha_vencimiento != None,
                 LoteProducto.fecha_vencimiento <= prox
             ).count()
@@ -236,7 +236,7 @@ def register(app):
         except Exception as e:
             atencion.append({'msg': 'No se pudieron revisar lotes', 'detalle': str(e)})
         try:
-            notif_pend = Notificacion.query.filter_by(leida=False).count()
+            notif_pend = tenant_query(Notificacion).filter_by(leida=False).count()
             if notif_pend > 20:
                 atencion.append({'msg': f'{notif_pend} notificaciones sin leer en el sistema', 'detalle': ''})
             else:
@@ -244,7 +244,7 @@ def register(app):
         except Exception as e:
             atencion.append({'msg': 'Error en notificaciones', 'detalle': str(e)})
         try:
-            tareas_vencidas = Tarea.query.filter(
+            tareas_vencidas = tenant_query(Tarea).filter(
                 Tarea.fecha_vencimiento < datetime.utcnow().date(),
                 Tarea.estado.notin_(['completada','cancelada'])
             ).count()
@@ -255,7 +255,7 @@ def register(app):
         except Exception as e:
             atencion.append({'msg': 'Error consultando tareas', 'detalle': str(e)})
         try:
-            materias_bajo = MateriaPrima.query.filter(
+            materias_bajo = tenant_query(MateriaPrima).filter(
                 MateriaPrima.activo==True,
                 MateriaPrima.stock_disponible < MateriaPrima.stock_minimo
             ).count()
@@ -274,7 +274,7 @@ def register(app):
         if _check_api_rate(request.remote_addr):
             return jsonify({'error': 'rate limit'}), 429
         try:
-            count = Notificacion.query.filter_by(usuario_id=current_user.id, leida=False).count()
+            count = tenant_query(Notificacion).filter_by(usuario_id=current_user.id, leida=False).count()
             return jsonify({'count': count})
         except Exception:
             return jsonify({'count': 0})

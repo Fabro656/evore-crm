@@ -38,7 +38,7 @@ def register(app):
             meses_nav.append({'val': d.strftime('%Y-%m'), 'lbl': d.strftime('%b %Y')})
 
         # ── Ingresos: ventas pagadas del mes ──────────────────────────────────
-        ventas_mes = Venta.query.filter(
+        ventas_mes = tenant_query(Venta).filter(
             Venta.estado.in_(['pagado', 'anticipo_pagado', 'completado']),
             db.func.date(Venta.creado_en) >= mes_ini,
             db.func.date(Venta.creado_en) <= mes_fin
@@ -48,7 +48,7 @@ def register(app):
 
         # Asientos manuales de ingreso del mes (excluyendo inversiones de socio)
         try:
-            asientos_ingreso = AsientoContable.query.filter(
+            asientos_ingreso = tenant_query(AsientoContable).filter(
                 AsientoContable.clasificacion == 'ingreso',
                 AsientoContable.tipo != 'inversion_socio',  # Excluir aportaciones de capital
                 AsientoContable.fecha >= mes_ini,
@@ -63,7 +63,7 @@ def register(app):
         # NOTA: _save_compra() crea GastoOperativo automáticamente por cada compra,
         # por lo tanto NO sumamos CompraMateria por separado para evitar doble conteo.
         try:
-            gastos_mes = GastoOperativo.query.filter(
+            gastos_mes = tenant_query(GastoOperativo).filter(
                 GastoOperativo.fecha >= mes_ini,
                 GastoOperativo.fecha <= mes_fin
             ).all()
@@ -73,7 +73,7 @@ def register(app):
 
         # Compras del mes (solo para desglose visual, NO sumadas en egresos)
         try:
-            compras_mes = CompraMateria.query.filter(
+            compras_mes = tenant_query(CompraMateria).filter(
                 CompraMateria.fecha >= mes_ini,
                 CompraMateria.fecha <= mes_fin
             ).all()
@@ -92,7 +92,7 @@ def register(app):
         utilidad_neta = utilidad - total_impuestos
 
         # ── Cuentas por cobrar ────────────────────────────────────────────────
-        cxc = Venta.query.filter(
+        cxc = tenant_query(Venta).filter(
             Venta.saldo > 0,
             Venta.estado.in_(['prospecto', 'negociacion', 'anticipo_pagado'])
         ).all()
@@ -102,7 +102,7 @@ def register(app):
         try:
             inventario_valor = sum(
                 (p.stock or 0) * (p.costo or 0)
-                for p in Producto.query.filter_by(activo=True).all()
+                for p in tenant_query(Producto).filter_by(activo=True).all()
             )
         except Exception:
             inventario_valor = 0
@@ -194,7 +194,7 @@ def register(app):
         # Stats del mes actual
         mes_ini = date_type.today().replace(day=1)
         try:
-            mes_totals = AsientoContable.query.filter(AsientoContable.fecha >= mes_ini).with_entities(
+            mes_totals = tenant_query(AsientoContable).filter(AsientoContable.fecha >= mes_ini).with_entities(
                 sa_func.sum(db.case((AsientoContable.clasificacion == 'ingreso', AsientoContable.haber), else_=0)),
                 sa_func.sum(db.case((AsientoContable.clasificacion == 'egreso', AsientoContable.debe), else_=0))
             ).first()
@@ -219,7 +219,7 @@ def register(app):
     @login_required
     @requiere_modulo('finanzas')
     def contable_asientos_export_csv():
-        asientos = AsientoContable.query.order_by(AsientoContable.fecha.desc()).all()
+        asientos = tenant_query(AsientoContable).order_by(AsientoContable.fecha.desc()).all()
         rows = []
         for a in asientos:
             fecha = a.fecha.strftime('%d/%m/%Y') if a.fecha else ''
@@ -283,7 +283,7 @@ def register(app):
                 fecha_pago  = None
 
             # Número automático
-            ultimo  = AsientoContable.query.order_by(AsientoContable.id.desc()).first()
+            ultimo  = tenant_query(AsientoContable).order_by(AsientoContable.id.desc()).first()
             n_ac    = (ultimo.id + 1) if ultimo else 1
             numero  = f'AC-{fecha_obj.year}-{n_ac:04d}'
 
@@ -310,9 +310,9 @@ def register(app):
             flash(f'Asiento {numero} creado correctamente.', 'success')
             return redirect(url_for('contable_asientos'))
 
-        ventas     = Venta.query.order_by(Venta.creado_en.desc()).limit(100).all()
-        proveedores = Proveedor.query.filter_by(activo=True).order_by(Proveedor.nombre).all() if hasattr(Proveedor, 'activo') else Proveedor.query.order_by(Proveedor.nombre).all()
-        ordenes_compra = OrdenCompra.query.filter(OrdenCompra.estado != 'cancelada').order_by(OrdenCompra.creado_en.desc()).limit(50).all()
+        ventas     = tenant_query(Venta).order_by(Venta.creado_en.desc()).limit(100).all()
+        proveedores = tenant_query(Proveedor).filter_by(activo=True).order_by(Proveedor.nombre).all() if hasattr(Proveedor, 'activo') else tenant_query(Proveedor).order_by(Proveedor.nombre).all()
+        ordenes_compra = tenant_query(OrdenCompra).filter(OrdenCompra.estado != 'cancelada').order_by(OrdenCompra.creado_en.desc()).limit(50).all()
         return render_template('contable/asiento_form.html',
             obj=None, ventas=ventas, proveedores=proveedores,
             ordenes_compra=ordenes_compra,
@@ -385,9 +385,9 @@ def register(app):
             flash(f'Asiento {asiento.numero} actualizado.', 'success')
             return redirect(url_for('contable_asientos'))
 
-        ventas     = Venta.query.order_by(Venta.creado_en.desc()).limit(100).all()
-        proveedores = Proveedor.query.order_by(Proveedor.nombre).all()
-        ordenes_compra = OrdenCompra.query.filter(OrdenCompra.estado != 'cancelada').order_by(OrdenCompra.creado_en.desc()).limit(50).all()
+        ventas     = tenant_query(Venta).order_by(Venta.creado_en.desc()).limit(100).all()
+        proveedores = tenant_query(Proveedor).order_by(Proveedor.nombre).all()
+        ordenes_compra = tenant_query(OrdenCompra).filter(OrdenCompra.estado != 'cancelada').order_by(OrdenCompra.creado_en.desc()).limit(50).all()
         return render_template('contable/asiento_form.html',
             obj=asiento, ventas=ventas, proveedores=proveedores,
             ordenes_compra=ordenes_compra,
@@ -884,7 +884,7 @@ def register(app):
 
         if request.method == 'POST':
             # Marcar todos los asientos del periodo como aprobados
-            asientos_periodo = AsientoContable.query.filter(
+            asientos_periodo = tenant_query(AsientoContable).filter(
                 AsientoContable.fecha >= mes_ini,
                 AsientoContable.fecha <= mes_fin,
                 AsientoContable.estado_asiento != 'anulado'
@@ -900,7 +900,7 @@ def register(app):
             return redirect(url_for('contable_cierre_periodo', periodo=periodo))
 
         # Estadisticas del periodo
-        asientos = AsientoContable.query.filter(
+        asientos = tenant_query(AsientoContable).filter(
             AsientoContable.fecha >= mes_ini,
             AsientoContable.fecha <= mes_fin,
             AsientoContable.estado_asiento != 'anulado'
@@ -934,14 +934,14 @@ def register(app):
         mes_fin = date_type(anio, mes, monthrange(anio, mes)[1])
 
         # IVA generado: IVA de ventas del periodo
-        ventas_periodo = Venta.query.filter(
+        ventas_periodo = tenant_query(Venta).filter(
             Venta.creado_en >= datetime(anio, mes, 1),
             Venta.estado.in_(['anticipo_pagado', 'pagado', 'completado'])
         ).all()
         iva_generado = sum(float(v.iva or 0) for v in ventas_periodo)
 
         # IVA descontable: IVA de compras (OC) del periodo
-        ocs_periodo = OrdenCompra.query.filter(
+        ocs_periodo = tenant_query(OrdenCompra).filter(
             OrdenCompra.fecha_emision >= mes_ini,
             OrdenCompra.fecha_emision <= mes_fin,
             OrdenCompra.estado.notin_(['cancelada'])
@@ -972,7 +972,7 @@ def register(app):
         mes_fin = date_type(anio, mes, monthrange(anio, mes)[1])
 
         # Compras del periodo para calcular retenciones
-        compras = CompraMateria.query.filter(
+        compras = tenant_query(CompraMateria).filter(
             CompraMateria.fecha >= mes_ini,
             CompraMateria.fecha <= mes_fin
         ).all()
@@ -998,7 +998,7 @@ def register(app):
                 })
 
         # Gastos del periodo
-        gastos = GastoOperativo.query.filter(
+        gastos = tenant_query(GastoOperativo).filter(
             GastoOperativo.fecha >= mes_ini,
             GastoOperativo.fecha <= mes_fin
         ).all()
@@ -1061,7 +1061,7 @@ def register(app):
         bancos = [r[0] for r in db.session.query(MovimientoBancario.banco).distinct().all() if r[0]]
 
         # Asientos sin conciliar para el dropdown de match manual
-        asientos_disponibles = AsientoContable.query.filter(
+        asientos_disponibles = tenant_query(AsientoContable).filter(
             ~AsientoContable.id.in_(
                 db.session.query(MovimientoBancario.asiento_id).filter(
                     MovimientoBancario.asiento_id != None
@@ -1220,7 +1220,7 @@ def register(app):
             clasificacion_buscada = 'egreso' if mov.tipo == 'debito' else 'ingreso'
 
             # Buscar asiento con mismo monto y fecha cercana que no esté ya vinculado
-            candidatos = AsientoContable.query.filter(
+            candidatos = tenant_query(AsientoContable).filter(
                 AsientoContable.clasificacion == clasificacion_buscada,
                 AsientoContable.fecha >= fecha_min,
                 AsientoContable.fecha <= fecha_max,
@@ -1302,7 +1302,7 @@ def register(app):
         saldo_final   = 0.0
 
         if tercero:
-            q = AsientoContable.query.filter(
+            q = tenant_query(AsientoContable).filter(
                 db.or_(
                     AsientoContable.tercero_nit.ilike(f'%{tercero}%'),
                     AsientoContable.tercero_nombre.ilike(f'%{tercero}%')
@@ -1386,7 +1386,7 @@ def register(app):
 
         # Consultar asientos en el rango
         try:
-            asientos = AsientoContable.query.filter(
+            asientos = tenant_query(AsientoContable).filter(
                 AsientoContable.fecha >= desde,
                 AsientoContable.fecha <= hasta
             ).order_by(AsientoContable.fecha).all()
@@ -1455,7 +1455,7 @@ def register(app):
     @requiere_modulo('finanzas')
     def contable_certificado_retencion():
         """Formulario para seleccionar proveedor y año y generar el certificado."""
-        proveedores = Proveedor.query.filter_by(activo=True).order_by(Proveedor.nombre).all()
+        proveedores = tenant_query(Proveedor).filter_by(activo=True).order_by(Proveedor.nombre).all()
         anios = list(range(2024, date_type.today().year + 1))
         return render_template('contable/certificado_retencion.html',
             proveedores=proveedores,
@@ -1489,7 +1489,7 @@ def register(app):
         fecha_fin = date_type(anio, 12, 31)
 
         # Asientos contables del proveedor en el año (sin anulados)
-        asientos = AsientoContable.query.filter(
+        asientos = tenant_query(AsientoContable).filter(
             AsientoContable.proveedor_id == proveedor_id_int,
             AsientoContable.fecha >= fecha_ini,
             AsientoContable.fecha <= fecha_fin,
@@ -1559,7 +1559,7 @@ def register(app):
         }
 
         return render_template('contable/certificado_retencion.html',
-            proveedores=Proveedor.query.filter_by(activo=True).order_by(Proveedor.nombre).all(),
+            proveedores=tenant_query(Proveedor).filter_by(activo=True).order_by(Proveedor.nombre).all(),
             anios=list(range(2024, date_type.today().year + 1)),
             proveedor_sel=proveedor,
             datos=datos)
@@ -1662,7 +1662,7 @@ def register(app):
                 debe_val  = 0.0
                 haber_val = monto
 
-            ultimo_ac = AsientoContable.query.order_by(AsientoContable.id.desc()).first()
+            ultimo_ac = tenant_query(AsientoContable).order_by(AsientoContable.id.desc()).first()
             n_ac      = (ultimo_ac.id + 1) if ultimo_ac else 1
             numero_ac = f'AC-{fecha_obj.year}-{n_ac:04d}'
 
@@ -1703,7 +1703,7 @@ def register(app):
             flash(f'Nota {numero} creada correctamente.', 'success')
             return redirect(url_for('contable_notas'))
 
-        ventas = Venta.query.filter(
+        ventas = tenant_query(Venta).filter(
             Venta.estado.in_(['anticipo_pagado', 'pagado', 'entregado', 'completado'])
         ).order_by(Venta.creado_en.desc()).limit(200).all()
 

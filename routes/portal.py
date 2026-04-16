@@ -3,7 +3,7 @@ from flask import render_template, redirect, url_for, flash, request, \
                   jsonify, send_file, make_response, current_app, g
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
-from extensions import db
+from extensions import db, tenant_query
 from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
@@ -28,7 +28,7 @@ def register(app):
         page = request.args.get('page', 1, type=int)
         per_page = 20
 
-        q_ventas = Venta.query.filter_by(cliente_id=cliente.id)
+        q_ventas = tenant_query(Venta).filter_by(cliente_id=cliente.id)
         if buscar:
             like_term = f'%{buscar}%'
             q_ventas = q_ventas.filter(db.or_(
@@ -46,9 +46,9 @@ def register(app):
         # Distinct estados for filter dropdown
         estados_ventas = [r[0] for r in db.session.query(Venta.estado).filter_by(cliente_id=cliente.id).distinct().order_by(Venta.estado).all()]
 
-        cotizaciones = Cotizacion.query.filter_by(cliente_id=cliente.id).order_by(Cotizacion.creado_en.desc()).limit(20).all()
-        pre_cots = PreCotizacion.query.filter_by(cliente_id=cliente.id).order_by(PreCotizacion.creado_en.desc()).limit(10).all()
-        mensajes = Tarea.query.filter(Tarea.titulo.like('[Mensaje]%'),
+        cotizaciones = tenant_query(Cotizacion).filter_by(cliente_id=cliente.id).order_by(Cotizacion.creado_en.desc()).limit(20).all()
+        pre_cots = Pretenant_query(Cotizacion).filter_by(cliente_id=cliente.id).order_by(PreCotizacion.creado_en.desc()).limit(10).all()
+        mensajes = tenant_query(Tarea).filter(Tarea.titulo.like('[Mensaje]%'),
                                       db.or_(Tarea.creado_por==current_user.id,
                                              Tarea.asignado_a==cliente.sales_manager_id)).order_by(Tarea.creado_en.desc()).limit(50).all()
         sales_manager_user = db.session.get(User, cliente.sales_manager_id) if cliente.sales_manager_id else User.query.filter_by(rol='admin', activo=True).first()
@@ -96,7 +96,7 @@ def register(app):
         if _get_rol_activo(current_user) != 'cliente': return redirect(url_for('dashboard'))
         cliente = db.session.get(Cliente, current_user.cliente_id) if current_user.cliente_id else None
         if not cliente: return redirect(url_for('portal_cliente'))
-        docs = DocumentoLegal.query.filter(
+        docs = tenant_query(DocumentoLegal).filter(
             DocumentoLegal.activo == True,
             db.or_(DocumentoLegal.cliente_id == cliente.id, DocumentoLegal.tipo_entidad == 'empresa')
         ).order_by(DocumentoLegal.creado_en.desc()).all()
@@ -227,7 +227,7 @@ def register(app):
             iva = round(subtotal_total * 0.19, 2)
             total = subtotal_total + iva
             # Count pre-cots for numero
-            cnt = PreCotizacion.query.count() + 1
+            cnt = Pretenant_query(Cotizacion).count() + 1
             pc = PreCotizacion(
                 numero=f'PC-{cnt:04d}',
                 cliente_id=cliente.id,
@@ -362,7 +362,7 @@ def register(app):
             return redirect(url_for('portal_manager_revisar', id=id))
 
         # Verificar que no exista ya una cotización para esta pre-cot
-        cot_existente = Cotizacion.query.filter_by(
+        cot_existente = tenant_query(Cotizacion).filter_by(
             cliente_id=pc.cliente_id,
             titulo=f'Pre-cotización {pc.numero}'
         ).first()
@@ -373,7 +373,7 @@ def register(app):
         # Generar número COT-YYYY-NNN
         from datetime import date as date_t
         hoy = date_t.today()
-        ultimo = Cotizacion.query.filter(
+        ultimo = tenant_query(Cotizacion).filter(
             Cotizacion.numero.like(f'COT-{hoy.year}-%')
         ).order_by(Cotizacion.id.desc()).first()
         if ultimo and ultimo.numero:
@@ -433,8 +433,8 @@ def register(app):
         if not prov:
             flash('Tu cuenta no está vinculada a una empresa proveedora.', 'warning')
             return render_template('portal/proveedor_sin_empresa.html')
-        ordenes = OrdenCompra.query.filter_by(proveedor_id=prov.id).order_by(OrdenCompra.creado_en.desc()).limit(30).all()
-        cotizaciones = CotizacionProveedor.query.filter_by(proveedor_id=prov.id).order_by(CotizacionProveedor.creado_en.desc()).limit(20).all()
+        ordenes = tenant_query(OrdenCompra).filter_by(proveedor_id=prov.id).order_by(OrdenCompra.creado_en.desc()).limit(30).all()
+        cotizaciones = Cotizaciontenant_query(Proveedor).filter_by(proveedor_id=prov.id).order_by(CotizacionProveedor.creado_en.desc()).limit(20).all()
         return render_template('portal/proveedor_index.html', prov=prov,
                                ordenes=ordenes, cotizaciones=cotizaciones)
     
@@ -513,7 +513,7 @@ def register(app):
         if _get_rol_activo(current_user) != 'proveedor': return redirect(url_for('dashboard'))
         prov = db.session.get(Proveedor, current_user.proveedor_id) if current_user.proveedor_id else None
         if not prov: return redirect(url_for('portal_proveedor'))
-        docs = DocumentoLegal.query.filter(
+        docs = tenant_query(DocumentoLegal).filter(
             DocumentoLegal.activo == True,
             db.or_(DocumentoLegal.proveedor_id == prov.id, DocumentoLegal.tipo_entidad == 'empresa')
         ).order_by(DocumentoLegal.creado_en.desc()).all()
@@ -602,7 +602,7 @@ def register(app):
                 if cotprov and cotprov.plazo_entrega_dias:
                     oc.fecha_esperada = oc.fecha_anticipo_real + timedelta(days=cotprov.plazo_entrega_dias)
             # Sincronizar con AsientoContable vinculado
-            asiento = AsientoContable.query.filter_by(orden_compra_id=oc.id).first()
+            asiento = tenant_query(AsientoContable).filter_by(orden_compra_id=oc.id).first()
             if asiento and asiento.estado_pago in ('parcial', 'completo'):
                 asiento.notas = (asiento.notas or '') + f'\nProveedor confirmó recepción de anticipo el {datetime.utcnow().strftime("%d/%m/%Y %H:%M")}.'
             # Notificar al equipo

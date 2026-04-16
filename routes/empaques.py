@@ -1,7 +1,7 @@
 # routes/empaques.py — Módulo Empaques Secundarios v30
 from flask import render_template, redirect, url_for, flash, request, jsonify, current_app, session as flask_session, g
 from flask_login import login_required, current_user
-from extensions import db
+from extensions import db, tenant_query
 from models import *
 from utils import *
 from datetime import datetime
@@ -14,7 +14,7 @@ def register(app):
     @login_required
     def calculadora_envio():
         """Calculadora de costo de envio independiente."""
-        transportistas = Proveedor.query.filter(
+        transportistas = tenant_query(Proveedor).filter(
             Proveedor.activo == True,
             Proveedor.tipo.in_(['transportista', 'ambos'])
         ).order_by(Proveedor.empresa).all()
@@ -25,7 +25,7 @@ def register(app):
                       for t in transportistas]
         try:
             cotizaciones_envio = []
-            for c in Cotizacion.query.filter(Cotizacion.estado.in_(['enviada','aprobada'])).order_by(Cotizacion.fecha_emision.desc()).limit(20).all():
+            for c in tenant_query(Cotizacion).filter(Cotizacion.estado.in_(['enviada','aprobada'])).order_by(Cotizacion.fecha_emision.desc()).limit(20).all():
                 total_qty = sum(i.cantidad or 0 for i in c.items) if c.items else 0
                 if total_qty > 0:
                     cotizaciones_envio.append({'id': c.id, 'numero': c.numero, 'titulo': c.titulo or '', 'total_qty': int(total_qty)})
@@ -33,13 +33,13 @@ def register(app):
             cotizaciones_envio = []
         try:
             ventas_envio = []
-            for v in Venta.query.filter(Venta.estado.in_(['anticipo_pagado','pagado'])).order_by(Venta.creado_en.desc()).limit(20).all():
+            for v in tenant_query(Venta).filter(Venta.estado.in_(['anticipo_pagado','pagado'])).order_by(Venta.creado_en.desc()).limit(20).all():
                 total_qty = sum(i.cantidad or 0 for i in v.items) if v.items else 0
                 if total_qty > 0:
                     ventas_envio.append({'id': v.id, 'numero': v.numero, 'titulo': v.titulo or '', 'total_qty': int(total_qty)})
         except Exception:
             ventas_envio = []
-        empaques = EmpaqueSecundario.query.join(Producto).order_by(Producto.nombre).all()
+        empaques = tenant_query(EmpaqueSecundario).join(Producto).order_by(Producto.nombre).all()
         return render_template('empaques/calculadora.html',
                                transportistas_json=trans_json,
                                cotizaciones_envio=cotizaciones_envio,
@@ -75,10 +75,10 @@ def register(app):
     @requiere_modulo('produccion')
     def empaques():
         """Lista todos los empaques secundarios con calculadora inline."""
-        items = EmpaqueSecundario.query.join(Producto).order_by(Producto.nombre).all()
-        productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
+        items = tenant_query(EmpaqueSecundario).join(Producto).order_by(Producto.nombre).all()
+        productos = tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all()
         # Transportistas para simulador logístico
-        transportistas = Proveedor.query.filter(
+        transportistas = tenant_query(Proveedor).filter(
             Proveedor.activo == True,
             Proveedor.tipo.in_(['transportista', 'ambos'])
         ).order_by(Proveedor.empresa).all()
@@ -90,7 +90,7 @@ def register(app):
         # Cotizaciones y ventas para vincular al simulador de envio
         try:
             cotizaciones_envio = []
-            for c in Cotizacion.query.filter(Cotizacion.estado.in_(['enviada','aprobada'])).order_by(Cotizacion.fecha_emision.desc()).limit(20).all():
+            for c in tenant_query(Cotizacion).filter(Cotizacion.estado.in_(['enviada','aprobada'])).order_by(Cotizacion.fecha_emision.desc()).limit(20).all():
                 total_qty = sum(i.cantidad or 0 for i in c.items) if c.items else 0
                 if total_qty > 0:
                     cotizaciones_envio.append({'id': c.id, 'numero': c.numero, 'titulo': c.titulo or '', 'total_qty': int(total_qty)})
@@ -98,7 +98,7 @@ def register(app):
             cotizaciones_envio = []
         try:
             ventas_envio = []
-            for v in Venta.query.filter(Venta.estado.in_(['anticipo_pagado','pagado'])).order_by(Venta.creado_en.desc()).limit(20).all():
+            for v in tenant_query(Venta).filter(Venta.estado.in_(['anticipo_pagado','pagado'])).order_by(Venta.creado_en.desc()).limit(20).all():
                 total_qty = sum(i.cantidad or 0 for i in v.items) if v.items else 0
                 if total_qty > 0:
                     ventas_envio.append({'id': v.id, 'numero': v.numero, 'titulo': v.titulo or '', 'total_qty': int(total_qty)})
@@ -116,7 +116,7 @@ def register(app):
     @requiere_modulo('produccion')
     def empaques_nuevo():
         """Crear nuevo empaque (con producto_id requerido)."""
-        productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
+        productos = tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all()
 
         if request.method == 'POST':
             producto_id = request.form.get('producto_id')
@@ -173,7 +173,7 @@ def register(app):
     def empaques_editar(id):
         """Editar un empaque existente (solo si no está aprobado, o admin)."""
         empaque = EmpaqueSecundario.query.get_or_404(id)
-        productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
+        productos = tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all()
 
         if empaque.aprobado and _get_rol_activo(current_user) != 'admin':
             flash('No se pueden editar empaques aprobados. Contacta al administrador.', 'warning')
@@ -339,7 +339,7 @@ def register(app):
             db.session.add(mp)
             db.session.flush()
             # Vincular al producto en M2M
-            existe_m2m = MateriaPrimaProducto.query.filter_by(
+            existe_m2m = MateriaPrimatenant_query(Producto).filter_by(
                 materia_prima_id=mp.id, producto_id=empaque.producto_id).first()
             if not existe_m2m:
                 db.session.add(MateriaPrimaProducto(
@@ -350,7 +350,7 @@ def register(app):
             empaque.aprobado = True
 
             # ── Crear/buscar MateriaPrima de cinta de embalaje ──
-            cinta_mp = MateriaPrima.query.filter(
+            cinta_mp = tenant_query(MateriaPrima).filter(
                 db.func.lower(MateriaPrima.nombre).like('%cinta%embalaje%'),
                 MateriaPrima.activo == True
             ).first()
@@ -380,7 +380,7 @@ def register(app):
                 cinta_por_caja_m = 0.5  # fallback 50cm si no hay dims
 
             # Agregar caja como ingrediente de la receta del producto (si existe)
-            receta = RecetaProducto.query.filter_by(producto_id=empaque.producto_id, activo=True).first()
+            receta = Recetatenant_query(Producto).filter_by(producto_id=empaque.producto_id, activo=True).first()
             receta_msg = ''
             if receta:
                 # Agregar caja si no existe
@@ -414,7 +414,7 @@ def register(app):
 
             # ── Auto-crear cotización para la CAJA (específica por producto) ──
             prod_nombre = empaque.producto.nombre if empaque.producto else ''
-            tiene_cot_caja = CotizacionProveedor.query.filter(
+            tiene_cot_caja = Cotizaciontenant_query(Proveedor).filter(
                 db.or_(
                     CotizacionProveedor.materia_prima_id == mp.id,
                     db.func.lower(CotizacionProveedor.nombre_producto) == mp.nombre.lower()
@@ -435,7 +435,7 @@ def register(app):
                 ))
 
             # ── Cotización de CINTA: una sola global (rollo 100m, compartida) ──
-            tiene_cot_cinta = CotizacionProveedor.query.filter(
+            tiene_cot_cinta = Cotizaciontenant_query(Proveedor).filter(
                 db.or_(
                     CotizacionProveedor.materia_prima_id == cinta_mp.id,
                     db.func.lower(CotizacionProveedor.nombre_producto).like('%cinta%embalaje%')
@@ -458,7 +458,7 @@ def register(app):
 
             # Vincular cinta al producto (M2M, sin producto_id fijo porque es compartida)
             if cinta_mp and empaque.producto_id:
-                cinta_m2m = MateriaPrimaProducto.query.filter_by(
+                cinta_m2m = MateriaPrimatenant_query(Producto).filter_by(
                     materia_prima_id=cinta_mp.id, producto_id=empaque.producto_id).first()
                 if not cinta_m2m:
                     db.session.add(MateriaPrimaProducto(
@@ -501,18 +501,18 @@ def register(app):
                 mp_id = empaque.materia_prima_id
 
                 # Quitar de la receta activa (el item sigue disponible para futuras recetas)
-                receta = RecetaProducto.query.filter_by(producto_id=producto_id, activo=True).first()
+                receta = Recetatenant_query(Producto).filter_by(producto_id=producto_id, activo=True).first()
                 if receta:
                     RecetaItem.query.filter_by(receta_id=receta.id, materia_prima_id=mp_id).delete()
 
                     # Si no quedan otros empaques aprobados, quitar cinta de esta receta
-                    otros_empaques = EmpaqueSecundario.query.filter(
+                    otros_empaques = tenant_query(EmpaqueSecundario).filter(
                         EmpaqueSecundario.producto_id == producto_id,
                         EmpaqueSecundario.id != empaque.id,
                         EmpaqueSecundario.aprobado == True
                     ).count()
                     if otros_empaques == 0:
-                        cinta_mp = MateriaPrima.query.filter(
+                        cinta_mp = tenant_query(MateriaPrima).filter(
                             db.func.lower(MateriaPrima.nombre).like('%cinta%embalaje%'),
                             MateriaPrima.activo == True
                         ).first()
@@ -520,7 +520,7 @@ def register(app):
                             RecetaItem.query.filter_by(receta_id=receta.id, materia_prima_id=cinta_mp.id).delete()
 
                 # Marcar cotización de la caja como "vencida" (no actual), NO eliminar
-                cots_caja = CotizacionProveedor.query.filter_by(materia_prima_id=mp_id).all()
+                cots_caja = Cotizaciontenant_query(Proveedor).filter_by(materia_prima_id=mp_id).all()
                 for cot in cots_caja:
                     if cot.estado in ('vigente', 'en_revision'):
                         cot.estado = 'vencida'

@@ -19,10 +19,10 @@ def register(app):
         mes_ini = date.today().replace(day=1)
         total_compras  = db.session.query(db.func.sum(CompraMateria.costo_total)).scalar() or 0
         compras_mes    = db.session.query(db.func.sum(CompraMateria.costo_total)).filter(CompraMateria.fecha >= mes_ini).scalar() or 0
-        cotizaciones_vigentes = CotizacionGranel.query.filter_by(estado='vigente').count()  # maquila
-        ordenes_activas = OrdenCompra.query.filter(OrdenCompra.estado.in_(['borrador','enviada','en_transito'])).count()
-        compras_recientes = CompraMateria.query.order_by(CompraMateria.fecha.desc()).limit(5).all()
-        maquila_recientes  = CotizacionGranel.query.order_by(CotizacionGranel.creado_en.desc()).limit(5).all()
+        cotizaciones_vigentes = tenant_query(CotizacionGranel).filter_by(estado='vigente').count()  # maquila
+        ordenes_activas = tenant_query(OrdenCompra).filter(OrdenCompra.estado.in_(['borrador','enviada','en_transito'])).count()
+        compras_recientes = tenant_query(CompraMateria).order_by(CompraMateria.fecha.desc()).limit(5).all()
+        maquila_recientes  = tenant_query(CotizacionGranel).order_by(CotizacionGranel.creado_en.desc()).limit(5).all()
         # Supplier quality scorecard
         try:
             proveedores_score = db.session.query(
@@ -81,7 +81,7 @@ def register(app):
         mes_ini = date.today().replace(day=1)
         total_general = db.session.query(db.func.sum(CompraMateria.costo_total)).scalar() or 0
         total_mes = db.session.query(db.func.sum(CompraMateria.costo_total)).filter(CompraMateria.fecha >= mes_ini).scalar() or 0
-        materias = MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).all()
+        materias = tenant_query(MateriaPrima).filter_by(activo=True).order_by(MateriaPrima.nombre).all()
         pagination = q.order_by(CompraMateria.fecha.desc()).paginate(page=page, per_page=25, error_out=False)
         return render_template('produccion/compras.html', items=pagination.items,
                                busqueda=busqueda, total_general=total_general, total_mes=total_mes,
@@ -100,11 +100,11 @@ def register(app):
             flash('Compra registrada.','success')
             return redirect(url_for('compras'))
         return render_template('produccion/compra_form.html', obj=None, titulo='Nueva Compra',
-                               productos=Producto.query.filter_by(activo=True).order_by(Producto.nombre).all(),
-                               materias=MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).all(),
-                               proveedores_list=Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all(),
+                               productos=tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all(),
+                               materias=tenant_query(MateriaPrima).filter_by(activo=True).order_by(MateriaPrima.nombre).all(),
+                               proveedores_list=tenant_query(Proveedor).filter_by(activo=True).order_by(Proveedor.empresa).all(),
                                today=datetime.utcnow().strftime('%Y-%m-%d'))
-    
+
 
     # ── compra_editar (/produccion/compras/<int:id>/editar)
     @app.route('/produccion/compras/<int:id>/editar', methods=['GET','POST'])
@@ -118,9 +118,9 @@ def register(app):
             flash('Compra actualizada.','success')
             return redirect(url_for('compras'))
         return render_template('produccion/compra_form.html', obj=obj, titulo='Editar Compra',
-                               productos=Producto.query.filter_by(activo=True).order_by(Producto.nombre).all(),
-                               materias=MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).all(),
-                               proveedores_list=Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all(),
+                               productos=tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all(),
+                               materias=tenant_query(MateriaPrima).filter_by(activo=True).order_by(MateriaPrima.nombre).all(),
+                               proveedores_list=tenant_query(Proveedor).filter_by(activo=True).order_by(Proveedor.empresa).all(),
                                today=datetime.utcnow().strftime('%Y-%m-%d'))
     
 
@@ -153,7 +153,7 @@ def register(app):
         if obj.orden_compra_id:
             oc = db.session.get(OrdenCompra, obj.orden_compra_id)
             if oc:
-                compras_oc = CompraMateria.query.filter_by(orden_compra_id=oc.id).all()
+                compras_oc = tenant_query(CompraMateria).filter_by(orden_compra_id=oc.id).all()
                 # Re-evaluar cada item: si cantidad_recibida >= cantidad, es recibido
                 for c in compras_oc:
                     cant_c = float(c.cantidad or 0)
@@ -235,7 +235,7 @@ def register(app):
         # Evitar duplicados si el boton se presiona varias veces
         if oc:
             titulo_t1 = f'Problema de calidad MP — {obj.nombre_item} (OC {oc.numero})'
-            existente_t1 = Tarea.query.filter(
+            existente_t1 = tenant_query(Tarea).filter(
                 Tarea.titulo == titulo_t1,
                 Tarea.tarea_tipo == 'problema_calidad',
                 Tarea.estado == 'pendiente'
@@ -262,7 +262,7 @@ def register(app):
                 venta = db.session.get(Venta, oc.venta_origen_id)
                 if venta:
                     titulo_t2 = f'Retraso por calidad MP — Venta {venta.numero}'
-                    existente_t2 = Tarea.query.filter(
+                    existente_t2 = tenant_query(Tarea).filter(
                         Tarea.titulo == titulo_t2,
                         Tarea.tarea_tipo == 'retraso_calidad',
                         Tarea.estado == 'pendiente'
@@ -310,11 +310,11 @@ def register(app):
     def compra_eliminar(id):
         obj=CompraMateria.query.get_or_404(id)
         # Buscar y eliminar GastoOperativo y AsientoContable vinculados
-        gastos_vinc = GastoOperativo.query.filter_by(
+        gastos_vinc = tenant_query(GastoOperativo).filter_by(
             tipo='compra_produccion', fecha=obj.fecha
         ).filter(GastoOperativo.descripcion.contains(obj.nombre_item[:30])).all()
         for g in gastos_vinc:
-            AsientoContable.query.filter_by(gasto_id=g.id).delete()
+            tenant_query(AsientoContable).filter_by(gasto_id=g.id).delete()
             db.session.delete(g)
         db.session.delete(obj); db.session.commit()
         flash('Compra, gasto y asiento contable eliminados.','info'); return redirect(url_for('compras'))
@@ -364,7 +364,7 @@ def register(app):
     def maquila():
         estado_f=request.args.get('estado','')
         buscar = request.args.get('buscar', '').strip()
-        q=CotizacionGranel.query
+        q=tenant_query(CotizacionGranel)
         if estado_f: q=q.filter_by(estado=estado_f)
         if buscar:
             q=q.filter(db.or_(CotizacionGranel.nombre_producto.ilike(f'%{buscar}%'),
@@ -400,7 +400,7 @@ def register(app):
             flash('Cotizacion guardada.','success')
             return redirect(url_for('maquila'))
         return render_template('produccion/maquila_form.html', obj=None, titulo='Nueva Cotizacion Maquila',
-                               productos=Producto.query.filter_by(activo=True).order_by(Producto.nombre).all(),
+                               productos=tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all(),
                                today=datetime.utcnow().strftime('%Y-%m-%d'))
 
     # ── maquila_editar (/produccion/maquila/<int:id>/editar)
@@ -429,7 +429,7 @@ def register(app):
             flash('Cotizacion actualizada.','success')
             return redirect(url_for('maquila'))
         return render_template('produccion/maquila_form.html', obj=obj, titulo='Editar Cotizacion Maquila',
-                               productos=Producto.query.filter_by(activo=True).order_by(Producto.nombre).all(),
+                               productos=tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all(),
                                today=datetime.utcnow().strftime('%Y-%m-%d'))
 
     # ── maquila_eliminar (/produccion/maquila/<int:id>/eliminar)
@@ -467,7 +467,7 @@ def register(app):
         """Guarda relación M2M MateriaPrima ↔ Productos."""
         prod_ids = [int(x) for x in form.getlist('producto_ids[]') if x]
         # Eliminar relaciones existentes
-        MateriaPrimaProducto.query.filter_by(materia_prima_id=m.id).delete()
+        MateriaPrimatenant_query(Producto).filter_by(materia_prima_id=m.id).delete()
         # Primer producto = campo legacy producto_id
         m.producto_id = prod_ids[0] if prod_ids else None
         # Insertar nuevas relaciones M2M
@@ -479,7 +479,7 @@ def register(app):
     @login_required
     @requiere_modulo('produccion')
     def materia_nueva():
-        productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
+        productos = tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all()
         if request.method == 'POST':
             m = MateriaPrima(
                 company_id=getattr(g, 'company_id', None),
@@ -514,8 +514,8 @@ def register(app):
             return redirect(url_for('materias'))
         return render_template('produccion/materia_form.html', obj=None, titulo='Nueva Materia Prima',
                                productos=productos, prod_ids_sel=[],
-                               proveedores_list=Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all())
-    
+                               proveedores_list=tenant_query(Proveedor).filter_by(activo=True).order_by(Proveedor.empresa).all())
+
 
     # ── materia_editar (/produccion/materias/<int:id>/editar)
     @app.route('/produccion/materias/<int:id>/editar', methods=['GET','POST'])
@@ -523,9 +523,9 @@ def register(app):
     @requiere_modulo('produccion')
     def materia_editar(id):
         obj = MateriaPrima.query.get_or_404(id)
-        productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
+        productos = tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all()
         # IDs actuales de productos asociados para pre-seleccionar checkboxes
-        prod_ids_sel = [mp.producto_id for mp in MateriaPrimaProducto.query.filter_by(materia_prima_id=obj.id).all()]
+        prod_ids_sel = [mp.producto_id for mp in MateriaPrimatenant_query(Producto).filter_by(materia_prima_id=obj.id).all()]
         if not prod_ids_sel and obj.producto_id:
             prod_ids_sel = [obj.producto_id]
         if request.method == 'POST':
@@ -542,8 +542,8 @@ def register(app):
             flash('Materia prima actualizada.','success'); return redirect(url_for('materias'))
         return render_template('produccion/materia_form.html', obj=obj, titulo='Editar Materia Prima',
                                productos=productos, prod_ids_sel=prod_ids_sel,
-                               proveedores_list=Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all())
-    
+                               proveedores_list=tenant_query(Proveedor).filter_by(activo=True).order_by(Proveedor.empresa).all())
+
 
     # ── materia_eliminar (/produccion/materias/<int:id>/eliminar)
     @app.route('/produccion/materias/<int:id>/eliminar', methods=['POST'])
@@ -561,7 +561,7 @@ def register(app):
     def recetas():
         page = request.args.get('page', 1, type=int)
         per_page = 25
-        pagination = RecetaProducto.query.filter_by(activo=True).paginate(page=page, per_page=per_page, error_out=False)
+        pagination = tenant_query(RecetaProducto).filter_by(activo=True).paginate(page=page, per_page=per_page, error_out=False)
         items = pagination.items
         # Recalcular costos y precios para cada receta (siempre actualizado)
         costos = {}
@@ -611,7 +611,7 @@ def register(app):
                 continue
             # Vincular al producto si no hay relación M2M aún
             if producto_id:
-                existe = MateriaPrimaProducto.query.filter_by(
+                existe = MateriaPrimatenant_query(Producto).filter_by(
                     materia_prima_id=m.id, producto_id=producto_id
                 ).first()
                 if not existe:
@@ -632,7 +632,7 @@ def register(app):
         unidad = (request.json or {}).get('unidad','unidades').strip() or 'unidades'
         if not nombre:
             return jsonify({'error': 'Nombre requerido'}), 400
-        exist = MateriaPrima.query.filter(
+        exist = tenant_query(MateriaPrima).filter(
             db.func.lower(MateriaPrima.nombre) == nombre.lower(),
             MateriaPrima.activo == True
         ).first()
@@ -671,11 +671,11 @@ def register(app):
     @requiere_modulo('produccion')
     def receta_nueva():
       try:
-        productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
-        materias = MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).all()
+        productos = tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all()
+        materias = tenant_query(MateriaPrima).filter_by(activo=True).order_by(MateriaPrima.nombre).all()
         nombres_con_cot = {
             cp.nombre_producto.lower()
-            for cp in CotizacionProveedor.query.filter(
+            for cp in Cotizaciontenant_query(Proveedor).filter(
                 CotizacionProveedor.estado.in_(['vigente','en_revision'])
             ).all() if cp.nombre_producto
         }
@@ -695,7 +695,7 @@ def register(app):
                     return render_template('produccion/receta_form.html', obj=None, productos=productos,
                                            materias=materias, materias_json=materias_json, titulo='Nueva Receta')
                 # Buscar si ya existe con ese nombre (case insensitive)
-                prod_exist = Producto.query.filter(
+                prod_exist = tenant_query(Producto).filter(
                     db.func.lower(Producto.nombre) == nuevo_nombre.lower()
                 ).first()
                 if prod_exist:
@@ -752,7 +752,7 @@ def register(app):
             margen = float(request.form.get('margen_pct', 30) or 30)
             r.margen_pct = margen
             try:
-                regla_iva = ReglaTributaria.query.filter_by(aplica_a='ventas', activo=True).first()
+                regla_iva = tenant_query(ReglaTributaria).filter_by(aplica_a='ventas', activo=True).first()
                 iva_pct = float(regla_iva.porcentaje) if regla_iva else 19.0
             except Exception:
                 iva_pct = 19.0
@@ -777,7 +777,7 @@ def register(app):
                 if not mp:
                     continue
                 # Verificar si ya tiene CUALQUIER cotización (vigente, en_revision, o vencida)
-                tiene_cot = CotizacionProveedor.query.filter(
+                tiene_cot = Cotizaciontenant_query(Proveedor).filter(
                     db.or_(
                         CotizacionProveedor.materia_prima_id == mp.id,
                         db.func.lower(CotizacionProveedor.nombre_producto) == mp.nombre.lower()
@@ -821,11 +821,11 @@ def register(app):
     @requiere_modulo('produccion')
     def receta_editar(id):
         obj = RecetaProducto.query.get_or_404(id)
-        productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
-        materias = MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).all()
+        productos = tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all()
+        materias = tenant_query(MateriaPrima).filter_by(activo=True).order_by(MateriaPrima.nombre).all()
         nombres_con_cot = {
             cp.nombre_producto.lower()
-            for cp in CotizacionProveedor.query.filter(
+            for cp in Cotizaciontenant_query(Proveedor).filter(
                 CotizacionProveedor.estado.in_(['vigente','en_revision'])
             ).all() if cp.nombre_producto
         }
@@ -893,7 +893,7 @@ def register(app):
                 margen = float(request.form.get('margen_pct', obj.margen_pct or 30) or 30)
                 obj.margen_pct = margen
                 try:
-                    regla_iva = ReglaTributaria.query.filter_by(aplica_a='ventas', activo=True).first()
+                    regla_iva = tenant_query(ReglaTributaria).filter_by(aplica_a='ventas', activo=True).first()
                     iva_pct = float(regla_iva.porcentaje) if regla_iva else 19.0
                 except Exception:
                     iva_pct = 19.0
@@ -970,7 +970,7 @@ def register(app):
 
         # Bloque 7: prevent duplicate pending purchase tasks for the same materia prima
         titulo_buscar = f'Comprar%de {mp.nombre}'
-        tarea_existente = Tarea.query.filter(
+        tarea_existente = tenant_query(Tarea).filter(
             Tarea.titulo.like(titulo_buscar),
             Tarea.tarea_tipo == 'comprar_materias',
             Tarea.estado == 'pendiente'
@@ -1025,8 +1025,8 @@ def register(app):
     @login_required
     @requiere_modulo('produccion')
     def reserva_nueva():
-        materias = MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).all()
-        productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
+        materias = tenant_query(MateriaPrima).filter_by(activo=True).order_by(MateriaPrima.nombre).all()
+        productos = tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all()
         if request.method == 'POST':
             mid = int(request.form['materia_prima_id'])
             cantidad = float(request.form['cantidad'])
@@ -1116,7 +1116,7 @@ def register(app):
             return redirect(url_for('reservas'))
 
         # 4. Cambiar órdenes a en_produccion
-        ordenes = OrdenProduccion.query.filter(
+        ordenes = tenant_query(OrdenProduccion).filter(
             OrdenProduccion.venta_id == venta_id,
             OrdenProduccion.estado.in_(['pendiente_materiales', 'en_produccion'])
         ).all()
@@ -1138,10 +1138,10 @@ def register(app):
         buscar = request.args.get('buscar','').strip()
         estado_f = request.args.get('estado','')
 
-        q_pendientes = OrdenProduccion.query.filter(
+        q_pendientes = tenant_query(OrdenProduccion).filter(
             OrdenProduccion.estado.in_(['pendiente_materiales','en_produccion'])
         )
-        q_completados = OrdenProduccion.query.filter_by(estado='completado')
+        q_completados = tenant_query(OrdenProduccion).filter_by(estado='completado')
 
         if estado_f:
             if estado_f == 'completado':
@@ -1167,7 +1167,7 @@ def register(app):
 
         pendientes = q_pendientes.order_by(OrdenProduccion.creado_en.desc()).all()
         completados = q_completados.order_by(OrdenProduccion.completado_en.desc()).limit(30).all()
-        empleados = Empleado.query.filter_by(estado='activo').order_by(Empleado.apellido, Empleado.nombre).all()
+        empleados = tenant_query(Empleado).filter_by(estado='activo').order_by(Empleado.apellido, Empleado.nombre).all()
         return render_template('produccion/ordenes.html',
                                pendientes=pendientes, completados=completados,
                                empleados=empleados, buscar=buscar, estado_f=estado_f)
@@ -1178,7 +1178,7 @@ def register(app):
     @login_required
     @requiere_modulo('produccion')
     def ordenes_produccion_export_csv():
-        ordenes = OrdenProduccion.query.order_by(OrdenProduccion.creado_en.desc()).all()
+        ordenes = tenant_query(OrdenProduccion).order_by(OrdenProduccion.creado_en.desc()).all()
         rows = []
         for o in ordenes:
             producto_nombre = o.producto.nombre if o.producto else ''
@@ -1276,7 +1276,7 @@ def register(app):
     @requiere_modulo('produccion')
     def gantt():
         # Agrupa órdenes de producción por pedido (venta)
-        ordenes = OrdenProduccion.query.order_by(OrdenProduccion.venta_id, OrdenProduccion.creado_en).all()
+        ordenes = tenant_query(OrdenProduccion).order_by(OrdenProduccion.venta_id, OrdenProduccion.creado_en).all()
     
         # Construir grupos por venta
         grupos = {}   # venta_id -> {'venta': obj|None, 'ordenes': [...]}
@@ -1299,7 +1299,7 @@ def register(app):
             # Buscar OC de materiales vinculada (mejor estimación de entrega de materiales)
             mat_inicio = mat_fin = None
             if o.venta_id:
-                oc_mat = OrdenCompra.query.filter(
+                oc_mat = tenant_query(OrdenCompra).filter(
                     OrdenCompra.venta_origen_id == o.venta_id,
                     OrdenCompra.estado.notin_(['cancelada'])
                 ).order_by(OrdenCompra.creado_en.desc()).first()

@@ -35,17 +35,17 @@ def register(app):
         else:
             mes_ant = f'{hoy.year}-{hoy.month - 1:02d}'
         desc_check = f'Nomina mensual {mes_ant}'
-        ya_cerrada = GastoOperativo.query.filter(
+        ya_cerrada = tenant_query(GastoOperativo).filter(
             GastoOperativo.descripcion == desc_check, GastoOperativo.tipo == 'Nomina'
         ).first()
         if ya_cerrada:
             return
         # Verificar si hay empleados activos
-        if Empleado.query.filter_by(estado='activo').count() == 0:
+        if tenant_query(Empleado).filter_by(estado='activo').count() == 0:
             return
         # Verificar si ya existe ticket para esto
         titulo_ticket = f'Nomina pendiente de cerrar: {mes_ant}'
-        ya_ticket = Tarea.query.filter(
+        ya_ticket = tenant_query(Tarea).filter(
             Tarea.titulo == titulo_ticket, Tarea.estado == 'pendiente'
         ).first()
         if ya_ticket:
@@ -102,8 +102,8 @@ def register(app):
         departamentos = db.session.query(Empleado.departamento).distinct().filter(Empleado.departamento != None).all()
         departamentos = [d[0] for d in departamentos if d[0]]
         # Stats
-        activos = Empleado.query.filter_by(estado='activo').count()
-        _activos_list = Empleado.query.filter_by(estado='activo').all()
+        activos = tenant_query(Empleado).filter_by(estado='activo').count()
+        _activos_list = tenant_query(Empleado).filter_by(estado='activo').all()
         masa_salarial = sum(float(e.salario_base or 0) for e in _activos_list)
         costo_empresa = 0
         for _e in _activos_list:
@@ -111,8 +111,8 @@ def register(app):
                 costo_empresa += _calcular_nomina(_e)['costo_total_empresa']
             except Exception as _ne:
                 logging.warning(f'nomina_index: calcular_nomina({_e.id}) error: {_ne}')
-        retirados = Empleado.query.filter_by(estado='retirado').count()
-        despedidos = Empleado.query.filter_by(estado='despedido').count()
+        retirados = tenant_query(Empleado).filter_by(estado='retirado').count()
+        despedidos = tenant_query(Empleado).filter_by(estado='despedido').count()
         return render_template('nomina/index.html', empleados=empleados, departamentos=departamentos,
                               estado_filter=estado_filter, departamento_filter=departamento_filter,
                               buscar=buscar,
@@ -126,7 +126,7 @@ def register(app):
     @login_required
     @requiere_modulo('nomina')
     def nomina_empleados_export_csv():
-        empleados = Empleado.query.order_by(Empleado.apellido, Empleado.nombre).all()
+        empleados = tenant_query(Empleado).order_by(Empleado.apellido, Empleado.nombre).all()
         rows = []
         for e in empleados:
             nombre_completo = f"{e.nombre or ''} {e.apellido or ''}".strip()
@@ -169,7 +169,7 @@ def register(app):
 
         # Check si ya se cerro (con lock para prevenir doble ejecucion)
         desc_check = f'Nomina mensual {mes}'
-        existente = GastoOperativo.query.filter(
+        existente = tenant_query(GastoOperativo).filter(
             GastoOperativo.descripcion == desc_check, GastoOperativo.tipo == 'Nomina'
         ).first()
         if existente:
@@ -190,7 +190,7 @@ def register(app):
             return redirect(url_for('nomina_index'))
 
         # Incluir activos + retirados/despedidos en este mes (trabajaron parte del mes)
-        empleados = Empleado.query.filter(
+        empleados = tenant_query(Empleado).filter(
             db.or_(
                 Empleado.estado == 'activo',
                 db.and_(
@@ -582,7 +582,7 @@ def register(app):
     @requiere_modulo('nomina')
     def horas_extra():
         periodo = request.args.get('periodo', datetime.utcnow().strftime('%Y-%m'))
-        empleados = Empleado.query.filter_by(estado='activo').order_by(Empleado.nombre).all()
+        empleados = tenant_query(Empleado).filter_by(estado='activo').order_by(Empleado.nombre).all()
         if request.method == 'POST':
             emp_id = int(request.form.get('empleado_id') or 0)
             emp = db.session.get(Empleado, emp_id)
@@ -643,7 +643,7 @@ def register(app):
             periodo = date_type.today().strftime('%Y-%m')
 
         dias_del_mes = cal_mod.monthrange(anio, mes)[1]
-        empleados = Empleado.query.filter_by(estado='activo').order_by(Empleado.apellido, Empleado.nombre).all()
+        empleados = tenant_query(Empleado).filter_by(estado='activo').order_by(Empleado.apellido, Empleado.nombre).all()
 
         # Vista previa: calcular aportes para cada empleado
         preview = []
@@ -703,7 +703,7 @@ def register(app):
         nit_empresa = (empresa.nit or '000000000').replace('-', '').replace('.', '') if empresa else '000000000'
         razon_social = (empresa.nombre or 'EMPRESA').upper() if empresa else 'EMPRESA'
 
-        empleados = Empleado.query.filter_by(estado='activo').order_by(Empleado.apellido, Empleado.nombre).all()
+        empleados = tenant_query(Empleado).filter_by(estado='activo').order_by(Empleado.apellido, Empleado.nombre).all()
 
         lineas = []
 
@@ -835,7 +835,7 @@ def register(app):
             db.session.commit()
             flash(f'Incapacidad registrada ({dias} dias).', 'success')
             return redirect(url_for('incapacidades'))
-        empleados = Empleado.query.filter_by(estado='activo').order_by(Empleado.apellido, Empleado.nombre).all()
+        empleados = tenant_query(Empleado).filter_by(estado='activo').order_by(Empleado.apellido, Empleado.nombre).all()
         items = Incapacidad.query.order_by(Incapacidad.fecha_inicio.desc()).all()
         return render_template('nomina/incapacidades.html', empleados=empleados, items=items)
 
@@ -870,7 +870,7 @@ def register(app):
             flash(f'Vacaciones registradas ({dias} dias).', 'success')
             return redirect(url_for('vacaciones_tomadas'))
 
-        empleados = Empleado.query.filter_by(estado='activo').order_by(Empleado.apellido, Empleado.nombre).all()
+        empleados = tenant_query(Empleado).filter_by(estado='activo').order_by(Empleado.apellido, Empleado.nombre).all()
         items = VacacionTomada.query.order_by(VacacionTomada.fecha_inicio.desc()).all()
 
         # Calcular saldo de vacaciones por empleado

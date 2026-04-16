@@ -3,7 +3,7 @@ from flask import render_template, redirect, url_for, flash, request, \
                   jsonify, send_file, make_response, current_app, g
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
-from extensions import db
+from extensions import db, tenant_query
 from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
@@ -18,7 +18,7 @@ def register(app):
     def proveedores():
         busqueda = request.args.get('buscar','')
         tipo_f   = request.args.get('tipo_f','')
-        q = Proveedor.query.filter_by(activo=True)
+        q = tenant_query(Proveedor).filter_by(activo=True)
         if busqueda:
             q = q.filter(db.or_(Proveedor.nombre.ilike(f'%{busqueda}%'),
                                  Proveedor.empresa.ilike(f'%{busqueda}%'),

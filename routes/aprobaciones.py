@@ -1,7 +1,7 @@
 # routes/aprobaciones.py — Sistema de aprobaciones v37 (bloquean flujo)
 from flask import render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
-from extensions import db
+from extensions import db, tenant_query
 from models import *
 from utils import *
 from datetime import datetime
@@ -99,9 +99,9 @@ def register(app):
         if _get_rol_activo(current_user) not in ('admin', 'director_financiero', 'director_operativo'):
             flash('Sin permisos para ver aprobaciones.', 'danger')
             return redirect(url_for('dashboard'))
-        pendientes = Aprobacion.query.filter_by(estado='pendiente').order_by(Aprobacion.creado_en.desc()).all()
-        en_revision = Aprobacion.query.filter_by(estado='revision').order_by(Aprobacion.creado_en.desc()).all()
-        historial = Aprobacion.query.filter(Aprobacion.estado.in_(['aprobado', 'rechazado'])).order_by(Aprobacion.resuelto_en.desc()).limit(50).all()
+        pendientes = tenant_query(Aprobacion).filter_by(estado='pendiente').order_by(Aprobacion.creado_en.desc()).all()
+        en_revision = tenant_query(Aprobacion).filter_by(estado='revision').order_by(Aprobacion.creado_en.desc()).all()
+        historial = tenant_query(Aprobacion).filter(Aprobacion.estado.in_(['aprobado', 'rechazado'])).order_by(Aprobacion.resuelto_en.desc()).limit(50).all()
         return render_template('aprobaciones/index.html',
                                pendientes=pendientes, en_revision=en_revision, historial=historial)
 
@@ -246,7 +246,7 @@ def register(app):
     @app.route('/aprobaciones/mis-solicitudes')
     @login_required
     def mis_solicitudes():
-        items = Aprobacion.query.filter_by(solicitado_por=current_user.id).order_by(Aprobacion.creado_en.desc()).all()
+        items = tenant_query(Aprobacion).filter_by(solicitado_por=current_user.id).order_by(Aprobacion.creado_en.desc()).all()
         return render_template('aprobaciones/mis_solicitudes.html', items=items)
 
 

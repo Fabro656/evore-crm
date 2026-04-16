@@ -1,7 +1,7 @@
 # routes/proyectos.py — Gestion de Proyectos (Jira/Notion style)
 from flask import render_template, redirect, url_for, flash, request, jsonify, g, session
 from flask_login import login_required, current_user
-from extensions import db
+from extensions import db, tenant_query
 from models import *
 from utils import *
 from datetime import datetime, date as date_type
@@ -62,8 +62,8 @@ def register(app):
         # Stats
         stats = {}
         for p in proyectos:
-            total_t = ProyectoTarea.query.filter_by(proyecto_id=p.id).count()
-            done_t = ProyectoTarea.query.filter_by(proyecto_id=p.id, estado='completada').count()
+            total_t = Proyectotenant_query(Tarea).filter_by(proyecto_id=p.id).count()
+            done_t = Proyectotenant_query(Tarea).filter_by(proyecto_id=p.id, estado='completada').count()
             total_gasto = db.session.query(func.sum(GastoOperativo.monto)).join(
                 ProyectoGasto, ProyectoGasto.gasto_id == GastoOperativo.id
             ).filter(ProyectoGasto.proyecto_id == p.id).scalar() or 0
@@ -124,7 +124,7 @@ def register(app):
             flash(f'Proyecto {p.codigo} creado.', 'success')
             return redirect(url_for('proyecto_ver', id=p.id))
         usuarios = User.query.filter_by(company_id=getattr(g, 'company_id', None), activo=True).order_by(User.nombre).all()
-        clientes = Cliente.query.filter_by(estado='activo').order_by(Cliente.empresa).all()
+        clientes = tenant_query(Cliente).filter_by(estado='activo').order_by(Cliente.empresa).all()
         return render_template('proyectos/form.html', obj=None, titulo='Nuevo Proyecto',
                                usuarios=usuarios, clientes=clientes)
 
@@ -138,7 +138,7 @@ def register(app):
         # All tasks grouped by estado for kanban
         tareas_por_estado = {}
         for est in _ESTADOS_TAREA:
-            tareas_por_estado[est] = ProyectoTarea.query.filter_by(
+            tareas_por_estado[est] = Proyectotenant_query(Tarea).filter_by(
                 proyecto_id=p.id, estado=est
             ).order_by(ProyectoTarea.orden, ProyectoTarea.prioridad.desc()).all()
         # Gastos
@@ -158,8 +158,8 @@ def register(app):
         done_t = len(tareas_por_estado.get('completada', []))
         pct = round(done_t / total_t * 100) if total_t else 0
         usuarios = User.query.filter_by(company_id=getattr(g, 'company_id', None), activo=True).order_by(User.nombre).all()
-        proveedores = Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all()
-        cotizaciones_prov = CotizacionProveedor.query.filter(
+        proveedores = tenant_query(Proveedor).filter_by(activo=True).order_by(Proveedor.empresa).all()
+        cotizaciones_prov = tenant_query(CotizacionProveedor).filter(
             CotizacionProveedor.estado.in_(['vigente', 'en_revision'])
         ).order_by(CotizacionProveedor.nombre_producto).all()
         # Solicitudes de pago por fase y por objetivo
@@ -208,7 +208,7 @@ def register(app):
             flash('Proyecto actualizado.', 'success')
             return redirect(url_for('proyecto_ver', id=p.id))
         usuarios = User.query.filter_by(company_id=getattr(g, 'company_id', None), activo=True).order_by(User.nombre).all()
-        clientes = Cliente.query.filter_by(estado='activo').order_by(Cliente.empresa).all()
+        clientes = tenant_query(Cliente).filter_by(estado='activo').order_by(Cliente.empresa).all()
         return render_template('proyectos/form.html', obj=p, titulo='Editar Proyecto',
                                usuarios=usuarios, clientes=clientes, estados=_ESTADOS_PROYECTO)
 
@@ -329,7 +329,7 @@ def register(app):
                         'estado': t.estado
                     })
         # Also tasks without phase
-        for t in ProyectoTarea.query.filter_by(proyecto_id=p.id, fase_id=None).all():
+        for t in Proyectotenant_query(Tarea).filter_by(proyecto_id=p.id, fase_id=None).all():
             if t.fecha_inicio or t.fecha_limite:
                 eventos.append({
                     'titulo': t.titulo,
@@ -692,7 +692,7 @@ def register(app):
         accion = request.form.get('accion', 'aprobar')
         cid = getattr(g, 'company_id', None)
         # Find the pending approval
-        aprobacion = Aprobacion.query.filter_by(
+        aprobacion = tenant_query(Aprobacion).filter_by(
             proyecto_id=p.id, estado='pendiente'
         ).order_by(Aprobacion.creado_en.desc()).first()
         if accion == 'aprobar':
@@ -1017,7 +1017,7 @@ def register(app):
         if not _puede_ver_proyecto(pid):
             flash('Acceso denegado.', 'danger'); return redirect(url_for('dashboard'))
         p = Proyecto.query.get_or_404(pid)
-        notas = ProyectoNota.query.filter_by(proyecto_id=pid).order_by(ProyectoNota.orden).all()
+        notas = Proyectotenant_query(Nota).filter_by(proyecto_id=pid).order_by(ProyectoNota.orden).all()
         return render_template('proyectos/brainstorm.html', p=p, notas=notas)
 
     @app.route('/proyectos/<int:pid>/brainstorm/nota', methods=['POST'])

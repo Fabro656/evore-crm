@@ -48,7 +48,7 @@ def register(app):
         producto_q  = request.args.get('producto', '').strip()
         materia_id  = request.args.get('materia_id', type=int)
 
-        q = CotizacionProveedor.query
+        q = tenant_query(CotizacionProveedor)
         if producto_q:
             q = q.filter(CotizacionProveedor.nombre_producto.ilike(f'%{producto_q}%'))
         if materia_id:
@@ -103,7 +103,7 @@ def register(app):
         estado_f = request.args.get('estado','')
         tipo_f   = request.args.get('tipo','')   # maquila / general
         buscar   = request.args.get('buscar','').strip()
-        q = CotizacionProveedor.query
+        q = tenant_query(CotizacionProveedor)
         if estado_f: q = q.filter_by(estado=estado_f)
         if tipo_f:   q = q.filter_by(tipo_cotizacion=tipo_f)
         if buscar:
@@ -113,8 +113,8 @@ def register(app):
                         Proveedor.nombre.ilike(f'%{buscar}%')))
         items = q.order_by(CotizacionProveedor.creado_en.desc()).all()
         totales = {
-            'maquila': CotizacionProveedor.query.filter_by(tipo_cotizacion='maquila').count(),
-            'general': CotizacionProveedor.query.filter_by(tipo_cotizacion='general').count(),
+            'maquila': tenant_query(CotizacionProveedor).filter_by(tipo_cotizacion='maquila').count(),
+            'general': tenant_query(CotizacionProveedor).filter_by(tipo_cotizacion='general').count(),
         }
         return render_template('proveedores/cotizaciones.html',
                                items=items, estado_f=estado_f, tipo_f=tipo_f, totales=totales, buscar=buscar)
@@ -161,7 +161,7 @@ def register(app):
     @login_required
     @requiere_modulo('ordenes_compra')
     def cotizacion_proveedor_nueva():
-        provs = Proveedor.query.filter(Proveedor.activo==True,
+        provs = tenant_query(Proveedor).filter(Proveedor.activo==True,
             Proveedor.tipo.in_(['proveedor','ambos'])).order_by(Proveedor.empresa).all()
         tipo_default   = request.args.get('tipo','general')
         nombre_default = request.args.get('nombre','')   # pre-fill desde receta
@@ -206,7 +206,7 @@ def register(app):
             )
             db.session.add(cp); db.session.flush()
             hoy = datetime.utcnow().date()
-            ultimo = CotizacionProveedor.query.filter(
+            ultimo = tenant_query(CotizacionProveedor).filter(
                 CotizacionProveedor.numero.like(f'CP-{hoy.year}-%')
             ).order_by(CotizacionProveedor.id.desc()).first()
             if ultimo and ultimo.numero:
@@ -229,7 +229,7 @@ def register(app):
     @requiere_modulo('ordenes_compra')
     def cotizacion_proveedor_editar(id):
         obj = CotizacionProveedor.query.get_or_404(id)
-        provs = Proveedor.query.filter(Proveedor.activo==True,
+        provs = tenant_query(Proveedor).filter(Proveedor.activo==True,
             Proveedor.tipo.in_(['proveedor','ambos'])).order_by(Proveedor.empresa).all()
         if request.method == 'POST':
             fc = request.form.get('fecha_cotizacion')
@@ -288,7 +288,7 @@ def register(app):
     @requiere_modulo('ordenes_compra')
     def api_cotizaciones_por_proveedor(prov_id):
         """Retorna cotizaciones vigentes de un proveedor para seleccion multiple en OC."""
-        cots = CotizacionProveedor.query.filter(
+        cots = tenant_query(CotizacionProveedor).filter(
             db.or_(
                 CotizacionProveedor.proveedor_id == prov_id,
                 CotizacionProveedor.proveedor_id.is_(None)
@@ -353,9 +353,9 @@ def register(app):
     @login_required
     @requiere_modulo('ordenes_compra')
     def orden_compra_nueva():
-        provs       = Proveedor.query.filter(Proveedor.activo==True, Proveedor.tipo.in_(['proveedor','ambos'])).order_by(Proveedor.empresa).all()
-        transportistas = Proveedor.query.filter(Proveedor.activo==True, Proveedor.tipo.in_(['transportista','ambos'])).order_by(Proveedor.nombre).all()
-        cotizaciones_disponibles = CotizacionProveedor.query.filter(CotizacionProveedor.estado.in_(['vigente','en_revision'])).order_by(CotizacionProveedor.nombre_producto).all()
+        provs       = tenant_query(Proveedor).filter(Proveedor.activo==True, Proveedor.tipo.in_(['proveedor','ambos'])).order_by(Proveedor.empresa).all()
+        transportistas = tenant_query(Proveedor).filter(Proveedor.activo==True, Proveedor.tipo.in_(['transportista','ambos'])).order_by(Proveedor.nombre).all()
+        cotizaciones_disponibles = tenant_query(CotizacionProveedor).filter(CotizacionProveedor.estado.in_(['vigente','en_revision'])).order_by(CotizacionProveedor.nombre_producto).all()
         if request.method == 'POST':
             # Validar proveedor existe y esta activo
             prov_id_raw = request.form.get('proveedor_id', '').strip()
@@ -402,7 +402,7 @@ def register(app):
             )
             db.session.add(oc); db.session.flush()
             hoy = datetime.utcnow().date()
-            ultimo_oc = OrdenCompra.query.filter(OrdenCompra.numero.like(f'OC-{hoy.year}-%')).order_by(OrdenCompra.id.desc()).first()
+            ultimo_oc = tenant_query(OrdenCompra).filter(OrdenCompra.numero.like(f'OC-{hoy.year}-%')).order_by(OrdenCompra.id.desc()).first()
             if ultimo_oc and ultimo_oc.numero:
                 try: seq = int(ultimo_oc.numero.split('-')[-1]) + 1
                 except Exception: seq = 1
@@ -500,9 +500,9 @@ def register(app):
     @requiere_modulo('ordenes_compra')
     def orden_compra_editar(id):
         obj = OrdenCompra.query.get_or_404(id)
-        provs       = Proveedor.query.filter(Proveedor.activo==True, Proveedor.tipo.in_(['proveedor','ambos'])).order_by(Proveedor.empresa).all()
-        transportistas = Proveedor.query.filter(Proveedor.activo==True, Proveedor.tipo.in_(['transportista','ambos'])).order_by(Proveedor.nombre).all()
-        cotizaciones_disponibles = CotizacionProveedor.query.filter(CotizacionProveedor.estado.in_(['vigente','en_revision'])).order_by(CotizacionProveedor.nombre_producto).all()
+        provs       = tenant_query(Proveedor).filter(Proveedor.activo==True, Proveedor.tipo.in_(['proveedor','ambos'])).order_by(Proveedor.empresa).all()
+        transportistas = tenant_query(Proveedor).filter(Proveedor.activo==True, Proveedor.tipo.in_(['transportista','ambos'])).order_by(Proveedor.nombre).all()
+        cotizaciones_disponibles = tenant_query(CotizacionProveedor).filter(CotizacionProveedor.estado.in_(['vigente','en_revision'])).order_by(CotizacionProveedor.nombre_producto).all()
         if request.method == 'POST':
             fe  = request.form.get('fecha_emision')
             fes = request.form.get('fecha_esperada')
@@ -656,7 +656,7 @@ def register(app):
             db.session.add(req)
             db.session.flush()
             hoy = datetime.utcnow().date()
-            ultimo = Requisicion.query.filter(
+            ultimo = tenant_query(Requisicion).filter(
                 Requisicion.numero.like(f'REQ-{hoy.year}-%')
             ).order_by(Requisicion.id.desc()).first()
             if ultimo and ultimo.numero and ultimo.id != req.id:
@@ -670,7 +670,7 @@ def register(app):
             db.session.commit()
             flash(f'Requisicion {req.numero} creada.', 'success')
             return redirect(url_for('requisiciones'))
-        items = Requisicion.query.order_by(Requisicion.creado_en.desc()).all()
+        items = tenant_query(Requisicion).order_by(Requisicion.creado_en.desc()).all()
         return render_template('ordenes_compra/requisiciones.html', items=items)
 
 
@@ -708,7 +708,7 @@ def register(app):
             flash('Solo se pueden convertir requisiciones aprobadas.', 'warning')
             return redirect(url_for('requisiciones'))
         hoy = datetime.utcnow().date()
-        ultimo_oc = OrdenCompra.query.filter(
+        ultimo_oc = tenant_query(OrdenCompra).filter(
             OrdenCompra.numero.like(f'OC-{hoy.year}-%')
         ).order_by(OrdenCompra.id.desc()).first()
         if ultimo_oc and ultimo_oc.numero:

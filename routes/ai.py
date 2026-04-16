@@ -3,7 +3,7 @@ from flask import render_template, redirect, url_for, flash, request, \
                   jsonify, send_file, make_response, current_app, g
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
-from extensions import db
+from extensions import db, tenant_query
 from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
@@ -29,14 +29,14 @@ def register(app):
         empresa_nombre = empresa.nombre if empresa else 'la empresa'
 
         try:
-            n_clientes    = Cliente.query.filter_by(activo=True).count()
-            n_ventas_act  = Venta.query.filter(Venta.estado.in_(
+            n_clientes    = tenant_query(Cliente).filter_by(activo=True).count()
+            n_ventas_act  = tenant_query(Venta).filter(Venta.estado.in_(
                 ['prospecto','negociacion','anticipo_pagado'])).count()
-            n_tareas_pend = Tarea.query.filter(
+            n_tareas_pend = tenant_query(Tarea).filter(
                 Tarea.estado.notin_(['completada','cancelada'])).filter(
                 Tarea.asignados.any(TareaAsignado.usuario_id == current_user.id)
             ).count()
-            n_gastos_mes  = GastoOperativo.query.filter(
+            n_gastos_mes  = tenant_query(GastoOperativo).filter(
                 db.func.date_trunc('month', GastoOperativo.fecha) ==
                 db.func.date_trunc('month', datetime.utcnow())
             ).count()
@@ -47,21 +47,21 @@ def register(app):
         # ────────────────────────────────────────────
         try:
             # Ventas recientes (últimas 10)
-            ventas_recientes = Venta.query.order_by(Venta.creado_en.desc()).limit(10).all()
+            ventas_recientes = tenant_query(Venta).order_by(Venta.creado_en.desc()).limit(10).all()
             ventas_str = '\n'.join([
                 f'  - Venta {v.numero or v.id}: {v.titulo[:50]}, estado={v.estado}, total=${v.total:,.0f}'
                 for v in ventas_recientes
             ]) or 'Ninguna'
 
             # Stock bajo mínimo
-            stock_bajo = Producto.query.filter(
+            stock_bajo = tenant_query(Producto).filter(
                 Producto.activo==True,
                 Producto.stock <= Producto.stock_minimo
             ).all()
             stock_str = ', '.join([f'{p.nombre}(stock:{p.stock})' for p in stock_bajo[:5]]) or 'ninguno'
 
             # Tareas urgentes del usuario
-            tareas_urgentes = Tarea.query.filter(
+            tareas_urgentes = tenant_query(Tarea).filter(
                 Tarea.prioridad == 'alta',
                 Tarea.estado == 'pendiente',
                 Tarea.asignados.any(TareaAsignado.usuario_id == current_user.id)
@@ -69,31 +69,31 @@ def register(app):
             tareas_str = '\n'.join([f'  - #{t.id}: {t.titulo}' for t in tareas_urgentes]) or 'Ninguna'
 
             # Órdenes de compra pendientes
-            ocs_pendientes = OrdenCompra.query.filter(
+            ocs_pendientes = tenant_query(OrdenCompra).filter(
                 OrdenCompra.estado.in_(['borrador','enviada'])
             ).count()
 
             # Cotizaciones vigentes
-            cots_vigentes = Cotizacion.query.filter(
+            cots_vigentes = tenant_query(Cotizacion).filter(
                 Cotizacion.estado.in_(['borrador','enviada'])
             ).count()
 
             # v34: Contexto de manufactura
-            mp_bajo_min = MateriaPrima.query.filter(
+            mp_bajo_min = tenant_query(MateriaPrima).filter(
                 MateriaPrima.activo == True,
                 MateriaPrima.stock_disponible <= MateriaPrima.stock_minimo
             ).all()
             mp_str = ', '.join([f'{m.nombre}(disp:{m.stock_disponible:.1f} {m.unidad})' for m in mp_bajo_min[:5]]) or 'ninguna'
 
-            ordenes_prod = OrdenProduccion.query.filter(
+            ordenes_prod = tenant_query(OrdenProduccion).filter(
                 OrdenProduccion.estado.in_(['pendiente_materiales','en_produccion'])
             ).count()
 
-            recetas_total = RecetaProducto.query.filter_by(activo=True).count()
+            recetas_total = tenant_query(RecetaProducto).filter_by(activo=True).count()
 
             # Cotizaciones proveedor vigentes
             from datetime import date as _date_cls
-            cots_prov_vigentes = CotizacionProveedor.query.filter(
+            cots_prov_vigentes = tenant_query(CotizacionProveedor).filter(
                 CotizacionProveedor.estado == 'vigente',
                 CotizacionProveedor.vigencia >= _date_cls.today()
             ).count()
@@ -101,9 +101,9 @@ def register(app):
             # Alertas de cotización faltante (MP sin cotización vigente)
             mp_sin_cot = []
             try:
-                all_mp = MateriaPrima.query.filter_by(activo=True).all()
+                all_mp = tenant_query(MateriaPrima).filter_by(activo=True).all()
                 for mp in all_mp:
-                    tiene = CotizacionProveedor.query.filter(
+                    tiene = tenant_query(CotizacionProveedor).filter(
                         CotizacionProveedor.materia_prima_id == mp.id,
                         CotizacionProveedor.estado == 'vigente',
                         CotizacionProveedor.vigencia >= _date_cls.today()
@@ -400,7 +400,7 @@ RESTRICCIONES DE IA:
         """Endpoint para que el frontend solicite datos contextuales enriquecidos."""
         try:
             if entity == 'ventas':
-                ventas = Venta.query.filter(
+                ventas = tenant_query(Venta).filter(
                     Venta.estado.notin_(['cancelado','perdido'])
                 ).order_by(Venta.creado_en.desc()).limit(20).all()
                 return jsonify([{
@@ -412,7 +412,7 @@ RESTRICCIONES DE IA:
                 } for v in ventas])
 
             elif entity == 'tareas':
-                tareas = Tarea.query.filter(
+                tareas = tenant_query(Tarea).filter(
                     Tarea.estado=='pendiente'
                 ).limit(30).all()
                 return jsonify([{
@@ -423,7 +423,7 @@ RESTRICCIONES DE IA:
                 } for t in tareas])
 
             elif entity == 'inventario':
-                prods = Producto.query.filter_by(activo=True).all()
+                prods = tenant_query(Producto).filter_by(activo=True).all()
                 return jsonify([{
                     'id': p.id,
                     'nombre': p.nombre,
@@ -433,7 +433,7 @@ RESTRICCIONES DE IA:
                 } for p in prods])
 
             elif entity == 'cotizaciones':
-                cots = Cotizacion.query.filter(
+                cots = tenant_query(Cotizacion).filter(
                     Cotizacion.estado.in_(['borrador','enviada','vencida'])
                 ).order_by(Cotizacion.creado_en.desc()).limit(15).all()
                 return jsonify([{
@@ -445,7 +445,7 @@ RESTRICCIONES DE IA:
                 } for c in cots])
 
             elif entity == 'clientes':
-                clientes = Cliente.query.filter_by(activo=True).order_by(Cliente.nombre).limit(50).all()
+                clientes = tenant_query(Cliente).filter_by(activo=True).order_by(Cliente.nombre).limit(50).all()
                 return jsonify([{
                     'id': c.id,
                     'nombre': c.nombre,
@@ -477,7 +477,7 @@ def _execute_ai_action(action_data):
             qfilter = action_data.get('filter', '')
 
             if qtype == 'ventas':
-                ventas = Venta.query.filter(
+                ventas = tenant_query(Venta).filter(
                     Venta.estado.notin_(['cancelado','perdido','completado'])
                 ).order_by(Venta.creado_en.desc()).limit(20).all()
                 result = f'Ventas activas ({len(ventas)}):\n'
@@ -486,7 +486,7 @@ def _execute_ai_action(action_data):
                 return result
 
             elif qtype == 'stock_bajo':
-                prods = Producto.query.filter(
+                prods = tenant_query(Producto).filter(
                     Producto.activo==True,
                     Producto.stock <= Producto.stock_minimo
                 ).all()
@@ -498,7 +498,7 @@ def _execute_ai_action(action_data):
                 return result
 
             elif qtype == 'tareas_pendientes':
-                tareas = Tarea.query.filter(
+                tareas = tenant_query(Tarea).filter(
                     Tarea.estado == 'pendiente',
                     Tarea.asignados.any(TareaAsignado.usuario_id == current_user.id)
                 ).order_by(Tarea.prioridad.desc()).limit(15).all()
@@ -508,7 +508,7 @@ def _execute_ai_action(action_data):
                 return result
 
             elif qtype == 'cotizaciones':
-                cots = Cotizacion.query.filter(
+                cots = tenant_query(Cotizacion).filter(
                     Cotizacion.estado.in_(['borrador','enviada','vencida'])
                 ).order_by(Cotizacion.creado_en.desc()).limit(15).all()
                 result = f'Cotizaciones ({len(cots)}):\n'
@@ -518,7 +518,7 @@ def _execute_ai_action(action_data):
                 return result
 
             elif qtype == 'clientes':
-                clientes = Cliente.query.filter_by(activo=True).order_by(Cliente.nombre).all()
+                clientes = tenant_query(Cliente).filter_by(activo=True).order_by(Cliente.nombre).all()
                 result = f'Clientes activos ({len(clientes)}):\n'
                 for cli in clientes[:20]:
                     envio = getattr(cli, 'envio_responsable', 'cliente')
@@ -526,7 +526,7 @@ def _execute_ai_action(action_data):
                 return result
 
             elif qtype == 'materias_primas':
-                mps = MateriaPrima.query.filter_by(activo=True).order_by(MateriaPrima.nombre).all()
+                mps = tenant_query(MateriaPrima).filter_by(activo=True).order_by(MateriaPrima.nombre).all()
                 result = f'Materias primas ({len(mps)}):\n'
                 for m in mps:
                     alerta = ' ⚠️ BAJO' if (m.stock_disponible or 0) <= (m.stock_minimo or 0) else ''
@@ -535,7 +535,7 @@ def _execute_ai_action(action_data):
 
             elif qtype == 'recetas':
                 from utils import _calcular_costo_receta
-                recetas = RecetaProducto.query.filter_by(activo=True).all()
+                recetas = tenant_query(RecetaProducto).filter_by(activo=True).all()
                 result = f'Recetas activas ({len(recetas)}):\n'
                 for r in recetas:
                     prod = r.producto
@@ -551,7 +551,7 @@ def _execute_ai_action(action_data):
                 return result
 
             elif qtype == 'ordenes_produccion':
-                ops = OrdenProduccion.query.filter(
+                ops = tenant_query(OrdenProduccion).filter(
                     OrdenProduccion.estado.in_(['pendiente_materiales','en_produccion','pausada'])
                 ).order_by(OrdenProduccion.creado_en.desc()).limit(20).all()
                 result = f'Órdenes de producción activas ({len(ops)}):\n'
@@ -562,7 +562,7 @@ def _execute_ai_action(action_data):
 
             elif qtype == 'costo_producto':
                 from utils import _calcular_costo_receta, _precio_minimo_venta
-                prod = Producto.query.filter(Producto.nombre.ilike(f'%{qfilter}%')).first() if qfilter else None
+                prod = tenant_query(Producto).filter(Producto.nombre.ilike(f'%{qfilter}%')).first() if qfilter else None
                 if not prod:
                     return f'No encontré producto con nombre "{qfilter}". Intenta con otro nombre.'
                 costo = _calcular_costo_receta(prod.id)
@@ -583,7 +583,7 @@ def _execute_ai_action(action_data):
                 return result
 
             elif qtype == 'ordenes_compra':
-                items = OrdenCompra.query.filter(
+                items = tenant_query(OrdenCompra).filter(
                     OrdenCompra.estado.notin_(['cancelada'])
                 ).order_by(OrdenCompra.creado_en.desc()).limit(15).all()
                 if not items: return 'No hay ordenes de compra activas.'
@@ -596,7 +596,7 @@ def _execute_ai_action(action_data):
             elif qtype == 'gastos':
                 from datetime import date as _dt
                 mes_ini = _dt.today().replace(day=1)
-                items = GastoOperativo.query.filter(
+                items = tenant_query(GastoOperativo).filter(
                     GastoOperativo.fecha >= mes_ini,
                     GastoOperativo.es_plantilla == False
                 ).order_by(GastoOperativo.fecha.desc()).limit(15).all()
@@ -609,7 +609,7 @@ def _execute_ai_action(action_data):
                 return result
 
             elif qtype == 'empleados':
-                items = Empleado.query.filter_by(estado='activo').order_by(Empleado.nombre).all()
+                items = tenant_query(Empleado).filter_by(estado='activo').order_by(Empleado.nombre).all()
                 if not items: return 'No hay empleados activos.'
                 total_sal = sum(float(e.salario_base or 0) for e in items)
                 result = f'{len(items)} empleado(s) activos — Masa salarial: ${total_sal:,.0f}\n'
@@ -618,7 +618,7 @@ def _execute_ai_action(action_data):
                 return result
 
             elif qtype == 'cotizaciones_proveedor':
-                items = CotizacionProveedor.query.filter_by(estado='vigente').order_by(CotizacionProveedor.nombre_producto).limit(20).all()
+                items = tenant_query(CotizacionProveedor).filter_by(estado='vigente').order_by(CotizacionProveedor.nombre_producto).limit(20).all()
                 if not items: return 'No hay cotizaciones de proveedor vigentes.'
                 result = f'{len(items)} cotizacion(es) de proveedor vigentes:\n'
                 for cp in items:
@@ -638,7 +638,7 @@ def _execute_ai_action(action_data):
             udata = action_data.get('data', {})
 
             if utype == 'tarea' and uid:
-                t = Tarea.query.get(uid)
+                t = tenant_query(Tarea).filter_by(id=uid).first()
                 if t:
                     # Verificar permisos: solo asignados, creador, o admin
                     asignado_ids = [a.user_id for a in TareaAsignado.query.filter_by(tarea_id=t.id).all()]
@@ -653,7 +653,7 @@ def _execute_ai_action(action_data):
             elif utype == 'venta' and uid:
                 if current_user.rol not in ('admin', 'vendedor', 'sales_manager'):
                     return 'No tienes permisos para modificar ventas.'
-                v = Venta.query.get(uid)
+                v = tenant_query(Venta).filter_by(id=uid).first()
                 if v:
                     estados_permitidos = ['prospecto','negociacion','anticipo_pagado','pagado','cancelado']
                     if 'estado' in udata and udata['estado'] in estados_permitidos:
@@ -703,14 +703,14 @@ def _execute_ai_action(action_data):
                 cliente_id = None
                 cliente_nombre = adata.get('cliente_nombre', '')
                 if cliente_nombre:
-                    cliente = Cliente.query.filter(
+                    cliente = tenant_query(Cliente).filter(
                         Cliente.nombre.ilike(f'%{cliente_nombre}%')
                     ).first()
                     if cliente:
                         cliente_id = cliente.id
 
                 # Generate venta number
-                n = Venta.query.count() + 1
+                n = tenant_query(Venta).count() + 1
                 numero = f'VNT-{n:04d}'
 
                 v = Venta(
@@ -734,13 +734,13 @@ def _execute_ai_action(action_data):
                 proveedor_id = None
                 prov_nombre = adata.get('proveedor_nombre', '')
                 if prov_nombre:
-                    prov = Proveedor.query.filter(
+                    prov = tenant_query(Proveedor).filter(
                         Proveedor.nombre.ilike(f'%{prov_nombre}%')
                     ).first()
                     if prov:
                         proveedor_id = prov.id
 
-                n = OrdenCompra.query.count() + 1
+                n = tenant_query(OrdenCompra).count() + 1
                 numero = f'OC-{n:04d}'
 
                 oc = OrdenCompra(

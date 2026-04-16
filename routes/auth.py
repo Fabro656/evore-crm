@@ -3,7 +3,7 @@ from flask import render_template, redirect, url_for, flash, request, \
                   jsonify, send_file, make_response, current_app
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
-from extensions import db
+from extensions import db, tenant_query
 from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
@@ -27,9 +27,9 @@ def register(app):
                 db.session.add(demo_user); db.session.commit()
             # Sembrar datos demo si no existen
             try:
-                need_seed = Cliente.query.filter_by(es_demo=True).count() == 0
+                need_seed = tenant_query(Cliente).filter_by(es_demo=True).count() == 0
             except Exception:
-                need_seed = Cliente.query.count() == 0  # Fallback si es_demo no existe
+                need_seed = tenant_query(Cliente).count() == 0  # Fallback si es_demo no existe
             if need_seed:
                 try:
                     from models import _seed_demo_data

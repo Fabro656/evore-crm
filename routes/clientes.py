@@ -14,7 +14,7 @@ def register(app):
 
     # ── Helpers ─────────────────────────────────────────────────────
     def _save_contactos(cliente_obj):
-        ContactoCliente.query.filter_by(cliente_id=cliente_obj.id).delete()
+        Contactotenant_query(Cliente).filter_by(cliente_id=cliente_obj.id).delete()
         nombres = request.form.getlist('c_nombre[]')
         cargos  = request.form.getlist('c_cargo[]')
         emails  = request.form.getlist('c_email[]')
@@ -81,7 +81,7 @@ def register(app):
     @login_required
     @requiere_modulo('clientes')
     def clientes_export_csv():
-        clientes_list = Cliente.query.order_by(Cliente.empresa, Cliente.nombre).all()
+        clientes_list = tenant_query(Cliente).order_by(Cliente.empresa, Cliente.nombre).all()
         rows = []
         for c in clientes_list:
             rows.append([
@@ -263,13 +263,13 @@ def register(app):
         nombre = obj.empresa or obj.nombre
         try:
             # Desvincular entidades que referencian este cliente (nullificar FK)
-            Venta.query.filter_by(cliente_id=id).update({'cliente_id': None})
-            Cotizacion.query.filter_by(cliente_id=id).update({'cliente_id': None})
-            Nota.query.filter_by(cliente_id=id).update({'cliente_id': None})
-            DocumentoLegal.query.filter_by(cliente_id=id).update({'cliente_id': None})
+            tenant_query(Venta).filter_by(cliente_id=id).update({'cliente_id': None})
+            tenant_query(Cotizacion).filter_by(cliente_id=id).update({'cliente_id': None})
+            tenant_query(Nota).filter_by(cliente_id=id).update({'cliente_id': None})
+            tenant_query(DocumentoLegal).filter_by(cliente_id=id).update({'cliente_id': None})
             User.query.filter_by(cliente_id=id).update({'cliente_id': None})
-            PreCotizacion.query.filter_by(cliente_id=id).delete()
-            Comision.query.filter(Comision.venta_id.in_(
+            Pretenant_query(Cotizacion).filter_by(cliente_id=id).delete()
+            tenant_query(Comision).filter(Comision.venta_id.in_(
                 db.session.query(Venta.id).filter_by(cliente_id=id)
             )).delete(synchronize_session=False)
             # Contactos se borran por cascade (delete-orphan)

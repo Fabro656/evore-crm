@@ -3,7 +3,7 @@ from flask import render_template, redirect, url_for, flash, request, \
                   jsonify, send_file, make_response, current_app, g
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
-from extensions import db
+from extensions import db, tenant_query
 from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
@@ -16,7 +16,7 @@ def register(app):
     @login_required
     def inventario():
         busqueda=request.args.get('buscar',''); categoria_f=request.args.get('categoria','')
-        q=Producto.query.filter_by(activo=True)
+        q=tenant_query(Producto).filter_by(activo=True)
         if busqueda:
             q=q.filter(db.or_(Producto.nombre.ilike(f'%{busqueda}%'),
                                Producto.sku.ilike(f'%{busqueda}%'),
@@ -87,7 +87,7 @@ def register(app):
     @requiere_modulo('inventario')
     def lotes():
         buscar = request.args.get('buscar', '').strip()
-        q = LoteProducto.query
+        q = Lotetenant_query(Producto)
         if buscar:
             q = q.join(LoteProducto.producto).filter(
                 db.or_(Producto.nombre.ilike(f'%{buscar}%'),
@@ -101,7 +101,7 @@ def register(app):
     @login_required
     @requiere_modulo('inventario')
     def lote_nuevo():
-        productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
+        productos = tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all()
         if request.method == 'POST':
             fp = request.form.get('fecha_produccion')
             fv = request.form.get('fecha_vencimiento')
@@ -127,7 +127,7 @@ def register(app):
     @requiere_modulo('inventario')
     def lote_editar(id):
         obj = LoteProducto.query.get_or_404(id)
-        productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
+        productos = tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all()
         if request.method == 'POST':
             fp = request.form.get('fecha_produccion')
             fv = request.form.get('fecha_vencimiento')
@@ -158,7 +158,7 @@ def register(app):
     @login_required
     @requiere_modulo('inventario')
     def inventario_ingresos():
-        productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
+        productos = tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all()
         if request.method == 'POST':
             pid = request.form.get('producto_id')
             numero_lote = request.form.get('numero_lote','').strip()

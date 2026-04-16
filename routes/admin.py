@@ -16,7 +16,7 @@ def register(app):
     @login_required
     def impuestos():
         return render_template('finanzas/impuestos.html',
-                               items=ReglaTributaria.query.order_by(ReglaTributaria.nombre).all())
+                               items=tenant_query(ReglaTributaria).order_by(ReglaTributaria.nombre).all())
     
 
     # ── impuesto_nuevo (/finanzas/impuestos/nuevo)
@@ -87,11 +87,11 @@ def register(app):
             total_mes = db.session.query(db.func.sum(GastoOperativo.monto)).filter(
                 GastoOperativo.es_plantilla==False, GastoOperativo.fecha>=mes_ini).scalar() or 0
             tipos     = [t[0] for t in db.session.query(GastoOperativo.tipo).filter_by(es_plantilla=False).distinct().order_by(GastoOperativo.tipo).all()]
-            plantillas = GastoOperativo.query.filter_by(es_plantilla=True).order_by(GastoOperativo.tipo).all()
-            total_reg = GastoOperativo.query.filter_by(es_plantilla=False).count()
+            plantillas = tenant_query(GastoOperativo).filter_by(es_plantilla=True).order_by(GastoOperativo.tipo).all()
+            total_reg = tenant_query(GastoOperativo).filter_by(es_plantilla=False).count()
         except Exception:
             db.session.rollback()
-            q2 = GastoOperativo.query
+            q2 = tenant_query(GastoOperativo)
             if tipo_f: q2 = q2.filter_by(tipo=tipo_f)
             pagination = q2.order_by(GastoOperativo.fecha.desc()).paginate(page=page, per_page=25, error_out=False)
             items = pagination.items
@@ -176,7 +176,7 @@ def register(app):
             obj.es_plantilla=request.form.get('es_plantilla') == '1' and rec == 'mensual'
             obj.notas=request.form.get('notas','')
             # Sincronizar asiento contable vinculado
-            asiento_link = AsientoContable.query.filter_by(gasto_id=obj.id).first()
+            asiento_link = tenant_query(AsientoContable).filter_by(gasto_id=obj.id).first()
             if asiento_link:
                 asiento_link.debe = float(obj.monto)
                 asiento_link.haber = float(obj.monto)
@@ -196,7 +196,7 @@ def register(app):
             return redirect(request.referrer or url_for('dashboard'))
         obj=GastoOperativo.query.get_or_404(id)
         # Eliminar asientos contables vinculados
-        AsientoContable.query.filter_by(gasto_id=obj.id).delete()
+        tenant_query(AsientoContable).filter_by(gasto_id=obj.id).delete()
         db.session.delete(obj); db.session.commit()
         flash('Gasto y asiento contable eliminados.','info'); return redirect(url_for('gastos'))
     
@@ -208,7 +208,7 @@ def register(app):
         obj = GastoOperativo.query.get_or_404(id)
         obj.estado_pago = 'pagado'
         # Tambien marcar el asiento contable vinculado
-        asiento = AsientoContable.query.filter_by(gasto_id=obj.id).first()
+        asiento = tenant_query(AsientoContable).filter_by(gasto_id=obj.id).first()
         if asiento:
             asiento.estado_pago = 'completo'
             asiento.fecha_pago = date_type.today()
@@ -624,8 +624,8 @@ def register(app):
             flash('Sin permisos.','danger'); return redirect(url_for('dashboard'))
         return render_template('admin/usuarios.html',
             items=User.query.order_by(User.nombre).all(),
-            clientes_all=Cliente.query.filter_by(estado='activo').all(),
-            proveedores_all=Proveedor.query.filter_by(activo=True).all())
+            clientes_all=tenant_query(Cliente).filter_by(estado='activo').all(),
+            proveedores_all=tenant_query(Proveedor).filter_by(activo=True).all())
     
 
     # ── admin_usuario_nuevo (/admin/usuarios/nuevo)
@@ -657,8 +657,8 @@ def register(app):
                 u.set_password(_pwd); db.session.add(u); _log('crear', 'usuario', u.id, f'Usuario creado: {u.nombre} ({u.email}), rol={u.rol}')
                 db.session.commit()
                 flash('Usuario creado.','success'); return redirect(url_for('admin_usuarios'))
-        clientes_list  = Cliente.query.filter_by(estado='activo').order_by(Cliente.empresa, Cliente.nombre).all()
-        proveedores_list = Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa, Proveedor.nombre).all()
+        clientes_list  = tenant_query(Cliente).filter_by(estado='activo').order_by(Cliente.empresa, Cliente.nombre).all()
+        proveedores_list = tenant_query(Proveedor).filter_by(activo=True).order_by(Proveedor.empresa, Proveedor.nombre).all()
         return render_template('admin/usuario_form.html', obj=None, titulo='Nuevo Usuario',
                                clientes_list=clientes_list, proveedores_list=proveedores_list)
     
@@ -784,8 +784,8 @@ def register(app):
                 u.set_password(_pwd)
             elif _pwd and len(_pwd) < 8:
                 flash('Contraseña muy corta (mín. 8 caracteres).','danger')
-                clientes_list  = Cliente.query.filter_by(estado='activo').order_by(Cliente.empresa, Cliente.nombre).all()
-                proveedores_list = Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa, Proveedor.nombre).all()
+                clientes_list  = tenant_query(Cliente).filter_by(estado='activo').order_by(Cliente.empresa, Cliente.nombre).all()
+                proveedores_list = tenant_query(Proveedor).filter_by(activo=True).order_by(Proveedor.empresa, Proveedor.nombre).all()
                 return render_template('admin/usuario_form.html', obj=u, titulo='Editar Usuario',
                                        clientes_list=clientes_list, proveedores_list=proveedores_list)
             # Roles de portal: vincular empresa (solo modificar si el rol coincide)
@@ -803,8 +803,8 @@ def register(app):
             _log('editar', 'usuario', u.id, f'Usuario editado: {u.nombre} ({u.email}), rol={u.rol}')
             db.session.commit()
             flash('Usuario actualizado.','success'); return redirect(url_for('admin_usuarios'))
-        clientes_list  = Cliente.query.filter_by(estado='activo').order_by(Cliente.empresa, Cliente.nombre).all()
-        proveedores_list = Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa, Proveedor.nombre).all()
+        clientes_list  = tenant_query(Cliente).filter_by(estado='activo').order_by(Cliente.empresa, Cliente.nombre).all()
+        proveedores_list = tenant_query(Proveedor).filter_by(activo=True).order_by(Proveedor.empresa, Proveedor.nombre).all()
         return render_template('admin/usuario_form.html', obj=u, titulo='Editar Usuario',
                                clientes_list=clientes_list, proveedores_list=proveedores_list)
     
@@ -847,9 +847,9 @@ def register(app):
     def legal_generar():
         """Generador de documentos legales con plantillas colombianas."""
         empresa = ConfigEmpresa.query.first()
-        clientes_list = Cliente.query.filter_by(estado='activo').order_by(Cliente.empresa).all()
-        proveedores_list = Proveedor.query.filter_by(activo=True).order_by(Proveedor.empresa).all()
-        empleados_list = Empleado.query.filter_by(estado='activo').order_by(Empleado.nombre).all()
+        clientes_list = tenant_query(Cliente).filter_by(estado='activo').order_by(Cliente.empresa).all()
+        proveedores_list = tenant_query(Proveedor).filter_by(activo=True).order_by(Proveedor.empresa).all()
+        empleados_list = tenant_query(Empleado).filter_by(estado='activo').order_by(Empleado.nombre).all()
 
         if request.method == 'POST':
             plantilla = request.form.get('plantilla', '')
@@ -1116,7 +1116,7 @@ def register(app):
         tipo_f = request.args.get('tipo','')
         estado_f = request.args.get('estado','')
         buscar = request.args.get('q','').strip()
-        q = DocumentoLegal.query.filter_by(activo=True)
+        q = tenant_query(DocumentoLegal).filter_by(activo=True)
         if tipo_f: q = q.filter_by(tipo=tipo_f)
         if estado_f: q = q.filter_by(estado=estado_f)
         if buscar:
@@ -1141,7 +1141,7 @@ def register(app):
     @login_required
     @requiere_modulo('legal')
     def legal_nuevo():
-        productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
+        productos = tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all()
         if request.method == 'POST':
             fe = request.form.get('fecha_emision')
             fv = request.form.get('fecha_vencimiento')
@@ -1205,7 +1205,7 @@ def register(app):
             db.session.commit()
             flash('Documento actualizado.','success')
             return redirect(url_for('legal_index'))
-        productos = Producto.query.filter_by(activo=True).order_by(Producto.nombre).all()
+        productos = tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all()
         return render_template('legal/form.html', obj=obj, titulo='Editar Documento Legal', productos=productos)
     
 
