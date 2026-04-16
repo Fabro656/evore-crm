@@ -34,8 +34,9 @@
     {% endif %}
   </div>
   {# ── Header stats ── #}
-  {% set asignado_fases = p.fases|sum(attribute='presupuesto') %}
-  {% set disponible_ppto = (p.presupuesto or 0) - asignado_fases %}
+  {% set asignado_fases = p.fases|map(attribute='presupuesto')|map('default', 0)|sum %}
+  {% set ppto_total = p.presupuesto if p.presupuesto and p.presupuesto >= asignado_fases else asignado_fases %}
+  {% set disponible_ppto = ppto_total - asignado_fases %}
   <div class="pry-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:.75rem">
     <div class="fc" style="text-align:center;padding:.75rem .5rem">
       <div style="font-size:.62rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Progreso</div>
@@ -50,7 +51,7 @@
     </div>
     <div class="fc" style="text-align:center;padding:.75rem .5rem">
       <div style="font-size:.62rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Presupuesto</div>
-      <div class="fw-bold mt-1" style="font-size:1.1rem;color:var(--ac)">{{ moneda(p.presupuesto) }}</div>
+      <div class="fw-bold mt-1" style="font-size:1.1rem;color:var(--ac)">{{ moneda(ppto_total) }}</div>
       <div style="font-size:.6rem;color:var(--text2);margin-top:2px">Asignado: {{ moneda(asignado_fases) }} | <span class="{% if disponible_ppto < 0 %}text-danger{% else %}text-success{% endif %}">Disp: {{ moneda(disponible_ppto) }}</span></div>
       <button class="btn btn-sm btn-outline-secondary mt-1" style="font-size:.6rem;padding:1px 6px" data-bs-toggle="modal" data-bs-target="#modalReasignar"><i class="bi bi-arrow-left-right me-1"></i>Reasignar</button>
     </div>
