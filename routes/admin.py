@@ -1223,6 +1223,9 @@ def register(app):
             'DELETE FROM productos WHERE company_id = :cid',
             'DELETE FROM clientes WHERE company_id = :cid',
             'DELETE FROM proveedores WHERE company_id = :cid',
+            # ── Capacitacion (may have NULL company_id) ──
+            'DELETE FROM cap_evaluaciones WHERE user_id IN (SELECT id FROM users WHERE company_id = :cid AND id != :aid)',
+            'DELETE FROM cap_progresos WHERE user_id IN (SELECT id FROM users WHERE company_id = :cid AND id != :aid)',
             # ── Chat + Foro (cross-company, reference users) ──
             'DELETE FROM chat_messages WHERE user_id IN (SELECT id FROM users WHERE company_id = :cid AND id != :aid)',
             'DELETE FROM chat_participants WHERE user_id IN (SELECT id FROM users WHERE company_id = :cid AND id != :aid)',
