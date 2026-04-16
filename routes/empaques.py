@@ -339,7 +339,7 @@ def register(app):
             db.session.add(mp)
             db.session.flush()
             # Vincular al producto en M2M
-            existe_m2m = MateriaPrimatenant_query(Producto).filter_by(
+            existe_m2m = MateriaPrimaProducto.query.filter_by(
                 materia_prima_id=mp.id, producto_id=empaque.producto_id).first()
             if not existe_m2m:
                 db.session.add(MateriaPrimaProducto(
@@ -380,7 +380,7 @@ def register(app):
                 cinta_por_caja_m = 0.5  # fallback 50cm si no hay dims
 
             # Agregar caja como ingrediente de la receta del producto (si existe)
-            receta = Recetatenant_query(Producto).filter_by(producto_id=empaque.producto_id, activo=True).first()
+            receta = RecetaProducto.query.filter_by(producto_id=empaque.producto_id, activo=True).first()
             receta_msg = ''
             if receta:
                 # Agregar caja si no existe
@@ -458,7 +458,7 @@ def register(app):
 
             # Vincular cinta al producto (M2M, sin producto_id fijo porque es compartida)
             if cinta_mp and empaque.producto_id:
-                cinta_m2m = MateriaPrimatenant_query(Producto).filter_by(
+                cinta_m2m = MateriaPrimaProducto.query.filter_by(
                     materia_prima_id=cinta_mp.id, producto_id=empaque.producto_id).first()
                 if not cinta_m2m:
                     db.session.add(MateriaPrimaProducto(
@@ -501,7 +501,7 @@ def register(app):
                 mp_id = empaque.materia_prima_id
 
                 # Quitar de la receta activa (el item sigue disponible para futuras recetas)
-                receta = Recetatenant_query(Producto).filter_by(producto_id=producto_id, activo=True).first()
+                receta = RecetaProducto.query.filter_by(producto_id=producto_id, activo=True).first()
                 if receta:
                     RecetaItem.query.filter_by(receta_id=receta.id, materia_prima_id=mp_id).delete()
 

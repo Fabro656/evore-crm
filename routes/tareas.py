@@ -259,7 +259,7 @@ def register(app):
             return jsonify({'error': 'Estado invalido'}), 400
         obj.estado = nuevo
         # Sync to ProyectoTarea if linked
-        proy_tarea = Proyectotenant_query(Tarea).filter_by(tarea_id=obj.id).first()
+        proy_tarea = ProyectoTarea.query.filter_by(tarea_id=obj.id).first()
         if proy_tarea:
             # Map ticket states to project states
             proy_estado = {'pendiente': 'por_hacer', 'en_progreso': 'en_progreso',

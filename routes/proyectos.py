@@ -62,8 +62,8 @@ def register(app):
         # Stats
         stats = {}
         for p in proyectos:
-            total_t = Proyectotenant_query(Tarea).filter_by(proyecto_id=p.id).count()
-            done_t = Proyectotenant_query(Tarea).filter_by(proyecto_id=p.id, estado='completada').count()
+            total_t = ProyectoTarea.query.filter_by(proyecto_id=p.id).count()
+            done_t = ProyectoTarea.query.filter_by(proyecto_id=p.id, estado='completada').count()
             total_gasto = db.session.query(func.sum(GastoOperativo.monto)).join(
                 ProyectoGasto, ProyectoGasto.gasto_id == GastoOperativo.id
             ).filter(ProyectoGasto.proyecto_id == p.id).scalar() or 0
@@ -138,7 +138,7 @@ def register(app):
         # All tasks grouped by estado for kanban
         tareas_por_estado = {}
         for est in _ESTADOS_TAREA:
-            tareas_por_estado[est] = Proyectotenant_query(Tarea).filter_by(
+            tareas_por_estado[est] = ProyectoTarea.query.filter_by(
                 proyecto_id=p.id, estado=est
             ).order_by(ProyectoTarea.orden, ProyectoTarea.prioridad.desc()).all()
         # Gastos
@@ -329,7 +329,7 @@ def register(app):
                         'estado': t.estado
                     })
         # Also tasks without phase
-        for t in Proyectotenant_query(Tarea).filter_by(proyecto_id=p.id, fase_id=None).all():
+        for t in ProyectoTarea.query.filter_by(proyecto_id=p.id, fase_id=None).all():
             if t.fecha_inicio or t.fecha_limite:
                 eventos.append({
                     'titulo': t.titulo,
@@ -1017,7 +1017,7 @@ def register(app):
         if not _puede_ver_proyecto(pid):
             flash('Acceso denegado.', 'danger'); return redirect(url_for('dashboard'))
         p = Proyecto.query.get_or_404(pid)
-        notas = Proyectotenant_query(Nota).filter_by(proyecto_id=pid).order_by(ProyectoNota.orden).all()
+        notas = ProyectoNota.query.filter_by(proyecto_id=pid).order_by(ProyectoNota.orden).all()
         return render_template('proyectos/brainstorm.html', p=p, notas=notas)
 
     @app.route('/proyectos/<int:pid>/brainstorm/nota', methods=['POST'])

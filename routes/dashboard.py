@@ -149,7 +149,7 @@ def register(app):
 
         # ── Top 10 Productos por rentabilidad (margen %) ──
         try:
-            _recetas_raw = Recetatenant_query(Producto).join(Producto, RecetaProducto.producto_id == Producto.id).filter(
+            _recetas_raw = RecetaProducto.query.join(Producto, RecetaProducto.producto_id == Producto.id).filter(
                 RecetaProducto.precio_venta_sugerido > 0,
                 RecetaProducto.costo_calculado > 0
             ).with_entities(

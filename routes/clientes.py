@@ -14,7 +14,7 @@ def register(app):
 
     # ── Helpers ─────────────────────────────────────────────────────
     def _save_contactos(cliente_obj):
-        Contactotenant_query(Cliente).filter_by(cliente_id=cliente_obj.id).delete()
+        ContactoCliente.query.filter_by(cliente_id=cliente_obj.id).delete()
         nombres = request.form.getlist('c_nombre[]')
         cargos  = request.form.getlist('c_cargo[]')
         emails  = request.form.getlist('c_email[]')

@@ -467,7 +467,7 @@ def register(app):
         """Guarda relación M2M MateriaPrima ↔ Productos."""
         prod_ids = [int(x) for x in form.getlist('producto_ids[]') if x]
         # Eliminar relaciones existentes
-        MateriaPrimatenant_query(Producto).filter_by(materia_prima_id=m.id).delete()
+        MateriaPrimaProducto.query.filter_by(materia_prima_id=m.id).delete()
         # Primer producto = campo legacy producto_id
         m.producto_id = prod_ids[0] if prod_ids else None
         # Insertar nuevas relaciones M2M
@@ -525,7 +525,7 @@ def register(app):
         obj = MateriaPrima.query.get_or_404(id)
         productos = tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all()
         # IDs actuales de productos asociados para pre-seleccionar checkboxes
-        prod_ids_sel = [mp.producto_id for mp in MateriaPrimatenant_query(Producto).filter_by(materia_prima_id=obj.id).all()]
+        prod_ids_sel = [mp.producto_id for mp in MateriaPrimaProducto.query.filter_by(materia_prima_id=obj.id).all()]
         if not prod_ids_sel and obj.producto_id:
             prod_ids_sel = [obj.producto_id]
         if request.method == 'POST':
@@ -611,7 +611,7 @@ def register(app):
                 continue
             # Vincular al producto si no hay relación M2M aún
             if producto_id:
-                existe = MateriaPrimatenant_query(Producto).filter_by(
+                existe = MateriaPrimaProducto.query.filter_by(
                     materia_prima_id=m.id, producto_id=producto_id
                 ).first()
                 if not existe:

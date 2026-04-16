@@ -40,7 +40,7 @@ def register(app):
         ]
 
     def _save_items(venta_obj):
-        Ventatenant_query(Producto).filter_by(venta_id=venta_obj.id).delete()
+        VentaProducto.query.filter_by(venta_id=venta_obj.id).delete()
         pids    = request.form.getlist('prod_id[]')
         cants   = request.form.getlist('prod_cant[]')
         precios = request.form.getlist('prod_precio[]')
@@ -111,7 +111,7 @@ def register(app):
                 if existente:
                     continue
 
-                receta = Recetatenant_query(Producto).filter_by(producto_id=prod.id, activo=True).first()
+                receta = RecetaProducto.query.filter_by(producto_id=prod.id, activo=True).first()
                 hay_faltante = False
 
                 if receta and receta.items:
@@ -456,7 +456,7 @@ def register(app):
         obj = Venta.query.get_or_404(id)
         ordenes = tenant_query(OrdenProduccion).filter_by(venta_id=obj.id).all()
         reservas = ReservaProduccion.query.filter_by(venta_id=obj.id).all()
-        pagos = Pagotenant_query(Venta).filter_by(venta_id=obj.id).order_by(PagoVenta.fecha.desc()).all()
+        pagos = PagoVenta.query.filter_by(venta_id=obj.id).order_by(PagoVenta.fecha.desc()).all()
         return render_template('ventas/ver.html', obj=obj, ordenes=ordenes,
                                reservas=reservas, pagos=pagos)
 
@@ -628,7 +628,7 @@ def register(app):
                 ocs_creadas = 0
                 for item in venta.items:
                     if not item.producto_id: continue
-                    receta = Recetatenant_query(Producto).filter_by(producto_id=item.producto_id, activo=True).first()
+                    receta = RecetaProducto.query.filter_by(producto_id=item.producto_id, activo=True).first()
                     if not receta or receta.unidades_produce <= 0: continue
                     cant_producir = max(0, (item.cantidad or 0) - (Producto.query.get(item.producto_id).stock or 0))
                     if cant_producir <= 0: continue
@@ -1104,7 +1104,7 @@ def register(app):
                 result.append({'producto': prod.nombre, 'ok': True,
                                 'mensaje': f'En stock ({int(cant_stock)} uds)'})
                 continue
-            receta = Recetatenant_query(Producto).filter_by(producto_id=prod.id, activo=True).first()
+            receta = RecetaProducto.query.filter_by(producto_id=prod.id, activo=True).first()
             if not receta or not receta.items:
                 result.append({'producto': prod.nombre, 'ok': False,
                                 'mensaje': f'Necesita producir {cant_producir:.0f} uds — sin receta'})
@@ -1380,7 +1380,7 @@ def register(app):
                             usuario_id=current_user.id
                         ))
                         prod.precio = precio_con_iva
-                        receta = Recetatenant_query(Producto).filter_by(producto_id=prod.id, activo=True).first()
+                        receta = RecetaProducto.query.filter_by(producto_id=prod.id, activo=True).first()
                         if receta:
                             receta.precio_venta_sugerido = precio_con_iva
             _log('crear','cotizacion',cot.id,f'Cotización {numero}: {cot.titulo}'); db.session.commit()
@@ -1390,7 +1390,7 @@ def register(app):
         # Construir lista de productos con precio correcto desde receta
         prods_cot = []
         for p in tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all():
-            receta = Recetatenant_query(Producto).filter_by(producto_id=p.id, activo=True).first()
+            receta = RecetaProducto.query.filter_by(producto_id=p.id, activo=True).first()
             precio_venta = receta.precio_venta_sugerido if receta and receta.precio_venta_sugerido else p.precio or 0
             costo = receta.costo_calculado if receta and receta.costo_calculado else p.costo_receta or p.costo or 0
             prods_cot.append({
@@ -1550,7 +1550,7 @@ def register(app):
                             usuario_id=current_user.id
                         ))
                         prod.precio = precio_con_iva
-                        receta = Recetatenant_query(Producto).filter_by(producto_id=prod.id, activo=True).first()
+                        receta = RecetaProducto.query.filter_by(producto_id=prod.id, activo=True).first()
                         if receta:
                             receta.precio_venta_sugerido = precio_con_iva
             if cambios:
@@ -1581,7 +1581,7 @@ def register(app):
 
         prods_cot = []
         for p in tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all():
-            receta = Recetatenant_query(Producto).filter_by(producto_id=p.id, activo=True).first()
+            receta = RecetaProducto.query.filter_by(producto_id=p.id, activo=True).first()
             precio_venta = receta.precio_venta_sugerido if receta and receta.precio_venta_sugerido else p.precio or 0
             costo = receta.costo_calculado if receta and receta.costo_calculado else p.costo_receta or p.costo or 0
             prods_cot.append({
