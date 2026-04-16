@@ -1223,6 +1223,17 @@ def register(app):
             'DELETE FROM productos WHERE company_id = :cid',
             'DELETE FROM clientes WHERE company_id = :cid',
             'DELETE FROM proveedores WHERE company_id = :cid',
+            # ── Chat + Foro (cross-company, reference users) ──
+            'DELETE FROM chat_messages WHERE user_id IN (SELECT id FROM users WHERE company_id = :cid AND id != :aid)',
+            'DELETE FROM chat_participants WHERE user_id IN (SELECT id FROM users WHERE company_id = :cid AND id != :aid)',
+            'DELETE FROM foro_apelaciones WHERE solicitado_por IN (SELECT id FROM users WHERE company_id = :cid AND id != :aid)',
+            'DELETE FROM foro_valoraciones WHERE cliente_user_id IN (SELECT id FROM users WHERE company_id = :cid AND id != :aid)',
+            'DELETE FROM foro_publicaciones WHERE user_id IN (SELECT id FROM users WHERE company_id = :cid AND id != :aid)',
+            # ── Nullify remaining FK refs to users being deleted ──
+            'UPDATE clientes SET sales_manager_id = NULL WHERE sales_manager_id IN (SELECT id FROM users WHERE company_id = :cid AND id != :aid)',
+            'UPDATE ordenes_compra SET confirmado_por = NULL WHERE confirmado_por IN (SELECT id FROM users WHERE company_id = :cid AND id != :aid)',
+            'UPDATE pre_cotizaciones SET cliente_user_id = NULL WHERE cliente_user_id IN (SELECT id FROM users WHERE company_id = :cid AND id != :aid)',
+            'UPDATE pre_cotizaciones SET sales_manager_id = NULL WHERE sales_manager_id IN (SELECT id FROM users WHERE company_id = :cid AND id != :aid)',
             # ── Users (except admin) ──
             'DELETE FROM user_companies WHERE company_id = :cid AND user_id != :aid',
             'DELETE FROM user_sesiones WHERE user_id IN (SELECT id FROM users WHERE company_id = :cid AND id != :aid)',
