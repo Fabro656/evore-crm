@@ -1095,8 +1095,7 @@ def register(app):
     @app.route('/admin/reset-total', methods=['POST'])
     @login_required
     def admin_reset_total():
-        """Reset de datos por empresa. El admin solo borra datos de SU empresa.
-        Si es empresa principal (Evore), preserva las empresas clientes y sus datos."""
+        """Reset de datos por empresa. Borra SOLO datos de la empresa del admin."""
         from werkzeug.security import check_password_hash
         if current_user.rol not in ('admin', 'director_financiero'):
             flash('Acceso denegado.', 'danger')
@@ -1114,6 +1113,9 @@ def register(app):
         admin_id = current_user.id
         admin_email = current_user.email
         my_company_id = getattr(g, 'company_id', None)
+        if not my_company_id:
+            # Fallback: get from user
+            my_company_id = current_user.company_id
         if not my_company_id:
             flash('Error: no se pudo determinar tu empresa.', 'danger')
             return redirect(url_for('admin_usuarios'))
@@ -1151,98 +1153,102 @@ def register(app):
             'contactos_cliente', 'clientes', 'proveedores',
         ]
 
-        # Child tables that need subquery delete (no company_id, FK to parent)
-        child_deletes = {
-            'lineas_asiento': 'DELETE FROM lineas_asiento WHERE asiento_id IN (SELECT id FROM asientos_contables WHERE company_id = :cid)',
-            'tarea_asignados': 'DELETE FROM tarea_asignados WHERE tarea_id IN (SELECT id FROM tareas WHERE company_id = :cid)',
-            'tarea_comentarios': 'DELETE FROM tarea_comentarios WHERE tarea_id IN (SELECT id FROM tareas WHERE company_id = :cid)',
-            'pagos_venta': 'DELETE FROM pagos_venta WHERE venta_id IN (SELECT id FROM ventas WHERE company_id = :cid)',
-            'cotizacion_items': 'DELETE FROM cotizacion_items WHERE cotizacion_id IN (SELECT id FROM cotizaciones WHERE company_id = :cid)',
-            'pre_cotizacion_items': 'DELETE FROM pre_cotizacion_items WHERE pre_cotizacion_id IN (SELECT id FROM pre_cotizaciones WHERE company_id = :cid)',
-            'ordenes_compra_items': 'DELETE FROM ordenes_compra_items WHERE orden_compra_id IN (SELECT id FROM ordenes_compra WHERE company_id = :cid)',
-            'venta_productos': 'DELETE FROM venta_productos WHERE venta_id IN (SELECT id FROM ventas WHERE company_id = :cid)',
-            'materia_prima_productos': 'DELETE FROM materia_prima_productos WHERE materia_prima_id IN (SELECT id FROM materias_primas WHERE company_id = :cid)',
-            'receta_items': 'DELETE FROM receta_items WHERE receta_id IN (SELECT id FROM recetas_producto WHERE company_id = :cid)',
-            'marcas_producto': 'DELETE FROM marcas_producto WHERE producto_id IN (SELECT id FROM productos WHERE company_id = :cid)',
-            'historial_precios': 'DELETE FROM historial_precios WHERE producto_id IN (SELECT id FROM productos WHERE company_id = :cid)',
-            'historial_cotizaciones': 'DELETE FROM historial_cotizaciones WHERE cotizacion_id IN (SELECT id FROM cotizaciones WHERE company_id = :cid)',
-            'horas_extra': 'DELETE FROM horas_extra WHERE empleado_id IN (SELECT id FROM empleados WHERE company_id = :cid)',
-            'vacaciones_tomadas': 'DELETE FROM vacaciones_tomadas WHERE empleado_id IN (SELECT id FROM empleados WHERE company_id = :cid)',
-            'incapacidades': 'DELETE FROM incapacidades WHERE empleado_id IN (SELECT id FROM empleados WHERE company_id = :cid)',
-            'contactos_cliente': 'DELETE FROM contactos_cliente WHERE cliente_id IN (SELECT id FROM clientes WHERE company_id = :cid)',
-            'reservas_produccion': 'DELETE FROM reservas_produccion WHERE orden_id IN (SELECT id FROM ordenes_produccion WHERE company_id = :cid)',
-            'proyecto_solicitudes_pago': 'DELETE FROM proyecto_solicitudes_pago WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
-            'proyecto_plan_gastos': 'DELETE FROM proyecto_plan_gastos WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
-            'proyecto_objetivos': 'DELETE FROM proyecto_objetivos WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
-            'proyecto_notas': 'DELETE FROM proyecto_notas WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
-            'proyecto_comentarios': 'DELETE FROM proyecto_comentarios WHERE tarea_id IN (SELECT id FROM proyecto_tareas WHERE company_id = :cid)',
-            'proyecto_gastos': 'DELETE FROM proyecto_gastos WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
-            'proyecto_tareas': 'DELETE FROM proyecto_tareas WHERE company_id = :cid',
-            'proyecto_miembros': 'DELETE FROM proyecto_miembros WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
-            'proyecto_fases': 'DELETE FROM proyecto_fases WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
-        }
+        # ALL deletes in strict FK order. NO try/except inside — one transaction.
+        # If ANY fails, the whole thing rolls back and shows the real error.
+        delete_sql = [
+            # ── Leaf children (FK to company-owned parents) ──
+            'DELETE FROM proyecto_comentarios WHERE tarea_id IN (SELECT id FROM proyecto_tareas WHERE company_id = :cid)',
+            'DELETE FROM proyecto_solicitudes_pago WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
+            'DELETE FROM proyecto_plan_gastos WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
+            'DELETE FROM proyecto_objetivos WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
+            'DELETE FROM proyecto_notas WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
+            'DELETE FROM proyecto_gastos WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
+            'DELETE FROM proyecto_tareas WHERE company_id = :cid',
+            'DELETE FROM proyecto_miembros WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
+            'DELETE FROM proyecto_fases WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
+            'DELETE FROM proyectos WHERE company_id = :cid',
+            'DELETE FROM cap_evaluaciones WHERE company_id = :cid',
+            'DELETE FROM cap_progresos WHERE company_id = :cid',
+            'DELETE FROM lineas_asiento WHERE asiento_id IN (SELECT id FROM asientos_contables WHERE company_id = :cid)',
+            'DELETE FROM tarea_asignados WHERE tarea_id IN (SELECT id FROM tareas WHERE company_id = :cid)',
+            'DELETE FROM tarea_comentarios WHERE tarea_id IN (SELECT id FROM tareas WHERE company_id = :cid)',
+            'DELETE FROM pagos_venta WHERE venta_id IN (SELECT id FROM ventas WHERE company_id = :cid)',
+            'DELETE FROM reservas_produccion WHERE orden_id IN (SELECT id FROM ordenes_produccion WHERE company_id = :cid)',
+            'DELETE FROM cotizacion_items WHERE cotizacion_id IN (SELECT id FROM cotizaciones WHERE company_id = :cid)',
+            'DELETE FROM pre_cotizacion_items WHERE pre_cotizacion_id IN (SELECT id FROM pre_cotizaciones WHERE company_id = :cid)',
+            'DELETE FROM ordenes_compra_items WHERE orden_compra_id IN (SELECT id FROM ordenes_compra WHERE company_id = :cid)',
+            'DELETE FROM venta_productos WHERE venta_id IN (SELECT id FROM ventas WHERE company_id = :cid)',
+            'DELETE FROM materia_prima_productos WHERE materia_prima_id IN (SELECT id FROM materias_primas WHERE company_id = :cid)',
+            'DELETE FROM receta_items WHERE receta_id IN (SELECT id FROM recetas_producto WHERE company_id = :cid)',
+            'DELETE FROM marcas_producto WHERE producto_id IN (SELECT id FROM productos WHERE company_id = :cid)',
+            'DELETE FROM historial_precios WHERE producto_id IN (SELECT id FROM productos WHERE company_id = :cid)',
+            'DELETE FROM historial_cotizaciones WHERE cotizacion_id IN (SELECT id FROM cotizaciones WHERE company_id = :cid)',
+            'DELETE FROM horas_extra WHERE empleado_id IN (SELECT id FROM empleados WHERE company_id = :cid)',
+            'DELETE FROM vacaciones_tomadas WHERE empleado_id IN (SELECT id FROM empleados WHERE company_id = :cid)',
+            'DELETE FROM incapacidades WHERE empleado_id IN (SELECT id FROM empleados WHERE company_id = :cid)',
+            'DELETE FROM contactos_cliente WHERE cliente_id IN (SELECT id FROM clientes WHERE company_id = :cid)',
+            # ── Mid-level (have company_id) ──
+            'DELETE FROM movimientos_bancarios WHERE company_id = :cid',
+            'DELETE FROM notas_contables WHERE company_id = :cid',
+            'DELETE FROM movimientos_inventario WHERE company_id = :cid',
+            'DELETE FROM comisiones WHERE company_id = :cid',
+            'DELETE FROM ordenes_produccion WHERE company_id = :cid',
+            'DELETE FROM lotes_materia_prima WHERE company_id = :cid',
+            'DELETE FROM lotes_producto WHERE company_id = :cid',
+            'DELETE FROM compras_materia WHERE company_id = :cid',
+            'DELETE FROM cotizaciones_proveedor WHERE company_id = :cid',
+            'DELETE FROM cotizaciones_granel WHERE company_id = :cid',
+            'DELETE FROM empaques_secundarios WHERE company_id = :cid',
+            'DELETE FROM aprobaciones WHERE company_id = :cid',
+            'DELETE FROM requisiciones WHERE company_id = :cid',
+            'DELETE FROM asientos_contables WHERE company_id = :cid',
+            'DELETE FROM tareas WHERE company_id = :cid',
+            'DELETE FROM eventos WHERE company_id = :cid',
+            'DELETE FROM notas WHERE company_id = :cid',
+            'DELETE FROM notificaciones WHERE company_id = :cid',
+            'DELETE FROM actividades WHERE company_id = :cid',
+            # ── Documents & main entities ──
+            'DELETE FROM ventas WHERE company_id = :cid',
+            'DELETE FROM cotizaciones WHERE company_id = :cid',
+            'DELETE FROM pre_cotizaciones WHERE company_id = :cid',
+            'DELETE FROM ordenes_compra WHERE company_id = :cid',
+            'DELETE FROM gastos_operativos WHERE company_id = :cid',
+            'DELETE FROM documentos_legales WHERE company_id = :cid',
+            'DELETE FROM empleados WHERE company_id = :cid',
+            'DELETE FROM recetas_producto WHERE company_id = :cid',
+            'DELETE FROM servicios WHERE company_id = :cid',
+            # ── Catalogs ──
+            'DELETE FROM reglas_tributarias WHERE company_id = :cid',
+            'DELETE FROM materias_primas WHERE company_id = :cid',
+            'DELETE FROM productos WHERE company_id = :cid',
+            'DELETE FROM clientes WHERE company_id = :cid',
+            'DELETE FROM proveedores WHERE company_id = :cid',
+            # ── Users (except admin) ──
+            'DELETE FROM user_companies WHERE company_id = :cid AND user_id != :aid',
+            'DELETE FROM user_sesiones WHERE user_id IN (SELECT id FROM users WHERE company_id = :cid AND id != :aid)',
+            'DELETE FROM users WHERE company_id = :cid AND id != :aid',
+        ]
+
+        my_company = db.session.get(Company, my_company_id)
+        company_name = my_company.nombre if my_company else f'ID {my_company_id}'
 
         try:
             deleted_count = 0
-            # First: delete child tables via subquery
-            for table, sql in child_deletes.items():
+            for sql in delete_sql:
+                # Extract table name for existence check
+                table = sql.split('FROM ')[1].split(' ')[0]
                 if table not in existing_tables:
                     continue
-                try:
-                    r = db.session.execute(db.text(sql), {'cid': my_company_id})
-                    deleted_count += r.rowcount
-                except Exception as _e:
-                    db.session.rollback()
-                    logging.warning(f'Reset empresa child: falló {table}: {_e}')
-
-            # Then: delete parent tables with company_id
-            for table in tables_with_company:
-                if table not in existing_tables or table in child_deletes:
-                    continue
-                cols = [c['name'] for c in inspector.get_columns(table)]
-                if 'company_id' not in cols:
-                    continue
-                try:
-                    r = db.session.execute(db.text(
-                        f'DELETE FROM {table} WHERE company_id = :cid'
-                    ), {'cid': my_company_id})
-                    deleted_count += r.rowcount
-                except Exception as _e:
-                    db.session.rollback()
-                    logging.warning(f'Reset empresa: falló {table}: {_e}')
-
-            # Delete users of this company (except current admin)
-            try:
-                db.session.execute(db.text(
-                    'DELETE FROM user_companies WHERE company_id = :cid AND user_id != :aid'
-                ), {'cid': my_company_id, 'aid': admin_id})
-                db.session.execute(db.text(
-                    'DELETE FROM user_sesiones WHERE user_id IN '
-                    '(SELECT id FROM users WHERE company_id = :cid AND id != :aid)'
-                ), {'cid': my_company_id, 'aid': admin_id})
-                db.session.execute(db.text(
-                    'DELETE FROM users WHERE company_id = :cid AND id != :aid'
-                ), {'cid': my_company_id, 'aid': admin_id})
-            except Exception as _e:
-                db.session.rollback()
-                logging.warning(f'Reset empresa: falló users: {_e}')
+                r = db.session.execute(db.text(sql), {'cid': my_company_id, 'aid': admin_id})
+                deleted_count += r.rowcount
 
             db.session.commit()
-
-            try:
-                _log('eliminar', 'sistema', 0, f'RESET EMPRESA ejecutado por {admin_email} (company_id={my_company_id})')
-                db.session.commit()
-            except Exception:
-                db.session.rollback()
-
-            my_company = db.session.get(Company, my_company_id)
-            company_name = my_company.nombre if my_company else f'ID {my_company_id}'
-            logging.warning(f'RESET EMPRESA ejecutado: {company_name} por user_id={admin_id}')
-            flash(f'Reset completo para "{company_name}". Datos internos eliminados. Las demas empresas no fueron afectadas.', 'success')
+            logging.warning(f'RESET EMPRESA OK: {company_name} por {admin_email} — {deleted_count} registros eliminados')
+            flash(f'Reset completo para "{company_name}". {deleted_count} registros eliminados. Las demas empresas no fueron afectadas.', 'success')
         except Exception as e:
             db.session.rollback()
-            logging.error(f'admin_reset_total ERROR: {e}')
-            flash('Error durante el reset. Revisa los logs del servidor.', 'danger')
+            logging.error(f'admin_reset_total ERROR en {company_name}: {e}')
+            flash(f'Error durante el reset: {e}', 'danger')
 
         return redirect(url_for('dashboard'))
 
