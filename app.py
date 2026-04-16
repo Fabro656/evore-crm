@@ -285,11 +285,11 @@ def create_app():
         # unsafe-inline needed: Jinja inline styles + onclick handlers throughout templates
         response.headers['Content-Security-Policy'] = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net us.i.posthog.com; "
+            "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net eu.i.posthog.com; "
             "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
             "img-src 'self' data: blob:; "
             "font-src 'self' cdn.jsdelivr.net; "
-            "connect-src 'self' us.i.posthog.com; "
+            "connect-src 'self' eu.i.posthog.com; "
             "frame-src 'self'; "
             "frame-ancestors 'self'"
         )
