@@ -382,14 +382,25 @@ _inject_cache = {}
 _INJECT_CACHE_TTL = 15  # seconds
 
 def _cached_count(key, query_fn, user_id):
-    """Cache DB count queries for 15 seconds per user."""
+    """Cache DB count queries — Redis (30s) with in-memory fallback (15s)."""
     import time
     cache_key = f'{key}_{user_id}'
+    # Try Redis first
+    from extensions import cache_get, cache_set
+    redis_key = f'badge:{cache_key}'
+    cached = cache_get(redis_key)
+    if cached is not None:
+        try:
+            return int(cached)
+        except (ValueError, TypeError):
+            pass
+    # In-memory fallback
     now = time.time()
     if cache_key in _inject_cache and now - _inject_cache[cache_key][1] < _INJECT_CACHE_TTL:
         return _inject_cache[cache_key][0]
     result = query_fn()
     _inject_cache[cache_key] = (result, now)
+    cache_set(redis_key, str(result), 30)
     return result
 
 def inject_globals():

@@ -40,3 +40,55 @@ try:
 except ImportError:
     mail = None
     MAIL_AVAILABLE = False
+
+# ── Redis cache (optional) ──
+_redis_client = None
+
+def get_redis():
+    """Get Redis client. Returns None if not configured."""
+    global _redis_client
+    if _redis_client is not None:
+        return _redis_client
+    import os
+    url = os.environ.get('REDIS_URL')
+    if not url:
+        return None
+    try:
+        import redis
+        _redis_client = redis.from_url(url, decode_responses=True, socket_timeout=2)
+        _redis_client.ping()
+        return _redis_client
+    except Exception:
+        _redis_client = False  # Don't retry
+        return None
+
+def cache_get(key):
+    """Get value from Redis cache. Returns None if miss or no Redis."""
+    r = get_redis()
+    if not r:
+        return None
+    try:
+        return r.get(key)
+    except Exception:
+        return None
+
+def cache_set(key, value, ttl=60):
+    """Set value in Redis cache with TTL in seconds."""
+    r = get_redis()
+    if not r:
+        return
+    try:
+        r.setex(key, ttl, value)
+    except Exception:
+        pass
+
+def cache_delete(pattern):
+    """Delete keys matching pattern."""
+    r = get_redis()
+    if not r:
+        return
+    try:
+        for key in r.scan_iter(match=pattern):
+            r.delete(key)
+    except Exception:
+        pass

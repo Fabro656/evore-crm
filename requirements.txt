@@ -13,3 +13,4 @@ openai==1.14.0
 flask-compress==1.14
 sentry-sdk[flask]==1.40.0
 pytest==8.0.0
+redis==5.0.0

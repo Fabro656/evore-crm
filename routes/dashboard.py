@@ -173,15 +173,28 @@ def register(app):
             db.session.rollback()
             productos_rentabilidad = []
 
-        # ── Batch counts in single pass ──
+        # ── Batch counts (cached 60s) ──
         _cid = getattr(g, 'company_id', None) or current_user.company_id
-        try:
-            _total_clientes = Cliente.query.filter_by(estado='activo', company_id=_cid).count()
-            _ventas_completadas = Venta.query.filter_by(estado='completado', company_id=_cid).count()
-            _tareas_pendientes = Tarea.query.filter(Tarea.estado != 'completada', Tarea.company_id == _cid).count()
-            _productos_bajo = Producto.query.filter(Producto.activo==True, Producto.stock<=Producto.stock_minimo, Producto.company_id==_cid).count()
-        except Exception:
-            _total_clientes = _ventas_completadas = _tareas_pendientes = _productos_bajo = 0
+        from extensions import cache_get, cache_set
+        import json as _json
+        _cache_key = f'dash_counts:{_cid}'
+        _cached = cache_get(_cache_key)
+        if _cached:
+            try:
+                _cc = _json.loads(_cached)
+                _total_clientes = _cc['c']; _ventas_completadas = _cc['v']
+                _tareas_pendientes = _cc['t']; _productos_bajo = _cc['p']
+            except Exception:
+                _cached = None
+        if not _cached:
+            try:
+                _total_clientes = Cliente.query.filter_by(estado='activo', company_id=_cid).count()
+                _ventas_completadas = Venta.query.filter_by(estado='completado', company_id=_cid).count()
+                _tareas_pendientes = Tarea.query.filter(Tarea.estado != 'completada', Tarea.company_id == _cid).count()
+                _productos_bajo = Producto.query.filter(Producto.activo==True, Producto.stock<=Producto.stock_minimo, Producto.company_id==_cid).count()
+                cache_set(_cache_key, _json.dumps({'c':_total_clientes,'v':_ventas_completadas,'t':_tareas_pendientes,'p':_productos_bajo}), 60)
+            except Exception:
+                _total_clientes = _ventas_completadas = _tareas_pendientes = _productos_bajo = 0
 
         # ── Recent items (limit queries) ──
         _rol = _get_rol_activo(current_user)

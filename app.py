@@ -357,6 +357,17 @@ def create_app():
             app._tenant_filter_enabled = False
             logging.warning(f'Multi-tenancy: auto-filter DISABLED ({e})')
 
+        # ── Redis cache ──
+        try:
+            from extensions import get_redis
+            r = get_redis()
+            if r:
+                logging.info('Redis cache: CONNECTED')
+            else:
+                logging.info('Redis cache: not configured (set REDIS_URL)')
+        except Exception:
+            logging.info('Redis cache: not available')
+
     return app
 
 
