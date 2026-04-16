@@ -495,7 +495,7 @@ def register(app):
 
             # Delete company relationships
             db.session.execute(db.text(
-                'DELETE FROM company_relationships WHERE company_a_id = :cid OR company_b_id = :cid'
+                'DELETE FROM company_relationships WHERE company_from_id = :cid OR company_to_id = :cid'
             ), {'cid': target_id})
 
             # Delete suscripciones
