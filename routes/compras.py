@@ -318,9 +318,8 @@ def register(app):
         estado_f = request.args.get('estado','')
         buscar = request.args.get('buscar','').strip()
         q = OrdenCompra.query
-        cid = getattr(g, 'company_id', None)
-        if cid:
-            q = q.filter(OrdenCompra.company_id == cid)
+        cid = getattr(g, 'company_id', None) or current_user.company_id
+        q = q.filter(OrdenCompra.company_id == cid)
         if estado_f: q = q.filter_by(estado=estado_f)
         if buscar:
             like_term = f'%{buscar}%'

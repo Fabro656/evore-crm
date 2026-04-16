@@ -73,9 +73,8 @@ def register(app):
         busqueda=request.args.get('buscar','')
         page = request.args.get('page', 1, type=int)
         q=CompraMateria.query
-        cid = getattr(g, 'company_id', None)
-        if cid:
-            q = q.filter(CompraMateria.company_id == cid)
+        cid = getattr(g, 'company_id', None) or current_user.company_id
+        q = q.filter(CompraMateria.company_id == cid)
         if busqueda:
             q=q.filter(db.or_(CompraMateria.nombre_item.ilike(f'%{busqueda}%'),
                                CompraMateria.proveedor.ilike(f'%{busqueda}%'),
@@ -454,9 +453,8 @@ def register(app):
         unidad_f = request.args.get('unidad', '').strip()
         page = request.args.get('page', 1, type=int)
         q = MateriaPrima.query.filter_by(activo=True)
-        cid = getattr(g, 'company_id', None)
-        if cid:
-            q = q.filter(MateriaPrima.company_id == cid)
+        cid = getattr(g, 'company_id', None) or current_user.company_id
+        q = q.filter(MateriaPrima.company_id == cid)
         if buscar:
             q = q.filter(MateriaPrima.nombre.ilike(f'%{buscar}%'))
         if unidad_f:

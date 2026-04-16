@@ -255,9 +255,8 @@ def register(app):
         page = request.args.get('page', 1, type=int)
         per_page = 25
         q = Venta.query
-        cid = getattr(g, 'company_id', None)
-        if cid:
-            q = q.filter(Venta.company_id == cid)
+        cid = getattr(g, 'company_id', None) or current_user.company_id
+        q = q.filter(Venta.company_id == cid)
         if buscar:
             q = q.filter(db.or_(Venta.titulo.ilike(f'%{buscar}%'), Venta.numero.ilike(f'%{buscar}%')))
         if estado_f:

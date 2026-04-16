@@ -35,10 +35,8 @@ def register(app):
     def clientes():
         busqueda = request.args.get('buscar','')
         estado_rel_f = request.args.get('estado_rel','')
-        cid = getattr(g, 'company_id', None)
-        q = Cliente.query
-        if cid:
-            q = q.filter(Cliente.company_id == cid)
+        cid = getattr(g, 'company_id', None) or current_user.company_id
+        q = Cliente.query.filter(Cliente.company_id == cid)
         if busqueda:
             q = q.filter(db.or_(Cliente.nombre.ilike(f'%{busqueda}%'),
                                  Cliente.empresa.ilike(f'%{busqueda}%'),

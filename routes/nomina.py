@@ -81,9 +81,8 @@ def register(app):
         departamento_filter = request.args.get('departamento', '')
         buscar = request.args.get('buscar','').strip()
         query = Empleado.query
-        cid = getattr(g, 'company_id', None)
-        if cid:
-            query = query.filter(Empleado.company_id == cid)
+        cid = getattr(g, 'company_id', None) or current_user.company_id
+        query = query.filter(Empleado.company_id == cid)
         if estado_filter and estado_filter != 'todos':
             query = query.filter_by(estado=estado_filter)
         if departamento_filter:

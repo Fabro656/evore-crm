@@ -129,10 +129,8 @@ def register(app):
         estado_f=request.args.get('estado',''); prioridad_f=request.args.get('prioridad','')
         buscar=request.args.get('buscar','').strip()
         try:
-            cid = getattr(g, 'company_id', None)
-            q=Tarea.query
-            if cid:
-                q = q.filter(Tarea.company_id == cid)
+            cid = getattr(g, 'company_id', None) or current_user.company_id
+            q=Tarea.query.filter(Tarea.company_id == cid)
             if _get_rol_activo(current_user) != 'admin':
                 q = q.filter(
                     db.or_(

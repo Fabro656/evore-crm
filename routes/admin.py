@@ -77,9 +77,8 @@ def register(app):
         page = request.args.get('page', 1, type=int)
         try:
             q = GastoOperativo.query.filter_by(es_plantilla=False)
-            cid = getattr(g, 'company_id', None)
-            if cid:
-                q = q.filter(GastoOperativo.company_id == cid)
+            cid = getattr(g, 'company_id', None) or current_user.company_id
+            q = q.filter(GastoOperativo.company_id == cid)
             if tipo_f:  q = q.filter_by(tipo=tipo_f)
             if desde_f: q = q.filter(GastoOperativo.fecha >= datetime.strptime(desde_f,'%Y-%m-%d').date())
             if hasta_f: q = q.filter(GastoOperativo.fecha <= datetime.strptime(hasta_f,'%Y-%m-%d').date())
@@ -1441,7 +1440,21 @@ def register(app):
                     continue
                 db.session.execute(db.text(sql), {'cid': my_company_id, 'aid': admin_id})
 
-            # Step 3: delete users
+            # Step 3: also clean orphan NULL company_id records for this company's tables
+            orphan_tables = ['clientes','proveedores','ventas','productos','materias_primas',
+                             'empleados','ordenes_compra','cotizaciones','gastos_operativos',
+                             'tareas','notas','actividades','eventos','notificaciones',
+                             'asientos_contables','servicios','reglas_tributarias',
+                             'recetas_producto','documentos_legales']
+            for tbl in orphan_tables:
+                if tbl in existing_tables:
+                    try:
+                        r = db.session.execute(db.text(f'DELETE FROM {tbl} WHERE company_id IS NULL'))
+                        deleted_count += r.rowcount
+                    except Exception:
+                        pass
+
+            # Step 4: delete users
             if 'users' in existing_tables:
                 r = db.session.execute(db.text(
                     'DELETE FROM users WHERE company_id = :cid AND id != :aid'
