@@ -57,7 +57,7 @@
         </form>
       </div>
       {# Send to diagram dropdown (hidden, shown on click) #}
-      <div class="bs-diag-panel" data-nid="{{ n.id }}" style="display:none;margin-top:6px;padding-top:6px;border-top:1px solid rgba(0,0,0,.1);font-size:.75rem" onclick="event.stopPropagation()">
+      <div class="bs-diag-panel" data-nid="{{ n.id }}" style="display:none;margin-top:6px;padding-top:6px;border-top:1px solid rgba(0,0,0,.1);font-size:.75rem;user-select:auto;cursor:default" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
         <div style="font-weight:700;color:#1a1a1a;margin-bottom:4px"><i class="bi bi-diagram-3 me-1"></i>Tipo de nodo:</div>
         <select class="form-select bs-tipo-sel" data-nid="{{ n.id }}" style="font-size:.7rem;padding:2px 20px 2px 4px;margin-bottom:4px" onchange="onTipoChange(this)">
           <option value="">— Seleccionar —</option>
@@ -188,7 +188,7 @@ function clearDrawing(){
 document.querySelectorAll('.bs-note').forEach(function(note){
   note.addEventListener('mousedown',function(e){
     if(_tool!=='none')return;
-    if(e.target.closest('.bs-vote')||e.target.closest('form')||e.target.closest('button'))return;
+    if(e.target.closest('.bs-vote')||e.target.closest('form')||e.target.closest('button')||e.target.closest('select')||e.target.closest('.bs-diag-panel')||e.target.closest('input'))return;
     var el=this,board=document.getElementById('bsBoard');
     var off={sx:e.clientX,sy:e.clientY,ox:parseInt(el.style.left),oy:parseInt(el.style.top)};
     el.style.cursor='grabbing';el.style.zIndex='50';
