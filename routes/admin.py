@@ -77,6 +77,9 @@ def register(app):
         page = request.args.get('page', 1, type=int)
         try:
             q = GastoOperativo.query.filter_by(es_plantilla=False)
+            cid = getattr(g, 'company_id', None)
+            if cid:
+                q = q.filter(GastoOperativo.company_id == cid)
             if tipo_f:  q = q.filter_by(tipo=tipo_f)
             if desde_f: q = q.filter(GastoOperativo.fecha >= datetime.strptime(desde_f,'%Y-%m-%d').date())
             if hasta_f: q = q.filter(GastoOperativo.fecha <= datetime.strptime(hasta_f,'%Y-%m-%d').date())

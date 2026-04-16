@@ -129,14 +129,13 @@ def create_app():
                 entity = mapper.entity
                 if entity.__tablename__ in ('companies', 'user_companies', 'company_relationships', 'users', 'chat_rooms', 'chat_participants', 'chat_messages', 'suscripciones', 'foro_publicaciones', 'foro_valoraciones', 'foro_apelaciones', 'foro_banners', 'cap_cursos', 'cap_lecciones', 'cap_preguntas'):
                     continue
-                # Check model has company_id AND it's a real DB column (not just defined in Python)
                 if hasattr(entity, 'company_id'):
                     try:
                         execute_state.statement = execute_state.statement.filter(
                             entity.company_id == cid
                         )
                     except Exception:
-                        pass  # Column might not exist in DB yet
+                        pass
         except Exception:
             pass
 

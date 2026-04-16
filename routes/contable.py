@@ -131,6 +131,9 @@ def register(app):
         estado_pago_f = request.args.get('estado_pago', '')
 
         q = AsientoContable.query
+        cid = getattr(g, 'company_id', None)
+        if cid:
+            q = q.filter(AsientoContable.company_id == cid)
 
         if filtro == 'ingresos':
             q = q.filter(AsientoContable.clasificacion == 'ingreso')
