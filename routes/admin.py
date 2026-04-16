@@ -1424,43 +1424,55 @@ def register(app):
 
         try:
             deleted_count = 0
-            # Step 1: delete company data + chat/foro refs
+            params = {'cid': my_company_id, 'aid': admin_id}
+
+            # Step 1: delete company data (commit every 10 queries to avoid SSL timeout)
+            batch = []
             for sql in delete_sql:
-                # Extract table name for existence check
                 tbl_part = sql.split('FROM ')[1].split(' ')[0]
                 if tbl_part not in existing_tables:
                     continue
-                r = db.session.execute(db.text(sql), {'cid': my_company_id, 'aid': admin_id})
+                batch.append(sql)
+                if len(batch) >= 10:
+                    for s in batch:
+                        r = db.session.execute(db.text(s), params)
+                        deleted_count += r.rowcount
+                    db.session.commit()
+                    batch = []
+            # Flush remaining
+            for s in batch:
+                r = db.session.execute(db.text(s), params)
                 deleted_count += r.rowcount
+            db.session.commit()
 
-            # Step 2: nullify ALL remaining FK refs to users being deleted
+            # Step 2: nullify FK refs to users (separate transaction)
             for sql in _user_fk_nullify:
                 tbl_part = sql.split('UPDATE ')[1].split(' ')[0]
                 if tbl_part not in existing_tables:
                     continue
-                db.session.execute(db.text(sql), {'cid': my_company_id, 'aid': admin_id})
+                db.session.execute(db.text(sql), params)
+            db.session.commit()
 
-            # Step 3: also clean orphan NULL company_id records for this company's tables
-            orphan_tables = ['clientes','proveedores','ventas','productos','materias_primas',
-                             'empleados','ordenes_compra','cotizaciones','gastos_operativos',
-                             'tareas','notas','actividades','eventos','notificaciones',
-                             'asientos_contables','servicios','reglas_tributarias',
-                             'recetas_producto','documentos_legales']
-            for tbl in orphan_tables:
+            # Step 3: clean orphan NULL records
+            for tbl in ['clientes','proveedores','ventas','productos','materias_primas',
+                        'empleados','ordenes_compra','cotizaciones','gastos_operativos',
+                        'tareas','notas','actividades','eventos','notificaciones',
+                        'asientos_contables','servicios','reglas_tributarias',
+                        'recetas_producto','documentos_legales']:
                 if tbl in existing_tables:
                     try:
                         r = db.session.execute(db.text(f'DELETE FROM {tbl} WHERE company_id IS NULL'))
                         deleted_count += r.rowcount
                     except Exception:
-                        pass
+                        db.session.rollback()
+            db.session.commit()
 
-            # Step 4: delete users
+            # Step 4: delete users (separate transaction)
             if 'users' in existing_tables:
                 r = db.session.execute(db.text(
                     'DELETE FROM users WHERE company_id = :cid AND id != :aid'
-                ), {'cid': my_company_id, 'aid': admin_id})
+                ), params)
                 deleted_count += r.rowcount
-
             db.session.commit()
             logging.warning(f'RESET EMPRESA OK: {company_name} por {admin_email} — {deleted_count} registros eliminados')
             flash(f'Reset completo para "{company_name}". {deleted_count} registros eliminados.', 'success')
