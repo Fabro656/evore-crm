@@ -174,20 +174,21 @@ def register(app):
             productos_rentabilidad = []
 
         # ── Batch counts in single pass ──
+        _cid = getattr(g, 'company_id', None) or current_user.company_id
         try:
-            _total_clientes = Cliente.query.filter_by(estado='activo').count()
-            _ventas_completadas = Venta.query.filter_by(estado='completado').count()
-            _tareas_pendientes = Tarea.query.filter(Tarea.estado != 'completada').count()
-            _productos_bajo = Producto.query.filter(Producto.activo==True, Producto.stock<=Producto.stock_minimo).count()
+            _total_clientes = Cliente.query.filter_by(estado='activo', company_id=_cid).count()
+            _ventas_completadas = Venta.query.filter_by(estado='completado', company_id=_cid).count()
+            _tareas_pendientes = Tarea.query.filter(Tarea.estado != 'completada', Tarea.company_id == _cid).count()
+            _productos_bajo = Producto.query.filter(Producto.activo==True, Producto.stock<=Producto.stock_minimo, Producto.company_id==_cid).count()
         except Exception:
             _total_clientes = _ventas_completadas = _tareas_pendientes = _productos_bajo = 0
 
         # ── Recent items (limit queries) ──
         _rol = _get_rol_activo(current_user)
         try:
-            _tareas_rec = Tarea.query.filter(Tarea.estado!='completada').order_by(Tarea.creado_en.desc()).limit(5).all()
-            _ventas_rec = Venta.query.order_by(Venta.creado_en.desc()).limit(6).all()
-            _notas_rec = Nota.query.order_by(Nota.actualizado_en.desc()).limit(4).all()
+            _tareas_rec = Tarea.query.filter(Tarea.estado!='completada', Tarea.company_id==_cid).order_by(Tarea.creado_en.desc()).limit(5).all()
+            _ventas_rec = Venta.query.filter_by(company_id=_cid).order_by(Venta.creado_en.desc()).limit(6).all()
+            _notas_rec = Nota.query.filter_by(company_id=_cid).order_by(Nota.actualizado_en.desc()).limit(4).all()
             _eventos_hoy = Evento.query.filter(Evento.fecha==hoy).order_by(Evento.hora_inicio).all()
             _eventos_prox = Evento.query.filter(Evento.fecha>hoy, Evento.fecha<=hoy+timedelta(days=7)).order_by(Evento.fecha).limit(5).all()
             _aprob = Aprobacion.query.filter_by(estado='pendiente').order_by(Aprobacion.creado_en.desc()).limit(5).all() if _rol in ('admin','director_financiero','director_operativo') else []
@@ -352,10 +353,11 @@ def register(app):
         from datetime import date
         from calendar import month_abbr
         # Estadísticas generales
-        ingresos_totales = db.session.query(db.func.sum(Venta.total)).filter(Venta.estado.in_(['completado','anticipo_pagado'])).scalar() or 0
-        gastos_totales   = db.session.query(db.func.sum(GastoOperativo.monto)).scalar() or 0
+        _cid2 = getattr(g, 'company_id', None) or current_user.company_id
+        ingresos_totales = db.session.query(db.func.sum(Venta.total)).filter(Venta.estado.in_(['completado','anticipo_pagado']), Venta.company_id==_cid2).scalar() or 0
+        gastos_totales   = db.session.query(db.func.sum(GastoOperativo.monto)).filter(GastoOperativo.company_id==_cid2).scalar() or 0
         balance          = ingresos_totales - gastos_totales
-        total_clientes   = Cliente.query.filter_by(estado='activo').count()
+        total_clientes   = Cliente.query.filter_by(estado='activo', company_id=_cid2).count()
         # Ventas por mes (últimos 6 meses)
         hoy = date.today()
         meses_labels, ventas_por_mes = [], []
@@ -363,6 +365,7 @@ def register(app):
             mes = (hoy.month - i - 1) % 12 + 1
             anio = hoy.year - ((hoy.month - i - 1) // 12 + (1 if (hoy.month - i - 1) < 0 else 0))
             total_mes = db.session.query(db.func.sum(Venta.total)).filter(
+                Venta.company_id==_cid2,
                 db.extract('month', Venta.creado_en) == mes,
                 db.extract('year', Venta.creado_en) == anio).scalar() or 0
             meses_labels.append(f'{month_abbr[mes]} {str(anio)[2:]}')
