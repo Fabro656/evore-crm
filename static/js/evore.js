@@ -677,10 +677,13 @@ function chatRenderTabs(){
   _chatRooms.forEach(function(r){
     var active = r.id === _chatRoomId;
     var unread = _chatUnreadPerRoom[String(r.id)] || 0;
-    html += '<div onclick="chatOpenRoom('+r.id+')" style="padding:.6rem .7rem;cursor:pointer;border-left:3px solid '+(active?'var(--ac)':'transparent')+';background:'+(active?'var(--sb-hover)':'transparent')+';transition:all .12s;display:flex;align-items:center;gap:.5rem;border-bottom:1px solid var(--border)">'
+    html += '<div style="padding:.6rem .7rem;cursor:pointer;border-left:3px solid '+(active?'var(--ac)':'transparent')+';background:'+(active?'var(--sb-hover)':'transparent')+';transition:all .12s;display:flex;align-items:center;gap:.5rem;border-bottom:1px solid var(--border)">'
+      +'<div onclick="chatOpenRoom('+r.id+')" style="display:flex;align-items:center;gap:.5rem;flex:1;min-width:0">'
       +'<div style="width:28px;height:28px;border-radius:8px;background:'+(active?'var(--ac)':'var(--surface2)')+';display:flex;align-items:center;justify-content:center;color:'+(active?'#fff':'var(--text2)')+';font-size:.65rem;font-weight:700;flex-shrink:0">'+r.name.charAt(0).toUpperCase()+'</div>'
       +'<div style="flex:1;min-width:0;overflow:hidden"><div style="font-size:.72rem;font-weight:'+(active?'600':'400')+';color:'+(active?'var(--text)':'var(--text2)')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+r.name+'</div></div>'
+      +'</div>'
       +(unread && !active?'<span style="min-width:16px;height:16px;border-radius:8px;background:var(--red);color:#fff;font-size:.55rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+unread+'</span>':'')
+      +'<button onclick="event.stopPropagation();chatCloseTab('+r.id+')" style="border:none;background:none;color:var(--text2);font-size:.65rem;padding:2px 4px;cursor:pointer;opacity:.4;flex-shrink:0" title="Cerrar chat"><i class="bi bi-x-lg"></i></button>'
       +'</div>';
   });
   list.innerHTML = html;
