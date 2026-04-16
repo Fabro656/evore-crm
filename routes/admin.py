@@ -1095,8 +1095,8 @@ def register(app):
     @app.route('/admin/reset-total', methods=['POST'])
     @login_required
     def admin_reset_total():
-        """Borra TODOS los datos y usuarios (excepto el admin que ejecuta).
-        Requiere confirmacion con contrasena del administrador."""
+        """Reset de datos por empresa. El admin solo borra datos de SU empresa.
+        Si es empresa principal (Evore), preserva las empresas clientes y sus datos."""
         from werkzeug.security import check_password_hash
         if current_user.rol not in ('admin', 'director_financiero'):
             flash('Acceso denegado.', 'danger')
@@ -1107,80 +1107,99 @@ def register(app):
             flash('Contrasena incorrecta. El reset no fue ejecutado.', 'danger')
             return redirect(url_for('admin_usuarios'))
 
-        # Get list of tables that actually exist in this DB
         from sqlalchemy import inspect as sa_inspect
         inspector = sa_inspect(db.engine)
         existing_tables = set(inspector.get_table_names())
 
         admin_id = current_user.id
         admin_email = current_user.email
+        my_company_id = getattr(g, 'company_id', None)
+        if not my_company_id:
+            flash('Error: no se pudo determinar tu empresa.', 'danger')
+            return redirect(url_for('admin_usuarios'))
 
-        # All tables to delete, in FK dependency order (children first)
-        tables_ordered = [
-            # Nivel 8: foro y chat (nuevos)
-            'foro_apelaciones', 'foro_valoraciones', 'foro_publicaciones',
-            'foro_banners', 'chat_messages', 'chat_participants', 'chat_rooms',
-            'suscripciones',
-            # Nivel 7: líneas contables y asociaciones
+        # Tables with company_id that should be filtered
+        tables_with_company = [
+            # Nivel 8: proyectos
+            'proyecto_solicitudes_pago', 'proyecto_plan_gastos', 'proyecto_objetivos',
+            'proyecto_notas', 'proyecto_comentarios', 'proyecto_gastos',
+            'proyecto_tareas', 'proyecto_miembros', 'proyecto_fases', 'proyectos',
+            # Nivel 7: capacitacion (user progress)
+            'cap_evaluaciones', 'cap_progresos',
+            # Nivel 6: líneas y asociaciones
             'lineas_asiento', 'tarea_asignados', 'tarea_comentarios', 'pagos_venta',
-            # Nivel 6: ítems de documentos
+            # Nivel 5: ítems de documentos
             'reservas_produccion', 'cotizacion_items', 'pre_cotizacion_items',
             'ordenes_compra_items', 'venta_productos', 'materia_prima_productos',
             'receta_items', 'marcas_producto', 'historial_precios',
             'historial_cotizaciones',
-            # Nivel 5: dependientes de empleados
+            # Nivel 4: dependientes de empleados
             'horas_extra', 'vacaciones_tomadas', 'incapacidades',
-            # Nivel 4: dependientes de asientos/contable
+            # Nivel 3: entidades con company_id
             'movimientos_bancarios', 'notas_contables', 'movimientos_inventario',
             'comisiones', 'ordenes_produccion', 'lotes_materia_prima',
             'lotes_producto', 'compras_materia', 'cotizaciones_proveedor',
             'cotizaciones_granel', 'empaques_secundarios', 'aprobaciones',
             'requisiciones', 'asientos_contables', 'tareas', 'eventos',
             'notas', 'notificaciones', 'actividades',
-            # Nivel 3: documentos principales
+            # Nivel 2: documentos principales
             'ventas', 'cotizaciones', 'pre_cotizaciones', 'ordenes_compra',
             'gastos_operativos', 'documentos_legales', 'empleados',
             'recetas_producto', 'servicios',
-            # Nivel 2: catálogos
+            # Nivel 1: catálogos
             'reglas_tributarias', 'materias_primas', 'productos',
             'contactos_cliente', 'clientes', 'proveedores',
-            # Nivel 1: relaciones y sesiones
-            'company_relationships', 'user_companies', 'user_sesiones',
         ]
 
         try:
-            # Delete each table individually — skip tables that don't exist
-            for table in tables_ordered:
+            deleted_count = 0
+            for table in tables_with_company:
                 if table not in existing_tables:
-                    logging.info(f'Reset: tabla "{table}" no existe, omitida')
                     continue
+                # Check if table has company_id column
+                cols = [c['name'] for c in inspector.get_columns(table)]
                 try:
-                    db.session.execute(db.text(f'DELETE FROM {table}'))
+                    if 'company_id' in cols:
+                        r = db.session.execute(db.text(
+                            f'DELETE FROM {table} WHERE company_id = :cid'
+                        ), {'cid': my_company_id})
+                    else:
+                        # For child tables without company_id, delete via parent FK
+                        # (these are handled by cascade or have no company_id)
+                        continue
+                    deleted_count += r.rowcount
                 except Exception as _e:
                     db.session.rollback()
-                    logging.warning(f'Reset: falló DELETE FROM {table}: {_e}')
+                    logging.warning(f'Reset empresa: falló {table}: {_e}')
 
-            # Delete users except admin
-            if 'users' in existing_tables:
-                try:
-                    db.session.execute(
-                        db.text('DELETE FROM users WHERE id != :aid'),
-                        {'aid': admin_id}
-                    )
-                except Exception:
-                    db.session.rollback()
+            # Delete users of this company (except current admin)
+            try:
+                db.session.execute(db.text(
+                    'DELETE FROM user_companies WHERE company_id = :cid AND user_id != :aid'
+                ), {'cid': my_company_id, 'aid': admin_id})
+                db.session.execute(db.text(
+                    'DELETE FROM user_sesiones WHERE user_id IN '
+                    '(SELECT id FROM users WHERE company_id = :cid AND id != :aid)'
+                ), {'cid': my_company_id, 'aid': admin_id})
+                db.session.execute(db.text(
+                    'DELETE FROM users WHERE company_id = :cid AND id != :aid'
+                ), {'cid': my_company_id, 'aid': admin_id})
+            except Exception as _e:
+                db.session.rollback()
+                logging.warning(f'Reset empresa: falló users: {_e}')
 
             db.session.commit()
 
-            # Log in a fresh transaction (after all deletes are committed)
             try:
-                _log('eliminar', 'sistema', 0, f'RESET TOTAL ejecutado por {admin_email}')
+                _log('eliminar', 'sistema', 0, f'RESET EMPRESA ejecutado por {admin_email} (company_id={my_company_id})')
                 db.session.commit()
             except Exception:
                 db.session.rollback()
 
-            logging.warning(f'RESET TOTAL ejecutado por user_id={admin_id} ({admin_email})')
-            flash('Reset completo. Todos los datos y usuarios eliminados (tu cuenta admin fue conservada).', 'success')
+            my_company = db.session.get(Company, my_company_id)
+            company_name = my_company.nombre if my_company else f'ID {my_company_id}'
+            logging.warning(f'RESET EMPRESA ejecutado: {company_name} por user_id={admin_id}')
+            flash(f'Reset completo para "{company_name}". Datos internos eliminados. Las demas empresas no fueron afectadas.', 'success')
         except Exception as e:
             db.session.rollback()
             logging.error(f'admin_reset_total ERROR: {e}')
