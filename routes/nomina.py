@@ -477,8 +477,9 @@ def register(app):
         liq_msg = ''
         if liq and liq['total'] > 0:
             motivo_label = {'renuncia':'Renuncia','despido_justa':'Despido justificado','despido_sin_justa':'Despido sin justa causa'}.get(motivo, motivo)
-            g = GastoOperativo(
-                company_id=getattr(g, 'company_id', None),
+            cid = getattr(g, 'company_id', None)
+            gasto_liq = GastoOperativo(
+                company_id=cid,
                 fecha=empleado.fecha_retiro or date_type.today(),
                 tipo='Nomina',
                 descripcion=f'Liquidacion {empleado.nombre} {empleado.apellido} ({motivo_label})',
@@ -490,7 +491,7 @@ def register(app):
                       f'Indem: ${liq["indemnizacion"]:,.0f}. Dias trabajados: {liq["dias_trabajados"]}',
                 creado_por=current_user.id
             )
-            db.session.add(g)
+            db.session.add(gasto_liq)
             db.session.flush()
             _crear_asiento_auto(
                 tipo='gasto', subtipo='liquidacion_empleado',
@@ -500,7 +501,7 @@ def register(app):
                 cuenta_haber='Bancos / Caja',
                 clasificacion='egreso',
                 referencia=f'LIQ-{empleado.cedula or empleado.id}',
-                gasto_id=g.id
+                gasto_id=gasto_liq.id
             )
             liq_msg = f' Liquidacion: ${liq["total"]:,.0f} registrada en gastos y asientos contables.'
 
