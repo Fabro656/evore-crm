@@ -111,12 +111,10 @@ def register(app):
         if not company:
             flash('No se pudo identificar tu empresa.', 'danger')
             return redirect(url_for('foro'))
-        # Only admin of the company can publish
-        if current_user.rol != 'admin':
-            uc = UserCompany.query.filter_by(user_id=current_user.id, company_id=my_company_id).first()
-            if not uc or uc.rol != 'admin':
-                flash('Solo el administrador de la empresa puede publicar en el foro.', 'warning')
-                return redirect(url_for('foro'))
+        # Portal users (cliente/proveedor) cannot publish
+        if current_user.rol in ('cliente', 'proveedor'):
+            flash('Los usuarios de portal no pueden publicar en el foro.', 'warning')
+            return redirect(url_for('foro'))
 
         if request.method == 'POST':
             titulo = request.form.get('titulo', '').strip()
