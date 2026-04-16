@@ -36,12 +36,46 @@
       <div class="d-flex gap-1 justify-content-end">
         <a href="{{ url_for('admin_empresa_usuario', empresa_id=emp.id) }}" class="btn btn-sm btn-outline-success" style="font-size:.72rem;padding:2px 8px" title="Agregar usuario"><i class="bi bi-person-plus"></i></a>
         <a href="{{ url_for('admin_empresa_editar', id=emp.id) }}" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;padding:2px 8px" title="Editar"><i class="bi bi-pencil"></i></a>
+        {% if not emp.es_principal %}
+        <button class="btn btn-sm btn-outline-danger" style="font-size:.72rem;padding:2px 8px" title="Eliminar empresa" data-bs-toggle="modal" data-bs-target="#delEmp{{ emp.id }}"><i class="bi bi-trash"></i></button>
+        {% endif %}
       </div>
     </td>
   </tr>{% endfor %}
   </tbody>
 </table>
 </div>
+{% for emp in empresas %}
+{% if not emp.es_principal %}
+<div class="modal fade" id="delEmp{{ emp.id }}" tabindex="-1"><div class="modal-dialog modal-sm">
+<div class="modal-content"><form method="POST" action="{{ url_for('admin_empresa_eliminar', id=emp.id) }}">
+  <div class="modal-header py-2" style="background:#FEE2E2">
+    <h6 class="modal-title mb-0 text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Eliminar empresa</h6>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+  </div>
+  <div class="modal-body">
+    <p style="font-size:.88rem">Estas a punto de eliminar <strong>{{ emp.nombre }}</strong> y <strong>todos sus datos</strong>:</p>
+    <ul style="font-size:.82rem;color:var(--text2)">
+      <li>{{ emp._user_count }} usuario(s)</li>
+      <li>Clientes, proveedores, ventas, OC</li>
+      <li>Productos, materias primas, recetas</li>
+      <li>Asientos contables, gastos, nomina</li>
+      <li>Proyectos, tareas, documentos legales</li>
+      <li>Chat, foro, capacitacion</li>
+    </ul>
+    <div class="alert alert-danger py-2" style="font-size:.8rem"><i class="bi bi-exclamation-octagon me-1"></i>Esta accion es <strong>irreversible</strong>.</div>
+    <div class="mb-2">
+      <label class="form-label form-label-sm fw-bold">Tu contraseña para confirmar *</label>
+      <input type="password" name="password_confirm" class="form-control form-control-sm" required placeholder="Ingresa tu contraseña">
+    </div>
+  </div>
+  <div class="modal-footer py-2">
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+    <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash me-1"></i>Eliminar definitivamente</button>
+  </div>
+</form></div></div></div>
+{% endif %}
+{% endfor %}
 {% else %}
 <div class="text-center text-muted py-5">
   <i class="bi bi-building" style="font-size:3rem"></i>

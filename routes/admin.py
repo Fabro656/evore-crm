@@ -361,6 +361,159 @@ def register(app):
             return redirect(url_for('admin_empresa_usuario', empresa_id=emp.id))
         return render_template('admin/empresa_form.html', obj=None)
 
+    @app.route('/admin/empresas/<int:id>/eliminar', methods=['POST'])
+    @login_required
+    def admin_empresa_eliminar(id):
+        """Eliminar empresa completa — solo admin Evore con contraseña."""
+        from flask import g
+        from werkzeug.security import check_password_hash
+        from sqlalchemy import inspect as sa_inspect
+        my_company = db.session.get(Company, g.company_id) if g.company_id else None
+        if not my_company or not my_company.es_principal or current_user.rol != 'admin':
+            flash('Solo el administrador de Evore puede eliminar empresas.', 'danger')
+            return redirect(url_for('admin_empresas'))
+        target = db.session.get(Company, id)
+        if not target:
+            flash('Empresa no encontrada.', 'danger')
+            return redirect(url_for('admin_empresas'))
+        if target.es_principal:
+            flash('No se puede eliminar la empresa principal.', 'danger')
+            return redirect(url_for('admin_empresas'))
+        password = request.form.get('password_confirm', '')
+        if not check_password_hash(current_user.password_hash, password):
+            flash('Contraseña incorrecta. La empresa no fue eliminada.', 'danger')
+            return redirect(url_for('admin_empresas'))
+
+        target_name = target.nombre
+        target_id = target.id
+        inspector = sa_inspect(db.engine)
+        existing_tables = set(inspector.get_table_names())
+
+        # Reuse the same delete order as reset
+        delete_sql = [
+            'DELETE FROM proyecto_comentarios WHERE tarea_id IN (SELECT id FROM proyecto_tareas WHERE company_id = :cid)',
+            'DELETE FROM proyecto_solicitudes_pago WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
+            'DELETE FROM proyecto_plan_gastos WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
+            'DELETE FROM proyecto_objetivos WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
+            'DELETE FROM proyecto_notas WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
+            'DELETE FROM proyecto_gastos WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
+            'DELETE FROM proyecto_tareas WHERE company_id = :cid',
+            'DELETE FROM proyecto_miembros WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
+            'DELETE FROM proyecto_fases WHERE proyecto_id IN (SELECT id FROM proyectos WHERE company_id = :cid)',
+            'DELETE FROM proyectos WHERE company_id = :cid',
+            'DELETE FROM cap_evaluaciones WHERE user_id IN (SELECT id FROM users WHERE company_id = :cid)',
+            'DELETE FROM cap_progresos WHERE user_id IN (SELECT id FROM users WHERE company_id = :cid)',
+            'DELETE FROM lineas_asiento WHERE asiento_id IN (SELECT id FROM asientos_contables WHERE company_id = :cid)',
+            'DELETE FROM tarea_asignados WHERE tarea_id IN (SELECT id FROM tareas WHERE company_id = :cid)',
+            'DELETE FROM tarea_comentarios WHERE tarea_id IN (SELECT id FROM tareas WHERE company_id = :cid)',
+            'DELETE FROM pagos_venta WHERE venta_id IN (SELECT id FROM ventas WHERE company_id = :cid)',
+            'DELETE FROM reservas_produccion WHERE company_id = :cid',
+            'DELETE FROM cotizacion_items WHERE cotizacion_id IN (SELECT id FROM cotizaciones WHERE company_id = :cid)',
+            'DELETE FROM pre_cotizacion_items WHERE precot_id IN (SELECT id FROM pre_cotizaciones WHERE company_id = :cid)',
+            'DELETE FROM ordenes_compra_items WHERE orden_id IN (SELECT id FROM ordenes_compra WHERE company_id = :cid)',
+            'DELETE FROM venta_productos WHERE venta_id IN (SELECT id FROM ventas WHERE company_id = :cid)',
+            'DELETE FROM materia_prima_productos WHERE materia_prima_id IN (SELECT id FROM materias_primas WHERE company_id = :cid)',
+            'DELETE FROM receta_items WHERE receta_id IN (SELECT id FROM recetas_producto WHERE company_id = :cid)',
+            'DELETE FROM marcas_producto WHERE producto_id IN (SELECT id FROM productos WHERE company_id = :cid)',
+            'DELETE FROM historial_precios WHERE producto_id IN (SELECT id FROM productos WHERE company_id = :cid)',
+            'DELETE FROM historial_cotizaciones WHERE cotizacion_id IN (SELECT id FROM cotizaciones WHERE company_id = :cid)',
+            'DELETE FROM horas_extra WHERE empleado_id IN (SELECT id FROM empleados WHERE company_id = :cid)',
+            'DELETE FROM vacaciones_tomadas WHERE empleado_id IN (SELECT id FROM empleados WHERE company_id = :cid)',
+            'DELETE FROM incapacidades WHERE empleado_id IN (SELECT id FROM empleados WHERE company_id = :cid)',
+            'DELETE FROM contactos_cliente WHERE cliente_id IN (SELECT id FROM clientes WHERE company_id = :cid)',
+            'DELETE FROM movimientos_bancarios WHERE company_id = :cid',
+            'DELETE FROM notas_contables WHERE company_id = :cid',
+            'DELETE FROM movimientos_inventario WHERE company_id = :cid',
+            'DELETE FROM comisiones WHERE company_id = :cid',
+            'DELETE FROM ordenes_produccion WHERE company_id = :cid',
+            'DELETE FROM lotes_materia_prima WHERE company_id = :cid',
+            'DELETE FROM lotes_producto WHERE company_id = :cid',
+            'DELETE FROM compras_materia WHERE company_id = :cid',
+            'DELETE FROM cotizaciones_proveedor WHERE company_id = :cid',
+            'DELETE FROM cotizaciones_granel WHERE company_id = :cid',
+            'DELETE FROM empaques_secundarios WHERE company_id = :cid',
+            'DELETE FROM aprobaciones WHERE company_id = :cid',
+            'DELETE FROM requisiciones WHERE company_id = :cid',
+            'DELETE FROM asientos_contables WHERE company_id = :cid',
+            'DELETE FROM tareas WHERE company_id = :cid',
+            'DELETE FROM eventos WHERE company_id = :cid',
+            'DELETE FROM notas WHERE company_id = :cid',
+            'DELETE FROM notificaciones WHERE company_id = :cid',
+            'DELETE FROM actividades WHERE company_id = :cid',
+            'DELETE FROM ventas WHERE company_id = :cid',
+            'DELETE FROM cotizaciones WHERE company_id = :cid',
+            'DELETE FROM pre_cotizaciones WHERE company_id = :cid',
+            'DELETE FROM ordenes_compra WHERE company_id = :cid',
+            'DELETE FROM gastos_operativos WHERE company_id = :cid',
+            'DELETE FROM documentos_legales WHERE company_id = :cid',
+            'DELETE FROM empleados WHERE company_id = :cid',
+            'DELETE FROM recetas_producto WHERE company_id = :cid',
+            'DELETE FROM servicios WHERE company_id = :cid',
+            'DELETE FROM reglas_tributarias WHERE company_id = :cid',
+            'DELETE FROM materias_primas WHERE company_id = :cid',
+            'DELETE FROM productos WHERE company_id = :cid',
+            'DELETE FROM clientes WHERE company_id = :cid',
+            'DELETE FROM proveedores WHERE company_id = :cid',
+            'DELETE FROM chat_messages WHERE user_id IN (SELECT id FROM users WHERE company_id = :cid)',
+            'DELETE FROM chat_participants WHERE user_id IN (SELECT id FROM users WHERE company_id = :cid)',
+            'DELETE FROM foro_apelaciones WHERE solicitado_por IN (SELECT id FROM users WHERE company_id = :cid)',
+            'DELETE FROM foro_valoraciones WHERE cliente_user_id IN (SELECT id FROM users WHERE company_id = :cid)',
+            'DELETE FROM foro_publicaciones WHERE user_id IN (SELECT id FROM users WHERE company_id = :cid)',
+            'DELETE FROM user_companies WHERE company_id = :cid',
+            'DELETE FROM user_sesiones WHERE user_id IN (SELECT id FROM users WHERE company_id = :cid)',
+        ]
+
+        try:
+            # Nullify all FK refs to users of this company
+            for tbl in existing_tables:
+                if tbl == 'users':
+                    continue
+                try:
+                    for fk in inspector.get_foreign_keys(tbl):
+                        if fk['referred_table'] == 'users' and len(fk['constrained_columns']) == 1:
+                            col = fk['constrained_columns'][0]
+                            col_info = next((c for c in inspector.get_columns(tbl) if c['name'] == col), None)
+                            if col_info and col_info.get('nullable', True):
+                                db.session.execute(db.text(
+                                    f"UPDATE {tbl} SET {col} = NULL WHERE {col} IN (SELECT id FROM users WHERE company_id = :cid)"
+                                ), {'cid': target_id})
+                except Exception:
+                    pass
+
+            # Delete all company data
+            for sql in delete_sql:
+                tbl_part = sql.split('FROM ')[1].split(' ')[0]
+                if tbl_part not in existing_tables:
+                    continue
+                db.session.execute(db.text(sql), {'cid': target_id})
+
+            # Delete ALL users (no exceptions — entire company goes)
+            db.session.execute(db.text('DELETE FROM users WHERE company_id = :cid'), {'cid': target_id})
+
+            # Delete config
+            db.session.execute(db.text('DELETE FROM config_empresa WHERE company_id = :cid'), {'cid': target_id})
+
+            # Delete company relationships
+            db.session.execute(db.text(
+                'DELETE FROM company_relationships WHERE company_a_id = :cid OR company_b_id = :cid'
+            ), {'cid': target_id})
+
+            # Delete suscripciones
+            db.session.execute(db.text('DELETE FROM suscripciones WHERE company_id = :cid'), {'cid': target_id})
+
+            # Finally delete the company
+            db.session.execute(db.text('DELETE FROM companies WHERE id = :cid'), {'cid': target_id})
+
+            db.session.commit()
+            logging.warning(f'EMPRESA ELIMINADA: {target_name} (id={target_id}) por {current_user.email}')
+            flash(f'Empresa "{target_name}" y todos sus datos han sido eliminados.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            logging.error(f'admin_empresa_eliminar ERROR: {e}')
+            flash(f'Error al eliminar empresa: {e}', 'danger')
+
+        return redirect(url_for('admin_empresas'))
+
     @app.route('/admin/empresas/<int:id>/editar', methods=['GET','POST'])
     @login_required
     def admin_empresa_editar(id):
