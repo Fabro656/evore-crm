@@ -1,0 +1,43 @@
+{# ── CHAT FLOATING PANEL (iMessage style) ── #}
+{% if current_user.is_authenticated %}
+<div id="chatPanel" style="display:none;position:fixed;top:12px;left:68px;width:520px;height:480px;background:var(--surface);border-radius:16px;border:1px solid var(--border);box-shadow:var(--shadow-lg);z-index:1060;flex-direction:column;overflow:hidden;color:var(--text);animation:dockIn .18s ease;min-width:320px;min-height:300px;resize:both">
+  {# Header (draggable) #}
+  <div id="chatDragHandle" style="padding:10px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0;cursor:grab;user-select:none">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-grip-vertical" style="color:var(--text2);font-size:.75rem;opacity:.4"></i>
+      <i class="bi bi-chat-dots-fill" style="color:var(--sb-active)"></i>
+      <span style="font-weight:700;font-size:.85rem">Chat</span>
+    </div>
+    <div class="d-flex gap-1">
+      <button onclick="chatCreateInline()" style="background:var(--sb-hover);border:none;color:var(--sb-active);cursor:pointer;font-size:.65rem;padding:3px 8px;border-radius:6px"><i class="bi bi-plus-lg me-1"></i>Nuevo</button>
+      <button onclick="toggleChatPanel()" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:1rem;padding:2px 6px">&times;</button>
+    </div>
+  </div>
+  {# Body: contacts left + messages right #}
+  <div style="display:flex;flex:1;overflow:hidden">
+    {# Contact list (left panel) #}
+    <div id="chatRoomList" style="width:160px;min-width:120px;border-right:1px solid var(--border);overflow-y:auto;flex-shrink:0;background:var(--surface)"></div>
+    {# Messages + input (right panel) #}
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div id="chatMsgs" style="flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:5px;background:var(--surface2)">
+        <div style="padding:30px 16px;text-align:center;color:var(--text2)"><i class="bi bi-chat-dots" style="font-size:1.8rem;display:block;margin-bottom:6px"></i><span style="font-size:.78rem">Selecciona una conversación</span></div>
+      </div>
+      <div id="chatInput" style="display:none;padding:8px 10px;border-top:1px solid var(--border);flex-shrink:0">
+        <form onsubmit="chatSend(event)" style="display:flex;gap:6px;align-items:center">
+          <label style="cursor:pointer;color:var(--text2);font-size:1rem;flex-shrink:0;padding:0 4px" title="Adjuntar archivo">
+            <i class="bi bi-paperclip"></i>
+            <input type="file" id="chatFileInput" style="display:none" onchange="chatSendFile(this)">
+          </label>
+          <input type="text" id="chatMsgInput" placeholder="Mensaje..." style="flex:1;border:1.5px solid var(--border);border-radius:18px;padding:7px 14px;font-size:.82rem;background:var(--surface);color:var(--text);outline:none" autocomplete="off">
+          <button type="submit" style="width:32px;height:32px;border-radius:50%;background:var(--ac);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.85rem"><i class="bi bi-arrow-up"></i></button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JS extracted: var _chatOpen = false -->
+{% endif %}
+
+<!-- JS extracted: PWA Install button -->
+<!-- JS extracted: Live notification badge polling -->

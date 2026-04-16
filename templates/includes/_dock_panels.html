@@ -1,0 +1,186 @@
+{# ── Dock flyout panels (hidden, shown on hold) ── #}
+<div id="dock-overlay" onclick="closeDockPanel()"></div>
+{% set m=modulos_user %}
+<div class="dock-panel" id="dp-home">
+  <a class="dock-panel-head" href="{{ url_for('dashboard') }}"><i class="bi bi-house-fill"></i><span>Home</span><i class="bi bi-arrow-right dp-arrow"></i></a>
+</div>
+<div class="dock-panel" id="dp-tickets">
+  <a class="dock-panel-head" href="{{ url_for('tareas') }}"><i class="bi bi-check2-square"></i><span>Tareas</span><i class="bi bi-arrow-right dp-arrow"></i></a>
+  <div class="dock-panel-body">
+    <a href="{{ url_for('tareas') }}" class="dock-panel-link"><i class="bi bi-list-check"></i>Todos los tickets</a>
+    <a href="{{ url_for('tarea_nueva') }}" class="dock-panel-link"><i class="bi bi-plus-circle"></i>Nuevo ticket</a>
+  </div>
+</div>
+<div class="dock-panel" id="dp-calendario">
+  <a class="dock-panel-head" href="{{ url_for('calendario') }}"><i class="bi bi-calendar3"></i><span>Calendario</span><i class="bi bi-arrow-right dp-arrow"></i></a>
+</div>
+<div class="dock-panel" id="dp-notas">
+  <a class="dock-panel-head" href="{{ url_for('notas') }}"><i class="bi bi-sticky-fill"></i><span>Notas</span><i class="bi bi-arrow-right dp-arrow"></i></a>
+  <div class="dock-panel-body">
+    <a href="{{ url_for('notas') }}" class="dock-panel-link"><i class="bi bi-sticky"></i>Todas las notas</a>
+    <a href="{{ url_for('nota_nueva') }}" class="dock-panel-link"><i class="bi bi-plus-circle"></i>Nueva nota</a>
+  </div>
+</div>
+<div class="dock-panel" id="dp-inventario">
+  <a class="dock-panel-head" href="{{ url_for('inventario') }}"><i class="bi bi-box-seam-fill"></i><span>Inventario</span><i class="bi bi-arrow-right dp-arrow"></i></a>
+  <div class="dock-panel-body">
+    <a href="{{ url_for('inventario') }}" class="dock-panel-link"><i class="bi bi-box-seam"></i>Productos terminados</a>
+    <a href="{{ url_for('materias') }}" class="dock-panel-link"><i class="bi bi-droplet-half"></i>Materias primas</a>
+    {% if 'inventario' in m %}<a href="{{ url_for('inventario_ingresos') }}" class="dock-panel-link"><i class="bi bi-plus-square"></i>Multi-Ingreso</a>{% endif %}
+  </div>
+</div>
+<div class="dock-panel" id="dp-legal">
+  <a class="dock-panel-head" href="{{ url_for('legal_index') }}"><i class="bi bi-shield-check"></i><span>Legal</span><i class="bi bi-arrow-right dp-arrow"></i></a>
+  <div class="dock-panel-body">
+    <a href="{{ url_for('legal_index') }}" class="dock-panel-link"><i class="bi bi-shield-check"></i>Documentos</a>
+    <a href="{{ url_for('legal_nosotros') }}" class="dock-panel-link"><i class="bi bi-building"></i>Nosotros (info legal)</a>
+    <a href="{{ url_for('legal_nuevo') }}" class="dock-panel-link"><i class="bi bi-plus-circle"></i>Nuevo documento</a>
+    <a href="{{ url_for('legal_generar') }}" class="dock-panel-link"><i class="bi bi-file-earmark-ruled"></i>Generar plantilla legal</a>
+  </div>
+</div>
+<div class="dock-panel" id="dp-nomina">
+  <a class="dock-panel-head" href="{{ url_for('nomina_index') }}"><i class="bi bi-people-fill"></i><span>Nomina</span><i class="bi bi-arrow-right dp-arrow"></i></a>
+  <div class="dock-panel-body">
+    <a href="{{ url_for('nomina_index') }}" class="dock-panel-link"><i class="bi bi-people"></i>Empleados</a>
+    <a href="{{ url_for('empleado_nuevo') }}" class="dock-panel-link"><i class="bi bi-person-plus"></i>Nuevo empleado</a>
+    <a href="{{ url_for('horas_extra') }}" class="dock-panel-link"><i class="bi bi-clock-history"></i>Horas extra</a>
+    <a href="{{ url_for('incapacidades') }}" class="dock-panel-link"><i class="bi bi-bandaid"></i>Incapacidades</a>
+    <a href="{{ url_for('vacaciones_tomadas') }}" class="dock-panel-link"><i class="bi bi-sun"></i>Vacaciones</a>
+    <a href="{{ url_for('nomina_pila') }}" class="dock-panel-link"><i class="bi bi-file-earmark-arrow-down"></i>Archivo PILA</a>
+    <a href="{{ url_for('parametros_nomina_editar') }}" class="dock-panel-link"><i class="bi bi-sliders"></i>Parametros</a>
+  </div>
+</div>
+<div class="dock-panel" id="dp-aprobaciones">
+  <a class="dock-panel-head" href="{{ url_for('aprobaciones_pendientes') }}"><i class="bi bi-clipboard-check"></i><span>Aprobaciones</span><i class="bi bi-arrow-right dp-arrow"></i></a>
+  <div class="dock-panel-body">
+    <a href="{{ url_for('aprobaciones_pendientes') }}" class="dock-panel-link"><i class="bi bi-clipboard-check"></i>Pendientes</a>
+    <a href="{{ url_for('mis_solicitudes') }}" class="dock-panel-link"><i class="bi bi-send-check"></i>Mis solicitudes</a>
+  </div>
+</div>
+<div class="dock-panel" id="dp-wiki_page">
+  <a class="dock-panel-head" href="{{ url_for('wiki') }}"><i class="bi bi-book"></i><span>Wiki del sistema</span><i class="bi bi-arrow-right dp-arrow"></i></a>
+  <div class="dock-panel-body">
+    <a href="{{ url_for('wiki') }}" class="dock-panel-link"><i class="bi bi-diagram-3"></i>Diagrama de flujo</a>
+    <a href="{{ url_for('wiki') }}" class="dock-panel-link"><i class="bi bi-tools"></i>Herramientas</a>
+    <a href="{{ url_for('wiki') }}" class="dock-panel-link"><i class="bi bi-shield-lock"></i>Roles y permisos</a>
+  </div>
+</div>
+<div class="dock-panel" id="dp-comercial">
+  <a class="dock-panel-head" href="{{ url_for('ventas') }}"><i class="bi bi-bag-fill"></i><span>Comercial</span><i class="bi bi-arrow-right dp-arrow"></i></a>
+  <div class="dock-panel-body">
+    {% if 'clientes' in m %}<a href="{{ url_for('clientes') }}" class="dock-panel-link"><i class="bi bi-people-fill"></i>Clientes</a>{% endif %}
+    {% if 'ventas' in m %}<a href="{{ url_for('ventas') }}" class="dock-panel-link"><i class="bi bi-graph-up-arrow"></i>Ventas</a>{% endif %}
+    {% if 'ventas' in m %}<a href="{{ url_for('ventas_kanban') }}" class="dock-panel-link"><i class="bi bi-kanban"></i>Pipeline Kanban</a>{% endif %}
+    {% if 'cotizaciones' in m %}<a href="{{ url_for('cotizaciones') }}" class="dock-panel-link"><i class="bi bi-file-earmark-text-fill"></i>Cotizaciones</a>{% endif %}
+    {% if 'ventas' in m %}<a href="{{ url_for('ventas_comisiones') }}" class="dock-panel-link"><i class="bi bi-piggy-bank"></i>Comisiones</a>{% endif %}
+    {% if 'servicios' in m %}<a href="{{ url_for('servicios') }}" class="dock-panel-link"><i class="bi bi-briefcase-fill"></i>Servicios</a>{% endif %}
+  </div>
+</div>
+<div class="dock-panel" id="dp-compras">
+  <a class="dock-panel-head" href="{{ url_for('ordenes_compra') }}"><i class="bi bi-cart-check"></i><span>Proveedores y Compras</span><i class="bi bi-arrow-right dp-arrow"></i></a>
+  <div class="dock-panel-body">
+    {% if 'clientes' in m %}<a href="{{ url_for('proveedores') }}" class="dock-panel-link"><i class="bi bi-truck"></i>Proveedores</a>{% endif %}
+    <a href="{{ url_for('cotizaciones_proveedor') }}" class="dock-panel-link"><i class="bi bi-file-earmark-check"></i>Cotizaciones prov.</a>
+    <a href="{{ url_for('comparativo_cotizaciones') }}" class="dock-panel-link"><i class="bi bi-columns-gap"></i>Comparativo</a>
+    <a href="{{ url_for('requisiciones') }}" class="dock-panel-link"><i class="bi bi-clipboard-plus"></i>Requisiciones</a>
+    <a href="{{ url_for('ordenes_compra') }}" class="dock-panel-link"><i class="bi bi-cart-check"></i>Ordenes de Compra</a>
+    <a href="{{ url_for('compras') }}" class="dock-panel-link"><i class="bi bi-receipt"></i>Registro compras</a>
+  </div>
+</div>
+<div class="dock-panel" id="dp-produccion">
+  <a class="dock-panel-head" href="{{ url_for('produccion_index') }}"><i class="bi bi-gear-fill"></i><span>Produccion</span><i class="bi bi-arrow-right dp-arrow"></i></a>
+  <div class="dock-panel-body">
+    <a href="{{ url_for('produccion_index') }}" class="dock-panel-link"><i class="bi bi-gear"></i>Dashboard</a>
+    <a href="{{ url_for('ordenes_produccion') }}" class="dock-panel-link"><i class="bi bi-list-check"></i>Ordenes</a>
+    <a href="{{ url_for('recetas') }}" class="dock-panel-link"><i class="bi bi-journal-bookmark"></i>Recetas / BOM</a>
+    <a href="{{ url_for('gantt') }}" class="dock-panel-link"><i class="bi bi-bar-chart-steps"></i>Gantt</a>
+    <a href="{{ url_for('compras') }}" class="dock-panel-link"><i class="bi bi-box-arrow-in-down"></i>Recepcion MP</a>
+  </div>
+</div>
+<div class="dock-panel" id="dp-logistica">
+  <a class="dock-panel-head" href="{{ url_for('proveedores', tipo_f='transportista') }}"><i class="bi bi-truck-front-fill"></i><span>Logistica</span><i class="bi bi-arrow-right dp-arrow"></i></a>
+  <div class="dock-panel-body">
+    <a href="{{ url_for('proveedores', tipo_f='transportista') }}" class="dock-panel-link"><i class="bi bi-truck-front"></i>Transportistas</a>
+    <a href="{{ url_for('empaques') }}" class="dock-panel-link"><i class="bi bi-box2-heart-fill"></i>Empaques</a>
+    <a href="{{ url_for('calculadora_envio') }}" class="dock-panel-link"><i class="bi bi-calculator"></i>Calculadora de envio</a>
+  </div>
+</div>
+<div class="dock-panel" id="dp-finanzas">
+  <a class="dock-panel-head" href="{{ url_for('contable_index') }}"><i class="bi bi-currency-dollar"></i><span>Finanzas</span><i class="bi bi-arrow-right dp-arrow"></i></a>
+  <div class="dock-panel-body" id="fin-main">
+    <button type="button" class="dock-panel-link fin-cat" data-fin="operaciones" style="width:100%;border:none;background:none;cursor:pointer;text-align:left">
+      <i class="bi bi-calculator"></i>Operaciones<i class="bi bi-chevron-right" style="margin-left:auto;font-size:.65rem;opacity:.4"></i></button>
+    <button type="button" class="dock-panel-link fin-cat" data-fin="reportes" style="width:100%;border:none;background:none;cursor:pointer;text-align:left">
+      <i class="bi bi-bar-chart-fill"></i>Reportes<i class="bi bi-chevron-right" style="margin-left:auto;font-size:.65rem;opacity:.4"></i></button>
+    <button type="button" class="dock-panel-link fin-cat" data-fin="fiscal" style="width:100%;border:none;background:none;cursor:pointer;text-align:left">
+      <i class="bi bi-percent"></i>Fiscal<i class="bi bi-chevron-right" style="margin-left:auto;font-size:.65rem;opacity:.4"></i></button>
+    <button type="button" class="dock-panel-link fin-cat" data-fin="notas" style="width:100%;border:none;background:none;cursor:pointer;text-align:left">
+      <i class="bi bi-file-earmark-minus"></i>Notas<i class="bi bi-chevron-right" style="margin-left:auto;font-size:.65rem;opacity:.4"></i></button>
+  </div>
+  <div class="dock-panel-body fin-sub" id="fin-operaciones" style="display:none">
+    <button type="button" class="dock-panel-link fin-back" style="width:100%;border:none;background:none;cursor:pointer;text-align:left;color:var(--ac);font-weight:600">
+      <i class="bi bi-chevron-left" style="opacity:.7"></i>Operaciones</button>
+    <a href="{{ url_for('contable_index') }}" class="dock-panel-link"><i class="bi bi-calculator"></i>Dashboard contable</a>
+    <a href="{{ url_for('contable_asientos') }}" class="dock-panel-link"><i class="bi bi-journal-bookmark-fill"></i>Asientos contables</a>
+    <a href="{{ url_for('contable_puc') }}" class="dock-panel-link"><i class="bi bi-list-ol"></i>Plan de Cuentas</a>
+    {% if 'gastos' in m %}<a href="{{ url_for('gastos') }}" class="dock-panel-link"><i class="bi bi-receipt"></i>Gastos operativos</a>{% endif %}
+  </div>
+  <div class="dock-panel-body fin-sub" id="fin-reportes" style="display:none">
+    <button type="button" class="dock-panel-link fin-back" style="width:100%;border:none;background:none;cursor:pointer;text-align:left;color:var(--ac);font-weight:600">
+      <i class="bi bi-chevron-left" style="opacity:.7"></i>Reportes</button>
+    <a href="{{ url_for('contable_balance_prueba') }}" class="dock-panel-link"><i class="bi bi-table"></i>Balance de Prueba</a>
+    <a href="{{ url_for('contable_balance_general') }}" class="dock-panel-link"><i class="bi bi-bank2"></i>Balance General</a>
+    <a href="{{ url_for('contable_estado_resultados') }}" class="dock-panel-link"><i class="bi bi-graph-up-arrow"></i>Estado de Resultados</a>
+    <a href="{{ url_for('contable_flujo_caja') }}" class="dock-panel-link"><i class="bi bi-cash-stack"></i>Flujo de caja</a>
+    <a href="{{ url_for('contable_flujo_caja_proyectado') }}" class="dock-panel-link"><i class="bi bi-graph-up-arrow"></i>Flujo proyectado</a>
+    <a href="{{ url_for('contable_libro_auxiliar_tercero') }}" class="dock-panel-link"><i class="bi bi-person-lines-fill"></i>Libro auxiliar</a>
+    <a href="{{ url_for('contable_conciliacion') }}" class="dock-panel-link"><i class="bi bi-bank"></i>Conciliacion bancaria</a>
+    {% if 'reportes' in m %}<a href="{{ url_for('reportes') }}" class="dock-panel-link"><i class="bi bi-bar-chart-fill"></i>Reportes generales</a>{% endif %}
+  </div>
+  <div class="dock-panel-body fin-sub" id="fin-fiscal" style="display:none">
+    <button type="button" class="dock-panel-link fin-back" style="width:100%;border:none;background:none;cursor:pointer;text-align:left;color:var(--ac);font-weight:600">
+      <i class="bi bi-chevron-left" style="opacity:.7"></i>Fiscal</button>
+    <a href="{{ url_for('contable_iva') }}" class="dock-panel-link"><i class="bi bi-percent"></i>IVA generado vs descontable</a>
+    <a href="{{ url_for('contable_retenciones') }}" class="dock-panel-link"><i class="bi bi-receipt-cutoff"></i>Retenciones en la fuente</a>
+    <a href="{{ url_for('contable_certificado_retencion') }}" class="dock-panel-link"><i class="bi bi-file-earmark-pdf"></i>Certificados retención</a>
+    <a href="{{ url_for('contable_cierre_periodo') }}" class="dock-panel-link"><i class="bi bi-lock"></i>Cierre de periodo</a>
+    <a href="{{ url_for('impuestos') }}" class="dock-panel-link"><i class="bi bi-sliders"></i>Reglas tributarias</a>
+  </div>
+  <div class="dock-panel-body fin-sub" id="fin-notas" style="display:none">
+    <button type="button" class="dock-panel-link fin-back" style="width:100%;border:none;background:none;cursor:pointer;text-align:left;color:var(--ac);font-weight:600">
+      <i class="bi bi-chevron-left" style="opacity:.7"></i>Notas</button>
+    <a href="{{ url_for('contable_notas') }}" class="dock-panel-link"><i class="bi bi-file-earmark-minus"></i>Notas crédito / débito</a>
+  </div>
+</div>
+{% if rol_activo in ('admin','director_financiero') %}
+<div class="dock-panel" id="dp-admin">
+  <a class="dock-panel-head" href="{{ url_for('admin_usuarios') }}"><i class="bi bi-shield-lock-fill"></i><span>Administracion</span><i class="bi bi-arrow-right dp-arrow"></i></a>
+  <div class="dock-panel-body">
+    <a href="{{ url_for('admin_usuarios') }}" class="dock-panel-link"><i class="bi bi-shield-person-fill"></i>Usuarios</a>
+    {% if is_platform_admin %}<a href="{{ url_for('admin_empresas') }}" class="dock-panel-link"><i class="bi bi-building"></i>Empresas</a>{% endif %}
+    <a href="{{ url_for('actividad') }}" class="dock-panel-link"><i class="bi bi-clock-history"></i>Actividad</a>
+    <a href="{{ url_for('admin_config') }}" class="dock-panel-link"><i class="bi bi-gear"></i>Empresa</a>
+  </div>
+</div>
+{% endif %}
+
+<!-- Mobile overlay -->
+<!-- JS extracted: Dock: hover=tooltip -->
+<div id="sb-overlay" onclick="closeSB()"></div>
+<div id="main" role="main">
+  {% if session.get('admin_real_id') %}
+  <div style="background:#FF8B00;color:#fff;padding:.55rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;font-size:.84rem;font-weight:600;position:sticky;top:0;z-index:200">
+    <span><i class="bi bi-eye-fill me-2"></i>Viendo como: <strong>{{ current_user.nombre }}</strong> ({{ rol_activo }})</span>
+    <form method="POST" action="{{ url_for('admin_volver') }}" style="margin:0">
+      <button type="submit" class="btn btn-sm" style="background:#fff;color:#FF8B00;border:none;font-weight:700;padding:4px 12px;border-radius:4px">
+        <i class="bi bi-arrow-left-circle me-1"></i>Volver a Admin
+      </button>
+    </form>
+  </div>
+  {% endif %}
+  {% if session.get('is_demo') %}
+  <div style="background:var(--orange);color:#fff;text-align:center;padding:4px 12px;font-size:.78rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">
+    <i class="bi bi-info-circle"></i> MODO DEMO — datos de ejemplo
+    <a href="/demo/salir" style="color:#fff;text-decoration:underline;font-weight:700;margin-left:8px">Salir del demo</a>
+  </div>
+  {% endif %}

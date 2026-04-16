@@ -1,0 +1,106 @@
+<nav id="sb" role="navigation" aria-label="Menu principal">
+  <div class="sb-brand">
+    <button id="sb-expand" onclick="toggleSidebar()" title="Expandir menu">
+      <i class="bi bi-list" id="sb-expand-icon"></i>
+    </button>
+    {% if current_user.is_authenticated %}
+      {% if company_config and 'evore' in (company_config.get('name','') or '').lower() %}
+      <a href="/" style="text-decoration:none;display:none;overflow:hidden">
+        <img src="{{ url_for('static', filename='img/evore-logo-blue.svg') }}" alt="Evore" class="logo-light" style="max-width:180px;height:auto">
+        <img src="{{ url_for('static', filename='img/evore-logo-white.svg') }}" alt="Evore" class="logo-dark" style="max-width:180px;height:auto">
+      </a>
+      {% else %}
+      <a href="/" style="text-decoration:none;color:#fff;display:none;align-items:center;gap:.5rem;overflow:hidden">
+        <span style="font-weight:800;font-size:1.3rem;letter-spacing:-.5px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif">{{ company_name }}</span>
+        <span style="font-size:.6rem;letter-spacing:1.5px;opacity:.6;text-transform:uppercase;white-space:nowrap">ERP</span>
+      </a>
+      {% endif %}
+    {% endif %}
+  </div>
+  <div class="sb-nav" style="overflow-y:auto;flex:1">
+    {% set m=modulos_user %}
+    {# ── DOCK: cada icono es un modulo. Click = navega, Hold = panel con subfunciones ── #}
+    <a href="#" class="nav-link dock-group {% if request.endpoint=='dashboard' %}active" aria-current="page{% endif %}" data-tip="Home" aria-label="Home" data-dock-panel="home"><i class="bi bi-house-fill"></i><span>Home</span></a>
+    {% if 'tareas' in m %}<a href="#" class="nav-link dock-group {% if 'tarea' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Tickets" aria-label="Tickets" data-dock-panel="tickets" style="position:relative"><i class="bi bi-check2-square"></i>{% if tareas_pend %}<span style="position:absolute;top:2px;right:2px;background:var(--red);color:#fff;font-size:.55rem;padding:1px 4px;border-radius:8px;line-height:1.2">{{ tareas_pend }}</span>{% endif %}<span>Tareas</span></a>{% endif %}
+    {% if 'calendario' in m %}<a href="#" class="nav-link dock-group {% if request.endpoint=='calendario' or 'evento' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Calendario" aria-label="Calendario" data-dock-panel="calendario"><i class="bi bi-calendar3"></i><span>Calendario</span></a>{% endif %}
+    {% if 'notas' in m %}<a href="#" class="nav-link dock-group {% if 'nota' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Notas" aria-label="Notas" data-dock-panel="notas"><i class="bi bi-sticky-fill"></i><span>Notas</span></a>{% endif %}
+    <div class="dock-div"></div>
+    {# ── Comercial ── #}
+    {% if 'clientes' in m or 'ventas' in m or 'cotizaciones' in m %}
+    <a href="{{ url_for('ventas') }}" class="nav-link dock-group {% if 'venta' in request.endpoint or 'cliente' in request.endpoint or 'cotizacion' in request.endpoint or 'receta' in request.endpoint or 'servicio' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Comercial" aria-label="Comercial"
+       data-dock-panel="comercial"><i class="bi bi-bag-fill"></i><span>Comercial</span></a>
+    {% endif %}
+    {# ── Proveedores y Compras ── #}
+    {% if 'clientes' in m or 'ordenes_compra' in m or 'produccion' in m %}
+    <a href="{{ url_for('ordenes_compra') }}" class="nav-link dock-group {% if 'proveedor' in request.endpoint or 'orden_compra' in request.endpoint or 'cotizacion_proveedor' in request.endpoint or request.endpoint in ('compras','compra_nueva','compra_editar') %}active" aria-current="page{% endif %}" data-tip="Compras" aria-label="Compras"
+       data-dock-panel="compras"><i class="bi bi-cart-check"></i><span>Compras</span></a>
+    {% endif %}
+    <div class="dock-div"></div>
+    {# ── Operaciones ── #}
+    {% if 'inventario' in m or 'produccion' in m %}
+    {% if 'inventario' in m %}<a href="#" class="nav-link dock-group {% if 'inventario' in request.endpoint or 'producto' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Inventario" aria-label="Inventario" data-dock-panel="inventario"><i class="bi bi-box-seam-fill"></i><span>Inventario</span></a>{% endif %}
+    {% if 'produccion' in m %}<a href="{{ url_for('produccion_index') }}" class="nav-link dock-group {% if 'produccion' in request.endpoint or 'materia' in request.endpoint or 'reserva' in request.endpoint or request.endpoint=='gantt' or request.endpoint=='ordenes_produccion' %}active" aria-current="page{% endif %}" data-tip="Produccion" aria-label="Produccion"
+       data-dock-panel="produccion"><i class="bi bi-gear-fill"></i><span>Produccion</span></a>{% endif %}
+    {% endif %}
+    {# ── Logistica ── #}
+    {% if 'inventario' in m or 'produccion' in m or 'clientes' in m %}
+    <a href="{{ url_for('proveedores', tipo_f='transportista') }}" class="nav-link dock-group {% if (request.endpoint=='proveedores' and request.args.get('tipo_f')=='transportista') or 'empaque' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Logistica" aria-label="Logistica"
+       data-dock-panel="logistica"><i class="bi bi-truck-front-fill"></i><span>Logistica</span></a>
+    {% endif %}
+    <div class="dock-div"></div>
+    {# ── Finanzas ── #}
+    {% if 'finanzas' in m or rol_activo in ('admin','director_financiero','contador') %}
+    <a href="{{ url_for('contable_index') }}" class="nav-link dock-group {% if 'contable' in request.endpoint or 'gasto' in request.endpoint or 'reporte' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Finanzas" aria-label="Finanzas"
+       data-dock-panel="finanzas"><i class="bi bi-currency-dollar"></i><span>Finanzas</span></a>
+    {% endif %}
+    {# ── Legal ── #}
+    {% if 'legal' in m or rol_activo in ('admin','director_financiero','director_operativo') %}
+    <a href="#" class="nav-link dock-group {% if 'legal' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Legal" aria-label="Legal" data-dock-panel="legal"><i class="bi bi-shield-check"></i><span>Legal</span></a>
+    {% endif %}
+    {# ── Nomina ── #}
+    {% if 'nomina' in m %}<a href="#" class="nav-link dock-group {% if 'nomina' in request.endpoint or 'empleado' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Nomina" aria-label="Nomina" data-dock-panel="nomina"><i class="bi bi-people-fill"></i><span>Nomina</span></a>{% endif %}
+    <div class="dock-div"></div>
+    {# ── Aprobaciones ── #}
+    {% if rol_activo in ('admin','director_financiero','director_operativo') %}
+    <a href="#" class="nav-link dock-group {% if 'aprobacion' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Aprobaciones" aria-label="Aprobaciones" data-dock-panel="aprobaciones" style="position:relative"><i class="bi bi-clipboard-check"></i>{% if aprob_pend %}<span style="position:absolute;top:2px;right:2px;background:var(--orange);color:#fff;font-size:.55rem;padding:1px 4px;border-radius:8px;line-height:1.2">{{ aprob_pend }}</span>{% endif %}<span>Aprobaciones</span></a>
+    {% endif %}
+    {# ── Wiki + Buscador ── #}
+    <a href="#" onclick="event.preventDefault();toggleChatPanel()" class="nav-link" data-tip="Chat" aria-label="Chat"><i class="bi bi-chat-dots-fill"></i><span>Chat</span><span id="chatBadge" class="sb-badge hide"></span></a>
+    <a href="{{ url_for('foro') }}" class="nav-link {% if 'foro' in request.endpoint %}active" aria-current="page{% endif %}" data-tip="Somos Evore" aria-label="Somos Evore"><i class="bi bi-shop"></i><span>Foro</span><span class="sb-new">NEW</span></a>
+    <a href="{{ url_for('portal_mis_relaciones') }}" class="nav-link {% if request.endpoint=='portal_mis_relaciones' or request.endpoint=='portal_interempresa' %}active" aria-current="page{% endif %}" data-tip="Relaciones" aria-label="Relaciones comerciales"><i class="bi bi-building"></i><span>Relaciones</span></a>
+    <a href="{{ url_for('capacitacion_index') }}" class="nav-link {% if 'capacitacion' in (request.endpoint or '') %}active" aria-current="page{% endif %}" data-tip="Capacitacion" aria-label="Capacitacion"><i class="bi bi-mortarboard-fill"></i><span>Capacitacion</span></a>
+    <a href="{{ url_for('wiki') }}" class="nav-link {% if request.endpoint=='wiki' %}active" aria-current="page{% endif %}" data-tip="Wiki" aria-label="Wiki" data-dock-panel="wiki_page"><i class="bi bi-book"></i><span>Wiki</span></a>
+    {# ── Proyectos ── #}
+    {% if rol_activo in ('admin','director_financiero','director_operativo') %}
+    <a href="{{ url_for('proyectos_index') }}" class="nav-link {% if 'proyecto' in (request.endpoint or '') %}active" aria-current="page{% endif %}" data-tip="Proyectos" aria-label="Proyectos"><i class="bi bi-kanban-fill"></i><span>Proyectos</span></a>
+    {% endif %}
+    {# ── Admin ── #}
+    {% if rol_activo in ('admin','director_financiero') %}
+    <a href="#" class="nav-link dock-group" data-tip="Admin" aria-label="Admin" data-dock-panel="admin"><i class="bi bi-shield-lock-fill"></i><span>Admin</span></a>
+    {% endif %}
+
+    {% if rol_activo == 'proveedor' %}
+    <div class="dock-div"></div>
+    <a href="{{ url_for('portal_proveedor') }}" class="nav-link {% if request.endpoint=='portal_proveedor' %}active" aria-current="page{% endif %}" data-tip="Mi Portal" aria-label="Mi Portal"><i class="bi bi-house-fill"></i><span>Portal</span></a>
+    {% endif %}
+  </div>
+  <div class="sb-foot">
+    <div class="d-flex align-items-center justify-content-between mb-1">
+      <div class="d-flex align-items-center gap-2">
+        <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold"
+             style="width:31px;height:31px;font-size:.8rem;flex-shrink:0">{{ current_user.nombre[0].upper() }}</div>
+        <div class="ui"><div class="u-name">{{ current_user.nombre }}</div>
+          <span class="u-rol">{{ rol_activo }}</span></div>
+      </div>
+      <div class="d-flex flex-column gap-1 align-items-center">
+        <button class="notif-btn d-none d-md-flex" id="notifBtn" onclick="toggleNotif(event)" title="Notificaciones">
+          <i class="bi bi-bell-fill"></i>
+          {% if notif_count > 0 %}<span class="notif-badge">{{ notif_count if notif_count < 10 else '9+' }}</span>{% endif %}
+        </button>
+        <button class="notif-btn" onclick="if(window.iniciarObContextual){iniciarObContextual()}else{alert('Tutorial no disponible. Recarga la pagina.')}" title="Tutorial" style="font-size:.85rem">
+          <i class="bi bi-question-circle"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</nav>
