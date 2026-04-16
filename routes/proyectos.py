@@ -638,13 +638,9 @@ def register(app):
             nombres = ', '.join(f.nombre for f in fases_sin_ppto)
             flash(f'Fases sin presupuesto definido: {nombres}. Asigna presupuesto (puede ser 0) antes de enviar.', 'danger')
             return redirect(url_for('proyecto_plan_gastos', pid=pid))
-        # Validate: plan de gastos exists
-        total_plan = db.session.query(func.sum(ProyectoPlanGasto.monto)).filter_by(proyecto_id=pid).scalar() or 0
-        if total_plan <= 0:
-            flash('Debes agregar al menos un gasto planificado antes de enviar a aprobacion.', 'danger')
-            return redirect(url_for('proyecto_plan_gastos', pid=pid))
         # Update presupuesto total from sum of phases
-        p.presupuesto = sum(f.presupuesto for f in p.fases)
+        total_plan = db.session.query(func.sum(ProyectoPlanGasto.monto)).filter_by(proyecto_id=pid).scalar() or 0
+        p.presupuesto = sum(f.presupuesto or 0 for f in p.fases)
         p.estado = 'pendiente_aprobacion'
         # Create approval request
         aprobacion = Aprobacion(
