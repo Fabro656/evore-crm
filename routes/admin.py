@@ -493,7 +493,16 @@ def register(app):
             # Delete config
             db.session.execute(db.text('DELETE FROM config_empresa WHERE company_id = :cid'), {'cid': target_id})
 
-            # Delete company relationships
+            # Delete chat rooms linked to company relationships, then relationships
+            db.session.execute(db.text(
+                'DELETE FROM chat_messages WHERE room_id IN (SELECT id FROM chat_rooms WHERE company_relationship_id IN (SELECT id FROM company_relationships WHERE company_from_id = :cid OR company_to_id = :cid))'
+            ), {'cid': target_id})
+            db.session.execute(db.text(
+                'DELETE FROM chat_participants WHERE room_id IN (SELECT id FROM chat_rooms WHERE company_relationship_id IN (SELECT id FROM company_relationships WHERE company_from_id = :cid OR company_to_id = :cid))'
+            ), {'cid': target_id})
+            db.session.execute(db.text(
+                'DELETE FROM chat_rooms WHERE company_relationship_id IN (SELECT id FROM company_relationships WHERE company_from_id = :cid OR company_to_id = :cid)'
+            ), {'cid': target_id})
             db.session.execute(db.text(
                 'DELETE FROM company_relationships WHERE company_from_id = :cid OR company_to_id = :cid'
             ), {'cid': target_id})
