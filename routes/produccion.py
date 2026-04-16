@@ -1,7 +1,7 @@
 # routes/produccion.py — reconstruido desde v27 con CRUD completo
 from flask import render_template, redirect, url_for, flash, request, jsonify, g
 from flask_login import login_required, current_user
-from extensions import db
+from extensions import db, tenant_query
 from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
@@ -72,9 +72,7 @@ def register(app):
     def compras():
         busqueda=request.args.get('buscar','')
         page = request.args.get('page', 1, type=int)
-        q=CompraMateria.query
-        cid = getattr(g, 'company_id', None) or current_user.company_id
-        q = q.filter(CompraMateria.company_id == cid)
+        q=tenant_query(CompraMateria)
         if busqueda:
             q=q.filter(db.or_(CompraMateria.nombre_item.ilike(f'%{busqueda}%'),
                                CompraMateria.proveedor.ilike(f'%{busqueda}%'),
@@ -452,9 +450,7 @@ def register(app):
         buscar = request.args.get('buscar', '').strip()
         unidad_f = request.args.get('unidad', '').strip()
         page = request.args.get('page', 1, type=int)
-        q = MateriaPrima.query.filter_by(activo=True)
-        cid = getattr(g, 'company_id', None) or current_user.company_id
-        q = q.filter(MateriaPrima.company_id == cid)
+        q = tenant_query(MateriaPrima).filter_by(activo=True)
         if buscar:
             q = q.filter(MateriaPrima.nombre.ilike(f'%{buscar}%'))
         if unidad_f:

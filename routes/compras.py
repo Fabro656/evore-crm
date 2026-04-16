@@ -1,7 +1,7 @@
 # routes/compras.py — reconstruido desde v27 con CRUD completo
 from flask import render_template, redirect, url_for, flash, request, jsonify, g
 from flask_login import login_required, current_user
-from extensions import db
+from extensions import db, tenant_query
 from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
@@ -317,9 +317,7 @@ def register(app):
     def ordenes_compra():
         estado_f = request.args.get('estado','')
         buscar = request.args.get('buscar','').strip()
-        q = OrdenCompra.query
-        cid = getattr(g, 'company_id', None) or current_user.company_id
-        q = q.filter(OrdenCompra.company_id == cid)
+        q = tenant_query(OrdenCompra)
         if estado_f: q = q.filter_by(estado=estado_f)
         if buscar:
             like_term = f'%{buscar}%'

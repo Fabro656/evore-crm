@@ -3,7 +3,7 @@ from flask import render_template, redirect, url_for, flash, request, \
                   jsonify, send_file, make_response, current_app, g
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
-from extensions import db
+from extensions import db, tenant_query
 from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
@@ -76,9 +76,7 @@ def register(app):
         hasta_f = request.args.get('hasta','')
         page = request.args.get('page', 1, type=int)
         try:
-            q = GastoOperativo.query.filter_by(es_plantilla=False)
-            cid = getattr(g, 'company_id', None) or current_user.company_id
-            q = q.filter(GastoOperativo.company_id == cid)
+            q = tenant_query(GastoOperativo).filter_by(es_plantilla=False)
             if tipo_f:  q = q.filter_by(tipo=tipo_f)
             if desde_f: q = q.filter(GastoOperativo.fecha >= datetime.strptime(desde_f,'%Y-%m-%d').date())
             if hasta_f: q = q.filter(GastoOperativo.fecha <= datetime.strptime(hasta_f,'%Y-%m-%d').date())

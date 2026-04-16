@@ -3,7 +3,7 @@ from flask import render_template, redirect, url_for, flash, request, \
                   jsonify, send_file, make_response, current_app, g
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
-from extensions import db
+from extensions import db, tenant_query
 from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
@@ -129,8 +129,7 @@ def register(app):
         estado_f=request.args.get('estado',''); prioridad_f=request.args.get('prioridad','')
         buscar=request.args.get('buscar','').strip()
         try:
-            cid = getattr(g, 'company_id', None) or current_user.company_id
-            q=Tarea.query.filter(Tarea.company_id == cid)
+            q=tenant_query(Tarea)
             if _get_rol_activo(current_user) != 'admin':
                 q = q.filter(
                     db.or_(

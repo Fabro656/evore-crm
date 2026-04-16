@@ -3,7 +3,7 @@ from flask import render_template, redirect, url_for, flash, request, \
                   jsonify, send_file, make_response, current_app, g
 from flask import session as flask_session
 from flask_login import login_required, current_user, login_user, logout_user
-from extensions import db
+from extensions import db, tenant_query
 from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
@@ -35,8 +35,7 @@ def register(app):
     def clientes():
         busqueda = request.args.get('buscar','')
         estado_rel_f = request.args.get('estado_rel','')
-        cid = getattr(g, 'company_id', None) or current_user.company_id
-        q = Cliente.query.filter(Cliente.company_id == cid)
+        q = tenant_query(Cliente)
         if busqueda:
             q = q.filter(db.or_(Cliente.nombre.ilike(f'%{busqueda}%'),
                                  Cliente.empresa.ilike(f'%{busqueda}%'),

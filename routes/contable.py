@@ -1,7 +1,7 @@
 # routes/contable.py — BLOQUE 5: Contabilidad Completa (v31)
 from flask import render_template, redirect, url_for, flash, request, jsonify, g
 from flask_login import login_required, current_user
-from extensions import db
+from extensions import db, tenant_query
 from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
@@ -130,9 +130,7 @@ def register(app):
         buscar = request.args.get('buscar', '').strip()
         estado_pago_f = request.args.get('estado_pago', '')
 
-        q = AsientoContable.query
-        cid = getattr(g, 'company_id', None) or current_user.company_id
-        q = q.filter(AsientoContable.company_id == cid)
+        q = tenant_query(AsientoContable)
 
         if filtro == 'ingresos':
             q = q.filter(AsientoContable.clasificacion == 'ingreso')
