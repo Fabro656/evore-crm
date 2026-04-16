@@ -335,7 +335,7 @@ function guardarCotizacionEnvio(){
   };
   fetch('/logistica/calculadora/guardar',{
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    headers:{'Content-Type':'application/json','X-CSRF-Token':_csrfToken},
     body:JSON.stringify(data)
   }).then(function(r){return r.json();}).then(function(resp){
     var msg=document.getElementById('calcGuardadoMsg');

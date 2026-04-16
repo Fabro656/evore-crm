@@ -442,7 +442,7 @@ function calcular() {
 
   fetch('{{ url_for("empaques_calcular") }}', {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
+    headers: {'Content-Type':'application/json','X-CSRF-Token':_csrfToken},
     body: JSON.stringify({
       ancho_prod:anchoCm, largo_prod:largoCm, alto_prod:altoCm,
       peso_unitario:pesoUnitKg, peso_max_caja:pesoMaxKg, margen:margenCm
