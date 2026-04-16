@@ -382,7 +382,7 @@ def register(app):
             pid = request.form.get('producto_id') or None
             estado = request.form.get('estado','vigente')
             precio_u = float(request.form.get('precio_unitario',0) or 0)
-            g = CotizacionGranel(
+            cot_granel = CotizacionGranel(
                 producto_id=int(pid) if pid else None,
                 nombre_producto=request.form['nombre_producto'],
                 sku=request.form.get('sku',''), nso=request.form.get('nso',''),
@@ -392,7 +392,7 @@ def register(app):
                 fecha_cotizacion=datetime.strptime(fc,'%Y-%m-%d').date() if fc else None,
                 vigencia=datetime.strptime(fv,'%Y-%m-%d').date() if fv else None,
                 estado=estado, notas=request.form.get('notas',''), creado_por=current_user.id)
-            db.session.add(g)
+            db.session.add(cot_granel)
             if pid and estado == 'vigente':
                 prod = db.session.get(Producto, int(pid))
                 if prod: prod.costo = precio_u

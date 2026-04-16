@@ -131,7 +131,7 @@ def register(app):
             fd = request.form.get('fecha')
             rec = request.form.get('recurrencia','unico')
             es_pl = request.form.get('es_plantilla') == '1' and rec == 'mensual'
-            g = GastoOperativo(
+            gasto_new = GastoOperativo(
                 company_id=getattr(g, 'company_id', None),
                 fecha=datetime.strptime(fd,'%Y-%m-%d').date() if fd else datetime.utcnow().date(),
                 tipo=request.form['tipo'],
@@ -141,18 +141,18 @@ def register(app):
                 recurrencia=rec,
                 es_plantilla=es_pl,
                 notas=request.form.get('notas',''), creado_por=current_user.id)
-            db.session.add(g); db.session.flush()
+            db.session.add(gasto_new); db.session.flush()
             tipo_gasto = request.form['tipo']
             monto_gasto = float(request.form.get('monto',0) or 0)
             if monto_gasto > 0 and not es_pl:
                 _crear_asiento_auto(
                     tipo='gasto', subtipo=f'gasto_{tipo_gasto}',
-                    descripcion=f'Gasto: {g.descripcion or tipo_gasto}',
+                    descripcion=f'Gasto: {gasto_new.descripcion or tipo_gasto}',
                     monto=monto_gasto,
                     cuenta_debe=f'Gastos {tipo_gasto}',
                     cuenta_haber='Bancos / Caja',
                     clasificacion='egreso',
-                    gasto_id=g.id
+                    gasto_id=gasto_new.id
                 )
             db.session.commit(); flash('Gasto registrado.','success'); return redirect(url_for('gastos'))
         return render_template('gastos/form.html', obj=None, titulo='Nuevo Gasto',

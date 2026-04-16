@@ -431,7 +431,7 @@ def register(app):
                 return redirect(url_for('empleado_ver', id=empleado.id))
             except Exception as ex:
                 db.session.rollback()
-                flash(f'Error al actualizar: {str(ex)}','danger')
+                flash('Error al actualizar. Verifica los datos e intenta de nuevo.','danger')
         return render_template('nomina/form.html', empleado=empleado)
     
 

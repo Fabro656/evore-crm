@@ -1105,7 +1105,7 @@ window.iniciarObContextual = function(){
 
     fetch('/api/ai/chat', {
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'application/json','X-CSRF-Token':_csrfToken},
       body: JSON.stringify({message:text, history:_history.slice(-10), context:ctx})
     })
     .then(r=>r.json())
