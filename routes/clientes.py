@@ -268,7 +268,7 @@ def register(app):
             tenant_query(Nota).filter_by(cliente_id=id).update({'cliente_id': None})
             tenant_query(DocumentoLegal).filter_by(cliente_id=id).update({'cliente_id': None})
             User.query.filter_by(cliente_id=id).update({'cliente_id': None})
-            Pretenant_query(Cotizacion).filter_by(cliente_id=id).delete()
+            PreCotizacion.query.filter_by(cliente_id=id).delete()
             tenant_query(Comision).filter(Comision.venta_id.in_(
                 db.session.query(Venta.id).filter_by(cliente_id=id)
             )).delete(synchronize_session=False)

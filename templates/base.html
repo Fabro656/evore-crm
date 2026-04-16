@@ -80,6 +80,11 @@ posthog.init('{{ config.POSTHOG_KEY }}',{api_host:'https://eu.i.posthog.com',per
 {% include 'includes/_sidebar.html' %}
 {% include 'includes/_dock_panels.html' %}
 {% include 'includes/_topbar.html' %}
+  <div id="topbarActionsSlot" style="display:none">{% block topbar_actions %}{% endblock %}</div>
+  <script>
+  (function(){var s=document.getElementById('topbarActionsSlot'),t=document.getElementById('topbarActionsTarget');
+  if(s&&t&&s.innerHTML.trim()){t.innerHTML=s.innerHTML;s.remove();}else if(s){s.remove();}})();
+  </script>
     {% block content %}{% endblock %}
   </div>
 </div>

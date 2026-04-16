@@ -68,13 +68,13 @@ def register(app):
         from models import LoteMateriaPrima
         from datetime import date
         hoy = date.today()
-        lotes_con_fecha = Lotetenant_query(MateriaPrima).filter(
+        lotes_con_fecha = LoteMateriaPrima.query.filter(
             LoteMateriaPrima.materia_prima_id == materia_prima_id,
             LoteMateriaPrima.cantidad_disponible > 0,
             LoteMateriaPrima.fecha_vencimiento.isnot(None),
             LoteMateriaPrima.fecha_vencimiento > hoy
         ).order_by(LoteMateriaPrima.fecha_vencimiento.asc()).all()
-        lotes_sin_fecha = Lotetenant_query(MateriaPrima).filter(
+        lotes_sin_fecha = LoteMateriaPrima.query.filter(
             LoteMateriaPrima.materia_prima_id == materia_prima_id,
             LoteMateriaPrima.cantidad_disponible > 0,
             LoteMateriaPrima.fecha_vencimiento.is_(None)
@@ -268,7 +268,7 @@ def register(app):
         hoy = date.today()
         try:
             from models import LoteMateriaPrima
-            proximas_vencer = Lotetenant_query(MateriaPrima).filter(
+            proximas_vencer = LoteMateriaPrima.query.filter(
                 LoteMateriaPrima.fecha_vencimiento.isnot(None),
                 LoteMateriaPrima.fecha_vencimiento <= hoy + timedelta(days=90),
                 LoteMateriaPrima.fecha_vencimiento >= hoy,
@@ -641,7 +641,7 @@ def register(app):
                         if disponible >= necesaria: continue
                         faltante = necesaria - disponible
                         # Buscar cotización vigente de proveedor para esta MP
-                        cot_prov = Cotizaciontenant_query(Proveedor).filter(
+                        cot_prov = CotizacionProveedor.query.filter(
                             CotizacionProveedor.materia_prima_id == mp.id,
                             CotizacionProveedor.estado == 'vigente',
                             CotizacionProveedor.vigencia >= _d.today()
@@ -1450,7 +1450,7 @@ def register(app):
     def cotizacion_ver(id):
         obj = Cotizacion.query.get_or_404(id)
         empresa = ConfigEmpresa.query.first() or ConfigEmpresa(nombre='Evore')
-        historial = Historialtenant_query(Cotizacion).filter_by(cotizacion_id=id).order_by(HistorialCotizacion.creado_en.desc()).all()
+        historial = HistorialCotizacion.query.filter_by(cotizacion_id=id).order_by(HistorialCotizacion.creado_en.desc()).all()
         return render_template('cotizaciones/ver.html', obj=obj, empresa=empresa, historial=historial)
 
 

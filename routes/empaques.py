@@ -414,7 +414,7 @@ def register(app):
 
             # ── Auto-crear cotización para la CAJA (específica por producto) ──
             prod_nombre = empaque.producto.nombre if empaque.producto else ''
-            tiene_cot_caja = Cotizaciontenant_query(Proveedor).filter(
+            tiene_cot_caja = CotizacionProveedor.query.filter(
                 db.or_(
                     CotizacionProveedor.materia_prima_id == mp.id,
                     db.func.lower(CotizacionProveedor.nombre_producto) == mp.nombre.lower()
@@ -435,7 +435,7 @@ def register(app):
                 ))
 
             # ── Cotización de CINTA: una sola global (rollo 100m, compartida) ──
-            tiene_cot_cinta = Cotizaciontenant_query(Proveedor).filter(
+            tiene_cot_cinta = CotizacionProveedor.query.filter(
                 db.or_(
                     CotizacionProveedor.materia_prima_id == cinta_mp.id,
                     db.func.lower(CotizacionProveedor.nombre_producto).like('%cinta%embalaje%')
@@ -520,7 +520,7 @@ def register(app):
                             RecetaItem.query.filter_by(receta_id=receta.id, materia_prima_id=cinta_mp.id).delete()
 
                 # Marcar cotización de la caja como "vencida" (no actual), NO eliminar
-                cots_caja = Cotizaciontenant_query(Proveedor).filter_by(materia_prima_id=mp_id).all()
+                cots_caja = CotizacionProveedor.query.filter_by(materia_prima_id=mp_id).all()
                 for cot in cots_caja:
                     if cot.estado in ('vigente', 'en_revision'):
                         cot.estado = 'vencida'

@@ -87,7 +87,7 @@ def register(app):
     @requiere_modulo('inventario')
     def lotes():
         buscar = request.args.get('buscar', '').strip()
-        q = Lotetenant_query(Producto)
+        q = LoteProducto.query
         if buscar:
             q = q.join(LoteProducto.producto).filter(
                 db.or_(Producto.nombre.ilike(f'%{buscar}%'),

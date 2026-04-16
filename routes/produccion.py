@@ -675,7 +675,7 @@ def register(app):
         materias = tenant_query(MateriaPrima).filter_by(activo=True).order_by(MateriaPrima.nombre).all()
         nombres_con_cot = {
             cp.nombre_producto.lower()
-            for cp in Cotizaciontenant_query(Proveedor).filter(
+            for cp in CotizacionProveedor.query.filter(
                 CotizacionProveedor.estado.in_(['vigente','en_revision'])
             ).all() if cp.nombre_producto
         }
@@ -777,7 +777,7 @@ def register(app):
                 if not mp:
                     continue
                 # Verificar si ya tiene CUALQUIER cotización (vigente, en_revision, o vencida)
-                tiene_cot = Cotizaciontenant_query(Proveedor).filter(
+                tiene_cot = CotizacionProveedor.query.filter(
                     db.or_(
                         CotizacionProveedor.materia_prima_id == mp.id,
                         db.func.lower(CotizacionProveedor.nombre_producto) == mp.nombre.lower()
@@ -825,7 +825,7 @@ def register(app):
         materias = tenant_query(MateriaPrima).filter_by(activo=True).order_by(MateriaPrima.nombre).all()
         nombres_con_cot = {
             cp.nombre_producto.lower()
-            for cp in Cotizaciontenant_query(Proveedor).filter(
+            for cp in CotizacionProveedor.query.filter(
                 CotizacionProveedor.estado.in_(['vigente','en_revision'])
             ).all() if cp.nombre_producto
         }

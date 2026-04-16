@@ -47,7 +47,7 @@ def register(app):
         estados_ventas = [r[0] for r in db.session.query(Venta.estado).filter_by(cliente_id=cliente.id).distinct().order_by(Venta.estado).all()]
 
         cotizaciones = tenant_query(Cotizacion).filter_by(cliente_id=cliente.id).order_by(Cotizacion.creado_en.desc()).limit(20).all()
-        pre_cots = Pretenant_query(Cotizacion).filter_by(cliente_id=cliente.id).order_by(PreCotizacion.creado_en.desc()).limit(10).all()
+        pre_cots = PreCotizacion.query.filter_by(cliente_id=cliente.id).order_by(PreCotizacion.creado_en.desc()).limit(10).all()
         mensajes = tenant_query(Tarea).filter(Tarea.titulo.like('[Mensaje]%'),
                                       db.or_(Tarea.creado_por==current_user.id,
                                              Tarea.asignado_a==cliente.sales_manager_id)).order_by(Tarea.creado_en.desc()).limit(50).all()
@@ -227,7 +227,7 @@ def register(app):
             iva = round(subtotal_total * 0.19, 2)
             total = subtotal_total + iva
             # Count pre-cots for numero
-            cnt = Pretenant_query(Cotizacion).count() + 1
+            cnt = PreCotizacion.query.count() + 1
             pc = PreCotizacion(
                 numero=f'PC-{cnt:04d}',
                 cliente_id=cliente.id,
@@ -434,7 +434,7 @@ def register(app):
             flash('Tu cuenta no está vinculada a una empresa proveedora.', 'warning')
             return render_template('portal/proveedor_sin_empresa.html')
         ordenes = tenant_query(OrdenCompra).filter_by(proveedor_id=prov.id).order_by(OrdenCompra.creado_en.desc()).limit(30).all()
-        cotizaciones = Cotizaciontenant_query(Proveedor).filter_by(proveedor_id=prov.id).order_by(CotizacionProveedor.creado_en.desc()).limit(20).all()
+        cotizaciones = CotizacionProveedor.query.filter_by(proveedor_id=prov.id).order_by(CotizacionProveedor.creado_en.desc()).limit(20).all()
         return render_template('portal/proveedor_index.html', prov=prov,
                                ordenes=ordenes, cotizaciones=cotizaciones)
     

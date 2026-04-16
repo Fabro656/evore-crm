@@ -23,7 +23,7 @@
     <button type="button" class="btn btn-sm btn-ghost d-md-none" onclick="toggleTopSearch()" id="topbarSearchToggle" style="padding:.3rem .5rem;border-radius:8px;border:1px solid var(--border)"><i class="bi bi-search" style="font-size:.85rem"></i></button>
     <div class="topbar-right d-flex align-items-center gap-2 ms-auto">
       <button id="pwaInstallBtn" style="display:none;background:var(--ac);color:#fff;border:none;padding:3px 12px;border-radius:6px;font-size:.72rem;font-weight:600;cursor:pointer;white-space:nowrap" class="d-none d-md-inline-flex align-items-center gap-1"><i class="bi bi-download"></i>Instalar App</button>
-      {% block topbar_actions %}{% endblock %}
+      <span id="topbarActionsTarget"></span>
       <span class="text-muted d-none d-md-inline" style="font-size:.8rem;white-space:nowrap"><i class="bi bi-calendar3 me-1"></i>{{ now.strftime('%d %b %Y') }}</span>
       <button class="btn btn-sm btn-ghost d-none d-md-inline-flex align-items-center"
               style="padding:.3rem .5rem;border-radius:8px;border:1px solid var(--border)"
