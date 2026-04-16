@@ -158,7 +158,7 @@
 
 {# ══════════════════════════ MODULOS ══════════════════════════ #}
 <div class="wiki-section">
-  <div class="wiki-h2"><i class="bi bi-tools" style="color:var(--orange)"></i>Modulos del sistema (21)</div>
+  <div class="wiki-h2"><i class="bi bi-tools" style="color:var(--orange)"></i>Modulos del sistema (26)</div>
 
   <div class="wiki-grid">
     <div class="wiki-card">
@@ -166,8 +166,8 @@
       <p>Dashboard con KPIs, tickets pendientes, ventas recientes, aprobaciones, calendario del dia y notas.</p>
     </div>
     <div class="wiki-card">
-      <h4><i class="bi bi-check2-square" style="color:#8B5CF6"></i>Tickets</h4>
-      <p>Seguimiento con prioridades, asignacion multiple, categorias (calidad, logistica, pago). Auto-generados por problemas de calidad o nomina pendiente.</p>
+      <h4><i class="bi bi-check2-square" style="color:#8B5CF6"></i>Tareas</h4>
+      <p>4 estados: por hacer, en progreso, en revision, completada. Prioridades, asignacion multiple, categorias. Auto-generadas por calidad, nomina o proyectos. Sincronizacion bidireccional con tareas de proyectos.</p>
     </div>
     <div class="wiki-card">
       <h4><i class="bi bi-calendar3" style="color:#F59E0B"></i>Calendario</h4>
@@ -252,6 +252,26 @@
     <div class="wiki-card">
       <h4><i class="bi bi-buildings" style="color:#8B5CF6"></i>Multi-empresa</h4>
       <p>Modelo Company con datos independientes por empresa. Admin de plataforma crea y edita empresas. Usuarios pertenecen a multiples empresas con roles distintos (UserCompany). Cambio de empresa desde el menu superior. Relaciones comerciales entre empresas (CompanyRelationship).</p>
+    </div>
+    <div class="wiki-card">
+      <h4><i class="bi bi-kanban-fill" style="color:#6366F1"></i>Proyectos</h4>
+      <p>Gestion tipo Jira/Notion. Fases con presupuesto y objetivos. Kanban drag-and-drop. Diagrama de flujo visual con nodos arrastrables. Brainstorming con sticky notes, dibujo libre y votacion. Calendario. Plan de gastos con aprobacion del Director Financiero. Solicitudes de pago por fase. Equipo con lider.</p>
+    </div>
+    <div class="wiki-card">
+      <h4><i class="bi bi-mortarboard-fill" style="color:#059669"></i>Capacitacion</h4>
+      <p>8 cursos con 26 lecciones y 29 preguntas. Casos practicos paso a paso. Evaluaciones con puntaje minimo 70%. Sandbox CRM demo para practicar. Resultados notificados al admin. Panel de progreso del equipo. Filtrado por rol/modulos del usuario.</p>
+    </div>
+    <div class="wiki-card">
+      <h4><i class="bi bi-shop" style="color:#7C3AED"></i>Somos Evore — Marketplace</h4>
+      <p>Foro bimodal: Ofrezco y Necesito. Publicaciones con industria, tipo (producto/servicio), precio. Valoraciones y apelaciones. Banners publicitarios. Conexion automatica entre empresas al contactar. Visible para todas las empresas de la plataforma.</p>
+    </div>
+    <div class="wiki-card">
+      <h4><i class="bi bi-credit-card" style="color:#0EA5E9"></i>Planes y Suscripciones</h4>
+      <p>Free (portal), Starter (CRM gratis, 3 usuarios), Pro ($39,900/mes + $9,900/extra). Auto-upgrade al 4to usuario. Recordatorio a 7 dias. Gracia de 3 dias. Bloqueo suave si no paga.</p>
+    </div>
+    <div class="wiki-card">
+      <h4><i class="bi bi-gear" style="color:#F59E0B"></i>Servicios</h4>
+      <p>Catalogo con costo interno, precio venta, margen. Se agregan como items en cotizaciones y ventas. Tarjetas rediseñadas con badges de categoria y margen.</p>
     </div>
   </div>
 </div>
@@ -540,13 +560,57 @@
   <p class="wiki-p">La cuenta free permite al nuevo usuario ver sus pedidos y documentos desde el portal sin costo.</p>
 </div>
 
+{# ══════════════════════════ PROYECTOS ══════════════════════════ #}
+<div class="wiki-section">
+  <div class="wiki-h2"><i class="bi bi-kanban-fill" style="color:#6366F1"></i>Gestion de Proyectos</div>
+  <div class="wiki-h3">Ciclo de vida</div>
+  <div class="flow-container">
+    <div class="flow-row">
+      <div class="flow-box accent">Planificacion<small>Fases, presupuesto, objetivos</small></div>
+      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="flow-box orange">Pendiente aprobacion<small>Director Financiero</small></div>
+      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="flow-box green">Desarrollo<small>Ejecucion + solicitudes de pago</small></div>
+      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="flow-box">Completado</div>
+    </div>
+  </div>
+  <div class="wiki-h3">Presupuesto secuencial por fases</div>
+  <p class="wiki-p">El presupuesto total se distribuye entre fases. Cada fase tiene objetivos con presupuesto asignado. La suma de objetivos no puede exceder el presupuesto de la fase.</p>
+  <p class="wiki-p"><strong>Fase 1</strong> se desbloquea con la aprobacion del Director Financiero. <strong>Fase 2</strong> se desbloquea cuando todos los objetivos de Fase 1 estan completados. Y asi sucesivamente.</p>
+  <div class="wiki-h3">Herramientas del proyecto</div>
+  <div class="wiki-grid">
+    <div class="wiki-card"><h4><i class="bi bi-lightbulb" style="color:#FBBF24"></i>Brainstorming</h4><p>Sticky notes arrastrables con votacion (up/down). Herramientas de dibujo: lapiz, marcador, resaltador, borrador. Pantalla completa. Enviar notas al diagrama como fases/objetivos.</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-layers" style="color:#3B82F6"></i>Fases</h4><p>Presupuesto por fase y objetivo. Miembros del equipo. Objetivos como checklist que desbloquean pagos. Dropdown de estado sincronizado con kanban.</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-diagram-3" style="color:#10B981"></i>Diagrama de flujo</h4><p>Editor visual con nodos arrastrables. Tipos: fase, objetivo, decision, nota. Conexiones con flechas. Sincronizado con datos reales del proyecto. Duplicar nodos. Menu contextual.</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-kanban" style="color:#8B5CF6"></i>Kanban</h4><p>Drag-and-drop entre columnas: por hacer, en progreso, en revision, completada. Sincronizado con tareas centrales de la empresa.</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-wallet2" style="color:#059669"></i>Plan de gastos</h4><p>Gastos planificados por fase con fechas. Aprobacion del Director Financiero. Solicitudes de pago en desarrollo. Tipos: general, compra (+IVA), nomina (+prestaciones).</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-calendar3" style="color:#F97316"></i>Calendario</h4><p>Vista mensual con fases como barras de color y tareas como eventos. Navegacion prev/next/hoy.</p></div>
+  </div>
+  <div class="wiki-h3">Acceso</div>
+  <p class="wiki-p">Solo <strong>admin</strong>, <strong>director financiero</strong> y <strong>director operativo</strong> gestionan proyectos. Los miembros asignados al equipo pueden ver todo el contenido (fases, brainstorm, diagrama, calendario).</p>
+</div>
+
+{# ══════════════════════════ CAPACITACION ══════════════════════════ #}
+<div class="wiki-section">
+  <div class="wiki-h2"><i class="bi bi-mortarboard-fill" style="color:#059669"></i>Centro de Capacitacion</div>
+  <p class="wiki-p">8 cursos con casos practicos para cada modulo del CRM. Cada curso tiene lecciones paso a paso y una evaluacion final.</p>
+  <div class="wiki-grid">
+    <div class="wiki-card"><h4>Cursos disponibles</h4><p>Ventas, Compras, Produccion/BOM, Contabilidad, Nomina, Inventario, Tareas, Empaques/Logistica.</p></div>
+    <div class="wiki-card"><h4>Evaluaciones</h4><p>Preguntas de opcion multiple. Minimo 70% para aprobar. Reintento ilimitado. Resultado notificado al admin.</p></div>
+    <div class="wiki-card"><h4>Sandbox CRM</h4><p>Entorno de practica con datos demo. Verificacion automatica de pasos completados. Banner "MODO CAPACITACION" visible.</p></div>
+    <div class="wiki-card"><h4>Panel admin</h4><p>Matriz usuarios × cursos con puntajes y progreso. Visible para admin, director financiero y director operativo.</p></div>
+  </div>
+  <p class="wiki-p">Los cursos se filtran automaticamente por los modulos disponibles del usuario. Un vendedor solo ve cursos de ventas.</p>
+</div>
+
 {# ══════════════════════════ ATAJOS ══════════════════════════ #}
 <div class="wiki-section">
   <div class="wiki-h2"><i class="bi bi-keyboard" style="color:var(--orange)"></i>Atajos y tips</div>
   <div class="wiki-grid">
     <div class="wiki-card"><h4><i class="bi bi-menu-button-wide"></i>Dock</h4><p>Hover muestra nombre. Click abre modulo. Mantener click abre submenu con accesos directos.</p></div>
     <div class="wiki-card"><h4><i class="bi bi-window-stack"></i>Pestanas</h4><p>Click en submenu abre pestanas. Multiples modulos abiertos simultaneamente como pestanas de navegador.</p></div>
-    <div class="wiki-card"><h4><i class="bi bi-search"></i>Buscador</h4><p>Icono lupa en el dock. Busca en todo: clientes, ventas, productos, OC, documentos, empleados.</p></div>
+    <div class="wiki-card"><h4><i class="bi bi-search"></i>Buscador</h4><p>Barra de busqueda en el header. Ctrl+K para enfocar. Busca en clientes, ventas, productos, OC, documentos, empleados.</p></div>
     <div class="wiki-card"><h4><i class="bi bi-sun"></i>Tema</h4><p>Boton sol/luna en topbar. Cambia entre modo claro y oscuro. Se propaga a pestanas abiertas.</p></div>
     <div class="wiki-card"><h4><i class="bi bi-download"></i>Export CSV</h4><p>Boton "Exportar" en ventas, clientes, produccion, asientos y empleados. Descarga archivo CSV.</p></div>
     <div class="wiki-card"><h4><i class="bi bi-phone"></i>Movil</h4><p>Boton hamburguesa abre menu lateral. Portal tiene barra de navegacion inferior. Firma de documentos optimizada para touch.</p></div>
