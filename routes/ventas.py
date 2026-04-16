@@ -1313,14 +1313,9 @@ def register(app):
                 if not aplica_iva:
                     iva_pct = 0.0
 
-                if iva_incluido and aplica_iva and iva_pct > 0:
-                    # Precio incluye IVA: extraer base
-                    item_total = cant * precio
-                    sub = item_total / (1 + iva_pct / 100.0)
-                    iva_monto = item_total - sub
-                else:
-                    sub = cant * precio
-                    iva_monto = sub * iva_pct / 100.0 if aplica_iva else 0.0
+                # Frontend always sends base price (without IVA)
+                sub = cant * precio
+                iva_monto = sub * iva_pct / 100.0 if aplica_iva else 0.0
                 subtotal += sub
                 iva_total += iva_monto
 
@@ -1374,11 +1369,8 @@ def register(app):
                     if not prod:
                         continue
                     # Calcular precio con IVA para guardar en producto
-                    if iva_incluido:
-                        precio_con_iva = it['precio']  # ya incluye IVA
-                    else:
-                        precio_con_iva = it['precio'] * (1 + it['iva_pct'] / 100) if it['iva_pct'] > 0 else it['precio']
-                    precio_con_iva = round(precio_con_iva, 2)
+                    # Frontend sends base price — add IVA for storage in Producto.precio
+                    precio_con_iva = round(it['precio'] * (1 + it['iva_pct'] / 100), 2) if it['iva_pct'] > 0 else round(it['precio'], 2)
                     if prod.precio != precio_con_iva:
                         db.session.add(HistorialPrecio(
                             producto_id=prod.id,
@@ -1512,13 +1504,9 @@ def register(app):
                 if not aplica_iva:
                     iva_pct = 0.0
 
-                if iva_incluido and aplica_iva and iva_pct > 0:
-                    item_total = cant * precio
-                    sub = item_total / (1 + iva_pct / 100.0)
-                    iva_monto = item_total - sub
-                else:
-                    sub = cant * precio
-                    iva_monto = sub * iva_pct / 100.0 if aplica_iva else 0.0
+                # Frontend always sends base price (without IVA)
+                sub = cant * precio
+                iva_monto = sub * iva_pct / 100.0 if aplica_iva else 0.0
                 subtotal += sub
                 iva_total += iva_monto
 
@@ -1548,11 +1536,9 @@ def register(app):
                     prod = db.session.get(Producto, it['producto_id'])
                     if not prod:
                         continue
-                    if iva_incluido:
-                        precio_con_iva = it['precio']
-                    else:
-                        iva_pct_item = float(it.get('iva_pct', 0) or 0)
-                        precio_con_iva = it['precio'] * (1 + iva_pct_item / 100) if iva_pct_item > 0 else it['precio']
+                    # Frontend sends base price — add IVA for storage in Producto.precio
+                    iva_pct_item = float(it.get('iva_pct', 0) or 0)
+                    precio_con_iva = it['precio'] * (1 + iva_pct_item / 100) if iva_pct_item > 0 else it['precio']
                     precio_con_iva = round(precio_con_iva, 2)
                     if prod.precio != precio_con_iva:
                         cambios.append(f'Precio {prod.nombre}: ${prod.precio:,.0f} → ${precio_con_iva:,.0f}')
