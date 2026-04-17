@@ -181,6 +181,10 @@ def register(app):
                 precio_unitario_real = round(precio_raw / cantidad, 2)
             else:
                 precio_unitario_real = precio_raw
+            sku_in = (request.form.get('sku','') or '').strip()
+            if not sku_in:
+                from models import _generar_sku
+                sku_in = _generar_sku(request.form['nombre_producto'])
             cp = CotizacionProveedor(
                 company_id=getattr(g, 'company_id', None),
                 proveedor_id=int(request.form.get('proveedor_id')) if request.form.get('proveedor_id') else None,
@@ -188,7 +192,7 @@ def register(app):
                 tipo_producto_servicio=request.form.get('tipo_producto_servicio',''),
                 nombre_producto=request.form['nombre_producto'],
                 descripcion=request.form.get('descripcion',''),
-                sku=request.form.get('sku',''),
+                sku=sku_in,
                 precio_unitario=precio_unitario_real,
                 unidades_minimas=int(cantidad),
                 unidad=request.form.get('unidad','unidades'),
@@ -239,7 +243,11 @@ def register(app):
             obj.tipo_producto_servicio=request.form.get('tipo_producto_servicio','')
             obj.nombre_producto=request.form.get('nombre_producto','')
             obj.descripcion=request.form.get('descripcion','')
-            obj.sku=request.form.get('sku','')
+            sku_in = (request.form.get('sku','') or '').strip()
+            if not sku_in:
+                from models import _generar_sku
+                sku_in = _generar_sku(request.form.get('nombre_producto','') or obj.nombre_producto or '')
+            obj.sku=sku_in
             precio_raw = float(request.form.get('precio_unitario') or 0)
             cantidad = float(request.form.get('unidades_minimas') or 1)
             precio_por_unidad = request.form.get('precio_por_unidad')
