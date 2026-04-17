@@ -15,7 +15,9 @@ __all__ = [
     'TASA_CAJA_COMP', 'TASA_SENA', 'TASA_ICBF', 'TASA_ARL',
     'TASA_CESANTIAS', 'TASA_INT_CESANTIAS', 'TASA_PRIMA', 'TASA_VACACIONES',
     # Helpers
-    'cop', 'moneda', 'moneda0', '_parse_decimal', 'requiere_modulo', 'inject_globals',
+    'cop', 'moneda', 'moneda0', 'num_es', '_parse_decimal',
+    '_usuarios_empresa_activa', '_user_en_empresa_activa',
+    'requiere_modulo', 'inject_globals',
     '_send_email', '_log', '_crear_notificacion', '_crear_asiento_auto',
     '_calcular_nomina', '_calcular_liquidacion', '_calcular_impuestos',
     '_descontar_materias', '_descontar_stock_venta', '_save_contactos',
@@ -339,6 +341,51 @@ def _format_currency(value, decimals=None):
     except Exception:
         return f'{COMPANY.get("currency_symbol", "$")} 0'
 
+def _usuarios_empresa_activa(solo_activos=True):
+    """Retorna usuarios que pertenecen a la empresa activa (via UserCompany
+    o User.company_id). Util para dropdowns de asignacion de tareas,
+    solicitudes de compra, etc. — evita asignar a usuarios de otras empresas."""
+    from flask import g, has_request_context
+    from models import User, UserCompany
+    cid = None
+    if has_request_context():
+        cid = getattr(g, 'company_id', None)
+        if not cid and current_user and current_user.is_authenticated:
+            cid = current_user.company_id
+    q = User.query
+    if solo_activos:
+        q = q.filter_by(activo=True)
+    if not cid:
+        return q.order_by(User.nombre).all()
+    uc_ids = {r[0] for r in db.session.query(UserCompany.user_id)
+              .filter_by(company_id=cid, activo=True).all()}
+    direct_ids = {u.id for u in User.query.filter_by(company_id=cid).all()}
+    all_ids = uc_ids | direct_ids
+    if not all_ids:
+        return []
+    return q.filter(User.id.in_(all_ids)).order_by(User.nombre).all()
+
+
+def _user_en_empresa_activa(user_id):
+    """True si el user_id pertenece a la empresa activa (o no hay contexto de empresa)."""
+    from flask import g, has_request_context
+    from models import User, UserCompany
+    if not user_id:
+        return False
+    cid = None
+    if has_request_context():
+        cid = getattr(g, 'company_id', None)
+        if not cid and current_user and current_user.is_authenticated:
+            cid = current_user.company_id
+    if not cid:
+        return True  # sin contexto de empresa, no filtrar
+    uc_exists = UserCompany.query.filter_by(user_id=user_id, company_id=cid, activo=True).first()
+    if uc_exists:
+        return True
+    u = db.session.get(User, user_id)
+    return bool(u and u.company_id == cid)
+
+
 def _parse_decimal(s):
     """Convierte string a float aceptando coma o punto como separador decimal.
     '1234,56' → 1234.56   '1.234,56' → 1234.56   '1234.56' → 1234.56"""
@@ -353,6 +400,16 @@ def _parse_decimal(s):
         return float(s)
     except (ValueError, TypeError):
         return 0.0
+
+def num_es(value, decimals=2):
+    """Formatea un numero con separador de miles = espacio, decimal = coma.
+    12345678.5 → '12 345 678,50'. Facil de leer para distinguir miles/millones."""
+    try:
+        v = float(value or 0)
+        s = f'{v:,.{decimals}f}'  # Python: coma = miles, punto = decimal
+        return s.replace(',', ' ').replace('.', ',')
+    except (ValueError, TypeError):
+        return '0,' + ('0' * decimals) if decimals > 0 else '0'
 
 def cop(value):
     return _format_currency(value, 0)
@@ -1418,9 +1475,13 @@ def _save_asignados(tarea_obj):
     for uid_str in ([principal] if principal else []) + otros:
         try:
             uid = int(uid_str)
-            if uid not in seen:
-                seen.add(uid)
-                db.session.add(TareaAsignado(tarea_id=tarea_obj.id, user_id=uid))
+            if uid in seen:
+                continue
+            # Bloquear asignacion a usuarios fuera de la empresa activa
+            if not _user_en_empresa_activa(uid):
+                continue
+            seen.add(uid)
+            db.session.add(TareaAsignado(tarea_id=tarea_obj.id, user_id=uid))
         except (ValueError, TypeError):
             pass
     if not seen:
@@ -1869,8 +1930,10 @@ def register_app_hooks(app):
     app.template_filter('cop')(cop)
     app.template_filter('moneda')(moneda)
     app.template_filter('moneda0')(moneda0)
+    app.template_filter('num_es')(num_es)
     # Also register as Jinja globals so they can be called as functions: {{ moneda(value) }}
     app.jinja_env.globals['moneda'] = moneda
     app.jinja_env.globals['moneda0'] = moneda0
     app.jinja_env.globals['cop'] = cop
+    app.jinja_env.globals['num_es'] = num_es
     app.context_processor(inject_globals)

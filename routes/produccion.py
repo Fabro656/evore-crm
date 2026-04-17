@@ -936,7 +936,7 @@ def register(app):
         from datetime import date as _date
         from services.inventario import InventarioService
         items = ReservaProduccion.query.order_by(ReservaProduccion.creado_en.desc()).all()
-        usuarios = User.query.filter_by(activo=True).order_by(User.nombre).all()
+        usuarios = _usuarios_empresa_activa()
 
         # Pre-calcular validación por venta para el template
         venta_ids = list({r.venta_id for r in items if r.venta_id})
@@ -963,6 +963,9 @@ def register(app):
     def reserva_solicitar_compra():
         reserva_id = request.form.get('reserva_id')
         usuario_id = int(request.form.get('usuario_id'))
+        if not _user_en_empresa_activa(usuario_id):
+            flash('No puedes asignar la solicitud de compra a un usuario de otra empresa.', 'danger')
+            return redirect(url_for('reservas'))
         descripcion = request.form.get('descripcion','')
         cantidad_faltante = request.form.get('cantidad_faltante','')
         r = ReservaProduccion.query.get_or_404(int(reserva_id))

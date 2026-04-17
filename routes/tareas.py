@@ -162,10 +162,13 @@ def register(app):
     @login_required
     @requiere_modulo('tareas')
     def tarea_nueva():
-        us=User.query.filter_by(activo=True).all()
+        us=_usuarios_empresa_activa()
         if request.method == 'POST':
             fs=request.form.get('fecha_vencimiento')
             asignado_id=int(request.form.get('asignado_a') or current_user.id)
+            if not _user_en_empresa_activa(asignado_id):
+                flash('No puedes asignar tareas a usuarios de otra empresa.', 'danger')
+                return redirect(url_for('tarea_nueva'))
             t=Tarea(company_id=getattr(g, 'company_id', None),
                 titulo=request.form['titulo'], descripcion=request.form.get('descripcion',''),
                 estado=request.form.get('estado','pendiente'), prioridad=request.form.get('prioridad','media'),
@@ -218,16 +221,20 @@ def register(app):
     @login_required
     @requiere_modulo('tareas')
     def tarea_editar(id):
-        obj=Tarea.query.get_or_404(id); us=User.query.filter_by(activo=True).all()
+        obj=Tarea.query.get_or_404(id); us=_usuarios_empresa_activa()
         if request.method == 'POST':
             fs=request.form.get('fecha_vencimiento')
             prev_asignado = obj.asignado_a
+            nuevo_asignado = int(request.form.get('asignado_a') or current_user.id)
+            if not _user_en_empresa_activa(nuevo_asignado):
+                flash('No puedes asignar tareas a usuarios de otra empresa.', 'danger')
+                return redirect(url_for('tarea_editar', id=id))
             obj.titulo=request.form['titulo']; obj.descripcion=request.form.get('descripcion','')
             obj.estado=request.form.get('estado','pendiente'); obj.prioridad=request.form.get('prioridad','media')
             obj.tarea_tipo=request.form.get('tarea_tipo','') or obj.tarea_tipo
             obj.categoria=request.form.get('categoria','general') or obj.categoria
             obj.fecha_vencimiento=datetime.strptime(fs,'%Y-%m-%d').date() if fs else None
-            obj.asignado_a=int(request.form.get('asignado_a') or current_user.id)
+            obj.asignado_a=nuevo_asignado
             db.session.flush(); _save_asignados(obj)
             _log('editar','tarea',obj.id,f'Tarea editada: {obj.titulo}'); db.session.commit()
             # Notificar si cambió el asignado
