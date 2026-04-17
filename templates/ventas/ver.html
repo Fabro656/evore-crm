@@ -3,6 +3,10 @@
 {% block page_title %}Venta {{ obj.numero or '#'~obj.id }}{% endblock %}
 {% block topbar_actions %}
 <a href="{{ url_for('venta_editar', id=obj.id) }}" class="btn btn-ghost btn-sm"><i class="bi bi-pencil me-1"></i>Editar</a>
+<form method="POST" action="{{ url_for('venta_regenerar_reservas', id=obj.id) }}" class="d-inline"
+      onsubmit="return confirm('Se regeneraran ordenes de produccion y reservas de materias primas segun el BOM. Continuar?')">
+  <button class="btn btn-ghost btn-sm" title="Generar reservas de materiales segun BOM"><i class="bi bi-arrow-clockwise me-1"></i>Generar reservas</button>
+</form>
 <a href="{{ url_for('venta_factura', id=obj.id) }}" class="btn btn-ghost btn-sm" target="_blank"><i class="bi bi-file-earmark-text me-1"></i>Factura</a>
 <a href="{{ url_for('venta_remision', id=obj.id) }}" class="btn btn-ghost btn-sm"><i class="bi bi-truck me-1"></i>Remision</a>
 {% endblock %}

@@ -448,6 +448,38 @@ def register(app):
                                pre_cliente_id=pre_cliente_id, pre_cotizacion_id=pre_cotizacion_id)
 
 
+    # ── venta_regenerar_reservas (/ventas/<int:id>/regenerar-reservas)
+    @app.route('/ventas/<int:id>/regenerar-reservas', methods=['POST'])
+    @login_required
+    @requiere_modulo('ventas')
+    def venta_regenerar_reservas(id):
+        """Dispara manualmente la generacion de ordenes de produccion y reservas de
+        materias primas segun el BOM de cada producto de la venta. Util cuando no
+        se crearon automaticamente (p.ej. venta creada sin producto vinculado y
+        luego editada)."""
+        venta = Venta.query.get_or_404(id)
+        items_sin_producto = [it for it in venta.items if not it.producto_id]
+        if not venta.items:
+            flash('La venta no tiene items. Agrega al menos un producto.', 'warning')
+            return redirect(url_for('venta_ver', id=id))
+        try:
+            _procesar_venta_produccion(venta)
+            db.session.commit()
+        except Exception as ex:
+            db.session.rollback()
+            logging.warning(f'venta_regenerar_reservas error: {ex}')
+            flash('Error al generar reservas: ' + str(ex), 'danger')
+            return redirect(url_for('venta_ver', id=id))
+        reservas_creadas = ReservaProduccion.query.filter_by(venta_id=venta.id, estado='reservado').count()
+        if reservas_creadas:
+            flash(f'Reservas generadas ({reservas_creadas}). Revisalas en Produccion → Reservas.', 'success')
+        elif items_sin_producto:
+            flash(f'No se crearon reservas: {len(items_sin_producto)} item(s) sin producto vinculado. Editalos y vincula un producto con BOM.', 'warning')
+        else:
+            flash('No se crearon reservas. Verifica que los productos tengan receta (BOM) activa y que se requiera producir (stock insuficiente).', 'info')
+        return redirect(url_for('venta_ver', id=id))
+
+
     # ── venta_ver (/ventas/<int:id>)
     @app.route('/ventas/<int:id>')
     @login_required
@@ -516,6 +548,7 @@ def register(app):
             flash('Solo administradores pueden eliminar ventas.', 'danger')
             return redirect(url_for('ventas'))
         obj = Venta.query.get_or_404(id)
+        cot_id_vinculada = obj.cotizacion_id
         try:
             # Liberar stock reservado de productos terminados (ATP)
             InventarioService.liberar_reserva_venta(obj)
@@ -529,6 +562,15 @@ def register(app):
             db.session.rollback()
         db.session.delete(obj)
         db.session.commit()
+        # Liberar cotizacion vinculada para que pueda re-convertirse en venta
+        if cot_id_vinculada:
+            try:
+                cot = db.session.get(Cotizacion, cot_id_vinculada)
+                if cot and cot.estado in ('confirmacion_orden',):
+                    cot.estado = 'aprobada'
+                    db.session.commit()
+            except Exception as ec:
+                logging.warning(f'venta_eliminar: reset cotizacion error: {ec}')
         _log('eliminar','venta',id,'Venta eliminada'); db.session.commit()
         flash('Venta eliminada y stock de materias primas devuelto.', 'info')
         return redirect(url_for('ventas'))
