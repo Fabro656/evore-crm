@@ -949,11 +949,30 @@ def register(app):
                 validaciones[vid] = {'ok': True, 'faltantes': [], 'proximos_vencer': []}
 
         ESTADOS_VALIDOS_PROD = {'anticipo_pagado', 'completado', 'pagado'}  # completado = legado
+
+        # Materias primas con tarea de compra activa (pendiente/en_progreso)
+        # → para mostrar badge "Producto solicitado" en verde en la tarjeta
+        tareas_compra_activas = tenant_query(Tarea).filter(
+            Tarea.tarea_tipo == 'comprar_materias',
+            Tarea.estado.in_(['pendiente', 'en_progreso'])
+        ).all()
+        # Mapear materia_id → tarea_id extrayendo del titulo "Comprar ... de {nombre}"
+        # Fallback robusto: buscar por nombre de materia en el titulo
+        materias_solicitadas = {}
+        for r in items:
+            if r.materia_prima_id in materias_solicitadas:
+                continue
+            for t in tareas_compra_activas:
+                if r.materia and r.materia.nombre and r.materia.nombre in (t.titulo or ''):
+                    materias_solicitadas[r.materia_prima_id] = t.id
+                    break
+
         return render_template('produccion/reservas.html',
                                reservas=items, usuarios=usuarios,
                                today=_date.today(),
                                validaciones=validaciones,
-                               ESTADOS_VALIDOS_PROD=ESTADOS_VALIDOS_PROD)
+                               ESTADOS_VALIDOS_PROD=ESTADOS_VALIDOS_PROD,
+                               materias_solicitadas=materias_solicitadas)
     
 
     # ── reserva_solicitar_compra (/produccion/reservas/solicitar_compra)

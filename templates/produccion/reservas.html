@@ -229,20 +229,27 @@
           </div>
           {% endif %}
 
-          {# ⛔ FALTANTE: botón solicitar compra #}
+          {# ⛔ FALTANTE: botón solicitar compra (o badge si ya se solicito) #}
           {% if es_faltante and r.estado == 'reservado' %}
-          <button type="button" class="btn btn-sm btn-outline-danger"
-            data-bs-toggle="modal" data-bs-target="#modalFalta"
-            data-reserva="{{ r.id }}"
-            data-materia="{{ r.materia.nombre }}"
-            data-unidad="{{ r.materia.unidad }}"
-            data-reservado="{{ num_es(r.cantidad) }}"
-            data-disponible="0"
-            data-faltante="{{ num_es(r.cantidad) }}"
-            data-faltante-raw="{{ '%.2f'|format(r.cantidad) }}"
-            onclick="prepFalta(this)">
-            <i class="bi bi-cart-plus me-1"></i>Solicitar compra
-          </button>
+            {% if r.materia_prima_id in materias_solicitadas %}
+            <a href="{{ url_for('tarea_ver', id=materias_solicitadas[r.materia_prima_id]) }}"
+               class="btn btn-sm btn-success" title="Ver tarea de compra">
+              <i class="bi bi-check-circle-fill me-1"></i>Producto solicitado
+            </a>
+            {% else %}
+            <button type="button" class="btn btn-sm btn-outline-danger"
+              data-bs-toggle="modal" data-bs-target="#modalFalta"
+              data-reserva="{{ r.id }}"
+              data-materia="{{ r.materia.nombre }}"
+              data-unidad="{{ r.materia.unidad }}"
+              data-reservado="{{ num_es(r.cantidad) }}"
+              data-disponible="0"
+              data-faltante="{{ num_es(r.cantidad) }}"
+              data-faltante-raw="{{ '%.2f'|format(r.cantidad) }}"
+              onclick="prepFalta(this)">
+              <i class="bi bi-cart-plus me-1"></i>Solicitar compra
+            </button>
+            {% endif %}
           {% endif %}
 
           {# Cancelar reserva #}
@@ -331,18 +338,25 @@
           </form>
           {% set faltante_real = r.cantidad - r.materia.stock_disponible %}
           {% if faltante_real > 0 %}
-          <button type="button" class="btn btn-sm btn-outline-danger"
-            data-bs-toggle="modal" data-bs-target="#modalFalta"
-            data-reserva="{{ r.id }}"
-            data-materia="{{ r.materia.nombre }}"
-            data-unidad="{{ r.materia.unidad }}"
-            data-reservado="{{ num_es(r.cantidad) }}"
-            data-disponible="{{ num_es(r.materia.stock_disponible) }}"
-            data-faltante="{{ num_es(faltante_real) }}"
-            data-faltante-raw="{{ '%.2f'|format(faltante_real) }}"
-            onclick="prepFalta(this)">
-            <i class="bi bi-exclamation-triangle me-1"></i>Falta {{ num_es(faltante_real) }} {{ r.materia.unidad }}
-          </button>
+            {% if r.materia_prima_id in materias_solicitadas %}
+            <a href="{{ url_for('tarea_ver', id=materias_solicitadas[r.materia_prima_id]) }}"
+               class="btn btn-sm btn-success" title="Ver tarea de compra">
+              <i class="bi bi-check-circle-fill me-1"></i>Producto solicitado
+            </a>
+            {% else %}
+            <button type="button" class="btn btn-sm btn-outline-danger"
+              data-bs-toggle="modal" data-bs-target="#modalFalta"
+              data-reserva="{{ r.id }}"
+              data-materia="{{ r.materia.nombre }}"
+              data-unidad="{{ r.materia.unidad }}"
+              data-reservado="{{ num_es(r.cantidad) }}"
+              data-disponible="{{ num_es(r.materia.stock_disponible) }}"
+              data-faltante="{{ num_es(faltante_real) }}"
+              data-faltante-raw="{{ '%.2f'|format(faltante_real) }}"
+              onclick="prepFalta(this)">
+              <i class="bi bi-exclamation-triangle me-1"></i>Falta {{ num_es(faltante_real) }} {{ r.materia.unidad }}
+            </button>
+            {% endif %}
           {% endif %}
           {% endif %}
           {# Eliminar reserva (permanente) — disponible en cualquier estado #}
