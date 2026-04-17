@@ -253,6 +253,13 @@
             </button>
           </form>
           {% endif %}
+          {# Eliminar reserva (permanente) #}
+          <form method="POST" action="{{ url_for('reserva_eliminar', id=r.id) }}" class="d-inline"
+                onsubmit="return confirm('¿Eliminar permanentemente esta reserva? Esta accion no se puede deshacer.')">
+            <button class="btn btn-sm btn-outline-danger" title="Eliminar reserva">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
         </div>
       </td>
     </tr>
@@ -315,8 +322,8 @@
       <td><small class="text-muted">{{ r.notas or '' }}</small></td>
       <td><small>{{ r.creado_en.strftime('%d/%m/%Y') }}</small></td>
       <td>
-        {% if r.estado == 'reservado' %}
         <div class="d-flex gap-1 flex-wrap">
+          {% if r.estado == 'reservado' %}
           <form method="POST" action="{{ url_for('reserva_cancelar', id=r.id) }}" class="d-inline"
                 onsubmit="return confirm('¿Cancelar esta reserva?')">
             <button class="btn btn-sm btn-outline-warning">Cancelar</button>
@@ -335,8 +342,15 @@
             <i class="bi bi-exclamation-triangle me-1"></i>Falta {{ '%.3f'|format(faltante_real) }} {{ r.materia.unidad }}
           </button>
           {% endif %}
+          {% endif %}
+          {# Eliminar reserva (permanente) — disponible en cualquier estado #}
+          <form method="POST" action="{{ url_for('reserva_eliminar', id=r.id) }}" class="d-inline"
+                onsubmit="return confirm('¿Eliminar permanentemente esta reserva? Esta accion no se puede deshacer.')">
+            <button class="btn btn-sm btn-outline-danger" title="Eliminar reserva">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
         </div>
-        {% endif %}
       </td>
     </tr>
     {% endfor %}

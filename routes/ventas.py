@@ -552,9 +552,11 @@ def register(app):
             return redirect(url_for('ventas'))
 
         # State machine: validar transiciones permitidas
+        # 'anticipo_pagado' NO esta en las transiciones permitidas desde UI:
+        # solo se marca automaticamente al confirmar ingreso en Asientos Contables.
         TRANSICIONES = {
             'prospecto': ['negociacion', 'cancelado', 'perdido'],
-            'negociacion': ['prospecto', 'anticipo_pagado', 'cancelado', 'perdido'],
+            'negociacion': ['prospecto', 'cancelado', 'perdido'],
             'anticipo_pagado': ['negociacion', 'pagado', 'cancelado', 'perdido'],
             'pagado': ['entregado', 'completado', 'cancelado'],
             'entregado': ['completado'],

@@ -81,19 +81,27 @@
     </td>
     <td><small>{{ o.creado_en.strftime('%d/%m/%Y') }}</small></td>
     <td>
-      {% if o.estado == 'en_produccion' %}
-      <button type="button" class="btn btn-sm btn-success"
-        data-bs-toggle="modal" data-bs-target="#modalCompletar"
-        data-orden="{{ o.id }}" data-prod="{{ o.producto.nombre }}"
-        data-cant="{{ o.cantidad_producir }}"
-        onclick="prepCompletar(this)">
-        <i class="bi bi-check2-circle me-1"></i>Completar
-      </button>
-      {% elif o.estado == 'pendiente_materiales' %}
-      <span class="text-muted" style="font-size:.75rem">Iniciar en Reservas</span>
-      {% elif o.estado == 'pausada' %}
-      <span class="text-warning" style="font-size:.75rem"><i class="bi bi-pause-circle me-1"></i>Aguarda anticipo</span>
-      {% endif %}
+      <div class="d-flex gap-1 flex-wrap align-items-center">
+        {% if o.estado == 'en_produccion' %}
+        <button type="button" class="btn btn-sm btn-success"
+          data-bs-toggle="modal" data-bs-target="#modalCompletar"
+          data-orden="{{ o.id }}" data-prod="{{ o.producto.nombre }}"
+          data-cant="{{ o.cantidad_producir }}"
+          onclick="prepCompletar(this)">
+          <i class="bi bi-check2-circle me-1"></i>Completar
+        </button>
+        {% elif o.estado == 'pendiente_materiales' %}
+        <span class="text-muted" style="font-size:.75rem">Iniciar en Reservas</span>
+        {% elif o.estado == 'pausada' %}
+        <span class="text-warning" style="font-size:.75rem"><i class="bi bi-pause-circle me-1"></i>Aguarda anticipo</span>
+        {% endif %}
+        <form method="POST" action="{{ url_for('orden_produccion_eliminar', id=o.id) }}" class="d-inline"
+              onsubmit="return confirm('¿Eliminar esta orden de produccion? Se liberaran las reservas de materiales asociadas. Esta accion no se puede deshacer.')">
+          <button class="btn btn-sm btn-outline-danger" title="Eliminar orden">
+            <i class="bi bi-trash"></i>
+          </button>
+        </form>
+      </div>
     </td>
   </tr>
   {% endfor %}

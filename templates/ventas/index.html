@@ -61,11 +61,23 @@
         {# Top row: numero + estado #}
         <div class="d-flex align-items-center justify-content-between mb-2">
           <span class="text-muted fw-semibold" style="font-size:.72rem;letter-spacing:.5px">{{ v.numero or '—' }}</span>
+          {# Transiciones permitidas desde UI — anticipo_pagado, pagado y posteriores solo vienen de Asientos Contables #}
+          {% set _transiciones_ui = {
+            'prospecto': ['prospecto','negociacion','cancelado','perdido'],
+            'negociacion': ['prospecto','negociacion','cancelado','perdido'],
+            'anticipo_pagado': ['anticipo_pagado','negociacion','pagado','cancelado','perdido'],
+            'pagado': ['pagado','entregado','completado','cancelado'],
+            'entregado': ['entregado','completado'],
+            'completado': ['completado'],
+            'cancelado': ['cancelado','prospecto'],
+            'perdido': ['perdido','prospecto'],
+          } %}
+          {% set _permitidos = _transiciones_ui.get(v.estado, [v.estado]) %}
           <form method="POST" action="{{ url_for('venta_cambiar_estado', id=v.id) }}" style="display:inline" onchange="this.submit()">
-            <select name="estado" class="status-select b-{{ v.estado }}" title="Cambiar estado" aria-label="Estado"
+            <select name="estado" class="status-select b-{{ v.estado }}" title="Cambiar estado. Anticipo y posteriores solo via Asientos Contables." aria-label="Estado"
                     style="font-size:.7rem;padding:2px 8px" onchange="this.className='status-select b-'+this.value">
-              {% for est,lbl in [('prospecto','Prospecto'),('negociacion','Negociacion'),('anticipo_pagado','Anticipo Pagado'),('pagado','Pagado'),('cancelado','Cancelado'),('completado','Completado'),('perdido','Perdido')] %}
-              <option value="{{ est }}" {% if v.estado==est %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
+              {% for est,lbl in [('prospecto','Prospecto'),('negociacion','Negociacion'),('anticipo_pagado','Anticipo Pagado (via contable)'),('pagado','Pagado (via contable)'),('entregado','Entregado'),('completado','Completado'),('cancelado','Cancelado'),('perdido','Perdido')] %}
+              <option value="{{ est }}" {% if v.estado==est %}selected{% endif %} {% if est not in _permitidos %}disabled{% endif %}>{{ lbl }}</option>{% endfor %}
             </select>
           </form>
         </div>

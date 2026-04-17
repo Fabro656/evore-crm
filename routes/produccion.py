@@ -1067,6 +1067,54 @@ def register(app):
             db.session.commit()
             flash('Reserva cancelada y stock devuelto.','info')
         return redirect(url_for('reservas'))
+
+
+    # ── reserva_eliminar (/produccion/reservas/<int:id>/eliminar)
+    @app.route('/produccion/reservas/<int:id>/eliminar', methods=['POST'])
+    @login_required
+    @requiere_modulo('produccion')
+    def reserva_eliminar(id):
+        """Elimina permanentemente una reserva. Si aun esta reservada, devuelve stock."""
+        r = ReservaProduccion.query.get_or_404(id)
+        if r.estado == 'reservado':
+            m = db.session.get(MateriaPrima, r.materia_prima_id)
+            if m:
+                m.stock_disponible += r.cantidad
+                m.stock_reservado = max(0, m.stock_reservado - r.cantidad)
+        _log('eliminar', 'reserva', r.id,
+             f'Reserva eliminada: {r.materia.nombre if r.materia else "?"} x {r.cantidad}')
+        db.session.delete(r)
+        db.session.commit()
+        flash('Reserva eliminada.','info')
+        return redirect(url_for('reservas'))
+
+
+    # ── orden_produccion_eliminar (/produccion/ordenes/<int:id>/eliminar)
+    @app.route('/produccion/ordenes/<int:id>/eliminar', methods=['POST'])
+    @login_required
+    @requiere_modulo('produccion')
+    def orden_produccion_eliminar(id):
+        """Elimina permanentemente una orden de produccion.
+        Devuelve stock de reservas asociadas que sigan reservadas y las elimina."""
+        o = OrdenProduccion.query.get_or_404(id)
+        if o.estado == 'completado' and current_user.rol != 'admin':
+            flash('No puedes eliminar una orden completada. Solo admin.', 'warning')
+            return redirect(url_for('ordenes_produccion'))
+        # Reservas asociadas: devolver stock si aun reservadas, luego borrar
+        reservas_asoc = ReservaProduccion.query.filter_by(orden_produccion_id=o.id).all()
+        for r in reservas_asoc:
+            if r.estado == 'reservado':
+                m = db.session.get(MateriaPrima, r.materia_prima_id)
+                if m:
+                    m.stock_disponible += r.cantidad
+                    m.stock_reservado = max(0, m.stock_reservado - r.cantidad)
+            db.session.delete(r)
+        _log('eliminar', 'orden_produccion', o.id,
+             f'Orden de produccion eliminada: {o.producto.nombre if o.producto else "?"} x {o.cantidad_producir}')
+        db.session.delete(o)
+        db.session.commit()
+        flash('Orden de produccion eliminada y reservas liberadas.', 'info')
+        return redirect(url_for('ordenes_produccion'))
     
 
     # ── reserva_iniciar_produccion (/produccion/reservas/venta/<int:venta_id>/iniciar)
