@@ -186,6 +186,10 @@ class OrdenCompra(db.Model):
     subtotal                = db.Column(db.Float, default=0)
     iva                     = db.Column(db.Float, default=0)
     total                   = db.Column(db.Float, default=0)
+    # Anticipo al proveedor: % que se paga al emitir y saldo contra entrega
+    porcentaje_anticipo     = db.Column(db.Float, default=0)
+    monto_anticipo          = db.Column(db.Float, default=0)
+    saldo                   = db.Column(db.Float, default=0)
     notas                   = db.Column(db.Text)
     creado_por              = db.Column(db.Integer, db.ForeignKey('users.id'))
     creado_en               = db.Column(db.DateTime, default=datetime.utcnow)
@@ -2355,6 +2359,13 @@ def _migrate(conn):
         ("ALTER TABLE proveedores ADD COLUMN banco_nit VARCHAR(30)"),
         ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS telefono_pais VARCHAR(8) DEFAULT '+57'"),
         ("ALTER TABLE proveedores ADD COLUMN telefono_pais VARCHAR(8) DEFAULT '+57'"),
+        # ── OC: anticipo al proveedor ──
+        ("ALTER TABLE ordenes_compra ADD COLUMN IF NOT EXISTS porcentaje_anticipo FLOAT DEFAULT 0"),
+        ("ALTER TABLE ordenes_compra ADD COLUMN porcentaje_anticipo FLOAT DEFAULT 0"),
+        ("ALTER TABLE ordenes_compra ADD COLUMN IF NOT EXISTS monto_anticipo FLOAT DEFAULT 0"),
+        ("ALTER TABLE ordenes_compra ADD COLUMN monto_anticipo FLOAT DEFAULT 0"),
+        ("ALTER TABLE ordenes_compra ADD COLUMN IF NOT EXISTS saldo FLOAT DEFAULT 0"),
+        ("ALTER TABLE ordenes_compra ADD COLUMN saldo FLOAT DEFAULT 0"),
         # ── Productos: peso por unidad (para cotizar en g/kg/ml/l) ──
         ("ALTER TABLE productos ADD COLUMN IF NOT EXISTS peso_por_unidad FLOAT"),
         ("ALTER TABLE productos ADD COLUMN peso_por_unidad FLOAT"),

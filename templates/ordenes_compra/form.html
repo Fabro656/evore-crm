@@ -82,16 +82,29 @@
   </div>
   <div class="input-hint mb-3"><i class="bi bi-info-circle me-1"></i>Cada item es un producto o material que estas comprando. El precio es <strong>sin IVA</strong>.</div>
   <div id="itemsContainer"></div>
-  <div class="mt-3 mb-2"><div class="row g-2 justify-content-end"><div class="col-md-4">
+  <div class="mt-3 mb-2"><div class="row g-2 justify-content-end"><div class="col-md-5">
     <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">Subtotal:</span><strong id="lblSub">$ 0</strong></div>
     <div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">IVA 19%:</span><strong id="lblIva">$ 0</strong></div>
-    <div class="d-flex justify-content-between py-1"><span class="fw-bold">Total:</span><strong id="lblTot" style="color:var(--ac);font-size:1.1rem">$ 0</strong></div>
+    <div class="d-flex justify-content-between py-1 border-bottom"><span class="fw-bold">Total:</span><strong id="lblTot" style="color:var(--ac);font-size:1.1rem">$ 0</strong></div>
+    <div class="d-flex justify-content-between py-2 align-items-center border-bottom" style="gap:.5rem">
+      <span class="text-muted">Anticipo:</span>
+      <div class="input-group input-group-sm" style="max-width:180px">
+        <input type="number" name="porcentaje_anticipo" id="pctAnticipo" class="form-control form-control-sm text-end"
+               min="0" max="100" step="0.01" value="{{ obj.porcentaje_anticipo|default(0) if obj else 0 }}" oninput="recalc()">
+        <span class="input-group-text">%</span>
+      </div>
+      <strong id="lblAnticipo" style="color:var(--ac)">$ 0</strong>
+    </div>
+    <div class="d-flex justify-content-between py-1"><span class="text-muted">Saldo contra entrega:</span><strong id="lblSaldo">$ 0</strong></div>
+    <small class="text-muted" style="font-size:.72rem"><i class="bi bi-info-circle me-1"></i>Al seleccionar una cotizacion del proveedor, el % se copia automaticamente.</small>
   </div></div></div>
 </div>
 
 <input type="hidden" name="subtotal_calc" id="subtotalCalc">
 <input type="hidden" name="iva_calc" id="ivaCalc">
 <input type="hidden" name="total_calc" id="totalCalc">
+<input type="hidden" name="monto_anticipo_calc" id="montoAnticipoCalc">
+<input type="hidden" name="saldo_calc" id="saldoCalc">
 <div class="mb-3"><label class="form-label">Notas internas</label>
   <textarea name="notas" class="form-control" rows="2" placeholder="Instrucciones especiales, condiciones acordadas con el proveedor, etc.">{{ obj.notas if obj else '' }}</textarea></div>
 <div class="d-flex gap-2 mt-2">
@@ -114,12 +127,20 @@ function recalc(){
     row.querySelector('[data-f="sub"]').textContent=fmt(st);
   });
   var iva=sub*0.19; var tot=sub+iva;
+  var pctA = parseFloat(document.getElementById('pctAnticipo').value)||0;
+  if(pctA<0) pctA=0; if(pctA>100) pctA=100;
+  var anticipo = tot * pctA / 100;
+  var saldo = tot - anticipo;
   document.getElementById('lblSub').textContent=fmt(sub);
   document.getElementById('lblIva').textContent=fmt(iva);
   document.getElementById('lblTot').textContent=fmt(tot);
+  document.getElementById('lblAnticipo').textContent=fmt(anticipo)+(pctA>0?' ('+pctA.toFixed(pctA%1?2:0)+'%)':'');
+  document.getElementById('lblSaldo').textContent=fmt(saldo);
   document.getElementById('subtotalCalc').value=sub.toFixed(2);
   document.getElementById('ivaCalc').value=iva.toFixed(2);
   document.getElementById('totalCalc').value=tot.toFixed(2);
+  document.getElementById('montoAnticipoCalc').value=anticipo.toFixed(2);
+  document.getElementById('saldoCalc').value=saldo.toFixed(2);
 }
 
 function addItem(d){
@@ -204,6 +225,13 @@ function onCotCheckChange(chk){
       precio: c.precio_unitario || 0,
       cot_id: c.id
     });
+    // Auto-copiar % anticipo si la cotizacion lo define y el campo esta vacio
+    var pctEl = document.getElementById('pctAnticipo');
+    var pctActual = parseFloat(pctEl.value) || 0;
+    if(c.anticipo_porcentaje && pctActual === 0){
+      pctEl.value = c.anticipo_porcentaje;
+      recalc();
+    }
     // Auto-set delivery date from plazo
     if(c.plazo_entrega_dias > 0){
       var feVal=document.getElementById('fechaEmision').value;

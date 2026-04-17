@@ -306,6 +306,8 @@ def register(app):
         # Sugerir proveedor: el de la ultima cotizacion vigente para esta MP (menor precio)
         prov_sugerido_id = None
         precio_ref = 0.0
+        pct_anticipo_ref = 0.0
+        cot_prov_id = None
         if nombre_mp:
             cot_prov = tenant_query(CotizacionProveedor).filter(
                 CotizacionProveedor.nombre_producto.ilike(f'%{nombre_mp}%'),
@@ -314,17 +316,27 @@ def register(app):
             if cot_prov:
                 prov_sugerido_id = cot_prov.proveedor_id
                 precio_ref = float(cot_prov.precio_unitario or 0)
+                pct_anticipo_ref = float(cot_prov.anticipo_porcentaje or 0)
+                cot_prov_id = cot_prov.id
 
         # Crear OC borrador
         hoy = datetime.utcnow().date()
+        subtotal_oc = round(cant * precio_ref, 2)
+        iva_oc = round(subtotal_oc * 0.19, 2)
+        total_oc = round(subtotal_oc + iva_oc, 2)
+        monto_anticipo_oc = round(total_oc * pct_anticipo_ref / 100.0, 2)
         oc = OrdenCompra(
             company_id=getattr(g, 'company_id', None),
             proveedor_id=prov_sugerido_id,
+            cotizacion_id=cot_prov_id,
             estado='borrador',
             fecha_emision=hoy,
-            subtotal=round(cant * precio_ref, 2),
-            iva=round(cant * precio_ref * 0.19, 2),
-            total=round(cant * precio_ref * 1.19, 2),
+            subtotal=subtotal_oc,
+            iva=iva_oc,
+            total=total_oc,
+            porcentaje_anticipo=pct_anticipo_ref,
+            monto_anticipo=monto_anticipo_oc,
+            saldo=total_oc - monto_anticipo_oc,
             notas=f'Generada desde tarea #{tarea.id}: {tarea.titulo}',
             creado_por=current_user.id
         )
@@ -387,6 +399,7 @@ def register(app):
             'unidad': c.unidad,
             'plazo_entrega_dias': c.plazo_entrega_dias or 0,
             'condicion_pago_tipo': c.condicion_pago_tipo or 'contado',
+            'anticipo_porcentaje': float(c.anticipo_porcentaje or 0),
             'estado': c.estado,
             'sin_proveedor': c.proveedor_id is None,
         } for c in cots])
@@ -466,6 +479,12 @@ def register(app):
                 cot_obj = db.session.get(CotizacionProveedor, cot_id)
                 if cot_obj and cot_obj.plazo_entrega_dias:
                     fecha_esp = fecha_emision + timedelta(days=cot_obj.plazo_entrega_dias)
+            total_calc = float(request.form.get('total_calc') or 0)
+            pct_anticipo = _parse_decimal(request.form.get('porcentaje_anticipo'))
+            if pct_anticipo < 0: pct_anticipo = 0
+            if pct_anticipo > 100: pct_anticipo = 100
+            monto_anticipo_oc = round(total_calc * pct_anticipo / 100.0, 2)
+            saldo_oc = round(total_calc - monto_anticipo_oc, 2)
             oc = OrdenCompra(
                 company_id=getattr(g, 'company_id', None),
                 proveedor_id=int(request.form.get('proveedor_id')) if request.form.get('proveedor_id') else None,
@@ -478,7 +497,10 @@ def register(app):
                 fecha_estimada_recogida=datetime.strptime(fer,'%Y-%m-%d').date() if fer else None,
                 subtotal=float(request.form.get('subtotal_calc') or 0),
                 iva=float(request.form.get('iva_calc') or 0),
-                total=float(request.form.get('total_calc') or 0),
+                total=total_calc,
+                porcentaje_anticipo=pct_anticipo,
+                monto_anticipo=monto_anticipo_oc,
+                saldo=saldo_oc,
                 notas=request.form.get('notas',''),
                 creado_por=current_user.id
             )
@@ -612,6 +634,12 @@ def register(app):
             obj.subtotal = float(request.form.get('subtotal_calc') or 0)
             obj.iva      = float(request.form.get('iva_calc') or 0)
             obj.total    = float(request.form.get('total_calc') or 0)
+            pct_anticipo = _parse_decimal(request.form.get('porcentaje_anticipo'))
+            if pct_anticipo < 0: pct_anticipo = 0
+            if pct_anticipo > 100: pct_anticipo = 100
+            obj.porcentaje_anticipo = pct_anticipo
+            obj.monto_anticipo = round(obj.total * pct_anticipo / 100.0, 2)
+            obj.saldo = round(obj.total - obj.monto_anticipo, 2)
             obj.notas    = request.form.get('notas','')
             OrdenCompraItem.query.filter_by(orden_id=obj.id).delete()
             for it in _oc_save_items(obj.id): db.session.add(it)
