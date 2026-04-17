@@ -27,6 +27,7 @@
 
   <div class="header">
     <div>
+      <img src="/static/img/evore-logo-blue.svg" alt="Evore" style="height:38px;width:auto;filter:brightness(0) saturate(100%);margin-bottom:6px;display:block">
       <div class="empresa">{{ empresa.nombre if empresa else 'Empresa' }}</div>
       {% if empresa and empresa.nit %}<div>NIT: {{ empresa.nit }}</div>{% endif %}
       {% if empresa and empresa.direccion %}<div>{{ empresa.direccion }}</div>{% endif %}
