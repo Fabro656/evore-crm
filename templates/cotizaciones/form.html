@@ -90,7 +90,11 @@
           <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Cant.</label>
             <input type="number" name="item_cantidad[]" class="form-control form-control-sm item-cant" placeholder="1" step="0.01" min="0" value="{{ it.cantidad }}" oninput="calcRow(this)"></div>
           <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Unidad</label>
-            <input type="text" name="item_unidad[]" class="form-control form-control-sm item-unidad" value="{{ it.unidad or 'unidades' }}" readonly style="background:var(--surface2)"></div>
+            <select name="item_unidad[]" class="form-select form-select-sm item-unidad" onchange="calcRow(this)">
+              {% set _u = it.unidad or 'unidades' %}
+              {% for _uo in ['unidades','g','kg','ml','l','oz','lb'] %}<option value="{{ _uo }}" {% if _u==_uo %}selected{% endif %}>{{ _uo }}</option>{% endfor %}
+            </select>
+            <input type="hidden" name="item_unidades_equivalentes[]" class="item-uequiv" value="{{ it.unidades_equivalentes or '' }}"></div>
           <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Precio</label>
             <div class="input-group input-group-sm"><span class="input-group-text" style="font-size:.75rem">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0.00" step="0.01" min="0" inputmode="decimal" value="{{ '%.2f'|format(it.precio_unit or 0) }}" oninput="calcRow(this)"><button type="button" class="btn btn-outline-secondary btn-unlock-precio" title="Editar manualmente" tabindex="-1" style="display:none"><i class="bi bi-pencil"></i></button></div></div>
           <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">IVA %</label>
@@ -98,6 +102,7 @@
             <input type="hidden" name="item_aplica_iva[]" class="item-aplica-iva-val" value="{{ 'on' if it.aplica_iva else 'off' }}"></div>
           <div class="col-6 col-md-2 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:var(--ac)">$ {{ '{:,.0f}'.format(it.subtotal).replace(',','.') }}</span></div>
           <div class="col-6 col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.item-row').remove();calcTotal()"><i class="bi bi-trash"></i></button></div>
+          <div class="col-12 item-equiv-info text-muted" style="font-size:.75rem;padding-top:.25rem;display:none"></div>
         </div>{% endfor %}
       {% else %}
         <div class="row g-2 mb-2 item-row" style="background:var(--surface2);padding:.5rem;border-radius:6px">
@@ -122,7 +127,10 @@
           <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Cant.</label>
             <input type="number" name="item_cantidad[]" class="form-control form-control-sm item-cant" placeholder="1" step="0.01" min="0" value="1" oninput="calcRow(this)"></div>
           <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Unidad</label>
-            <input type="text" name="item_unidad[]" class="form-control form-control-sm item-unidad" value="unidades" readonly style="background:var(--surface2)"></div>
+            <select name="item_unidad[]" class="form-select form-select-sm item-unidad" onchange="calcRow(this)">
+              {% for _uo in ['unidades','g','kg','ml','l','oz','lb'] %}<option value="{{ _uo }}" {% if _uo=='unidades' %}selected{% endif %}>{{ _uo }}</option>{% endfor %}
+            </select>
+            <input type="hidden" name="item_unidades_equivalentes[]" class="item-uequiv" value=""></div>
           <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Precio</label>
             <div class="input-group input-group-sm"><span class="input-group-text" style="font-size:.75rem">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0.00" step="0.01" min="0" inputmode="decimal" value="0.00" oninput="calcRow(this)"><button type="button" class="btn btn-outline-secondary btn-unlock-precio" title="Editar manualmente" tabindex="-1" style="display:none"><i class="bi bi-pencil"></i></button></div></div>
           <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">IVA %</label>
@@ -130,6 +138,7 @@
             <input type="hidden" name="item_aplica_iva[]" class="item-aplica-iva-val" value="on"></div>
           <div class="col-6 col-md-2 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:var(--ac)">$ 0</span></div>
           <div class="col-6 col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.item-row').remove();calcTotal()"><i class="bi bi-trash"></i></button></div>
+          <div class="col-12 item-equiv-info text-muted" style="font-size:.75rem;padding-top:.25rem;display:none"></div>
         </div>
       {% endif %}
     </div>
@@ -225,6 +234,7 @@ function onProductSelect(el){
   ivaPctEl.readOnly=true; ivaPctEl.style.background='var(--surface2)';
   var btnUnlock=row.querySelector('.btn-unlock-precio');
   if(btnUnlock) btnUnlock.style.display='';
+  updateEquivalencia(row);
   // Mostrar info del producto: NSO, docs legales, costo
   if(infoEl){
     var parts=[];
@@ -299,6 +309,68 @@ function autocompletar_servicio(el){
 
 function isIvaIncluido(){ return document.getElementById('ivaIncluidoCheck').checked; }
 
+// Factores de conversion a unidad base (g para masa, ml para volumen)
+function _toBase(qty, unit){
+  var f = {g:1, kg:1000, oz:28.3495, lb:453.592, ml:1, l:1000};
+  var u = (unit||'').toLowerCase();
+  return (f[u]!=null) ? qty*f[u] : null;
+}
+function _mismoGrupo(a,b){
+  var masa=['g','kg','oz','lb'], vol=['ml','l'];
+  var A=(a||'').toLowerCase(), B=(b||'').toLowerCase();
+  return (masa.indexOf(A)>=0 && masa.indexOf(B)>=0) || (vol.indexOf(A)>=0 && vol.indexOf(B)>=0);
+}
+// Calcula unidades equivalentes a partir de cantidad/unidad y peso del producto
+function calcEquivalencia(cantidad, unidadCot, pesoPorUnidad, unidadPeso){
+  if(!cantidad) return null;
+  if(unidadCot === 'unidades') return cantidad;
+  if(!pesoPorUnidad || !unidadPeso) return null;
+  if(!_mismoGrupo(unidadCot, unidadPeso)) return null;
+  var qBase = _toBase(cantidad, unidadCot);
+  var pBase = _toBase(pesoPorUnidad, unidadPeso);
+  if(qBase==null || pBase==null || pBase===0) return null;
+  return qBase / pBase;
+}
+// Actualiza/muestra linea de equivalencia para una fila
+function updateEquivalencia(row){
+  var eqEl = row.querySelector('.item-equiv-info');
+  var unidadSel = row.querySelector('.item-unidad');
+  var hidInput = row.querySelector('.item-uequiv');
+  if(!eqEl || !unidadSel) return;
+  var cantidad = parseFloat(row.querySelector('.item-cant').value)||0;
+  var unidad = unidadSel.value||'unidades';
+  // Obtener peso_por_unidad del producto seleccionado
+  var prodIdInput = row.querySelector('.item-producto-id');
+  var prod = null;
+  if(prodIdInput && prodIdInput.value){
+    var pid = parseInt(prodIdInput.value);
+    prod = PRODS.find(function(x){ return x.id===pid; });
+  }
+  if(unidad === 'unidades'){
+    eqEl.style.display = 'none';
+    eqEl.innerHTML = '';
+    if(hidInput) hidInput.value = cantidad || '';
+    return;
+  }
+  if(!prod || !prod.peso_por_unidad || !prod.unidad_peso){
+    eqEl.style.display = '';
+    eqEl.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>Define "Peso por unidad" en el producto para calcular unidades equivalentes.';
+    if(hidInput) hidInput.value = '';
+    return;
+  }
+  var equiv = calcEquivalencia(cantidad, unidad, prod.peso_por_unidad, prod.unidad_peso);
+  if(equiv==null){
+    eqEl.style.display = '';
+    eqEl.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Unidades incompatibles: el producto se mide en '+prod.unidad_peso+' pero la cotizacion esta en '+unidad+'.';
+    if(hidInput) hidInput.value = '';
+    return;
+  }
+  var equivRound = Math.round(equiv*100)/100;
+  eqEl.style.display = '';
+  eqEl.innerHTML = '<i class="bi bi-arrow-right-short me-1"></i><strong>≈ '+equivRound.toLocaleString('es-CO')+' unidades</strong> ('+cantidad+' '+unidad+' ÷ '+prod.peso_por_unidad+' '+prod.unidad_peso+'/unidad)';
+  if(hidInput) hidInput.value = equivRound;
+}
+
 function calcRow(el){
   var row=el.closest('.item-row');
   var c=parseFloat(row.querySelector('.item-cant').value)||0;
@@ -311,6 +383,7 @@ function calcRow(el){
   } else {
     row.querySelector('.item-sub').textContent=fmt(c*p);
   }
+  updateEquivalencia(row);
   calcTotal();
 }
 
@@ -404,20 +477,24 @@ function addRow(){
     +'<div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Cant.</label>'
     +'<input type="number" name="item_cantidad[]" class="form-control form-control-sm item-cant" placeholder="1" step="0.01" min="0" value="1" oninput="calcRow(this)"></div>'
     +'<div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Unidad</label>'
-    +'<input type="text" name="item_unidad[]" class="form-control form-control-sm item-unidad" placeholder="un" value="unidades"></div>'
+    +'<select name="item_unidad[]" class="form-select form-select-sm item-unidad" onchange="calcRow(this)"><option value="unidades" selected>unidades</option><option value="g">g</option><option value="kg">kg</option><option value="ml">ml</option><option value="l">l</option><option value="oz">oz</option><option value="lb">lb</option></select>'
+    +'<input type="hidden" name="item_unidades_equivalentes[]" class="item-uequiv" value=""></div>'
     +'<div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Precio</label>'
     +'<div class="input-group input-group-sm"><span class="input-group-text" style="font-size:.75rem">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0.00" step="0.01" min="0" inputmode="decimal" value="0.00" oninput="calcRow(this)"><button type="button" class="btn btn-outline-secondary btn-unlock-precio" title="Editar manualmente" tabindex="-1" style="display:none"><i class="bi bi-pencil"></i></button></div></div>'
     +'<div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">IVA %</label>'
     +'<input type="number" name="item_iva_pct[]" class="form-control form-control-sm item-iva-pct" placeholder="19" step="0.01" min="0" value="19" oninput="calcRow(this)">'
     +'<input type="hidden" name="item_aplica_iva[]" class="item-aplica-iva-val" value="on"></div>'
     +'<div class="col-6 col-md-2 d-flex align-items-center"><span class="item-sub fw-semibold" style="font-size:.85rem;color:var(--ac)">$ 0</span></div>'
-    +'<div class="col-6 col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest(\'.item-row\').remove();calcTotal()"><i class="bi bi-trash"></i></button></div>';
+    +'<div class="col-6 col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest(\'.item-row\').remove();calcTotal()"><i class="bi bi-trash"></i></button></div>'
+    +'<div class="col-12 item-equiv-info text-muted" style="font-size:.75rem;padding-top:.25rem;display:none"></div>';
   wrap.appendChild(div);
 }
 document.getElementById('pctAnticipo').addEventListener('input',calcTotal);
 populateAllProdSelects();
 populateAllSrvSelects();
 calcTotal();
+// Refrescar equivalencias de items existentes al cargar
+document.querySelectorAll('.item-row').forEach(function(r){ updateEquivalencia(r); });
 // Boton "lapiz" para editar manualmente el precio sugerido del BOM
 document.addEventListener('click', function(e){
   var btn = e.target.closest('.btn-unlock-precio');

@@ -422,6 +422,9 @@ class Producto(db.Model):
     barcode_verificado = db.Column(db.Boolean, default=False)
     costo_compra    = db.Column(db.Float, default=0)  # Precio compra proveedor (comercial)
     margen_comercial = db.Column(db.Float, default=30)  # % margen para comercializacion
+    # Peso/medida por unidad — permite cotizar en g/kg/ml/l y calcular unidades equivalentes
+    peso_por_unidad = db.Column(db.Float, nullable=True)  # ej: 100 si cada unidad pesa/mide 100 del unidad_peso
+    unidad_peso     = db.Column(db.String(10), nullable=True)  # 'g', 'kg', 'ml', 'l', 'oz', 'lb'
     proveedor_id    = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
     # DIAN — facturación electrónica (schema prep)
     codigo_unspsc       = db.Column(db.String(20))
@@ -863,6 +866,8 @@ class CotizacionItem(db.Model):
     iva_pct       = db.Column(db.Float, default=0)                 # v30 — % IVA este ítem
     iva_monto     = db.Column(db.Float, default=0)                 # v30 — monto IVA calculado
     tipo_item     = db.Column(db.String(20), default='producto')   # v30 — 'producto' | 'servicio'
+    # Si la cotizacion se hace en g/kg/ml/l: cuantas unidades equivalen
+    unidades_equivalentes = db.Column(db.Float, nullable=True)
     servicio      = db.relationship('Servicio', foreign_keys=[servicio_id])  # v30
 
 class Cotizacion(db.Model):
@@ -2350,6 +2355,14 @@ def _migrate(conn):
         ("ALTER TABLE proveedores ADD COLUMN banco_nit VARCHAR(30)"),
         ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS telefono_pais VARCHAR(8) DEFAULT '+57'"),
         ("ALTER TABLE proveedores ADD COLUMN telefono_pais VARCHAR(8) DEFAULT '+57'"),
+        # ── Productos: peso por unidad (para cotizar en g/kg/ml/l) ──
+        ("ALTER TABLE productos ADD COLUMN IF NOT EXISTS peso_por_unidad FLOAT"),
+        ("ALTER TABLE productos ADD COLUMN peso_por_unidad FLOAT"),
+        ("ALTER TABLE productos ADD COLUMN IF NOT EXISTS unidad_peso VARCHAR(10)"),
+        ("ALTER TABLE productos ADD COLUMN unidad_peso VARCHAR(10)"),
+        # ── Cotizacion items: unidades equivalentes cuando se cotiza en peso ──
+        ("ALTER TABLE cotizacion_items ADD COLUMN IF NOT EXISTS unidades_equivalentes FLOAT"),
+        ("ALTER TABLE cotizacion_items ADD COLUMN unidades_equivalentes FLOAT"),
         # ── Backfill: documentos legales huerfanos (company_id NULL) ──
         # Asigna el company_id del usuario que creo el documento
         ("UPDATE documentos_legales SET company_id = (SELECT u.company_id FROM users u WHERE u.id = documentos_legales.creado_por) WHERE company_id IS NULL AND creado_por IS NOT NULL"),

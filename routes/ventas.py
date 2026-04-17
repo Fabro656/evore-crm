@@ -21,7 +21,9 @@ def register(app):
                 'nombre': p.nombre,
                 'sku':    p.sku or '',
                 'precio': float(p.precio or 0),
-                'stock':  float(p.stock or 0)
+                'stock':  float(p.stock or 0),
+                'peso_por_unidad': float(p.peso_por_unidad) if p.peso_por_unidad else None,
+                'unidad_peso': p.unidad_peso or None
             }
             for p in tenant_query(Producto).filter_by(activo=True).order_by(Producto.nombre).all()
         ]
@@ -1333,6 +1335,7 @@ def register(app):
             cantidades = request.form.getlist('item_cantidad[]')
             precios = request.form.getlist('item_precio[]')
             unidades = request.form.getlist('item_unidad[]')
+            uequivs = request.form.getlist('item_unidades_equivalentes[]')
             aplica_ivas = request.form.getlist('item_aplica_iva[]')
             iva_pcts = request.form.getlist('item_iva_pct[]')
             servicio_ids = request.form.getlist('item_servicio_id[]')
@@ -1349,6 +1352,8 @@ def register(app):
                 cant = _parse_decimal(cantidades[i]) if i < len(cantidades) else 1.0
                 precio = _parse_decimal(precios[i]) if i < len(precios) else 0.0
                 unidad = unidades[i] if i < len(unidades) else 'unidades'
+                ueq_raw = uequivs[i] if i < len(uequivs) else ''
+                uequiv = _parse_decimal(ueq_raw) if ueq_raw else None
                 tipo = tipos[i] if i < len(tipos) else 'producto'
                 srv_id = int(servicio_ids[i]) if i < len(servicio_ids) and servicio_ids[i].strip() else None
                 prod_id = int(producto_ids[i]) if i < len(producto_ids) and producto_ids[i].strip() else None
@@ -1368,7 +1373,7 @@ def register(app):
                     'nombre': nm, 'cantidad': cant, 'precio': precio, 'subtotal': sub,
                     'unidad': unidad, 'tipo': tipo, 'servicio_id': srv_id,
                     'aplica_iva': aplica_iva, 'iva_pct': iva_pct, 'iva_monto': iva_monto,
-                    'producto_id': prod_id
+                    'producto_id': prod_id, 'unidades_equivalentes': uequiv
                 })
 
             total = subtotal + iva_total
@@ -1406,7 +1411,8 @@ def register(app):
                     producto_id=it.get('producto_id'),
                     cantidad=it['cantidad'], precio_unit=it['precio'], subtotal=it['subtotal'],
                     unidad=it['unidad'], tipo_item=it['tipo'], servicio_id=it['servicio_id'],
-                    aplica_iva=it['aplica_iva'], iva_pct=it['iva_pct'], iva_monto=it['iva_monto']))
+                    aplica_iva=it['aplica_iva'], iva_pct=it['iva_pct'], iva_monto=it['iva_monto'],
+                    unidades_equivalentes=it.get('unidades_equivalentes')))
             # Actualizar precio del producto con precio total (IVA incluido)
             for it in items_data:
                 if it.get('producto_id') and it['tipo'] == 'producto':
@@ -1520,6 +1526,7 @@ def register(app):
             cantidades = request.form.getlist('item_cantidad[]')
             precios = request.form.getlist('item_precio[]')
             unidades = request.form.getlist('item_unidad[]')
+            uequivs = request.form.getlist('item_unidades_equivalentes[]')
             aplica_ivas = request.form.getlist('item_aplica_iva[]')
             iva_pcts = request.form.getlist('item_iva_pct[]')
             servicio_ids = request.form.getlist('item_servicio_id[]')
@@ -1540,6 +1547,8 @@ def register(app):
                 cant = _parse_decimal(cantidades[i]) if i < len(cantidades) else 1.0
                 precio = _parse_decimal(precios[i]) if i < len(precios) else 0.0
                 unidad = unidades[i] if i < len(unidades) else 'unidades'
+                ueq_raw = uequivs[i] if i < len(uequivs) else ''
+                uequiv = _parse_decimal(ueq_raw) if ueq_raw else None
                 tipo = tipos[i] if i < len(tipos) else 'producto'
                 srv_id = int(servicio_ids[i]) if i < len(servicio_ids) and servicio_ids[i].strip() else None
                 prod_id = int(producto_ids[i]) if i < len(producto_ids) and producto_ids[i].strip() else None
@@ -1560,7 +1569,8 @@ def register(app):
                     producto_id=prod_id,
                     cantidad=cant, precio_unit=precio, subtotal=sub,
                     unidad=unidad, tipo_item=tipo, servicio_id=srv_id,
-                    aplica_iva=aplica_iva, iva_pct=iva_pct, iva_monto=iva_monto))
+                    aplica_iva=aplica_iva, iva_pct=iva_pct, iva_monto=iva_monto,
+                    unidades_equivalentes=uequiv))
                 items_editados.append({'producto_id': prod_id, 'precio': precio, 'tipo': tipo, 'iva_pct': iva_pct})
 
             total = subtotal + iva_total

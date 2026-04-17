@@ -35,6 +35,7 @@ def register(app):
     def producto_nuevo():
         if request.method == 'POST':
             fd_cad = request.form.get('fecha_caducidad')
+            _ppu_raw = request.form.get('peso_por_unidad','').strip()
             db.session.add(Producto(
                 company_id=getattr(g, 'company_id', None),
                 nombre=request.form['nombre'], descripcion=request.form.get('descripcion',''),
@@ -44,6 +45,8 @@ def register(app):
                 stock=int(request.form.get('stock',0) or 0),
                 stock_minimo=int(request.form.get('stock_minimo',5) or 5),
                 categoria=request.form.get('categoria',''),
+                peso_por_unidad=float(_ppu_raw) if _ppu_raw else None,
+                unidad_peso=request.form.get('unidad_peso') or None,
                 fecha_caducidad=datetime.strptime(fd_cad,'%Y-%m-%d').date() if fd_cad else None))
             db.session.commit()
             flash('Producto creado.','success'); return redirect(url_for('inventario'))
@@ -64,6 +67,9 @@ def register(app):
             obj.stock=int(request.form.get('stock',0) or 0)
             obj.stock_minimo=int(request.form.get('stock_minimo',5) or 5)
             obj.categoria=request.form.get('categoria','')
+            _ppu_raw = request.form.get('peso_por_unidad','').strip()
+            obj.peso_por_unidad = float(_ppu_raw) if _ppu_raw else None
+            obj.unidad_peso = request.form.get('unidad_peso') or None
             obj.fecha_caducidad=datetime.strptime(fd_cad,'%Y-%m-%d').date() if fd_cad else None
             db.session.commit()
             flash('Producto actualizado.','success'); return redirect(url_for('inventario'))

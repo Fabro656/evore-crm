@@ -85,9 +85,16 @@ tr:nth-child(even) td{background:#f8f9fe}
   </div>
 </div>
 <table>
-  <thead><tr><th>#</th><th>Descripción</th><th class="r">Cant.</th><th class="r">Precio unit.</th><th class="r">Subtotal</th></tr></thead>
+  <thead><tr><th>#</th><th>Descripción</th><th class="r">Cant.</th><th class="r">Unidad</th><th class="r">Precio unit.</th><th class="r">Subtotal</th></tr></thead>
   <tbody>{% for it in obj.items %}
-  <tr><td>{{ loop.index }}</td><td>{{ it.nombre_prod }}</td><td class="r">{{ it.cantidad }}</td>
+  <tr><td>{{ loop.index }}</td>
+    <td>{{ it.nombre_prod }}
+      {% if it.unidades_equivalentes and (it.unidad or 'unidades') != 'unidades' %}
+      <br><small style="color:#525f7f">≈ {{ '{:,.2f}'.format(it.unidades_equivalentes).replace(',','X').replace('.',',').replace('X','.') }} unidades</small>
+      {% endif %}
+    </td>
+    <td class="r">{{ it.cantidad }}</td>
+    <td class="r">{{ it.unidad or 'unidades' }}</td>
     <td class="r">$ {{ '{:,.0f}'.format(it.precio_unit).replace(',','.') }}</td>
     <td class="r">$ {{ '{:,.0f}'.format(it.subtotal).replace(',','.') }}</td></tr>
   {% endfor %}</tbody>
