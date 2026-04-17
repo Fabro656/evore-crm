@@ -31,14 +31,42 @@
     </div></div>
   <div class="col-md-4"><label class="form-label">Categoría</label>
     <input type="text" name="categoria" class="form-control" placeholder="Ej: insumos, logística..." value="{{ obj.categoria if obj else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Matrícula mercantil</label>
+    <input type="text" name="matricula_mercantil" class="form-control" placeholder="Ej: 00123456" value="{{ obj.matricula_mercantil if obj and obj.matricula_mercantil else '' }}"></div>
   <div class="col-md-4"><label class="form-label">Email</label>
     <input type="email" name="email" class="form-control" value="{{ obj.email if obj else '' }}"></div>
   <div class="col-md-4"><label class="form-label">Teléfono</label>
-    <input type="text" name="telefono" class="form-control" value="{{ obj.telefono if obj else '' }}"></div>
+    <div class="input-group">
+      <select name="telefono_pais" class="form-select" style="max-width:130px;font-size:.82rem">
+        {% set pais_sel = (obj.telefono_pais if obj and obj.telefono_pais else '+57') %}
+        {% for cc,lbl in [('+57','🇨🇴 +57 Colombia'),('+52','🇲🇽 +52 México'),('+1','🇺🇸 +1 USA/Can'),('+34','🇪🇸 +34 España'),('+51','🇵🇪 +51 Perú'),('+56','🇨🇱 +56 Chile'),('+54','🇦🇷 +54 Argentina'),('+58','🇻🇪 +58 Venezuela'),('+593','🇪🇨 +593 Ecuador'),('+591','🇧🇴 +591 Bolivia'),('+595','🇵🇾 +595 Paraguay'),('+598','🇺🇾 +598 Uruguay'),('+507','🇵🇦 +507 Panamá'),('+506','🇨🇷 +506 Costa Rica'),('+55','🇧🇷 +55 Brasil'),('+33','🇫🇷 +33 Francia'),('+49','🇩🇪 +49 Alemania'),('+39','🇮🇹 +39 Italia'),('+44','🇬🇧 +44 UK'),('+351','🇵🇹 +351 Portugal'),('+86','🇨🇳 +86 China'),('+81','🇯🇵 +81 Japón'),('+91','🇮🇳 +91 India')] %}
+        <option value="{{ cc }}" {% if pais_sel==cc %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
+        <option value="otro" {% if pais_sel not in ['+57','+52','+1','+34','+51','+56','+54','+58','+593','+591','+595','+598','+507','+506','+55','+33','+49','+39','+44','+351','+86','+81','+91'] %}selected{% endif %}>Otro...</option>
+      </select>
+      <input type="text" name="telefono_pais_custom" class="form-control" placeholder="+xxx" style="max-width:80px;display:none" value="{{ pais_sel if pais_sel not in ['+57','+52','+1','+34','+51','+56','+54','+58','+593','+591','+595','+598','+507','+506','+55','+33','+49','+39','+44','+351','+86','+81','+91'] else '' }}">
+      <input type="text" name="telefono" class="form-control" placeholder="300 123 4567" value="{{ obj.telefono if obj else '' }}">
+    </div></div>
   <div class="col-12"><label class="form-label">Dirección</label>
     <input type="text" name="direccion" class="form-control" value="{{ obj.direccion if obj else '' }}"></div>
   <div class="col-12"><label class="form-label">Notas</label>
     <textarea name="notas" class="form-control" rows="2">{{ obj.notas if obj else '' }}</textarea></div>
+</div>
+<h6 class="text-muted mb-2 text-uppercase" style="letter-spacing:1px;font-size:.75rem">Cuenta bancaria</h6>
+<div class="row g-3 mb-4">
+  <div class="col-md-4"><label class="form-label">Banco</label>
+    <input type="text" name="banco_nombre" class="form-control" placeholder="Ej: Bancolombia" value="{{ obj.banco_nombre if obj and obj.banco_nombre else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Tipo de cuenta</label>
+    <select name="banco_tipo" class="form-select">
+      <option value="">-- Seleccionar --</option>
+      {% for v,l in [('Ahorros','Ahorros'),('Corriente','Corriente')] %}
+      <option value="{{ v }}" {% if obj and obj.banco_tipo==v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-4"><label class="form-label">Número de cuenta</label>
+    <input type="text" name="banco_cuenta" class="form-control" value="{{ obj.banco_cuenta if obj and obj.banco_cuenta else '' }}"></div>
+  <div class="col-md-5"><label class="form-label">Titular</label>
+    <input type="text" name="banco_titular" class="form-control" placeholder="Nombre completo del titular" value="{{ obj.banco_titular if obj and obj.banco_titular else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">NIT / CC del titular</label>
+    <input type="text" name="banco_nit" class="form-control" value="{{ obj.banco_nit if obj and obj.banco_nit else '' }}"></div>
 </div>
 <div id="secVehiculo" style="display:none">
   <h6 class="text-muted mb-2 text-uppercase" style="letter-spacing:1px;font-size:.75rem">Vehiculo de transporte</h6>
@@ -64,6 +92,40 @@ function toggleVehiculo(){
 }
 document.querySelectorAll('input[name="tipo"]').forEach(function(r){r.addEventListener('change',toggleVehiculo)});
 document.addEventListener('DOMContentLoaded',toggleVehiculo);
+
+// Codigo pais telefono — mostrar input personalizado si elige "otro"
+(function(){
+  var sel = document.querySelector('select[name="telefono_pais"]');
+  var custom = document.querySelector('input[name="telefono_pais_custom"]');
+  if(!sel || !custom) return;
+  function sync(){
+    if(sel.value === 'otro'){
+      custom.style.display = '';
+      if(!custom.value) custom.value = '+';
+      custom.focus();
+    } else {
+      custom.style.display = 'none';
+    }
+  }
+  sel.addEventListener('change', sync);
+  // Si al cargar ya es "otro", mostrarlo
+  if(sel.value === 'otro') custom.style.display = '';
+  // Antes de enviar, si es "otro" reemplazar value del select por el custom
+  var form = sel.closest('form');
+  if(form){
+    form.addEventListener('submit', function(){
+      if(sel.value === 'otro'){
+        var v = (custom.value || '').trim();
+        if(v && v[0] !== '+') v = '+' + v;
+        // Crear option con el valor custom para que se envie correctamente
+        var opt = document.createElement('option');
+        opt.value = v || '+57';
+        opt.selected = true;
+        sel.appendChild(opt);
+      }
+    });
+  }
+})();
 </script>
 <div class="d-flex gap-2 mt-4">
   <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Actualizar' if obj else 'Crear' }}</button>

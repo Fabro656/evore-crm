@@ -77,7 +77,7 @@
           {% if p.telefono %}
           <div class="d-flex align-items-center gap-2 text-muted">
             <i class="bi bi-telephone" style="width:16px;text-align:center"></i>
-            <span>{{ p.telefono }}</span>
+            <span>{{ (p.telefono_pais or '+57') ~ ' ' ~ p.telefono }}</span>
           </div>
           {% endif %}
           {% if not p.nit and not p.categoria and not p.email and not p.telefono %}
@@ -117,7 +117,7 @@
         <td style="color:var(--text2)">{{ p.nit or '—' }}</td>
         <td>{% if p.tipo == 'transportista' %}<span class="badge bg-success" style="font-size:.7rem">Transportista</span>{% elif p.tipo == 'ambos' %}<span class="badge bg-primary" style="font-size:.7rem">Prov. + Transp.</span>{% else %}<span class="badge bg-secondary" style="font-size:.7rem">Proveedor</span>{% endif %}</td>
         <td style="color:var(--text2);font-size:.82rem">{{ p.email or '—' }}</td>
-        <td style="color:var(--text2);font-size:.82rem">{{ p.telefono or '—' }}</td>
+        <td style="color:var(--text2);font-size:.82rem">{% if p.telefono %}{{ (p.telefono_pais or '+57') ~ ' ' ~ p.telefono }}{% else %}—{% endif %}</td>
       </tr>
       {% endfor %}
     </tbody>

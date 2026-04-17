@@ -42,13 +42,20 @@ def register(app):
                 nit=request.form.get('nit',''),
                 email=request.form.get('email',''),
                 telefono=request.form.get('telefono',''),
+                telefono_pais=request.form.get('telefono_pais','+57') or '+57',
                 direccion=request.form.get('direccion',''),
                 categoria=request.form.get('categoria',''),
                 tipo=request.form.get('tipo','proveedor'),
                 notas=request.form.get('notas',''), activo=True,
                 tipo_vehiculo=request.form.get('tipo_vehiculo','') or None,
                 capacidad_vehiculo_kg=float(request.form.get('capacidad_vehiculo_kg') or 0),
-                capacidad_vehiculo_m3=float(request.form.get('capacidad_vehiculo_m3') or 0))
+                capacidad_vehiculo_m3=float(request.form.get('capacidad_vehiculo_m3') or 0),
+                matricula_mercantil=request.form.get('matricula_mercantil','') or None,
+                banco_nombre=request.form.get('banco_nombre','') or None,
+                banco_tipo=request.form.get('banco_tipo','') or None,
+                banco_cuenta=request.form.get('banco_cuenta','') or None,
+                banco_titular=request.form.get('banco_titular','') or None,
+                banco_nit=request.form.get('banco_nit','') or None)
             db.session.add(p); db.session.flush()
 
             # ── Counter-party detection / auto-provision
@@ -109,6 +116,7 @@ def register(app):
             obj.nit=request.form.get('nit','')
             obj.email=request.form.get('email','')
             obj.telefono=request.form.get('telefono','')
+            obj.telefono_pais=request.form.get('telefono_pais','+57') or '+57'
             obj.direccion=request.form.get('direccion','')
             obj.categoria=request.form.get('categoria','')
             obj.tipo=request.form.get('tipo','proveedor')
@@ -116,6 +124,12 @@ def register(app):
             obj.tipo_vehiculo=request.form.get('tipo_vehiculo','') or None
             obj.capacidad_vehiculo_kg=float(request.form.get('capacidad_vehiculo_kg') or 0)
             obj.capacidad_vehiculo_m3=float(request.form.get('capacidad_vehiculo_m3') or 0)
+            obj.matricula_mercantil=request.form.get('matricula_mercantil','') or None
+            obj.banco_nombre=request.form.get('banco_nombre','') or None
+            obj.banco_tipo=request.form.get('banco_tipo','') or None
+            obj.banco_cuenta=request.form.get('banco_cuenta','') or None
+            obj.banco_titular=request.form.get('banco_titular','') or None
+            obj.banco_nit=request.form.get('banco_nit','') or None
             db.session.commit()
             flash('Registro actualizado.','success'); return redirect(url_for('proveedores'))
         return render_template('proveedores/form.html', obj=obj, titulo='Editar Proveedor / Transportista')

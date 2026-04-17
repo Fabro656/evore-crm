@@ -244,6 +244,15 @@ class Proveedor(db.Model):
     total_oc        = db.Column(db.Integer, default=0)    # OC totales
     total_rechazos  = db.Column(db.Integer, default=0)    # rechazos calidad
     deleted_at      = db.Column(db.DateTime, nullable=True)  # soft delete
+    # Datos legales y bancarios
+    matricula_mercantil = db.Column(db.String(50))
+    banco_nombre    = db.Column(db.String(120))
+    banco_tipo      = db.Column(db.String(40))   # Ahorros, Corriente
+    banco_cuenta    = db.Column(db.String(80))
+    banco_titular   = db.Column(db.String(120))
+    banco_nit       = db.Column(db.String(30))
+    # Codigo pais telefono (ej: +57)
+    telefono_pais   = db.Column(db.String(8), default='+57')
     creado_en  = db.Column(db.DateTime, default=datetime.utcnow)
     es_demo    = db.Column(db.Boolean, default=False)
 
@@ -2326,6 +2335,21 @@ def _migrate(conn):
         ("ALTER TABLE cap_lecciones ADD COLUMN pasos TEXT DEFAULT '[]'"),
         ("ALTER TABLE cap_lecciones ADD COLUMN IF NOT EXISTS ruta_practica VARCHAR(100)"),
         ("ALTER TABLE cap_lecciones ADD COLUMN ruta_practica VARCHAR(100)"),
+        # ── Proveedores: matricula mercantil, datos bancarios y codigo pais telefono ──
+        ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS matricula_mercantil VARCHAR(50)"),
+        ("ALTER TABLE proveedores ADD COLUMN matricula_mercantil VARCHAR(50)"),
+        ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS banco_nombre VARCHAR(120)"),
+        ("ALTER TABLE proveedores ADD COLUMN banco_nombre VARCHAR(120)"),
+        ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS banco_tipo VARCHAR(40)"),
+        ("ALTER TABLE proveedores ADD COLUMN banco_tipo VARCHAR(40)"),
+        ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS banco_cuenta VARCHAR(80)"),
+        ("ALTER TABLE proveedores ADD COLUMN banco_cuenta VARCHAR(80)"),
+        ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS banco_titular VARCHAR(120)"),
+        ("ALTER TABLE proveedores ADD COLUMN banco_titular VARCHAR(120)"),
+        ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS banco_nit VARCHAR(30)"),
+        ("ALTER TABLE proveedores ADD COLUMN banco_nit VARCHAR(30)"),
+        ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS telefono_pais VARCHAR(8) DEFAULT '+57'"),
+        ("ALTER TABLE proveedores ADD COLUMN telefono_pais VARCHAR(8) DEFAULT '+57'"),
     ]
     # Execute ALL migrations individually with rollback on each failure
     # This prevents one failed migration from aborting the entire transaction
