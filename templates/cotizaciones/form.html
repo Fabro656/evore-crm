@@ -92,7 +92,7 @@
           <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Unidad</label>
             <input type="text" name="item_unidad[]" class="form-control form-control-sm item-unidad" value="{{ it.unidad or 'unidades' }}" readonly style="background:var(--surface2)"></div>
           <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Precio</label>
-            <div class="input-group input-group-sm"><span class="input-group-text" style="font-size:.75rem">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0" step="1" min="0" value="{{ it.precio_unit|int }}" oninput="calcRow(this)"></div></div>
+            <div class="input-group input-group-sm"><span class="input-group-text" style="font-size:.75rem">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0.00" step="0.01" min="0" inputmode="decimal" value="{{ '%.2f'|format(it.precio_unit or 0) }}" oninput="calcRow(this)"></div></div>
           <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">IVA %</label>
             <input type="number" name="item_iva_pct[]" class="form-control form-control-sm item-iva-pct" placeholder="19" step="0.01" min="0" value="{{ it.iva_pct|int if it.aplica_iva else '0' }}" oninput="calcRow(this)">
             <input type="hidden" name="item_aplica_iva[]" class="item-aplica-iva-val" value="{{ 'on' if it.aplica_iva else 'off' }}"></div>
@@ -124,7 +124,7 @@
           <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Unidad</label>
             <input type="text" name="item_unidad[]" class="form-control form-control-sm item-unidad" value="unidades" readonly style="background:var(--surface2)"></div>
           <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Precio</label>
-            <div class="input-group input-group-sm"><span class="input-group-text" style="font-size:.75rem">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0" step="1" min="0" value="0" oninput="calcRow(this)"></div></div>
+            <div class="input-group input-group-sm"><span class="input-group-text" style="font-size:.75rem">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0.00" step="0.01" min="0" inputmode="decimal" value="0.00" oninput="calcRow(this)"></div></div>
           <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">IVA %</label>
             <input type="number" name="item_iva_pct[]" class="form-control form-control-sm item-iva-pct" placeholder="19" step="0.01" min="0" value="19" oninput="calcRow(this)">
             <input type="hidden" name="item_aplica_iva[]" class="item-aplica-iva-val" value="on"></div>
@@ -402,7 +402,7 @@ function addRow(){
     +'<div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Unidad</label>'
     +'<input type="text" name="item_unidad[]" class="form-control form-control-sm item-unidad" placeholder="un" value="unidades"></div>'
     +'<div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Precio</label>'
-    +'<div class="input-group input-group-sm"><span class="input-group-text" style="font-size:.75rem">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0" step="1" min="0" value="0" oninput="calcRow(this)"></div></div>'
+    +'<div class="input-group input-group-sm"><span class="input-group-text" style="font-size:.75rem">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0.00" step="0.01" min="0" inputmode="decimal" value="0.00" oninput="calcRow(this)"></div></div>'
     +'<div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">IVA %</label>'
     +'<input type="number" name="item_iva_pct[]" class="form-control form-control-sm item-iva-pct" placeholder="19" step="0.01" min="0" value="19" oninput="calcRow(this)">'
     +'<input type="hidden" name="item_aplica_iva[]" class="item-aplica-iva-val" value="on"></div>'

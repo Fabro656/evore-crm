@@ -42,7 +42,7 @@
     </select></div>
   <div class="col-md-3"><label class="form-label">Precio COP</label>
     <div class="input-group"><span class="input-group-text">$</span>
-      <input type="number" name="precio_unitario" class="form-control" step="1" min="0" value="{{ obj.precio_unitario|int if obj else '0' }}" id="precioInput" oninput="calcPrecio()"></div></div>
+      <input type="number" name="precio_unitario" class="form-control" step="0.01" min="0" inputmode="decimal" value="{{ '%.2f'|format(obj.precio_unitario or 0) if obj else '0.00' }}" id="precioInput" oninput="calcPrecio()"></div></div>
   <div class="col-md-2"><label class="form-label">Cantidad</label>
     <input type="number" name="unidades_minimas" class="form-control" min="1" step="0.01" value="{{ obj.unidades_minimas if obj else '1' }}" id="cantInput" oninput="calcPrecio()"></div>
   <div class="col-md-3"><label class="form-label">Unidad de medida</label>

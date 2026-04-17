@@ -15,7 +15,7 @@ __all__ = [
     'TASA_CAJA_COMP', 'TASA_SENA', 'TASA_ICBF', 'TASA_ARL',
     'TASA_CESANTIAS', 'TASA_INT_CESANTIAS', 'TASA_PRIMA', 'TASA_VACACIONES',
     # Helpers
-    'cop', 'moneda', 'moneda0', 'requiere_modulo', 'inject_globals',
+    'cop', 'moneda', 'moneda0', '_parse_decimal', 'requiere_modulo', 'inject_globals',
     '_send_email', '_log', '_crear_notificacion', '_crear_asiento_auto',
     '_calcular_nomina', '_calcular_liquidacion', '_calcular_impuestos',
     '_descontar_materias', '_descontar_stock_venta', '_save_contactos',
@@ -338,6 +338,21 @@ def _format_currency(value, decimals=None):
         return f'{sym} {formatted}'
     except Exception:
         return f'{COMPANY.get("currency_symbol", "$")} 0'
+
+def _parse_decimal(s):
+    """Convierte string a float aceptando coma o punto como separador decimal.
+    '1234,56' → 1234.56   '1.234,56' → 1234.56   '1234.56' → 1234.56"""
+    if s is None:
+        return 0.0
+    s = str(s).strip()
+    if not s:
+        return 0.0
+    if ',' in s:
+        s = s.replace('.', '').replace(',', '.')
+    try:
+        return float(s)
+    except (ValueError, TypeError):
+        return 0.0
 
 def cop(value):
     return _format_currency(value, 0)

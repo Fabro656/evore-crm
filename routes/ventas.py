@@ -46,8 +46,8 @@ def register(app):
         precios = request.form.getlist('prod_precio[]')
         for i, pid in enumerate(pids):
             if not pid: continue
-            cant   = float(cants[i])   if i < len(cants)   else 1
-            precio = float(precios[i]) if i < len(precios) else 0
+            cant   = _parse_decimal(cants[i])   if i < len(cants)   else 1
+            precio = _parse_decimal(precios[i]) if i < len(precios) else 0
             prod   = db.session.get(Producto, int(pid))
             db.session.add(VentaProducto(
                 venta_id=venta_obj.id, producto_id=int(pid),
@@ -1301,8 +1301,8 @@ def register(app):
             for i in range(len(nombres)):
                 nm = nombres[i].strip() if i < len(nombres) else ''
                 if not nm: continue
-                cant = float(cantidades[i]) if i < len(cantidades) else 1.0
-                precio = float(precios[i]) if i < len(precios) else 0.0
+                cant = _parse_decimal(cantidades[i]) if i < len(cantidades) else 1.0
+                precio = _parse_decimal(precios[i]) if i < len(precios) else 0.0
                 unidad = unidades[i] if i < len(unidades) else 'unidades'
                 tipo = tipos[i] if i < len(tipos) else 'producto'
                 srv_id = int(servicio_ids[i]) if i < len(servicio_ids) and servicio_ids[i].strip() else None
@@ -1492,8 +1492,8 @@ def register(app):
             for i in range(len(nombres)):
                 nm = nombres[i].strip() if i < len(nombres) else ''
                 if not nm: continue
-                cant = float(cantidades[i]) if i < len(cantidades) else 1.0
-                precio = float(precios[i]) if i < len(precios) else 0.0
+                cant = _parse_decimal(cantidades[i]) if i < len(cantidades) else 1.0
+                precio = _parse_decimal(precios[i]) if i < len(precios) else 0.0
                 unidad = unidades[i] if i < len(unidades) else 'unidades'
                 tipo = tipos[i] if i < len(tipos) else 'producto'
                 srv_id = int(servicio_ids[i]) if i < len(servicio_ids) and servicio_ids[i].strip() else None

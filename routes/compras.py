@@ -20,14 +20,8 @@ def register(app):
         items = []
         for i, nom in enumerate(nombres):
             if not nom.strip(): continue
-            try:
-                cant = float(cants[i]) if i < len(cants) else 1
-            except (ValueError, IndexError):
-                cant = 0
-            try:
-                precio = float(precios[i]) if i < len(precios) else 0
-            except (ValueError, IndexError):
-                precio = 0
+            cant = _parse_decimal(cants[i]) if i < len(cants) else 1
+            precio = _parse_decimal(precios[i]) if i < len(precios) else 0
             if cant <= 0: continue
             if precio < 0: precio = 0  # No permitir precios negativos
             cot_id = int(cot_ids[i]) if i < len(cot_ids) and cot_ids[i].strip() else None
@@ -170,8 +164,8 @@ def register(app):
             fc = request.form.get('fecha_cotizacion')
             fv = request.form.get('vigencia')
             # Calcular precio unitario real
-            precio_raw = float(request.form.get('precio_unitario') or 0)
-            cantidad = float(request.form.get('unidades_minimas') or 1)
+            precio_raw = _parse_decimal(request.form.get('precio_unitario'))
+            cantidad = _parse_decimal(request.form.get('unidades_minimas')) or 1
             precio_por_unidad = request.form.get('precio_por_unidad')  # checkbox
             iva_incluido = request.form.get('iva_incluido')  # checkbox
             # Si IVA incluido, extraer base (precio / 1.19)
@@ -248,8 +242,8 @@ def register(app):
                 from models import _generar_sku
                 sku_in = _generar_sku(request.form.get('nombre_producto','') or obj.nombre_producto or '')
             obj.sku=sku_in
-            precio_raw = float(request.form.get('precio_unitario') or 0)
-            cantidad = float(request.form.get('unidades_minimas') or 1)
+            precio_raw = _parse_decimal(request.form.get('precio_unitario'))
+            cantidad = _parse_decimal(request.form.get('unidades_minimas')) or 1
             precio_por_unidad = request.form.get('precio_por_unidad')
             iva_incluido = request.form.get('iva_incluido')
             if iva_incluido and precio_raw > 0:

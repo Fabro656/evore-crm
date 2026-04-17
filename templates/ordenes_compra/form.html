@@ -136,7 +136,7 @@ function addItem(d){
     +'<div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Unidad</label>'
     +'<select name="item_unidad[]" class="form-select form-select-sm">'+unOpts+'</select></div>'
     +'<div class="col-md-2"><label class="form-label mb-1" style="font-size:.8rem">Precio unit. $</label>'
-    +'<input type="number" name="item_precio[]" data-f="precio" class="form-control form-control-sm" step="1" min="0" value="'+(d.precio||0)+'" oninput="recalc()"></div>'
+    +'<input type="number" name="item_precio[]" data-f="precio" class="form-control form-control-sm" step="0.01" min="0" inputmode="decimal" value="'+(parseFloat(d.precio)||0).toFixed(2)+'" oninput="recalc()"></div>'
     +'<div class="col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Subtotal</label>'
     +'<span class="form-control-plaintext form-control-sm fw-semibold" data-f="sub" style="font-size:.82rem">$ 0</span></div>'
     +'<div class="col-auto d-flex align-items-end"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest(\'.oc-row\').remove();recalc()"><i class="bi bi-trash"></i></button></div>'
