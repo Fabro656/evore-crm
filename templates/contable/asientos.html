@@ -113,135 +113,120 @@
   </div>
 
   {% if asientos_filtrados %}
-  <div style="overflow-x:auto;width:100%">
-  <table class="table table-cards" style="width:100%;margin:0">
-    <thead>
-      <tr>
-        <th style="width:90px">Numero</th>
-        <th style="width:95px">Fecha</th>
-        <th style="width:80px">Tipo</th>
-        <th>Descripcion</th>
-        <th class="text-end" style="width:110px">Monto</th>
-        <th>Estado pago</th>
-        <th>Referencia</th>
-        <th class="text-center" style="width:180px">Acciones</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for a in asientos_filtrados %}
-      {% set es_ingreso = (a.clasificacion == 'ingreso') %}
-      {% set es_cc = (a.tipo == 'gasto_caja_chica') %}
-      <tr style="border-left:3px solid {{ '#00875A' if es_ingreso else '#DE350B' }}">
-
-        <td><small class="fw-semibold text-muted">{{ a.numero or '--' }}</small></td>
-        <td><small>{{ a.fecha.strftime('%d/%m/%Y') if a.fecha else '—' }}</small></td>
-
-        <td>
-          {% if es_ingreso %}
-            <span class="b b-activo" style="font-size:.71rem"><i class="bi bi-arrow-down-circle me-1"></i>Ingreso</span>
-          {% elif es_cc %}
-            <span class="b" style="font-size:.71rem;background:var(--surface2);color:var(--text);border:1px solid var(--border)"><i class="bi bi-wallet me-1"></i>Caja chica</span>
-          {% else %}
-            <span class="b b-alta" style="font-size:.71rem"><i class="bi bi-arrow-up-circle me-1"></i>Egreso</span>
-          {% endif %}
-        </td>
-
-        <td>
-          <div style="font-size:.85rem">{{ (a.descripcion or '')[:60] }}{% if (a.descripcion or '')|length > 60 %}...{% endif %}</div>
-          {% if a.orden_compra %}
-          <small class="text-primary"><i class="bi bi-cart me-1"></i>OC {{ a.orden_compra.numero or '' }}</small>
-          {% endif %}
-          {% if a.venta and es_ingreso %}
-          <small class="text-muted"><i class="bi bi-bag me-1"></i>Venta {{ a.venta.numero or ('#' ~ a.venta.id) }}</small>
-          {% endif %}
-        </td>
-
-        <td class="text-end">
-          {% set monto = a.haber if es_ingreso else a.debe %}
-          <span class="fw-bold" style="font-size:.9rem;color:{{ '#00875A' if es_ingreso else '#DE350B' }}">
-            {{ moneda(monto or 0) }}
-          </span>
-        </td>
-
-        <td>
-          {% if a.estado_pago == 'completo' %}
-            <span class="badge bg-success">Pagado</span>
-          {% elif a.estado_pago == 'parcial' %}
-            <span class="badge bg-warning text-dark">Parcial</span>
-            {% if a.monto_pagado %}<br><small>{{ moneda(a.monto_pagado) }}</small>{% endif %}
-          {% else %}
-            <span class="badge bg-secondary">Pendiente</span>
-          {% endif %}
-          {% if a.venta and (a.venta.estado_cliente_pago or '') == 'enviado' %}
-          <br><span class="badge bg-info text-dark" style="font-size:.65rem"><i class="bi bi-exclamation-circle me-1"></i>Cliente reporto pago</span>
-          {% endif %}
-          {% if a.orden_compra and (a.orden_compra.estado_proveedor or '') == 'anticipo_recibido' %}
-          <br><span class="badge bg-info text-dark" style="font-size:.65rem"><i class="bi bi-check2 me-1"></i>Proveedor confirmo</span>
-          {% endif %}
-        </td>
-
-        <td>
-          <small class="text-muted">
-            {% if a.proveedor %}<i class="bi bi-truck me-1"></i>{{ a.proveedor.nombre }}<br>{% endif %}
-            {% if a.referencia %}{{ a.referencia }}{% endif %}
-          </small>
-        </td>
-
-        <td class="text-center">
-          <div class="d-flex gap-1 justify-content-center flex-wrap">
-            {# -- Boton confirmar pago (egreso vinculado a OC) -- #}
-            {% if not es_ingreso and a.orden_compra_id and a.estado_pago != 'completo' %}
-            <div class="dropdown d-inline-block">
-              <button class="btn btn-xs btn-success dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-check-circle me-1"></i>Pago</button>
-              <div class="dropdown-menu p-2" style="min-width:min(180px, calc(100vw - 40px))" onclick="event.stopPropagation()">
-                <form method="POST" action="{{ url_for('contable_confirmar_pago', id=a.id) }}{% if request.args.get('_embed')=='1' %}?_embed=1{% endif %}">
-                  <small class="fw-bold d-block mb-1">{{ a.numero }} — {{ moneda(a.debe or 0) }}</small>
-                  <div class="mb-1"><select name="tipo_pago" class="form-select form-select-sm" onchange="this.closest('form').querySelector('[name=monto_pago]').style.display=this.value==='total'?'none':''">
-                    <option value="total">Pago total</option><option value="parcial">Parcial</option></select></div>
-                  <input type="number" name="monto_pago" class="form-control form-control-sm mb-1" value="{{ ((a.debe or 0) - (a.monto_pagado or 0))|int }}" style="display:none" min="1">
-                  <select name="metodo_pago" class="form-select form-select-sm mb-1"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option><option value="nequi">Nequi</option></select>
-                  <button type="submit" class="btn btn-success btn-sm w-100"><i class="bi bi-check-lg me-1"></i>Confirmar</button>
-                </form>
-              </div>
+  <div class="row g-3">
+    {% for a in asientos_filtrados %}
+    {% set es_ingreso = (a.clasificacion == 'ingreso') %}
+    {% set es_cc = (a.tipo == 'gasto_caja_chica') %}
+    {% set monto = a.haber if es_ingreso else a.debe %}
+    {% set color = '#00875A' if es_ingreso else '#DE350B' %}
+    <div class="col-12 col-md-6 col-xl-4">
+      <div class="fc h-100" style="padding:0;overflow:hidden">
+        {# stripe superior #}
+        <div style="height:4px;background:{{ color }}"></div>
+        <div style="padding:.9rem 1rem">
+          {# header: numero + fecha + badge tipo #}
+          <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
+            <div style="min-width:0">
+              <div class="text-muted fw-semibold" style="font-size:.7rem;letter-spacing:.5px">{{ a.numero or '--' }}</div>
+              <div style="font-size:.72rem;color:var(--text2)">{{ a.fecha.strftime('%d/%m/%Y') if a.fecha else '—' }}</div>
             </div>
-            {% endif %}
-            {% if es_ingreso and a.venta_id and a.estado_pago != 'completo' %}
-            <div class="dropdown d-inline-block">
-              <button class="btn btn-xs btn-success dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-check-circle me-1"></i>Cobro</button>
-              <div class="dropdown-menu p-2" style="min-width:min(180px, calc(100vw - 40px))" onclick="event.stopPropagation()">
-                <form method="POST" action="{{ url_for('contable_confirmar_ingreso', id=a.id) }}{% if request.args.get('_embed')=='1' %}?_embed=1{% endif %}">
-                  <small class="fw-bold d-block mb-1">{{ a.numero }} — {{ moneda(a.haber or 0) }}</small>
-                  <div class="mb-1"><select name="tipo_pago" class="form-select form-select-sm" onchange="this.closest('form').querySelector('[name=monto_pago]').style.display=this.value==='total'?'none':''">
-                    <option value="total">Cobro total</option><option value="parcial">Parcial</option></select></div>
-                  <input type="number" name="monto_pago" class="form-control form-control-sm mb-1" value="{{ ((a.haber or 0) - (a.monto_pagado or 0))|int }}" style="display:none" min="1">
-                  <select name="metodo_pago" class="form-select form-select-sm mb-1"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option><option value="nequi">Nequi</option></select>
-                  <button type="submit" class="btn btn-success btn-sm w-100"><i class="bi bi-check-lg me-1"></i>Confirmar</button>
-                </form>
-              </div>
-            </div>
-            {% endif %}
-            <div class="dropdown d-inline-block">
-              <button class="btn btn-xs btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.72rem"><i class="bi bi-three-dots"></i></button>
-              <ul class="dropdown-menu dropdown-menu-end" style="font-size:.82rem;min-width:170px">
-                <li><a class="dropdown-item" href="{{ url_for('contable_asiento_editar', id=a.id) }}"><i class="bi bi-pencil me-2 text-primary"></i>Editar</a></li>
-                <li><a class="dropdown-item" href="{{ url_for('contable_comprobante', id=a.id) }}" target="_blank"><i class="bi bi-file-earmark-pdf me-2 text-secondary"></i>Comprobante</a></li>
-                {% if es_cc %}
-                <li><a class="dropdown-item" href="{{ url_for('contable_pdf_caja_chica', id=a.id) }}" target="_blank"><i class="bi bi-printer me-2 text-warning"></i>PDF Caja Chica</a></li>
-                {% endif %}
-                {% if current_user.rol == 'admin' %}
-                <li><hr class="dropdown-divider"></li>
-                <li><form method="POST" action="{{ url_for('contable_asiento_eliminar', id=a.id) }}" onsubmit="return confirm('Eliminar?')" class="px-0 m-0">
-                  <button class="dropdown-item text-danger" type="submit"><i class="bi bi-trash me-2"></i>Eliminar</button>
-                </form></li>
-                {% endif %}
-              </ul>
+            <div>
+              {% if es_ingreso %}
+                <span class="b b-activo" style="font-size:.68rem;white-space:nowrap"><i class="bi bi-arrow-down-circle me-1"></i>Ingreso</span>
+              {% elif es_cc %}
+                <span class="b" style="font-size:.68rem;background:var(--surface2);color:var(--text);border:1px solid var(--border);white-space:nowrap"><i class="bi bi-wallet me-1"></i>Caja chica</span>
+              {% else %}
+                <span class="b b-alta" style="font-size:.68rem;white-space:nowrap"><i class="bi bi-arrow-up-circle me-1"></i>Egreso</span>
+              {% endif %}
             </div>
           </div>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+          {# descripcion #}
+          <div class="fw-semibold mb-2" style="color:var(--text);font-size:.88rem;line-height:1.3">{{ a.descripcion or 'Sin descripcion' }}</div>
+          {# referencias #}
+          <div class="mb-2" style="font-size:.75rem">
+            {% if a.orden_compra %}
+            <div class="text-primary"><i class="bi bi-cart me-1"></i>OC {{ a.orden_compra.numero or '' }}</div>
+            {% endif %}
+            {% if a.venta %}
+            <div class="text-muted"><i class="bi bi-bag me-1"></i>Venta {{ a.venta.numero or ('#' ~ a.venta.id) }}</div>
+            {% endif %}
+            {% if a.proveedor %}<div class="text-muted"><i class="bi bi-truck me-1"></i>{{ a.proveedor.nombre }}</div>{% endif %}
+            {% if a.referencia and not a.orden_compra and not a.venta %}<div class="text-muted">{{ a.referencia }}</div>{% endif %}
+          </div>
+          {# monto grande #}
+          <div class="d-flex align-items-baseline justify-content-between mb-2" style="border-top:1px dashed var(--border);padding-top:.6rem">
+            <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.5px">Monto</div>
+            <div class="fw-bold" style="font-size:1.15rem;color:{{ color }}">{{ moneda(monto or 0) }}</div>
+          </div>
+          {# estado pago + badges #}
+          <div class="mb-2" style="font-size:.72rem">
+            {% if a.estado_pago == 'completo' %}
+              <span class="badge bg-success">Pagado</span>
+            {% elif a.estado_pago == 'parcial' %}
+              <span class="badge bg-warning text-dark">Parcial {{ moneda(a.monto_pagado or 0) }}</span>
+            {% else %}
+              <span class="badge bg-secondary">Pendiente</span>
+            {% endif %}
+            {% if a.venta and (a.venta.estado_cliente_pago or '') == 'enviado' %}
+            <span class="badge bg-info text-dark" style="font-size:.65rem"><i class="bi bi-exclamation-circle me-1"></i>Cliente reporto pago</span>
+            {% endif %}
+            {% if a.orden_compra and (a.orden_compra.estado_proveedor or '') == 'anticipo_recibido' %}
+            <span class="badge bg-info text-dark" style="font-size:.65rem"><i class="bi bi-check2 me-1"></i>Proveedor confirmo</span>
+            {% endif %}
+          </div>
+        </div>
+        {# Actions footer #}
+        <div style="padding:.55rem 1rem;border-top:1px solid var(--border);background:var(--surface2)" class="d-flex gap-1 justify-content-end flex-wrap">
+          {% if not es_ingreso and a.orden_compra_id and a.estado_pago != 'completo' %}
+          <div class="dropdown d-inline-block">
+            <button class="btn btn-sm btn-success dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.75rem"><i class="bi bi-check-circle me-1"></i>Pago</button>
+            <div class="dropdown-menu p-2" style="min-width:min(200px, calc(100vw - 40px))" onclick="event.stopPropagation()">
+              <form method="POST" action="{{ url_for('contable_confirmar_pago', id=a.id) }}{% if request.args.get('_embed')=='1' %}?_embed=1{% endif %}">
+                <small class="fw-bold d-block mb-1">{{ a.numero }} — {{ moneda(a.debe or 0) }}</small>
+                <div class="mb-1"><select name="tipo_pago" class="form-select form-select-sm" onchange="this.closest('form').querySelector('[name=monto_pago]').style.display=this.value==='total'?'none':''">
+                  <option value="total">Pago total</option><option value="parcial">Parcial</option></select></div>
+                <input type="number" name="monto_pago" class="form-control form-control-sm mb-1" value="{{ ((a.debe or 0) - (a.monto_pagado or 0))|int }}" style="display:none" min="1">
+                <select name="metodo_pago" class="form-select form-select-sm mb-1"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option><option value="nequi">Nequi</option></select>
+                <button type="submit" class="btn btn-success btn-sm w-100"><i class="bi bi-check-lg me-1"></i>Confirmar</button>
+              </form>
+            </div>
+          </div>
+          {% endif %}
+          {% if es_ingreso and a.venta_id and a.estado_pago != 'completo' %}
+          <div class="dropdown d-inline-block">
+            <button class="btn btn-sm btn-success dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.75rem"><i class="bi bi-check-circle me-1"></i>Cobro</button>
+            <div class="dropdown-menu p-2" style="min-width:min(200px, calc(100vw - 40px))" onclick="event.stopPropagation()">
+              <form method="POST" action="{{ url_for('contable_confirmar_ingreso', id=a.id) }}{% if request.args.get('_embed')=='1' %}?_embed=1{% endif %}">
+                <small class="fw-bold d-block mb-1">{{ a.numero }} — {{ moneda(a.haber or 0) }}</small>
+                <div class="mb-1"><select name="tipo_pago" class="form-select form-select-sm" onchange="this.closest('form').querySelector('[name=monto_pago]').style.display=this.value==='total'?'none':''">
+                  <option value="total">Cobro total</option><option value="parcial">Parcial</option></select></div>
+                <input type="number" name="monto_pago" class="form-control form-control-sm mb-1" value="{{ ((a.haber or 0) - (a.monto_pagado or 0))|int }}" style="display:none" min="1">
+                <select name="metodo_pago" class="form-select form-select-sm mb-1"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option><option value="nequi">Nequi</option></select>
+                <button type="submit" class="btn btn-success btn-sm w-100"><i class="bi bi-check-lg me-1"></i>Confirmar</button>
+              </form>
+            </div>
+          </div>
+          {% endif %}
+          <div class="dropdown d-inline-block">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.75rem"><i class="bi bi-three-dots"></i></button>
+            <ul class="dropdown-menu dropdown-menu-end" style="font-size:.82rem;min-width:170px">
+              <li><a class="dropdown-item" href="{{ url_for('contable_asiento_editar', id=a.id) }}"><i class="bi bi-pencil me-2 text-primary"></i>Editar</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('contable_comprobante', id=a.id) }}" target="_blank"><i class="bi bi-file-earmark-pdf me-2 text-secondary"></i>Comprobante</a></li>
+              {% if es_cc %}
+              <li><a class="dropdown-item" href="{{ url_for('contable_pdf_caja_chica', id=a.id) }}" target="_blank"><i class="bi bi-printer me-2 text-warning"></i>PDF Caja Chica</a></li>
+              {% endif %}
+              {% if current_user.rol == 'admin' %}
+              <li><hr class="dropdown-divider"></li>
+              <li><form method="POST" action="{{ url_for('contable_asiento_eliminar', id=a.id) }}" onsubmit="return confirm('Eliminar?')" class="px-0 m-0">
+                <button class="dropdown-item text-danger" type="submit"><i class="bi bi-trash me-2"></i>Eliminar</button>
+              </form></li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
   </div>
   {% else %}
   <div class="text-center text-muted py-5">

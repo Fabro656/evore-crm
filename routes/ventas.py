@@ -411,18 +411,22 @@ def register(app):
             try:
                 _save_items(v); db.session.flush()
                 _procesar_venta_produccion(v)
-                # Auto-crear asiento contable de ingreso en borrador
+                # Auto-crear asiento contable de anticipo en borrador (monto = anticipo, no total)
                 try:
+                    monto_asiento = float(v.monto_anticipo or 0) or float(v.total or 0)
+                    es_anticipo = bool(v.monto_anticipo and v.monto_anticipo > 0 and v.monto_anticipo < (v.total or 0))
+                    desc_asiento = (f'Anticipo ({v.porcentaje_anticipo:.0f}%) — Venta {v.numero}'
+                                    if es_anticipo else f'Ingreso pendiente — Venta {v.numero}')
                     asiento_venta = AsientoContable(
                         company_id=getattr(g, 'company_id', None),
                         numero='AC-TEMP',
                         fecha=hoy,
-                        descripcion=f'Ingreso pendiente — Venta {v.numero}',
+                        descripcion=desc_asiento,
                         tipo='venta',
-                        subtipo='ingreso_venta',
+                        subtipo='anticipo_venta' if es_anticipo else 'ingreso_venta',
                         referencia=v.numero,
-                        debe=float(v.total or 0),
-                        haber=float(v.total or 0),
+                        debe=monto_asiento,
+                        haber=monto_asiento,
                         cuenta_debe='130505 Nacionales',
                         cuenta_haber='4135 Comercio al por mayor y menor',
                         clasificacion='ingreso',
