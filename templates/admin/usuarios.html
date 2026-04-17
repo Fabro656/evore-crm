@@ -2,16 +2,8 @@
 {% block title %}Usuarios{% endblock %}{% block page_title %}Gestión de Usuarios{% endblock %}
 {% block topbar_actions %}{% if current_user.rol == 'admin' %}<a href="{{ url_for('admin_usuario_nuevo') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo Usuario</a>{% endif %}{% endblock %}
 {% block content %}
-<div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-shield-person-fill me-2"></i>{{ items|length }} usuario(s)
-    <small class="text-muted fw-normal ms-2">— Click en <i class="bi bi-eye"></i> para ver la app desde la perspectiva de ese usuario</small>
-</div>
-  <div style="overflow-x:auto;width:100%">
-  <table class="table table-cards" style="width:100%;margin:0"><thead><tr>
-    <th>Nombre</th><th>Email</th><th>Rol</th>
-    <th class="hide-mobile">Empresa vinculada</th>
-    <th>Estado</th><th class="hide-mobile">Alta</th><th></th>
-  </tr></thead>
-  <tbody>{% for u in items %}<tr>
+{% macro user_row(u) %}
+  <tr>
     <td><div class="d-flex align-items-center gap-2">
       <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
            style="width:30px;height:30px;flex-shrink:0;font-size:.8rem;
@@ -51,8 +43,57 @@
         {% else %}<span class="text-muted small">(tú)</span>{% endif %}
       </div>
     </td>
-  </tr>{% endfor %}</tbody></table>
+  </tr>
+{% endmacro %}
+
+<div class="mb-2" style="font-size:.82rem;color:var(--text2)"><i class="bi bi-shield-person-fill me-2"></i>{{ items|length }} usuario(s){% if is_evore %} en Evore{% endif %}
+    <small class="text-muted fw-normal ms-2">— Click en <i class="bi bi-eye"></i> para ver la app desde la perspectiva de ese usuario</small>
+</div>
+  <div style="overflow-x:auto;width:100%">
+  <table class="table table-cards" style="width:100%;margin:0"><thead><tr>
+    <th>Nombre</th><th>Email</th><th>Rol</th>
+    <th class="hide-mobile">Empresa vinculada</th>
+    <th>Estado</th><th class="hide-mobile">Alta</th><th></th>
+  </tr></thead>
+  <tbody>{% for u in items %}{{ user_row(u) }}{% endfor %}</tbody></table>
   </div>
+
+{# ── Usuarios de otras empresas — solo visible desde Evore ──────────── #}
+{% if is_evore and other_companies_data %}
+<div class="mt-4">
+  <h6 class="text-muted mb-3 text-uppercase" style="letter-spacing:1px;font-size:.75rem">
+    <i class="bi bi-building me-2"></i>Usuarios de otras empresas ({{ other_companies_data|length }})
+  </h6>
+  <div class="accordion" id="accEmpresas">
+    {% for entry in other_companies_data %}
+    {% set c = entry.company %}{% set cu = entry.users %}
+    <div class="accordion-item" style="background:var(--surface);border:1px solid var(--border)">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                data-bs-target="#emp{{ c.id }}" style="background:var(--surface);color:var(--text)">
+          <i class="bi bi-building me-2"></i>
+          <span class="fw-semibold">{{ c.nombre }}</span>
+          {% if c.nit %}<small class="text-muted ms-2">NIT {{ c.nit }}</small>{% endif %}
+          <span class="badge bg-secondary ms-2">{{ cu|length }} usuario{{ '' if cu|length==1 else 's' }}</span>
+        </button>
+      </h2>
+      <div id="emp{{ c.id }}" class="accordion-collapse collapse" data-bs-parent="#accEmpresas">
+        <div class="accordion-body p-0">
+          <div style="overflow-x:auto;width:100%">
+          <table class="table table-cards mb-0" style="width:100%"><thead><tr>
+            <th>Nombre</th><th>Email</th><th>Rol</th>
+            <th class="hide-mobile">Empresa vinculada</th>
+            <th>Estado</th><th class="hide-mobile">Alta</th><th></th>
+          </tr></thead>
+          <tbody>{% for u in cu %}{{ user_row(u) }}{% endfor %}</tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
 
 {# ── ZONA DE PELIGRO — solo admin real, no tester ───────────────────────── #}
 {% if current_user.rol == 'admin' %}

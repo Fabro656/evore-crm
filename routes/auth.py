@@ -108,7 +108,11 @@ def register(app):
                     flask_session['active_company_id'] = user.company_id
                     flask_session['rol_activo'] = user.rol
                 flash(f'¡Bienvenido, {user.nombre}!', 'success')
-                return redirect(request.args.get('next') or url_for('dashboard'))
+                next_url = request.form.get('next') or request.args.get('next')
+                # Prevenir open-redirect: solo rutas internas
+                if next_url and (not next_url.startswith('/') or next_url.startswith('//')):
+                    next_url = None
+                return redirect(next_url or url_for('dashboard'))
             # Record failed attempt
             _login_attempts[ip].append(now)
             flash('Email o contraseña incorrectos.', 'danger')
@@ -129,7 +133,17 @@ def register(app):
                 db.session.commit()
         flask_session.pop('rol_activo', None)
         flask_session.pop('active_company_id', None)
-        logout_user(); flash('Sesión cerrada.', 'info'); return redirect(url_for('login'))
+        logout_user()
+        reason = request.args.get('reason')
+        next_url = request.args.get('next')
+        # Solo permitir redirects internos (relativos que empiecen con '/' pero no '//')
+        if next_url and (not next_url.startswith('/') or next_url.startswith('//')):
+            next_url = None
+        if reason == 'inactividad':
+            flash('Sesión cerrada por inactividad. Inicia sesión para continuar donde estabas.', 'warning')
+        else:
+            flash('Sesión cerrada.', 'info')
+        return redirect(url_for('login', next=next_url) if next_url else url_for('login'))
 
 
     # ── seleccionar_empresa (/seleccionar-empresa) — company selector after login

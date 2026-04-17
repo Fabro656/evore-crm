@@ -49,6 +49,7 @@ body{background:var(--login-bg);min-height:100vh;display:flex;align-items:center
   {% endfor %}{% endif %}{% endwith %}
   <form method="POST">
     <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+    {% if request.args.get('next') %}<input type="hidden" name="next" value="{{ request.args.get('next') }}">{% endif %}
     <div class="mb-3"><label class="form-label fw-semibold" style="font-size:.875rem;color:var(--text2)">Correo</label>
       <div class="input-group"><span class="input-group-text igt"><i class="bi bi-envelope"></i></span>
         <input type="email" name="email" class="form-control" required autofocus></div></div>

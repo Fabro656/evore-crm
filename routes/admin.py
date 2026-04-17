@@ -622,8 +622,37 @@ def register(app):
     def admin_usuarios():
         if current_user.rol not in ('admin', 'tester'):
             flash('Sin permisos.','danger'); return redirect(url_for('dashboard'))
+        active_cid = getattr(g, 'company_id', None) or current_user.company_id
+
+        def _users_for_company(cid):
+            """Usuarios vinculados a una empresa via UserCompany o User.company_id."""
+            if not cid:
+                return []
+            uc_ids = {r[0] for r in db.session.query(UserCompany.user_id)
+                      .filter_by(company_id=cid, activo=True).all()}
+            direct_ids = {u.id for u in User.query.filter_by(company_id=cid).all()}
+            all_ids = uc_ids | direct_ids
+            if not all_ids:
+                return []
+            return User.query.filter(User.id.in_(all_ids)).order_by(User.nombre).all()
+
+        evore = Company.query.filter_by(es_principal=True).first()
+        is_evore = bool(evore and active_cid == evore.id)
+        items = _users_for_company(active_cid)
+
+        # Para Evore: usuarios de OTRAS empresas agrupados por empresa
+        other_companies_data = []
+        if is_evore:
+            for c in Company.query.filter(Company.id != evore.id,
+                                          Company.activo == True).order_by(Company.nombre).all():
+                users = _users_for_company(c.id)
+                if users:
+                    other_companies_data.append({'company': c, 'users': users})
+
         return render_template('admin/usuarios.html',
-            items=User.query.order_by(User.nombre).all(),
+            items=items,
+            is_evore=is_evore,
+            other_companies_data=other_companies_data,
             clientes_all=tenant_query(Cliente).filter_by(estado='activo').all(),
             proveedores_all=tenant_query(Proveedor).filter_by(activo=True).all())
     

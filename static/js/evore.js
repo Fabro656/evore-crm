@@ -463,7 +463,14 @@ function copiarTexto(el,txt){
 // ── Block from line 1518 ──
 (function(){
   var _t=null,_LIMIT=5*60*1000;
-  function _reset(){clearTimeout(_t);_t=setTimeout(function(){window.location='/logout';},_LIMIT);}
+  function _reset(){clearTimeout(_t);_t=setTimeout(function(){
+    var here = location.pathname + location.search;
+    // No redirigir a login/logout/portales desprotegidos
+    var skip = /^\/(login|logout|demo|$)/.test(here);
+    var url = '/logout?reason=inactividad';
+    if(!skip) url += '&next=' + encodeURIComponent(here);
+    window.location = url;
+  },_LIMIT);}
   ['mousemove','keypress','click','scroll','touchstart'].forEach(function(e){document.addEventListener(e,_reset,{passive:true});});
   _reset();
 })();

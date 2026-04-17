@@ -80,10 +80,43 @@
             <span>{{ (p.telefono_pais or '+57') ~ ' ' ~ p.telefono }}</span>
           </div>
           {% endif %}
-          {% if not p.nit and not p.categoria and not p.email and not p.telefono %}
+          {% if p.matricula_mercantil %}
+          <div class="d-flex align-items-center gap-2 text-muted">
+            <i class="bi bi-file-earmark-text" style="width:16px;text-align:center"></i>
+            <span>Matrícula: {{ p.matricula_mercantil }}</span>
+          </div>
+          {% endif %}
+          {% if not p.nit and not p.categoria and not p.email and not p.telefono and not p.matricula_mercantil %}
           <div class="text-muted"><small>Sin datos de contacto</small></div>
           {% endif %}
         </div>
+        {% if p.banco_nombre or p.banco_cuenta %}
+        <div class="mb-2 pt-2" style="border-top:1px dashed var(--border)">
+          <div class="text-muted mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px">
+            <i class="bi bi-bank me-1"></i>Cuenta bancaria
+          </div>
+          <div class="d-flex flex-column gap-1" style="font-size:.82rem">
+            {% if p.banco_nombre %}
+            <div class="d-flex justify-content-between gap-2">
+              <span class="text-muted">Banco</span>
+              <span style="color:var(--text);text-align:right">{{ p.banco_nombre }}{% if p.banco_tipo %} · {{ p.banco_tipo }}{% endif %}</span>
+            </div>
+            {% endif %}
+            {% if p.banco_cuenta %}
+            <div class="d-flex justify-content-between gap-2">
+              <span class="text-muted">Nº cuenta</span>
+              <span style="color:var(--text);font-family:monospace">{{ p.banco_cuenta }}</span>
+            </div>
+            {% endif %}
+            {% if p.banco_titular %}
+            <div class="d-flex justify-content-between gap-2">
+              <span class="text-muted">Titular</span>
+              <span style="color:var(--text);text-align:right">{{ p.banco_titular }}{% if p.banco_nit %} · {{ p.banco_nit }}{% endif %}</span>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
       </div>
       <!-- Actions -->
       <div style="padding:.6rem 1.15rem;border-top:1px solid rgba(0,0,0,.07)" class="d-flex gap-2 justify-content-end">
