@@ -66,8 +66,11 @@ body{background:var(--surface);font-family:-apple-system,BlinkMacSystemFont,'Seg
 #sb-expand{width:36px;height:36px;border-radius:8px;border:none;background:var(--sb-hover);color:var(--sb-text);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
 #sb-expand:hover{background:var(--sb-hover);color:var(--sb-active)}
 .sb-sec{display:none}
-.sb-nav{overflow-y:auto;overflow-x:visible;flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 0;width:100%;scrollbar-width:none}
-.sb-nav::-webkit-scrollbar{display:none}
+.sb-nav{overflow-y:auto;overflow-x:visible;flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 0;width:100%;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.22) transparent}
+.sb-nav::-webkit-scrollbar{width:6px}
+.sb-nav::-webkit-scrollbar-track{background:transparent}
+.sb-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22);border-radius:3px}
+.sb-nav::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.4)}
 .sb-nav .nav-link{color:var(--sb-text);width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;padding:0!important;margin:0;transition:all .2s cubic-bezier(.34,1.56,.64,1);text-decoration:none;position:relative;border:none!important;flex-shrink:0;gap:0;overflow:hidden}
 .sb-nav .nav-link span{display:none!important;white-space:nowrap;font-size:.82rem;font-weight:500}
 .sb-nav .nav-link i{font-size:1.15rem;width:auto;opacity:.7;transition:all .2s;flex-shrink:0}
