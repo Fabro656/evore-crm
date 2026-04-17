@@ -239,6 +239,7 @@
             data-reservado="{{ num_es(r.cantidad) }}"
             data-disponible="0"
             data-faltante="{{ num_es(r.cantidad) }}"
+            data-faltante-raw="{{ '%.2f'|format(r.cantidad) }}"
             onclick="prepFalta(this)">
             <i class="bi bi-cart-plus me-1"></i>Solicitar compra
           </button>
@@ -338,6 +339,7 @@
             data-reservado="{{ num_es(r.cantidad) }}"
             data-disponible="{{ num_es(r.materia.stock_disponible) }}"
             data-faltante="{{ num_es(faltante_real) }}"
+            data-faltante-raw="{{ '%.2f'|format(faltante_real) }}"
             onclick="prepFalta(this)">
             <i class="bi bi-exclamation-triangle me-1"></i>Falta {{ num_es(faltante_real) }} {{ r.materia.unidad }}
           </button>
@@ -437,7 +439,7 @@ function prepFalta(btn){
   document.getElementById('faltaReservado').textContent  = btn.dataset.reservado + ' ' + btn.dataset.unidad;
   document.getElementById('faltaDisponible').textContent = btn.dataset.disponible + ' ' + btn.dataset.unidad;
   document.getElementById('faltaCantMostrar').textContent= btn.dataset.faltante + ' ' + btn.dataset.unidad;
-  document.getElementById('faltaCantInput').value        = btn.dataset.faltante;
+  document.getElementById('faltaCantInput').value        = btn.dataset.faltanteRaw || btn.dataset.faltante;
   document.getElementById('faltaUnidad').textContent     = btn.dataset.unidad;
 }
 
