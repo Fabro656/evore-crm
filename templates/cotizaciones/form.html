@@ -92,7 +92,7 @@
           <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Unidad</label>
             <input type="text" name="item_unidad[]" class="form-control form-control-sm item-unidad" value="{{ it.unidad or 'unidades' }}" readonly style="background:var(--surface2)"></div>
           <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Precio</label>
-            <div class="input-group input-group-sm"><span class="input-group-text" style="font-size:.75rem">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0.00" step="0.01" min="0" inputmode="decimal" value="{{ '%.2f'|format(it.precio_unit or 0) }}" oninput="calcRow(this)"></div></div>
+            <div class="input-group input-group-sm"><span class="input-group-text" style="font-size:.75rem">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0.00" step="0.01" min="0" inputmode="decimal" value="{{ '%.2f'|format(it.precio_unit or 0) }}" oninput="calcRow(this)"><button type="button" class="btn btn-outline-secondary btn-unlock-precio" title="Editar manualmente" tabindex="-1" style="display:none"><i class="bi bi-pencil"></i></button></div></div>
           <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">IVA %</label>
             <input type="number" name="item_iva_pct[]" class="form-control form-control-sm item-iva-pct" placeholder="19" step="0.01" min="0" value="{{ it.iva_pct|int if it.aplica_iva else '0' }}" oninput="calcRow(this)">
             <input type="hidden" name="item_aplica_iva[]" class="item-aplica-iva-val" value="{{ 'on' if it.aplica_iva else 'off' }}"></div>
@@ -124,7 +124,7 @@
           <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Unidad</label>
             <input type="text" name="item_unidad[]" class="form-control form-control-sm item-unidad" value="unidades" readonly style="background:var(--surface2)"></div>
           <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Precio</label>
-            <div class="input-group input-group-sm"><span class="input-group-text" style="font-size:.75rem">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0.00" step="0.01" min="0" inputmode="decimal" value="0.00" oninput="calcRow(this)"></div></div>
+            <div class="input-group input-group-sm"><span class="input-group-text" style="font-size:.75rem">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0.00" step="0.01" min="0" inputmode="decimal" value="0.00" oninput="calcRow(this)"><button type="button" class="btn btn-outline-secondary btn-unlock-precio" title="Editar manualmente" tabindex="-1" style="display:none"><i class="bi bi-pencil"></i></button></div></div>
           <div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">IVA %</label>
             <input type="number" name="item_iva_pct[]" class="form-control form-control-sm item-iva-pct" placeholder="19" step="0.01" min="0" value="19" oninput="calcRow(this)">
             <input type="hidden" name="item_aplica_iva[]" class="item-aplica-iva-val" value="on"></div>
@@ -204,6 +204,7 @@ function onProductSelect(el){
     // Unlock fields for manual entry
     var pe=row.querySelector('.item-precio'); if(pe){pe.readOnly=false;pe.style.background='';}
     var ie=row.querySelector('.item-iva-pct'); if(ie){ie.readOnly=false;ie.style.background='';}
+    var btn=row.querySelector('.btn-unlock-precio'); if(btn) btn.style.display='none';
     return;
   }
   var pid=opt.getAttribute('data-id')||'';
@@ -218,9 +219,12 @@ function onProductSelect(el){
   var precioBase=Math.round(precioConIva/(1+ivaPct/100));
   var precioEl=row.querySelector('.item-precio');
   precioEl.value=precioBase;
-  // Lock price and IVA fields for BOM products
+  // Precio sugerido del BOM — bloqueado por defecto, desbloqueable con boton
   precioEl.readOnly=true; precioEl.style.background='var(--surface2)';
+  precioEl.title='Precio sugerido del BOM. Click en el lapiz para editar.';
   ivaPctEl.readOnly=true; ivaPctEl.style.background='var(--surface2)';
+  var btnUnlock=row.querySelector('.btn-unlock-precio');
+  if(btnUnlock) btnUnlock.style.display='';
   // Mostrar info del producto: NSO, docs legales, costo
   if(infoEl){
     var parts=[];
@@ -402,7 +406,7 @@ function addRow(){
     +'<div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Unidad</label>'
     +'<input type="text" name="item_unidad[]" class="form-control form-control-sm item-unidad" placeholder="un" value="unidades"></div>'
     +'<div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">Precio</label>'
-    +'<div class="input-group input-group-sm"><span class="input-group-text" style="font-size:.75rem">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0.00" step="0.01" min="0" inputmode="decimal" value="0.00" oninput="calcRow(this)"></div></div>'
+    +'<div class="input-group input-group-sm"><span class="input-group-text" style="font-size:.75rem">$</span><input type="number" name="item_precio[]" class="form-control item-precio" placeholder="0.00" step="0.01" min="0" inputmode="decimal" value="0.00" oninput="calcRow(this)"><button type="button" class="btn btn-outline-secondary btn-unlock-precio" title="Editar manualmente" tabindex="-1" style="display:none"><i class="bi bi-pencil"></i></button></div></div>'
     +'<div class="col-6 col-md-1"><label class="form-label mb-1" style="font-size:.8rem">IVA %</label>'
     +'<input type="number" name="item_iva_pct[]" class="form-control form-control-sm item-iva-pct" placeholder="19" step="0.01" min="0" value="19" oninput="calcRow(this)">'
     +'<input type="hidden" name="item_aplica_iva[]" class="item-aplica-iva-val" value="on"></div>'
@@ -414,6 +418,22 @@ document.getElementById('pctAnticipo').addEventListener('input',calcTotal);
 populateAllProdSelects();
 populateAllSrvSelects();
 calcTotal();
+// Boton "lapiz" para editar manualmente el precio sugerido del BOM
+document.addEventListener('click', function(e){
+  var btn = e.target.closest('.btn-unlock-precio');
+  if(!btn) return;
+  var row = btn.closest('.item-row');
+  if(!row) return;
+  var pe = row.querySelector('.item-precio');
+  if(pe){
+    pe.readOnly = false;
+    pe.style.background = '';
+    pe.removeAttribute('title');
+    pe.focus();
+    pe.select();
+  }
+  btn.style.display = 'none';
+});
 // Custom auto-titulo: empresa + producto + fecha emision - vencimiento
 (function(){
   var tEl=document.querySelector('[name="titulo"]');
