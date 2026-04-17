@@ -958,6 +958,7 @@ def register(app):
                 }
                 tercero = request.form.get('tercero_nombre', '') or request.form.get('tercero_empresa', '')
                 doc = DocumentoLegal(
+                    company_id=getattr(g, 'company_id', None) or current_user.company_id,
                     tipo=tipo_map.get(plantilla, 'contrato'),
                     titulo=f'{plantilla.replace("_"," ").title()} — {tercero}',
                     entidad=empresa.nombre if empresa else '',
@@ -1176,6 +1177,7 @@ def register(app):
             fv = request.form.get('fecha_vencimiento')
             prod_id = request.form.get('producto_id')
             d = DocumentoLegal(
+                company_id=getattr(g, 'company_id', None) or current_user.company_id,
                 tipo=request.form.get('tipo','otro'),
                 titulo=request.form['titulo'],
                 numero=request.form.get('numero',''),

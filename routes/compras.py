@@ -460,6 +460,7 @@ def register(app):
                     empresa = ConfigEmpresa.query.first()
                     prov = db.session.get(Proveedor, oc.proveedor_id)
                     doc = DocumentoLegal(
+                        company_id=getattr(g, 'company_id', None) or (oc.company_id if hasattr(oc,'company_id') else None),
                         tipo='contrato',
                         titulo=f'Contrato de suministro — {oc.numero}',
                         numero=f'CTP-{oc.numero or oc.id}',

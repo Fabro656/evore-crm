@@ -2350,6 +2350,9 @@ def _migrate(conn):
         ("ALTER TABLE proveedores ADD COLUMN banco_nit VARCHAR(30)"),
         ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS telefono_pais VARCHAR(8) DEFAULT '+57'"),
         ("ALTER TABLE proveedores ADD COLUMN telefono_pais VARCHAR(8) DEFAULT '+57'"),
+        # ── Backfill: documentos legales huerfanos (company_id NULL) ──
+        # Asigna el company_id del usuario que creo el documento
+        ("UPDATE documentos_legales SET company_id = (SELECT u.company_id FROM users u WHERE u.id = documentos_legales.creado_por) WHERE company_id IS NULL AND creado_por IS NOT NULL"),
     ]
     # Execute ALL migrations individually with rollback on each failure
     # This prevents one failed migration from aborting the entire transaction

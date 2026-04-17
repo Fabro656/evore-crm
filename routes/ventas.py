@@ -592,6 +592,7 @@ def register(app):
                         empresa = ConfigEmpresa.query.first()
                         cli = db.session.get(Cliente, venta.cliente_id)
                         doc = DocumentoLegal(
+                            company_id=getattr(g, 'company_id', None) or (venta.company_id if hasattr(venta,'company_id') else None),
                             tipo='contrato',
                             titulo=f'Contrato de fabricacion — {venta.numero or venta.titulo}',
                             numero=f'CTR-{venta.numero or venta.id}',
