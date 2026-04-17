@@ -2,6 +2,11 @@
 {% block title %}{{ tarea.titulo }}{% endblock %}{% block page_title %}{{ tarea.titulo }}{% endblock %}
 {% block topbar_actions %}
 <a href="{{ url_for('tarea_editar', id=tarea.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i>Editar</a>
+{% if tarea.tarea_tipo == 'comprar_materias' and tarea.estado != 'completada' %}
+<form method="POST" action="{{ url_for('orden_compra_desde_tarea', tarea_id=tarea.id) }}" class="d-inline">
+  <button class="btn btn-primary btn-sm" title="Crear una OC borrador con esta materia prima pre-llenada"><i class="bi bi-cart-plus me-1"></i>Crear orden de compra</button>
+</form>
+{% endif %}
 {% if tarea.estado != 'completada' %}
 <form method="POST" action="{{ url_for('tarea_completar', id=tarea.id) }}" class="d-inline">
   <button class="btn btn-success btn-sm"><i class="bi bi-check2 me-1"></i>Completar</button></form>{% endif %}

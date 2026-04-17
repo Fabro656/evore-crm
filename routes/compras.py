@@ -5,7 +5,7 @@ from extensions import db, tenant_query
 from models import *
 from utils import *
 from datetime import datetime, timedelta, date as date_type
-import logging
+import logging, re
 
 def register(app):
 
@@ -270,6 +270,86 @@ def register(app):
         return render_template('proveedores/cotizacion_form.html', obj=obj,
                                proveedores_list=provs, titulo='Editar Cotización Proveedor',
                                tipo_default=obj.tipo_cotizacion)
+
+
+    # ── orden_compra_desde_tarea (/ordenes-compra/desde-tarea/<int:tarea_id>)
+    @app.route('/ordenes-compra/desde-tarea/<int:tarea_id>', methods=['POST'])
+    @login_required
+    @requiere_modulo('ordenes_compra')
+    def orden_compra_desde_tarea(tarea_id):
+        """Crea una OC borrador pre-llenada desde una tarea de compra de MP."""
+        tarea = Tarea.query.get_or_404(tarea_id)
+        if tarea.tarea_tipo != 'comprar_materias':
+            flash('Esta tarea no es de compra de materia prima.', 'warning')
+            return redirect(url_for('tarea_ver', id=tarea_id))
+
+        # Parsear titulo: "Comprar {cant} {unidad} de {nombre}" o "Comprar materia: {nombre}"
+        nombre_mp = ''
+        cant = 1.0
+        unidad = 'unidades'
+        m = re.match(r'Comprar\s+([\d.,]+)\s+(\w+)\s+de\s+(.+)', tarea.titulo or '')
+        if m:
+            try: cant = float(m.group(1).replace(',', '.'))
+            except ValueError: cant = 1.0
+            unidad = m.group(2)
+            nombre_mp = m.group(3).strip()
+        else:
+            nombre_mp = (tarea.titulo or '').replace('Comprar materia:', '').replace('Comprar', '').strip()
+
+        # Intentar identificar la MP (para descripcion y precio referencia)
+        mp = None
+        if nombre_mp:
+            mp = tenant_query(MateriaPrima).filter(MateriaPrima.nombre.ilike(nombre_mp)).first()
+            if mp and not unidad:
+                unidad = mp.unidad or 'unidades'
+
+        # Sugerir proveedor: el de la ultima cotizacion vigente para esta MP (menor precio)
+        prov_sugerido_id = None
+        precio_ref = 0.0
+        if nombre_mp:
+            cot_prov = tenant_query(CotizacionProveedor).filter(
+                CotizacionProveedor.nombre_producto.ilike(f'%{nombre_mp}%'),
+                CotizacionProveedor.estado == 'vigente'
+            ).order_by(CotizacionProveedor.precio_unitario.asc()).first()
+            if cot_prov:
+                prov_sugerido_id = cot_prov.proveedor_id
+                precio_ref = float(cot_prov.precio_unitario or 0)
+
+        # Crear OC borrador
+        hoy = datetime.utcnow().date()
+        oc = OrdenCompra(
+            company_id=getattr(g, 'company_id', None),
+            proveedor_id=prov_sugerido_id,
+            estado='borrador',
+            fecha_emision=hoy,
+            subtotal=round(cant * precio_ref, 2),
+            iva=round(cant * precio_ref * 0.19, 2),
+            total=round(cant * precio_ref * 1.19, 2),
+            notas=f'Generada desde tarea #{tarea.id}: {tarea.titulo}',
+            creado_por=current_user.id
+        )
+        db.session.add(oc); db.session.flush()
+        ultimo_oc = tenant_query(OrdenCompra).filter(OrdenCompra.numero.like(f'OC-{hoy.year}-%')).order_by(OrdenCompra.id.desc()).first()
+        if ultimo_oc and ultimo_oc.numero:
+            try: seq = int(ultimo_oc.numero.split('-')[-1]) + 1
+            except Exception: seq = 1
+        else: seq = 1
+        oc.numero = f'OC-{hoy.year}-{seq:03d}'
+
+        db.session.add(OrdenCompraItem(
+            orden_id=oc.id,
+            nombre_item=nombre_mp or 'Materia prima',
+            descripcion=f'Solicitado desde tarea #{tarea.id}',
+            cantidad=cant,
+            unidad=unidad,
+            precio_unit=precio_ref,
+            subtotal=round(cant * precio_ref, 2)
+        ))
+        db.session.commit()
+        _log('crear', 'orden_compra', oc.id, f'OC {oc.numero} creada desde tarea #{tarea.id}')
+        db.session.commit()
+        flash(f'Orden de compra {oc.numero} creada en borrador. Revisa proveedor y precios antes de confirmar.', 'success')
+        return redirect(url_for('orden_compra_editar', id=oc.id))
 
 
     # ── cotizacion_proveedor_eliminar (/cotizaciones-proveedor/<int:id>/eliminar)
