@@ -251,7 +251,7 @@ def register(app):
             tipo            = request.form.get('tipo', 'manual')
             referencia      = request.form.get('referencia', '')
             notas           = request.form.get('notas', '')
-            monto           = float(request.form.get('monto', 0) or 0)
+            monto           = _parse_decimal(request.form.get('monto'))
 
             # Cuenta debe/haber según clasificación
             debe  = monto if clasificacion == 'egreso'  else 0.0
@@ -330,7 +330,7 @@ def register(app):
         if request.method == 'POST':
             clasificacion  = request.form.get('clasificacion', asiento.clasificacion or 'egreso')
             fecha_str      = request.form.get('fecha', asiento.fecha.isoformat())
-            monto          = float(request.form.get('monto', 0) or 0)
+            monto          = _parse_decimal(request.form.get('monto'))
 
             asiento.clasificacion   = clasificacion
             asiento.fecha           = datetime.strptime(fecha_str, '%Y-%m-%d').date()
@@ -442,7 +442,7 @@ def register(app):
             return 0, 'Este asiento ya esta completamente pagado.'
 
         tipo_pago = request.form.get('tipo_pago', 'parcial')
-        monto = float(request.form.get('monto_pago') or 0)
+        monto = _parse_decimal(request.form.get('monto_pago'))
         metodo = request.form.get('metodo_pago', '')
         ref = request.form.get('referencia_pago', '')
 

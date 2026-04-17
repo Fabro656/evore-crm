@@ -185,7 +185,7 @@
                 <small class="fw-bold d-block mb-1">{{ a.numero }} — {{ moneda(a.debe or 0) }}</small>
                 <div class="mb-1"><select name="tipo_pago" class="form-select form-select-sm" onchange="this.closest('form').querySelector('[name=monto_pago]').style.display=this.value==='total'?'none':''">
                   <option value="total">Pago total</option><option value="parcial">Parcial</option></select></div>
-                <input type="number" name="monto_pago" class="form-control form-control-sm mb-1" value="{{ ((a.debe or 0) - (a.monto_pagado or 0))|int }}" style="display:none" min="1">
+                <input type="number" name="monto_pago" class="form-control form-control-sm mb-1" step="0.01" inputmode="decimal" value="{{ '%.2f'|format((a.debe or 0) - (a.monto_pagado or 0)) }}" style="display:none" min="0.01">
                 <select name="metodo_pago" class="form-select form-select-sm mb-1"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option><option value="nequi">Nequi</option></select>
                 <button type="submit" class="btn btn-success btn-sm w-100"><i class="bi bi-check-lg me-1"></i>Confirmar</button>
               </form>
@@ -200,7 +200,7 @@
                 <small class="fw-bold d-block mb-1">{{ a.numero }} — {{ moneda(a.haber or 0) }}</small>
                 <div class="mb-1"><select name="tipo_pago" class="form-select form-select-sm" onchange="this.closest('form').querySelector('[name=monto_pago]').style.display=this.value==='total'?'none':''">
                   <option value="total">Cobro total</option><option value="parcial">Parcial</option></select></div>
-                <input type="number" name="monto_pago" class="form-control form-control-sm mb-1" value="{{ ((a.haber or 0) - (a.monto_pagado or 0))|int }}" style="display:none" min="1">
+                <input type="number" name="monto_pago" class="form-control form-control-sm mb-1" step="0.01" inputmode="decimal" value="{{ '%.2f'|format((a.haber or 0) - (a.monto_pagado or 0)) }}" style="display:none" min="0.01">
                 <select name="metodo_pago" class="form-select form-select-sm mb-1"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option><option value="nequi">Nequi</option></select>
                 <button type="submit" class="btn btn-success btn-sm w-100"><i class="bi bi-check-lg me-1"></i>Confirmar</button>
               </form>
@@ -267,7 +267,7 @@
             <label class="form-label fw-semibold">Monto a pagar</label>
             <div class="input-group">
               <span class="input-group-text">$</span>
-              <input type="number" name="monto_pago" id="montoPago" class="form-control" step="1" min="1" required>
+              <input type="number" name="monto_pago" id="montoPago" class="form-control" step="0.01" min="0.01" inputmode="decimal" required>
             </div>
           </div>
           <div class="mb-3">
