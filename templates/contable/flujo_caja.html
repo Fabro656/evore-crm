@@ -34,7 +34,7 @@
     <div class="sc sc-accent" style="border-top-color:#2dce89">
       <div class="d-flex justify-content-between align-items-start">
         <div>
-          <div class="sv" style="color:#2dce89">{{ moneda(total_ingresos) }}</div>
+          <div class="sv" style="color:#2dce89">{{ moneda2(total_ingresos) }}</div>
           <div class="sl">Total Ingresos</div>
         </div>
         <div class="si" style="background:var(--surface2)">
@@ -47,7 +47,7 @@
     <div class="sc sc-accent" style="border-top-color:#f5365c">
       <div class="d-flex justify-content-between align-items-start">
         <div>
-          <div class="sv" style="color:#f5365c">{{ moneda(total_egresos) }}</div>
+          <div class="sv" style="color:#f5365c">{{ moneda2(total_egresos) }}</div>
           <div class="sl">Total Egresos</div>
         </div>
         <div class="si" style="background:var(--surface2)">
@@ -60,7 +60,7 @@
     <div class="sc" style="border:2px solid {{ '#2dce89' if saldo_neto >= 0 else '#f5365c' }}">
       <div class="d-flex justify-content-between align-items-start">
         <div>
-          <div class="sv" style="color:{{ '#2dce89' if saldo_neto >= 0 else '#f5365c' }}">{{ moneda(saldo_neto) }}</div>
+          <div class="sv" style="color:{{ '#2dce89' if saldo_neto >= 0 else '#f5365c' }}">{{ moneda2(saldo_neto) }}</div>
           <div class="sl" style="font-weight:700">Saldo Neto</div>
           <div style="font-size:.7rem;color:var(--text2);margin-top:2px">Ingresos − Egresos</div>
         </div>
@@ -95,13 +95,13 @@
           <td class="fw-semibold">{{ f.etiqueta }}</td>
           <td class="text-center hide-mobile text-muted">{{ f.cantidad }}</td>
           <td class="text-end {% if f.ingresos > 0 %}fw-semibold{% endif %}" style="{% if f.ingresos > 0 %}color:#2dce89{% else %}color:var(--text2){% endif %}">
-            {% if f.ingresos > 0 %}{{ moneda(f.ingresos) }}{% else %}—{% endif %}
+            {% if f.ingresos > 0 %}{{ moneda2(f.ingresos) }}{% else %}—{% endif %}
           </td>
           <td class="text-end {% if f.egresos > 0 %}fw-semibold{% endif %}" style="{% if f.egresos > 0 %}color:#f5365c{% else %}color:var(--text2){% endif %}">
-            {% if f.egresos > 0 %}{{ moneda(f.egresos) }}{% else %}—{% endif %}
+            {% if f.egresos > 0 %}{{ moneda2(f.egresos) }}{% else %}—{% endif %}
           </td>
           <td class="text-end fw-semibold" style="color:{{ '#2dce89' if f.neto >= 0 else '#f5365c' }}">
-            {{ moneda(f.neto) }}
+            {{ moneda2(f.neto) }}
           </td>
         </tr>
         {% endfor %}
@@ -110,10 +110,10 @@
         <tr style="border-top:2px solid var(--border)">
           <td class="fw-bold">TOTAL</td>
           <td class="text-center hide-mobile fw-semibold text-muted">{{ total_asientos }}</td>
-          <td class="text-end fw-bold" style="color:#2dce89">{{ moneda(total_ingresos) }}</td>
-          <td class="text-end fw-bold" style="color:#f5365c">{{ moneda(total_egresos) }}</td>
+          <td class="text-end fw-bold" style="color:#2dce89">{{ moneda2(total_ingresos) }}</td>
+          <td class="text-end fw-bold" style="color:#f5365c">{{ moneda2(total_egresos) }}</td>
           <td class="text-end fw-bold" style="color:{{ '#2dce89' if saldo_neto >= 0 else '#f5365c' }}">
-            {{ moneda(saldo_neto) }}
+            {{ moneda2(saldo_neto) }}
           </td>
         </tr>
       </tfoot>

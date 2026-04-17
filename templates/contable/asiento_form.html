@@ -139,7 +139,7 @@
             {% if ordenes_compra %}
             {% for oc in ordenes_compra %}
             <option value="{{ oc.id }}" {% if obj and obj.orden_compra_id == oc.id %}selected{% endif %}>
-              {{ oc.numero or '--' }} -- {{ oc.proveedor.empresa if oc.proveedor else '' }} ({{ moneda(oc.total or 0) }})
+              {{ oc.numero or '--' }} -- {{ oc.proveedor.empresa if oc.proveedor else '' }} ({{ moneda2(oc.total or 0) }})
             </option>
             {% endfor %}
             {% endif %}

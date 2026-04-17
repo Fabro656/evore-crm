@@ -204,7 +204,7 @@
         <td>{{ nota.motivo }}</td>
         <td>{{ nota.descripcion or '—' }}</td>
         <td class="text-right">
-          {% set monto_fmt = nota.monto | moneda %}
+          {% set monto_fmt = nota.monto | moneda2 %}
           {{ monto_fmt }}
         </td>
       </tr>
@@ -212,7 +212,7 @@
         <td colspan="2">
           {{ 'TOTAL NOTA CRÉDITO' if nota.tipo == 'credito' else 'TOTAL NOTA DÉBITO' }}
         </td>
-        <td class="text-right">{{ nota.monto | moneda }}</td>
+        <td class="text-right">{{ nota.monto | moneda2 }}</td>
       </tr>
     </tbody>
   </table>
@@ -226,14 +226,14 @@
         <strong>Débito:</strong>
         {% if nota.tipo == 'credito' %}4135 — Devoluciones en ventas{% else %}1305 — Clientes (cuentas por cobrar){% endif %}
       </span>
-      <span class="asiento-monto asiento-debe">{{ nota.monto | moneda }}</span>
+      <span class="asiento-monto asiento-debe">{{ nota.monto | moneda2 }}</span>
     </div>
     <div class="asiento-row">
       <span class="asiento-cuenta">
         <strong>Crédito:</strong>
         {% if nota.tipo == 'credito' %}1305 — Clientes (cuentas por cobrar){% else %}4135 — Ingresos por ventas{% endif %}
       </span>
-      <span class="asiento-monto asiento-haber">{{ nota.monto | moneda }}</span>
+      <span class="asiento-monto asiento-haber">{{ nota.monto | moneda2 }}</span>
     </div>
   </div>
   {% endif %}

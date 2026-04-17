@@ -65,17 +65,17 @@
             <td style="font-size:.85rem">{{ m.descripcion }}</td>
             <td class="text-end">
               {% if m.debe %}
-                <span class="text-success">{{ m.debe | moneda }}</span>
+                <span class="text-success">{{ m.debe | moneda2 }}</span>
               {% else %}—{% endif %}
             </td>
             <td class="text-end">
               {% if m.haber %}
-                <span class="text-danger">{{ m.haber | moneda }}</span>
+                <span class="text-danger">{{ m.haber | moneda2 }}</span>
               {% else %}—{% endif %}
             </td>
             <td class="text-end fw-bold"
                 style="color:{% if m.saldo_acum >= 0 %}var(--text){% else %}var(--red){% endif %}">
-              {{ m.saldo_acum | moneda }}
+              {{ m.saldo_acum | moneda2 }}
             </td>
           </tr>
           {% endfor %}
@@ -83,10 +83,10 @@
         <tfoot style="border-top:2px solid var(--ac)">
           <tr class="fw-bold">
             <td colspan="3">TOTALES</td>
-            <td class="text-end text-success">{{ total_debe | moneda }}</td>
-            <td class="text-end text-danger">{{ total_haber | moneda }}</td>
+            <td class="text-end text-success">{{ total_debe | moneda2 }}</td>
+            <td class="text-end text-danger">{{ total_haber | moneda2 }}</td>
             <td class="text-end" style="font-size:1.05rem;color:var(--ac)">
-              {{ saldo_final | moneda }}
+              {{ saldo_final | moneda2 }}
             </td>
           </tr>
         </tfoot>

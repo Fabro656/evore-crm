@@ -21,21 +21,21 @@
       <div class="row g-3 mb-3">
         <div class="col-md-4">
           <div class="sc text-center" style="border-top:3px solid var(--green)">
-            <div class="fw-bold" style="font-size:1.3rem;color:var(--green)">{{ moneda(iva_generado) }}</div>
+            <div class="fw-bold" style="font-size:1.3rem;color:var(--green)">{{ moneda2(iva_generado) }}</div>
             <small class="text-muted">IVA Generado (ventas)</small>
             <div style="font-size:.75rem;color:var(--text2)">{{ n_ventas }} venta(s)</div>
           </div>
         </div>
         <div class="col-md-4">
           <div class="sc text-center" style="border-top:3px solid var(--ac)">
-            <div class="fw-bold" style="font-size:1.3rem;color:var(--ac)">{{ moneda(iva_descontable) }}</div>
+            <div class="fw-bold" style="font-size:1.3rem;color:var(--ac)">{{ moneda2(iva_descontable) }}</div>
             <small class="text-muted">IVA Descontable (compras)</small>
             <div style="font-size:.75rem;color:var(--text2)">{{ n_compras }} OC(s)</div>
           </div>
         </div>
         <div class="col-md-4">
           <div class="sc text-center" style="border-top:3px solid {% if iva_a_pagar > 0 %}var(--red){% else %}var(--green){% endif %}">
-            <div class="fw-bold" style="font-size:1.3rem;color:{% if iva_a_pagar > 0 %}var(--red){% else %}var(--green){% endif %}">{{ moneda(iva_a_pagar) }}</div>
+            <div class="fw-bold" style="font-size:1.3rem;color:{% if iva_a_pagar > 0 %}var(--red){% else %}var(--green){% endif %}">{{ moneda2(iva_a_pagar) }}</div>
             <small class="text-muted">IVA a pagar DIAN</small>
             <div style="font-size:.72rem;color:var(--text2)">= Generado - Descontable</div>
           </div>

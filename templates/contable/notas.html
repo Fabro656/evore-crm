@@ -29,20 +29,20 @@
   <div class="col-6 col-md-3">
     <div class="tc text-center py-3">
       <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Notas crédito</div>
-      <div class="fw-bold mt-1" style="font-size:1.25rem;color:var(--red)">{{ moneda(total_credito) }}</div>
+      <div class="fw-bold mt-1" style="font-size:1.25rem;color:var(--red)">{{ moneda2(total_credito) }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="tc text-center py-3">
       <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Notas débito</div>
-      <div class="fw-bold mt-1" style="font-size:1.25rem;color:var(--green)">{{ moneda(total_debito) }}</div>
+      <div class="fw-bold mt-1" style="font-size:1.25rem;color:var(--green)">{{ moneda2(total_debito) }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="tc text-center py-3">
       <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Neto</div>
       <div class="fw-bold mt-1" style="font-size:1.25rem;color:{{ 'var(--green)' if total_debito >= total_credito else 'var(--red)' }}">
-        {{ moneda(total_debito - total_credito) }}
+        {{ moneda2(total_debito - total_credito) }}
       </div>
     </div>
   </div>
@@ -121,7 +121,7 @@
           <td style="font-size:.85rem;max-width:180px">
             <span title="{{ n.motivo }}">{{ n.motivo[:60] }}{% if n.motivo|length > 60 %}…{% endif %}</span>
           </td>
-          <td class="text-end fw-semibold" style="font-size:.9rem">{{ moneda(n.monto) }}</td>
+          <td class="text-end fw-semibold" style="font-size:.9rem">{{ moneda2(n.monto) }}</td>
           <td style="font-size:.82rem">
             {% if n.venta %}
               <a href="{{ url_for('venta_ver', id=n.venta_id) }}" style="color:var(--ac)">

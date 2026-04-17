@@ -23,19 +23,19 @@
   <div class="col-6 col-md-3">
     <div class="fc text-center py-3">
       <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Ingresos este mes</div>
-      <div class="fw-bold mt-1" style="font-size:1.25rem;color:var(--green)">{{ moneda(ingresos_mes) }}</div>
+      <div class="fw-bold mt-1" style="font-size:1.25rem;color:var(--green)">{{ moneda2(ingresos_mes) }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="fc text-center py-3">
       <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Egresos este mes</div>
-      <div class="fw-bold mt-1" style="font-size:1.25rem;color:var(--red)">{{ moneda(gastos_mes) }}</div>
+      <div class="fw-bold mt-1" style="font-size:1.25rem;color:var(--red)">{{ moneda2(gastos_mes) }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="fc text-center py-3" style="border:2px solid {{ '#00875A' if balance_mes >= 0 else '#DE350B' }}">
       <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Balance</div>
-      <div class="fw-bold mt-1" style="font-size:1.25rem;color:{{ '#00875A' if balance_mes >= 0 else '#DE350B' }}">{{ moneda(balance_mes) }}</div>
+      <div class="fw-bold mt-1" style="font-size:1.25rem;color:{{ '#00875A' if balance_mes >= 0 else '#DE350B' }}">{{ moneda2(balance_mes) }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
@@ -107,8 +107,8 @@
   <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:.82rem;color:var(--text2)">
     <span><i class="bi bi-journal-bookmark-fill me-2"></i>{{ asientos_filtrados|length }} asiento(s) contable(s)</span>
     <div class="d-flex gap-3">
-      <span class="text-success fw-semibold">Ingresos: {{ moneda(total_ingresos_list) }}</span>
-      <span class="text-danger fw-semibold">Egresos: {{ moneda(total_egresos_list) }}</span>
+      <span class="text-success fw-semibold">Ingresos: {{ moneda2(total_ingresos_list) }}</span>
+      <span class="text-danger fw-semibold">Egresos: {{ moneda2(total_egresos_list) }}</span>
     </div>
   </div>
 
@@ -156,14 +156,14 @@
           {# monto grande #}
           <div class="d-flex align-items-baseline justify-content-between mb-2" style="border-top:1px dashed var(--border);padding-top:.6rem">
             <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.5px">Monto</div>
-            <div class="fw-bold" style="font-size:1.15rem;color:{{ color }}">{{ moneda(monto or 0) }}</div>
+            <div class="fw-bold" style="font-size:1.15rem;color:{{ color }}">{{ moneda2(monto or 0) }}</div>
           </div>
           {# estado pago + badges #}
           <div class="mb-2" style="font-size:.72rem">
             {% if a.estado_pago == 'completo' %}
               <span class="badge bg-success">Pagado</span>
             {% elif a.estado_pago == 'parcial' %}
-              <span class="badge bg-warning text-dark">Parcial {{ moneda(a.monto_pagado or 0) }}</span>
+              <span class="badge bg-warning text-dark">Parcial {{ moneda2(a.monto_pagado or 0) }}</span>
             {% else %}
               <span class="badge bg-secondary">Pendiente</span>
             {% endif %}
@@ -182,7 +182,7 @@
             <button class="btn btn-sm btn-success dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.75rem"><i class="bi bi-check-circle me-1"></i>Pago</button>
             <div class="dropdown-menu p-2" style="min-width:min(200px, calc(100vw - 40px))" onclick="event.stopPropagation()">
               <form method="POST" action="{{ url_for('contable_confirmar_pago', id=a.id) }}{% if request.args.get('_embed')=='1' %}?_embed=1{% endif %}">
-                <small class="fw-bold d-block mb-1">{{ a.numero }} — {{ moneda(a.debe or 0) }}</small>
+                <small class="fw-bold d-block mb-1">{{ a.numero }} — {{ moneda2(a.debe or 0) }}</small>
                 <div class="mb-1"><select name="tipo_pago" class="form-select form-select-sm" onchange="this.closest('form').querySelector('[name=monto_pago]').style.display=this.value==='total'?'none':''">
                   <option value="total">Pago total</option><option value="parcial">Parcial</option></select></div>
                 <input type="number" name="monto_pago" class="form-control form-control-sm mb-1" step="0.01" inputmode="decimal" value="{{ '%.2f'|format((a.debe or 0) - (a.monto_pagado or 0)) }}" style="display:none" min="0.01">
@@ -197,7 +197,7 @@
             <button class="btn btn-sm btn-success dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.75rem"><i class="bi bi-check-circle me-1"></i>Cobro</button>
             <div class="dropdown-menu p-2" style="min-width:min(200px, calc(100vw - 40px))" onclick="event.stopPropagation()">
               <form method="POST" action="{{ url_for('contable_confirmar_ingreso', id=a.id) }}{% if request.args.get('_embed')=='1' %}?_embed=1{% endif %}">
-                <small class="fw-bold d-block mb-1">{{ a.numero }} — {{ moneda(a.haber or 0) }}</small>
+                <small class="fw-bold d-block mb-1">{{ a.numero }} — {{ moneda2(a.haber or 0) }}</small>
                 <div class="mb-1"><select name="tipo_pago" class="form-select form-select-sm" onchange="this.closest('form').querySelector('[name=monto_pago]').style.display=this.value==='total'?'none':''">
                   <option value="total">Cobro total</option><option value="parcial">Parcial</option></select></div>
                 <input type="number" name="monto_pago" class="form-control form-control-sm mb-1" step="0.01" inputmode="decimal" value="{{ '%.2f'|format((a.haber or 0) - (a.monto_pagado or 0)) }}" style="display:none" min="0.01">

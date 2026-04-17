@@ -15,7 +15,7 @@ __all__ = [
     'TASA_CAJA_COMP', 'TASA_SENA', 'TASA_ICBF', 'TASA_ARL',
     'TASA_CESANTIAS', 'TASA_INT_CESANTIAS', 'TASA_PRIMA', 'TASA_VACACIONES',
     # Helpers
-    'cop', 'moneda', 'moneda0', 'num_es', '_parse_decimal',
+    'cop', 'moneda', 'moneda0', 'moneda2', 'num_es', '_parse_decimal',
     '_usuarios_empresa_activa', '_user_en_empresa_activa',
     'requiere_modulo', 'inject_globals',
     '_send_email', '_log', '_crear_notificacion', '_crear_asiento_auto',
@@ -419,6 +419,10 @@ def moneda(value):
 
 def moneda0(value):
     return _format_currency(value, 0)
+
+def moneda2(value):
+    """Formato monetario siempre con 2 decimales. Util en asientos contables."""
+    return _format_currency(value, 2)
 
 _PORTAL_MODULOS = {'portal_cliente', 'portal_proveedor'}
 
@@ -1930,10 +1934,12 @@ def register_app_hooks(app):
     app.template_filter('cop')(cop)
     app.template_filter('moneda')(moneda)
     app.template_filter('moneda0')(moneda0)
+    app.template_filter('moneda2')(moneda2)
     app.template_filter('num_es')(num_es)
     # Also register as Jinja globals so they can be called as functions: {{ moneda(value) }}
     app.jinja_env.globals['moneda'] = moneda
     app.jinja_env.globals['moneda0'] = moneda0
+    app.jinja_env.globals['moneda2'] = moneda2
     app.jinja_env.globals['cop'] = cop
     app.jinja_env.globals['num_es'] = num_es
     app.context_processor(inject_globals)

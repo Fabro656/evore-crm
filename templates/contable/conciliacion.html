@@ -118,8 +118,8 @@
     <div class="fc text-center py-3">
       <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Débitos / Créditos</div>
       <div class="mt-1">
-        <span style="font-size:.9rem;color:var(--red);font-weight:600">− {{ moneda(suma_debitos) }}</span><br>
-        <span style="font-size:.9rem;color:var(--green);font-weight:600">+ {{ moneda(suma_creditos) }}</span>
+        <span style="font-size:.9rem;color:var(--red);font-weight:600">− {{ moneda2(suma_debitos) }}</span><br>
+        <span style="font-size:.9rem;color:var(--green);font-weight:600">+ {{ moneda2(suma_creditos) }}</span>
       </div>
     </div>
   </div>
@@ -161,13 +161,13 @@
           </td>
           <td style="color:var(--text2);white-space:nowrap">{{ mov.referencia or '—' }}</td>
           <td class="text-end" style="color:var(--red);white-space:nowrap">
-            {% if mov.tipo == 'debito' %}{{ moneda(mov.monto) }}{% else %}—{% endif %}
+            {% if mov.tipo == 'debito' %}{{ moneda2(mov.monto) }}{% else %}—{% endif %}
           </td>
           <td class="text-end" style="color:var(--green);white-space:nowrap">
-            {% if mov.tipo == 'credito' %}{{ moneda(mov.monto) }}{% else %}—{% endif %}
+            {% if mov.tipo == 'credito' %}{{ moneda2(mov.monto) }}{% else %}—{% endif %}
           </td>
           <td class="text-end" style="color:var(--text2);white-space:nowrap">
-            {{ moneda(mov.saldo) if mov.saldo is not none else '—' }}
+            {{ moneda2(mov.saldo) if mov.saldo is not none else '—' }}
           </td>
           <td class="text-center">
             {% if mov.conciliado %}
@@ -204,7 +204,7 @@
                   {% for a in asientos_disponibles %}
                   <option value="{{ a.id }}">
                     {{ a.numero }} | {{ a.fecha.strftime('%d/%m/%y') if a.fecha else '' }}
-                    | {{ moneda(a.debe if a.clasificacion == 'egreso' else a.haber) }}
+                    | {{ moneda2(a.debe if a.clasificacion == 'egreso' else a.haber) }}
                     | {{ a.descripcion[:40] }}
                   </option>
                   {% endfor %}

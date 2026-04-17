@@ -26,9 +26,9 @@
         <td><a href="{{ url_for('contable_comprobante', id=f.linea.asiento.id) }}" style="color:var(--ac)">{{ f.linea.asiento.numero }}</a></td>
         <td style="font-size:.85rem">{{ f.linea.descripcion or f.linea.asiento.descripcion }}</td>
         <td><small>{{ f.linea.tercero_nit or '' }}</small></td>
-        <td class="text-end">{% if f.linea.debe %}{{ moneda(f.linea.debe) }}{% endif %}</td>
-        <td class="text-end">{% if f.linea.haber %}{{ moneda(f.linea.haber) }}{% endif %}</td>
-        <td class="text-end fw-bold" style="color:{% if f.saldo_acum >= 0 %}var(--text){% else %}var(--red){% endif %}">{{ moneda(f.saldo_acum) }}</td>
+        <td class="text-end">{% if f.linea.debe %}{{ moneda2(f.linea.debe) }}{% endif %}</td>
+        <td class="text-end">{% if f.linea.haber %}{{ moneda2(f.linea.haber) }}{% endif %}</td>
+        <td class="text-end fw-bold" style="color:{% if f.saldo_acum >= 0 %}var(--text){% else %}var(--red){% endif %}">{{ moneda2(f.saldo_acum) }}</td>
       </tr>
       {% endfor %}
       </tbody>
@@ -36,7 +36,7 @@
         <tr class="fw-bold">
           <td colspan="4">SALDO FINAL</td>
           <td></td><td></td>
-          <td class="text-end" style="font-size:1.05rem;color:var(--ac)">{{ moneda(saldo_final) }}</td>
+          <td class="text-end" style="font-size:1.05rem;color:var(--ac)">{{ moneda2(saldo_final) }}</td>
         </tr>
       </tfoot>
     </table>

@@ -26,7 +26,7 @@
         <hr style="border-color:var(--border)">
         <div class="d-flex justify-content-between fw-bold" style="font-size:1.05rem">
           <span>TOTAL ACTIVOS</span>
-          <span style="color:var(--ac)">{{ moneda(activos) }}</span>
+          <span style="color:var(--ac)">{{ moneda2(activos) }}</span>
         </div>
       </div>
     </div>
@@ -44,7 +44,7 @@
         <hr style="border-color:var(--border)">
         <div class="d-flex justify-content-between fw-bold">
           <span>TOTAL PASIVOS</span>
-          <span>{{ moneda(pasivos) }}</span>
+          <span>{{ moneda2(pasivos) }}</span>
         </div>
       </div>
     </div>
@@ -60,7 +60,7 @@
         <hr style="border-color:var(--border)">
         <div class="d-flex justify-content-between fw-bold">
           <span>TOTAL PATRIMONIO</span>
-          <span>{{ moneda(patrimonio) }}</span>
+          <span>{{ moneda2(patrimonio) }}</span>
         </div>
       </div>
     </div>
@@ -68,10 +68,10 @@
       <div class="p-3">
         <div class="d-flex justify-content-between fw-bold" style="font-size:1.05rem">
           <span>PASIVOS + PATRIMONIO</span>
-          <span style="color:{% if ((pasivos or 0) + (patrimonio or 0))|round == (activos or 0)|round %}var(--green){% else %}var(--red){% endif %}">{{ moneda(pasivos + patrimonio) }}</span>
+          <span style="color:{% if ((pasivos or 0) + (patrimonio or 0))|round == (activos or 0)|round %}var(--green){% else %}var(--red){% endif %}">{{ moneda2(pasivos + patrimonio) }}</span>
         </div>
         {% if (pasivos + patrimonio)|round != activos|round %}
-        <small style="color:var(--red)">Diferencia: {{ moneda((activos or 0) - (pasivos or 0) - (patrimonio or 0)) }} — El balance no cuadra.</small>
+        <small style="color:var(--red)">Diferencia: {{ moneda2((activos or 0) - (pasivos or 0) - (patrimonio or 0)) }} — El balance no cuadra.</small>
         {% else %}
         <small style="color:var(--green)">Balance cuadrado.</small>
         {% endif %}

@@ -22,11 +22,11 @@
         <div class="col-md-3"><div class="fw-bold" style="font-size:1.5rem;color:var(--ac)">{{ total_asientos }}</div><small class="text-muted">Asientos</small></div>
         <div class="col-md-3"><div class="fw-bold" style="font-size:1.5rem;color:var(--orange)">{{ n_borrador }}</div><small class="text-muted">En borrador</small></div>
         <div class="col-md-3"><div class="fw-bold" style="font-size:1.5rem;color:var(--green)">{{ n_aprobado }}</div><small class="text-muted">Aprobados</small></div>
-        <div class="col-md-3"><div class="fw-bold" style="font-size:1.5rem;color:{% if diferencia > 0 %}var(--red){% else %}var(--green){% endif %}">{{ moneda(diferencia) }}</div><small class="text-muted">Diferencia D-H</small></div>
+        <div class="col-md-3"><div class="fw-bold" style="font-size:1.5rem;color:{% if diferencia > 0 %}var(--red){% else %}var(--green){% endif %}">{{ moneda2(diferencia) }}</div><small class="text-muted">Diferencia D-H</small></div>
       </div>
       <div class="row g-3 mt-2">
-        <div class="col-md-6"><div class="sim-sr"><span>Total Debe</span><strong>{{ moneda(total_debe) }}</strong></div></div>
-        <div class="col-md-6"><div class="sim-sr"><span>Total Haber</span><strong>{{ moneda(total_haber) }}</strong></div></div>
+        <div class="col-md-6"><div class="sim-sr"><span>Total Debe</span><strong>{{ moneda2(total_debe) }}</strong></div></div>
+        <div class="col-md-6"><div class="sim-sr"><span>Total Haber</span><strong>{{ moneda2(total_haber) }}</strong></div></div>
       </div>
     </div>
   </div>

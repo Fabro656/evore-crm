@@ -17,19 +17,19 @@
       <tr>
         <td><a href="{{ url_for('contable_auxiliar', codigo=f.cuenta.codigo, periodo=periodo) }}" style="color:var(--ac)">{{ f.cuenta.codigo }}</a></td>
         <td>{{ f.cuenta.nombre }}</td>
-        <td class="text-end">{{ moneda(f.debe) }}</td>
-        <td class="text-end">{{ moneda(f.haber) }}</td>
-        <td class="text-end fw-bold" style="color:{% if f.saldo >= 0 %}var(--green){% else %}var(--red){% endif %}">{{ moneda(f.saldo) }}</td>
+        <td class="text-end">{{ moneda2(f.debe) }}</td>
+        <td class="text-end">{{ moneda2(f.haber) }}</td>
+        <td class="text-end fw-bold" style="color:{% if f.saldo >= 0 %}var(--green){% else %}var(--red){% endif %}">{{ moneda2(f.saldo) }}</td>
       </tr>
       {% endfor %}
       </tbody>
       <tfoot style="border-top:2px solid var(--ac)">
         <tr class="fw-bold">
           <td colspan="2">TOTALES</td>
-          <td class="text-end">{{ moneda(total_debe) }}</td>
-          <td class="text-end">{{ moneda(total_haber) }}</td>
+          <td class="text-end">{{ moneda2(total_debe) }}</td>
+          <td class="text-end">{{ moneda2(total_haber) }}</td>
           <td class="text-end" style="color:{% if total_debe == total_haber %}var(--green){% else %}var(--red){% endif %}">
-            {% if total_debe == total_haber %}Cuadrado{% else %}Diferencia: {{ moneda(total_debe - total_haber) }}{% endif %}
+            {% if total_debe == total_haber %}Cuadrado{% else %}Diferencia: {{ moneda2(total_debe - total_haber) }}{% endif %}
           </td>
         </tr>
       </tfoot>

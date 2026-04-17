@@ -46,7 +46,7 @@
         <option value="{{ v.id }}">
           {{ v.numero or ('#' ~ v.id) }}
           {% if v.cliente %} — {{ v.cliente.nombre }}{% endif %}
-          — {{ moneda(v.total or 0) }}
+          — {{ moneda2(v.total or 0) }}
         </option>
         {% endfor %}
       </select>

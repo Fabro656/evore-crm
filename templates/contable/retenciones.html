@@ -18,19 +18,19 @@
   <div class="row g-3 mb-3">
     <div class="col-md-4">
       <div class="sc text-center" style="border-top:3px solid var(--orange)">
-        <div class="fw-bold" style="font-size:1.3rem;color:var(--orange)">{{ moneda(total_base) }}</div>
+        <div class="fw-bold" style="font-size:1.3rem;color:var(--orange)">{{ moneda2(total_base) }}</div>
         <small class="text-muted">Base sujeta a retención</small>
       </div>
     </div>
     <div class="col-md-4">
       <div class="sc text-center" style="border-top:3px solid var(--red)">
-        <div class="fw-bold" style="font-size:1.3rem;color:var(--red)">{{ moneda(total_retenido) }}</div>
+        <div class="fw-bold" style="font-size:1.3rem;color:var(--red)">{{ moneda2(total_retenido) }}</div>
         <small class="text-muted">Total retenido ({{ tasa }}%)</small>
       </div>
     </div>
     <div class="col-md-4">
       <div class="sc text-center">
-        <div class="fw-bold" style="font-size:1rem;color:var(--text2)">{{ moneda(base_minima) }}</div>
+        <div class="fw-bold" style="font-size:1rem;color:var(--text2)">{{ moneda2(base_minima) }}</div>
         <small class="text-muted">Base minima (27 UVT)</small>
       </div>
     </div>
@@ -48,16 +48,16 @@
           <td><small>{{ d.fecha.strftime('%d/%m/%Y') if d.fecha else '--' }}</small></td>
           <td style="font-size:.85rem">{{ d.nombre[:40] }}</td>
           <td><small class="text-muted">{{ d.proveedor[:30] }}</small></td>
-          <td class="text-end">{{ moneda(d.base) }}</td>
-          <td class="text-end fw-bold" style="color:var(--red)">{{ moneda(d.retencion) }}</td>
+          <td class="text-end">{{ moneda2(d.base) }}</td>
+          <td class="text-end fw-bold" style="color:var(--red)">{{ moneda2(d.retencion) }}</td>
         </tr>
         {% endfor %}
         </tbody>
         <tfoot>
           <tr class="fw-bold" style="background:var(--surface2)">
             <td colspan="3">Total</td>
-            <td class="text-end">{{ moneda(total_base) }}</td>
-            <td class="text-end" style="color:var(--red)">{{ moneda(total_retenido) }}</td>
+            <td class="text-end">{{ moneda2(total_base) }}</td>
+            <td class="text-end" style="color:var(--red)">{{ moneda2(total_retenido) }}</td>
           </tr>
         </tfoot>
       </table>
@@ -68,7 +68,7 @@
   {% endif %}
 
   <div class="alert alert-info mt-3 py-2" style="font-size:.82rem">
-    <strong>Retencion en la fuente (Art. 392 ET):</strong> Se aplica {{ tasa }}% sobre compras y servicios superiores a 27 UVT ({{ moneda(base_minima) }}).
+    <strong>Retencion en la fuente (Art. 392 ET):</strong> Se aplica {{ tasa }}% sobre compras y servicios superiores a 27 UVT ({{ moneda2(base_minima) }}).
     Cuenta PUC: 236540 Compras. Se declara mensualmente ante la DIAN.
   </div>
 </div>
