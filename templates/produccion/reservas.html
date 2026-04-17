@@ -116,8 +116,8 @@
     <div class="d-flex flex-wrap gap-2">
       {% for f in val.faltantes %}
       <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" style="font-size:.78rem">
-        {{ f.nombre }}: necesario {{ '%.3f'|format(f.necesario) }} — disponible {{ '%.3f'|format(f.disponible) }}
-        <strong>(falta {{ '%.3f'|format(f.falta) }} {{ f.unidad }})</strong>
+        {{ f.nombre }}: necesario {{ '%.2f'|format(f.necesario) }} — disponible {{ '%.2f'|format(f.disponible) }}
+        <strong>(falta {{ '%.2f'|format(f.falta) }} {{ f.unidad }})</strong>
       </span>
       {% endfor %}
     </div>
@@ -181,15 +181,15 @@
           <span class="text-muted" style="font-size:.8rem">— Sin lote asignado —</span>
         {% endif %}
       </td>
-      <td class="text-end fw-semibold">{{ '%.3f'|format(r.cantidad) }}</td>
+      <td class="text-end fw-semibold">{{ '%.2f'|format(r.cantidad) }}</td>
       <td class="text-end">
         {% if es_faltante %}
           <span class="text-danger fw-semibold">0</span>
         {% elif lote %}
           {% if lote.cantidad_disponible >= r.cantidad %}
-            <span class="text-success fw-semibold">{{ '%.3f'|format(lote.cantidad_disponible) }}</span>
+            <span class="text-success fw-semibold">{{ '%.2f'|format(lote.cantidad_disponible) }}</span>
           {% else %}
-            <span class="text-danger fw-semibold">{{ '%.3f'|format(lote.cantidad_disponible) }}
+            <span class="text-danger fw-semibold">{{ '%.2f'|format(lote.cantidad_disponible) }}
               <i class="bi bi-exclamation-circle" title="Insuficiente en este lote"></i>
             </span>
           {% endif %}
@@ -236,9 +236,9 @@
             data-reserva="{{ r.id }}"
             data-materia="{{ r.materia.nombre }}"
             data-unidad="{{ r.materia.unidad }}"
-            data-reservado="{{ '%.3f'|format(r.cantidad) }}"
+            data-reservado="{{ '%.2f'|format(r.cantidad) }}"
             data-disponible="0"
-            data-faltante="{{ '%.3f'|format(r.cantidad) }}"
+            data-faltante="{{ '%.2f'|format(r.cantidad) }}"
             onclick="prepFalta(this)">
             <i class="bi bi-cart-plus me-1"></i>Solicitar compra
           </button>
@@ -304,13 +304,13 @@
           <span class="text-muted">—</span>
         {% endif %}
       </td>
-      <td class="text-end fw-semibold">{{ '%.3f'|format(r.cantidad) }}</td>
+      <td class="text-end fw-semibold">{{ '%.2f'|format(r.cantidad) }}</td>
       <td class="text-end">
         {% set disp = (r.materia.stock_disponible or 0)|float %}
         {% if disp < r.cantidad %}
-          <span class="text-danger fw-semibold">{{ '%.3f'|format(disp) }} <i class="bi bi-exclamation-circle"></i></span>
+          <span class="text-danger fw-semibold">{{ '%.2f'|format(disp) }} <i class="bi bi-exclamation-circle"></i></span>
         {% else %}
-          <span class="text-success">{{ '%.3f'|format(disp) }}</span>
+          <span class="text-success">{{ '%.2f'|format(disp) }}</span>
         {% endif %}
       </td>
       <td>{{ r.producto.nombre if r.producto else '—' }}</td>
@@ -335,11 +335,11 @@
             data-reserva="{{ r.id }}"
             data-materia="{{ r.materia.nombre }}"
             data-unidad="{{ r.materia.unidad }}"
-            data-reservado="{{ '%.3f'|format(r.cantidad) }}"
-            data-disponible="{{ '%.3f'|format(r.materia.stock_disponible) }}"
-            data-faltante="{{ '%.3f'|format(faltante_real) }}"
+            data-reservado="{{ '%.2f'|format(r.cantidad) }}"
+            data-disponible="{{ '%.2f'|format(r.materia.stock_disponible) }}"
+            data-faltante="{{ '%.2f'|format(faltante_real) }}"
             onclick="prepFalta(this)">
-            <i class="bi bi-exclamation-triangle me-1"></i>Falta {{ '%.3f'|format(faltante_real) }} {{ r.materia.unidad }}
+            <i class="bi bi-exclamation-triangle me-1"></i>Falta {{ '%.2f'|format(faltante_real) }} {{ r.materia.unidad }}
           </button>
           {% endif %}
           {% endif %}
