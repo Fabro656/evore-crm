@@ -93,11 +93,26 @@ def register(app):
         hoy = date.today()
         mes_inicio = hoy.replace(day=1)
         try:
-            ingresos = db.session.query(db.func.sum(Venta.total)).filter(Venta.estado.in_(['completado','pagado'])).scalar() or 0
-            gastos_tot = db.session.query(db.func.sum(GastoOperativo.monto)).scalar() or 0
-            gastos_mes = db.session.query(db.func.sum(GastoOperativo.monto)).filter(GastoOperativo.fecha >= mes_inicio).scalar() or 0
-            compras_tot = db.session.query(db.func.sum(CompraMateria.costo_total)).scalar() or 0
-            saldo_pend = db.session.query(db.func.sum(Venta.saldo)).filter(Venta.estado.in_(['anticipo_pagado','negociacion'])).scalar() or 0
+            # Ingresos = efectivo realmente cobrado (asientos ingreso parcial/completo),
+            # filtrado por company_id. Antes se usaba Venta.total con estados limitados
+            # (['completado','pagado']) y se perdian los anticipos recibidos.
+            ingresos = tenant_query(AsientoContable).filter(
+                AsientoContable.clasificacion == 'ingreso',
+                AsientoContable.tipo != 'inversion_socio',
+                AsientoContable.estado_pago.in_(['parcial', 'completo'])
+            ).with_entities(db.func.coalesce(db.func.sum(AsientoContable.monto_pagado), 0)).scalar() or 0
+            ingresos = float(ingresos)
+            gastos_tot = tenant_query(GastoOperativo).with_entities(
+                db.func.coalesce(db.func.sum(GastoOperativo.monto), 0)).scalar() or 0
+            gastos_mes = tenant_query(GastoOperativo).filter(
+                GastoOperativo.fecha >= mes_inicio
+            ).with_entities(db.func.coalesce(db.func.sum(GastoOperativo.monto), 0)).scalar() or 0
+            compras_tot = tenant_query(CompraMateria).with_entities(
+                db.func.coalesce(db.func.sum(CompraMateria.costo_total), 0)).scalar() or 0
+            saldo_pend = tenant_query(Venta).filter(
+                Venta.saldo > 0,
+                Venta.estado.in_(['prospecto', 'negociacion', 'anticipo_pagado'])
+            ).with_entities(db.func.coalesce(db.func.sum(Venta.saldo), 0)).scalar() or 0
         except Exception:
             db.session.rollback()
             ingresos = gastos_tot = gastos_mes = compras_tot = saldo_pend = 0
@@ -367,7 +382,14 @@ def register(app):
         from calendar import month_abbr
         # Estadísticas generales
         _cid2 = getattr(g, 'company_id', None) or current_user.company_id
-        ingresos_totales = db.session.query(db.func.sum(Venta.total)).filter(Venta.estado.in_(['completado','anticipo_pagado']), Venta.company_id==_cid2).scalar() or 0
+        # Ingresos reales = efectivo cobrado (asientos ingreso con pago confirmado)
+        ingresos_totales = db.session.query(db.func.coalesce(db.func.sum(AsientoContable.monto_pagado), 0)).filter(
+            AsientoContable.company_id == _cid2,
+            AsientoContable.clasificacion == 'ingreso',
+            AsientoContable.tipo != 'inversion_socio',
+            AsientoContable.estado_pago.in_(['parcial', 'completo'])
+        ).scalar() or 0
+        ingresos_totales = float(ingresos_totales)
         gastos_totales   = db.session.query(db.func.sum(GastoOperativo.monto)).filter(GastoOperativo.company_id==_cid2).scalar() or 0
         balance          = ingresos_totales - gastos_totales
         total_clientes   = tenant_query(Cliente).filter_by(estado='activo', company_id=_cid2).count()
