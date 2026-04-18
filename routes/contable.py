@@ -37,33 +37,48 @@ def register(app):
             d = (hoy.replace(day=1) - timedelta(days=i * 28)).replace(day=1)
             meses_nav.append({'val': d.strftime('%Y-%m'), 'lbl': d.strftime('%b %Y')})
 
-        # ── Ventas realizadas en el mes (todas las creadas en el mes, sin
-        # cancelar/perder). Esto NO implica facturacion — una venta realizada
-        # puede estar sin cobro o con cobro parcial.
-        ventas_mes = tenant_query(Venta).filter(
-            db.func.date(Venta.creado_en) >= mes_ini,
-            db.func.date(Venta.creado_en) <= mes_fin,
-            Venta.estado.notin_(['cancelado', 'perdido'])
-        ).all()
-        total_ventas = sum(float(v.total or 0) for v in ventas_mes)  # realizadas
-        total_anticipo = sum(float(v.monto_anticipo or 0) for v in ventas_mes)
-
-        # ── Ventas facturadas en el mes: se facturan cuando el cobro queda
-        # completo (monto_pagado == total del asiento). Usa la fecha_pago del
-        # asiento que las termino de cobrar, NO la fecha de creacion de la venta.
+        # ── Ventas realizadas en el mes: ventas cuyo primer cobro confirmado
+        # (anticipo O pago total si se pago directamente) cayo en el mes.
+        # Si una venta todavia no tiene cobros, NO cuenta.
+        # Si la venta fue creada en abril pero el anticipo se recibio en mayo,
+        # se cuenta como "realizada en mayo".
         try:
-            asientos_completos_ing = tenant_query(AsientoContable).filter(
+            asientos_con_pago = tenant_query(AsientoContable).filter(
                 AsientoContable.clasificacion == 'ingreso',
-                AsientoContable.estado_pago == 'completo',
+                AsientoContable.estado_pago.in_(['parcial', 'completo']),
                 AsientoContable.venta_id.isnot(None)
             ).all()
-            def _fecha_fact(a):
+            def _f_pago(a):
                 return a.fecha_pago or a.fecha
+            # venta_id → fecha del primer pago confirmado
+            primera_fecha_por_venta = {}
+            for a in asientos_con_pago:
+                f = _f_pago(a)
+                if not f:
+                    continue
+                cur = primera_fecha_por_venta.get(a.venta_id)
+                if not cur or f < cur:
+                    primera_fecha_por_venta[a.venta_id] = f
+            ventas_realizadas_ids = {vid for vid, f in primera_fecha_por_venta.items()
+                                     if mes_ini <= f <= mes_fin}
+            ventas_mes = (Venta.query.filter(Venta.id.in_(ventas_realizadas_ids),
+                                             Venta.estado.notin_(['cancelado','perdido'])).all()
+                          if ventas_realizadas_ids else [])
+        except Exception:
+            db.session.rollback()
+            ventas_mes = []
+        total_ventas = sum(float(v.total or 0) for v in ventas_mes)
+        total_anticipo = sum(float(v.monto_anticipo or 0) for v in ventas_mes)
+
+        # ── Ventas facturadas en el mes: venta completamente cobrada
+        # (asiento con estado_pago='completo'), fecha_pago del asiento en el mes.
+        try:
             ventas_facturadas_ids = set()
-            for a in asientos_completos_ing:
-                f = _fecha_fact(a)
-                if f and mes_ini <= f <= mes_fin:
-                    ventas_facturadas_ids.add(a.venta_id)
+            for a in asientos_con_pago:
+                if a.estado_pago == 'completo':
+                    f = _f_pago(a)
+                    if f and mes_ini <= f <= mes_fin:
+                        ventas_facturadas_ids.add(a.venta_id)
             ventas_facturadas = (Venta.query.filter(Venta.id.in_(ventas_facturadas_ids)).all()
                                  if ventas_facturadas_ids else [])
             total_ventas_facturadas = sum(float(v.total or 0) for v in ventas_facturadas)
