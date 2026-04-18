@@ -2403,6 +2403,14 @@ def _migrate(conn):
         # ── Cotizacion items: unidades equivalentes cuando se cotiza en peso ──
         ("ALTER TABLE cotizacion_items ADD COLUMN IF NOT EXISTS unidades_equivalentes FLOAT"),
         ("ALTER TABLE cotizacion_items ADD COLUMN unidades_equivalentes FLOAT"),
+        # ── Backfill: eliminar asientos huerfanos de OCs borradas ──
+        # Antes del fix de eliminar OC, al borrar una OC su asiento auto
+        # generado se quedaba huerfano (orden_compra_id NULL) pero seguia
+        # contabilizandose. Eliminamos los que son de subtipo 'orden_compra'
+        # o 'anticipo_oc', en borrador o NULL, sin OC vinculada.
+        ("DELETE FROM asientos_contables WHERE subtipo IN ('orden_compra', 'anticipo_oc') AND (estado_asiento = 'borrador' OR estado_asiento IS NULL) AND orden_compra_id IS NULL"),
+        # Mismo caso para anticipos de venta huerfanos (si la venta se borro)
+        ("DELETE FROM asientos_contables WHERE subtipo IN ('anticipo_venta', 'ingreso_venta') AND (estado_asiento = 'borrador' OR estado_asiento IS NULL) AND venta_id IS NULL"),
         # ── Backfill: restaurar tipo de asientos manualizados por error ──
         # Asientos con venta_id o orden_compra_id NO deberian ser 'manual':
         # son asientos generados desde ventas/OCs. Restaurar el tipo correcto.
