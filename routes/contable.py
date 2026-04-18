@@ -891,35 +891,15 @@ def register(app):
         mes_ini = date_type(anio, mes, 1)
         mes_fin = date_type(anio, mes, monthrange(anio, mes)[1])
 
-        # Acumular por cuenta_puc_id
+        # Acumular por cuenta_puc_id — solo desde legacy (LineaAsiento es
+        # redundante con legacy en este CRM y agregar ambas duplica)
         totales = {}  # puc_id -> [total_debe, total_haber]
 
-        # 1) Desde LineaAsiento
-        q_la = db.session.query(
-            LineaAsiento.cuenta_puc_id,
-            db.func.sum(LineaAsiento.debe).label('total_debe'),
-            db.func.sum(LineaAsiento.haber).label('total_haber')
-        ).join(AsientoContable, LineaAsiento.asiento_id == AsientoContable.id).filter(
-            AsientoContable.fecha >= mes_ini,
-            AsientoContable.fecha <= mes_fin,
-            db.or_(AsientoContable.estado_asiento.is_(None),
-                   AsientoContable.estado_asiento != 'anulado')
-        )
-        cid = getattr(g, 'company_id', None)
-        if cid:
-            q_la = q_la.filter(AsientoContable.company_id == cid)
-        for cuenta_id, td, th in q_la.group_by(LineaAsiento.cuenta_puc_id).all():
-            totales.setdefault(cuenta_id, [0.0, 0.0])
-            totales[cuenta_id][0] += float(td or 0)
-            totales[cuenta_id][1] += float(th or 0)
-
-        # 2) Desde AsientoContable legacy SIN LineaAsiento (evita doble conteo)
         legacy = tenant_query(AsientoContable).filter(
             AsientoContable.fecha >= mes_ini,
             AsientoContable.fecha <= mes_fin,
             db.or_(AsientoContable.estado_asiento.is_(None),
-                   AsientoContable.estado_asiento != 'anulado'),
-            ~AsientoContable.lineas.any()
+                   AsientoContable.estado_asiento != 'anulado')
         ).all()
         # Cache codigo -> cuenta_puc_id
         cache_codigo_puc = {}
@@ -973,37 +953,21 @@ def register(app):
             fecha_corte = date_type.today()
 
         def _saldo_clase(prefijo):
-            # 1) Desde LineaAsiento (partida doble estructurada con PUC)
-            q_la = db.session.query(
-                db.func.coalesce(db.func.sum(LineaAsiento.debe), 0),
-                db.func.coalesce(db.func.sum(LineaAsiento.haber), 0)
-            ).join(AsientoContable, LineaAsiento.asiento_id == AsientoContable.id
-            ).join(CuentaPUC, LineaAsiento.cuenta_puc_id == CuentaPUC.id).filter(
-                AsientoContable.fecha <= fecha_corte,
-                db.or_(AsientoContable.estado_asiento.is_(None), AsientoContable.estado_asiento != 'anulado'),
-                CuentaPUC.codigo.startswith(prefijo)
-            )
-            cid = getattr(g, 'company_id', None)
-            if cid:
-                q_la = q_la.filter(AsientoContable.company_id == cid)
-            la = q_la.first()
-            td = float(la[0] or 0)
-            th = float(la[1] or 0)
-            # 2) Desde campos legacy de AsientoContable SOLO para asientos SIN
-            # LineaAsiento (evita doble conteo cuando existen ambas fuentes).
+            # Usamos SOLO los campos legacy de AsientoContable (cuenta_debe,
+            # cuenta_haber, debe, haber) porque _crear_asiento_auto siempre los
+            # llena — y tambien crea LineaAsiento rows, pero esas son redundantes
+            # (mismo monto, mismos PUCs). Usar ambas fuentes duplica.
             ac_debe_val = tenant_query(AsientoContable).filter(
                 AsientoContable.fecha <= fecha_corte,
                 db.or_(AsientoContable.estado_asiento.is_(None), AsientoContable.estado_asiento != 'anulado'),
-                AsientoContable.cuenta_debe.like(f'{prefijo}%'),
-                ~AsientoContable.lineas.any()
+                AsientoContable.cuenta_debe.like(f'{prefijo}%')
             ).with_entities(db.func.coalesce(db.func.sum(AsientoContable.debe), 0)).scalar() or 0
             ac_haber_val = tenant_query(AsientoContable).filter(
                 AsientoContable.fecha <= fecha_corte,
                 db.or_(AsientoContable.estado_asiento.is_(None), AsientoContable.estado_asiento != 'anulado'),
-                AsientoContable.cuenta_haber.like(f'{prefijo}%'),
-                ~AsientoContable.lineas.any()
+                AsientoContable.cuenta_haber.like(f'{prefijo}%')
             ).with_entities(db.func.coalesce(db.func.sum(AsientoContable.haber), 0)).scalar() or 0
-            return td + float(ac_debe_val), th + float(ac_haber_val)
+            return float(ac_debe_val), float(ac_haber_val)
 
         td1, th1 = _saldo_clase('1')
         activos = td1 - th1
@@ -1043,36 +1007,18 @@ def register(app):
         mes_fin = date_type(anio, mes, monthrange(anio, mes)[1])
 
         def _total_clase(prefijo):
-            # 1) LineaAsiento con PUC
-            q_la = db.session.query(
-                db.func.coalesce(db.func.sum(LineaAsiento.debe), 0),
-                db.func.coalesce(db.func.sum(LineaAsiento.haber), 0)
-            ).join(AsientoContable, LineaAsiento.asiento_id == AsientoContable.id
-            ).join(CuentaPUC, LineaAsiento.cuenta_puc_id == CuentaPUC.id).filter(
-                AsientoContable.fecha >= mes_ini, AsientoContable.fecha <= mes_fin,
-                db.or_(AsientoContable.estado_asiento.is_(None), AsientoContable.estado_asiento != 'anulado'),
-                CuentaPUC.codigo.startswith(prefijo)
-            )
-            cid = getattr(g, 'company_id', None)
-            if cid:
-                q_la = q_la.filter(AsientoContable.company_id == cid)
-            la = q_la.first()
-            td = float(la[0] or 0)
-            th = float(la[1] or 0)
-            # 2) Legacy AsientoContable SIN LineaAsiento (evita doble conteo)
+            # Solo legacy — LineaAsiento es redundante (mismo monto, duplica)
             ac_td = tenant_query(AsientoContable).filter(
                 AsientoContable.fecha >= mes_ini, AsientoContable.fecha <= mes_fin,
                 db.or_(AsientoContable.estado_asiento.is_(None), AsientoContable.estado_asiento != 'anulado'),
-                AsientoContable.cuenta_debe.like(f'{prefijo}%'),
-                ~AsientoContable.lineas.any()
+                AsientoContable.cuenta_debe.like(f'{prefijo}%')
             ).with_entities(db.func.coalesce(db.func.sum(AsientoContable.debe), 0)).scalar() or 0
             ac_th = tenant_query(AsientoContable).filter(
                 AsientoContable.fecha >= mes_ini, AsientoContable.fecha <= mes_fin,
                 db.or_(AsientoContable.estado_asiento.is_(None), AsientoContable.estado_asiento != 'anulado'),
-                AsientoContable.cuenta_haber.like(f'{prefijo}%'),
-                ~AsientoContable.lineas.any()
+                AsientoContable.cuenta_haber.like(f'{prefijo}%')
             ).with_entities(db.func.coalesce(db.func.sum(AsientoContable.haber), 0)).scalar() or 0
-            return td + float(ac_td), th + float(ac_th)
+            return float(ac_td), float(ac_th)
 
         td4, th4 = _total_clase('4')
         ingresos = th4 - td4  # Clase 4: naturaleza crédito
