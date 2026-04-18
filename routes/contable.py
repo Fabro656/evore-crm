@@ -191,27 +191,18 @@ def register(app):
         elif filtro == 'inversiones':
             q = q.filter(AsientoContable.tipo == 'inversion_socio')
 
-        # Si no hay filtro de fecha → default: mes en curso
-        import calendar as _cal
-        hoy_ref = date_type.today()
-        _, _udm = _cal.monthrange(hoy_ref.year, hoy_ref.month)
-        default_desde = hoy_ref.replace(day=1).isoformat()
-        default_hasta = hoy_ref.replace(day=_udm).isoformat()
+        # Si no hay filtro de fecha → no aplicar ninguno (muestra todos)
         sin_filtro_fecha = (not desde) and (not hasta)
-        if sin_filtro_fecha:
-            desde_aplicado = default_desde
-            hasta_aplicado = default_hasta
-        else:
-            desde_aplicado = desde
-            hasta_aplicado = hasta
-        if desde_aplicado:
+        desde_aplicado = desde
+        hasta_aplicado = hasta
+        if desde:
             try:
-                q = q.filter(AsientoContable.fecha >= datetime.strptime(desde_aplicado, '%Y-%m-%d').date())
+                q = q.filter(AsientoContable.fecha >= datetime.strptime(desde, '%Y-%m-%d').date())
             except Exception:
                 pass
-        if hasta_aplicado:
+        if hasta:
             try:
-                q = q.filter(AsientoContable.fecha <= datetime.strptime(hasta_aplicado, '%Y-%m-%d').date())
+                q = q.filter(AsientoContable.fecha <= datetime.strptime(hasta, '%Y-%m-%d').date())
             except Exception:
                 pass
 

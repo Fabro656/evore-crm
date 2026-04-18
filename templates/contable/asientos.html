@@ -45,7 +45,7 @@
     <div class="fc text-center py-3">
       <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Total filtrados</div>
       <div class="fw-bold mt-1" style="font-size:1.25rem;color:var(--ac)">{{ asientos|length }}</div>
-      <small class="text-muted" style="font-size:.68rem">{% if sin_filtro_fecha %}Mes en curso{% else %}Filtro activo{% endif %}</small>
+      <small class="text-muted" style="font-size:.68rem">{% if sin_filtro_fecha %}Sin filtro{% else %}Filtro activo{% endif %}</small>
     </div>
   </div>
 </div>
@@ -127,7 +127,7 @@
     <span>
       <i class="bi bi-journal-bookmark-fill me-2"></i>{{ asientos_filtrados|length }} asiento(s)
       {% if sin_filtro_fecha %}
-        <span class="badge bg-light text-dark border ms-1" style="font-weight:400;font-size:.68rem">Mes en curso ({{ desde_aplicado[:7] }})</span>
+        <span class="badge bg-light text-dark border ms-1" style="font-weight:400;font-size:.68rem">Todos (sin filtro de fecha)</span>
       {% else %}
         <span class="badge bg-info text-dark ms-1" style="font-weight:400;font-size:.68rem">{{ desde_aplicado or '—' }} → {{ hasta_aplicado or '—' }}</span>
       {% endif %}
