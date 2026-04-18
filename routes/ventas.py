@@ -594,63 +594,83 @@ def register(app):
             InventarioService.liberar_reserva_venta(obj)
             InventarioService.devolver_materias_venta(obj.id)
 
-            # ── Asientos contables ──
-            # Borrador → eliminar via ORM (cascade a LineaAsiento).
-            # Aprobado → desvincular venta_id=NULL (preservar historial fiscal).
+            # ── Asientos contables — borrador: delete ORM (cascade LineaAsiento).
+            # Aprobado: desvincular venta_id=NULL (preservar historial fiscal).
             asientos_v = tenant_query(AsientoContable).filter_by(venta_id=obj.id).all()
+            asientos_a_borrar = []
             for a in asientos_v:
                 if a.estado_asiento in ('borrador', None):
-                    # Borrar PagoVenta vinculados al asiento primero (FK)
-                    PagoVenta.query.filter_by(asiento_id=a.id).delete(synchronize_session=False)
-                    db.session.flush()
-                    db.session.delete(a)  # cascade LineaAsiento
+                    asientos_a_borrar.append(a.id)
+                    db.session.delete(a)  # cascade LineaAsiento por ORM
                 else:
                     a.venta_id = None
-
-            # ── Reservas y Ordenes de produccion ──
-            # Eliminar reservas de esta venta (incluye las que ref a OPs de la venta)
-            for r in ReservaProduccion.query.filter_by(venta_id=obj.id).all():
-                db.session.delete(r)
+            # PagoVenta vinculados a asientos que vamos a borrar → nullear
+            if asientos_a_borrar:
+                db.session.execute(
+                    db.text('UPDATE pagos_venta SET asiento_id = NULL WHERE asiento_id IN :aids'),
+                    {'aids': tuple(asientos_a_borrar)}
+                )
             db.session.flush()
-            # Desvincular reservas que quedaron apuntando a OPs que vamos a borrar
-            op_ids = [o.id for o in tenant_query(OrdenProduccion).filter_by(venta_id=obj.id).all()]
-            if op_ids:
-                for r in ReservaProduccion.query.filter(
-                    ReservaProduccion.orden_produccion_id.in_(op_ids)
-                ).all():
-                    r.orden_produccion_id = None
-                db.session.flush()
-            for o in tenant_query(OrdenProduccion).filter_by(venta_id=obj.id).all():
-                db.session.delete(o)
 
-            # ── Comisiones (FK NOT NULL) ──
-            try:
-                for c in tenant_query(Comision).filter_by(venta_id=obj.id).all():
-                    db.session.delete(c)
-            except Exception: pass
-
-            # ── PagoVenta restantes (no vinculados a asiento eliminado) ──
-            for p in PagoVenta.query.filter_by(venta_id=obj.id).all():
-                db.session.delete(p)
-
-            # ── DocumentoLegal que referencia la venta ──
-            try:
-                for d in tenant_query(DocumentoLegal).filter_by(cliente_id=obj.cliente_id).all():
-                    if d.numero and f'CTR-{obj.numero}' in (d.numero or ''):
-                        d.cliente_id = d.cliente_id  # no-op, dejar referencia
-            except Exception: pass
-
-            # ── Tareas con venta_id ──
-            try:
-                for t in tenant_query(Tarea).filter_by(venta_id=obj.id).all():
-                    t.venta_id = None
-            except Exception: pass
-
+            # ── Cleanup dinamico de TODAS las tablas con venta_id ──
+            # Se usa SQL directo para ser robusto frente a modelos no importados
+            # o columnas que solo existan en algunos deploys.
+            from sqlalchemy import inspect as sa_inspect
+            inspector = sa_inspect(db.engine)
+            tablas_existentes = set(inspector.get_table_names())
+            # Tablas con venta_id NOT NULL → DELETE
+            tablas_not_null = ['venta_productos', 'pagos_venta', 'comisiones']
+            for tbl in tablas_not_null:
+                if tbl in tablas_existentes:
+                    try:
+                        db.session.execute(
+                            db.text(f'DELETE FROM {tbl} WHERE venta_id = :vid'),
+                            {'vid': obj.id}
+                        )
+                    except Exception as _e:
+                        logging.warning(f'venta_eliminar: delete {tbl} error: {_e}')
+            # Reservas — primero las vinculadas a la venta
+            if 'reservas_produccion' in tablas_existentes:
+                try:
+                    db.session.execute(
+                        db.text('DELETE FROM reservas_produccion WHERE venta_id = :vid'),
+                        {'vid': obj.id}
+                    )
+                except Exception as _e:
+                    logging.warning(f'venta_eliminar: delete reservas error: {_e}')
+            # OPs: desvincular reservas residuales y borrar OPs
+            if 'ordenes_produccion' in tablas_existentes:
+                try:
+                    db.session.execute(db.text(
+                        'UPDATE reservas_produccion SET orden_produccion_id = NULL '
+                        'WHERE orden_produccion_id IN (SELECT id FROM ordenes_produccion WHERE venta_id = :vid)'
+                    ), {'vid': obj.id})
+                    db.session.execute(
+                        db.text('DELETE FROM ordenes_produccion WHERE venta_id = :vid'),
+                        {'vid': obj.id}
+                    )
+                except Exception as _e:
+                    logging.warning(f'venta_eliminar: delete OP error: {_e}')
+            # Tablas con venta_id nullable → SET NULL
+            tablas_nullable = ['tareas', 'aprobaciones', 'notas', 'notas_contables',
+                               'proyecto_fase_tareas']
+            for tbl in tablas_nullable:
+                if tbl in tablas_existentes:
+                    # Verificar columna existe
+                    try:
+                        cols = [c['name'] for c in inspector.get_columns(tbl)]
+                        if 'venta_id' in cols:
+                            db.session.execute(
+                                db.text(f'UPDATE {tbl} SET venta_id = NULL WHERE venta_id = :vid'),
+                                {'vid': obj.id}
+                            )
+                    except Exception as _e:
+                        logging.warning(f'venta_eliminar: update {tbl} error: {_e}')
             db.session.flush()
         except Exception as e:
             logging.exception(f'venta_eliminar cleanup error: {e}')
             db.session.rollback()
-            flash(f'Error al limpiar referencias de la venta: {e}', 'danger')
+            flash(f'Error al limpiar referencias: {e}', 'danger')
             return redirect(url_for('ventas'))
         db.session.delete(obj)
         db.session.commit()
