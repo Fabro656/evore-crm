@@ -2635,16 +2635,17 @@ def _fix_missing_skus():
 
 
 def _seed_puc():
-    """Siembra el Plan Único de Cuentas mínimo para empresa manufacturera colombiana."""
+    """Siembra el Plan Único de Cuentas colombiano (Decreto 2650/1993).
+    Idempotente: inserta solo las cuentas faltantes en cada ejecucion."""
     import logging
     try:
-        count = db.session.execute(db.text("SELECT COUNT(*) FROM cuentas_puc")).scalar()
-        if count and count > 0:
-            return
+        existing_codigos = {row[0] for row in db.session.execute(
+            db.text("SELECT codigo FROM cuentas_puc")
+        ).fetchall()}
     except Exception:
-        return
+        existing_codigos = set()
 
-    logging.info('Sembrando PUC colombiano...')
+    logging.info(f'Sembrando PUC colombiano (existentes: {len(existing_codigos)})...')
     # (codigo, nombre, nivel, naturaleza, tipo, padre, acepta_mov)
     cuentas = [
         # ═══ CLASE 1: ACTIVOS ═══
@@ -2756,16 +2757,222 @@ def _seed_puc():
         ('7205',  'Mano de obra directa',            3, 'debito', 'costo_produccion', '72', True),
         ('73',    'Costos indirectos',               2, 'debito', 'costo_produccion', '7',  False),
         ('7305',  'Costos indirectos de fabricacion', 3,'debito', 'costo_produccion', '73', True),
+        # ═══ AMPLIACION Decreto 2650/1993 — cuentas adicionales nivel 3 ═══
+        # Clase 1 — ACTIVOS
+        ('12',    'Inversiones',                     2, 'debito', 'activo',      '1',  False),
+        ('1205',  'Acciones',                        3, 'debito', 'activo',      '12', True),
+        ('1210',  'Cuotas o partes de interes social',3,'debito', 'activo',      '12', True),
+        ('1215',  'Bonos',                           3, 'debito', 'activo',      '12', True),
+        ('1220',  'Cedulas',                         3, 'debito', 'activo',      '12', True),
+        ('1225',  'Certificados',                    3, 'debito', 'activo',      '12', True),
+        ('1230',  'Papeles comerciales',             3, 'debito', 'activo',      '12', True),
+        ('1235',  'Titulos',                         3, 'debito', 'activo',      '12', True),
+        ('1260',  'Derechos fiduciarios',            3, 'debito', 'activo',      '12', True),
+        ('1299',  'Provisiones inversiones',         3, 'credito','activo',      '12', True),
+        ('1310',  'Cuentas corrientes comerciales',  3, 'debito', 'activo',      '13', True),
+        ('1315',  'Cuentas por cobrar a casa matriz',3, 'debito', 'activo',      '13', True),
+        ('1320',  'Cuentas por cobrar a vinculados', 3, 'debito', 'activo',      '13', True),
+        ('1325',  'Cuentas por cobrar a socios',     3, 'debito', 'activo',      '13', True),
+        ('1330',  'Anticipos y avances a proveedores',3,'debito', 'activo',      '13', True),
+        ('1335',  'Depositos',                       3, 'debito', 'activo',      '13', True),
+        ('1340',  'Promesas de compraventa',         3, 'debito', 'activo',      '13', True),
+        ('1345',  'Ingresos por cobrar',             3, 'debito', 'activo',      '13', True),
+        ('1350',  'Retencion sobre contratos',       3, 'debito', 'activo',      '13', True),
+        ('1360',  'Reclamaciones',                   3, 'debito', 'activo',      '13', True),
+        ('1370',  'Prestamos a particulares',        3, 'debito', 'activo',      '13', True),
+        ('1390',  'Deudas de dificil cobro',         3, 'debito', 'activo',      '13', True),
+        ('1399',  'Provisiones',                     3, 'credito','activo',      '13', True),
+        ('1415',  'Construcciones en curso',         3, 'debito', 'activo',      '14', True),
+        ('1420',  'Contratos en ejecucion',          3, 'debito', 'activo',      '14', True),
+        ('1425',  'Cultivos en desarrollo',          3, 'debito', 'activo',      '14', True),
+        ('1428',  'Plantaciones agricolas',          3, 'debito', 'activo',      '14', True),
+        ('1440',  'Semovientes',                     3, 'debito', 'activo',      '14', True),
+        ('1445',  'Terrenos',                        3, 'debito', 'activo',      '14', True),
+        ('1450',  'Obras de urbanismo',              3, 'debito', 'activo',      '14', True),
+        ('1455',  'En transito',                     3, 'debito', 'activo',      '14', True),
+        ('1460',  'En poder de terceros',            3, 'debito', 'activo',      '14', True),
+        ('1499',  'Provisiones',                     3, 'credito','activo',      '14', True),
+        ('1504',  'Terrenos',                        3, 'debito', 'activo',      '15', True),
+        ('1508',  'Materiales proyectos petroleros', 3, 'debito', 'activo',      '15', True),
+        ('1512',  'Construcciones en curso',         3, 'debito', 'activo',      '15', True),
+        ('1516',  'Construcciones y edificaciones',  3, 'debito', 'activo',      '15', True),
+        ('1532',  'Muebles y enseres',               3, 'debito', 'activo',      '15', True),
+        ('1536',  'Equipo medico cientifico',        3, 'debito', 'activo',      '15', True),
+        ('1544',  'Flota y equipo aereo',            3, 'debito', 'activo',      '15', True),
+        ('1548',  'Flota y equipo fluvial',          3, 'debito', 'activo',      '15', True),
+        ('1552',  'Envases y empaques',              3, 'debito', 'activo',      '15', True),
+        ('1556',  'Plantaciones agricolas',          3, 'debito', 'activo',      '15', True),
+        ('1560',  'Semovientes',                     3, 'debito', 'activo',      '15', True),
+        ('1564',  'Plantas y redes',                 3, 'debito', 'activo',      '15', True),
+        ('1568',  'Minas y canteras',                3, 'debito', 'activo',      '15', True),
+        ('1588',  'Depreciacion diferida',           3, 'debito', 'activo',      '15', True),
+        ('1596',  'Depreciacion diferida (CR)',      3, 'credito','activo',      '15', True),
+        ('1599',  'Provisiones',                     3, 'credito','activo',      '15', True),
+        ('16',    'Intangibles',                     2, 'debito', 'activo',      '1',  False),
+        ('1605',  'Credito mercantil',               3, 'debito', 'activo',      '16', True),
+        ('1610',  'Marcas',                          3, 'debito', 'activo',      '16', True),
+        ('1615',  'Patentes',                        3, 'debito', 'activo',      '16', True),
+        ('1625',  'Derechos',                        3, 'debito', 'activo',      '16', True),
+        ('1630',  'Know how',                        3, 'debito', 'activo',      '16', True),
+        ('1635',  'Licencias',                       3, 'debito', 'activo',      '16', True),
+        ('1698',  'Depreciacion y amortizacion acum',3, 'credito','activo',      '16', True),
+        ('1699',  'Provisiones',                     3, 'credito','activo',      '16', True),
+        ('17',    'Diferidos',                       2, 'debito', 'activo',      '1',  False),
+        ('1705',  'Gastos pagados por anticipado',   3, 'debito', 'activo',      '17', True),
+        ('1710',  'Cargos diferidos',                3, 'debito', 'activo',      '17', True),
+        ('1715',  'Costos de exploracion',           3, 'debito', 'activo',      '17', True),
+        ('1720',  'Costos de explotacion',           3, 'debito', 'activo',      '17', True),
+        ('1730',  'Cargos por correccion monetaria', 3, 'debito', 'activo',      '17', True),
+        ('1798',  'Amortizacion acumulada',          3, 'credito','activo',      '17', True),
+        ('18',    'Otros activos',                   2, 'debito', 'activo',      '1',  False),
+        ('1805',  'Bienes de arte y cultura',        3, 'debito', 'activo',      '18', True),
+        ('1895',  'Diversos',                        3, 'debito', 'activo',      '18', True),
+        ('1899',  'Provisiones',                     3, 'credito','activo',      '18', True),
+        ('19',    'Valorizaciones',                  2, 'debito', 'activo',      '1',  False),
+        ('1905',  'De inversiones',                  3, 'debito', 'activo',      '19', True),
+        ('1910',  'De propiedades planta y equipo',  3, 'debito', 'activo',      '19', True),
+        ('1995',  'De otros activos',                3, 'debito', 'activo',      '19', True),
+        # Clase 2 — PASIVOS adicionales
+        ('21',    'Obligaciones financieras',        2, 'credito','pasivo',      '2',  False),
+        ('2105',  'Bancos nacionales',               3, 'credito','pasivo',      '21', True),
+        ('2110',  'Bancos del exterior',             3, 'credito','pasivo',      '21', True),
+        ('2115',  'Corporaciones financieras',       3, 'credito','pasivo',      '21', True),
+        ('2120',  'Compañias de financiamiento',     3, 'credito','pasivo',      '21', True),
+        ('2125',  'Corporaciones de ahorro',         3, 'credito','pasivo',      '21', True),
+        ('2195',  'Obligaciones gubernamentales',    3, 'credito','pasivo',      '21', True),
+        ('2205',  'Proveedores nacionales',          3, 'credito','pasivo',      '22', True),
+        ('2210',  'Proveedores del exterior',        3, 'credito','pasivo',      '22', True),
+        ('2215',  'Cuentas corrientes comerciales',  3, 'credito','pasivo',      '22', True),
+        ('2225',  'Casa matriz',                     3, 'credito','pasivo',      '22', True),
+        ('2305',  'Cuentas corrientes comerciales',  3, 'credito','pasivo',      '23', True),
+        ('2310',  'A casa matriz',                   3, 'credito','pasivo',      '23', True),
+        ('2315',  'A companias vinculadas',          3, 'credito','pasivo',      '23', True),
+        ('2320',  'A contratistas',                  3, 'credito','pasivo',      '23', True),
+        ('2330',  'Dividendos o participaciones',    3, 'credito','pasivo',      '23', True),
+        ('2345',  'Cuentas por pagar a casa matriz', 3, 'credito','pasivo',      '23', True),
+        ('26',    'Pasivos estimados y provisiones', 2, 'credito','pasivo',      '2',  False),
+        ('2605',  'Para costos y gastos',            3, 'credito','pasivo',      '26', True),
+        ('2610',  'Para obligaciones laborales',     3, 'credito','pasivo',      '26', True),
+        ('2615',  'Para obligaciones fiscales',      3, 'credito','pasivo',      '26', True),
+        ('2620',  'Pensiones de jubilacion',         3, 'credito','pasivo',      '26', True),
+        ('27',    'Diferidos',                       2, 'credito','pasivo',      '2',  False),
+        ('2705',  'Ingresos recibidos por anticipado',3,'credito','pasivo',      '27', True),
+        ('2720',  'Credito por correccion monetaria',3, 'credito','pasivo',      '27', True),
+        ('28',    'Otros pasivos',                   2, 'credito','pasivo',      '2',  False),
+        ('2805',  'Anticipos y avances recibidos',   3, 'credito','pasivo',      '28', True),
+        ('2810',  'Depositos recibidos',             3, 'credito','pasivo',      '28', True),
+        ('2815',  'Ingresos recibidos para terceros',3, 'credito','pasivo',      '28', True),
+        ('2895',  'Diversos',                        3, 'credito','pasivo',      '28', True),
+        ('29',    'Bonos y papeles comerciales',     2, 'credito','pasivo',      '2',  False),
+        ('2905',  'Bonos en circulacion',            3, 'credito','pasivo',      '29', True),
+        ('2910',  'Papeles comerciales',             3, 'credito','pasivo',      '29', True),
+        # Clase 3 — PATRIMONIO adicionales
+        ('33',    'Reservas',                        2, 'credito','patrimonio',  '3',  False),
+        ('3305',  'Reservas obligatorias',           3, 'credito','patrimonio',  '33', True),
+        ('3310',  'Reservas estatutarias',           3, 'credito','patrimonio',  '33', True),
+        ('3315',  'Reservas ocasionales',            3, 'credito','patrimonio',  '33', True),
+        ('34',    'Revalorizacion del patrimonio',   2, 'credito','patrimonio',  '3',  False),
+        ('3405',  'Ajustes por inflacion',           3, 'credito','patrimonio',  '34', True),
+        ('37',    'Resultados de ejercicios anteriores',2,'credito','patrimonio','3', False),
+        ('3705',  'Utilidades acumuladas',           3, 'credito','patrimonio',  '37', True),
+        ('3710',  'Perdidas acumuladas',             3, 'debito', 'patrimonio',  '37', True),
+        ('38',    'Superavit por valorizaciones',    2, 'credito','patrimonio',  '3',  False),
+        ('3805',  'De inversiones',                  3, 'credito','patrimonio',  '38', True),
+        ('3810',  'De propiedades planta y equipo',  3, 'credito','patrimonio',  '38', True),
+        # Clase 4 — INGRESOS adicionales
+        ('4105',  'Agricultura, ganaderia, caza',    3, 'credito','ingreso',     '41', True),
+        ('4110',  'Pesca',                           3, 'credito','ingreso',     '41', True),
+        ('4115',  'Explotacion de minas y canteras', 3, 'credito','ingreso',     '41', True),
+        ('4120',  'Industria manufacturera',         3, 'credito','ingreso',     '41', True),
+        ('4125',  'Electricidad gas y agua',         3, 'credito','ingreso',     '41', True),
+        ('4130',  'Construccion',                    3, 'credito','ingreso',     '41', True),
+        ('4145',  'Transporte, almacenamiento y comunicaciones',3,'credito','ingreso','41',True),
+        ('4150',  'Intermediacion financiera',       3, 'credito','ingreso',     '41', True),
+        ('4155',  'Actividades inmobiliarias',       3, 'credito','ingreso',     '41', True),
+        ('4160',  'Enseñanza',                       3, 'credito','ingreso',     '41', True),
+        ('4165',  'Servicios sociales y de salud',   3, 'credito','ingreso',     '41', True),
+        ('4175',  'Devoluciones rebajas y desc',     3, 'debito', 'ingreso',     '41', True),
+        ('4205',  'Otras ventas',                    3, 'credito','ingreso',     '42', True),
+        ('4215',  'Dividendos y participaciones',    3, 'credito','ingreso',     '42', True),
+        ('4218',  'Ingresos por metodo de participacion',3,'credito','ingreso',  '42', True),
+        ('4220',  'Arrendamientos',                  3, 'credito','ingreso',     '42', True),
+        ('4225',  'Comisiones',                      3, 'credito','ingreso',     '42', True),
+        ('4230',  'Honorarios',                      3, 'credito','ingreso',     '42', True),
+        ('4235',  'Servicios',                       3, 'credito','ingreso',     '42', True),
+        ('4240',  'Utilidad en venta de inversiones',3, 'credito','ingreso',     '42', True),
+        ('4245',  'Utilidad en venta de propiedades',3, 'credito','ingreso',     '42', True),
+        ('4250',  'Recuperaciones',                  3, 'credito','ingreso',     '42', True),
+        ('47',    'Ajustes por inflacion',           2, 'credito','ingreso',     '4',  False),
+        ('4705',  'Correccion monetaria',            3, 'credito','ingreso',     '47', True),
+        # Clase 5 — GASTOS adicionales
+        ('5125',  'Contribuciones y afiliaciones',   3, 'debito', 'gasto',       '51', True),
+        ('5140',  'Gastos legales',                  3, 'debito', 'gasto',       '51', True),
+        ('5150',  'Adecuacion e instalacion',        3, 'debito', 'gasto',       '51', True),
+        ('5160',  'Depreciaciones',                  3, 'debito', 'gasto',       '51', True),
+        ('5165',  'Amortizaciones',                  3, 'debito', 'gasto',       '51', True),
+        ('52',    'Operacionales de ventas',         2, 'debito', 'gasto',       '5',  False),
+        ('5205',  'Gastos de personal',              3, 'debito', 'gasto',       '52', True),
+        ('5210',  'Honorarios',                      3, 'debito', 'gasto',       '52', True),
+        ('5215',  'Impuestos',                       3, 'debito', 'gasto',       '52', True),
+        ('5220',  'Arrendamientos',                  3, 'debito', 'gasto',       '52', True),
+        ('5225',  'Contribuciones y afiliaciones',   3, 'debito', 'gasto',       '52', True),
+        ('5230',  'Seguros',                         3, 'debito', 'gasto',       '52', True),
+        ('5235',  'Servicios',                       3, 'debito', 'gasto',       '52', True),
+        ('5240',  'Gastos legales',                  3, 'debito', 'gasto',       '52', True),
+        ('5245',  'Mantenimiento y reparaciones',    3, 'debito', 'gasto',       '52', True),
+        ('5250',  'Adecuacion e instalacion',        3, 'debito', 'gasto',       '52', True),
+        ('5255',  'Gastos de viaje',                 3, 'debito', 'gasto',       '52', True),
+        ('5260',  'Depreciaciones',                  3, 'debito', 'gasto',       '52', True),
+        ('5265',  'Amortizaciones',                  3, 'debito', 'gasto',       '52', True),
+        ('5295',  'Diversos',                        3, 'debito', 'gasto',       '52', True),
+        ('5310',  'Perdida en venta y retiro',       3, 'debito', 'gasto',       '53', True),
+        ('5315',  'Gastos extraordinarios',          3, 'debito', 'gasto',       '53', True),
+        ('5395',  'Gastos diversos',                 3, 'debito', 'gasto',       '53', True),
+        ('54',    'Impuesto de renta y complementarios',2,'debito','gasto',      '5',  False),
+        ('5405',  'Impuesto de renta y compl',       3, 'debito', 'gasto',       '54', True),
+        ('55',    'Ganancias y perdidas',            2, 'debito', 'gasto',       '5',  False),
+        ('5905',  'Ganancias y perdidas',            3, 'debito', 'gasto',       '55', True),
+        # Clase 6 — COSTOS DE VENTAS adicionales
+        ('6105',  'Agricultura, ganaderia, caza',    3, 'debito', 'costo_venta', '61', True),
+        ('6110',  'Pesca',                           3, 'debito', 'costo_venta', '61', True),
+        ('6115',  'Explotacion de minas y canteras', 3, 'debito', 'costo_venta', '61', True),
+        ('6120',  'Industria manufacturera',         3, 'debito', 'costo_venta', '61', True),
+        ('6145',  'Transporte, almacenamiento y comunicaciones',3,'debito','costo_venta','61',True),
+        # Clase 7 — COSTOS DE PRODUCCION adicionales
+        ('7110',  'Materia prima indirecta',         3, 'debito', 'costo_produccion', '71', True),
+        ('7210',  'Mano de obra indirecta',          3, 'debito', 'costo_produccion', '72', True),
+        ('7310',  'Servicios publicos fabrica',      3, 'debito', 'costo_produccion', '73', True),
+        ('7315',  'Mantenimiento equipos produccion',3, 'debito', 'costo_produccion', '73', True),
+        ('7320',  'Depreciacion equipos produccion', 3, 'debito', 'costo_produccion', '73', True),
+        # Clase 8 — CUENTAS DE ORDEN DEUDORAS
+        ('8',     'Cuentas de orden deudoras',       1, 'debito', 'orden_deudora', None, False),
+        ('81',    'Derechos contingentes',           2, 'debito', 'orden_deudora', '8',  False),
+        ('8105',  'Bienes y valores entregados custodia',3,'debito','orden_deudora','81',True),
+        ('8115',  'Bienes y valores recibidos garantia',3,'debito','orden_deudora','81',True),
+        ('82',    'Deudoras fiscales',               2, 'debito', 'orden_deudora', '8',  False),
+        ('8305',  'Bienes recibidos de terceros',    3, 'debito', 'orden_deudora', '83', True),
+        ('83',    'Deudoras de control',             2, 'debito', 'orden_deudora', '8',  False),
+        # Clase 9 — CUENTAS DE ORDEN ACREEDORAS
+        ('9',     'Cuentas de orden acreedoras',     1, 'credito','orden_acreedora', None, False),
+        ('91',    'Responsabilidades contingentes',  2, 'credito','orden_acreedora', '9',  False),
+        ('9105',  'Bienes y valores recibidos custodia',3,'credito','orden_acreedora','91',True),
+        ('92',    'Acreedoras fiscales',             2, 'credito','orden_acreedora', '9',  False),
+        ('93',    'Acreedoras de control',           2, 'credito','orden_acreedora', '9',  False),
     ]
 
+    nuevos = 0
     for codigo, nombre, nivel, naturaleza, tipo, padre, acepta in cuentas:
+        if codigo in existing_codigos:
+            continue
         db.session.add(CuentaPUC(
             codigo=codigo, nombre=nombre, nivel=nivel, naturaleza=naturaleza,
             tipo=tipo, padre_codigo=padre, acepta_mov=acepta, activo=True))
+        nuevos += 1
 
     try:
         db.session.commit()
-        logging.info(f'PUC colombiano sembrado: {len(cuentas)} cuentas.')
+        if nuevos:
+            logging.info(f'PUC colombiano: {nuevos} cuentas nuevas sembradas.')
     except Exception as e:
         db.session.rollback()
         logging.warning(f'Error sembrando PUC: {e}')
