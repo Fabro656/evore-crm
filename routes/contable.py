@@ -230,10 +230,12 @@ def register(app):
         # Totals from filtered query (before pagination)
         # Usamos monto_pagado (dinero efectivamente cobrado/pagado), no debe/haber
         # que refleja el valor total "facturado" del asiento.
+        # order_by(None) quita el ORDER BY antes de agregar (sino falla en PG
+        # con "column must appear in GROUP BY or aggregate function").
         from sqlalchemy import func as sa_func
         ESTADOS_COBRADOS = ('parcial', 'completo')
         try:
-            totals_q = q.with_entities(
+            totals_q = q.order_by(None).with_entities(
                 sa_func.sum(db.case(
                     (db.and_(AsientoContable.clasificacion == 'ingreso',
                              AsientoContable.estado_pago.in_(ESTADOS_COBRADOS)),
@@ -245,8 +247,9 @@ def register(app):
             ).first()
             total_ingresos_list = float(totals_q[0] or 0)
             total_egresos_list  = float(totals_q[1] or 0)
-        except Exception:
+        except Exception as _ex:
             db.session.rollback()
+            logging.warning(f'contable_asientos: totals agregate error: {_ex}')
             total_ingresos_list = 0
             total_egresos_list  = 0
 
