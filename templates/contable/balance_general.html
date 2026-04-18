@@ -83,12 +83,87 @@
           <span style="color:{% if ((pasivos or 0) + (patrimonio or 0))|round == (activos or 0)|round %}var(--green){% else %}var(--red){% endif %}">{{ moneda2(pasivos + patrimonio) }}</span>
         </div>
         {% if (pasivos + patrimonio)|round != activos|round %}
-        <small style="color:var(--red)">Diferencia: {{ moneda2((activos or 0) - (pasivos or 0) - (patrimonio or 0)) }} — El balance no cuadra.</small>
+        <small style="color:var(--red)">Diferencia: {{ moneda2((activos or 0) - (pasivos or 0) - (patrimonio or 0)) }} — El balance no cuadra. Esto es normal si hay ingresos/gastos del periodo que aun no cierran a patrimonio.</small>
         {% else %}
         <small style="color:var(--green)">Balance cuadrado.</small>
         {% endif %}
       </div>
     </div>
+  </div>
+</div>
+
+{# ── Auditoria: lista de asientos considerados y descartados ── #}
+<div class="tc mt-4">
+  <div class="ch d-flex align-items-center gap-2">
+    <i class="bi bi-search me-2"></i>Auditoria — asientos contabilizados
+    <span class="badge bg-success ms-auto">{{ asientos_contados|length }} cuentan</span>
+    {% if asientos_descartados %}<span class="badge bg-secondary">{{ asientos_descartados|length }} descartados</span>{% endif %}
+  </div>
+  <div class="p-3">
+    <details open>
+      <summary class="fw-semibold mb-2" style="cursor:pointer">Asientos que SI entran al balance ({{ asientos_contados|length }})</summary>
+      {% if asientos_contados %}
+      <div class="table-responsive mt-2">
+        <table class="table table-sm" style="font-size:.8rem">
+          <thead class="table-light">
+            <tr>
+              <th>#</th><th>Fecha</th><th>Descripcion</th>
+              <th>Cuenta DEBE</th><th class="text-end">Debe</th>
+              <th>Cuenta HABER</th><th class="text-end">Haber</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for a in asientos_contados %}
+          <tr>
+            <td><small class="fw-semibold">{{ a.numero }}</small></td>
+            <td><small>{{ a.fecha.strftime('%d/%m/%Y') if a.fecha else '' }}</small></td>
+            <td>{{ a.descripcion[:60] }}</td>
+            <td><small>{{ a.cuenta_debe }}</small>{% if a.cd_clase in '123' %} <span class="badge bg-success" style="font-size:.6rem">cls {{ a.cd_clase }}</span>{% endif %}</td>
+            <td class="text-end">{{ moneda2(a.debe) }}</td>
+            <td><small>{{ a.cuenta_haber }}</small>{% if a.ch_clase in '123' %} <span class="badge bg-success" style="font-size:.6rem">cls {{ a.ch_clase }}</span>{% endif %}</td>
+            <td class="text-end">{{ moneda2(a.haber) }}</td>
+            <td><small class="text-muted">{{ a.estado }}</small></td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-muted text-center py-2">Sin asientos considerados.</div>
+      {% endif %}
+    </details>
+    {% if asientos_descartados %}
+    <details class="mt-3">
+      <summary class="fw-semibold mb-2 text-warning" style="cursor:pointer">
+        <i class="bi bi-exclamation-triangle me-1"></i>Asientos NO contabilizados ({{ asientos_descartados|length }})
+      </summary>
+      <small class="text-muted d-block mb-2">
+        Estos asientos no tienen codigo PUC de clase 1, 2 o 3 en debe ni en haber, asi que no entran al balance.
+        Si son ingresos (clase 4) o gastos (5/6/7), van al estado de resultados — no al balance.
+      </small>
+      <div class="table-responsive">
+        <table class="table table-sm" style="font-size:.78rem">
+          <thead class="table-light"><tr>
+            <th>#</th><th>Descripcion</th>
+            <th>Cuenta DEBE</th><th>Cuenta HABER</th>
+            <th class="text-end">Monto</th>
+          </tr></thead>
+          <tbody>
+          {% for a in asientos_descartados %}
+          <tr>
+            <td><small>{{ a.numero }}</small></td>
+            <td>{{ a.descripcion[:50] }}</td>
+            <td><small>{{ a.cuenta_debe or '—' }}</small>{% if a.cd_clase and a.cd_clase not in '123' %} <span class="badge bg-warning text-dark" style="font-size:.6rem">cls {{ a.cd_clase }}</span>{% endif %}</td>
+            <td><small>{{ a.cuenta_haber or '—' }}</small>{% if a.ch_clase and a.ch_clase not in '123' %} <span class="badge bg-warning text-dark" style="font-size:.6rem">cls {{ a.ch_clase }}</span>{% endif %}</td>
+            <td class="text-end">{{ moneda2(a.debe or a.haber) }}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

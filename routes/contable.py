@@ -1019,11 +1019,41 @@ def register(app):
         patrimonio_det, td3, th3 = _detalle_clase('3', 'credito')
         patrimonio = th3 - td3
 
+        # Auditoria: lista de asientos que SI cuentan en el balance
+        # (tienen codigo PUC valido en cuenta_debe o cuenta_haber) y los que
+        # NO cuentan (sin codigo o con codigo fuera de clases 1/2/3)
+        asientos_contados = []
+        asientos_descartados = []
+        for a in asientos:
+            cd = (a.cuenta_debe or '').strip()
+            ch = (a.cuenta_haber or '').strip()
+            md = _re.match(r'(\d+)', cd)
+            mh = _re.match(r'(\d+)', ch)
+            cd_code = md.group(1) if md else ''
+            ch_code = mh.group(1) if mh else ''
+            # Se cuenta si al menos una punta esta en clase 1, 2 o 3
+            en_balance = (cd_code and cd_code[0] in '123') or (ch_code and ch_code[0] in '123')
+            row = {
+                'id': a.id, 'numero': a.numero or f'#{a.id}',
+                'fecha': a.fecha, 'descripcion': a.descripcion or '',
+                'cuenta_debe': cd, 'cuenta_haber': ch,
+                'debe': float(a.debe or 0), 'haber': float(a.haber or 0),
+                'cd_clase': cd_code[0] if cd_code else '',
+                'ch_clase': ch_code[0] if ch_code else '',
+                'estado': a.estado_asiento or 'sin_estado',
+            }
+            if en_balance:
+                asientos_contados.append(row)
+            else:
+                asientos_descartados.append(row)
+
         empresa = ConfigEmpresa.query.first()
         return render_template('contable/balance_general.html',
             activos=activos, pasivos=pasivos, patrimonio=patrimonio,
             activos_det=activos_det, pasivos_det=pasivos_det,
             patrimonio_det=patrimonio_det,
+            asientos_contados=asientos_contados,
+            asientos_descartados=asientos_descartados,
             fecha_corte=fecha_corte, empresa=empresa)
 
     @app.route('/contable/estado-resultados')
