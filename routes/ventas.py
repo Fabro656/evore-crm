@@ -596,6 +596,18 @@ def register(app):
             InventarioService.devolver_materias_venta(obj.id)
             ReservaProduccion.query.filter_by(venta_id=obj.id).delete()
             tenant_query(OrdenProduccion).filter_by(venta_id=obj.id).delete()
+            # Asientos contables: borrar los en borrador (auto-generados sin
+            # pago registrado), desvincular los aprobados (pagos confirmados
+            # → preservar historial fiscal).
+            asientos_v = tenant_query(AsientoContable).filter_by(venta_id=obj.id).all()
+            for a in asientos_v:
+                if a.estado_asiento in ('borrador', None):
+                    # Las LineaAsiento se eliminan en cascada (cascade='all, delete-orphan')
+                    db.session.delete(a)
+                else:
+                    a.venta_id = None
+            # Pagos de venta (PagoVenta) — borrar
+            PagoVenta.query.filter_by(venta_id=obj.id).delete(synchronize_session=False)
             db.session.flush()
         except Exception as e:
             logging.warning(f'venta_eliminar: cleanup error: {e}')
@@ -612,7 +624,7 @@ def register(app):
             except Exception as ec:
                 logging.warning(f'venta_eliminar: reset cotizacion error: {ec}')
         _log('eliminar','venta',id,'Venta eliminada'); db.session.commit()
-        flash('Venta eliminada y stock de materias primas devuelto.', 'info')
+        flash('Venta eliminada: stock liberado, reservas y ordenes de produccion borradas, asientos en borrador eliminados.', 'info')
         return redirect(url_for('ventas'))
 
 
