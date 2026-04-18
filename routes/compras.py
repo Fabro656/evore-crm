@@ -784,8 +784,14 @@ def register(app):
         obj = OrdenCompra.query.get_or_404(id)
         numero = obj.numero or f'#{obj.id}'
         try:
-            # Romper FKs de modelos que referencian la OC (nullable=True)
-            # 1) AsientoContable (orden_compra_id) — desvincular, no borrar
+            # 1) Asientos auto-generados por la OC en estado borrador → borrar.
+            # Si hay asientos aprobados (pagos confirmados) los desvinculamos
+            # para preservar historial fiscal.
+            tenant_query(AsientoContable).filter_by(orden_compra_id=obj.id)\
+                .filter(db.or_(AsientoContable.estado_asiento == 'borrador',
+                               AsientoContable.estado_asiento.is_(None)))\
+                .delete(synchronize_session=False)
+            # Asientos aprobados: solo desvincular
             tenant_query(AsientoContable).filter_by(orden_compra_id=obj.id)\
                 .update({'orden_compra_id': None}, synchronize_session=False)
             # 2) Tarea (orden_compra_id) — desvincular
