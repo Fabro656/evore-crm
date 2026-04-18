@@ -313,13 +313,61 @@ function seleccionarPuc(el){
   var nat = el.dataset.nat;
   var tipo = el.dataset.tipo;
   var clase = codigo.charAt(0);
+  var grupo = codigo.substring(0, 2);    // ej '11', '13', '22', '23'
+  var subgrupo = codigo.substring(0, 4); // ej '1105', '1110', '2205'
 
-  // Determinar clasificacion segun PUC colombiano
-  // Clase 1 (Activo), 2 (Pasivo), 5 (Gasto), 6 (Costo venta), 7 (Costo produccion) → egreso (debito)
-  // Clase 3 (Patrimonio), 4 (Ingreso) → ingreso (credito)
-  var esIngreso = (clase === '4' || clase === '3');
+  // ═══ Reglas reales del PUC colombiano (Decreto 2650/1993) ═══
+  // Determinar clasificacion (ingreso/egreso) segun el flujo economico:
+  //   INGRESO = dinero ENTRA a la empresa o se devenga un derecho.
+  //   EGRESO  = dinero SALE o se incurre en obligacion/consumo.
+  // Cada cuenta PUC tiene un uso dominante:
+  var esIngreso;
+  var razon = '';
 
-  // Auto-clasificar ingreso/egreso
+  if(clase === '4'){
+    // Clase 4: Ingresos operacionales y no operacionales — SIEMPRE ingreso
+    esIngreso = true; razon = 'Clase 4 Ingresos';
+  } else if(clase === '5' || clase === '6' || clase === '7'){
+    // Clase 5/6/7: Gastos y costos — SIEMPRE egreso
+    esIngreso = false; razon = 'Clase ' + clase + ' Gastos/Costos';
+  } else if(clase === '1'){
+    // Clase 1: Activos. Direccion depende del uso dominante.
+    if(grupo === '11'){
+      // Disponible (caja, bancos, ahorros, fondos) — recibir plata = ingreso
+      esIngreso = true; razon = 'Caja/Bancos — entrada de efectivo';
+    } else if(grupo === '13'){
+      // Deudores (CxC, clientes, anticipos) — cobrar/devengar = ingreso
+      esIngreso = true; razon = 'Deudores (CxC) — cobro pendiente';
+    } else if(grupo === '12' || grupo === '19'){
+      // Inversiones, valorizaciones — comprarlas = egreso
+      esIngreso = false; razon = 'Inversiones/Valorizaciones — desembolso';
+    } else {
+      // Inventarios (14), PPE (15), Intangibles (16), Diferidos (17), Otros (18)
+      // Adquirir un activo = egreso
+      esIngreso = false; razon = 'Adquisicion de activo';
+    }
+  } else if(clase === '2'){
+    // Clase 2: Pasivos. Direccion depende del uso.
+    if(grupo === '21'){
+      // Obligaciones financieras — recibir prestamo = ingreso
+      esIngreso = true; razon = 'Obligacion financiera — prestamo recibido';
+    } else if(grupo === '28'){
+      // Anticipos y avances recibidos — cliente paga por adelantado = ingreso
+      esIngreso = true; razon = 'Anticipo recibido de cliente';
+    } else {
+      // Proveedores (22), CxP (23), Impuestos (24), Laborales (25),
+      // Estimados (26), Diferidos (27), Bonos (29) — pagar obligacion = egreso
+      esIngreso = false; razon = 'Pago de obligacion/pasivo';
+    }
+  } else if(clase === '3'){
+    // Clase 3: Patrimonio — aportes de socios = ingreso
+    esIngreso = true; razon = 'Aporte/resultado patrimonial';
+  } else {
+    // Clase 8/9 cuentas de orden — no afectan estado; dejar como esta
+    esIngreso = document.getElementById('opt_ingreso').checked;
+  }
+
+  // Aplicar la clasificacion (forzada segun la cuenta)
   if(esIngreso){
     document.getElementById('opt_ingreso').checked = true;
   } else {
@@ -327,28 +375,54 @@ function seleccionarPuc(el){
   }
   toggleClasificacion();
 
-  // Llenar cuenta PUC en el campo correspondiente
+  // Llenar display de busqueda
   var pucBuscar = document.getElementById('puc_buscar');
   var pucSelected = document.getElementById('puc_selected');
   if(pucBuscar) pucBuscar.value = codigo + ' ' + nombre;
-  if(pucSelected){ pucSelected.textContent = codigo + ' — ' + nombre + ' (' + tipo + ')'; pucSelected.style.color='var(--text)'; }
+  if(pucSelected){
+    pucSelected.textContent = codigo + ' — ' + nombre + '  ·  ' + (esIngreso?'Ingreso':'Egreso') + ' (' + razon + ')';
+    pucSelected.style.color = 'var(--text)';
+  }
 
-  // Segun naturaleza, llenar cuenta_debe o cuenta_haber
-  if(nat === 'debito'){
-    // Debito: esta cuenta va en DEBE
-    document.getElementById('hCuentaDebe').value = codigo + ' ' + nombre;
-    // Sugerir contrapartida automatica
+  // ═══ Colocar cuenta en DEBE o HABER ═══
+  // Regla general (partida doble):
+  //   Ingreso + naturaleza debito (activo/deudor) → cuenta al DEBE
+  //   Ingreso + naturaleza credito (ingreso/pasivo/patrimonio) → cuenta al HABER
+  //   Egreso + naturaleza debito (gasto/costo/activo adquirido) → cuenta al DEBE
+  //   Egreso + naturaleza credito (pasivo pagado) → cuenta al DEBE (se reduce)
+  var cuentaEnDebe;
+  if(esIngreso){
+    cuentaEnDebe = (nat === 'debito');  // activos reciben, ingresos/pasivos generan
+  } else {
+    // Egreso
     if(clase === '5' || clase === '6' || clase === '7'){
-      // Gasto/Costo → contrapartida en Bancos (1110)
+      cuentaEnDebe = true; // gastos/costos aumentan por el debe
+    } else if(clase === '2'){
+      cuentaEnDebe = true; // pasivo pagado se reduce por el debe
+    } else if(clase === '1'){
+      cuentaEnDebe = false; // activo sale por el haber (inventario a gasto, etc.)
+    } else {
+      cuentaEnDebe = (nat === 'debito');
+    }
+  }
+
+  if(cuentaEnDebe){
+    document.getElementById('hCuentaDebe').value = codigo + ' ' + nombre;
+    // Contrapartida: si es gasto/costo → caja/bancos al HABER
+    if(clase === '5' || clase === '6' || clase === '7'){
+      document.getElementById('hCuentaHaber').value = '111005 Moneda nacional';
+    }
+    // Pago de pasivo → caja/bancos al HABER
+    if(clase === '2' && !esIngreso){
       document.getElementById('hCuentaHaber').value = '111005 Moneda nacional';
     }
   } else {
-    // Credito: esta cuenta va en HABER
     document.getElementById('hCuentaHaber').value = codigo + ' ' + nombre;
+    // Ingreso por clase 4 → caja/bancos al DEBE
     if(clase === '4'){
-      // Ingreso → contrapartida en Caja/Bancos
       document.getElementById('hCuentaDebe').value = '111005 Moneda nacional';
     }
+    // Activo sale → contrapartida en gastos/costos depende del caso (no auto)
   }
 
   // Auto-seleccionar tipo de asiento
