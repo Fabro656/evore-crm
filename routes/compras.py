@@ -782,8 +782,48 @@ def register(app):
             flash('Solo administradores pueden eliminar registros.', 'danger')
             return redirect(request.referrer or url_for('dashboard'))
         obj = OrdenCompra.query.get_or_404(id)
-        db.session.delete(obj); db.session.commit()
-        flash('Orden de compra eliminada.','info')
+        numero = obj.numero or f'#{obj.id}'
+        try:
+            # Romper FKs de modelos que referencian la OC (nullable=True)
+            # 1) AsientoContable (orden_compra_id) — desvincular, no borrar
+            tenant_query(AsientoContable).filter_by(orden_compra_id=obj.id)\
+                .update({'orden_compra_id': None}, synchronize_session=False)
+            # 2) Tarea (orden_compra_id) — desvincular
+            tenant_query(Tarea).filter_by(orden_compra_id=obj.id)\
+                .update({'orden_compra_id': None}, synchronize_session=False)
+            # 3) DocumentoLegal (orden_compra_id) — desvincular
+            try:
+                tenant_query(DocumentoLegal).filter_by(orden_compra_id=obj.id)\
+                    .update({'orden_compra_id': None}, synchronize_session=False)
+            except Exception: pass
+            # 4) Notificacion / Aprobacion / otros con orden_compra_id → desvincular
+            for _cls_name in ('Notificacion', 'Aprobacion'):
+                _cls = globals().get(_cls_name)
+                if _cls and hasattr(_cls, 'orden_compra_id'):
+                    try:
+                        _cls.query.filter_by(orden_compra_id=obj.id)\
+                            .update({'orden_compra_id': None}, synchronize_session=False)
+                    except Exception: pass
+            # 5) CompraMateria referencia orden_compra_item_id → desvincular
+            try:
+                item_ids = [it.id for it in obj.items]
+                if item_ids:
+                    tenant_query(CompraMateria).filter(
+                        CompraMateria.orden_compra_item_id.in_(item_ids)
+                    ).update({'orden_compra_item_id': None}, synchronize_session=False)
+            except Exception: pass
+            # 6) Items de la OC — borrar con la OC
+            OrdenCompraItem.query.filter_by(orden_id=obj.id).delete(synchronize_session=False)
+            db.session.flush()
+            db.session.delete(obj)
+            db.session.commit()
+            _log('eliminar', 'orden_compra', id, f'OC {numero} eliminada')
+            db.session.commit()
+            flash(f'Orden de compra {numero} eliminada.', 'info')
+        except Exception as e:
+            db.session.rollback()
+            logging.exception(f'orden_compra_eliminar error: {e}')
+            flash(f'No se pudo eliminar la OC {numero}: {e}', 'danger')
         return redirect(url_for('ordenes_compra'))
 
 
