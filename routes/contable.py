@@ -571,6 +571,8 @@ def register(app):
             asiento.estado_asiento = 'aprobado'
         else:
             asiento.estado_pago = 'parcial'
+            # Aprobar aunque el pago sea parcial — hay un cobro real registrado
+            asiento.estado_asiento = 'aprobado'
 
         # Registrar PagoVenta: distinguir anticipo vs saldo (excedente)
         if asiento.venta_id:
@@ -631,11 +633,13 @@ def register(app):
         # Actualizar estado_pago segun el monto
         if nuevo <= 0:
             asiento.estado_pago = 'pendiente'
+            asiento.estado_asiento = 'borrador'
         elif abs(nuevo - total_asiento) < 0.01:
             asiento.estado_pago = 'completo'
             asiento.estado_asiento = 'aprobado'
         else:
             asiento.estado_pago = 'parcial'
+            asiento.estado_asiento = 'aprobado'
         # Propagar a venta/OC vinculada
         if asiento.clasificacion == 'ingreso' and asiento.venta_id:
             v = db.session.get(Venta, asiento.venta_id)
