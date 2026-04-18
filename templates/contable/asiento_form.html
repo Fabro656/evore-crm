@@ -425,14 +425,21 @@ function seleccionarPuc(el){
     // Activo sale → contrapartida en gastos/costos depende del caso (no auto)
   }
 
-  // Auto-seleccionar tipo de asiento
+  // Auto-seleccionar tipo de asiento solo para clases univocas.
+  // Clase 1/2 son ambiguas (un asiento con 1305 puede ser venta, ingreso
+  // externo, etc.) — respeta el tipo actual y no lo pisa a 'manual'.
+  // Tambien: si ya hay un tipo no-manual previo, no lo sobrescribas,
+  // para no "manualizar" un asiento generado que solo se esta editando.
   var selTipo = document.getElementById('sel_tipo');
   if(selTipo){
-    if(clase === '4') selTipo.value = 'venta';
-    else if(clase === '5') selTipo.value = 'gasto';
-    else if(clase === '6' || clase === '7') selTipo.value = 'compra';
-    else if(clase === '1') selTipo.value = 'manual';
-    else if(clase === '2') selTipo.value = 'manual';
+    var tipoActual = selTipo.value;
+    var esGenerado = ['venta','compra','gasto','nomina'].indexOf(tipoActual) >= 0;
+    if(!esGenerado){
+      if(clase === '4') selTipo.value = 'venta';
+      else if(clase === '5') selTipo.value = 'gasto';
+      else if(clase === '6' || clase === '7') selTipo.value = 'compra';
+      // Clases 1, 2, 3, 8, 9 → dejar tipoActual (no manualizar)
+    }
   }
 
   // Feedback visual
