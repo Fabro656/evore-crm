@@ -784,42 +784,36 @@ def register(app):
         obj = OrdenCompra.query.get_or_404(id)
         numero = obj.numero or f'#{obj.id}'
         try:
-            # 1) Asientos auto-generados por la OC en estado borrador → borrar.
-            # Si hay asientos aprobados (pagos confirmados) los desvinculamos
-            # para preservar historial fiscal.
-            tenant_query(AsientoContable).filter_by(orden_compra_id=obj.id)\
-                .filter(db.or_(AsientoContable.estado_asiento == 'borrador',
-                               AsientoContable.estado_asiento.is_(None)))\
-                .delete(synchronize_session=False)
-            # Asientos aprobados: solo desvincular
-            tenant_query(AsientoContable).filter_by(orden_compra_id=obj.id)\
-                .update({'orden_compra_id': None}, synchronize_session=False)
-            # 2) Tarea (orden_compra_id) — desvincular
-            tenant_query(Tarea).filter_by(orden_compra_id=obj.id)\
-                .update({'orden_compra_id': None}, synchronize_session=False)
-            # 3) DocumentoLegal (orden_compra_id) — desvincular
+            # 1) Asientos contables: iterar para que cascade de LineaAsiento
+            # funcione (bulk .delete() bypasa los cascades de relationship).
+            asientos_oc = tenant_query(AsientoContable).filter_by(orden_compra_id=obj.id).all()
+            for a in asientos_oc:
+                if a.estado_asiento in ('borrador', None):
+                    db.session.delete(a)  # elimina LineaAsiento asociadas por cascade
+                else:
+                    a.orden_compra_id = None  # preservar historial fiscal
+            # 2) Tarea (orden_compra_id) — desvincular (nullable)
+            for t in tenant_query(Tarea).filter_by(orden_compra_id=obj.id).all():
+                t.orden_compra_id = None
+            # 3) DocumentoLegal (orden_compra_id) — desvincular si tiene la columna
             try:
-                tenant_query(DocumentoLegal).filter_by(orden_compra_id=obj.id)\
-                    .update({'orden_compra_id': None}, synchronize_session=False)
+                if hasattr(DocumentoLegal, 'orden_compra_id'):
+                    for d in tenant_query(DocumentoLegal).filter_by(orden_compra_id=obj.id).all():
+                        d.orden_compra_id = None
             except Exception: pass
-            # 4) Notificacion / Aprobacion / otros con orden_compra_id → desvincular
-            for _cls_name in ('Notificacion', 'Aprobacion'):
-                _cls = globals().get(_cls_name)
-                if _cls and hasattr(_cls, 'orden_compra_id'):
-                    try:
-                        _cls.query.filter_by(orden_compra_id=obj.id)\
-                            .update({'orden_compra_id': None}, synchronize_session=False)
-                    except Exception: pass
-            # 5) CompraMateria referencia orden_compra_item_id → desvincular
+            # 4) CompraMateria.orden_compra_item_id — desvincular
             try:
                 item_ids = [it.id for it in obj.items]
                 if item_ids:
-                    tenant_query(CompraMateria).filter(
+                    for cm in tenant_query(CompraMateria).filter(
                         CompraMateria.orden_compra_item_id.in_(item_ids)
-                    ).update({'orden_compra_item_id': None}, synchronize_session=False)
+                    ).all():
+                        cm.orden_compra_item_id = None
             except Exception: pass
-            # 6) Items de la OC — borrar con la OC
-            OrdenCompraItem.query.filter_by(orden_id=obj.id).delete(synchronize_session=False)
+            db.session.flush()
+            # 5) Items de la OC — borrar (cascade del obj tambien podria hacerlo)
+            for it in list(obj.items or []):
+                db.session.delete(it)
             db.session.flush()
             db.session.delete(obj)
             db.session.commit()
