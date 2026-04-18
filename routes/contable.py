@@ -752,17 +752,34 @@ def register(app):
             fecha_corte = date_type.today()
 
         def _saldo_clase(prefijo):
-            lineas = db.session.query(
-                db.func.sum(LineaAsiento.debe).label('td'),
-                db.func.sum(LineaAsiento.haber).label('th')
-            ).join(AsientoContable).join(CuentaPUC, LineaAsiento.cuenta_puc_id == CuentaPUC.id).filter(
+            # 1) Desde LineaAsiento (partida doble estructurada con PUC)
+            q_la = db.session.query(
+                db.func.coalesce(db.func.sum(LineaAsiento.debe), 0),
+                db.func.coalesce(db.func.sum(LineaAsiento.haber), 0)
+            ).join(AsientoContable, LineaAsiento.asiento_id == AsientoContable.id
+            ).join(CuentaPUC, LineaAsiento.cuenta_puc_id == CuentaPUC.id).filter(
                 AsientoContable.fecha <= fecha_corte,
                 AsientoContable.estado_asiento != 'anulado',
                 CuentaPUC.codigo.startswith(prefijo)
-            ).first()
-            td = float(lineas.td or 0) if lineas else 0
-            th = float(lineas.th or 0) if lineas else 0
-            return td, th
+            )
+            cid = getattr(g, 'company_id', None)
+            if cid:
+                q_la = q_la.filter(AsientoContable.company_id == cid)
+            la = q_la.first()
+            td = float(la[0] or 0)
+            th = float(la[1] or 0)
+            # 2) Desde campos legacy de AsientoContable (cuenta_debe/cuenta_haber con codigo PUC)
+            ac_debe_val = tenant_query(AsientoContable).filter(
+                AsientoContable.fecha <= fecha_corte,
+                AsientoContable.estado_asiento != 'anulado',
+                AsientoContable.cuenta_debe.like(f'{prefijo}%')
+            ).with_entities(db.func.coalesce(db.func.sum(AsientoContable.debe), 0)).scalar() or 0
+            ac_haber_val = tenant_query(AsientoContable).filter(
+                AsientoContable.fecha <= fecha_corte,
+                AsientoContable.estado_asiento != 'anulado',
+                AsientoContable.cuenta_haber.like(f'{prefijo}%')
+            ).with_entities(db.func.coalesce(db.func.sum(AsientoContable.haber), 0)).scalar() or 0
+            return td + float(ac_debe_val), th + float(ac_haber_val)
 
         td1, th1 = _saldo_clase('1')
         activos = td1 - th1
@@ -802,17 +819,34 @@ def register(app):
         mes_fin = date_type(anio, mes, monthrange(anio, mes)[1])
 
         def _total_clase(prefijo):
-            r = db.session.query(
-                db.func.sum(LineaAsiento.debe).label('td'),
-                db.func.sum(LineaAsiento.haber).label('th')
-            ).join(AsientoContable).join(CuentaPUC, LineaAsiento.cuenta_puc_id == CuentaPUC.id).filter(
+            # 1) LineaAsiento con PUC
+            q_la = db.session.query(
+                db.func.coalesce(db.func.sum(LineaAsiento.debe), 0),
+                db.func.coalesce(db.func.sum(LineaAsiento.haber), 0)
+            ).join(AsientoContable, LineaAsiento.asiento_id == AsientoContable.id
+            ).join(CuentaPUC, LineaAsiento.cuenta_puc_id == CuentaPUC.id).filter(
                 AsientoContable.fecha >= mes_ini, AsientoContable.fecha <= mes_fin,
                 AsientoContable.estado_asiento != 'anulado',
                 CuentaPUC.codigo.startswith(prefijo)
-            ).first()
-            td = float(r.td or 0) if r else 0
-            th = float(r.th or 0) if r else 0
-            return td, th
+            )
+            cid = getattr(g, 'company_id', None)
+            if cid:
+                q_la = q_la.filter(AsientoContable.company_id == cid)
+            la = q_la.first()
+            td = float(la[0] or 0)
+            th = float(la[1] or 0)
+            # 2) Legacy AsientoContable fields
+            ac_td = tenant_query(AsientoContable).filter(
+                AsientoContable.fecha >= mes_ini, AsientoContable.fecha <= mes_fin,
+                AsientoContable.estado_asiento != 'anulado',
+                AsientoContable.cuenta_debe.like(f'{prefijo}%')
+            ).with_entities(db.func.coalesce(db.func.sum(AsientoContable.debe), 0)).scalar() or 0
+            ac_th = tenant_query(AsientoContable).filter(
+                AsientoContable.fecha >= mes_ini, AsientoContable.fecha <= mes_fin,
+                AsientoContable.estado_asiento != 'anulado',
+                AsientoContable.cuenta_haber.like(f'{prefijo}%')
+            ).with_entities(db.func.coalesce(db.func.sum(AsientoContable.haber), 0)).scalar() or 0
+            return td + float(ac_td), th + float(ac_th)
 
         td4, th4 = _total_clase('4')
         ingresos = th4 - td4  # Clase 4: naturaleza crédito
