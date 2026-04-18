@@ -181,11 +181,20 @@ def register(app):
         q = q.order_by(AsientoContable.fecha.desc(), AsientoContable.creado_en.desc())
 
         # Totals from filtered query (before pagination)
+        # Usamos monto_pagado (dinero efectivamente cobrado/pagado), no debe/haber
+        # que refleja el valor total "facturado" del asiento.
         from sqlalchemy import func as sa_func
+        ESTADOS_COBRADOS = ('parcial', 'completo')
         try:
             totals_q = q.with_entities(
-                sa_func.sum(db.case((AsientoContable.clasificacion == 'ingreso', AsientoContable.haber), else_=0)),
-                sa_func.sum(db.case((AsientoContable.clasificacion == 'egreso', AsientoContable.debe), else_=0))
+                sa_func.sum(db.case(
+                    (db.and_(AsientoContable.clasificacion == 'ingreso',
+                             AsientoContable.estado_pago.in_(ESTADOS_COBRADOS)),
+                     AsientoContable.monto_pagado), else_=0)),
+                sa_func.sum(db.case(
+                    (db.and_(AsientoContable.clasificacion == 'egreso',
+                             AsientoContable.estado_pago.in_(ESTADOS_COBRADOS)),
+                     AsientoContable.monto_pagado), else_=0))
             ).first()
             total_ingresos_list = float(totals_q[0] or 0)
             total_egresos_list  = float(totals_q[1] or 0)
@@ -198,12 +207,21 @@ def register(app):
         pagination = q.paginate(page=page, per_page=25, error_out=False)
         asientos_filtrados = pagination.items
 
-        # Stats del mes actual
+        # Stats del mes actual — efectivo cobrado/pagado dentro del mes.
+        # Filtra por fecha_pago (cuando se confirmo el cobro); si es NULL cae a fecha.
         mes_ini = date_type.today().replace(day=1)
         try:
-            mes_totals = tenant_query(AsientoContable).filter(AsientoContable.fecha >= mes_ini).with_entities(
-                sa_func.sum(db.case((AsientoContable.clasificacion == 'ingreso', AsientoContable.haber), else_=0)),
-                sa_func.sum(db.case((AsientoContable.clasificacion == 'egreso', AsientoContable.debe), else_=0))
+            fecha_efectiva = sa_func.coalesce(AsientoContable.fecha_pago, AsientoContable.fecha)
+            mes_totals = tenant_query(AsientoContable).filter(
+                AsientoContable.estado_pago.in_(ESTADOS_COBRADOS),
+                fecha_efectiva >= mes_ini
+            ).with_entities(
+                sa_func.sum(db.case(
+                    (AsientoContable.clasificacion == 'ingreso', AsientoContable.monto_pagado),
+                    else_=0)),
+                sa_func.sum(db.case(
+                    (AsientoContable.clasificacion == 'egreso', AsientoContable.monto_pagado),
+                    else_=0))
             ).first()
             ingresos_mes = float(mes_totals[0] or 0)
             gastos_mes   = float(mes_totals[1] or 0)

@@ -24,12 +24,14 @@
     <div class="fc text-center py-3">
       <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Ingresos este mes</div>
       <div class="fw-bold mt-1" style="font-size:1.25rem;color:var(--green)">{{ moneda2(ingresos_mes) }}</div>
+      <small class="text-muted" style="font-size:.68rem">Efectivo recibido</small>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="fc text-center py-3">
       <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Egresos este mes</div>
       <div class="fw-bold mt-1" style="font-size:1.25rem;color:var(--red)">{{ moneda2(gastos_mes) }}</div>
+      <small class="text-muted" style="font-size:.68rem">Efectivo pagado</small>
     </div>
   </div>
   <div class="col-6 col-md-3">
@@ -122,8 +124,8 @@
   <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:.82rem;color:var(--text2)">
     <span><i class="bi bi-journal-bookmark-fill me-2"></i>{{ asientos_filtrados|length }} asiento(s) contable(s)</span>
     <div class="d-flex gap-3">
-      <span class="text-success fw-semibold">Ingresos: {{ moneda2(total_ingresos_list) }}</span>
-      <span class="text-danger fw-semibold">Egresos: {{ moneda2(total_egresos_list) }}</span>
+      <span class="text-success fw-semibold" title="Efectivo cobrado en asientos filtrados">Cobrado: {{ moneda2(total_ingresos_list) }}</span>
+      <span class="text-danger fw-semibold" title="Efectivo pagado en asientos filtrados">Pagado: {{ moneda2(total_egresos_list) }}</span>
     </div>
   </div>
 
