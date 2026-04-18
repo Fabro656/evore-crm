@@ -945,51 +945,85 @@ def register(app):
     @login_required
     @requiere_modulo('finanzas')
     def contable_balance_general():
-        """Balance General — Activos = Pasivos + Patrimonio."""
+        """Balance General — Activos = Pasivos + Patrimonio.
+        Construye saldos por cuenta iterando todos los asientos y parseando
+        el codigo PUC del texto cuenta_debe/cuenta_haber."""
+        import re as _re
         corte = request.args.get('corte', date_type.today().isoformat())
         try:
             fecha_corte = datetime.strptime(corte, '%Y-%m-%d').date()
         except Exception:
             fecha_corte = date_type.today()
 
-        def _saldo_clase(prefijo):
-            # Usamos SOLO los campos legacy de AsientoContable (cuenta_debe,
-            # cuenta_haber, debe, haber) porque _crear_asiento_auto siempre los
-            # llena — y tambien crea LineaAsiento rows, pero esas son redundantes
-            # (mismo monto, mismos PUCs). Usar ambas fuentes duplica.
-            ac_debe_val = tenant_query(AsientoContable).filter(
-                AsientoContable.fecha <= fecha_corte,
-                db.or_(AsientoContable.estado_asiento.is_(None), AsientoContable.estado_asiento != 'anulado'),
-                AsientoContable.cuenta_debe.like(f'{prefijo}%')
-            ).with_entities(db.func.coalesce(db.func.sum(AsientoContable.debe), 0)).scalar() or 0
-            ac_haber_val = tenant_query(AsientoContable).filter(
-                AsientoContable.fecha <= fecha_corte,
-                db.or_(AsientoContable.estado_asiento.is_(None), AsientoContable.estado_asiento != 'anulado'),
-                AsientoContable.cuenta_haber.like(f'{prefijo}%')
-            ).with_entities(db.func.coalesce(db.func.sum(AsientoContable.haber), 0)).scalar() or 0
-            return float(ac_debe_val), float(ac_haber_val)
+        # Acumulador por codigo PUC: codigo → [debe_acumulado, haber_acumulado]
+        saldos_por_codigo = {}
 
-        td1, th1 = _saldo_clase('1')
+        asientos = tenant_query(AsientoContable).filter(
+            AsientoContable.fecha <= fecha_corte,
+            db.or_(AsientoContable.estado_asiento.is_(None),
+                   AsientoContable.estado_asiento != 'anulado')
+        ).all()
+
+        for a in asientos:
+            cd = (a.cuenta_debe or '').strip()
+            ch = (a.cuenta_haber or '').strip()
+            monto_d = float(a.debe or 0)
+            monto_h = float(a.haber or 0)
+            if cd and monto_d:
+                m = _re.match(r'(\d+)', cd)
+                if m:
+                    codigo = m.group(1)
+                    saldos_por_codigo.setdefault(codigo, [0.0, 0.0])
+                    saldos_por_codigo[codigo][0] += monto_d
+            if ch and monto_h:
+                m = _re.match(r'(\d+)', ch)
+                if m:
+                    codigo = m.group(1)
+                    saldos_por_codigo.setdefault(codigo, [0.0, 0.0])
+                    saldos_por_codigo[codigo][1] += monto_h
+
+        # Mapear codigo → CuentaPUC
+        cuentas_map = {c.codigo: c for c in
+                       CuentaPUC.query.filter(CuentaPUC.activo == True).all()}
+
+        # Construir detalle por clase (1, 2, 3) con solo cuentas que tienen
+        # movimiento, con su saldo neto segun naturaleza
+        def _detalle_clase(prefijo, naturaleza_clase):
+            items = []
+            total_debe = total_haber = 0.0
+            for codigo, (td, th) in saldos_por_codigo.items():
+                if not codigo.startswith(prefijo):
+                    continue
+                cta = cuentas_map.get(codigo)
+                nombre = cta.nombre if cta else codigo
+                nat = cta.naturaleza if cta else naturaleza_clase
+                saldo = (td - th) if nat == 'debito' else (th - td)
+                items.append({
+                    'codigo': codigo,
+                    'nombre': nombre,
+                    'debe': td,
+                    'haber': th,
+                    'saldo': saldo,
+                })
+                total_debe += td
+                total_haber += th
+            items.sort(key=lambda x: x['codigo'])
+            return items, total_debe, total_haber
+
+        activos_det, td1, th1 = _detalle_clase('1', 'debito')
         activos = td1 - th1
 
-        td2, th2 = _saldo_clase('2')
+        pasivos_det, td2, th2 = _detalle_clase('2', 'credito')
         pasivos = th2 - td2
 
-        td3, th3 = _saldo_clase('3')
+        patrimonio_det, td3, th3 = _detalle_clase('3', 'credito')
         patrimonio = th3 - td3
-
-        # Cuentas detalladas por grupo
-        def _detalle_clase(prefijo):
-            return CuentaPUC.query.filter(
-                CuentaPUC.codigo.startswith(prefijo),
-                CuentaPUC.nivel == 3, CuentaPUC.activo == True
-            ).order_by(CuentaPUC.codigo).all()
 
         empresa = ConfigEmpresa.query.first()
         return render_template('contable/balance_general.html',
             activos=activos, pasivos=pasivos, patrimonio=patrimonio,
-            activos_det=_detalle_clase('1'), pasivos_det=_detalle_clase('2'),
-            patrimonio_det=_detalle_clase('3'),
+            activos_det=activos_det, pasivos_det=pasivos_det,
+            patrimonio_det=patrimonio_det,
             fecha_corte=fecha_corte, empresa=empresa)
 
     @app.route('/contable/estado-resultados')

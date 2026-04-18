@@ -17,12 +17,16 @@
     <div class="tc">
       <div class="ch" style="background:var(--ac);color:#fff">ACTIVOS</div>
       <div class="p-3">
+        {% if activos_det %}
         {% for c in activos_det %}
         <div class="d-flex justify-content-between mb-1" style="font-size:.85rem">
           <span>{{ c.codigo }} {{ c.nombre }}</span>
-          <span style="color:var(--text2)">—</span>
+          <span style="color:{% if c.saldo >= 0 %}var(--text){% else %}var(--red){% endif %}">{{ moneda2(c.saldo) }}</span>
         </div>
         {% endfor %}
+        {% else %}
+        <div class="text-muted text-center py-2" style="font-size:.82rem">Sin movimientos</div>
+        {% endif %}
         <hr style="border-color:var(--border)">
         <div class="d-flex justify-content-between fw-bold" style="font-size:1.05rem">
           <span>TOTAL ACTIVOS</span>
@@ -35,12 +39,16 @@
     <div class="tc mb-3">
       <div class="ch" style="background:var(--orange);color:#fff">PASIVOS</div>
       <div class="p-3">
+        {% if pasivos_det %}
         {% for c in pasivos_det %}
         <div class="d-flex justify-content-between mb-1" style="font-size:.85rem">
           <span>{{ c.codigo }} {{ c.nombre }}</span>
-          <span style="color:var(--text2)">—</span>
+          <span style="color:{% if c.saldo >= 0 %}var(--text){% else %}var(--red){% endif %}">{{ moneda2(c.saldo) }}</span>
         </div>
         {% endfor %}
+        {% else %}
+        <div class="text-muted text-center py-2" style="font-size:.82rem">Sin movimientos</div>
+        {% endif %}
         <hr style="border-color:var(--border)">
         <div class="d-flex justify-content-between fw-bold">
           <span>TOTAL PASIVOS</span>
@@ -51,12 +59,16 @@
     <div class="tc">
       <div class="ch" style="background:var(--green);color:#fff">PATRIMONIO</div>
       <div class="p-3">
+        {% if patrimonio_det %}
         {% for c in patrimonio_det %}
         <div class="d-flex justify-content-between mb-1" style="font-size:.85rem">
           <span>{{ c.codigo }} {{ c.nombre }}</span>
-          <span style="color:var(--text2)">—</span>
+          <span style="color:{% if c.saldo >= 0 %}var(--text){% else %}var(--red){% endif %}">{{ moneda2(c.saldo) }}</span>
         </div>
         {% endfor %}
+        {% else %}
+        <div class="text-muted text-center py-2" style="font-size:.82rem">Sin movimientos</div>
+        {% endif %}
         <hr style="border-color:var(--border)">
         <div class="d-flex justify-content-between fw-bold">
           <span>TOTAL PATRIMONIO</span>
