@@ -18,32 +18,34 @@
 
 {% block content %}
 
-{# -- Stats del mes -- #}
+{# -- Stats globales (sin filtro de fecha) -- #}
 <div class="row g-3 mb-3">
   <div class="col-6 col-md-3">
     <div class="fc text-center py-3">
-      <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Ingresos este mes</div>
-      <div class="fw-bold mt-1" style="font-size:1.25rem;color:var(--green)">{{ moneda2(ingresos_mes) }}</div>
-      <small class="text-muted" style="font-size:.68rem">Efectivo recibido</small>
+      <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Ingresos total</div>
+      <div class="fw-bold mt-1" style="font-size:1.25rem;color:var(--green)">{{ moneda2(ingresos_total) }}</div>
+      <small class="text-muted" style="font-size:.68rem">Efectivo recibido · todos los tiempos</small>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="fc text-center py-3">
-      <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Egresos este mes</div>
-      <div class="fw-bold mt-1" style="font-size:1.25rem;color:var(--red)">{{ moneda2(gastos_mes) }}</div>
-      <small class="text-muted" style="font-size:.68rem">Efectivo pagado</small>
+      <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Egresos total</div>
+      <div class="fw-bold mt-1" style="font-size:1.25rem;color:var(--red)">{{ moneda2(gastos_total) }}</div>
+      <small class="text-muted" style="font-size:.68rem">Efectivo pagado · todos los tiempos</small>
     </div>
   </div>
   <div class="col-6 col-md-3">
-    <div class="fc text-center py-3" style="border:2px solid {{ '#00875A' if balance_mes >= 0 else '#DE350B' }}">
+    <div class="fc text-center py-3" style="border:2px solid {{ '#00875A' if balance_total >= 0 else '#DE350B' }}">
       <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Balance</div>
-      <div class="fw-bold mt-1" style="font-size:1.25rem;color:{{ '#00875A' if balance_mes >= 0 else '#DE350B' }}">{{ moneda2(balance_mes) }}</div>
+      <div class="fw-bold mt-1" style="font-size:1.25rem;color:{{ '#00875A' if balance_total >= 0 else '#DE350B' }}">{{ moneda2(balance_total) }}</div>
+      <small class="text-muted" style="font-size:.68rem">Ingresos − Egresos</small>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="fc text-center py-3">
       <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Total filtrados</div>
       <div class="fw-bold mt-1" style="font-size:1.25rem;color:var(--ac)">{{ asientos|length }}</div>
+      <small class="text-muted" style="font-size:.68rem">{% if sin_filtro_fecha %}Mes en curso{% else %}Filtro activo{% endif %}</small>
     </div>
   </div>
 </div>
@@ -121,11 +123,18 @@
 
 {# -- Tabla de asientos -- #}
 <div>
-  <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:.82rem;color:var(--text2)">
-    <span><i class="bi bi-journal-bookmark-fill me-2"></i>{{ asientos_filtrados|length }} asiento(s) contable(s)</span>
+  <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2" style="font-size:.82rem;color:var(--text2)">
+    <span>
+      <i class="bi bi-journal-bookmark-fill me-2"></i>{{ asientos_filtrados|length }} asiento(s)
+      {% if sin_filtro_fecha %}
+        <span class="badge bg-light text-dark border ms-1" style="font-weight:400;font-size:.68rem">Mes en curso ({{ desde_aplicado[:7] }})</span>
+      {% else %}
+        <span class="badge bg-info text-dark ms-1" style="font-weight:400;font-size:.68rem">{{ desde_aplicado or '—' }} → {{ hasta_aplicado or '—' }}</span>
+      {% endif %}
+    </span>
     <div class="d-flex gap-3">
-      <span class="text-success fw-semibold" title="Efectivo cobrado en asientos filtrados">Cobrado: {{ moneda2(total_ingresos_list) }}</span>
-      <span class="text-danger fw-semibold" title="Efectivo pagado en asientos filtrados">Pagado: {{ moneda2(total_egresos_list) }}</span>
+      <span class="text-success fw-semibold" title="Efectivo cobrado en el filtro aplicado">Cobrado: {{ moneda2(total_ingresos_list) }}</span>
+      <span class="text-danger fw-semibold" title="Efectivo pagado en el filtro aplicado">Pagado: {{ moneda2(total_egresos_list) }}</span>
     </div>
   </div>
 

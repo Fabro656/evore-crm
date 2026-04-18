@@ -191,14 +191,27 @@ def register(app):
         elif filtro == 'inversiones':
             q = q.filter(AsientoContable.tipo == 'inversion_socio')
 
-        if desde:
+        # Si no hay filtro de fecha → default: mes en curso
+        import calendar as _cal
+        hoy_ref = date_type.today()
+        _, _udm = _cal.monthrange(hoy_ref.year, hoy_ref.month)
+        default_desde = hoy_ref.replace(day=1).isoformat()
+        default_hasta = hoy_ref.replace(day=_udm).isoformat()
+        sin_filtro_fecha = (not desde) and (not hasta)
+        if sin_filtro_fecha:
+            desde_aplicado = default_desde
+            hasta_aplicado = default_hasta
+        else:
+            desde_aplicado = desde
+            hasta_aplicado = hasta
+        if desde_aplicado:
             try:
-                q = q.filter(AsientoContable.fecha >= datetime.strptime(desde, '%Y-%m-%d').date())
+                q = q.filter(AsientoContable.fecha >= datetime.strptime(desde_aplicado, '%Y-%m-%d').date())
             except Exception:
                 pass
-        if hasta:
+        if hasta_aplicado:
             try:
-                q = q.filter(AsientoContable.fecha <= datetime.strptime(hasta, '%Y-%m-%d').date())
+                q = q.filter(AsientoContable.fecha <= datetime.strptime(hasta_aplicado, '%Y-%m-%d').date())
             except Exception:
                 pass
 
@@ -250,14 +263,10 @@ def register(app):
         pagination = q.paginate(page=page, per_page=25, error_out=False)
         asientos_filtrados = pagination.items
 
-        # Stats del mes actual — efectivo cobrado/pagado dentro del mes.
-        # Filtra por fecha_pago (cuando se confirmo el cobro); si es NULL cae a fecha.
-        mes_ini = date_type.today().replace(day=1)
+        # Stats globales — efectivo cobrado/pagado TOTAL (sin filtro de fecha)
         try:
-            fecha_efectiva = sa_func.coalesce(AsientoContable.fecha_pago, AsientoContable.fecha)
-            mes_totals = tenant_query(AsientoContable).filter(
-                AsientoContable.estado_pago.in_(ESTADOS_COBRADOS),
-                fecha_efectiva >= mes_ini
+            general_totals = tenant_query(AsientoContable).filter(
+                AsientoContable.estado_pago.in_(ESTADOS_COBRADOS)
             ).with_entities(
                 sa_func.sum(db.case(
                     (AsientoContable.clasificacion == 'ingreso', AsientoContable.monto_pagado),
@@ -266,12 +275,12 @@ def register(app):
                     (AsientoContable.clasificacion == 'egreso', AsientoContable.monto_pagado),
                     else_=0))
             ).first()
-            ingresos_mes = float(mes_totals[0] or 0)
-            gastos_mes   = float(mes_totals[1] or 0)
+            ingresos_total = float(general_totals[0] or 0)
+            gastos_total   = float(general_totals[1] or 0)
         except Exception:
             db.session.rollback()
-            ingresos_mes = 0
-            gastos_mes   = 0
+            ingresos_total = 0
+            gastos_total   = 0
 
         # Retenciones en la fuente asumidas este ano (Art. 392 ET) — activo 1355
         try:
@@ -291,8 +300,10 @@ def register(app):
             buscar=buscar, estado_pago_f=estado_pago_f,
             total_ingresos_list=total_ingresos_list,
             total_egresos_list=total_egresos_list,
-            ingresos_mes=ingresos_mes, gastos_mes=gastos_mes,
-            balance_mes=ingresos_mes - gastos_mes,
+            ingresos_total=ingresos_total, gastos_total=gastos_total,
+            balance_total=ingresos_total - gastos_total,
+            sin_filtro_fecha=sin_filtro_fecha,
+            desde_aplicado=desde_aplicado, hasta_aplicado=hasta_aplicado,
             retenciones_ytd=retenciones_ytd, pagination=pagination,
             today=date_type.today().isoformat())
 
