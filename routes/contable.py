@@ -498,6 +498,51 @@ def register(app):
 
         return monto, None
 
+    # ── editar_recibido: Ajustar manualmente el monto_pagado de un asiento
+    @app.route('/contable/asientos/<int:id>/editar-recibido', methods=['POST'])
+    @login_required
+    @requiere_modulo('finanzas')
+    def contable_editar_recibido(id):
+        asiento = AsientoContable.query.get_or_404(id)
+        nuevo = _parse_decimal(request.form.get('monto_pagado'))
+        if nuevo < 0:
+            flash('El monto recibido no puede ser negativo.', 'danger')
+            return redirect(url_for('contable_asientos', vista='generados'))
+        total_asiento = float(asiento.haber if asiento.clasificacion == 'ingreso' else asiento.debe or 0)
+        if nuevo > total_asiento + 0.01:
+            flash(f'El monto recibido no puede superar el total del asiento ({total_asiento:,.2f}).', 'danger')
+            return redirect(url_for('contable_asientos', vista='generados'))
+        asiento.monto_pagado = nuevo
+        # Actualizar estado_pago segun el monto
+        if nuevo <= 0:
+            asiento.estado_pago = 'pendiente'
+        elif abs(nuevo - total_asiento) < 0.01:
+            asiento.estado_pago = 'completo'
+        else:
+            asiento.estado_pago = 'parcial'
+        # Propagar a venta/OC vinculada
+        if asiento.clasificacion == 'ingreso' and asiento.venta_id:
+            v = db.session.get(Venta, asiento.venta_id)
+            if v:
+                # Recalcular monto_anticipo_recibido + monto_pagado_total coherentes
+                asientos_v = tenant_query(AsientoContable).filter_by(venta_id=v.id, clasificacion='ingreso').all()
+                v.monto_pagado_total = sum(float(a.monto_pagado or 0) for a in asientos_v)
+                if v.monto_pagado_total >= (v.monto_anticipo or 0):
+                    v.monto_anticipo_recibido = v.monto_anticipo or 0
+                else:
+                    v.monto_anticipo_recibido = v.monto_pagado_total
+        elif asiento.clasificacion == 'egreso' and asiento.orden_compra_id:
+            oc = db.session.get(OrdenCompra, asiento.orden_compra_id)
+            if oc:
+                asientos_oc = tenant_query(AsientoContable).filter_by(orden_compra_id=oc.id, clasificacion='egreso').all()
+                oc.monto_pagado = sum(float(a.monto_pagado or 0) for a in asientos_oc)
+        _log('editar', 'asiento_contable', asiento.id,
+             f'Monto recibido editado a {nuevo:,.2f} (total {total_asiento:,.2f}, estado {asiento.estado_pago})')
+        db.session.commit()
+        flash(f'Monto recibido actualizado a {moneda2(nuevo)}. Estado: {asiento.estado_pago}.', 'success')
+        return redirect(url_for('contable_asientos', vista=request.args.get('vista','generados')))
+
+
     # ── confirmar_pago: Confirmar pago de egreso vinculado a OC (/contable/asientos/<id>/confirmar-pago)
     @app.route('/contable/asientos/<int:id>/confirmar-pago', methods=['POST'])
     @login_required

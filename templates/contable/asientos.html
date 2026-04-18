@@ -168,17 +168,34 @@
             {% if a.proveedor %}<div class="text-muted"><i class="bi bi-truck me-1"></i>{{ a.proveedor.nombre }}</div>{% endif %}
             {% if a.referencia and not a.orden_compra and not a.venta %}<div class="text-muted">{{ a.referencia }}</div>{% endif %}
           </div>
-          {# monto grande #}
-          <div class="d-flex align-items-baseline justify-content-between mb-2" style="border-top:1px dashed var(--border);padding-top:.6rem">
-            <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.5px">Monto</div>
-            <div class="fw-bold" style="font-size:1.15rem;color:{{ color }}">{{ moneda2(monto or 0) }}</div>
+          {# monto grande: total + recibido #}
+          <div style="border-top:1px dashed var(--border);padding-top:.6rem">
+            <div class="d-flex align-items-baseline justify-content-between mb-1">
+              <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.5px">Total</div>
+              <div class="fw-bold" style="font-size:1.1rem;color:{{ color }}">{{ moneda2(monto or 0) }}</div>
+            </div>
+            {% if a.estado_pago in ('parcial','completo') %}
+            <div class="d-flex align-items-baseline justify-content-between mb-2">
+              <div class="text-muted d-flex align-items-center gap-1" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.5px">
+                <i class="bi bi-wallet2"></i>Recibido
+              </div>
+              <div class="d-flex align-items-center gap-1">
+                <span class="fw-semibold" style="font-size:.95rem;color:var(--green)">{{ moneda2(a.monto_pagado or 0) }}</span>
+                <button type="button" class="btn btn-xs btn-outline-secondary p-0 px-1"
+                        style="font-size:.7rem;line-height:1" title="Editar monto recibido"
+                        onclick="abrirEditarRecibido({{ a.id }}, '{{ a.numero or ('#'~a.id) }}', {{ (a.monto_pagado or 0)|round(2) }}, {{ (monto or 0)|round(2) }})">
+                  <i class="bi bi-pencil"></i>
+                </button>
+              </div>
+            </div>
+            {% endif %}
           </div>
           {# estado pago + badges #}
           <div class="mb-2" style="font-size:.72rem">
             {% if a.estado_pago == 'completo' %}
               <span class="badge bg-success">Pagado</span>
             {% elif a.estado_pago == 'parcial' %}
-              <span class="badge bg-warning text-dark">Parcial {{ moneda2(a.monto_pagado or 0) }}</span>
+              <span class="badge bg-warning text-dark">Parcial</span>
             {% else %}
               <span class="badge bg-secondary">Pendiente</span>
             {% endif %}
@@ -254,6 +271,34 @@
   {% endif %}
 </div>
 
+{# -- Modal editar monto recibido -- #}
+<div class="modal fade" id="modalEditarRecibido" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="POST" id="formEditarRecibido">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Editar monto recibido</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-2"><small class="text-muted">Asiento: <strong id="editRecNumero"></strong></small></div>
+          <div class="mb-3"><small class="text-muted">Total del asiento: <strong id="editRecTotal"></strong></small></div>
+          <label class="form-label fw-semibold">Monto recibido real</label>
+          <div class="input-group">
+            <span class="input-group-text">$</span>
+            <input type="number" name="monto_pagado" id="editRecMonto" class="form-control" step="0.01" min="0" inputmode="decimal" required>
+          </div>
+          <small class="text-muted">Si el valor es igual al total, el asiento queda "Pagado". Si es menor, "Parcial". Si es 0, "Pendiente".</small>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 {# -- Modal confirmar pago -- #}
 <div class="modal fade" id="modalPago" tabindex="-1" data-bs-backdrop="static">
   <div class="modal-dialog">
@@ -310,6 +355,17 @@
 </div>
 
 <script>
+function abrirEditarRecibido(aid, numero, montoPagado, total){
+  document.getElementById('editRecNumero').textContent = numero;
+  document.getElementById('editRecTotal').textContent = '$ ' + (total||0).toLocaleString('es-CO', {minimumFractionDigits:2, maximumFractionDigits:2});
+  document.getElementById('editRecMonto').value = (montoPagado||0).toFixed(2);
+  document.getElementById('editRecMonto').max = total;
+  document.getElementById('formEditarRecibido').action = '/contable/asientos/' + aid + '/editar-recibido';
+  var modalEl = document.getElementById('modalEditarRecibido');
+  var bs = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+  bs.show();
+}
+
 function abrirModalPago(btn) {
   var aid = btn.dataset.aid;
   var numero = btn.dataset.anum || '';
