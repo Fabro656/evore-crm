@@ -37,14 +37,40 @@ def register(app):
             d = (hoy.replace(day=1) - timedelta(days=i * 28)).replace(day=1)
             meses_nav.append({'val': d.strftime('%Y-%m'), 'lbl': d.strftime('%b %Y')})
 
-        # ── Ventas emitidas en el mes (informativo) ───────────────────────────
+        # ── Ventas realizadas en el mes (todas las creadas en el mes, sin
+        # cancelar/perder). Esto NO implica facturacion — una venta realizada
+        # puede estar sin cobro o con cobro parcial.
         ventas_mes = tenant_query(Venta).filter(
             db.func.date(Venta.creado_en) >= mes_ini,
             db.func.date(Venta.creado_en) <= mes_fin,
             Venta.estado.notin_(['cancelado', 'perdido'])
         ).all()
-        total_ventas = sum(float(v.total or 0) for v in ventas_mes)  # facturado
+        total_ventas = sum(float(v.total or 0) for v in ventas_mes)  # realizadas
         total_anticipo = sum(float(v.monto_anticipo or 0) for v in ventas_mes)
+
+        # ── Ventas facturadas en el mes: se facturan cuando el cobro queda
+        # completo (monto_pagado == total del asiento). Usa la fecha_pago del
+        # asiento que las termino de cobrar, NO la fecha de creacion de la venta.
+        try:
+            asientos_completos_ing = tenant_query(AsientoContable).filter(
+                AsientoContable.clasificacion == 'ingreso',
+                AsientoContable.estado_pago == 'completo',
+                AsientoContable.venta_id.isnot(None)
+            ).all()
+            def _fecha_fact(a):
+                return a.fecha_pago or a.fecha
+            ventas_facturadas_ids = set()
+            for a in asientos_completos_ing:
+                f = _fecha_fact(a)
+                if f and mes_ini <= f <= mes_fin:
+                    ventas_facturadas_ids.add(a.venta_id)
+            ventas_facturadas = (Venta.query.filter(Venta.id.in_(ventas_facturadas_ids)).all()
+                                 if ventas_facturadas_ids else [])
+            total_ventas_facturadas = sum(float(v.total or 0) for v in ventas_facturadas)
+        except Exception:
+            db.session.rollback()
+            ventas_facturadas = []
+            total_ventas_facturadas = 0
 
         # ── Ingresos reales: dinero efectivamente recibido en el mes ─────────
         # Usa monto_pagado de asientos ingreso confirmados (parcial/completo)
@@ -117,6 +143,8 @@ def register(app):
             meses_nav=meses_nav, mes_str=mes_str, mes=mes_num, anio=anio,
             total_ingresos=total_ingresos, total_anticipo=total_anticipo,
             total_ventas=total_ventas,
+            total_ventas_facturadas=total_ventas_facturadas,
+            ventas_facturadas=ventas_facturadas,
             total_egresos=total_egresos, total_gastos=total_gastos,
             total_compras=total_compras, utilidad=utilidad,
             total_impuestos=total_impuestos, detalle_impuestos=detalle_impuestos,
