@@ -150,14 +150,25 @@ def register(app):
             alertas_stock = []
 
         # ── Top 5 Clientes por CLV (Customer Lifetime Value) ──
+        # Incluye ventas con pago total/completado Y ventas con anticipo recibido
+        # (estado anticipo_pagado o con monto_pagado_total > 0).
         try:
-            top_clientes_clv = db.session.query(
+            _cid_tc = getattr(g, 'company_id', None) or current_user.company_id
+            q_tc = db.session.query(
                 Cliente.id, Cliente.empresa, Cliente.nombre,
                 db.func.sum(Venta.total).label('total_revenue'),
                 db.func.count(Venta.id).label('order_count')
             ).join(Venta, Venta.cliente_id == Cliente.id).filter(
-                Venta.estado.in_(['completado', 'pagado', 'entregado'])
-            ).group_by(Cliente.id).order_by(db.func.sum(Venta.total).desc()).limit(5).all()
+                db.or_(
+                    Venta.estado.in_(['completado', 'pagado', 'entregado', 'anticipo_pagado']),
+                    db.and_(Venta.monto_pagado_total != None, Venta.monto_pagado_total > 0)
+                )
+            )
+            if _cid_tc:
+                q_tc = q_tc.filter(Venta.company_id == _cid_tc)
+            top_clientes_clv = q_tc.group_by(Cliente.id).order_by(
+                db.func.sum(Venta.total).desc()
+            ).limit(5).all()
         except Exception:
             db.session.rollback()
             top_clientes_clv = []
