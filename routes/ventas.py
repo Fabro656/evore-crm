@@ -651,6 +651,17 @@ def register(app):
                     )
                 except Exception as _e:
                     logging.warning(f'venta_eliminar: delete OP error: {_e}')
+            # ── OCs vinculadas via venta_origen_id → desvincular ──
+            if 'ordenes_compra' in tablas_existentes:
+                try:
+                    cols_oc = [c['name'] for c in inspector.get_columns('ordenes_compra')]
+                    if 'venta_origen_id' in cols_oc:
+                        db.session.execute(
+                            db.text('UPDATE ordenes_compra SET venta_origen_id = NULL WHERE venta_origen_id = :vid'),
+                            {'vid': obj.id}
+                        )
+                except Exception as _e:
+                    logging.warning(f'venta_eliminar: update oc.venta_origen_id error: {_e}')
             # Tablas con venta_id nullable → SET NULL
             tablas_nullable = ['tareas', 'aprobaciones', 'notas', 'notas_contables',
                                'proyecto_fase_tareas']
