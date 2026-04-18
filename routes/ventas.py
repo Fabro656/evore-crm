@@ -667,13 +667,20 @@ def register(app):
                     except Exception as _e:
                         logging.warning(f'venta_eliminar: update {tbl} error: {_e}')
             db.session.flush()
+            # DELETE final via SQL directo — evita que el ORM intente cascade
+            # sobre items/pagos que ya eliminamos con SQL raw (StaleData error)
+            venta_id_raw = obj.id
+            db.session.expunge(obj)  # sacar del session cache
+            db.session.execute(
+                db.text('DELETE FROM ventas WHERE id = :vid'),
+                {'vid': venta_id_raw}
+            )
+            db.session.commit()
         except Exception as e:
-            logging.exception(f'venta_eliminar cleanup error: {e}')
+            logging.exception(f'venta_eliminar error: {e}')
             db.session.rollback()
-            flash(f'Error al limpiar referencias: {e}', 'danger')
+            flash(f'Error al eliminar venta: {e}', 'danger')
             return redirect(url_for('ventas'))
-        db.session.delete(obj)
-        db.session.commit()
         # Liberar cotizacion vinculada para que pueda re-convertirse en venta
         if cot_id_vinculada:
             try:
