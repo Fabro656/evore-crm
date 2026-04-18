@@ -414,33 +414,36 @@ def register(app):
             try:
                 _save_items(v); db.session.flush()
                 _procesar_venta_produccion(v)
-                # Auto-crear asiento contable de anticipo en borrador (monto = anticipo, no total)
+                # Auto-crear asiento contable al EMITIR la venta — reconoce la
+                # DEUDA TOTAL del cliente (no solo el anticipo). El cobro se
+                # registra aparte al confirmar el pago.
+                # Un solo asiento por el total: DEBE 1305 Clientes / HABER 4135.
+                # El IVA queda implicito en el ingreso (clase 4) — para separar
+                # IVA como pasivo 2408 se requiere refactor multi-linea (v37+).
                 try:
-                    monto_asiento = float(v.monto_anticipo or 0) or float(v.total or 0)
-                    es_anticipo = bool(v.monto_anticipo and v.monto_anticipo > 0 and v.monto_anticipo < (v.total or 0))
-                    desc_asiento = (f'Anticipo ({v.porcentaje_anticipo:.0f}%) — Venta {v.numero}'
-                                    if es_anticipo else f'Ingreso pendiente — Venta {v.numero}')
-                    asiento_venta = AsientoContable(
-                        company_id=getattr(g, 'company_id', None),
-                        numero='AC-TEMP',
-                        fecha=hoy,
-                        descripcion=desc_asiento,
-                        tipo='venta',
-                        subtipo='anticipo_venta' if es_anticipo else 'ingreso_venta',
-                        referencia=v.numero,
-                        debe=monto_asiento,
-                        haber=monto_asiento,
-                        cuenta_debe='130505 Nacionales',
-                        cuenta_haber='4135 Comercio al por mayor y menor',
-                        clasificacion='ingreso',
-                        estado_asiento='borrador',
-                        estado_pago='pendiente',
-                        venta_id=v.id,
-                        creado_por=current_user.id
-                    )
-                    db.session.add(asiento_venta)
-                    db.session.flush()
-                    asiento_venta.numero = f'AC-{hoy.year}-{asiento_venta.id:04d}'
+                    total_v = float(v.total or 0)
+                    if total_v > 0:
+                        asiento_venta = AsientoContable(
+                            company_id=getattr(g, 'company_id', None),
+                            numero='AC-TEMP',
+                            fecha=hoy,
+                            descripcion=f'Venta {v.numero} — Factura emitida',
+                            tipo='venta',
+                            subtipo='ingreso_venta',
+                            referencia=v.numero,
+                            debe=total_v,
+                            haber=total_v,
+                            cuenta_debe='1305 Clientes',
+                            cuenta_haber='4135 Comercio al por mayor y menor',
+                            clasificacion='ingreso',
+                            estado_asiento='borrador',
+                            estado_pago='pendiente',
+                            venta_id=v.id,
+                            creado_por=current_user.id
+                        )
+                        db.session.add(asiento_venta)
+                        db.session.flush()
+                        asiento_venta.numero = f'AC-{hoy.year}-{asiento_venta.id:04d}'
                 except Exception as ex_ac:
                     logging.warning(f'venta_nueva: auto-asiento ingreso error: {ex_ac}')
                 db.session.commit()
