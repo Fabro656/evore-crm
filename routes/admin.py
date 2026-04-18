@@ -1555,11 +1555,6 @@ def register(app):
              'DELETE FROM reservas_produccion WHERE company_id = :cid'),
             ('ordenes_produccion',
              'DELETE FROM ordenes_produccion WHERE company_id = :cid'),
-            # Hijos de cotizacion
-            ('cotizacion_items',
-             'DELETE FROM cotizacion_items WHERE cotizacion_id IN (SELECT id FROM cotizaciones WHERE company_id = :cid)'),
-            ('historial_cotizaciones',
-             'DELETE FROM historial_cotizaciones WHERE cotizacion_id IN (SELECT id FROM cotizaciones WHERE company_id = :cid)'),
             # Hijos de OC
             ('ordenes_compra_items',
              'DELETE FROM ordenes_compra_items WHERE orden_id IN (SELECT id FROM ordenes_compra WHERE company_id = :cid)'),
@@ -1572,19 +1567,16 @@ def register(app):
              'UPDATE documentos_legales SET orden_compra_id = NULL WHERE orden_compra_id IN (SELECT id FROM ordenes_compra WHERE company_id = :cid)'),
             ('oc_venta_origen',
              'UPDATE ordenes_compra SET venta_origen_id = NULL WHERE venta_origen_id IN (SELECT id FROM ventas WHERE company_id = :cid)'),
-            # Ahora si: padres
+            # Al borrar ventas, liberar cotizaciones vinculadas (pueden re-convertirse)
+            ('cotizaciones_liberar',
+             "UPDATE cotizaciones SET estado = 'aprobada' WHERE estado = 'confirmacion_orden' AND id IN (SELECT cotizacion_id FROM ventas WHERE company_id = :cid AND cotizacion_id IS NOT NULL)"),
+            # Ahora si: padres transaccionales
             ('asientos_contables',
              'DELETE FROM asientos_contables WHERE company_id = :cid'),
             ('ventas',
              'DELETE FROM ventas WHERE company_id = :cid'),
-            ('cotizaciones',
-             'DELETE FROM cotizaciones WHERE company_id = :cid'),
-            ('pre_cotizaciones',
-             'DELETE FROM pre_cotizaciones WHERE company_id = :cid'),
             ('ordenes_compra',
              'DELETE FROM ordenes_compra WHERE company_id = :cid'),
-            ('cotizaciones_proveedor',
-             'DELETE FROM cotizaciones_proveedor WHERE company_id = :cid'),
             ('compras_materia',
              'DELETE FROM compras_materia WHERE company_id = :cid'),
             ('movimientos_bancarios',
@@ -1614,14 +1606,12 @@ def register(app):
             # a todas las empresas. Solo resetear si la tabla quedo vacia.
             seq_candidates = [
                 ('ventas', 'ventas_id_seq'),
-                ('cotizaciones', 'cotizaciones_id_seq'),
                 ('ordenes_compra', 'ordenes_compra_id_seq'),
                 ('asientos_contables', 'asientos_contables_id_seq'),
                 ('pagos_venta', 'pagos_venta_id_seq'),
                 ('comisiones', 'comisiones_id_seq'),
                 ('reservas_produccion', 'reservas_produccion_id_seq'),
                 ('ordenes_produccion', 'ordenes_produccion_id_seq'),
-                ('cotizaciones_proveedor', 'cotizaciones_proveedor_id_seq'),
                 ('compras_materia', 'compras_materia_id_seq'),
                 ('gastos_operativos', 'gastos_operativos_id_seq'),
             ]
