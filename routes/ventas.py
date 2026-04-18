@@ -873,8 +873,8 @@ def register(app):
                         referencia=venta.numero or str(venta.id),
                         debe=float(venta.total or 0),
                         haber=float(venta.total or 0),
-                        cuenta_debe='Cuentas por cobrar clientes',
-                        cuenta_haber='Ingresos por ventas',
+                        cuenta_debe='1305 Clientes',
+                        cuenta_haber='4135 Comercio al por mayor y menor',
                         venta_id=venta.id,
                         creado_por=current_user.id
                     )
@@ -1898,8 +1898,8 @@ def register(app):
             tipo='venta', subtipo=f'pago_{tipo_pago}',
             descripcion=f'Pago {tipo_pago} venta {venta.numero or venta.id}: ${monto:,.0f}',
             monto=monto,
-            cuenta_debe='Bancos / Caja',
-            cuenta_haber='Cuentas por cobrar clientes',
+            cuenta_debe='110505 Caja',
+            cuenta_haber='1305 Clientes',
             clasificacion='ingreso',
             referencia=referencia or venta.numero,
             venta_id=venta.id

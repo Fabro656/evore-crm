@@ -259,8 +259,8 @@ def register(app):
                             tipo='gasto', subtipo='liquidacion_empleado',
                             descripcion=f'Liquidacion {emp.nombre} {emp.apellido}',
                             monto=round(liq['total'], 0),
-                            cuenta_debe='Gastos de nomina - Liquidaciones',
-                            cuenta_haber='Bancos / Caja',
+                            cuenta_debe='5105 Gastos personal',
+                            cuenta_haber='110505 Caja',
                             clasificacion='egreso',
                             referencia=f'LIQ-{emp.cedula or emp.id}',
                             gasto_id=g_liq.id
@@ -280,8 +280,8 @@ def register(app):
             tipo='gasto', subtipo='nomina_mensual',
             descripcion=f'Nomina {mes}: {n_empleados} empleados',
             monto=round(total_costo, 0),
-            cuenta_debe='Gastos de nomina',
-            cuenta_haber='Bancos / Caja',
+            cuenta_debe='5105 Gastos personal',
+            cuenta_haber='110505 Caja',
             clasificacion='egreso',
             referencia=f'NOM-{mes}',
             gasto_id=g.id
@@ -497,8 +497,8 @@ def register(app):
                 tipo='gasto', subtipo='liquidacion_empleado',
                 descripcion=f'Liquidacion {empleado.nombre} {empleado.apellido}',
                 monto=round(liq['total'], 0),
-                cuenta_debe='Gastos de nomina - Liquidaciones',
-                cuenta_haber='Bancos / Caja',
+                cuenta_debe='5105 Gastos personal',
+                cuenta_haber='110505 Caja',
                 clasificacion='egreso',
                 referencia=f'LIQ-{empleado.cedula or empleado.id}',
                 gasto_id=gasto_liq.id

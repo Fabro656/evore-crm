@@ -2403,6 +2403,19 @@ def _migrate(conn):
         # ── Cotizacion items: unidades equivalentes cuando se cotiza en peso ──
         ("ALTER TABLE cotizacion_items ADD COLUMN IF NOT EXISTS unidades_equivalentes FLOAT"),
         ("ALTER TABLE cotizacion_items ADD COLUMN unidades_equivalentes FLOAT"),
+        # ── Backfill: normalizar labels de cuenta_debe/haber a codigo PUC ──
+        # Asientos legacy se crearon con texto (ej. "Bancos / Caja") sin el
+        # codigo PUC al inicio → el balance general/prueba filtra por
+        # LIKE '1%' y no los encuentra. Normalizamos los labels mas comunes.
+        ("UPDATE asientos_contables SET cuenta_debe = '110505 Caja' WHERE cuenta_debe IN ('Bancos / Caja', 'Bancos', 'Caja')"),
+        ("UPDATE asientos_contables SET cuenta_haber = '110505 Caja' WHERE cuenta_haber IN ('Bancos / Caja', 'Bancos', 'Caja')"),
+        ("UPDATE asientos_contables SET cuenta_debe = '1305 Clientes' WHERE cuenta_debe = 'Cuentas por cobrar clientes'"),
+        ("UPDATE asientos_contables SET cuenta_haber = '1305 Clientes' WHERE cuenta_haber = 'Cuentas por cobrar clientes'"),
+        ("UPDATE asientos_contables SET cuenta_haber = '4135 Comercio al por mayor y menor' WHERE cuenta_haber IN ('Ingresos por ventas', 'Ingresos')"),
+        ("UPDATE asientos_contables SET cuenta_debe = '5105 Gastos personal' WHERE cuenta_debe IN ('Gastos de nomina', 'Gastos de nomina - Liquidaciones')"),
+        ("UPDATE asientos_contables SET cuenta_debe = '5135 Gastos generales' WHERE cuenta_debe LIKE 'Gastos %' AND (cuenta_debe NOT LIKE '1%' AND cuenta_debe NOT LIKE '2%' AND cuenta_debe NOT LIKE '3%' AND cuenta_debe NOT LIKE '4%' AND cuenta_debe NOT LIKE '5%' AND cuenta_debe NOT LIKE '6%' AND cuenta_debe NOT LIKE '7%')"),
+        ("UPDATE asientos_contables SET cuenta_debe = '220505 Proveedores nacionales' WHERE cuenta_debe = 'Cuentas por pagar'"),
+        ("UPDATE asientos_contables SET cuenta_haber = '220505 Proveedores nacionales' WHERE cuenta_haber = 'Cuentas por pagar'"),
         # ── Backfill asientos contables para OCs sin asiento (idempotente) ──
         # Inserta un asiento 'compra' en borrador para cada OC que no tenga uno.
         # Numero provisional 'AC-BACKFILL-{id}' para evitar colisiones.

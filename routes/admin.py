@@ -149,8 +149,8 @@ def register(app):
                     tipo='gasto', subtipo=f'gasto_{tipo_gasto}',
                     descripcion=f'Gasto: {gasto_new.descripcion or tipo_gasto}',
                     monto=monto_gasto,
-                    cuenta_debe=f'Gastos {tipo_gasto}',
-                    cuenta_haber='Bancos / Caja',
+                    cuenta_debe=f'5135 Gastos {tipo_gasto}',
+                    cuenta_haber='110505 Caja',
                     clasificacion='egreso',
                     gasto_id=gasto_new.id
                 )
@@ -240,8 +240,8 @@ def register(app):
                 tipo='gasto', subtipo=f'gasto_{nuevo.tipo}',
                 descripcion=f'Gasto (plantilla): {nuevo.descripcion or nuevo.tipo}',
                 monto=float(nuevo.monto),
-                cuenta_debe=f'Gastos {nuevo.tipo}',
-                cuenta_haber='Bancos / Caja',
+                cuenta_debe=f'5135 Gastos {nuevo.tipo}',
+                cuenta_haber='110505 Caja',
                 clasificacion='egreso',
                 gasto_id=nuevo.id
             )
