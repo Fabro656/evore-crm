@@ -877,7 +877,11 @@ def register(app):
     @login_required
     @requiere_modulo('finanzas')
     def contable_balance_prueba():
-        """Balance de Prueba — saldo de cada cuenta con movimiento."""
+        """Balance de Prueba — saldo de cada cuenta con movimiento.
+        Agrega desde LineaAsiento (partida doble estructurada) Y desde
+        los campos legacy de AsientoContable (cuenta_debe/cuenta_haber
+        como texto con codigo PUC al inicio)."""
+        import re as _re
         periodo = request.args.get('periodo', datetime.utcnow().strftime('%Y-%m'))
         try:
             anio, mes = int(periodo.split('-')[0]), int(periodo.split('-')[1])
@@ -887,23 +891,66 @@ def register(app):
         mes_ini = date_type(anio, mes, 1)
         mes_fin = date_type(anio, mes, monthrange(anio, mes)[1])
 
-        # Obtener todas las líneas del periodo
-        lineas = db.session.query(
+        # Acumular por cuenta_puc_id
+        totales = {}  # puc_id -> [total_debe, total_haber]
+
+        # 1) Desde LineaAsiento
+        q_la = db.session.query(
             LineaAsiento.cuenta_puc_id,
             db.func.sum(LineaAsiento.debe).label('total_debe'),
             db.func.sum(LineaAsiento.haber).label('total_haber')
-        ).join(AsientoContable).filter(
+        ).join(AsientoContable, LineaAsiento.asiento_id == AsientoContable.id).filter(
             AsientoContable.fecha >= mes_ini,
             AsientoContable.fecha <= mes_fin,
-            AsientoContable.estado_asiento != 'anulado'
-        ).group_by(LineaAsiento.cuenta_puc_id).all()
+            db.or_(AsientoContable.estado_asiento.is_(None),
+                   AsientoContable.estado_asiento != 'anulado')
+        )
+        cid = getattr(g, 'company_id', None)
+        if cid:
+            q_la = q_la.filter(AsientoContable.company_id == cid)
+        for cuenta_id, td, th in q_la.group_by(LineaAsiento.cuenta_puc_id).all():
+            totales.setdefault(cuenta_id, [0.0, 0.0])
+            totales[cuenta_id][0] += float(td or 0)
+            totales[cuenta_id][1] += float(th or 0)
+
+        # 2) Desde AsientoContable legacy — parsea el codigo PUC del texto
+        legacy = tenant_query(AsientoContable).filter(
+            AsientoContable.fecha >= mes_ini,
+            AsientoContable.fecha <= mes_fin,
+            db.or_(AsientoContable.estado_asiento.is_(None),
+                   AsientoContable.estado_asiento != 'anulado')
+        ).all()
+        # Cache codigo -> cuenta_puc_id
+        cache_codigo_puc = {}
+        def _puc_id_por_codigo(codigo):
+            if codigo in cache_codigo_puc:
+                return cache_codigo_puc[codigo]
+            c = CuentaPUC.query.filter_by(codigo=codigo).first()
+            cache_codigo_puc[codigo] = c.id if c else None
+            return cache_codigo_puc[codigo]
+        for a in legacy:
+            cd_txt = (a.cuenta_debe or '').strip()
+            ch_txt = (a.cuenta_haber or '').strip()
+            if cd_txt and a.debe:
+                m = _re.match(r'(\d+)', cd_txt)
+                if m:
+                    pid = _puc_id_por_codigo(m.group(1))
+                    if pid:
+                        totales.setdefault(pid, [0.0, 0.0])
+                        totales[pid][0] += float(a.debe or 0)
+            if ch_txt and a.haber:
+                m = _re.match(r'(\d+)', ch_txt)
+                if m:
+                    pid = _puc_id_por_codigo(m.group(1))
+                    if pid:
+                        totales.setdefault(pid, [0.0, 0.0])
+                        totales[pid][1] += float(a.haber or 0)
 
         filas = []
         total_debe = total_haber = 0
-        for cuenta_id, td, th in lineas:
+        for cuenta_id, (td, th) in totales.items():
             cuenta = db.session.get(CuentaPUC, cuenta_id)
             if not cuenta: continue
-            td = float(td or 0); th = float(th or 0)
             saldo = td - th if cuenta.naturaleza == 'debito' else th - td
             filas.append({'cuenta': cuenta, 'debe': td, 'haber': th, 'saldo': saldo})
             total_debe += td; total_haber += th
