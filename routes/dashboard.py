@@ -695,21 +695,16 @@ def register(app):
 
     # contable_index fue movido a routes/contable.py (v30)
 
-    # ── contable_ingresos (/contable/ingresos)
+    # ── contable_ingresos (/contable/ingresos) — redirige a asientos filtrados
     @app.route('/contable/ingresos')
     @login_required
     def contable_ingresos():
-        desde_s = request.args.get('desde','')
-        hasta_s = request.args.get('hasta','')
-        q = tenant_query(Venta).filter(Venta.estado.in_(['anticipo_pagado','completado','prospecto','negociacion','perdido']))
-        if desde_s:
-            try: q = q.filter(db.func.date(Venta.creado_en) >= datetime.strptime(desde_s,'%Y-%m-%d').date())
-            except Exception: pass
-        if hasta_s:
-            try: q = q.filter(db.func.date(Venta.creado_en) <= datetime.strptime(hasta_s,'%Y-%m-%d').date())
-            except Exception: pass
-        items = q.order_by(Venta.creado_en.desc()).all()
-        return render_template('contable/ingresos.html', items=items, desde_s=desde_s, hasta_s=hasta_s)
+        # La vista unificada de asientos (filtro=ingresos) muestra total + recibido,
+        # historial de cobros y botones de confirmar/editar. Este endpoint queda
+        # como alias para compatibilidad con dashboards/links antiguos.
+        return redirect(url_for('contable_asientos', filtro='ingresos',
+                                desde=request.args.get('desde',''),
+                                hasta=request.args.get('hasta','')))
     
 
     # ── contable_egresos (/contable/egresos)
