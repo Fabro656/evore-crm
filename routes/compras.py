@@ -357,6 +357,36 @@ def register(app):
             precio_unit=precio_ref,
             subtotal=round(cant * precio_ref, 2)
         ))
+
+        # Auto-crear asiento contable de egreso en borrador
+        if total_oc > 0:
+            try:
+                es_anticipo = bool(monto_anticipo_oc > 0 and monto_anticipo_oc < total_oc)
+                monto_asiento_oc = monto_anticipo_oc if es_anticipo else total_oc
+                desc_asiento_oc = (f'Anticipo ({pct_anticipo_ref:.0f}%) — OC {oc.numero}'
+                                   if es_anticipo else f'Egreso pendiente — OC {oc.numero}')
+                asiento_oc = AsientoContable(
+                    company_id=getattr(g, 'company_id', None),
+                    numero='AC-TEMP',
+                    fecha=hoy,
+                    descripcion=desc_asiento_oc,
+                    tipo='compra',
+                    subtipo='anticipo_oc' if es_anticipo else 'orden_compra',
+                    referencia=oc.numero,
+                    debe=monto_asiento_oc, haber=monto_asiento_oc,
+                    cuenta_debe='1405 Materias primas',
+                    cuenta_haber='220505 Nacionales',
+                    clasificacion='egreso',
+                    estado_asiento='borrador', estado_pago='pendiente',
+                    orden_compra_id=oc.id, proveedor_id=oc.proveedor_id,
+                    creado_por=current_user.id
+                )
+                db.session.add(asiento_oc)
+                db.session.flush()
+                asiento_oc.numero = f'AC-{hoy.year}-{asiento_oc.id:04d}'
+            except Exception as ex:
+                logging.warning(f'orden_compra_desde_tarea: auto-asiento error: {ex}')
+
         db.session.commit()
         _log('crear', 'orden_compra', oc.id, f'OC {oc.numero} creada desde tarea #{tarea.id}')
         db.session.commit()
@@ -529,18 +559,24 @@ def register(app):
                           fecha_vencimiento=fecha_rec - timedelta(days=2),
                           creado_por=current_user.id, tarea_tipo='contratar_transporte')
                 db.session.add(t)
-            # Auto-crear asiento contable de egreso en borrador
+            # Auto-crear asiento contable de egreso en borrador — usa anticipo si aplica
             try:
+                _monto_ant = float(oc.monto_anticipo or 0)
+                _total = float(oc.total or 0)
+                es_anticipo = bool(_monto_ant > 0 and _monto_ant < _total)
+                monto_asiento = _monto_ant if es_anticipo else _total
+                desc_asiento = (f'Anticipo ({oc.porcentaje_anticipo:.0f}%) — OC {oc.numero}'
+                                if es_anticipo else f'Egreso pendiente — OC {oc.numero}')
                 asiento = AsientoContable(
                     company_id=getattr(g, 'company_id', None),
                     numero='AC-TEMP',
                     fecha=oc.fecha_emision or datetime.utcnow().date(),
-                    descripcion=f'Egreso pendiente — OC {oc.numero}',
+                    descripcion=desc_asiento,
                     tipo='compra',
-                    subtipo='orden_compra',
+                    subtipo='anticipo_oc' if es_anticipo else 'orden_compra',
                     referencia=oc.numero,
-                    debe=float(oc.total or 0),
-                    haber=float(oc.total or 0),
+                    debe=monto_asiento,
+                    haber=monto_asiento,
                     cuenta_debe='1405 Materias primas',
                     cuenta_haber='220505 Nacionales',
                     clasificacion='egreso',

@@ -2403,6 +2403,38 @@ def _migrate(conn):
         # ── Cotizacion items: unidades equivalentes cuando se cotiza en peso ──
         ("ALTER TABLE cotizacion_items ADD COLUMN IF NOT EXISTS unidades_equivalentes FLOAT"),
         ("ALTER TABLE cotizacion_items ADD COLUMN unidades_equivalentes FLOAT"),
+        # ── Backfill asientos contables para OCs sin asiento (idempotente) ──
+        # Inserta un asiento 'compra' en borrador para cada OC que no tenga uno.
+        # Numero provisional 'AC-BACKFILL-{id}' para evitar colisiones.
+        ("""INSERT INTO asientos_contables (
+              company_id, numero, fecha, descripcion, tipo, subtipo, referencia,
+              debe, haber, cuenta_debe, cuenta_haber, clasificacion,
+              estado_asiento, estado_pago, orden_compra_id, proveedor_id, creado_en
+            )
+            SELECT
+              oc.company_id,
+              'AC-BACKFILL-' || oc.id,
+              COALESCE(oc.fecha_emision, CURRENT_DATE),
+              'Egreso pendiente — OC ' || COALESCE(oc.numero, 'ID-' || oc.id),
+              'compra',
+              CASE WHEN COALESCE(oc.monto_anticipo, 0) > 0 AND oc.monto_anticipo < oc.total
+                   THEN 'anticipo_oc' ELSE 'orden_compra' END,
+              COALESCE(oc.numero, ''),
+              CASE WHEN COALESCE(oc.monto_anticipo, 0) > 0 AND oc.monto_anticipo < oc.total
+                   THEN oc.monto_anticipo ELSE COALESCE(oc.total, 0) END,
+              CASE WHEN COALESCE(oc.monto_anticipo, 0) > 0 AND oc.monto_anticipo < oc.total
+                   THEN oc.monto_anticipo ELSE COALESCE(oc.total, 0) END,
+              '1405 Materias primas',
+              '220505 Nacionales',
+              'egreso',
+              'borrador',
+              'pendiente',
+              oc.id,
+              oc.proveedor_id,
+              CURRENT_TIMESTAMP
+            FROM ordenes_compra oc
+            LEFT JOIN asientos_contables a ON a.orden_compra_id = oc.id
+            WHERE a.id IS NULL AND COALESCE(oc.total, 0) > 0"""),
         # ── Backfill saldo venta con retencion (idempotente) ──
         # saldo real = total − retencion − monto_pagado_total
         ("UPDATE ventas SET saldo = GREATEST(0, COALESCE(total,0) - COALESCE(retencion_monto,0) - COALESCE(monto_pagado_total,0)) WHERE COALESCE(retencion_aplica, FALSE) = TRUE"),
