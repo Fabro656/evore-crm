@@ -1871,9 +1871,11 @@ def register(app):
         )
         db.session.add(pago)
 
-        # Actualizar totales de la venta (con cap — no puede pagar más del total)
-        venta.monto_pagado_total = min((venta.monto_pagado_total or 0) + monto, float(venta.total or 0))
-        venta.saldo = max(0, float(venta.total or 0) - (venta.monto_pagado_total or 0))
+        # Actualizar totales de la venta (con cap — el efectivo esperado es
+        # total − retencion; la retencion nunca se cobra en cash)
+        efectivo_esperado = float(venta.total or 0) - float(venta.retencion_monto or 0)
+        venta.monto_pagado_total = min((venta.monto_pagado_total or 0) + monto, efectivo_esperado)
+        venta.saldo = max(0, efectivo_esperado - (venta.monto_pagado_total or 0))
 
         # Auto-transicionar estado si corresponde
         if venta.monto_pagado_total >= (venta.monto_anticipo or 0) and venta.estado == 'negociacion':

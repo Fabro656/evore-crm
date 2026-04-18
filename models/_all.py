@@ -2403,6 +2403,9 @@ def _migrate(conn):
         # ── Cotizacion items: unidades equivalentes cuando se cotiza en peso ──
         ("ALTER TABLE cotizacion_items ADD COLUMN IF NOT EXISTS unidades_equivalentes FLOAT"),
         ("ALTER TABLE cotizacion_items ADD COLUMN unidades_equivalentes FLOAT"),
+        # ── Backfill saldo venta con retencion (idempotente) ──
+        # saldo real = total − retencion − monto_pagado_total
+        ("UPDATE ventas SET saldo = GREATEST(0, COALESCE(total,0) - COALESCE(retencion_monto,0) - COALESCE(monto_pagado_total,0)) WHERE COALESCE(retencion_aplica, FALSE) = TRUE"),
         # ── Backfill: documentos legales huerfanos (company_id NULL) ──
         # Asigna el company_id del usuario que creo el documento
         ("UPDATE documentos_legales SET company_id = (SELECT u.company_id FROM users u WHERE u.id = documentos_legales.creado_por) WHERE company_id IS NULL AND creado_por IS NOT NULL"),

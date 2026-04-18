@@ -635,9 +635,11 @@ def register(app):
         if asiento.clasificacion == 'ingreso' and asiento.venta_id:
             v = db.session.get(Venta, asiento.venta_id)
             if v:
-                # Recalcular monto_anticipo_recibido + monto_pagado_total coherentes
+                # Recalcular totales coherentes — cap al efectivo esperado
                 asientos_v = tenant_query(AsientoContable).filter_by(venta_id=v.id, clasificacion='ingreso').all()
-                v.monto_pagado_total = sum(float(a.monto_pagado or 0) for a in asientos_v)
+                efectivo_esperado_v = float(v.total or 0) - float(v.retencion_monto or 0)
+                v.monto_pagado_total = min(sum(float(a.monto_pagado or 0) for a in asientos_v), efectivo_esperado_v)
+                v.saldo = max(0, efectivo_esperado_v - v.monto_pagado_total)
                 if v.monto_pagado_total >= (v.monto_anticipo or 0):
                     v.monto_anticipo_recibido = v.monto_anticipo or 0
                 else:
@@ -706,13 +708,16 @@ def register(app):
             flash(error, 'warning')
             return redirect(url_for('contable_asientos', vista='generados'))
 
-        # Actualizar venta vinculada (con cap al total)
+        # Actualizar venta vinculada — cap al efectivo esperado (total − retencion)
         if asiento.venta_id:
             venta = db.session.get(Venta, asiento.venta_id)
             if venta:
                 total_venta = float(venta.total or 0)
-                venta.monto_anticipo_recibido = min(float(venta.monto_anticipo_recibido or 0) + monto, total_venta)
-                venta.monto_pagado_total = min(float(venta.monto_pagado_total or 0) + monto, total_venta)
+                retencion = float(venta.retencion_monto or 0)
+                efectivo_esperado = total_venta - retencion
+                venta.monto_anticipo_recibido = min(float(venta.monto_anticipo_recibido or 0) + monto, efectivo_esperado)
+                venta.monto_pagado_total = min(float(venta.monto_pagado_total or 0) + monto, efectivo_esperado)
+                venta.saldo = max(0, efectivo_esperado - venta.monto_pagado_total)
                 venta.estado_cliente_pago = 'recibido'
                 if asiento.estado_pago == 'completo':
                     if venta.estado in ('negociacion', 'prospecto'):
