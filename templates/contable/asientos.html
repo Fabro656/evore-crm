@@ -192,6 +192,34 @@
             </div>
             {% endif %}
           </div>
+          {# Historial de pagos (si existen PagoVenta vinculados al asiento via venta) #}
+          {% set pagos_asiento = [] %}
+          {% if a.venta %}
+            {% for p in a.venta.pagos if p.asiento_id == a.id %}{% set _ = pagos_asiento.append(p) %}{% endfor %}
+          {% endif %}
+          {% if pagos_asiento %}
+          <div class="mb-2 p-2 rounded" style="background:var(--surface2);font-size:.72rem">
+            <div class="text-muted mb-1" style="text-transform:uppercase;letter-spacing:.5px;font-size:.65rem"><i class="bi bi-clock-history me-1"></i>Historial de cobros</div>
+            {% for p in pagos_asiento|sort(attribute='fecha') %}
+            <div class="d-flex justify-content-between align-items-start gap-2" style="line-height:1.35">
+              <div>
+                <span class="badge bg-{% if p.tipo=='anticipo' %}info{% elif p.tipo=='saldo' %}success{% else %}warning{% endif %}" style="font-size:.6rem">
+                  {{ p.tipo|capitalize }}
+                </span>
+                {{ p.fecha.strftime('%d/%m/%Y') }} · {{ (p.metodo_pago or '').capitalize() }}
+                {% if p.banco %}<span class="text-muted">({{ p.banco }})</span>{% endif %}
+                {% if p.referencia %}<div class="text-muted" style="font-size:.68rem">Ref: {{ p.referencia }}</div>{% endif %}
+              </div>
+              <div class="fw-semibold" style="color:var(--green)">{{ moneda2(p.monto) }}</div>
+            </div>
+            {% endfor %}
+          </div>
+          {% elif a.fecha_pago and a.estado_pago in ('parcial','completo') %}
+          <div class="mb-2 p-2 rounded" style="background:var(--surface2);font-size:.72rem">
+            <div><i class="bi bi-calendar-event me-1"></i>{{ a.fecha_pago.strftime('%d/%m/%Y') }}{% if a.metodo_pago %} · {{ a.metodo_pago.capitalize() }}{% endif %}{% if a.banco_nombre %} ({{ a.banco_nombre }}){% endif %}</div>
+            {% if a.nro_transaccion %}<div class="text-muted">Ref: {{ a.nro_transaccion }}</div>{% endif %}
+          </div>
+          {% endif %}
           {# estado pago + badges #}
           <div class="mb-2" style="font-size:.72rem">
             {% if a.estado_pago == 'completo' %}
@@ -211,16 +239,23 @@
         </div>
         {# Actions footer #}
         <div style="padding:.55rem 1rem;border-top:1px solid var(--border);background:var(--surface2)" class="d-flex gap-1 justify-content-end flex-wrap">
+          {% set _saldo_asiento = (a.debe if not es_ingreso else a.haber) - (a.monto_pagado or 0) %}
+          {% set _label_btn = 'Anticipo recibido' if es_ingreso and a.estado_pago == 'pendiente' else ('Marcar completo' if es_ingreso else 'Registrar pago') %}
           {% if not es_ingreso and a.orden_compra_id and a.estado_pago != 'completo' %}
           <div class="dropdown d-inline-block">
-            <button class="btn btn-sm btn-success dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.75rem"><i class="bi bi-check-circle me-1"></i>Pago</button>
-            <div class="dropdown-menu p-2" style="min-width:min(200px, calc(100vw - 40px))" onclick="event.stopPropagation()">
+            <button class="btn btn-sm btn-success dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.75rem"><i class="bi bi-check-circle me-1"></i>Registrar pago</button>
+            <div class="dropdown-menu p-2" style="min-width:min(240px, calc(100vw - 40px))" onclick="event.stopPropagation()">
               <form method="POST" action="{{ url_for('contable_confirmar_pago', id=a.id) }}{% if request.args.get('_embed')=='1' %}?_embed=1{% endif %}">
-                <small class="fw-bold d-block mb-1">{{ a.numero }} — {{ moneda2(a.debe or 0) }}</small>
+                <small class="fw-bold d-block mb-1">{{ a.numero }} — Saldo {{ moneda2(_saldo_asiento) }}</small>
                 <div class="mb-1"><select name="tipo_pago" class="form-select form-select-sm" onchange="this.closest('form').querySelector('[name=monto_pago]').style.display=this.value==='total'?'none':''">
-                  <option value="total">Pago total</option><option value="parcial">Parcial</option></select></div>
-                <input type="number" name="monto_pago" class="form-control form-control-sm mb-1" step="0.01" inputmode="decimal" value="{{ '%.2f'|format((a.debe or 0) - (a.monto_pagado or 0)) }}" style="display:none" min="0.01">
-                <select name="metodo_pago" class="form-select form-select-sm mb-1"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option><option value="nequi">Nequi</option></select>
+                  <option value="total">Pago total del saldo</option><option value="parcial">Parcial</option></select></div>
+                <input type="number" name="monto_pago" class="form-control form-control-sm mb-1" step="0.01" inputmode="decimal" value="{{ '%.2f'|format(_saldo_asiento) }}" style="display:none" min="0.01">
+                <label class="text-muted mb-0" style="font-size:.7rem">Fecha</label>
+                <input type="date" name="fecha_pago" class="form-control form-control-sm mb-1" value="{{ today }}">
+                <label class="text-muted mb-0" style="font-size:.7rem">Metodo</label>
+                <select name="metodo_pago" class="form-select form-select-sm mb-1"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option><option value="cheque">Cheque</option><option value="tarjeta">Tarjeta</option><option value="nequi">Nequi</option><option value="daviplata">Daviplata</option></select>
+                <input type="text" name="banco_pago" class="form-control form-control-sm mb-1" placeholder="Banco / emisor">
+                <input type="text" name="referencia_pago" class="form-control form-control-sm mb-1" placeholder="Nro transaccion (opcional)">
                 <button type="submit" class="btn btn-success btn-sm w-100"><i class="bi bi-check-lg me-1"></i>Confirmar</button>
               </form>
             </div>
@@ -228,14 +263,19 @@
           {% endif %}
           {% if es_ingreso and a.venta_id and a.estado_pago != 'completo' %}
           <div class="dropdown d-inline-block">
-            <button class="btn btn-sm btn-success dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.75rem"><i class="bi bi-check-circle me-1"></i>Cobro</button>
-            <div class="dropdown-menu p-2" style="min-width:min(200px, calc(100vw - 40px))" onclick="event.stopPropagation()">
+            <button class="btn btn-sm btn-success dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.75rem"><i class="bi bi-check-circle me-1"></i>{{ _label_btn }}</button>
+            <div class="dropdown-menu p-2" style="min-width:min(240px, calc(100vw - 40px))" onclick="event.stopPropagation()">
               <form method="POST" action="{{ url_for('contable_confirmar_ingreso', id=a.id) }}{% if request.args.get('_embed')=='1' %}?_embed=1{% endif %}">
-                <small class="fw-bold d-block mb-1">{{ a.numero }} — {{ moneda2(a.haber or 0) }}</small>
+                <small class="fw-bold d-block mb-1">{{ a.numero }} — Pendiente {{ moneda2(_saldo_asiento) }}</small>
                 <div class="mb-1"><select name="tipo_pago" class="form-select form-select-sm" onchange="this.closest('form').querySelector('[name=monto_pago]').style.display=this.value==='total'?'none':''">
-                  <option value="total">Cobro total</option><option value="parcial">Parcial</option></select></div>
-                <input type="number" name="monto_pago" class="form-control form-control-sm mb-1" step="0.01" inputmode="decimal" value="{{ '%.2f'|format((a.haber or 0) - (a.monto_pagado or 0)) }}" style="display:none" min="0.01">
-                <select name="metodo_pago" class="form-select form-select-sm mb-1"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option><option value="nequi">Nequi</option></select>
+                  <option value="total">Cobro total del saldo</option><option value="parcial">Parcial (anticipo)</option></select></div>
+                <input type="number" name="monto_pago" class="form-control form-control-sm mb-1" step="0.01" inputmode="decimal" value="{{ '%.2f'|format(_saldo_asiento) }}" style="display:none" min="0.01">
+                <label class="text-muted mb-0" style="font-size:.7rem">Fecha del cobro</label>
+                <input type="date" name="fecha_pago" class="form-control form-control-sm mb-1" value="{{ today }}">
+                <label class="text-muted mb-0" style="font-size:.7rem">Metodo</label>
+                <select name="metodo_pago" class="form-select form-select-sm mb-1"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option><option value="cheque">Cheque</option><option value="tarjeta">Tarjeta</option><option value="nequi">Nequi</option><option value="daviplata">Daviplata</option></select>
+                <input type="text" name="banco_pago" class="form-control form-control-sm mb-1" placeholder="Banco / emisor">
+                <input type="text" name="referencia_pago" class="form-control form-control-sm mb-1" placeholder="Nro transaccion (opcional)">
                 <button type="submit" class="btn btn-success btn-sm w-100"><i class="bi bi-check-lg me-1"></i>Confirmar</button>
               </form>
             </div>

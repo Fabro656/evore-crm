@@ -331,9 +331,11 @@ class PagoVenta(db.Model):
     __tablename__ = 'pagos_venta'
     id          = db.Column(db.Integer, primary_key=True)
     venta_id    = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=False)
+    asiento_id  = db.Column(db.Integer, db.ForeignKey('asientos_contables.id'), nullable=True, index=True)
     monto       = db.Column(db.Float, nullable=False)
     tipo        = db.Column(db.String(30), default='anticipo')  # anticipo, parcial, saldo
-    metodo_pago = db.Column(db.String(30), default='transferencia')  # transferencia, efectivo, cheque, tarjeta
+    metodo_pago = db.Column(db.String(30), default='transferencia')  # transferencia, efectivo, cheque, tarjeta, nequi, daviplata
+    banco       = db.Column(db.String(120))  # banco o emisor de la tarjeta
     referencia  = db.Column(db.String(100))  # nro transacción / comprobante
     fecha       = db.Column(db.Date, nullable=False)
     notas       = db.Column(db.Text)
@@ -2368,6 +2370,11 @@ def _migrate(conn):
         ("ALTER TABLE proveedores ADD COLUMN banco_nit VARCHAR(30)"),
         ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS telefono_pais VARCHAR(8) DEFAULT '+57'"),
         ("ALTER TABLE proveedores ADD COLUMN telefono_pais VARCHAR(8) DEFAULT '+57'"),
+        # ── PagoVenta: asiento_id y banco ──
+        ("ALTER TABLE pagos_venta ADD COLUMN IF NOT EXISTS asiento_id INTEGER REFERENCES asientos_contables(id)"),
+        ("ALTER TABLE pagos_venta ADD COLUMN asiento_id INTEGER REFERENCES asientos_contables(id)"),
+        ("ALTER TABLE pagos_venta ADD COLUMN IF NOT EXISTS banco VARCHAR(120)"),
+        ("ALTER TABLE pagos_venta ADD COLUMN banco VARCHAR(120)"),
         # ── Retencion en la fuente (Art. 392 ET) en ventas/cotizaciones ──
         ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS retencion_aplica BOOLEAN DEFAULT FALSE"),
         ("ALTER TABLE ventas ADD COLUMN retencion_aplica BOOLEAN DEFAULT FALSE"),

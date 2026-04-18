@@ -250,7 +250,8 @@ def register(app):
             total_egresos_list=total_egresos_list,
             ingresos_mes=ingresos_mes, gastos_mes=gastos_mes,
             balance_mes=ingresos_mes - gastos_mes,
-            retenciones_ytd=retenciones_ytd, pagination=pagination)
+            retenciones_ytd=retenciones_ytd, pagination=pagination,
+            today=date_type.today().isoformat())
 
     # ── contable_asientos_export_csv (/contable/asientos/export-csv)
     @app.route('/contable/asientos/export-csv')
@@ -483,6 +484,12 @@ def register(app):
         monto = _parse_decimal(request.form.get('monto_pago'))
         metodo = request.form.get('metodo_pago', '')
         ref = request.form.get('referencia_pago', '')
+        banco = request.form.get('banco_pago', '') or request.form.get('banco_nombre', '')
+        fecha_raw = request.form.get('fecha_pago', '')
+        try:
+            fecha_efectiva = datetime.strptime(fecha_raw, '%Y-%m-%d').date() if fecha_raw else date_type.today()
+        except Exception:
+            fecha_efectiva = date_type.today()
 
         total_asiento = float(getattr(asiento, campo_total) or 0)
         if total_asiento <= 0:
@@ -506,13 +513,36 @@ def register(app):
         asiento.monto_pagado = min(nuevo_pagado, total_asiento)
         asiento.metodo_pago = metodo or asiento.metodo_pago
         asiento.nro_transaccion = ref or asiento.nro_transaccion
-        asiento.fecha_pago = date_type.today()
+        asiento.fecha_pago = fecha_efectiva
+        if banco:
+            asiento.banco_nombre = banco
 
+        era_parcial_antes = (ya_pagado > 0)
         if asiento.monto_pagado >= total_asiento:
             asiento.estado_pago = 'completo'
             asiento.estado_asiento = 'aprobado'
         else:
             asiento.estado_pago = 'parcial'
+
+        # Registrar PagoVenta: distinguir anticipo vs saldo (excedente)
+        if asiento.venta_id:
+            # Primer pago del asiento → anticipo. Pago que completa → saldo. Otros → parcial.
+            if not era_parcial_antes and asiento.estado_pago == 'parcial':
+                tipo_pv = 'anticipo'
+            elif asiento.estado_pago == 'completo' and era_parcial_antes:
+                tipo_pv = 'saldo'
+            elif asiento.estado_pago == 'completo' and not era_parcial_antes:
+                tipo_pv = 'anticipo'  # Pago unico total — lo llamamos anticipo-completo
+            else:
+                tipo_pv = 'parcial'
+            db.session.add(PagoVenta(
+                venta_id=asiento.venta_id, asiento_id=asiento.id,
+                monto=monto, tipo=tipo_pv,
+                metodo_pago=metodo or 'transferencia',
+                banco=banco or None, referencia=ref or None,
+                fecha=fecha_efectiva,
+                creado_por=current_user.id
+            ))
 
         return monto, None
 
@@ -531,11 +561,15 @@ def register(app):
             flash(f'El monto recibido no puede superar el total del asiento ({total_asiento:,.2f}).', 'danger')
             return redirect(url_for('contable_asientos', vista='generados'))
         asiento.monto_pagado = nuevo
+        # Setear fecha_pago a hoy si pasa de 0 a > 0 y no habia fecha
+        if nuevo > 0 and not asiento.fecha_pago:
+            asiento.fecha_pago = date_type.today()
         # Actualizar estado_pago segun el monto
         if nuevo <= 0:
             asiento.estado_pago = 'pendiente'
         elif abs(nuevo - total_asiento) < 0.01:
             asiento.estado_pago = 'completo'
+            asiento.estado_asiento = 'aprobado'
         else:
             asiento.estado_pago = 'parcial'
         # Propagar a venta/OC vinculada
@@ -829,7 +863,7 @@ def register(app):
             ).join(AsientoContable, LineaAsiento.asiento_id == AsientoContable.id
             ).join(CuentaPUC, LineaAsiento.cuenta_puc_id == CuentaPUC.id).filter(
                 AsientoContable.fecha <= fecha_corte,
-                AsientoContable.estado_asiento != 'anulado',
+                db.or_(AsientoContable.estado_asiento.is_(None), AsientoContable.estado_asiento != 'anulado'),
                 CuentaPUC.codigo.startswith(prefijo)
             )
             cid = getattr(g, 'company_id', None)
@@ -841,12 +875,12 @@ def register(app):
             # 2) Desde campos legacy de AsientoContable (cuenta_debe/cuenta_haber con codigo PUC)
             ac_debe_val = tenant_query(AsientoContable).filter(
                 AsientoContable.fecha <= fecha_corte,
-                AsientoContable.estado_asiento != 'anulado',
+                db.or_(AsientoContable.estado_asiento.is_(None), AsientoContable.estado_asiento != 'anulado'),
                 AsientoContable.cuenta_debe.like(f'{prefijo}%')
             ).with_entities(db.func.coalesce(db.func.sum(AsientoContable.debe), 0)).scalar() or 0
             ac_haber_val = tenant_query(AsientoContable).filter(
                 AsientoContable.fecha <= fecha_corte,
-                AsientoContable.estado_asiento != 'anulado',
+                db.or_(AsientoContable.estado_asiento.is_(None), AsientoContable.estado_asiento != 'anulado'),
                 AsientoContable.cuenta_haber.like(f'{prefijo}%')
             ).with_entities(db.func.coalesce(db.func.sum(AsientoContable.haber), 0)).scalar() or 0
             return td + float(ac_debe_val), th + float(ac_haber_val)
@@ -896,7 +930,7 @@ def register(app):
             ).join(AsientoContable, LineaAsiento.asiento_id == AsientoContable.id
             ).join(CuentaPUC, LineaAsiento.cuenta_puc_id == CuentaPUC.id).filter(
                 AsientoContable.fecha >= mes_ini, AsientoContable.fecha <= mes_fin,
-                AsientoContable.estado_asiento != 'anulado',
+                db.or_(AsientoContable.estado_asiento.is_(None), AsientoContable.estado_asiento != 'anulado'),
                 CuentaPUC.codigo.startswith(prefijo)
             )
             cid = getattr(g, 'company_id', None)
@@ -908,12 +942,12 @@ def register(app):
             # 2) Legacy AsientoContable fields
             ac_td = tenant_query(AsientoContable).filter(
                 AsientoContable.fecha >= mes_ini, AsientoContable.fecha <= mes_fin,
-                AsientoContable.estado_asiento != 'anulado',
+                db.or_(AsientoContable.estado_asiento.is_(None), AsientoContable.estado_asiento != 'anulado'),
                 AsientoContable.cuenta_debe.like(f'{prefijo}%')
             ).with_entities(db.func.coalesce(db.func.sum(AsientoContable.debe), 0)).scalar() or 0
             ac_th = tenant_query(AsientoContable).filter(
                 AsientoContable.fecha >= mes_ini, AsientoContable.fecha <= mes_fin,
-                AsientoContable.estado_asiento != 'anulado',
+                db.or_(AsientoContable.estado_asiento.is_(None), AsientoContable.estado_asiento != 'anulado'),
                 AsientoContable.cuenta_haber.like(f'{prefijo}%')
             ).with_entities(db.func.coalesce(db.func.sum(AsientoContable.haber), 0)).scalar() or 0
             return td + float(ac_td), th + float(ac_th)
