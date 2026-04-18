@@ -2403,6 +2403,12 @@ def _migrate(conn):
         # ── Cotizacion items: unidades equivalentes cuando se cotiza en peso ──
         ("ALTER TABLE cotizacion_items ADD COLUMN IF NOT EXISTS unidades_equivalentes FLOAT"),
         ("ALTER TABLE cotizacion_items ADD COLUMN unidades_equivalentes FLOAT"),
+        # ── Backfill: restaurar tipo de asientos manualizados por error ──
+        # Asientos con venta_id o orden_compra_id NO deberian ser 'manual':
+        # son asientos generados desde ventas/OCs. Restaurar el tipo correcto.
+        ("UPDATE asientos_contables SET tipo = 'venta' WHERE tipo = 'manual' AND venta_id IS NOT NULL"),
+        ("UPDATE asientos_contables SET tipo = 'compra' WHERE tipo = 'manual' AND orden_compra_id IS NOT NULL AND (venta_id IS NULL OR venta_id = 0)"),
+        ("UPDATE asientos_contables SET tipo = 'gasto' WHERE tipo = 'manual' AND gasto_id IS NOT NULL AND venta_id IS NULL AND orden_compra_id IS NULL"),
         # ── Backfill: normalizar labels de cuenta_debe/haber a codigo PUC ──
         # Asientos legacy se crearon con texto (ej. "Bancos / Caja") sin el
         # codigo PUC al inicio → el balance general/prueba filtra por
