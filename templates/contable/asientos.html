@@ -184,8 +184,8 @@
               <div class="d-flex align-items-center gap-1">
                 <span class="fw-semibold" style="font-size:.95rem;color:var(--green)">{{ moneda2(a.monto_pagado or 0) }}</span>
                 <button type="button" class="btn btn-xs btn-outline-secondary p-0 px-1"
-                        style="font-size:.7rem;line-height:1" title="Editar monto recibido"
-                        onclick="abrirEditarRecibido({{ a.id }}, '{{ a.numero or ('#'~a.id) }}', {{ (a.monto_pagado or 0)|round(2) }}, {{ (monto or 0)|round(2) }})">
+                        style="font-size:.7rem;line-height:1" title="Editar monto, fecha y metodo"
+                        onclick="abrirEditarRecibido({{ a.id }}, '{{ a.numero or ('#'~a.id) }}', {{ (a.monto_pagado or 0)|round(2) }}, {{ (monto or 0)|round(2) }}, '{{ a.fecha_pago.isoformat() if a.fecha_pago else '' }}', '{{ a.metodo_pago or '' }}', '{{ (a.banco_nombre or '')|replace("'","\\'") }}', '{{ (a.nro_transaccion or '')|replace("'","\\'") }}')">
                   <i class="bi bi-pencil"></i>
                 </button>
               </div>
@@ -242,7 +242,7 @@
           {% set _saldo_asiento = (a.debe if not es_ingreso else a.haber) - (a.monto_pagado or 0) %}
           {% set _label_btn = 'Anticipo recibido' if es_ingreso and a.estado_pago == 'pendiente' else ('Marcar completo' if es_ingreso else 'Registrar pago') %}
           {% if not es_ingreso and a.orden_compra_id and a.estado_pago != 'completo' %}
-          <div class="dropdown d-inline-block">
+          <div class="dropdown dropup d-inline-block">
             <button class="btn btn-sm btn-success dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.75rem"><i class="bi bi-check-circle me-1"></i>Registrar pago</button>
             <div class="dropdown-menu p-2" style="min-width:min(240px, calc(100vw - 40px))" onclick="event.stopPropagation()">
               <form method="POST" action="{{ url_for('contable_confirmar_pago', id=a.id) }}{% if request.args.get('_embed')=='1' %}?_embed=1{% endif %}">
@@ -262,7 +262,7 @@
           </div>
           {% endif %}
           {% if es_ingreso and a.venta_id and a.estado_pago != 'completo' %}
-          <div class="dropdown d-inline-block">
+          <div class="dropdown dropup d-inline-block">
             <button class="btn btn-sm btn-success dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.75rem"><i class="bi bi-check-circle me-1"></i>{{ _label_btn }}</button>
             <div class="dropdown-menu p-2" style="min-width:min(240px, calc(100vw - 40px))" onclick="event.stopPropagation()">
               <form method="POST" action="{{ url_for('contable_confirmar_ingreso', id=a.id) }}{% if request.args.get('_embed')=='1' %}?_embed=1{% endif %}">
@@ -281,7 +281,7 @@
             </div>
           </div>
           {% endif %}
-          <div class="dropdown d-inline-block">
+          <div class="dropdown dropup d-inline-block">
             <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.75rem"><i class="bi bi-three-dots"></i></button>
             <ul class="dropdown-menu dropdown-menu-end" style="font-size:.82rem;min-width:170px">
               <li><a class="dropdown-item" href="{{ url_for('contable_asiento_editar', id=a.id) }}"><i class="bi bi-pencil me-2 text-primary"></i>Editar</a></li>
@@ -325,12 +325,40 @@
         <div class="modal-body">
           <div class="mb-2"><small class="text-muted">Asiento: <strong id="editRecNumero"></strong></small></div>
           <div class="mb-3"><small class="text-muted">Total del asiento: <strong id="editRecTotal"></strong></small></div>
-          <label class="form-label fw-semibold">Monto recibido real</label>
-          <div class="input-group">
-            <span class="input-group-text">$</span>
-            <input type="number" name="monto_pagado" id="editRecMonto" class="form-control" step="0.01" min="0" inputmode="decimal" required>
+          <div class="row g-2">
+            <div class="col-12">
+              <label class="form-label fw-semibold" style="font-size:.83rem">Monto recibido</label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text">$</span>
+                <input type="number" name="monto_pagado" id="editRecMonto" class="form-control" step="0.01" min="0" inputmode="decimal" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" style="font-size:.83rem">Fecha del cobro</label>
+              <input type="date" name="fecha_pago" id="editRecFecha" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" style="font-size:.83rem">Metodo</label>
+              <select name="metodo_pago" id="editRecMetodo" class="form-select form-select-sm">
+                <option value="">— Sin cambio —</option>
+                <option value="transferencia">Transferencia</option>
+                <option value="efectivo">Efectivo</option>
+                <option value="cheque">Cheque</option>
+                <option value="tarjeta">Tarjeta</option>
+                <option value="nequi">Nequi</option>
+                <option value="daviplata">Daviplata</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" style="font-size:.83rem">Banco / emisor</label>
+              <input type="text" name="banco_nombre" id="editRecBanco" class="form-control form-control-sm" placeholder="Opcional">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" style="font-size:.83rem">Nro transaccion</label>
+              <input type="text" name="nro_transaccion" id="editRecRef" class="form-control form-control-sm" placeholder="Opcional">
+            </div>
           </div>
-          <small class="text-muted">Si el valor es igual al total, el asiento queda "Pagado". Si es menor, "Parcial". Si es 0, "Pendiente".</small>
+          <small class="text-muted d-block mt-2">Si el monto es igual al total queda "Pagado"; si es menor "Parcial"; si es 0 "Pendiente".</small>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
@@ -397,11 +425,15 @@
 </div>
 
 <script>
-function abrirEditarRecibido(aid, numero, montoPagado, total){
+function abrirEditarRecibido(aid, numero, montoPagado, total, fechaPago, metodoPago, banco, nroTx){
   document.getElementById('editRecNumero').textContent = numero;
   document.getElementById('editRecTotal').textContent = '$ ' + (total||0).toLocaleString('es-CO', {minimumFractionDigits:2, maximumFractionDigits:2});
   document.getElementById('editRecMonto').value = (montoPagado||0).toFixed(2);
   document.getElementById('editRecMonto').max = total;
+  document.getElementById('editRecFecha').value = fechaPago || new Date().toISOString().split('T')[0];
+  document.getElementById('editRecMetodo').value = metodoPago || '';
+  document.getElementById('editRecBanco').value = banco || '';
+  document.getElementById('editRecRef').value = nroTx || '';
   document.getElementById('formEditarRecibido').action = '/contable/asientos/' + aid + '/editar-recibido';
   var modalEl = document.getElementById('modalEditarRecibido');
   var bs = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);

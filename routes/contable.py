@@ -561,9 +561,25 @@ def register(app):
             flash(f'El monto recibido no puede superar el total del asiento ({total_asiento:,.2f}).', 'danger')
             return redirect(url_for('contable_asientos', vista='generados'))
         asiento.monto_pagado = nuevo
-        # Setear fecha_pago a hoy si pasa de 0 a > 0 y no habia fecha
-        if nuevo > 0 and not asiento.fecha_pago:
+        # Fecha: si viene en el form, usar esa; sino hoy si pasa de 0 a > 0 y no habia fecha
+        fecha_raw = request.form.get('fecha_pago', '').strip()
+        if fecha_raw:
+            try:
+                asiento.fecha_pago = datetime.strptime(fecha_raw, '%Y-%m-%d').date()
+            except Exception:
+                pass
+        elif nuevo > 0 and not asiento.fecha_pago:
             asiento.fecha_pago = date_type.today()
+        # Metodo, banco, referencia: actualizar solo si vienen (sin pisar con vacios)
+        met = request.form.get('metodo_pago', '').strip()
+        if met:
+            asiento.metodo_pago = met
+        banco_in = request.form.get('banco_nombre', '').strip()
+        if banco_in:
+            asiento.banco_nombre = banco_in
+        ref_in = request.form.get('nro_transaccion', '').strip()
+        if ref_in:
+            asiento.nro_transaccion = ref_in
         # Actualizar estado_pago segun el monto
         if nuevo <= 0:
             asiento.estado_pago = 'pendiente'
