@@ -205,6 +205,18 @@ def register(app):
             ingresos_mes = 0
             gastos_mes   = 0
 
+        # Retenciones en la fuente asumidas este ano (Art. 392 ET) — activo 1355
+        try:
+            anio_ini = date_type(date_type.today().year, 1, 1)
+            ret_total = tenant_query(Venta).filter(
+                Venta.retencion_aplica == True,
+                Venta.creado_en >= anio_ini
+            ).with_entities(sa_func.sum(Venta.retencion_monto)).scalar() or 0
+            retenciones_ytd = float(ret_total)
+        except Exception:
+            db.session.rollback()
+            retenciones_ytd = 0
+
         return render_template('contable/asientos.html',
             asientos=asientos_filtrados, asientos_filtrados=asientos_filtrados,
             filtro=filtro, desde=desde, hasta=hasta, vista=vista,
@@ -212,7 +224,8 @@ def register(app):
             total_ingresos_list=total_ingresos_list,
             total_egresos_list=total_egresos_list,
             ingresos_mes=ingresos_mes, gastos_mes=gastos_mes,
-            balance_mes=ingresos_mes - gastos_mes, pagination=pagination)
+            balance_mes=ingresos_mes - gastos_mes,
+            retenciones_ytd=retenciones_ytd, pagination=pagination)
 
     # ── contable_asientos_export_csv (/contable/asientos/export-csv)
     @app.route('/contable/asientos/export-csv')

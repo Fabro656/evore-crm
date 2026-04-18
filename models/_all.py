@@ -289,6 +289,11 @@ class Venta(db.Model):
     porcentaje_anticipo = db.Column(db.Float, default=0)
     monto_anticipo      = db.Column(db.Float, default=0)
     saldo               = db.Column(db.Float, default=0)
+    # Retencion en la fuente que nos aplica el cliente (Art. 392 ET)
+    # El cliente retiene este % del subtotal al pagar. Se resta del saldo por cobrar.
+    retencion_aplica    = db.Column(db.Boolean, default=False)
+    retencion_pct       = db.Column(db.Float, default=2.5)  # 2.5% compras generales (Art. 392 ET)
+    retencion_monto     = db.Column(db.Float, default=0)    # pct * subtotal
     monto_pagado_total  = db.Column(db.Float, default=0)
     monto_anticipo_recibido = db.Column(db.Float, default=0)  # v36 — real recibido via asiento contable
     pendiente_aprobacion = db.Column(db.Boolean, default=False)  # v37 bloqueo por aprobacion
@@ -887,6 +892,10 @@ class Cotizacion(db.Model):
     porcentaje_anticipo = db.Column(db.Float, default=50)
     monto_anticipo      = db.Column(db.Float, default=0)
     saldo               = db.Column(db.Float, default=0)
+    # Retencion en la fuente del cliente (Art. 392 ET) — se propaga a la venta
+    retencion_aplica    = db.Column(db.Boolean, default=False)
+    retencion_pct       = db.Column(db.Float, default=2.5)
+    retencion_monto     = db.Column(db.Float, default=0)
     estado              = db.Column(db.String(30), default='borrador')  # borrador, enviada, aprobada, confirmacion_orden
     fecha_emision       = db.Column(db.Date, default=date_type.today)
     fecha_validez       = db.Column(db.Date)
@@ -2359,6 +2368,19 @@ def _migrate(conn):
         ("ALTER TABLE proveedores ADD COLUMN banco_nit VARCHAR(30)"),
         ("ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS telefono_pais VARCHAR(8) DEFAULT '+57'"),
         ("ALTER TABLE proveedores ADD COLUMN telefono_pais VARCHAR(8) DEFAULT '+57'"),
+        # ── Retencion en la fuente (Art. 392 ET) en ventas/cotizaciones ──
+        ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS retencion_aplica BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE ventas ADD COLUMN retencion_aplica BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS retencion_pct FLOAT DEFAULT 2.5"),
+        ("ALTER TABLE ventas ADD COLUMN retencion_pct FLOAT DEFAULT 2.5"),
+        ("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS retencion_monto FLOAT DEFAULT 0"),
+        ("ALTER TABLE ventas ADD COLUMN retencion_monto FLOAT DEFAULT 0"),
+        ("ALTER TABLE cotizaciones ADD COLUMN IF NOT EXISTS retencion_aplica BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE cotizaciones ADD COLUMN retencion_aplica BOOLEAN DEFAULT FALSE"),
+        ("ALTER TABLE cotizaciones ADD COLUMN IF NOT EXISTS retencion_pct FLOAT DEFAULT 2.5"),
+        ("ALTER TABLE cotizaciones ADD COLUMN retencion_pct FLOAT DEFAULT 2.5"),
+        ("ALTER TABLE cotizaciones ADD COLUMN IF NOT EXISTS retencion_monto FLOAT DEFAULT 0"),
+        ("ALTER TABLE cotizaciones ADD COLUMN retencion_monto FLOAT DEFAULT 0"),
         # ── OC: anticipo al proveedor ──
         ("ALTER TABLE ordenes_compra ADD COLUMN IF NOT EXISTS porcentaje_anticipo FLOAT DEFAULT 0"),
         ("ALTER TABLE ordenes_compra ADD COLUMN porcentaje_anticipo FLOAT DEFAULT 0"),

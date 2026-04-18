@@ -383,6 +383,9 @@ def register(app):
                 porcentaje_anticipo=float(request.form.get('porcentaje_anticipo') or 0),
                 monto_anticipo=float(request.form.get('monto_anticipo') or 0),
                 saldo=float(request.form.get('saldo') or 0),
+                retencion_aplica=bool(request.form.get('retencion_aplica')),
+                retencion_pct=_parse_decimal(request.form.get('retencion_pct')) if request.form.get('retencion_aplica') else 0,
+                retencion_monto=round(subtotal * (_parse_decimal(request.form.get('retencion_pct')) / 100.0), 2) if request.form.get('retencion_aplica') else 0,
                 estado=request.form.get('estado','prospecto'),
                 fecha_anticipo=datetime.strptime(fa,'%Y-%m-%d').date() if fa else None,
                 dias_entrega=int(request.form.get('dias_entrega') or 30),
@@ -519,6 +522,9 @@ def register(app):
             obj.porcentaje_anticipo=float(request.form.get('porcentaje_anticipo') or 0)
             obj.monto_anticipo=float(request.form.get('monto_anticipo') or 0)
             obj.saldo=float(request.form.get('saldo') or 0)
+            obj.retencion_aplica = bool(request.form.get('retencion_aplica'))
+            obj.retencion_pct = _parse_decimal(request.form.get('retencion_pct')) if obj.retencion_aplica else 0
+            obj.retencion_monto = round(subtotal * obj.retencion_pct / 100.0, 2) if obj.retencion_aplica else 0
             obj.estado=request.form.get('estado','prospecto')
             obj.fecha_anticipo=datetime.strptime(fa,'%Y-%m-%d').date() if fa else None
             obj.dias_entrega=int(request.form.get('dias_entrega') or 30)
@@ -1383,7 +1389,11 @@ def register(app):
             total = subtotal + iva_total
             pct_anticipo = float(request.form.get('porcentaje_anticipo', 50) or 50)
             monto_anticipo = total * pct_anticipo / 100.0
-            saldo = total - monto_anticipo
+            # Retencion fuente (Art. 392 ET): sobre subtotal, reduce saldo por cobrar
+            ret_aplica = bool(request.form.get('retencion_aplica'))
+            ret_pct = _parse_decimal(request.form.get('retencion_pct')) if ret_aplica else 0.0
+            ret_monto = round(subtotal * ret_pct / 100.0, 2) if ret_aplica else 0.0
+            saldo = total - monto_anticipo - ret_monto
 
             # Calcular fecha_entrega_est considerando dias_tipo
             fecha_emision = datetime.strptime(fd_em,'%Y-%m-%d').date() if fd_em else date_t.today()
@@ -1398,6 +1408,7 @@ def register(app):
                 subtotal=subtotal, iva=iva_total, total=total,
                 porcentaje_anticipo=pct_anticipo,
                 monto_anticipo=monto_anticipo, saldo=saldo,
+                retencion_aplica=ret_aplica, retencion_pct=ret_pct, retencion_monto=ret_monto,
                 fecha_emision=fecha_emision,
                 fecha_validez=datetime.strptime(fd_val,'%Y-%m-%d').date() if fd_val else None,
                 dias_entrega=dias_ent,
@@ -1624,7 +1635,11 @@ def register(app):
             obj.subtotal = subtotal; obj.iva = iva_total; obj.total = total
             obj.porcentaje_anticipo = pct_anticipo
             obj.monto_anticipo = total * pct_anticipo / 100.0
-            obj.saldo = total - obj.monto_anticipo
+            # Retencion fuente
+            obj.retencion_aplica = bool(request.form.get('retencion_aplica'))
+            obj.retencion_pct = _parse_decimal(request.form.get('retencion_pct')) if obj.retencion_aplica else 0.0
+            obj.retencion_monto = round(subtotal * obj.retencion_pct / 100.0, 2) if obj.retencion_aplica else 0.0
+            obj.saldo = total - obj.monto_anticipo - obj.retencion_monto
             obj.fecha_emision = fecha_emision
             obj.fecha_validez = datetime.strptime(fd_val,'%Y-%m-%d').date() if fd_val else None
             obj.dias_entrega = dias_ent
@@ -1767,7 +1782,7 @@ def register(app):
         else: seq = 1
         numero_venta = f'VNT-{hoy.year}-{seq:03d}'
 
-        # Crear venta desde cotización
+        # Crear venta desde cotización (hereda retencion fuente)
         v = Venta(
             company_id=getattr(g, 'company_id', None),
             titulo=cot.titulo,
@@ -1779,6 +1794,9 @@ def register(app):
             porcentaje_anticipo=cot.porcentaje_anticipo,
             monto_anticipo=cot.monto_anticipo,
             saldo=cot.saldo,
+            retencion_aplica=cot.retencion_aplica or False,
+            retencion_pct=cot.retencion_pct or 0,
+            retencion_monto=cot.retencion_monto or 0,
             estado='negociacion',
             dias_entrega=cot.dias_entrega,
             fecha_entrega_est=cot.fecha_entrega_est,

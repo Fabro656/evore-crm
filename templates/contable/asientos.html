@@ -45,6 +45,21 @@
     </div>
   </div>
 </div>
+{% if retenciones_ytd and retenciones_ytd > 0 %}
+<div class="row g-3 mb-3">
+  <div class="col-12">
+    <div class="fc" style="border-left:4px solid #E67E22;padding:.85rem 1rem">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div>
+          <div class="fw-semibold" style="font-size:.85rem"><i class="bi bi-receipt me-1 text-warning"></i>Retenciones en la fuente asumidas este año</div>
+          <small class="text-muted" style="font-size:.74rem">Monto dejado de recibir por retenciones de clientes (Art. 392 ET) — se descuenta en la declaracion de renta como cuenta 1355 Anticipos de impuestos.</small>
+        </div>
+        <div class="fw-bold" style="font-size:1.4rem;color:#E67E22">{{ moneda2(retenciones_ytd) }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 {# -- Pestanas Generados / Manuales -- #}
 <ul class="nav nav-tabs mb-3" role="tablist">

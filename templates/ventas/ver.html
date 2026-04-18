@@ -25,6 +25,11 @@
           <tr><th>IVA</th><td>{{ moneda(obj.iva) }}</td></tr>
           <tr><th>Total</th><td><strong>{{ moneda(obj.total) }}</strong></td></tr>
           <tr><th>Anticipo ({{ obj.porcentaje_anticipo|default(0)|int }}%)</th><td>{{ moneda(obj.monto_anticipo) }}</td></tr>
+          {% if obj.retencion_aplica and obj.retencion_monto %}
+          <tr><th><i class="bi bi-dash-circle text-danger me-1"></i>Retencion fuente ({{ obj.retencion_pct }}%)
+              <br><small class="text-muted" style="font-size:.7rem">Art. 392 ET — dejado de recibir, se descuenta en renta</small></th>
+              <td style="color:var(--red)">−{{ moneda(obj.retencion_monto) }}</td></tr>
+          {% endif %}
           <tr><th>Pagado</th><td>{{ moneda(obj.monto_pagado_total or 0) }}</td></tr>
           <tr><th>Saldo pendiente</th><td><strong style="color:{% if (obj.saldo or 0) > 0 %}var(--red){% else %}var(--green){% endif %}">{{ moneda(obj.saldo) }}</strong></td></tr>
           <tr><th>Fecha entrega est.</th><td>{{ obj.fecha_entrega_est.strftime('%d/%m/%Y') if obj.fecha_entrega_est else '—' }}</td></tr>

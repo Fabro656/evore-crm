@@ -161,7 +161,21 @@
     <div class="d-flex justify-content-between mb-1"><span class="text-muted">Total IVA:</span><span id="lblIva" class="fw-semibold">$ 0</span></div>
     <div class="d-flex justify-content-between mb-1"><span class="fw-bold">Total:</span><span id="lblTotal" class="fw-bold" style="color:var(--ac);font-size:1.1rem">$ 0</span></div>
     <div class="d-flex justify-content-between text-muted"><span>Anticipo (<span id="lblPct">50</span>%):</span><span id="lblAnticipo">$ 0</span></div>
-    <div class="d-flex justify-content-between text-muted"><span>Saldo:</span><span id="lblSaldo">$ 0</span></div>
+    <div class="d-flex align-items-center gap-2 mb-1" style="background:var(--surface2);padding:.4rem .6rem;border-radius:6px">
+      <input type="checkbox" name="retencion_aplica" id="retAplica" class="form-check-input mt-0"
+             {% if obj and obj.retencion_aplica %}checked{% endif %} onchange="calcTotal()">
+      <label for="retAplica" class="text-muted mb-0" style="font-size:.82rem;flex:1;cursor:pointer">
+        Cliente aplica retencion fuente
+      </label>
+      <div class="input-group input-group-sm" style="max-width:110px">
+        <input type="number" name="retencion_pct" id="retPct" class="form-control form-control-sm text-end"
+               min="0" max="20" step="0.01"
+               value="{{ obj.retencion_pct if obj and obj.retencion_pct else 2.5 }}" oninput="calcTotal()">
+        <span class="input-group-text">%</span>
+      </div>
+    </div>
+    <div class="d-flex justify-content-between text-danger" id="rowRetencion" style="display:none !important"><span><i class="bi bi-dash-circle me-1"></i>Retencion fuente (Art. 392 ET):</span><span id="lblRetencion">−$ 0</span></div>
+    <div class="d-flex justify-content-between text-muted"><span>Saldo neto a recibir:</span><span id="lblSaldo" class="fw-semibold">$ 0</span></div>
   </div>
   <div class="col-12"><label class="form-label">Condiciones de pago</label>
     <textarea name="condiciones_pago" class="form-control" rows="2" placeholder="Ej: 50% anticipo, 50% contra entrega">{{ obj.condiciones_pago if obj else '' }}</textarea></div>
@@ -432,12 +446,24 @@ function calcTotal(){
   var total=sub+iva_tot;
   var pct=parseFloat(document.getElementById('pctAnticipo').value)||50;
   var anticipo=total*pct/100;
+  // Retencion en la fuente (aplica sobre subtotal, no sobre IVA — Art. 392 ET)
+  var retAplica = document.getElementById('retAplica') && document.getElementById('retAplica').checked;
+  var retPct = parseFloat((document.getElementById('retPct')||{}).value)||0;
+  var retMonto = retAplica ? (sub * retPct / 100) : 0;
+  var saldoNeto = total - anticipo - retMonto;
   document.getElementById('lblSub').textContent=fmt(sub);
   document.getElementById('lblIva').textContent=fmt(iva_tot);
   document.getElementById('lblTotal').textContent=fmt(total);
   document.getElementById('lblPct').textContent=Math.round(pct);
   document.getElementById('lblAnticipo').textContent=fmt(anticipo);
-  document.getElementById('lblSaldo').textContent=fmt(total-anticipo);
+  var rowRet = document.getElementById('rowRetencion');
+  if(retAplica && retMonto>0){
+    rowRet.setAttribute('style','display:flex !important');
+    document.getElementById('lblRetencion').textContent='−'+fmt(retMonto);
+  } else {
+    rowRet.setAttribute('style','display:none !important');
+  }
+  document.getElementById('lblSaldo').textContent=fmt(saldoNeto);
 
   // Tabla resumen
   var tbody=document.getElementById('resumenBody');

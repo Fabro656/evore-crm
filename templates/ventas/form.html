@@ -95,9 +95,26 @@
       <div class="form-text">Se calcula automáticamente.</div>
     </div>
     <div class="col-md-3">
-      <label class="form-label">Saldo a pagar</label>
+      <label class="form-label">Saldo neto a cobrar</label>
       <input type="text" id="saldoVis" class="form-control" readonly style="background:var(--surface2)" placeholder="Se calcula solo">
       <input type="hidden" name="saldo" id="saldoHid">
+      <div class="form-text">Total − anticipo − retencion fuente.</div>
+    </div>
+    <div class="col-12">
+      <div class="d-flex align-items-center gap-2" style="background:var(--surface2);padding:.5rem .75rem;border-radius:6px">
+        <input type="checkbox" name="retencion_aplica" id="retAplica" class="form-check-input mt-0"
+               {% if obj and obj.retencion_aplica %}checked{% endif %} onchange="calcA()">
+        <label for="retAplica" class="mb-0" style="font-size:.88rem;flex:1;cursor:pointer">
+          Cliente aplica retencion en la fuente (Art. 392 ET)
+        </label>
+        <div class="input-group" style="max-width:140px">
+          <input type="number" name="retencion_pct" id="retPct" class="form-control text-end"
+                 min="0" max="20" step="0.01"
+                 value="{{ obj.retencion_pct if obj and obj.retencion_pct else 2.5 }}" oninput="calcA()">
+          <span class="input-group-text">%</span>
+        </div>
+        <span class="text-danger fw-semibold" id="retMontoLbl" style="min-width:120px;text-align:right;font-size:.9rem">−$ 0</span>
+      </div>
     </div>
     <div class="col-md-4">
       <label class="form-label">Fecha pago anticipo</label>
@@ -145,7 +162,7 @@
   <a href="{{ url_for('ventas') }}" class="btn btn-outline-secondary">Cancelar</a>
 </div></form></div>{% endblock %}
 {% block scripts %}<script>
-const PRODS={{ productos_json|tojson }};const ITEMS={{ items_json|tojson }};let totG=0;
+const PRODS={{ productos_json|tojson }};const ITEMS={{ items_json|tojson }};let totG=0;let subG=0;
 const SRVS={{ servicios_json|default([])|tojson }};
 const IVA_PCT={{ iva_default|default(19)|float }};
 function fCOP(n){return '$ '+Math.round(n).toLocaleString('es-CO');}
@@ -238,7 +255,7 @@ function calcTot(){
   document.querySelectorAll('[name="prod_cant[]"]').forEach((el,i)=>{
     sub+=(parseFloat(el.value)||0)*(parseFloat(document.querySelectorAll('[name="prod_precio[]"]')[i].value)||0);
   });
-  const iva=sub*(IVA_PCT/100),tot=sub+iva;totG=tot;
+  const iva=sub*(IVA_PCT/100),tot=sub+iva;totG=tot;subG=sub;
   document.getElementById('lblSub').textContent=fCOP(sub);
   document.getElementById('lblIva').textContent=fCOP(iva);
   document.getElementById('lblTot').textContent=fCOP(tot);
@@ -248,9 +265,15 @@ function calcTot(){
 }
 function calcA(){
   const pct=parseFloat(document.getElementById('pctA').value)||0;
-  const ant=totG*pct/100,sal=totG-ant;
+  const ant=totG*pct/100;
+  const retAp=document.getElementById('retAplica') && document.getElementById('retAplica').checked;
+  const retPct=parseFloat((document.getElementById('retPct')||{}).value)||0;
+  const retMon=retAp ? (subG*retPct/100) : 0;
+  const sal=totG-ant-retMon;
   document.getElementById('montoAVis').value=fCOP(ant);document.getElementById('montoAHid').value=Math.round(ant);
   document.getElementById('saldoVis').value=fCOP(sal);document.getElementById('saldoHid').value=Math.round(sal);
+  const retLbl=document.getElementById('retMontoLbl');
+  if(retLbl) retLbl.textContent=(retAp && retMon>0)?('−'+fCOP(retMon)):'−$ 0';
 }
 function calcEnt(){
   const fa=document.getElementById('fAnticipo').value;const d=parseInt(document.getElementById('diasEnt').value)||30;
