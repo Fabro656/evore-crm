@@ -590,28 +590,68 @@ def register(app):
         obj = Venta.query.get_or_404(id)
         cot_id_vinculada = obj.cotizacion_id
         try:
-            # Liberar stock reservado de productos terminados (ATP)
+            # Liberar stock reservado (productos terminados) y MP
             InventarioService.liberar_reserva_venta(obj)
-            # Devolver stock de materias primas antes de borrar
             InventarioService.devolver_materias_venta(obj.id)
-            ReservaProduccion.query.filter_by(venta_id=obj.id).delete()
-            tenant_query(OrdenProduccion).filter_by(venta_id=obj.id).delete()
-            # Asientos contables: borrar los en borrador (auto-generados sin
-            # pago registrado), desvincular los aprobados (pagos confirmados
-            # → preservar historial fiscal).
+
+            # ── Asientos contables ──
+            # Borrador → eliminar via ORM (cascade a LineaAsiento).
+            # Aprobado → desvincular venta_id=NULL (preservar historial fiscal).
             asientos_v = tenant_query(AsientoContable).filter_by(venta_id=obj.id).all()
             for a in asientos_v:
                 if a.estado_asiento in ('borrador', None):
-                    # Las LineaAsiento se eliminan en cascada (cascade='all, delete-orphan')
-                    db.session.delete(a)
+                    # Borrar PagoVenta vinculados al asiento primero (FK)
+                    PagoVenta.query.filter_by(asiento_id=a.id).delete(synchronize_session=False)
+                    db.session.flush()
+                    db.session.delete(a)  # cascade LineaAsiento
                 else:
                     a.venta_id = None
-            # Pagos de venta (PagoVenta) — borrar
-            PagoVenta.query.filter_by(venta_id=obj.id).delete(synchronize_session=False)
+
+            # ── Reservas y Ordenes de produccion ──
+            # Eliminar reservas de esta venta (incluye las que ref a OPs de la venta)
+            for r in ReservaProduccion.query.filter_by(venta_id=obj.id).all():
+                db.session.delete(r)
+            db.session.flush()
+            # Desvincular reservas que quedaron apuntando a OPs que vamos a borrar
+            op_ids = [o.id for o in tenant_query(OrdenProduccion).filter_by(venta_id=obj.id).all()]
+            if op_ids:
+                for r in ReservaProduccion.query.filter(
+                    ReservaProduccion.orden_produccion_id.in_(op_ids)
+                ).all():
+                    r.orden_produccion_id = None
+                db.session.flush()
+            for o in tenant_query(OrdenProduccion).filter_by(venta_id=obj.id).all():
+                db.session.delete(o)
+
+            # ── Comisiones (FK NOT NULL) ──
+            try:
+                for c in tenant_query(Comision).filter_by(venta_id=obj.id).all():
+                    db.session.delete(c)
+            except Exception: pass
+
+            # ── PagoVenta restantes (no vinculados a asiento eliminado) ──
+            for p in PagoVenta.query.filter_by(venta_id=obj.id).all():
+                db.session.delete(p)
+
+            # ── DocumentoLegal que referencia la venta ──
+            try:
+                for d in tenant_query(DocumentoLegal).filter_by(cliente_id=obj.cliente_id).all():
+                    if d.numero and f'CTR-{obj.numero}' in (d.numero or ''):
+                        d.cliente_id = d.cliente_id  # no-op, dejar referencia
+            except Exception: pass
+
+            # ── Tareas con venta_id ──
+            try:
+                for t in tenant_query(Tarea).filter_by(venta_id=obj.id).all():
+                    t.venta_id = None
+            except Exception: pass
+
             db.session.flush()
         except Exception as e:
-            logging.warning(f'venta_eliminar: cleanup error: {e}')
+            logging.exception(f'venta_eliminar cleanup error: {e}')
             db.session.rollback()
+            flash(f'Error al limpiar referencias de la venta: {e}', 'danger')
+            return redirect(url_for('ventas'))
         db.session.delete(obj)
         db.session.commit()
         # Liberar cotizacion vinculada para que pueda re-convertirse en venta
