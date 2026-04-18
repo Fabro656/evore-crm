@@ -1587,17 +1587,54 @@ def register(app):
              'DELETE FROM gastos_operativos WHERE company_id = :cid'),
         ]
 
+        # Pre-cache columnas existentes por tabla — para skip si no existe
+        cols_cache = {}
+        def _cols(tbl):
+            if tbl not in cols_cache:
+                try:
+                    cols_cache[tbl] = {c['name'] for c in inspector.get_columns(tbl)}
+                except Exception:
+                    cols_cache[tbl] = set()
+            return cols_cache[tbl]
+
+        def _tabla_y_columnas_requeridas(sql):
+            """Extrae tabla target + columnas referenciadas. Retorna None si
+            la query es imposible (tabla o columna inexistente)."""
+            import re as _re
+            s = sql.strip()
+            # UPDATE table SET col = ... WHERE col IN ...
+            m = _re.match(r'UPDATE\s+(\w+)\s+SET\s+(\w+)', s, _re.IGNORECASE)
+            if m:
+                tbl, col = m.group(1), m.group(2)
+                if tbl not in existing: return False
+                if col not in _cols(tbl): return False
+                return True
+            # DELETE FROM table ...
+            m = _re.match(r'DELETE\s+FROM\s+(\w+)', s, _re.IGNORECASE)
+            if m:
+                tbl = m.group(1)
+                if tbl not in existing: return False
+                return True
+            return True
+
         resumen = []
-        try:
-            for nombre, sql in delete_sql:
-                # Saltar si es una tabla que no existe en este deploy
-                if 'DELETE FROM' in sql:
-                    tbl = sql.split('DELETE FROM ')[1].split()[0]
-                    if tbl not in existing:
-                        continue
+        errores = []
+        for nombre, sql in delete_sql:
+            if not _tabla_y_columnas_requeridas(sql):
+                continue
+            # Aislar cada sentencia con savepoint para que un error no
+            # aborte toda la transaccion.
+            sp = db.session.begin_nested()
+            try:
                 r = db.session.execute(db.text(sql), {'cid': cid})
+                sp.commit()
                 if r.rowcount:
                     resumen.append(f'{nombre}: {r.rowcount}')
+            except Exception as _e:
+                sp.rollback()
+                errores.append(f'{nombre}: {_e}')
+                logging.warning(f'reset_contable {nombre}: {_e}')
+        try:
             db.session.commit()
 
             # Resetear secuencias PG para tablas limpiadas (por empresa, no global)
@@ -1632,11 +1669,16 @@ def register(app):
 
             _log('reset', 'contable', 0, f'Reset contable por {current_user.email}: ' + ', '.join(resumen))
             db.session.commit()
-            flash('Reset contable completado. Transacciones borradas: ' + ', '.join(resumen) + '.', 'success')
+            msg = 'Reset contable completado. Transacciones borradas: ' + (', '.join(resumen) if resumen else '(ninguna)') + '.'
+            if errores:
+                msg += ' Advertencias: ' + '; '.join(errores[:3])
+                if len(errores) > 3:
+                    msg += f' (+{len(errores)-3} mas, ver logs)'
+            flash(msg, 'success' if not errores else 'warning')
         except Exception as e:
             db.session.rollback()
-            logging.exception(f'admin_reset_contable error: {e}')
-            flash(f'Error en reset contable: {e}', 'danger')
+            logging.exception(f'admin_reset_contable commit/seq error: {e}')
+            flash(f'Error en commit/secuencias: {e}', 'danger')
 
         return redirect(url_for('contable_index'))
 
