@@ -272,6 +272,50 @@
             </div>
           </div>
           {% endif %}
+          {# Boton estado venta — permite transicionar desde contable (bypassa el _from_contable) #}
+          {% if a.venta %}
+          {% set _transiciones_v = {
+            'prospecto': ['negociacion','anticipo_pagado','cancelado','perdido'],
+            'negociacion': ['prospecto','anticipo_pagado','cancelado','perdido'],
+            'anticipo_pagado': ['negociacion','pagado','cancelado','perdido'],
+            'pagado': ['anticipo_pagado','entregado','completado','cancelado'],
+            'entregado': ['pagado','completado'],
+            'completado': ['entregado'],
+            'cancelado': ['prospecto'],
+            'perdido': ['prospecto'],
+          } %}
+          {% set _perm = _transiciones_v.get(a.venta.estado, []) %}
+          {% set _lbls = {'prospecto':'Prospecto','negociacion':'Negociacion','anticipo_pagado':'Anticipo pagado','pagado':'Pagado','entregado':'Entregado','completado':'Completado','cancelado':'Cancelado','perdido':'Perdido'} %}
+          <div class="dropdown dropup d-inline-block">
+            <button class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.75rem" title="Cambiar estado de la venta">
+              <i class="bi bi-tag me-1"></i>{{ _lbls.get(a.venta.estado, a.venta.estado) }}
+            </button>
+            <ul class="dropdown-menu" style="font-size:.8rem;min-width:200px">
+              <li><h6 class="dropdown-header">Estado venta {{ a.venta.numero or '#'~a.venta.id }}</h6></li>
+              {% if _perm %}
+                {% for _e in _perm %}
+                <li>
+                  <form method="POST" action="{{ url_for('venta_cambiar_estado', id=a.venta.id) }}" class="m-0">
+                    <input type="hidden" name="estado" value="{{ _e }}">
+                    <input type="hidden" name="_from_contable" value="1">
+                    <button type="submit" class="dropdown-item" onclick="return confirm('Cambiar estado a {{ _lbls.get(_e, _e) }}?')">
+                      {% if _e in ('cancelado','perdido') %}<i class="bi bi-x-circle me-2 text-danger"></i>
+                      {% elif _e in ('anticipo_pagado','pagado') %}<i class="bi bi-arrow-up-circle me-2 text-success"></i>
+                      {% elif _e in ('entregado','completado') %}<i class="bi bi-check2-all me-2 text-success"></i>
+                      {% else %}<i class="bi bi-arrow-right-circle me-2 text-muted"></i>{% endif %}
+                      {{ _lbls.get(_e, _e) }}
+                    </button>
+                  </form>
+                </li>
+                {% endfor %}
+              {% else %}
+                <li><span class="dropdown-item-text text-muted">Sin transiciones disponibles</span></li>
+              {% endif %}
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="{{ url_for('venta_ver', id=a.venta.id) }}"><i class="bi bi-box-arrow-up-right me-2"></i>Ver venta</a></li>
+            </ul>
+          </div>
+          {% endif %}
           {% if es_ingreso and a.venta_id and a.estado_pago != 'completo' %}
           <div class="dropdown dropup d-inline-block">
             <button class="btn btn-sm btn-success dropdown-toggle" data-bs-toggle="dropdown" style="font-size:.75rem"><i class="bi bi-check-circle me-1"></i>{{ _label_btn }}</button>

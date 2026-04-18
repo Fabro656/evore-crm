@@ -619,14 +619,16 @@ def register(app):
             'perdido': ['prospecto'],
         }
         permitidos = TRANSICIONES.get(estado_anterior, [])
-        if nuevo not in permitidos and current_user.rol != 'admin':
+        is_from_contable = bool(request.form.get('_from_contable'))
+        # _from_contable bypasa el state machine — contable es fuente autoritativa
+        if nuevo not in permitidos and current_user.rol != 'admin' and not is_from_contable:
             flash(f'No se puede cambiar de "{estado_anterior}" a "{nuevo}". Transiciones validas: {", ".join(permitidos)}', 'warning')
             return redirect(url_for('ventas'))
 
         # Restringir: anticipo_pagado solo se puede marcar desde asientos contables
         # (a menos que venga con flag _from_contable en el form)
         if nuevo == 'anticipo_pagado' and estado_anterior in ('prospecto', 'negociacion'):
-            if not request.form.get('_from_contable'):
+            if not is_from_contable:
                 flash('El pago de anticipo solo se puede confirmar desde Asientos Contables (seccion Ingresos).', 'warning')
                 return redirect(url_for('ventas'))
 
@@ -916,6 +918,9 @@ def register(app):
             f'style="color:#fff;text-decoration:underline;font-weight:700">Deshacer</a>',
             'success'
         )
+        # Si vino desde contable, volver alla
+        if is_from_contable:
+            return redirect(url_for('contable_asientos', vista='generados'))
         return redirect(url_for('ventas'))
 
 
