@@ -1512,6 +1512,145 @@ def register(app):
 
         return redirect(url_for('dashboard'))
 
+
+    # ── admin_reset_contable (/admin/reset-contable) ──────────────────────────
+    @app.route('/admin/reset-contable', methods=['POST'])
+    @login_required
+    def admin_reset_contable():
+        """Borra transacciones huerfanas y resetea secuencias: ventas,
+        cotizaciones, OCs, asientos, reservas, OPs. Preserva: clientes,
+        proveedores, productos, empleados, PUC, config."""
+        from werkzeug.security import check_password_hash
+        if current_user.rol not in ('admin', 'director_financiero'):
+            flash('Acceso denegado.', 'danger')
+            return redirect(url_for('contable_index'))
+
+        password_confirm = request.form.get('password_confirm', '')
+        if not check_password_hash(current_user.password_hash, password_confirm):
+            flash('Contrasena incorrecta. Reset no ejecutado.', 'danger')
+            return redirect(url_for('contable_index'))
+
+        cid = getattr(g, 'company_id', None) or current_user.company_id
+        if not cid:
+            flash('No se pudo determinar empresa activa.', 'danger')
+            return redirect(url_for('contable_index'))
+
+        from sqlalchemy import inspect as sa_inspect
+        inspector = sa_inspect(db.engine)
+        existing = set(inspector.get_table_names())
+
+        # Orden FK-safe: hijos antes que padres
+        delete_sql = [
+            # Lineas de asiento (hijos de asientos)
+            ('lineas_asiento',
+             'DELETE FROM lineas_asiento WHERE asiento_id IN (SELECT id FROM asientos_contables WHERE company_id = :cid)'),
+            # Hijos de venta
+            ('pagos_venta',
+             'DELETE FROM pagos_venta WHERE venta_id IN (SELECT id FROM ventas WHERE company_id = :cid)'),
+            ('comisiones',
+             'DELETE FROM comisiones WHERE venta_id IN (SELECT id FROM ventas WHERE company_id = :cid)'),
+            ('venta_productos',
+             'DELETE FROM venta_productos WHERE venta_id IN (SELECT id FROM ventas WHERE company_id = :cid)'),
+            ('reservas_produccion',
+             'DELETE FROM reservas_produccion WHERE company_id = :cid'),
+            ('ordenes_produccion',
+             'DELETE FROM ordenes_produccion WHERE company_id = :cid'),
+            # Hijos de cotizacion
+            ('cotizacion_items',
+             'DELETE FROM cotizacion_items WHERE cotizacion_id IN (SELECT id FROM cotizaciones WHERE company_id = :cid)'),
+            ('historial_cotizaciones',
+             'DELETE FROM historial_cotizaciones WHERE cotizacion_id IN (SELECT id FROM cotizaciones WHERE company_id = :cid)'),
+            # Hijos de OC
+            ('ordenes_compra_items',
+             'DELETE FROM ordenes_compra_items WHERE orden_id IN (SELECT id FROM ordenes_compra WHERE company_id = :cid)'),
+            # Desvincular FKs opcionales antes de borrar padres
+            ('tareas_venta_null',
+             'UPDATE tareas SET venta_id = NULL WHERE venta_id IN (SELECT id FROM ventas WHERE company_id = :cid)'),
+            ('tareas_oc_null',
+             'UPDATE tareas SET orden_compra_id = NULL WHERE orden_compra_id IN (SELECT id FROM ordenes_compra WHERE company_id = :cid)'),
+            ('docs_legales_oc',
+             'UPDATE documentos_legales SET orden_compra_id = NULL WHERE orden_compra_id IN (SELECT id FROM ordenes_compra WHERE company_id = :cid)'),
+            ('oc_venta_origen',
+             'UPDATE ordenes_compra SET venta_origen_id = NULL WHERE venta_origen_id IN (SELECT id FROM ventas WHERE company_id = :cid)'),
+            # Ahora si: padres
+            ('asientos_contables',
+             'DELETE FROM asientos_contables WHERE company_id = :cid'),
+            ('ventas',
+             'DELETE FROM ventas WHERE company_id = :cid'),
+            ('cotizaciones',
+             'DELETE FROM cotizaciones WHERE company_id = :cid'),
+            ('pre_cotizaciones',
+             'DELETE FROM pre_cotizaciones WHERE company_id = :cid'),
+            ('ordenes_compra',
+             'DELETE FROM ordenes_compra WHERE company_id = :cid'),
+            ('cotizaciones_proveedor',
+             'DELETE FROM cotizaciones_proveedor WHERE company_id = :cid'),
+            ('compras_materia',
+             'DELETE FROM compras_materia WHERE company_id = :cid'),
+            ('movimientos_bancarios',
+             'DELETE FROM movimientos_bancarios WHERE company_id = :cid'),
+            ('notas_contables',
+             'DELETE FROM notas_contables WHERE company_id = :cid'),
+            ('gastos_operativos',
+             'DELETE FROM gastos_operativos WHERE company_id = :cid'),
+        ]
+
+        resumen = []
+        try:
+            for nombre, sql in delete_sql:
+                # Saltar si es una tabla que no existe en este deploy
+                if 'DELETE FROM' in sql:
+                    tbl = sql.split('DELETE FROM ')[1].split()[0]
+                    if tbl not in existing:
+                        continue
+                r = db.session.execute(db.text(sql), {'cid': cid})
+                if r.rowcount:
+                    resumen.append(f'{nombre}: {r.rowcount}')
+            db.session.commit()
+
+            # Resetear secuencias PG para tablas limpiadas (por empresa, no global)
+            # Solo aplica en PostgreSQL — SQLite auto-adjusts
+            # Nota: en multi-tenant, la secuencia es global — el reset afecta
+            # a todas las empresas. Solo resetear si la tabla quedo vacia.
+            seq_candidates = [
+                ('ventas', 'ventas_id_seq'),
+                ('cotizaciones', 'cotizaciones_id_seq'),
+                ('ordenes_compra', 'ordenes_compra_id_seq'),
+                ('asientos_contables', 'asientos_contables_id_seq'),
+                ('pagos_venta', 'pagos_venta_id_seq'),
+                ('comisiones', 'comisiones_id_seq'),
+                ('reservas_produccion', 'reservas_produccion_id_seq'),
+                ('ordenes_produccion', 'ordenes_produccion_id_seq'),
+                ('cotizaciones_proveedor', 'cotizaciones_proveedor_id_seq'),
+                ('compras_materia', 'compras_materia_id_seq'),
+                ('gastos_operativos', 'gastos_operativos_id_seq'),
+            ]
+            for tbl, seq in seq_candidates:
+                if tbl not in existing:
+                    continue
+                try:
+                    count = db.session.execute(db.text(f'SELECT COUNT(*) FROM {tbl}')).scalar()
+                    if count == 0:
+                        # Reset secuencia a 1 solo si la tabla esta vacia globalmente
+                        try:
+                            db.session.execute(db.text(f'ALTER SEQUENCE {seq} RESTART WITH 1'))
+                        except Exception:
+                            pass  # SQLite o permisos
+                except Exception:
+                    pass
+            db.session.commit()
+
+            _log('reset', 'contable', 0, f'Reset contable por {current_user.email}: ' + ', '.join(resumen))
+            db.session.commit()
+            flash('Reset contable completado. Transacciones borradas: ' + ', '.join(resumen) + '.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            logging.exception(f'admin_reset_contable error: {e}')
+            flash(f'Error en reset contable: {e}', 'danger')
+
+        return redirect(url_for('contable_index'))
+
+
     # ══════════════════════════════════════════════════════════════
     # MARKETPLACE BANNERS (Evore admin only)
     # ══════════════════════════════════════════════════════════════
