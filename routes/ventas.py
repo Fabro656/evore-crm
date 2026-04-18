@@ -414,14 +414,16 @@ def register(app):
             try:
                 _save_items(v); db.session.flush()
                 _procesar_venta_produccion(v)
-                # Auto-crear asiento contable al EMITIR la venta — reconoce la
-                # DEUDA TOTAL del cliente (no solo el anticipo). El cobro se
-                # registra aparte al confirmar el pago.
-                # Un solo asiento por el total: DEBE 1305 Clientes / HABER 4135.
-                # El IVA queda implicito en el ingreso (clase 4) — para separar
-                # IVA como pasivo 2408 se requiere refactor multi-linea (v37+).
+                # Auto-crear asiento contable al EMITIR la venta con multi-linea:
+                #   DEBE 1305 Clientes        = total
+                #   HABER 4135 Ingresos        = base (subtotal sin IVA)
+                #   HABER 2408 IVA por pagar   = iva
+                # Asi el IVA queda correctamente como pasivo y el balance cuadra.
+                # El cobro se registra aparte al confirmar el pago.
                 try:
                     total_v = float(v.total or 0)
+                    base_v  = float(v.subtotal or 0)
+                    iva_v   = float(v.iva or 0)
                     if total_v > 0:
                         asiento_venta = AsientoContable(
                             company_id=getattr(g, 'company_id', None),
@@ -431,8 +433,8 @@ def register(app):
                             tipo='venta',
                             subtipo='ingreso_venta',
                             referencia=v.numero,
-                            debe=total_v,
-                            haber=total_v,
+                            # Legacy fields (representativos — la verdad esta en LineaAsiento)
+                            debe=total_v, haber=total_v,
                             cuenta_debe='1305 Clientes',
                             cuenta_haber='4135 Comercio al por mayor y menor',
                             clasificacion='ingreso',
@@ -444,6 +446,29 @@ def register(app):
                         db.session.add(asiento_venta)
                         db.session.flush()
                         asiento_venta.numero = f'AC-{hoy.year}-{asiento_venta.id:04d}'
+
+                        # Crear LineaAsiento para reflejar el desglose real
+                        puc_1305 = CuentaPUC.query.filter_by(codigo='1305').first()
+                        puc_4135 = CuentaPUC.query.filter_by(codigo='4135').first()
+                        puc_2408 = CuentaPUC.query.filter_by(codigo='2408').first()
+                        # DEBE: 1305 Clientes por el TOTAL
+                        if puc_1305:
+                            db.session.add(LineaAsiento(
+                                asiento_id=asiento_venta.id, cuenta_puc_id=puc_1305.id,
+                                descripcion=f'CxC {v.numero}', debe=total_v, haber=0, orden=1
+                            ))
+                        # HABER: 4135 Ingresos por la BASE (sin IVA)
+                        if puc_4135 and base_v > 0:
+                            db.session.add(LineaAsiento(
+                                asiento_id=asiento_venta.id, cuenta_puc_id=puc_4135.id,
+                                descripcion=f'Ingreso base {v.numero}', debe=0, haber=base_v, orden=2
+                            ))
+                        # HABER: 2408 IVA por pagar (si aplica)
+                        if puc_2408 and iva_v > 0:
+                            db.session.add(LineaAsiento(
+                                asiento_id=asiento_venta.id, cuenta_puc_id=puc_2408.id,
+                                descripcion=f'IVA generado {v.numero}', debe=0, haber=iva_v, orden=3
+                            ))
                 except Exception as ex_ac:
                     logging.warning(f'venta_nueva: auto-asiento ingreso error: {ex_ac}')
                 db.session.commit()

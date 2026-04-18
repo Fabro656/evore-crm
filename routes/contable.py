@@ -895,17 +895,15 @@ def register(app):
         mes_ini = date_type(anio, mes, 1)
         mes_fin = date_type(anio, mes, monthrange(anio, mes)[1])
 
-        # Acumular por cuenta_puc_id — solo desde legacy (LineaAsiento es
-        # redundante con legacy en este CRM y agregar ambas duplica)
+        # Acumular por cuenta_puc_id: LineaAsiento si existe, si no legacy
         totales = {}  # puc_id -> [total_debe, total_haber]
 
-        legacy = tenant_query(AsientoContable).filter(
+        asientos = tenant_query(AsientoContable).filter(
             AsientoContable.fecha >= mes_ini,
             AsientoContable.fecha <= mes_fin,
             db.or_(AsientoContable.estado_asiento.is_(None),
                    AsientoContable.estado_asiento != 'anulado')
         ).all()
-        # Cache codigo -> cuenta_puc_id
         cache_codigo_puc = {}
         def _puc_id_por_codigo(codigo):
             if codigo in cache_codigo_puc:
@@ -913,7 +911,13 @@ def register(app):
             c = CuentaPUC.query.filter_by(codigo=codigo).first()
             cache_codigo_puc[codigo] = c.id if c else None
             return cache_codigo_puc[codigo]
-        for a in legacy:
+        for a in asientos:
+            if a.lineas:
+                for la in a.lineas:
+                    totales.setdefault(la.cuenta_puc_id, [0.0, 0.0])
+                    totales[la.cuenta_puc_id][0] += float(la.debe or 0)
+                    totales[la.cuenta_puc_id][1] += float(la.haber or 0)
+                continue
             cd_txt = (a.cuenta_debe or '').strip()
             ch_txt = (a.cuenta_haber or '').strip()
             if cd_txt and a.debe:
@@ -950,8 +954,9 @@ def register(app):
     @requiere_modulo('finanzas')
     def contable_balance_general():
         """Balance General — Activos = Pasivos + Patrimonio.
-        Construye saldos por cuenta iterando todos los asientos y parseando
-        el codigo PUC del texto cuenta_debe/cuenta_haber."""
+        Estrategia: si un asiento tiene LineaAsiento (multi-linea), usa esas
+        lineas como fuente autoritativa. Si no, parsea los campos legacy
+        cuenta_debe/cuenta_haber. Evita doble conteo y respeta IVA separado."""
         import re as _re
         corte = request.args.get('corte', date_type.today().isoformat())
         try:
@@ -959,7 +964,7 @@ def register(app):
         except Exception:
             fecha_corte = date_type.today()
 
-        # Acumulador por codigo PUC: codigo → [debe_acumulado, haber_acumulado]
+        # Acumulador por codigo PUC
         saldos_por_codigo = {}
 
         asientos = tenant_query(AsientoContable).filter(
@@ -968,7 +973,20 @@ def register(app):
                    AsientoContable.estado_asiento != 'anulado')
         ).all()
 
+        # Pre-cargar mapa puc_id → codigo para evitar N+1
+        _puc_code_map = {c.id: c.codigo for c in CuentaPUC.query.all()}
+
         for a in asientos:
+            # Si tiene LineaAsiento, es la fuente autoritativa (multi-linea IVA etc)
+            if a.lineas:
+                for la in a.lineas:
+                    codigo = _puc_code_map.get(la.cuenta_puc_id)
+                    if not codigo: continue
+                    saldos_por_codigo.setdefault(codigo, [0.0, 0.0])
+                    saldos_por_codigo[codigo][0] += float(la.debe or 0)
+                    saldos_por_codigo[codigo][1] += float(la.haber or 0)
+                continue
+            # Sin LineaAsiento → parsear campos legacy
             cd = (a.cuenta_debe or '').strip()
             ch = (a.cuenta_haber or '').strip()
             monto_d = float(a.debe or 0)
@@ -1075,18 +1093,31 @@ def register(app):
         mes_fin = date_type(anio, mes, monthrange(anio, mes)[1])
 
         def _total_clase(prefijo):
-            # Solo legacy — LineaAsiento es redundante (mismo monto, duplica)
-            ac_td = tenant_query(AsientoContable).filter(
+            # LineaAsiento si existe, legacy si no — evita doble conteo
+            td = th = 0.0
+            asientos_per = tenant_query(AsientoContable).filter(
                 AsientoContable.fecha >= mes_ini, AsientoContable.fecha <= mes_fin,
-                db.or_(AsientoContable.estado_asiento.is_(None), AsientoContable.estado_asiento != 'anulado'),
-                AsientoContable.cuenta_debe.like(f'{prefijo}%')
-            ).with_entities(db.func.coalesce(db.func.sum(AsientoContable.debe), 0)).scalar() or 0
-            ac_th = tenant_query(AsientoContable).filter(
-                AsientoContable.fecha >= mes_ini, AsientoContable.fecha <= mes_fin,
-                db.or_(AsientoContable.estado_asiento.is_(None), AsientoContable.estado_asiento != 'anulado'),
-                AsientoContable.cuenta_haber.like(f'{prefijo}%')
-            ).with_entities(db.func.coalesce(db.func.sum(AsientoContable.haber), 0)).scalar() or 0
-            return float(ac_td), float(ac_th)
+                db.or_(AsientoContable.estado_asiento.is_(None),
+                       AsientoContable.estado_asiento != 'anulado')
+            ).all()
+            # Cargar codigos PUC para las lineas
+            puc_ids_prefix = {c.id for c in CuentaPUC.query.filter(
+                CuentaPUC.codigo.startswith(prefijo)
+            ).all()}
+            for a in asientos_per:
+                if a.lineas:
+                    for la in a.lineas:
+                        if la.cuenta_puc_id in puc_ids_prefix:
+                            td += float(la.debe or 0)
+                            th += float(la.haber or 0)
+                    continue
+                cd = (a.cuenta_debe or '').strip()
+                ch = (a.cuenta_haber or '').strip()
+                if cd.startswith(prefijo):
+                    td += float(a.debe or 0)
+                if ch.startswith(prefijo):
+                    th += float(a.haber or 0)
+            return td, th
 
         td4, th4 = _total_clase('4')
         ingresos = th4 - td4  # Clase 4: naturaleza crédito
