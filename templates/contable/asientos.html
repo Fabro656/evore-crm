@@ -170,14 +170,15 @@
             {% if a.proveedor %}<div class="text-muted"><i class="bi bi-truck me-1"></i>{{ a.proveedor.nombre }}</div>{% endif %}
             {% if a.referencia and not a.orden_compra and not a.venta %}<div class="text-muted">{{ a.referencia }}</div>{% endif %}
           </div>
-          {# monto grande: total + recibido #}
+          {# monto grande: total + recibido + saldo #}
+          {% set _saldo_pendiente = (monto or 0) - (a.monto_pagado or 0) %}
           <div style="border-top:1px dashed var(--border);padding-top:.6rem">
             <div class="d-flex align-items-baseline justify-content-between mb-1">
               <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.5px">Total</div>
               <div class="fw-bold" style="font-size:1.1rem;color:{{ color }}">{{ moneda2(monto or 0) }}</div>
             </div>
             {% if a.estado_pago in ('parcial','completo') %}
-            <div class="d-flex align-items-baseline justify-content-between mb-2">
+            <div class="d-flex align-items-baseline justify-content-between mb-1">
               <div class="text-muted d-flex align-items-center gap-1" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.5px">
                 <i class="bi bi-wallet2"></i>Recibido
               </div>
@@ -188,6 +189,16 @@
                         onclick="abrirEditarRecibido({{ a.id }}, '{{ a.numero or ('#'~a.id) }}', {{ (a.monto_pagado or 0)|round(2) }}, {{ (monto or 0)|round(2) }}, '{{ a.fecha_pago.isoformat() if a.fecha_pago else '' }}', '{{ a.metodo_pago or '' }}', '{{ (a.banco_nombre or '')|replace("'","\\'") }}', '{{ (a.nro_transaccion or '')|replace("'","\\'") }}')">
                   <i class="bi bi-pencil"></i>
                 </button>
+              </div>
+            </div>
+            {% endif %}
+            {% if _saldo_pendiente > 0.01 %}
+            <div class="d-flex align-items-baseline justify-content-between mb-2">
+              <div class="text-muted d-flex align-items-center gap-1" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.5px">
+                <i class="bi bi-hourglass-split"></i>{{ 'Saldo a recibir' if es_ingreso else 'Saldo a pagar' }}
+              </div>
+              <div class="fw-semibold" style="font-size:.95rem;color:{% if es_ingreso %}var(--orange){% else %}var(--red){% endif %}">
+                {{ moneda2(_saldo_pendiente) }}
               </div>
             </div>
             {% endif %}
