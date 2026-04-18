@@ -37,27 +37,33 @@ def register(app):
             d = (hoy.replace(day=1) - timedelta(days=i * 28)).replace(day=1)
             meses_nav.append({'val': d.strftime('%Y-%m'), 'lbl': d.strftime('%b %Y')})
 
-        # ── Ingresos: ventas pagadas del mes ──────────────────────────────────
+        # ── Ventas emitidas en el mes (informativo) ───────────────────────────
         ventas_mes = tenant_query(Venta).filter(
-            Venta.estado.in_(['pagado', 'anticipo_pagado', 'completado']),
             db.func.date(Venta.creado_en) >= mes_ini,
-            db.func.date(Venta.creado_en) <= mes_fin
+            db.func.date(Venta.creado_en) <= mes_fin,
+            Venta.estado.notin_(['cancelado', 'perdido'])
         ).all()
-        total_ingresos = sum(float(v.total or 0) for v in ventas_mes)
+        total_ventas = sum(float(v.total or 0) for v in ventas_mes)  # facturado
         total_anticipo = sum(float(v.monto_anticipo or 0) for v in ventas_mes)
 
-        # Asientos manuales de ingreso del mes (excluyendo inversiones de socio)
+        # ── Ingresos reales: dinero efectivamente recibido en el mes ─────────
+        # Usa monto_pagado de asientos ingreso confirmados (parcial/completo)
+        # cuya fecha_pago (o fecha si no hay) cae en el mes.
         try:
-            asientos_ingreso = tenant_query(AsientoContable).filter(
+            asientos_ingreso_all = tenant_query(AsientoContable).filter(
                 AsientoContable.clasificacion == 'ingreso',
-                AsientoContable.tipo != 'inversion_socio',  # Excluir aportaciones de capital
-                AsientoContable.fecha >= mes_ini,
-                AsientoContable.fecha <= mes_fin
+                AsientoContable.tipo != 'inversion_socio',
+                AsientoContable.estado_pago.in_(['parcial', 'completo'])
             ).all()
-            total_ingresos_manual = sum(float(a.haber or 0) for a in asientos_ingreso)
-            total_ingresos += total_ingresos_manual
+            def _fecha_cobro(a):
+                return a.fecha_pago or a.fecha
+            asientos_ingreso = [a for a in asientos_ingreso_all
+                                if _fecha_cobro(a) and mes_ini <= _fecha_cobro(a) <= mes_fin]
+            total_ingresos = sum(float(a.monto_pagado or a.haber or 0) for a in asientos_ingreso)
         except Exception:
+            db.session.rollback()
             asientos_ingreso = []
+            total_ingresos = 0
 
         # ── Egresos: gastos operativos (ya incluyen compras de materia prima) ──
         # NOTA: _save_compra() crea GastoOperativo automáticamente por cada compra,
@@ -110,6 +116,7 @@ def register(app):
         return render_template('contable/index.html',
             meses_nav=meses_nav, mes_str=mes_str, mes=mes_num, anio=anio,
             total_ingresos=total_ingresos, total_anticipo=total_anticipo,
+            total_ventas=total_ventas,
             total_egresos=total_egresos, total_gastos=total_gastos,
             total_compras=total_compras, utilidad=utilidad,
             total_impuestos=total_impuestos, detalle_impuestos=detalle_impuestos,

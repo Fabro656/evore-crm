@@ -10,9 +10,9 @@
 {# ── Fila 1: indicadores principales ─────────────────── #}
 <div class="row g-3 mb-3">
   <div class="col-6 col-md-3"><div class="fc text-center py-3">
-    <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Ingresos del mes</div>
+    <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Ingresos recibidos</div>
     <div class="fw-bold mt-1" style="font-size:1.35rem;color:var(--green)">$ {{ '{:,.0f}'.format(total_ingresos).replace(',','.') }}</div>
-    <small class="text-muted">{{ ventas_mes|length }} venta(s)</small>
+    <small class="text-muted">Efectivo cobrado este mes</small>
   </div></div>
   <div class="col-6 col-md-3"><div class="fc text-center py-3">
     <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Egresos del mes</div>
@@ -47,8 +47,9 @@
     <div class="fw-bold mt-1" style="font-size:1.2rem;color:var(--ac)">$ {{ '{:,.0f}'.format(inventario_valor).replace(',','.') }}</div>
   </div></div>
   <div class="col-6 col-md-3"><div class="fc text-center py-3">
-    <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Anticipo cobrado</div>
-    <div class="fw-bold mt-1" style="font-size:1.2rem;color:var(--ac)">$ {{ '{:,.0f}'.format(total_anticipo).replace(',','.') }}</div>
+    <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Ventas emitidas</div>
+    <div class="fw-bold mt-1" style="font-size:1.2rem;color:var(--ac)">$ {{ '{:,.0f}'.format(total_ventas).replace(',','.') }}</div>
+    <small class="text-muted">{{ ventas_mes|length }} venta(s) facturada(s)</small>
   </div></div>
 </div>
 {# ── Desglose de impuestos ──────────────────────────────── #}
