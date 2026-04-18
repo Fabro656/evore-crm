@@ -913,12 +913,13 @@ def register(app):
             totales[cuenta_id][0] += float(td or 0)
             totales[cuenta_id][1] += float(th or 0)
 
-        # 2) Desde AsientoContable legacy — parsea el codigo PUC del texto
+        # 2) Desde AsientoContable legacy SIN LineaAsiento (evita doble conteo)
         legacy = tenant_query(AsientoContable).filter(
             AsientoContable.fecha >= mes_ini,
             AsientoContable.fecha <= mes_fin,
             db.or_(AsientoContable.estado_asiento.is_(None),
-                   AsientoContable.estado_asiento != 'anulado')
+                   AsientoContable.estado_asiento != 'anulado'),
+            ~AsientoContable.lineas.any()
         ).all()
         # Cache codigo -> cuenta_puc_id
         cache_codigo_puc = {}
@@ -988,16 +989,19 @@ def register(app):
             la = q_la.first()
             td = float(la[0] or 0)
             th = float(la[1] or 0)
-            # 2) Desde campos legacy de AsientoContable (cuenta_debe/cuenta_haber con codigo PUC)
+            # 2) Desde campos legacy de AsientoContable SOLO para asientos SIN
+            # LineaAsiento (evita doble conteo cuando existen ambas fuentes).
             ac_debe_val = tenant_query(AsientoContable).filter(
                 AsientoContable.fecha <= fecha_corte,
                 db.or_(AsientoContable.estado_asiento.is_(None), AsientoContable.estado_asiento != 'anulado'),
-                AsientoContable.cuenta_debe.like(f'{prefijo}%')
+                AsientoContable.cuenta_debe.like(f'{prefijo}%'),
+                ~AsientoContable.lineas.any()
             ).with_entities(db.func.coalesce(db.func.sum(AsientoContable.debe), 0)).scalar() or 0
             ac_haber_val = tenant_query(AsientoContable).filter(
                 AsientoContable.fecha <= fecha_corte,
                 db.or_(AsientoContable.estado_asiento.is_(None), AsientoContable.estado_asiento != 'anulado'),
-                AsientoContable.cuenta_haber.like(f'{prefijo}%')
+                AsientoContable.cuenta_haber.like(f'{prefijo}%'),
+                ~AsientoContable.lineas.any()
             ).with_entities(db.func.coalesce(db.func.sum(AsientoContable.haber), 0)).scalar() or 0
             return td + float(ac_debe_val), th + float(ac_haber_val)
 
@@ -1055,16 +1059,18 @@ def register(app):
             la = q_la.first()
             td = float(la[0] or 0)
             th = float(la[1] or 0)
-            # 2) Legacy AsientoContable fields
+            # 2) Legacy AsientoContable SIN LineaAsiento (evita doble conteo)
             ac_td = tenant_query(AsientoContable).filter(
                 AsientoContable.fecha >= mes_ini, AsientoContable.fecha <= mes_fin,
                 db.or_(AsientoContable.estado_asiento.is_(None), AsientoContable.estado_asiento != 'anulado'),
-                AsientoContable.cuenta_debe.like(f'{prefijo}%')
+                AsientoContable.cuenta_debe.like(f'{prefijo}%'),
+                ~AsientoContable.lineas.any()
             ).with_entities(db.func.coalesce(db.func.sum(AsientoContable.debe), 0)).scalar() or 0
             ac_th = tenant_query(AsientoContable).filter(
                 AsientoContable.fecha >= mes_ini, AsientoContable.fecha <= mes_fin,
                 db.or_(AsientoContable.estado_asiento.is_(None), AsientoContable.estado_asiento != 'anulado'),
-                AsientoContable.cuenta_haber.like(f'{prefijo}%')
+                AsientoContable.cuenta_haber.like(f'{prefijo}%'),
+                ~AsientoContable.lineas.any()
             ).with_entities(db.func.coalesce(db.func.sum(AsientoContable.haber), 0)).scalar() or 0
             return td + float(ac_td), th + float(ac_th)
 
